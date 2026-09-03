@@ -2,13 +2,13 @@
  *  everything is in `state`; this file only forwards commands and drains events. */
 import {
   SimState, SimEvent, Command, SimConfig, DEFAULT_CONFIG, generateMap, createState, advance, takeEvents,
-  Bot, createBot, botCommands, Policy, POLICIES, protoCalibrated,
+  Bot, createBot, botCommands, Policy, POLICIES, protoCalibrated, ensureFlow, advanceFlow,
 } from '@relight/sim';
 import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } from './telemetry';
 
 /** `state` names a snapshot: a bare name resolves to /snapshots/<name>.json (shipped with the proto), a path or URL
  *  is fetched as is. A snapshot is a raw SimState, or a telemetry export (whose `finalState` is taken). */
-export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | null; player: string; state: string | null; view: 'map' | 'world' }
+export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean }
 
 export function parseUrl(search: string): UrlParams {
   const q = new URLSearchParams(search);
@@ -22,6 +22,7 @@ export function parseUrl(search: string): UrlParams {
     player: q.get('player') ?? '',
     state: q.get('state') || null,
     view: q.get('view') === 'world' ? 'world' : 'map',
+    flow: q.get('flow') !== '0',
   };
 }
 
@@ -33,6 +34,7 @@ export function shareUrl(p: UrlParams): string {
     if (!p.economy) q.set('economy', '0');
     if (!p.scatter) q.set('scatter', '0');
   }
+  if (!p.flow) q.set('flow', '0');
   const u = new URL(location.href);
   u.search = q.toString();
   return u.toString();
@@ -87,6 +89,10 @@ export function createSession(params: UrlParams, snapshot: SimState | null = nul
     const spec = generateMap(params.seed, config);
     state = createState(spec, config, params.seed);
   }
+  // GAME-ASSUMPTION (M2): the tile flow layer is on for every session unless ?flow=0 (bot comparisons against the
+  // block-only calibration runs). Turning it on retires the HQ's Mk1 stand-in: hour one's magazines come from the
+  // line the player builds on the HQ lot, or from hand-crafting (D-P4-5). A block-only snapshot gets its flow here.
+  if (params.flow) ensureFlow(state);
   const scenario = snapshot ? 'B' : 'A';
   const tel = createTelemetry(state, location.href, params.player, scenario, snapshot ? params.state : null);
   tel.speeds.push({ t: state.t, realTime: 0, speed: state.speed });
@@ -111,7 +117,7 @@ export function frame(s: Session, realDt: number): SimEvent[] {
   const playerClaims = new Set(cmds.filter(c => c.type === 'claim').map(c => `${(c as { x: number }).x},${(c as { y: number }).y}`));
   let playerBuilds = cmds.filter(c => c.type === 'addAssembler').length;   // player commands are applied first, in order
   if (s.bot) botCommands(s.state, s.bot, cmds);   // player commands first, then the bot's (dev aid only)
-  advance(s.state, realDt, cmds);
+  if (s.state.flow) advanceFlow(s.state, realDt, cmds); else advance(s.state, realDt, cmds);
   const events = takeEvents(s.state);
   for (const ev of events) {
     let src: 'player' | 'bot' = 'player';
@@ -132,7 +138,7 @@ export function runTicks(s: Session, ticks: number): SimEvent[] {
     cmds.length = 0;
     if (s.pending.length) { cmds.push(...s.pending); s.pending = []; }
     if (s.bot) botCommands(s.state, s.bot, cmds);
-    advance(s.state, 1 / Math.max(1, s.state.speed), cmds);
+    if (s.state.flow) advanceFlow(s.state, 1 / Math.max(1, s.state.speed), cmds); else advance(s.state, 1 / Math.max(1, s.state.speed), cmds);
     for (const ev of takeEvents(s.state)) { recordEvent(s.telemetry, ev, s.bot ? 'bot' : 'player'); all.push(ev); }
     recordPips(s.telemetry, s.state);
     while (s.state.t >= s.lastMinute + 60) { s.lastMinute += 60; recordMinute(s.telemetry, s.state); }

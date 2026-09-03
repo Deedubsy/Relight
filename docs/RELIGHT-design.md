@@ -252,8 +252,8 @@ Nothing is more than two steps from a raw.
 
 | Machine | Tiles | Power | Rate / notes | Unlock |
 |---|---|---|---|---|
-| Excavator | 3×3 | 60 kW | mines a 5×5 area under it at 0.5/s | start |
-| Assembler | 3×3 | 100 kW | any intermediate recipe | start |
+| Excavator | 3×3 | 60 kW | mines a 5×5 area under it at 0.5/s **[sim: M2-rates]** | start |
+| Assembler | 3×3 | 100 kW | any intermediate recipe (Shot magazine: 2 steel + 1 Cu in 3 s, 20 mag/min **[sim: M2-rates]**) | start |
 | Generator | 2×2 | — | 300 kW from coal or fuel | start |
 | Mixer | 2×2 | 150 kW | stone → concrete | Concrete crew |
 | Gun turret | 2×2 | none | range 9, 5 rounds/s, 50-round hopper | start |
@@ -263,8 +263,8 @@ Nothing is more than two steps from a raw.
 | Barricade | 1×1 | none | 200 HP, blocks crawlers, slows hulks | Concrete crew |
 | Pole | 1×1 | — | reach 8, supplies 7×7 | start |
 | Big pole | 2×2 | — | reach 12, supplies 3×3 | Electricians |
-| Belt / Fast belt | 1×1 | — | 8/s · 16/s | start / Foundry |
-| Inserter | 1×1 | 10 kW | 1 item/s | start |
+| Belt / Fast belt | 1×1 | — | 7.5/s **[sim: M2-rates]** · 15/s | start / Foundry |
+| Inserter | 1×1 | 10 kW | 1 item/s **[sim: M2-rates]** | start |
 | Splitter | 1×2 | — | with priority side | start |
 | Underground pair | 1×1 ×2 | — | span 4 | start |
 | Chest | 1×1 | — | 400 items | start |
@@ -281,11 +281,11 @@ Twenty-six placeable things. A Factorio player recognises twenty of them on sigh
 
 ## 14. Logistics
 
-**Belts.** Standard two-lane belts, 8/s and 16/s, inserters at 1/s, splitters with priority, undergrounds of span 4. Belts run on lots and on streets; streets are 8 wide **[sim: M1-tiles]**, which is room for two belts, a track and a lamp line.
+**Belts.** Standard two-lane belts, 7.5/s and 15/s (four items a tile; 8/16 until Phase 4 M2 fixed the tile tick at 20/s, D-P4-6), inserters at 1/s **[sim: M2-rates]**, splitters with priority, undergrounds of span 4. Belts run on lots and on streets; streets are 8 wide **[sim: M1-tiles]**, which is room for two belts, a track and a lamp line.
 
 **Power.** Poles link substations; each substation powers its whole block cell (lot and its four half-streets) so you never pole individual machines inside a held block. Grid is one pool; brownout sheds machines first (an assembler line is 220 kW **[sim: E2-demand]** and stopping it loses output, not blocks), then substations most-dark-neighbours first, so the front dims before the interior does; substation-first shedding cost 0–2 blocks in a 15 % shortfall and 6 in a 25 % one, where machines-first cost none **[sim: E2-matrix]**. Brownout shedding order: Shot and recipe Assemblers first, then other machines, Excavators feeding Generators last, substations only after all machines; substations then in most-dark-neighbours order.
 
-**Global stock.** Anything belted into a Depot input joins one global pool. Claims, blueprints and hand-placement draw from it. Hand-collecting from a chest is slow (one stack per 2 s) so belting into the Depot is the first automation lesson.
+**Global stock.** Anything belted into a Depot input joins one global pool. Claims, blueprints and hand-placement draw from it. Hand-collecting from a chest is slow (one stack per 2 s) so belting into the Depot is the first automation lesson. Hands do two things in hour one: hand-mining pulls one unit a second from a rubble or patch tile straight into the Depot, and hand-crafting makes a magazine in the recipe's 3 s from stock; both are the make-up while the line goes down, and neither scales **[sim: M2-rates]**.
 
 **Trams (the one bulk system).** Track on streets only. A tram shuttles between exactly two stops, loads and unloads by the stop's inserters (up to 6, section 13), 200 items at 8 t/s. Freight tram (Rail crew) is 600, a 100-second load. There is no signalling, no junctions, no schedule: one tram per track. Long distances are solved by placing more tracks in parallel on 8-wide streets. This is bulk transport with the Factorio train fantasy but without the signalling chapter.
 
@@ -731,3 +731,5 @@ Each edit as `§N — what changed — why — run name`. Run names before Phase
 - §27 — score stays 7; Gate A passed without tester sessions, so the shape evidence is still outstanding — Gate A
 - §4, §14 — cell geometry built at tile scale (32×32 cell, 24×24 lot, shared 8-tile street, 768×768 city with the river row) and 250–350 rubble tiles per block in five density variants, clustered, denser on deeper blocks, dug thinnest-first from the block's pool; the world view zooms 0.5–3× with E to the map view at the same block (the doc said 1.0–0.2×, D-P4-1) — Phase 4 M1 — M1-tiles
 - §18 — the 10-minute lot sketch waits for Phase 4 M3: it draws turrets and belts, which M1 does not have — Phase 4 M1
+- §13, §14 — belt 7.5/s and fast belt 15/s (was 8/16): the constitution's M2 rate, four items a tile on the 20 ticks/s tile tick (D-P4-6); Excavator 0.5/s, inserter 1/s and the Shot assembler's 3 s (20 mag/min) measured at tile level and tagged — Phase 4 M2 built the machines and the tick — M2-rates
+- §14 — hand-mining (a unit a second into the Depot) and hand-crafting (a magazine in 3 s from stock) stated as hour one's make-up — Phase 4 M2 built the hands the constitution's M2 names — M2-rates

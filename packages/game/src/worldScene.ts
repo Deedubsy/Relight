@@ -1,11 +1,16 @@
-/** World view (Phase 4 M1): the city at tile level. Every tile is drawn from `cellTiles` in @relight/sim, which
- *  derives it from the authoritative block map; this scene holds only camera state and a cache keyed by
- *  `cellKey`. Camera: drag or WASD/arrows to pan, wheel to zoom 0.5–3×, E back to the map at the same block. */
+/** World view (Phase 4 M1 + M2): the city at tile level. Every tile is drawn from `cellTiles` in @relight/sim, which
+ *  derives it from the authoritative block map; the machines are drawn from `state.flow` (flow.ts). This scene holds
+ *  only camera and tool state and a tile cache keyed by `cellKey`. Camera: drag or WASD/arrows to pan, wheel to zoom
+ *  0.5–3×, E back to the map at the same block. Tools (M2): X Excavator, B belt, I inserter, M Shot assembler,
+ *  R rotate, Q/Esc hand, C craft a magazine by hand; left click/drag places, right click removes; with the hand,
+ *  holding the left button on rubble mines it, anywhere else drags the camera. */
 import Phaser from 'phaser';
 import {
   SimState, idxOf, DARK, CONTESTED, HELD, INERT, VOID, isInterior,
-  CELL_TILES, TILE_PX, RUBBLE_VARIANTS, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT,
+  CELL_TILES, TILE_PX, RUBBLE_VARIANTS, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
   cellTiles, cellKey, CellTiles, describeTile,
+  Kind, Dir, DX, DY, DIR_NAMES, Machine, MACHINE_SIZE, MACHINE_COST, SHOT, EXCAVATOR_PER_S,
+  machineAt, rubbleAt, canPlace, place, remove, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
 } from '@relight/sim';
 import { Session } from './session';
 import { View } from './view';
@@ -14,28 +19,43 @@ import { View } from './view';
 export const ZOOM_MIN = 0.5, ZOOM_MAX = 3, ZOOM_STEP = 1.15;
 const PAN_PX_PER_S = 900;
 const CELL_PX = CELL_TILES * TILE_PX;   // 1024 px
+const HALF = TILE_PX / 2;
 
-// tileset frames: street, ground, inert, river, then rubble (stone/copper/steel × 5 variants), then deposits (iron/coal × 5)
-const F_STREET = 0, F_GROUND = 1, F_INERT = 2, F_RIVER = 3, F_RUBBLE = 4, F_DEPOSIT = F_RUBBLE + 3 * RUBBLE_VARIANTS, F_COUNT = F_DEPOSIT + 2 * RUBBLE_VARIANTS;
+// tileset frames: street, ground, inert, river, then rubble (stone/copper/steel × 5 variants), then deposits (iron/coal × 5),
+// then the HQ patches (steel, copper, coal)
+const F_STREET = 0, F_GROUND = 1, F_INERT = 2, F_RIVER = 3, F_RUBBLE = 4, F_DEPOSIT = F_RUBBLE + 3 * RUBBLE_VARIANTS, F_PATCH = F_DEPOSIT + 2 * RUBBLE_VARIANTS, F_COUNT = F_PATCH + 3;
 const RUBBLE_IDX: Record<string, number> = { stone: 0, copper: 1, steel: 2 };
 const DEPOSIT_IDX: Record<string, number> = { iron: 0, coal: 1 };
 const RUBBLE_COL = ['#b9bfc9', '#c0682b', '#5f83bd'];
 const RUBBLE_DARK = ['#7d848f', '#7d4119', '#3a5580'];
 const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
+/** GAME-ASSUMPTION: flat item colours (steel blue, copper orange, stone grey, coal black, magazine brass) until the art pass. */
+const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a };
+const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a };
 
-export interface WorldHooks { onHoverText(text: string | null, px: number, py: number): void }
+export type Tool = 'hand' | 'excavator' | 'belt' | 'inserter' | 'assembler';
+const TOOL_KEYS: Record<string, Tool> = { x: 'excavator', b: 'belt', i: 'inserter', m: 'assembler', q: 'hand', escape: 'hand' };
+
+export interface WorldHooks { onHoverText(text: string | null, px: number, py: number): void; onToast(msg: string, kind?: 'info' | 'bad' | 'good'): void }
 
 export class WorldScene extends Phaser.Scene {
   private blitter!: Phaser.GameObjects.Blitter;
   private bobs: Phaser.GameObjects.Bob[] = [];
   private gOver!: Phaser.GameObjects.Graphics;
+  private gMach!: Phaser.GameObjects.Graphics;
   private hudText!: Phaser.GameObjects.Text;
+  private depotText!: Phaser.GameObjects.Text;
   private labels: Phaser.GameObjects.Text[] = [];
   private cells = new Map<number, { key: string; tiles: CellTiles }>();
   private keys!: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'LEFT' | 'DOWN' | 'RIGHT', Phaser.Input.Keyboard.Key>;
   private hoverTile: { tx: number; ty: number } | null = null;
   private dragging = false;
+  private placing = false;
+  private mining = false;
   private pending: [number, number] | null = null;
+  /** Current tool and the direction the next machine faces. */
+  tool: Tool = 'hand';
+  dir: Dir = 1;
   /** Tiles drawn last frame; a dev/test number. */
   drawn = 0;
 
@@ -47,19 +67,22 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x05070f);
     this.makeTileset();
     this.blitter = this.add.blitter(0, 0, 'ground');
+    this.gMach = this.add.graphics().setDepth(1);
     this.gOver = this.add.graphics().setDepth(2);
+    this.depotText = this.add.text(0, 0, 'Depot', { fontSize: '20px', color: '#e8ecf4', fontStyle: 'bold' }).setDepth(3).setOrigin(0.5).setVisible(false);
     this.hudText = this.add.text(8, 8, '', { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } }).setScrollFactor(0).setDepth(10);
     const cam = this.cameras.main;
     cam.setBounds(0, 0, this.st.w * CELL_PX, this.st.h * CELL_PX);
     cam.setZoom(1);
     cam.setRoundPixels(true);
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT') as WorldScene['keys'];
-    this.input.on('pointerdown', () => { this.dragging = true; });
-    this.input.on('pointerup', () => { this.dragging = false; });
-    this.input.on('gameout', () => { this.dragging = false; this.hoverTile = null; this.hooks.onHoverText(null, 0, 0); });
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
+    this.input.on('pointerup', () => this.onUp());
+    this.input.on('gameout', () => { this.onUp(); this.hoverTile = null; this.hooks.onHoverText(null, 0, 0); });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
     this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => this.zoomAt(p.x, p.y, dy > 0 ? 1 / ZOOM_STEP : ZOOM_STEP));
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.onWake());
+    this.events.on(Phaser.Scenes.Events.SLEEP, () => this.onUp());
     this.onWake();
   }
 
@@ -98,6 +121,10 @@ export class WorldScene extends Phaser.Scene {
       const f = F_DEPOSIT + t * RUBBLE_VARIANTS + v;
       rect(f, '#3d3a36'); chunk(f, 100 + t * 10 + v, DEPOSIT_COL[t], DEPOSIT_COL[t], 4 + v * 2, 2 + (v >> 1));
     }
+    // HQ patches (§11): dense heaps of steel and copper rubble, and the coal seam
+    rect(F_PATCH, '#3d3a36'); chunk(F_PATCH, 200, RUBBLE_COL[2], RUBBLE_DARK[2], 14, 4);
+    rect(F_PATCH + 1, '#3d3a36'); chunk(F_PATCH + 1, 210, RUBBLE_COL[1], RUBBLE_DARK[1], 14, 4);
+    rect(F_PATCH + 2, '#3d3a36'); chunk(F_PATCH + 2, 220, DEPOSIT_COL[1], '#2c2d33', 12, 4);
     tex.refresh();
     for (let f = 0; f < F_COUNT; f++) tex.add(f, 0, f * TILE_PX, 0, TILE_PX, TILE_PX);
   }
@@ -110,6 +137,7 @@ export class WorldScene extends Phaser.Scene {
       case T_RIVER: return F_RIVER;
       case T_RUBBLE: return F_RUBBLE + RUBBLE_IDX[c.rubble ?? 'stone'] * RUBBLE_VARIANTS + (c.variant[i] - 1);
       case T_DEPOSIT: return F_DEPOSIT + DEPOSIT_IDX[c.deposit ?? 'iron'] * RUBBLE_VARIANTS + (c.variant[i] - 1);
+      case T_PATCH: return F_PATCH + Math.max(0, c.patch[i] - 1);
       default: return F_GROUND;
     }
   }
@@ -156,6 +184,68 @@ export class WorldScene extends Phaser.Scene {
     return [Math.max(0, Math.min(this.st.w - 1, Math.floor(m.x / CELL_PX))), Math.max(0, Math.min(this.st.h - 1, Math.floor(m.y / CELL_PX)))];
   }
 
+  // ------------------------------------------------------------------ tools
+
+  /** A key from the page's keydown handler (only while this view is up). Returns true when it was a tool key. */
+  key(k: string): boolean {
+    const st = this.st;
+    const lower = k.toLowerCase();
+    if (!st.flow) return false;
+    if (lower in TOOL_KEYS) { this.tool = TOOL_KEYS[lower]; return true; }
+    if (lower === 'r') {
+      const h = this.hoverTile, m = h && this.tool === 'hand' ? machineAt(st, h.tx, h.ty) : undefined;
+      if (m && m.kind !== 'depot') rotate(st, m.x, m.y); else this.dir = ((this.dir + 1) % 4) as Dir;
+      return true;
+    }
+    if (lower === 'c') {
+      queueCraft(st, 1);
+      this.hooks.onToast(`Crafting a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s) — ${st.flow.hand.crafts} queued`);
+      return true;
+    }
+    return false;
+  }
+
+  /** Top-left tile of the tool's footprint when the pointer is on (tx, ty): 3×3 machines centre on the pointer. */
+  private footprint(kind: Kind, tx: number, ty: number): [number, number] {
+    const off = (MACHINE_SIZE[kind] - 1) / 2;
+    return [tx - off, ty - off];
+  }
+
+  private tryPlace(tx: number, ty: number, loud: boolean): void {
+    const st = this.st;
+    if (this.tool === 'hand' || !st.flow) return;
+    const kind = this.tool as Kind;
+    const [ox, oy] = this.footprint(kind, tx, ty);
+    const c = canPlace(st, kind, ox, oy);
+    if (!c.ok) { if (loud) this.hooks.onToast(`No ${kind} here: ${c.reason}`, 'bad'); return; }
+    place(st, kind, ox, oy, this.dir);
+  }
+
+  private onDown(p: Phaser.Input.Pointer): void {
+    const st = this.st;
+    const w = this.worldAt(p.x, p.y);
+    const tx = Math.floor(w.x / TILE_PX), ty = Math.floor(w.y / TILE_PX);
+    if (p.rightButtonDown()) {
+      if (!st.flow) return;
+      const m = machineAt(st, tx, ty);
+      if (!m) return;
+      if (m.kind === 'depot') { this.hooks.onToast('The Depot stays', 'bad'); return; }
+      const cost = MACHINE_COST[m.kind];
+      remove(st, tx, ty);
+      this.hooks.onToast(`${m.kind} removed — ${cost.steel} steel${cost.copper ? ` + ${cost.copper} Cu` : ''} back in the Depot`);
+      return;
+    }
+    if (!p.leftButtonDown()) return;
+    if (this.tool !== 'hand' && st.flow) { this.placing = true; this.tryPlace(tx, ty, true); return; }
+    if (st.flow && rubbleAt(st, tx, ty)) { this.mining = true; setHandMine(st, [tx, ty]); return; }
+    this.dragging = true;
+  }
+
+  private onUp(): void {
+    this.dragging = false; this.placing = false;
+    if (this.mining) { this.mining = false; if (this.st.flow) setHandMine(this.st, null); }
+  }
+
   private onMove(p: Phaser.Input.Pointer): void {
     const cam = this.cameras.main;
     if (this.dragging && p.isDown) {
@@ -167,10 +257,15 @@ export class WorldScene extends Phaser.Scene {
     if (this.hoverTile && this.hoverTile.tx === tx && this.hoverTile.ty === ty) return;
     this.hoverTile = { tx, ty };
     const st = this.st;
+    if (this.placing && p.isDown) this.tryPlace(tx, ty, false);
+    if (this.mining && p.isDown && st.flow) setHandMine(st, [tx, ty]);
     const bx = Math.floor(tx / CELL_TILES), by = Math.floor(ty / CELL_TILES);
     if (bx < 0 || by < 0 || bx >= st.w || by >= st.h) { this.hooks.onHoverText(null, 0, 0); return; }
     const rect = this.game.canvas.getBoundingClientRect();
-    this.hooks.onHoverText(`${describeTile(st, tx, ty)}\n${this.blockLine(bx, by)}`, rect.left + p.x, rect.top + p.y);
+    const m = st.flow ? machineAt(st, tx, ty) : undefined;
+    const lines = [describeTile(st, tx, ty), this.blockLine(bx, by)];
+    if (m) lines.unshift(describeMachine(st, m));
+    this.hooks.onHoverText(lines.join('\n'), rect.left + p.x, rect.top + p.y);
   }
 
   private blockLine(x: number, y: number): string {
@@ -214,6 +309,8 @@ export class WorldScene extends Phaser.Scene {
     for (let k = n; k < this.bobs.length; k++) if (this.bobs[k].visible) this.bobs[k].setVisible(false);
     this.drawn = n;
 
+    this.drawMachines(tx0, ty0, tx1, ty1);
+
     // GAME-ASSUMPTION: a flat block-state overlay on each lot (Dark navy, Contested amber, Held outline) stands in for
     // rot presence (M4) and the light texture (M5); it is the block map's word on the lot, drawn, not simulated
     const g = this.gOver;
@@ -241,14 +338,129 @@ export class WorldScene extends Phaser.Scene {
       li++;
     }
     for (let k = li; k < this.labels.length; k++) this.labels[k].setVisible(false);
-    // GAME-ASSUMPTION: the HQ is a 6×6-tile slab at the start lot's centre until M2 places the Depot proper
-    const [sx, sy] = st.start;
-    g.fillStyle(0x0b0e1a, 0.85); g.fillRect(sx * CELL_PX + 13 * TILE_PX, sy * CELL_PX + 13 * TILE_PX, 6 * TILE_PX, 6 * TILE_PX);
-    g.lineStyle(2 / cam.zoom, 0xffffff, 0.8); g.strokeRect(sx * CELL_PX + 13 * TILE_PX, sy * CELL_PX + 13 * TILE_PX, 6 * TILE_PX, 6 * TILE_PX);
+    if (!st.flow) {
+      // GAME-ASSUMPTION: without the flow layer (?flow=0) the HQ is a 6×6-tile slab at the start lot's centre
+      const [sx, sy] = st.start;
+      g.fillStyle(0x0b0e1a, 0.85); g.fillRect(sx * CELL_PX + 13 * TILE_PX, sy * CELL_PX + 13 * TILE_PX, 6 * TILE_PX, 6 * TILE_PX);
+      g.lineStyle(2 / cam.zoom, 0xffffff, 0.8); g.strokeRect(sx * CELL_PX + 13 * TILE_PX, sy * CELL_PX + 13 * TILE_PX, 6 * TILE_PX, 6 * TILE_PX);
+    }
+    this.drawGhost(g);
 
     // HUD: scrollFactor 0 still zooms about the camera centre, so pin it to the top-left at screen scale
     const f = this.focusBlock();
     this.hudText.setScale(1 / cam.zoom).setPosition(cam.width / 2 + (8 - cam.width / 2) / cam.zoom, cam.height / 2 + (8 - cam.height / 2) / cam.zoom);
-    this.hudText.setText(`World view · ${this.blockLine(f[0], f[1])} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles\nE map view · drag / WASD pan · wheel zoom (${ZOOM_MIN}–${ZOOM_MAX}×) · space pause · 1 2 3 speed`);
+    const toolLine = st.flow
+      ? `\nTool: ${this.tool === 'hand' ? 'hand (hold on rubble to mine it; drag to pan)' : `${this.tool} → ${DIR_NAMES[this.dir]}`}${this.ghostReason ? ` · ${this.ghostReason}` : ''}\nX Excavator · B belt · I inserter · M assembler · R rotate · Q hand · C craft a magazine · right-click removes`
+      : '';
+    this.hudText.setText(`World view · ${this.blockLine(f[0], f[1])} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles\nE map view · drag / WASD pan · wheel zoom (${ZOOM_MIN}–${ZOOM_MAX}×) · space pause · 1 2 3 speed${toolLine}`);
+  }
+
+  private ghostReason = '';
+
+  /** The tool's footprint under the pointer, green when it can go there, red with the reason otherwise. */
+  private drawGhost(g: Phaser.GameObjects.Graphics): void {
+    const st = this.st, h = this.hoverTile;
+    this.ghostReason = '';
+    if (!st.flow || !h || this.tool === 'hand') return;
+    const kind = this.tool as Kind, size = MACHINE_SIZE[kind];
+    const [ox, oy] = this.footprint(kind, h.tx, h.ty);
+    const c = canPlace(st, kind, ox, oy);
+    this.ghostReason = c.ok ? `${c.cost.steel} steel${c.cost.copper ? ` + ${c.cost.copper} Cu` : ''}` : c.reason;
+    const col = c.ok ? 0x6fe08a : 0xe05a5a;
+    g.fillStyle(col, 0.25); g.fillRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
+    g.lineStyle(2 / this.cameras.main.zoom, col, 0.9); g.strokeRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
+    this.arrow(g, (ox + size / 2) * TILE_PX, (oy + size / 2) * TILE_PX, this.dir, size * HALF - 4, col, 0.9);
+  }
+
+  private arrow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, dir: Dir, len: number, col: number, alpha = 1): void {
+    const dx = DX[dir], dy = DY[dir], px = -dy, py = dx;   // perpendicular
+    const tipx = cx + dx * len, tipy = cy + dy * len, base = len * 0.45, w = 6;
+    g.fillStyle(col, alpha);
+    g.fillTriangle(tipx, tipy, cx + dx * base + px * w, cy + dy * base + py * w, cx + dx * base - px * w, cy + dy * base - py * w);
+  }
+
+  /** Machines from `state.flow`, drawn every frame for the tiles in view: belts with their items, inserters with
+   *  their arm, Excavators and assemblers with progress, the Depot. GAME-ASSUMPTION: flat code-drawn shapes stand
+   *  in for machine sprites until the art pass; sizes and facings are the flow layer's. */
+  private drawMachines(tx0: number, ty0: number, tx1: number, ty1: number): void {
+    const st = this.st, g = this.gMach, f = st.flow;
+    g.clear();
+    this.depotText.setVisible(false);
+    if (!f) return;
+    const zoom = this.cameras.main.zoom;
+    for (const m of f.machines) {
+      if (m.x + m.size <= tx0 || m.x > tx1 || m.y + m.size <= ty0 || m.y > ty1) continue;
+      const px = m.x * TILE_PX, py = m.y * TILE_PX, sz = m.size * TILE_PX, cx = px + sz / 2, cy = py + sz / 2;
+      switch (m.kind) {
+        case 'belt': this.drawBelt(g, m, px, py); break;
+        case 'inserter': {
+          g.fillStyle(0x3a3220, 1); g.fillRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
+          g.fillStyle(MACHINE_COL.inserter, 1); g.fillCircle(cx, cy, 7);
+          const [ix, iy] = inputTile(m), [ox, oy] = outputTile(m);
+          const toOut = m.phase === 1;
+          const ex = toOut ? ox : ix, ey = toOut ? oy : iy;
+          // arm: from the base towards the tile it is reaching into, part-way through the swing
+          const prog = m.phase === 0 ? 0 : Math.max(0, Math.min(1, 1 - m.timer / 0.5));
+          const reach = m.phase === 0 ? 0.55 : toOut ? 0.25 + prog * 0.5 : 0.75 - prog * 0.5;
+          const ax = cx + ((ex + 0.5) * TILE_PX - cx) * reach, ay = cy + ((ey + 0.5) * TILE_PX - cy) * reach;
+          g.lineStyle(4, 0xb59a5a, 1); g.lineBetween(cx, cy, ax, ay);
+          if (m.hold) { g.fillStyle(ITEM_COL[m.hold], 1); g.fillRect(ax - 4, ay - 4, 8, 8); }
+          break;
+        }
+        case 'excavator': {
+          g.fillStyle(MACHINE_COL.excavator, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+          g.lineStyle(2, 0x2b3440, 1); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12);
+          const spin = m.hold ? 0 : (m.timer / (1 / EXCAVATOR_PER_S)) * Math.PI;
+          g.lineStyle(5, 0x9fb4cc, 1);
+          for (let k = 0; k < 2; k++) { const a = spin + k * Math.PI / 2; g.lineBetween(cx - Math.cos(a) * 14, cy - Math.sin(a) * 14, cx + Math.cos(a) * 14, cy + Math.sin(a) * 14); }
+          this.arrow(g, cx, cy, m.dir, sz / 2 - 2, 0xd8dde8, 0.9);
+          if (m.hold) { const [ox, oy] = outputTile(m); g.fillStyle(ITEM_COL[m.hold], 1); g.fillRect((ox + 0.5) * TILE_PX - 4 - DX[m.dir] * 10, (oy + 0.5) * TILE_PX - 4 - DY[m.dir] * 10, 8, 8); }
+          break;
+        }
+        case 'assembler': {
+          g.fillStyle(MACHINE_COL.assembler, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+          g.lineStyle(2, 0x33293d, 1); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12);
+          this.arrow(g, cx, cy, m.dir, sz / 2 - 2, 0xd8d0e8, 0.7);
+          // progress bar and the input/output counts as item squares
+          const prog = m.busy ? Math.min(1, m.timer / SHOT.seconds) : 0;
+          g.fillStyle(0x1e1826, 1); g.fillRect(px + 10, py + sz - 16, sz - 20, 8);
+          g.fillStyle(0xe6d45a, 1); g.fillRect(px + 10, py + sz - 16, (sz - 20) * prog, 8);
+          for (let k = 0; k < Math.min(8, m.inv.steel ?? 0); k++) { g.fillStyle(ITEM_COL.steel, 1); g.fillRect(px + 10 + k * 9, py + 10, 7, 7); }
+          for (let k = 0; k < Math.min(4, m.inv.copper ?? 0); k++) { g.fillStyle(ITEM_COL.copper, 1); g.fillRect(px + 10 + k * 9, py + 20, 7, 7); }
+          for (let k = 0; k < Math.min(5, m.out); k++) { g.fillStyle(ITEM_COL.magazine, 1); g.fillRect(px + sz - 18, py + 10 + k * 9, 7, 7); }
+          break;
+        }
+        case 'depot': {
+          g.fillStyle(MACHINE_COL.depot, 0.9); g.fillRect(px, py, sz, sz);
+          g.lineStyle(2 / zoom, 0xffffff, 0.8); g.strokeRect(px, py, sz, sz);
+          this.depotText.setPosition(cx, cy).setScale(Math.max(1, 1 / zoom)).setVisible(true);
+          break;
+        }
+      }
+    }
+  }
+
+  private drawBelt(g: Phaser.GameObjects.Graphics, m: Machine, px: number, py: number): void {
+    const st = this.st, d = m.dir, e = entryDir(st, m);
+    const cx = px + HALF, cy = py + HALF, w = 20;
+    g.fillStyle(MACHINE_COL.belt, 1);
+    // body: from the entry side to the centre, then from the centre to the exit side
+    const seg = (dir: Dir, from: number, to: number) => {   // along dir, from/to in [-1,1] × half tile
+      const ax = cx + DX[dir] * from * HALF, ay = cy + DY[dir] * from * HALF, bx = cx + DX[dir] * to * HALF, by = cy + DY[dir] * to * HALF;
+      const x0 = Math.min(ax, bx) - (DX[dir] ? 0 : w / 2), y0 = Math.min(ay, by) - (DY[dir] ? 0 : w / 2);
+      g.fillRect(x0, y0, DX[dir] ? Math.abs(bx - ax) : w, DY[dir] ? Math.abs(by - ay) : w);
+    };
+    seg(e, -1, 0); seg(d, 0, 1);
+    g.fillStyle(0x3a3e4a, 1); g.fillRect(cx - w / 2, cy - w / 2, w, w);
+    this.arrow(g, cx, cy, d, HALF - 3, 0x9c9d4e, 0.8);
+    for (const it of m.items) {
+      let x: number, y: number;
+      // straight: the whole tile along d; corner: the first half along the entry direction to the centre, then along d
+      if (e === d) { x = cx + DX[d] * (-1 + it.p * 2) * HALF; y = cy + DY[d] * (-1 + it.p * 2) * HALF; }
+      else if (it.p >= 0.5) { x = cx + DX[d] * (it.p - 0.5) * 2 * HALF; y = cy + DY[d] * (it.p - 0.5) * 2 * HALF; }
+      else { x = cx + DX[e] * (-1 + it.p * 2) * HALF; y = cy + DY[e] * (-1 + it.p * 2) * HALF; }
+      g.fillStyle(ITEM_COL[it.k], 1); g.fillRect(x - 4, y - 4, 8, 8);
+      g.lineStyle(1, 0x000000, 0.5); g.strokeRect(x - 4, y - 4, 8, 8);
+    }
   }
 }

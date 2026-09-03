@@ -912,15 +912,18 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
   // GAME-ASSUMPTION: rubble comes flat per Held block by district (civ stone, res copper, ind steel, outskirts
   // nothing) and stone has no sink; the doc has no yield numbers. Magazines cost the §12 recipe (ring block above).
   if (cfg.economy) {
-    if (st.patch.steel > 0) {
+    // with the M2 flow layer the HQ patch is dug by machines and hands (flow.ts), not drained here
+    if (st.patch.steel > 0 && !st.flow) {
       const take = Math.min(cfg.eco.startPatch.perMin / 60, st.patch.steel);
       st.patch.steel -= take; st.stock.steel += take;
     }
     // §12: rubble is finite. The flat yield draws the block's pool down; at zero the block yields nothing.
     const per = cfg.eco.yieldPerMin / 60;
+    const startIdx = idxOf(st, st.start[0], st.start[1]);
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (b.state !== HELD || b.pool <= 0) continue;
+      if (st.flow && i === startIdx) continue;   // M2: the start lot's rubble is dug by its machines, not yielded flat
       const r = rubbleOf(b.name);
       if (!r) continue;
       const take = Math.min(per, b.pool);

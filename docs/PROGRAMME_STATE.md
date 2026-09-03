@@ -2,7 +2,7 @@
 
 Living file. One entry per phase, newest first; the current phase is the top one. Rules are in the programme constitution (the prompt that started Phase 0); the spec is `RELIGHT-design.md`; the sim is the judge.
 
-**Current phase: 4 — the vertical slice (§11 minutes 0–60 → Gate B), in progress since 2026-09-03 on the `Go` that answered `PHASE_3_REPORT.md`. M1 Ground built (`SLICE_REPORT.md`); next M2 Flow.** D-P3-9/10/11 were made by their recommendations on that `Go` (sessions in parallel, C3/C4 as locked, C8 lock accepted). PR #1 (`phase-1` → `main`), PR #2 (`phase-2` → `phase-1`) and PR #3 (`phase-3` → `phase-2`) are open, unmerged; Phase 4 is PR #4 (`phase-4` → `phase-3`). Phase 1's human five-minute smoke test and the Gate A sessions are still the user's.
+**Current phase: 4 — the vertical slice (§11 minutes 0–60 → Gate B), in progress since 2026-09-03 on the `Go` that answered `PHASE_3_REPORT.md`. M1 Ground and M2 Flow built (`SLICE_REPORT.md`); next M3 Defence.** D-P3-9/10/11 were made by their recommendations on that `Go` (sessions in parallel, C3/C4 as locked, C8 lock accepted). PR #1 (`phase-1` → `main`), PR #2 (`phase-2` → `phase-1`) and PR #3 (`phase-3` → `phase-2`) are open, unmerged; Phase 4 is PR #4 (`phase-4` → `phase-3`). Phase 1's human five-minute smoke test and the Gate A sessions are still the user's.
 
 Gates passed: **Gate A, 2026-09-03, `verdict: go` by the owner on the bot calibration and the smoke test, with no tester sessions** (`TEST_RESULTS.md` §1). Every constant locked on it is tagged `[play: Gate A]`, a lock rather than a measurement; the sessions can still run (D-P3-9).
 
@@ -14,7 +14,7 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 ## Phase 4 — vertical slice (in progress, opened 2026-09-03)
 
-**Status: M1 Ground built; M2–M6 not started.** Branch `phase-4` on `phase-3`, PR #4. `packages/proto` → `packages/game` (`@relight/game`); the map view is untouched and its snapshot still verifies (`snapshot:check`, hash `ee23bb1c`). Canonical config unchanged (`01dc5d02`). Checks green locally (typecheck, `npm test` incl. six tile tests, lint, E1–E9 45/45, docsync, `snapshot:check`); PR #4's CI run is the proof. Report: `SLICE_REPORT.md` (per milestone; the §19 first-hour test sits at its top, empty until M6; Gate B is a human's `verdict: proceed` in it).
+**Status: M1 Ground and M2 Flow built; M3–M6 not started.** Branch `phase-4` on `phase-3`, PR #4. D-P4-1/2/3 made by recommendation on the `go` that opened M2; D-P4-4/5/6 open (`DECISIONS.md`). `packages/proto` → `packages/game` (`@relight/game`); the map view is untouched and its snapshot still verifies (`snapshot:check`, hash `ee23bb1c`). Canonical config unchanged (`01dc5d02`). Checks green locally (typecheck, `npm test` incl. six tile and ten flow tests, lint, E1–E9 45/45, docsync, `snapshot:check`); PR #4's CI run is the proof. Report: `SLICE_REPORT.md` (per milestone; the §19 first-hour test sits at its top, empty until M6; Gate B is a human's `verdict: proceed` in it).
 
 ### 4.1 M1 Ground — what changed
 
@@ -41,13 +41,40 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 Three systems: the front, found tech, automated combat. M1 added a renderer and a derived data layer, no system, no mechanic the player holds in their head (the tiles are where the existing front rule is drawn). Complexity **5/10**, unchanged. §27 stays at 7.
 
-### 4.4 Milestone status
+### 4.4 M2 Flow — what changed (2026-09-03)
 
-- M1 Ground: **built** (this entry). M2 Flow, M3 Defence, M4 Threat, M5 Light, M6 The hour: not started.
-- "A 1 h sim at 4× must not drop the render loop": see `SLICE_REPORT.md` M1 measured (30 s samples at 4× and 16× at 60 fps with no frame over 50 ms; the full-hour soak is recorded there).
-- "Map-view fixtures still pass": `snapshot:check` green; `npm test` green.
-- `DEFERRED.md` re-read at M1: every item has a phase; excavator and footprint items moved M1 → M2; lot sketch → M3.
-- Three decisions for the human: **open** — D-P4-1 zoom range, D-P4-2 units per rubble tile, D-P4-3 deposits.
+- **`packages/sim/src/flow.ts`** (run name `M2-rates`) — the tile flow layer: a fixed 20 ticks/s tile tick with the 1 s block tick derived from it (`advanceFlow` runs `step` every 20th tile tick; the harness never calls `ensureFlow`, so E1–E9 and the fixtures are byte-identical). Excavator 3×3 at 0.5/s onto the belt it faces; belts at 7.5/s (four items a tile, corners, side feeds, items visible); inserters at 1/s that pick what their target wants and wait holding it; the Mk1 Shot assembler (3 s, 2 steel + 1 Cu → 1 magazine, 20/min); the Depot as the global stock every placement draws from; hand-mining (a unit a second into the Depot) and hand-crafting (a magazine in 3 s from stock). Placement rules with costs and refunds; a machine on a block that stops being Held stands still. Ten tests.
+- **`packages/sim/src/tiles.ts`** — the HQ lot: §11's steel, copper and coal patches as typed tiles carrying real units (the block sim's 7,680 steel over 25 tiles, 12 × 100 Cu, 700 coal over 9 tiles), the Depot footprint clear, the start lot cleared to 100 rubble tiles in its south strip. `sim.ts`: the flat HQ patch drain and the start lot's flat rubble yield are off when the flow layer exists.
+- **`packages/game`** — world-view tools on keys (X/B/I/M/R/Q/C), ghost with the refusal reason, click or drag to place, right-click removes with a refund, hold-to-mine, machines drawn as flat shapes with their items; the panel's line section and hand-craft button; per-minute telemetry for the line (made, delivered, consumed, hand mined and crafted, machine counts, belt items); `?flow=0` for block-only sessions; `__relight.flow` and `world.key` hooks.
+- Doc: §13 Excavator, Assembler (Shot rate), Belt and Inserter rows and §14's belt paragraph tagged `[sim: M2-rates]`; belt 8/16 → 7.5/15 (D-P4-6); §14 gains the hand-mining and hand-crafting sentence; two changelog lines.
+- Constitution vs doc, reported not resolved: belt 7.5 vs 8 (D-P4-6); §11's 200/100/50 start against the calibrated 80/40/0 and unpriced machines (D-P4-4); the block-level assembler stand-in alongside the physical line (D-P4-5).
+
+### 4.5 Untagged recount at M2
+
+40 → **37**: §13.1 (Excavator 0.5/s), §13.2's rate (Shot 3 s, 20/min; its 100 kW waits for M3) and §13.10's belt and inserter rates carry `[sim: M2-rates]`. §13.10's splitter, underground and chest and §13.11 (Depot input 2×2: M2's Depot is the 6×6 facility, fed on any edge) stay untagged for Phase 5. §14.3 (hand-collecting one stack per 2 s) stays: M2 has hands but no chest. 25 tile-scale + 12 design inputs.
+
+| § | M1 | Now untagged | Tagged in M2 |
+|---|---|---|---|
+| §5 | 12 | 12 | — |
+| §7 | 3 | 3 | — |
+| §12 | 7 | 7 | — (12.1's units per tile: the patches carry real units, ordinary rubble does not; D-P4-2) |
+| §13 | 16 | 13 | 13.1, 13.2 (rate), 13.10 (belt and inserter rates) |
+| §14 | 3 | 3 | — (14.3 needs a chest) |
+| §15 | 1 | 1 | — |
+
+### 4.6 §26 recount at M2
+
+Three systems: the front, found tech, automated combat. M2 added the Factorio layer (belts, inserters, machines with footprints) that §26 already counts as "(1) belts/inserters/machines, which they already know", so no system is new; hands add no rule (a unit a second, a magazine in 3 s). Complexity **5/10**, unchanged. §27 stays at 7.
+
+### 4.7 Milestone status
+
+- M1 Ground: **built** (4.1). M2 Flow: **built** (4.4). M3 Defence, M4 Threat, M5 Light, M6 The hour: not started.
+- "Fixed 20 ticks/s at tile level, 1 s block ticks derived": `flow.ts` `advanceFlow`, flow test 7 (72,000 tile ticks and 3,600 block ticks for 1 h at 4×, identical across frame sizes).
+- "A 1 h sim at 4× must not drop the render loop": `SLICE_REPORT.md` M1 and M2 measured (the M2 soak runs in the world view with a line working).
+- "Map-view fixtures still pass; tile events drive the same block transitions": `snapshot:check` green (`ee23bb1c`), `npm test` 59/59; the block map stays the judge (flow test 9).
+- "Measured rates equal doc rates": flow tests 2–6 and the browser line (`SLICE_REPORT.md` M2 measured).
+- `DEFERRED.md` re-read at M2: every item has a phase; the machine, belt and tile-tick items are closed; prices, the second stand-in and two-lane belts added with phases.
+- Decisions: D-P4-1/2/3 **made** by recommendation on the `go` that opened M2. Three for the human from M2: **open** — D-P4-4 start stock and machine prices, D-P4-5 the two assembler stand-ins, D-P4-6 belt 7.5 vs 8.
 
 ---
 

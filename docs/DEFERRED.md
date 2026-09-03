@@ -77,3 +77,19 @@ Phase 4 M1 built the ground only (tiles, rubble, river, camera, E toggle); the e
 - **Rot on tiles (mottle overlay) and the light map.** M1 shows block state as a flat lot overlay (navy / amber flicker / outline). → **Phase 4 M4** (rot at tile level) and **M5** (light map), as before.
 - **Tileset art.** M1's tiles are flat-colour canvas frames drawn in code. → **Phase 12**, as before; the frame layout (street, ground, inert, river, 3 × 5 rubble, 2 × 5 deposit) is the art brief.
 - **Camera in the map view.** The map view still has no pan or zoom (a 24 px grid fits the canvas). → **Phase 9** if the generator makes cities larger than 24×24; otherwise never.
+
+## Re-read at Phase 4 M2 (2026-09-03, M2 Flow built)
+
+M2 built the tile tick and the machines (`flow.ts`). Every item above keeps its phase unless listed here. Nothing deleted.
+
+- ~~**Machines on a lot / Excavator as a machine.**~~ **Built in M2:** Excavator, belt, inserter, Mk1 Shot assembler, Depot, hands. The Foundry's own machines, Generators, Mixers, splitters, undergrounds and chests → **Phase 5** (nothing in minutes 0–60 needs them; a Generator is M3's power).
+- ~~**Belts and the ammo line as a physical thing.**~~ **Built in M2** on the HQ lot. The belt to a turret hopper → **M3**. The ring feed order (D-P1-2) stays **Phase 4 M3/M6**: with physical belts the "nearest the enemy first" rule becomes a belt-layout fact the player makes.
+- ~~**Fixed 20 ticks/s tile tick.**~~ **Built in M2:** `advanceFlow` steps 20 tile ticks a block tick; the harness stays block-only.
+- **Slot count (C3) / lot footprint.** M2 measured: a §11 line (two 3×3 Excavators, one 3×3 assembler, 18 belts, three inserters) plus the 6×6 Depot and the three patches fits the north two-thirds of the 24×24 lot with room for a second assembler and its belts; the south strip keeps 100 rubble tiles. → **Phase 5** sets the budget from that (D-P3-10).
+- **Units per rubble tile.** M2's patch tiles carry real units (steel ≈307 a tile, copper 100, coal ≈78), the ordinary rubble tiles still stand in for the block pool. → **Phase 5**, D-P4-2 as made.
+- **Start stock and machine prices.** §13 prices nothing; M2's prices are a GAME-ASSUMPTION and the calibrated 80/40 start is one steel short of a §11 line. → **D-P4-4**, settled at **M6** from the played hour.
+- **Block-level assembler stand-in on claimed blocks.** → **D-P4-5**, decided at **M6**.
+- **Two-lane belts, fast belts, splitters, undergrounds, chests (§13/§14).** M2 belts are one lane at 7.5/s. → **Phase 5**, when the wire and frame recipes need a second input lane.
+- **Power draw on machines (§13 kW).** Carried on each machine, drawn by nothing. → **M3** with the Generator and the substation.
+- **Hand-collecting from a chest (§14.3).** No chest yet; hand-mining is a unit a second into the Depot. → **Phase 5** with chests.
+- **Survivor unlocks on the toolbar.** The toolbar now exists (tool keys). → **M6** wires the Electricians' unlocks (Floodlight, Big pole, Substation) once M3 has poles.

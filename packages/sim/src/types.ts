@@ -1,3 +1,4 @@
+import type { FlowState } from './flow';
 /** Plain-data types. The whole sim state is JSON-serialisable: save/load is JSON.stringify/parse. */
 
 export const DARK = 0, CONTESTED = 1, HELD = 2, INERT = 3, VOID = 4;
@@ -193,6 +194,8 @@ export interface SimState {
   wellDead: boolean[];        // per well (index into `wells`)
   wellEnclosedSince: number[]; // per well: tick all four neighbours became Held, -1 = not enclosed
   events: SimEvent[];   // appended by step(); the consumer drains them
+  /** Phase 4 M2: the tile-level machines, present only once `ensureFlow` ran (the game); absent in the harness. */
+  flow?: FlowState;
 }
 
 // ------------------------------------------------------------------ proto section

@@ -7,7 +7,7 @@ import {
   DEFAULT_CONFIG, protoCalibrated, generateMap, createState, claim, step, idxOf, INERT, HELD,
   CELL_TILES, LOT_TILES, MARGIN_TILES, STREET_TILES, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT,
   RUBBLE_TILES_MIN, RUBBLE_TILES_MAX, RUBBLE_VARIANTS, cellTiles, cityTiles, lotLayout, rubbleLeft, cellKey, tileCell, describeTile,
-  rubbleOf, poolMax,
+  rubbleOf, poolMax, HQ_RUBBLE_TILES,
 } from '../src/index';
 
 function fresh(seed = 3) {
@@ -73,7 +73,8 @@ test('rubble: 250–350 tiles per lot, typed by district, five density variants;
     assert.equal(c.rubble, rubbleOf(b.name));
     assert.equal(c.rubble, b.name === 'civ' ? 'stone' : b.name === 'res' ? 'copper' : 'steel');
     seen[c.rubble!]++;
-    assert.ok(c.rubbleTiles >= RUBBLE_TILES_MIN && c.rubbleTiles <= RUBBLE_TILES_MAX, `${c.rubbleTiles} rubble tiles on (${b.x},${b.y})`);
+    if (b.x === st.start[0] && b.y === st.start[1]) assert.equal(c.rubbleTiles, HQ_RUBBLE_TILES, 'the start lot is cleared for the HQ (M2)');
+    else assert.ok(c.rubbleTiles >= RUBBLE_TILES_MIN && c.rubbleTiles <= RUBBLE_TILES_MAX, `${c.rubbleTiles} rubble tiles on (${b.x},${b.y})`);
     minCount = Math.min(minCount, c.rubbleTiles); maxCount = Math.max(maxCount, c.rubbleTiles);
     let n = 0;
     for (let i = 0; i < c.kind.length; i++) if (c.kind[i] === T_RUBBLE) { n++; assert.ok(c.variant[i] >= 1 && c.variant[i] <= RUBBLE_VARIANTS); variants.add(c.variant[i]); }
@@ -101,7 +102,7 @@ test('block state is authoritative: the pool drains and rubble tiles become grou
   const [sx, sy] = st.start;
   const hq = st.blocks[idxOf(st, sx, sy)];
   assert.equal(hq.state, HELD);
-  const lay = lotLayout(st.seed, hq);
+  const lay = lotLayout(st.seed, hq, true);
   const key0 = cellKey(st, sx, sy);
   assert.equal(rubbleLeft(st, hq), lay.tiles);
   // half the pool → half the tiles, dug in the layout's order

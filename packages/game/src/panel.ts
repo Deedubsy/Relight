@@ -1,5 +1,5 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
-import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE } from '@relight/sim';
+import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST } from '@relight/sim';
 import { Session, setSpeed, queue, shareUrl } from './session';
 import { summarise, exportJson } from './telemetry';
 
@@ -30,6 +30,7 @@ const f2 = (v: number) => (Math.round(v * 100) / 100).toFixed(2);
 export function createPanel(session: Session, root: HTMLElement, hooks: PanelHooks): Panel {
   const st = session.state;
   const eco = st.config.economy;
+  const flow = !!st.flow;
   root.innerHTML = '';
 
   // header
@@ -49,7 +50,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   btnView.onclick = () => hooks.onToggleView();
   head.append(btnView, btnLink);
   header.append(head);
-  header.append(el('p', 'hint', 'Click a Dark block next to your territory to claim it. Every Held block facing Dark is an ammo edge; each edge pulls magazines from the ring in the order below. Substations that go 40 crawlers unfed fall. Only interior blocks (white outline) have a free machine slot for an assembler; the HQ holds the Mk1. A block\'s rubble is finite: the strip at its top fades as it is dug out.'));
+  header.append(el('p', 'hint', 'Click a Dark block next to your territory to claim it. Every Held block facing Dark is an ammo edge; each edge pulls magazines from the ring in the order below. Substations that go 40 crawlers unfed fall. Only interior blocks (white outline) have a free machine slot for an assembler' + (flow ? '; hour one\'s magazines come from the line you build on the HQ lot in the world view (E), or from your hands' : '; the HQ holds the Mk1') + '. A block\'s rubble is finite: the strip at its top fades as it is dug out.'));
   root.append(header);
 
   // HUD
@@ -87,6 +88,30 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   stockSec.append(asmRow);
   if (eco) stockSec.append(el('p', 'hint', `A claim costs ${st.config.eco.claimCost.copper} Cu (10 wire) and ${st.config.eco.claimCost.steel} steel (5 frames). A magazine costs ${st.config.eco.magazineCost.steel} steel + ${st.config.eco.magazineCost.copper} Cu (§12); assemblers stop when the stock runs out. Held blocks yield their district's rubble: civic stone, residential copper, industrial steel.`));
   root.append(stockSec);
+
+  // M2: the tile line on the HQ lot (world view). Counts and rates come from flowSummary; the Craft button queues a
+  // hand craft (§11) that takes its inputs from the Depot stock like a tile assembler would from its belt.
+  const lineSec = el('section');
+  let vMach: HTMLElement | null = null, vBeltItems: HTMLElement | null = null, vLineRate: HTMLElement | null = null, vLineMade: HTMLElement | null = null,
+      vHand: HTMLElement | null = null, vBuffer: HTMLElement | null = null, vCoal: HTMLElement | null = null, vCrafts: HTMLElement | null = null;
+  let btnCraft: HTMLButtonElement | null = null;
+  if (flow) {
+    lineSec.append(el('h2', undefined, 'Line on the HQ lot (world view)'));
+    const lineList = el('ul', 'plain');
+    const li2 = (label: string) => { const l = el('li'); const a = el('span', undefined, label); const v = el('span', 'mono', '0'); l.append(a, v); lineList.append(l); return v; };
+    vMach = li2('Excavators / belts / inserters / Shot assemblers'); vBeltItems = li2('Items on belts'); vLineRate = li2('Line mag/min (assemblers crafting now)');
+    vLineMade = li2('Magazines made by the line'); vHand = li2('Mined / crafted by hand'); vBuffer = li2('Magazines in the line buffer'); vCoal = li2('Coal in the Depot'); vCrafts = li2('Hand crafts queued');
+    lineSec.append(lineList);
+    const craftRow = el('div', 'row');
+    btnCraft = el('button', undefined, `Craft a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s)`);
+    btnCraft.title = 'Key C in the world view. Hand crafts take their steel and copper from the Depot stock and put the magazine in the line buffer.';
+    btnCraft.onclick = () => queueCraft(session.state, 1);
+    craftRow.append(btnCraft);
+    lineSec.append(craftRow);
+    const mc = MACHINE_COST;
+    lineSec.append(el('p', 'hint', `World view keys: X Excavator (${mc.excavator.steel} steel, 3×3, ${'0.5'}/s onto the belt it faces), B belt (${mc.belt.steel} steel, 7.5 items/s), I inserter (${mc.inserter.steel} steel + ${mc.inserter.copper} Cu, 1/s), M Shot assembler (${mc.assembler.steel} steel + ${mc.assembler.copper} Cu; ${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu → a magazine in ${SHOT.seconds} s), R rotate, Q hand, right-click removes (full refund). Hold the left button on rubble with the hand to mine it a unit a second. Magazines reach the ring only through the Depot: belt or inserter them into it.`));
+    root.append(lineSec);
+  }
 
   // ring order
   const ringSec = el('section');
@@ -205,8 +230,10 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const s: SimState = session.state;
     const h = hud(s);
     sHeld.b.textContent = String(h.held); sFront.b.textContent = String(h.front); sInt.b.textContent = String(h.interior);
-    sProd.b.textContent = f1(h.ammo.productionMagPerMin); sDem.b.textContent = f1(h.ammo.demandMagPerMin1);
-    sDem.s.classList.toggle('warn', h.ammo.demandMagPerMin1 > h.ammo.productionMagPerMin + 1e-9);
+    const fs = flowSummary(s);
+    const prod = h.ammo.productionMagPerMin + fs.productionMagPerMin;   // block-level assemblers plus the tile line
+    sProd.b.textContent = f1(prod); sDem.b.textContent = f1(h.ammo.demandMagPerMin1);
+    sDem.s.classList.toggle('warn', h.ammo.demandMagPerMin1 > prod + 1e-9);
     sStock.b.textContent = f1(h.ammo.stockMags); sLost.b.textContent = String(h.lost);
     sEmpty.b.textContent = String(h.ammo.emptyHoppers); sEmpty.s.classList.toggle('warn', h.ammo.emptyHoppers > 0);
     sClock.b.textContent = h.clock;
@@ -219,6 +246,13 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     btnAsm.disabled = broke || si.free === 0;
     btnAsm.title = si.free === 0 ? 'No free machine slot: an assembler needs an Interior block (every neighbour Held or inert). Enclose a block to get one.'
       : broke ? 'Not enough rubble' : `Goes on block (${si.next!.x},${si.next!.y}); makes ${s.config.asmRate} magazines per minute`;
+    if (vMach && s.flow) {
+      vMach.textContent = `${fs.excavators} / ${fs.belts} / ${fs.inserters} / ${fs.assemblers}`; vBeltItems!.textContent = String(fs.beltItems);
+      vLineRate!.textContent = f1(fs.productionMagPerMin); vLineMade!.textContent = String(fs.magsMade);
+      vHand!.textContent = `${s.flow.stats.handMined} / ${s.flow.stats.handCrafted}`;
+      vBuffer!.textContent = `${Math.floor(s.buffer / SHOT.count)} / ${Math.floor(s.config.bufferCap / SHOT.count)}`; vCoal!.textContent = String(Math.floor(fs.coal)); vCrafts!.textContent = String(fs.craftsQueued);
+      btnCraft!.disabled = s.stock.steel < SHOT.inputs.steel || s.stock.copper < SHOT.inputs.copper;
+    }
     renderRing(frontList(s));
     const facs = facilityList(s).filter(f => f.visible);
     const survs = survivorList(s).filter(f => f.revealed);

@@ -19,9 +19,36 @@ export const LOT_TILES = 24;        // §4: the buildable lot
 export const MARGIN_TILES = 4;      // §4: street margin on every side of the lot
 export const STREET_TILES = 8;      // §4: two margins make the shared street
 
-export const T_STREET = 0, T_GROUND = 1, T_RUBBLE = 2, T_INERT = 3, T_RIVER = 4, T_DEPOSIT = 5;
-export type TileKind = 0 | 1 | 2 | 3 | 4 | 5;
-export const TILE_NAMES: readonly string[] = ['street', 'ground', 'rubble', 'inert', 'river', 'deposit'];
+export const T_STREET = 0, T_GROUND = 1, T_RUBBLE = 2, T_INERT = 3, T_RIVER = 4, T_DEPOSIT = 5, T_PATCH = 6;
+export type TileKind = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export const TILE_NAMES: readonly string[] = ['street', 'ground', 'rubble', 'inert', 'river', 'deposit', 'patch'];
+/** §11: the HQ lot holds a small steel-rubble patch, a copper patch and a coal patch (~700 coal, D1). Lot rectangles
+ *  follow the §18 sketch (steel left of the Depot, copper below it, coal to the right). GAME-ASSUMPTION (M2): 25 steel
+ *  tiles carry the block sim's start patch (7,680 steel, ≈307 a tile, §12's ~300), 12 copper tiles carry 100 each
+ *  (an hour of one Shot assembler), 9 coal tiles carry the 700 coal. Patch tiles are T_PATCH, typed by `patch[]`. */
+export const P_NONE = 0, P_STEEL = 1, P_COPPER = 2, P_COAL = 3;
+export const PATCH_NAMES: readonly string[] = ['', 'steel', 'copper', 'coal'];
+export const HQ_PATCHES: readonly { type: number; lx: number; ly: number; w: number; h: number; units: number }[] = [
+  { type: P_STEEL, lx: 1, ly: 7, w: 5, h: 5, units: 7680 / 25 },
+  { type: P_COPPER, lx: 1, ly: 14, w: 4, h: 3, units: 100 },
+  { type: P_COAL, lx: 18, ly: 14, w: 3, h: 3, units: 700 / 9 },
+];
+/** §11/§18: the Depot is a 6×6 at the lot's centre (lot tiles 9..14, cell tiles 13..18). */
+export const DEPOT_LOT = 9, DEPOT_TILES = 6;
+/** GAME-ASSUMPTION (M2): the start lot was cleared to make the HQ. It keeps HQ_RUBBLE_TILES of its district rubble,
+ *  all in the south strip (lot rows HQ_CLEAR_ROWS and below), so the §18 sketch's turret strip, patches, Depot and
+ *  the belts between them have ground to stand on; every other lot keeps §12's 250–350. */
+export const HQ_RUBBLE_TILES = 100, HQ_CLEAR_ROWS = 18;
+
+/** Which HQ patch a lot tile belongs to (P_NONE for none). Only meaningful on the start block. */
+export function hqPatchAt(lx: number, ly: number): number {
+  for (const p of HQ_PATCHES) if (lx >= p.lx && lx < p.lx + p.w && ly >= p.ly && ly < p.ly + p.h) return p.type;
+  return P_NONE;
+}
+/** Lot tiles the start lot keeps clear of district rubble: the Depot footprint and the patches. */
+export function hqReserved(lx: number, ly: number): boolean {
+  return ly < HQ_CLEAR_ROWS || hqPatchAt(lx, ly) !== P_NONE;
+}
 export type RubbleType = 'stone' | 'copper' | 'steel';
 export type DepositType = 'iron' | 'coal';
 
@@ -53,6 +80,10 @@ export interface LotLayout {
   order: Uint16Array;
   /** Per lot tile, density variant 1..RUBBLE_VARIANTS; 0 where there is no rubble. */
   variant: Uint8Array;
+  /** Per lot tile, its position in `order` (−1 where there is no rubble): the M2 excavators dig by tile. */
+  rank: Int16Array;
+  /** The start lot: district rubble keeps clear of the Depot and the §11 patches. */
+  hq: boolean;
 }
 
 const layoutCache = new Map<string, LotLayout>();
@@ -65,30 +96,32 @@ export function depthFrac(b: Pick<Block, 'name' | 'dmax'>): number {
   return Math.max(0, Math.min(1, (b.dmax / base - 1) / 0.5));
 }
 
-export function lotLayout(seed: number, b: Pick<Block, 'x' | 'y' | 'name' | 'dmax'>): LotLayout {
-  const key = `${seed}:${b.x}:${b.y}`;
+export function lotLayout(seed: number, b: Pick<Block, 'x' | 'y' | 'name' | 'dmax'>, hq = false): LotLayout {
+  const key = `${seed}:${b.x}:${b.y}:${hq ? 1 : 0}`;
   const hit = layoutCache.get(key);
   if (hit) return hit;
   if (layoutCache.size > 8192) layoutCache.clear();
   const N = LOT_TILES * LOT_TILES;
   const variant = new Uint8Array(N);
+  const rank = new Int16Array(N).fill(-1);
   const rubble = rubbleOf(b.name);
   let deposit: DepositType | null = null;
   let count = 0, centres = CLUSTERS;
-  if (rubble) count = RUBBLE_TILES_MIN + Math.floor(hash01(seed, 1, b.x, b.y) * (RUBBLE_TILES_MAX - RUBBLE_TILES_MIN + 1));
+  if (rubble && hq) { count = HQ_RUBBLE_TILES; centres = 1; }
+  else if (rubble) count = RUBBLE_TILES_MIN + Math.floor(hash01(seed, 1, b.x, b.y) * (RUBBLE_TILES_MAX - RUBBLE_TILES_MIN + 1));
   else if (hash01(seed, 2, b.x, b.y) < DEPOSIT_CELL_FRACTION) {
     deposit = hash01(seed, 3, b.x, b.y) < DEPOSIT_IRON_FRACTION ? 'iron' : 'coal';
     count = DEPOSIT_TILES; centres = 1;
   }
   if (count === 0) {
-    const lay = { rubble, deposit, tiles: 0, order: new Uint16Array(0), variant };
+    const lay = { rubble, deposit, tiles: 0, order: new Uint16Array(0), variant, rank, hq };
     layoutCache.set(key, lay);
     return lay;
   }
   const cx: number[] = [], cy: number[] = [];
   for (let k = 0; k < centres; k++) {
     cx.push(3 + hash01(seed, 10 + k, b.x, b.y) * (LOT_TILES - 6));
-    cy.push(3 + hash01(seed, 20 + k, b.x, b.y) * (LOT_TILES - 6));
+    cy.push(hq ? HQ_CLEAR_ROWS + 1 + hash01(seed, 20 + k, b.x, b.y) * (LOT_TILES - HQ_CLEAR_ROWS - 2) : 3 + hash01(seed, 20 + k, b.x, b.y) * (LOT_TILES - 6));
   }
   const score = new Float64Array(N);
   const idx: number[] = new Array(N);
@@ -100,6 +133,7 @@ export function lotLayout(seed: number, b: Pick<Block, 'x' | 'y' | 'name' | 'dma
     }
     const i = ly * LOT_TILES + lx;
     score[i] = 0.65 * s + 0.35 * hash01(seed, 100 + b.x * 64 + b.y, lx, ly);
+    if (hq && hqReserved(lx, ly)) score[i] = -1;   // the start lot's Depot and patches: never district rubble
     idx[i] = i;
   }
   idx.sort((a, c) => score[c] - score[a] || a - c);   // densest first
@@ -112,8 +146,8 @@ export function lotLayout(seed: number, b: Pick<Block, 'x' | 'y' | 'name' | 'dma
   }
   // GAME-ASSUMPTION: M1's digging order is thinnest heap edge first; M2's excavators replace it with their 5×5 footprints.
   const order = new Uint16Array(count);
-  for (let r = 0; r < count; r++) order[r] = chosen[count - 1 - r];
-  const lay = { rubble, deposit, tiles: count, order, variant };
+  for (let r = 0; r < count; r++) { order[r] = chosen[count - 1 - r]; rank[order[r]] = r; }
+  const lay = { rubble, deposit, tiles: count, order, variant, rank, hq };
   layoutCache.set(key, lay);
   return lay;
 }
@@ -121,11 +155,26 @@ export function lotLayout(seed: number, b: Pick<Block, 'x' | 'y' | 'name' | 'dma
 /** How many of a lot's rubble tiles still stand: the block's pool fraction, rounded. A district with no pool
  *  (outskirts, or the economy off) keeps every tile. */
 export function rubbleLeft(st: SimState, b: Block): number {
-  const lay = lotLayout(st.seed, b);
+  const lay = lotLayout(st.seed, b, isStart(st, b));
   if (!lay.rubble) return lay.tiles;
   const pm = poolMax(st, b.name);
   if (pm <= 0) return lay.tiles;
   return Math.round(lay.tiles * Math.max(0, Math.min(1, b.pool / pm)));
+}
+
+export function isStart(st: SimState, b: Pick<Block, 'x' | 'y'>): boolean { return b.x === st.start[0] && b.y === st.start[1]; }
+
+/** Lot tiles a block's machines (or the player's hands) have dug out, from the M2 flow state; empty without it. */
+export function dugTiles(st: SimState, b: Block): readonly number[] {
+  return st.flow?.dug[b.x * st.h + b.y] ?? NONE;
+}
+const NONE: readonly number[] = [];
+
+/** How many of a lot's district rubble tiles are gone: the explicitly dug ones plus, thinnest heap edge first, as
+ *  many more as the pool says (M1's flat yield keeps drawing the pool down; the dug tiles count against it). */
+export function goneCount(st: SimState, b: Block, lay: LotLayout): number {
+  const left = lay.rubble ? rubbleLeft(st, b) : lay.tiles;
+  return Math.max(0, lay.tiles - left - dugTiles(st, b).length);
 }
 
 export interface CellTiles {
@@ -134,6 +183,8 @@ export interface CellTiles {
   kind: Uint8Array;
   /** Density variant 1..RUBBLE_VARIANTS on rubble and deposit tiles, 0 elsewhere. */
   variant: Uint8Array;
+  /** P_* patch type on T_PATCH tiles (the HQ lot), 0 elsewhere. */
+  patch: Uint8Array;
   rubble: RubbleType | null;
   deposit: DepositType | null;
   /** Tiles laid down and tiles still standing. */
@@ -144,20 +195,21 @@ export interface CellTiles {
 /** A cheap fingerprint of everything that changes a cell's tiles; the renderer repaints a cell when it changes. */
 export function cellKey(st: SimState, x: number, y: number): string {
   const b = st.blocks[x * st.h + y];
-  return `${b.state}:${rubbleLeft(st, b)}`;
+  return `${b.state}:${rubbleLeft(st, b)}:${dugTiles(st, b).length}`;
 }
 
 export function cellTiles(st: SimState, x: number, y: number): CellTiles {
   const b = st.blocks[x * st.h + y];
   const n = CELL_TILES * CELL_TILES;
-  const kind = new Uint8Array(n), variant = new Uint8Array(n);
-  const lay = lotLayout(st.seed, b);
+  const kind = new Uint8Array(n), variant = new Uint8Array(n), patch = new Uint8Array(n);
+  const hq = isStart(st, b);
+  const lay = lotLayout(st.seed, b, hq);
   const river = y === st.h - 1;
   const inert = !river && (b.state === INERT || b.state === VOID);
   let left = 0;
   if (river) {
     for (let ty = 0; ty < CELL_TILES; ty++) for (let tx = 0; tx < CELL_TILES; tx++) kind[ty * CELL_TILES + tx] = ty < MARGIN_TILES ? T_STREET : T_RIVER;
-    return { x, y, kind, variant, rubble: null, deposit: null, rubbleTiles: 0, rubbleLeft: 0 };
+    return { x, y, kind, variant, patch, rubble: null, deposit: null, rubbleTiles: 0, rubbleLeft: 0 };
   }
   // margins are street; the lot is ground, inert, or ground with rubble / a deposit on it
   for (let ty = 0; ty < CELL_TILES; ty++) for (let tx = 0; tx < CELL_TILES; tx++) {
@@ -167,13 +219,24 @@ export function cellTiles(st: SimState, x: number, y: number): CellTiles {
   if (!inert && lay.tiles > 0) {
     left = rubbleLeft(st, b);
     const k = lay.rubble ? T_RUBBLE : T_DEPOSIT;
-    for (let r = lay.tiles - left; r < lay.tiles; r++) {
+    for (let r = goneCount(st, b, lay); r < lay.tiles; r++) {
       const li = lay.order[r], lx = li % LOT_TILES, ly = (li - lx) / LOT_TILES;
       const ti = (ly + MARGIN_TILES) * CELL_TILES + lx + MARGIN_TILES;
       kind[ti] = k; variant[ti] = lay.variant[li];
     }
   }
-  return { x, y, kind, variant, rubble: inert ? null : lay.rubble, deposit: inert ? null : lay.deposit, rubbleTiles: inert ? 0 : lay.tiles, rubbleLeft: left };
+  const dug = dugTiles(st, b);
+  if (hq && !inert) {
+    for (const p of HQ_PATCHES) for (let ly = p.ly; ly < p.ly + p.h; ly++) for (let lx = p.lx; lx < p.lx + p.w; lx++) {
+      const ti = (ly + MARGIN_TILES) * CELL_TILES + lx + MARGIN_TILES;
+      kind[ti] = T_PATCH; patch[ti] = p.type;
+    }
+  }
+  for (const li of dug) {
+    const lx = li % LOT_TILES, ly = (li - lx) / LOT_TILES, ti = (ly + MARGIN_TILES) * CELL_TILES + lx + MARGIN_TILES;
+    if (kind[ti] === T_RUBBLE || kind[ti] === T_PATCH || kind[ti] === T_DEPOSIT) { kind[ti] = T_GROUND; variant[ti] = 0; patch[ti] = 0; }
+  }
+  return { x, y, kind, variant, patch, rubble: inert ? null : lay.rubble, deposit: inert ? null : lay.deposit, rubbleTiles: inert ? 0 : lay.tiles, rubbleLeft: left };
 }
 
 export interface CityTiles { w: number; h: number; kind: Uint8Array; variant: Uint8Array }
@@ -210,6 +273,7 @@ export function describeTile(st: SimState, tx: number, ty: number): string {
   if (x < 0 || y < 0 || x >= st.w || y >= st.h) return '';
   const c = cellTiles(st, x, y);
   const k = c.kind[ly * CELL_TILES + lx], v = c.variant[ly * CELL_TILES + lx];
-  const what = k === T_RUBBLE ? `${c.rubble} rubble, density ${v}/${RUBBLE_VARIANTS}` : k === T_DEPOSIT ? `${c.deposit} deposit` : TILE_NAMES[k];
+  const what = k === T_RUBBLE ? `${c.rubble} rubble, density ${v}/${RUBBLE_VARIANTS}` : k === T_DEPOSIT ? `${c.deposit} deposit`
+    : k === T_PATCH ? `HQ ${PATCH_NAMES[c.patch[ly * CELL_TILES + lx]]} patch` : TILE_NAMES[k];
   return `tile (${tx},${ty}) · ${what}`;
 }

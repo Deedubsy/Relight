@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SimEvent } from '@relight/sim';
+import { SimEvent, flowSummary, canPlace, place, remove, rotate, queueCraft, setHandMine, Kind, Dir, CELL_TILES, MARGIN_TILES } from '@relight/sim';
 import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session } from './session';
 import { MapScene, SceneHooks, MAP_W, MAP_H } from './mapScene';
 import { WorldScene } from './worldScene';
@@ -53,6 +53,7 @@ const game = new Phaser.Game({
   width: MAP_W, height: MAP_H,
   backgroundColor: '#0b0e1a',
   render: { antialias: true, pixelArt: false },
+  disableContextMenu: true,   // right click removes a machine in the world view
   scene: [],
 });
 const hooks: SceneHooks = {
@@ -60,7 +61,7 @@ const hooks: SceneHooks = {
   onPipSelect: e => panel.setSelectedEdge(e),
 };
 const mapScene = new MapScene(session, hooks);
-const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py) });
+const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind) });
 game.scene.add('map', mapScene, view.mode === 'map');
 game.scene.add('world', worldScene, view.mode === 'world');
 if (view.mode === 'world') worldScene.centreOn(view.focus[0], view.focus[1]);
@@ -100,6 +101,7 @@ window.addEventListener('keydown', ev => {
   else if (ev.key === '2') setSpeed(session, 4);
   else if (ev.key === '3') setSpeed(session, 16);
   else if (ev.key === 'e' || ev.key === 'E') toggleView();
+  else if (view.mode === 'world' && worldScene.key(ev.key)) ev.preventDefault();
 });
 
 // dev/test hooks (not player controls)
@@ -113,7 +115,19 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   stateJson: () => JSON.stringify(session.state),
   configHash: session.telemetry.meta.configHash,
   toggleView,
-  world: { get zoom() { return worldScene.zoom; }, setZoom: (z: number) => worldScene.setZoom(z), centreOn: (x: number, y: number) => worldScene.centreOn(x, y), focus: () => worldScene.focusBlock(), get drawn() { return worldScene.drawn; } },
+  world: { get zoom() { return worldScene.zoom; }, setZoom: (z: number) => worldScene.setZoom(z), centreOn: (x: number, y: number) => worldScene.centreOn(x, y), focus: () => worldScene.focusBlock(), get drawn() { return worldScene.drawn; },
+           get tool() { return worldScene.tool; }, key: (k: string) => worldScene.key(k) },
+  /** M2 flow layer: place/remove/rotate by city tile, `hq(lx, ly)` = city tile of a lot tile on the HQ lot. */
+  flow: {
+    summary: () => flowSummary(session.state),
+    canPlace: (kind: Kind, tx: number, ty: number) => canPlace(session.state, kind, tx, ty),
+    place: (kind: Kind, tx: number, ty: number, dir: Dir = 0) => place(session.state, kind, tx, ty, dir),
+    remove: (tx: number, ty: number) => remove(session.state, tx, ty),
+    rotate: (tx: number, ty: number) => rotate(session.state, tx, ty),
+    craft: (n = 1) => queueCraft(session.state, n),
+    mine: (at: [number, number] | null) => setHandMine(session.state, at),
+    hq: (lx: number, ly: number): [number, number] => [session.state.start[0] * CELL_TILES + MARGIN_TILES + lx, session.state.start[1] * CELL_TILES + MARGIN_TILES + ly],
+  },
   /** Render-loop sample since the last call: frames, mean and worst frame time (ms), frames over 50 ms. */
   fps: () => { const n = frameMs.length, mean = frameMs.reduce((a, b) => a + b, 0) / Math.max(1, n), worst = Math.max(0, ...frameMs), slow = frameMs.filter(d => d > 50).length; const r = { frames, sampled: n, meanMs: +mean.toFixed(2), worstMs: +worst.toFixed(1), over50ms: slow, fps: +(1000 / mean).toFixed(1) }; frames = 0; frameMs = []; return r; },
 };
