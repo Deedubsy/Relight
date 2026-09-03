@@ -49,7 +49,7 @@ Stale run names outside the changelog were renamed to the sections and rows of `
 - **`packages/harness`** — E1–E9 as named runs, three seeds each (`docs/EXPERIMENTS.md`, `docs/experiments/E<n>.json`), every check machine-evaluated, `npm run experiments` exits non-zero on a red check. A nightly mode (`--nightly --seeds-n`) for the seed distribution and the 25 h runs.
 - **`packages/tools/src/docsync.ts`** — regenerates the §7 district and enemy tables and the §12 recipe table in `RELIGHT-design.md` from the sim; `--check` fails CI on drift.
 - **Lint and CI** — ESLint 9 flat config; `.github/workflows/ci.yml` on every push and PR (lint, `tsc --strict`, fixtures, E1–E9 at three seeds, docsync check, experiment artefacts); `.github/workflows/nightly.yml` at 03:00 UTC committing `docs/experiments/nightly*` to `main`.
-- **Repo** — `github.com/Deedubsy/Relight`, private, npm workspaces, this work on branch `phase-1` as a PR to `main`; `main` behind a ruleset (PR + `ci` check; the Actions app may bypass so the nightly can commit).
+- **Repo** — `github.com/Deedubsy/Relight`, private, npm workspaces, this work on branch `phase-1` as PR #1 to `main` (CI green on the PR in 1 min 45 s). **`main` is not yet protected:** GitHub refuses rulesets and branch protection on a private repo under the free plan (HTTP 403 "Upgrade to GitHub Pro or make this repository public"). Either is a human choice; the ruleset to apply (PR + `ci` check, Actions app bypass for the nightly commit) is written up in `DECISIONS.md` D-CI.
 - **Doc pass** — 27 edits with changelog lines, every stale run name retagged, `[sim: …]` tags now resolve to `docs/EXPERIMENTS.md`.
 
 ## Assumed (GAME-ASSUMPTION)
@@ -111,4 +111,4 @@ Speed: `npm run experiments` ~45 s locally; CI ~2 min including install.
 
 1. **Map size (D-P1-1).** Every run, every drawing and now §4 say 24×22. The constitution says 24×24. Ship 24×22, or re-run E8/E9 at 24×24 before Phase 9's generator?
 2. **§25 item 13 (D-P1-2, D-25-13).** With the ring fed in creation order, spike loses 12 blocks and pays 2.7×. Is that "clearly worse but valid" (a choice), a trap the doc should warn about, or a rule to change (feed the front nearest the enemy first)?
-3. **The gate against a missed DoD (D-P1-3).** 44 untagged against ≤ 23. Pass Phase 1 on the 15 the sim can reach and carry the 29 as routed, or hold Phase 2 until the count is met? Riders: C10 start ammo (20 or 30 magazines — the sim follows) and the edge hopper (two turrets per edge or the sim's 100 → 50).
+3. **The gate against a missed DoD (D-P1-3).** 44 untagged against ≤ 23. Pass Phase 1 on the 15 the sim can reach and carry the 29 as routed, or hold Phase 2 until the count is met? Riders: C10 start ammo (20 or 30 magazines — the sim follows), the edge hopper (two turrets per edge or the sim's 100 → 50), and **protecting `main`** (GitHub Pro, or make the repo public — D-CI's "protected main" is otherwise unenforceable).
