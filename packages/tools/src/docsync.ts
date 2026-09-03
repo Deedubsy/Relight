@@ -1,13 +1,20 @@
 /**
- * docsync — the §7 district and enemy tables and the §12 recipe table in docs/RELIGHT-design.md are
- * generated from packages/sim (districts.ts, enemies.ts, recipes.ts) plus the E3-block steady state in
- * docs/experiments/E3.json. `npm run docsync` rewrites them; `npm run docsync:check` (CI) fails if the
- * doc differs from what the code says. Edit the .ts files, never the tables.
+ * docsync — the §7 district and enemy tables, the §12 recipe table and the §18 map-view drawings in
+ * docs/RELIGHT-design.md are generated from packages/sim (districts.ts, enemies.ts, recipes.ts, queries.ts renderMap)
+ * plus the E3-block steady state in docs/experiments/E3.json. `npm run docsync` rewrites them; `npm run docsync:check`
+ * (CI) fails if the doc differs from what the code says. Edit the .ts files, never the tables or the drawings.
+ *
+ * §18 is drawn from the compact bot on seed 3 at the locked cadence (C2: one claim per 15 min in hour one, then one per
+ * 5 min; D-P3-6), production off — the E8-cadence run — at 0:10, 5:00 and 25:00. The counts in each drawing's header
+ * are the sim's own; the three-seed means are E8's.
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DISTRICTS, RAIL_YARD, ENEMIES, RECIPES, WELL_RANGE, WELL_CAP_BONUS, WELL_G_MULT } from '@relight/sim';
+import {
+  DISTRICTS, RAIL_YARD, ENEMIES, RECIPES, WELL_RANGE, WELL_CAP_BONUS, WELL_G_MULT,
+  DEFAULT_CONFIG, SimConfig, generateMap, createState, step, createBot, botCommands, Command, renderMap, heldCount, frontage, interior, HELD,
+} from '@relight/sim';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const docPath = join(root, 'docs', 'RELIGHT-design.md');
@@ -71,7 +78,27 @@ function recipesTable(): string {
   return lines.join('\n');
 }
 
-const GENERATORS: Record<string, () => string> = { districts: districtsTable, enemies: enemiesTable, recipes: recipesTable };
+/** §18 drawings: compact bot, seed 3, §18 cadence (gapAfter 300 s), production off (E8-cadence), 25 h. */
+export const SECTION18_SEED = 3, SECTION18_GAP = 300;
+const SECTION18_AT: [number, string][] = [[600, '10 minutes'], [5 * 3600, '5 hours'], [25 * 3600, '25 hours']];
+function section18(): string {
+  const cfg: SimConfig = { ...DEFAULT_CONFIG, production: false, eco: { ...DEFAULT_CONFIG.eco } };
+  const st = createState(generateMap(SECTION18_SEED, cfg), cfg, SECTION18_SEED);
+  const bot = createBot('compact', null, false, SECTION18_GAP);
+  const cmds: Command[] = [];
+  const out: string[] = [];
+  const last = SECTION18_AT[SECTION18_AT.length - 1][0];
+  for (let k = 0; k < last; k++) {
+    cmds.length = 0; botCommands(st, bot, cmds); step(st, cmds);
+    const at = SECTION18_AT.find(a => a[0] === st.t);
+    if (!at) continue;
+    const wells = st.wells.filter(([x, y], i) => st.wellDead[i] || st.blocks[x * st.h + y].state === HELD).length;
+    out.push(`**${at[1]} (map view, seed ${SECTION18_SEED}, compact bot at the §18 cadence, no ammo line; held ${heldCount(st)}, front ${frontage(st)}, interior ${interior(st)}, lost ${st.stats.lost}, wells neutralised ${wells} of ${st.wells.length}) [sim: E8-cadence].**`, '', '```', renderMap(st), '```', '');
+  }
+  return out.join('\n').trimEnd();
+}
+
+const GENERATORS: Record<string, () => string> = { districts: districtsTable, enemies: enemiesTable, recipes: recipesTable, section18 };
 const RE = /(<!-- docsync:(\w+)[^\n]*-->\n)([\s\S]*?)(<!-- \/docsync:\2 -->)/g;
 
 function render(doc: string): { out: string; changed: string[] } {

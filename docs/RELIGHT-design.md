@@ -26,7 +26,7 @@ The fantasy is civic, not military. Turrets are plumbing. The thing you are prou
 
 ## 4. Top-down presentation
 
-**Grid.** 32 px tiles, orthographic, no elevation. The city is a grid of **block cells**, each 32×32 tiles: a 24×24-tile buildable lot with a 4-tile street margin on every side, so two adjacent cells share an 8-tile-wide street. A standard city is 24×24 cells (768×768 tiles) with the river along the bottom row, so 23 rows are claimable (D-P1-1): the sim's canonical map **[sim: E8-cadence]**. The §18 drawings are the earlier 24×22 sketches and are redrawn from the Phase 2 map view. Roughly 8–10 % of cells are **inert**: river, embankment, collapsed overpass. Inert cells cannot be built on and cannot hold rot.
+**Grid.** 32 px tiles, orthographic, no elevation. The city is a grid of **block cells**, each 32×32 tiles: a 24×24-tile buildable lot with a 4-tile street margin on every side, so two adjacent cells share an 8-tile-wide street. A standard city is 24×24 cells (768×768 tiles) with the river along the bottom row, so 23 rows are claimable (D-P1-1): the sim's canonical map **[sim: E8-cadence]**. The §18 map-view drawings are generated from the sim by `npm run docsync` (compact bot, seed 3, the locked cadence) and CI fails if they drift. Roughly 8–10 % of cells are **inert**: river, embankment, collapsed overpass. Inert cells cannot be built on and cannot hold rot.
 
 **Two renderers, one data model.**
 - *World view* (zoom 1.0× down to 0.2×): sprites on the tile grid. Machines are 1×1 to 8×8 tile sprites with a single idle/active animation each. Rubble is one tileset per rubble type with five density variants. Rot is a tinted overlay tileset with five density levels (0.05 steps of visible mottling) so "how bad is this block" is readable without a tooltip.
@@ -60,7 +60,7 @@ These are the rules the player learns by watching. Each is one sentence a player
 
 **Rot.** Every Dark cell has a rot density *d* in [0, 1]. Asleep cells (no Held/Contested neighbour) grow silently toward their district cap: *d* rises by `g · (dmax − d)` per second, so an untouched block reaches ~90 % of its cap in 34–67 minutes (outskirts fastest, civic slowest) **[sim: sanity]**. Rot cannot grow on a lit tile; a lit tile burns rot at 0.05/s. Only streets and lamp radii are lit: a Held lot is unlit buildable ground, burn-off (rule 4 below) clears the whole cell regardless, and rot never re-enters a Held block while its substation runs. "Lights out" means the substation has stopped; a lamp a crawler has eaten is an unlit gap (a shade corridor, section 7), not lights out.
 
-**Waking.** A Dark cell with a Held or Contested 4-neighbour is **awake**. Awake cells bloom on a timer `T = 120 / (0.5 + d)` seconds (240 s at d = 0, 96 s at d = 0.75). A bloom spawns enemies at the cell's street edges facing the player and drops *d* to `max(0.05, 0.9·d)`. Between blooms *d* regrows, so each awake cell settles at a district-specific steady state (section 7).
+**Waking.** A Dark cell with a Held or Contested 4-neighbour is **awake**. Awake cells bloom on a timer `T = 120 / (0.5 + d)` seconds (240 s at d = 0, 96 s at d = 0.75). A bloom spawns enemies at the cell's street edges facing the player and drops *d* to `max(0.05, 0.9·d)`. Both numbers are locked at these values (C8, D-P3-5): Gate A passed without a feel verdict on the rhythm, so the slice encodes them deliberately and Phase 4's playtests are the first place they can move **[play: Gate A]**. Between blooms *d* regrows, so each awake cell settles at a district-specific steady state (section 7).
 
 **How a block becomes Held.**
 1. Every city block has a pre-existing 3×3 **substation** somewhere on its lot. The claim tool highlights it. Tooltip: `Claim — 10 wire, 5 frames · rot 31 % · front +2 · closes 1`.
@@ -87,7 +87,7 @@ A held block touching three dark blocks costs three edges of turrets and ammo bu
 
 **What a wave looks like.** Not a wave. Each awake cell blooms on its own timer; timers are interleaved by the spawner so no two adjacent cells bloom within 10 s of each other (interleaving changes the compact policy's five-hour ammo by 0 %; it is a feel rule, not a cost rule) **[sim: E7]**. A bloom is 4 + 36·d crawlers **[sim: E3-block]** arriving in a 15-second stream at the street edge, plus shades and a hulk above the density thresholds in section 7; a wake bloom is double that, capped at 40 crawlers after doubling (a normal bloom never reaches the cap; it trims a well's wake bloom from 198 to 170 rounds **[sim: wake-cap]**). From the player's seat a front of 20 edges is a steady patter of small fights, one every few seconds somewhere on the line, not a siren and a horde.
 
-**How a block falls.** A Held block falls only when its substation stops. Four ways: brownout (grid demand > supply for 20 s; machines shed first, then substations in order of most-dark-neighbours first **[sim: E2-matrix]**), a **shade** reaching the substation (disables it for 30 s per shade, stacking), a **hulk** smashing it (600 HP, it walks through barricades and turrets to get there), or **crawlers** reaching it unshot: 40 arrivals stop it (the counter is per block across all its edges, so a corner block with two dark edges fails faster than a block with one), which on a residential edge whose hoppers have run dry is about 7 minutes after the pip went red (4–20 across seeds) **[sim: E1-starve-substation-N40]**. Lights out → rot creeps in from every dark edge at 1 tile per 3 s → **90 s after the substation stops** the block is Dark again at d = 0.3, wherever the substation sits on the lot (the rule; the sim's fall timings use it **[sim: E1-starve-substation-N40]**). With the 60 s refeed reset (D3; the sim's fall timings include it **[sim: E1-starve-substation-N40]**) that leaves a 30 s window in which running ammo to the failing block saves it, a play we want. Machines on it are mothballed (greyed, contents kept). Belts and poles are never destroyed. Neighbouring Held blocks gain one frontage edge each, and while a power shortfall lasts that is a cascade: each shed front substation adds 80 kW of new front draw next door (160 kW when the cascade was measured at the old 200/40 kW draw), so a 15 % shortfall for 10 minutes cost 0–2 blocks (mean 0.7) under substation-first shedding and a 25 % shortfall 3–6 (mean 5); shedding machines first cost 0 and 0 **[sim: E2-matrix]**. Nothing cascades once supply is restored: no run under either shedding rule lost a block outside the shortfall window. **Retake** = re-power the substation → wake bloom → burn-off → everything un-greys. Rot is data, not damage; the punishment is the front you just re-grew, not lost buildings.
+**How a block falls.** A Held block falls only when its substation stops. Four ways: brownout (grid demand > supply for 20 s; machines shed first, then substations in order of most-dark-neighbours first **[sim: E2-matrix]**), a **shade** reaching the substation (disables it for 30 s per shade, stacking), a **hulk** smashing it (600 HP, it walks through barricades and turrets to get there), or **crawlers** reaching it unshot: 40 arrivals stop it (the counter is per block across all its edges, so a corner block with two dark edges fails faster than a block with one), which on a residential edge whose hoppers have run dry is about 7 minutes after the pip went red (4–20 across seeds) **[sim: E1-starve-substation-N40]**. Lights out → rot creeps in from every dark edge at 1 tile per 3 s → **90 s after the substation stops** the block is Dark again at d = 0.3, wherever the substation sits on the lot (the rule; the sim's fall timings use it **[sim: E1-starve-substation-N40]**). With the 60 s refeed reset (D3; the sim's fall timings include it **[sim: E1-starve-substation-N40]**) that leaves a 30 s window in which running ammo to the failing block saves it, a play we want. The rule as it ships (D-P3-3): the unshot-arrival counter is per block, stops the substation at 40, and clears once every edge of the block has had a non-empty hopper for 60 s, which also restarts the substation if it is not shed; a rule that stopped at 10 or 20 arrivals loses the HQ at minute 8 and one that creeps rot in from an empty hopper falls in 2.8 min **[sim: E1-ring-substation-N10, E1-ring-substation-N20, E1-starve-creep]**. The rescue the player actually has (D-P3-2) is the 4–20 minutes of red pip before the fortieth arrival, and the 30 s after the substation stops is the second chance, not the first: in the prototype the bot that idles from the 3 h snapshot sees its first red pip about 5 minutes before its first loss, 75 real seconds at 4× speed **[sim: E1-starve-substation-N40] [play: Gate A]**. Machines on it are mothballed (greyed, contents kept). Belts and poles are never destroyed. Neighbouring Held blocks gain one frontage edge each, and while a power shortfall lasts that is a cascade: each shed front substation adds 80 kW of new front draw next door (160 kW when the cascade was measured at the old 200/40 kW draw), so a 15 % shortfall for 10 minutes cost 0–2 blocks (mean 0.7) under substation-first shedding and a 25 % shortfall 3–6 (mean 5); shedding machines first cost 0 and 0 **[sim: E2-matrix]**. Nothing cascades once supply is restored: no run under either shedding rule lost a block outside the shortfall window. **Retake** = re-power the substation → wake bloom → burn-off → everything un-greys. Rot is data, not damage; the punishment is the front you just re-grew, not lost buildings.
 
 **Encircled dark blocks.** A Dark cell whose 4 neighbours are all Held keeps blooming but has no growth input from other dark cells, so it decays to its own cap alone; it is never a threat to more than four edges and you close it whenever you have the wire.
 
@@ -202,11 +202,11 @@ The loop never changes verbs. It changes what one edge costs (district, depth, w
 
 ## 11. First hour in three windows
 
-**0–10 min.** Map opens on the HQ block: river to the south, a 6×6 Depot, one Generator (300 kW) with 40 coal, two Gun turrets on the north edge with 20 magazines in stock (enough, narrowly: with the ammo line running from minute 10 the HQ never falls on 200 rounds, 32 unfed arrivals against the 40 that stop a substation; a rule that tolerated only 10 or 20 would lose the HQ at minute 8 **[sim: E1-start-min, E1-ring-substation-N10]**), a small steel-rubble patch, a copper patch and a coal patch of ~700 units on the lot (D1) **[sim: E4h-patch700]**, a starting stock of 200 steel, 100 copper, 50 stone. Three dark neighbours: rail yard west (coal + steel rubble), residential east (copper), civic north (Electricians, visible as a lit window). Front = 3. At about 3 minutes the north block blooms: 9 crawlers, the turrets fire, 3 magazines gone. You place 2 Excavators (3×3) on the steel patch, a belt, an Assembler (3×3) set to Shot magazine, a belt to the turret hoppers, and at minute 6 a second Generator with an Excavator on the coal patch: one Generator alone browns out at minute 8 and the 40 coal in hand is gone by minute 11 without the patch **[sim: E4h-literal-1gen, E4-literal]**. By minute 10 ammo is automated at 20 mag/min and you have hand-fed the west and east turrets twice each.
+**0–10 min.** Map opens on the HQ block: river to the south, a 6×6 Depot, one Generator (300 kW) with 40 coal, two Gun turrets on the north edge with 20 magazines in stock (enough, narrowly: with the ammo line running from minute 10 the HQ never falls on 200 rounds, 32 unfed arrivals against the 40 that stop a substation; a rule that tolerated only 10 or 20 would lose the HQ at minute 8 **[sim: E1-start-min, E1-ring-substation-N10]**; locked at 20 (C10, D-P2-1): the third hopper's 30 s of amber-then-red at 0:00 is the pip ladder's first lesson, not a shortfall **[play: Gate A]**), a small steel-rubble patch, a copper patch and a coal patch of ~700 units on the lot (D1) **[sim: E4h-patch700]**, a starting stock of 200 steel, 100 copper, 50 stone. Three dark neighbours: rail yard west (coal + steel rubble), residential east (copper), civic north (Electricians, visible as a lit window). Front = 3. At about 3 minutes the north block blooms: 9 crawlers, the turrets fire, 3 magazines gone. You place 2 Excavators (3×3) on the steel patch, a belt, an Assembler (3×3) set to Shot magazine, a belt to the turret hoppers, and at minute 6 a second Generator with an Excavator on the coal patch: one Generator alone browns out at minute 8 and the 40 coal in hand is gone by minute 11 without the patch **[sim: E4h-literal-1gen, E4-literal]**. By minute 10 ammo is automated at 20 mag/min and you have hand-fed the west and east turrets twice each.
 
 **10–30 min.** You claim east (residential, d ≈ 0.22): 10 wire, 5 frames, wake bloom of 22 crawlers, 40-second burn-off, then a lot with 90k copper rubble. Front goes 3 → 4. You put an Excavator on the copper, the wire recipe on a second Assembler, and a third Generator (hour-one draw peaks at 0.98 MW, two-thirds of it machines, and the HQ with its three dark neighbours is still the first substation a brownout sheds **[sim: E4h-literal-1gen, E4h-gen@0,6,15]**). You claim west (rail yard): front 4 → 5 and coal rubble feeds the Generators by belt. The HQ's ~700-unit patch mines out at about minute 29 at one Excavator, so west's coal is wanted by minute 30 (D1; 450 units mine out at 21 min, 1,000 at 39, 3,000 not in hour one) **[sim: E4h-patch700, E4h-patch450, E4h-patch1000, E4h-patch3000]**. Both times you watched the ring on the neighbouring squares fill and the crawlers come at the moment the lamps lit.
 
-**30–60 min.** North is the cap. Claiming it puts the HQ at 4 Held/inert neighbours: the HQ square gets its white border at about minute 40, the two south-facing turrets on east and west get picked up, and the Electricians walk into the Depot: Floodlight, Big pole, Substation appear on the toolbar. Front is 7. The first shade comes with a residential bloom at minute 32–47, from a block that slept past d = 0.3, and is the lamp rule's first lesson **[sim: E3-first]**. You have 3 Assemblers (one on Shot: hour-one demand is 8 mag/min against its 20 **[sim: E5-compact-1-shot-asm-h1]**), 4 Generators (three carry the front to minute 45; the fourth comes with the fifth Excavator and third Assembler, whose 980 kW peak three cannot hold; no brownout; coal does not run out in hour one, but 609 of the 740 coal in reach are burned by minute 60, so west's rubble has to feed the Generators from about then **[sim: E4h-gen@0,6,15,25, E4h-patch700]**), 5 Excavators, 8 turrets, and the first thing you say out loud is "if I take north-east and north-west next, east and west go interior too." You are now playing the game.
+**30–60 min.** North is the cap. Claiming it puts the HQ at 4 Held/inert neighbours: the HQ square gets its white border at about minute 40, the two south-facing turrets on east and west get picked up, and the Electricians walk into the Depot: Floodlight, Big pole, Substation appear on the toolbar. Front is 7. The first shade comes with a residential bloom at minute 32–47, from a block that slept past d = 0.3, and is the lamp rule's first lesson **[sim: E3-first]**. You have 3 Assemblers (one on Shot: hour-one demand is 8 mag/min against its 20 **[sim: E5-compact-1-shot-asm-h1]**), 4 Generators (three carry the front to minute 45; the fourth comes with the fifth Excavator and third Assembler, whose 980 kW peak three cannot hold; no brownout; coal does not run out in hour one, but 609 of the 740 coal in reach are burned by minute 60, so west's rubble has to feed the Generators from about then **[sim: E4h-gen@0,6,15,25, E4h-patch700]**), 5 Excavators, 8 turrets, and the first thing you say out loud is "if I take north-east and north-west next, east and west go interior too." You are now playing the game. The hour-one lesson is ammo, not power (D-P3-1, locked at Gate A): at the 100/20 kW draw with four Generators no hour-one run browns out, while the Shot line's 8 mag/min against one assembler's 20 is the number the player watches, the first pip leaves green inside the first minute and the first shade comes at minute 32–47 **[sim: E4h-gen@0,6,15,25, E5-compact-1-shot-asm-h1, E3-first] [play: Gate A]**.
 
 ## 12. Resources
 
@@ -238,7 +238,7 @@ Mined-out rubble tiles become plain ground you can build on. Deposits are large 
 
 Nothing is more than two steps from a raw.
 
-**Ammo chain.** Steel rubble → Excavator → belt → Assembler (Shot) → belt → turret hopper (50 rounds = 5 magazines). One Assembler = 20 magazines/min = 40 steel + 20 Cu per minute = 1.3 Excavators on steel and 0.7 on copper. Shells: steel + coal → Arsenal-recipe Assembler → Cannon hopper (20 shells).
+**Ammo chain.** Steel rubble → Excavator → belt → Assembler (Shot) → belt → turret hopper (50 rounds = 5 magazines). One Assembler = 20 magazines/min = 40 steel + 20 Cu per minute = 1.3 Excavators on steel and 0.7 on copper. That one assembler feeds about seven edges of the mixed mid-game front (52–67 mag/min over 20–21 edges at 5–12 h of compact play, 2.5–3.4 mag/edge-min with wake tails) and fifteen civic or eleven residential edges at steady state; the early front is cheaper still, one 10 mag/min line plus the start stock carrying an 8–11-edge front for two and a half hours without a pip (C1, D-P2-2, locked **[sim: E9-hourly, E3-block, calibration] [play: Gate A]**). There is no Mk1/Mk2 ladder in the game: the Assembler makes 20 mag/min from the 3 s recipe, and the prototype's 10 mag/min "Mk1" is its calibration stand-in until Phase 4 places the real machine (C9, D-P3-7). Shells: steel + coal → Arsenal-recipe Assembler → Cannon hopper (20 shells).
 
 **Counts by phase.**
 | | Early (0–3 h) | Mid (3–12 h) | Late (12–25 h) |
@@ -315,7 +315,7 @@ Progression is territory. There is no tech tree to read, so the pull is always a
 1. Hold the Power station block (far edge, always an outskirts-adjacent industrial block, d ≈ 0.6–0.8 with a well within 3 blocks in 80 % of seeds).
 2. Deliver the restore kit by tram or belt: 2,000 concrete, 1,500 frames, 800 boards, 500 polymer. At mid-game rates that is ~3 hours of a dedicated line.
 3. Bring all five Transformer yards interior (they each show a red "exposed" flag until then).
-4. Feed the station 20 coal/s or 5 fuel/s and start it. **Spin-up is a 10-minute hold.** For those 10 minutes every remaining well surges ×3 and every awake block blooms at its wake size. This is the only time the game is a siege, and it is the last thing that happens. It is survivable with preparation: banking magazines over the last hour is the intended play, and a player who has stocked about 2× an hour's production over the final hour should lose fewer than 5 blocks. Measured with the wells' ×3 and the wake-size bloom on every awake block both in the sim: the ten minutes demand 1.5× the ammo of the hour before them (127 vs 84 mag/min at four assemblers), peak minutes 2.25×, and cost 17–21 blocks in twenty minutes at four assemblers, 29–33 at six and 21–30 at eight when production only matches demand and nothing is banked, against 4 without the surge; a 4,000-magazine bank at eight assemblers holds on the one seed where it is full at 25:00 and loses 39–42 on the two where it drained before the window; eight assemblers from hour 4 with an uncapped bank (~13,700 magazines by 25 h) lose 0 blocks on all three seeds **[sim: E9-hold]**. The intended play (D4) holds; the open number is the bank a player can actually build (§25 item 5).
+4. Feed the station 20 coal/s or 5 fuel/s and start it. **Spin-up is a 10-minute hold.** For those 10 minutes every remaining well surges ×3 and every awake block blooms at its wake size. This is the only time the game is a siege, and it is the last thing that happens. It is survivable with preparation: banking magazines over the last hour is the intended play, and a player who has stocked about 2× an hour's production over the final hour should lose fewer than 5 blocks. Measured with the wells' ×3 and the wake-size bloom on every awake block both in the sim: the ten minutes demand 1.5× the ammo of the hour before them (127 vs 84 mag/min at four assemblers), peak minutes 2.25×, and cost 17–21 blocks in twenty minutes at four assemblers, 29–33 at six and 21–30 at eight when production only matches demand and nothing is banked, against 4 without the surge; a 4,000-magazine bank at eight assemblers holds on the one seed where it is full at 25:00 and loses 39–42 on the two where it drained before the window; eight assemblers from hour 4 with an uncapped bank (~13,700 magazines by 25 h) lose 0 blocks on all three seeds **[sim: E9-hold]**. Decided (D-P3-4, locked at Gate A): the Relight is survivable and banking is the intended play, not the ending. The bank is a buildable object holding about two hours of eight-assembler production, ~20,000 magazines, since the 400-magazine line buffer (C4) and a 4,000-magazine bank both lose the hold; Phase 10 builds it and E20 measures the size a player fills by hand (§25 item 5) **[sim: E9-hold] [play: Gate A]**.
 5. At 10:00 the station hits 40 MW and the Relight sweeps outward from it at one block per 0.4 s. Every dark block's streetlights come on whether it has a substation link or not, rot burns to zero everywhere, wells die. Two minutes of watching the map turn from navy to amber, one district at a time. Then the score screen.
 
 **After.** Free play continues with no rot growth anywhere. The front is gone; you can build across the whole city. Optimisation targets (section 17) keep score.
@@ -329,9 +329,11 @@ Progression is territory. There is no tech tree to read, so the pull is always a
 
 ## 18. Example territory at 10 minutes, 5 hours, 25 hours
 
-Legend: `H` held, `I` interior, `C` contested, `.` dark, `~` river / inert, `Q` HQ, `F` Foundry, `A` Arsenal, `T` Tram depot, `U` Turbine hall, `R` Refinery, `P` Power station, `Y` transformer yard, `W` rot well (`w` = dead well), `E`/`G`/`K`/`M` survivors (Electricians, Gunsmith, Rail crew, Foreman). Map view: one character = one block cell.
+Legend: `H` held, `I` interior, `C` contested, `.` dark, `~` river / inert, `Q` HQ, `F` Foundry, `A` Arsenal, `U` Turbine hall, `R` Refinery, `P` Power station, `W` rot well (`w` = neutralised: Held or dead), `E`/`N`/`G`/`K`/`M` survivors (Electricians, Concrete crew, Gunsmith, Rail crew, Foreman). Facility and survivor letters are uppercase once their block is Held and lowercase while it is dark. Map view: one character = one block cell, rows are y (0 north, river last), columns x. The Tram depot and the five Transformer yards are not in the sim's map yet (Phase 9 generator) and so not in the drawings.
 
-**10 minutes (world view of the HQ lot, north half, 24 tiles wide).** Front = 3. Rot mottling on the far side of every street.
+The three map-view drawings are generated from the sim by `npm run docsync` — the compact bot on seed 3 at the locked cadence (C2, D-P3-6: one claim per 15 min in hour one, then one per 5 min), no ammo line, the E8-cadence run — and CI fails if the doc's copy drifts from what the sim draws. They replace the hand-drawn 24×22 sketches (redrawn in Phase 3 after Gate A).
+
+**10 minutes, world view of the HQ lot (north half, 24 tiles wide; a hand sketch at tile scale, Phase 4 M1 redraws it from the world view).** Front = 3. Rot mottling on the far side of every street.
 
 ```
  north street (residential, d 0.22, awake, ring 40 % full)
@@ -348,50 +350,99 @@ Legend: `H` held, `I` interior, `C` contested, `.` dark, `~` river / inert, `Q` 
  (south half: more rubble, river embankment)
 ```
 
-**5 hours (map view, south-centre 14×9 blocks; the drawing shows 52 blocks held, front 24, interior 36, with 5 cells drawn as front that are interior by the 4-neighbour rule; the sim at 5 h at the §18 cadence holds 52, front 19, interior 36 [sim: E8-cadence]).** Compact policy [sim: E7, §18 recount]. Ammo demand ≈ 50–70 mag/min from four assemblers **[sim: E9-hourly]**; 14 shells/min from the Arsenal for the two outskirt edges near the well.
-
-```
- col: 6 7 8 9 0 1 2 3 4 5 6 7 8 9
- 12   . . . . . . W . . . . . . .    <- well at (12,8) is 4 rows further north; this is its influence
- 13   . . . . . H H H . . . . . .    <- northern spur toward the Foundry
- 14   . . . . H H F H H . . . . .    <- Foundry held (industrial, shades on all three dark edges)
- 15   . . . H H I I I H H . . . .
- 16   . . . H I I I I I H . . . .
- 17   . . H H I I I I I I H H . .    <- Arsenal is off-map to the east, not yet reached
- 18   . . H I I E I I I I I H . .    <- Electricians block, long interior
- 19   . . H I I I I Q I I I H . .    <- HQ, interior since minute 40
- 20   ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~    <- river
-```
-
-**25 hours (map view, the earlier 24×22 sketch of the 24×24 city; the drawing shows 313 blocks held, front 67, interior 270, with 7 cells drawn as front that are interior; the sim at 25 h at the §18 cadence holds 292, front 43, interior 253 [sim: E8-cadence]; one or two of five wells taken by the compact bot [sim: E8-wells]; four of five wells dead, Power station under restoration).**
+<!-- docsync:section18 (generated from packages/sim by `npm run docsync`; compact bot, seed 3, §18 cadence, production off) -->
+**10 minutes (map view, seed 3, compact bot at the §18 cadence, no ammo line; held 1, front 3, interior 0, lost 0, wells neutralised 0 of 5) [sim: E8-cadence].**
 
 ```
  col: 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
-  0   . . . . . . . . . . . . P H H . . . . . . . . .   <- Power station block held, spin-up not started
-  1   . . w . . . . . . . . H H H H H . . . . . . . .
-  2   . . . . . . . . . . H H I I I H H . . . . W . .   <- live well (21,3) walled by 3 held sides
-  3   . . . . . . . . . H I I I Y I I I H . . . . . .   <- outskirts yard (interior)
-  4   . . . . . . . . H I I I I I I I I I H . . . . .
-  5   . . . . . . . H I I I I I I I I I I I H . . . .
-  6   . . . . . . H I I I I I I I I I I I I I H . . .
-  7   . . . . . H I I I Y I I I I I I I I I I H . . .   <- industrial yard
-  8   . . . . H I I I I I I I w I I I I I I I H . . .   <- dead well (12,8)
-  9   . . . H I I I I I I I I I I I I I I I I I H . .
- 10   . . H I I I I I I I I I I I I I I I I I I H . .
- 11   . . H I I I R I I I I I I I I I I I A I I H . .   <- Refinery (oil outskirts pocket), Arsenal
- 12   . . H I I I I I I I I I Y I I I I I I I I H . .   <- residential yard
- 13   . . H I I I I I I I I I I I I I I I I I I H . .
- 14   . . H I I I I I I F I I I I I I I I I I H . . .
- 15   . . H I I I I I I I I I I I I I I I I H . . . .
- 16   . . H I I I I I I I I I I I I I I I H . . . . .
- 17   . . H I I I I I I I T I I I Y I I H . . . . . .   <- civic yard
- 18   . w H I I I I I I I I I I I I I H . . . . W . .   <- live well (22,19) never taken; costs nothing
- 19   . . H I I I I I I I I I I I I I H U H . . . . .   <- Turbine hall on the riverbank
- 20   . . H I I I I E I I I Q I I I I I H . . . . . .   <- Y5 (rail yard) is at (4,20), off this row's edge
- 21   ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+  0   . . . ~ ~ . ~ . . . . . . . . . . . . . . . . .
+  1   . . . . . . . . . . . p . . . . . . . . . . . .
+  2   . ~ W . . . . . . . . ~ . . . . . . . . . . . .
+  3   . . . . . . . . ~ . . ~ . . . . . . . . . W . .
+  4   . . . . . . . . . . . . . . . . . . . ~ . . . .
+  5   . . ~ . . . . . . . ~ . . . . ~ . . . . . . . ~
+  6   . . . . . . . . . . . . . . . . . . . . . . . .
+  7   . . . . . . . . . . . . . ~ . ~ . . . . . ~ . .
+  8   . . . . . ~ . . . ~ . . . . . . . . . . . . . .
+  9   . . . . . . . . . . . . . ~ . . . . . . ~ . ~ .
+ 10   ~ . . . . . . ~ ~ . . . W . . . . . ~ . . ~ . .
+ 11   . . . . . . . . . . . . . . . . . . . . ~ . . .
+ 12   . . . . ~ . . ~ . . ~ . f ~ . . . . . . ~ . . ~
+ 13   . . . . . ~ . ~ . . . . . ~ . . . . . . . . . ~
+ 14   . . . . . . . . ~ . . . . . . . . . . . ~ . . ~
+ 15   . . . . . . . . . ~ . . . . . . r . . . . . . .
+ 16   . . . . . . . . . . . . . ~ . . . . . . . ~ . .
+ 17   . . . . . . . . . k . . . . . . . . . . . . . ~
+ 18   . . . . . . . . . . . . . g . . . . . . . . . .
+ 19   . . . . . . . . . . . . . n ~ . . ~ . . . . . .
+ 20   . ~ W . . . . . a . . . . . . ~ . . . u . . . .
+ 21   . . . . . . . . . . e . . . . . . . . ~ . . W .
+ 22   . . . . . ~ . . ~ . . . Q . . . . . . . m . . .
+ 23   ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 ```
 
-The 25-hour shape is a fat blob with two spurs: one north to the Power station, one south-east to the Turbine hall. Note what is *not* held: the whole east strip and the far west. The live well at (22,19) has been ignored for 20 hours because nothing the player needs is behind it, which is the ignore test (section 19) working as intended.
+**5 hours (map view, seed 3, compact bot at the §18 cadence, no ammo line; held 52, front 20, interior 35, lost 0, wells neutralised 0 of 5) [sim: E8-cadence].**
+
+```
+ col: 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
+  0   . . . ~ ~ . ~ . . . . . . . . . . . . . . . . .
+  1   . . . . . . . . . . . p . . . . . . . . . . . .
+  2   . ~ W . . . . . . . . ~ . . . . . . . . . . . .
+  3   . . . . . . . . ~ . . ~ . . . . . . . . . W . .
+  4   . . . . . . . . . . . . . . . . . . . ~ . . . .
+  5   . . ~ . . . . . . . ~ . . . . ~ . . . . . . . ~
+  6   . . . . . . . . . . . . . . . . . . . . . . . .
+  7   . . . . . . . . . . . . . ~ . ~ . . . . . ~ . .
+  8   . . . . . ~ . . . ~ . . . . . . . . . . . . . .
+  9   . . . . . . . . . . . . . ~ . . . . . . ~ . ~ .
+ 10   ~ . . . . . . ~ ~ . . . W . . . . . ~ . . ~ . .
+ 11   . . . . . . . . . . . . . . . . . . . . ~ . . .
+ 12   . . . . ~ . . ~ . . ~ . f ~ . . . . . . ~ . . ~
+ 13   . . . . . ~ . ~ . . . . . ~ . . . . . . . . . ~
+ 14   . . . . . . . . ~ . . . . . . . . . . . ~ . . ~
+ 15   . . . . . . . . . ~ . . . . . . r . . . . . . .
+ 16   . . . . . . . . . . . . . ~ . . . . . . . ~ . .
+ 17   . . . . . . . . . k . . . . . . . . . . . . . ~
+ 18   . . . . . . . . . . . . . g . . . . . . . . . .
+ 19   . . . . . . . . H H H H H N ~ H H ~ H H H H . .
+ 20   . ~ W . . . . . A I I I I I I ~ I I I U I H . .
+ 21   . . . . . . . . H I E I I I I I I I I ~ I H W .
+ 22   . . . . . ~ . . ~ I I I Q I I I I I I I M I H .
+ 23   ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+```
+
+**25 hours (map view, seed 3, compact bot at the §18 cadence, no ammo line; held 292, front 37, interior 258, lost 0, wells neutralised 2 of 5) [sim: E8-cadence].**
+
+```
+ col: 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
+  0   . . . ~ ~ . ~ . . . . . . . . . . . . . . . . .
+  1   . . . . . . . . . . . p . . . . . . . . . . . .
+  2   . ~ W . . . . . . . . ~ . . . . . . . . . . . .
+  3   . . . . . . . . ~ . . ~ . . . . . . . . . W . .
+  4   . . . H H H H H I H H I H H H H H H H ~ . . . .
+  5   . . ~ I I I I I I I ~ I I I I ~ I I I I H . . ~
+  6   . . . H I I I I I I I I I I I I I I I I H . . .
+  7   . . . H I I I I I I I I I ~ I ~ I I I I I ~ . .
+  8   . . . H I ~ I I I ~ I I I I I I I I I I I H . .
+  9   . . . H I I I I I I I I I ~ I I I I I I ~ I ~ .
+ 10   ~ . . H I I I ~ ~ I I I w I I I I I ~ I I ~ . .
+ 11   . . . H I I I I I I I I I I I I I I I I ~ . . .
+ 12   . . . H ~ I I ~ I I ~ I F ~ I I I I I I ~ . . ~
+ 13   . . . . . ~ H ~ I I I I I ~ I I I I I I I H H ~
+ 14   . . . . . . . . ~ I I I I I I I I I I I ~ I I ~
+ 15   . . . . . . . . H ~ I I I I I I R I I I I I I I
+ 16   . . . . . . . . H I I I I ~ I I I I I I I ~ I I
+ 17   . . . . . . . . H K I I I I I I I I I I I I I ~
+ 18   . . . . . . . . H I I I I G I I I I I I I I I I
+ 19   . . . . . . . . H I I I I N ~ I I ~ I I I I I I
+ 20   . ~ W . . . . . A I I I I I I ~ I I I U I I I I
+ 21   . . . . . . . . H I E I I I I I I I I ~ I I w I
+ 22   . . . . . ~ . . ~ I I I Q I I I I I I I M I I I
+ 23   ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+```
+<!-- /docsync:section18 -->
+
+**What the drawings show.** At 10 minutes nothing is claimed yet (the first claim comes at minute 15): the HQ on the river with front 3, the Electricians two blocks west, the Arsenal six blocks off and visible on the skyline, the Foundry ten blocks north and not. At 5 hours the shape is a strip along the river, fourteen blocks wide and four deep, not the blob the earlier sketch drew: the compact bot scores a claim by the front it adds, the river row is a free wall, so it spreads east and west along it (Arsenal at hour 3.3, Turbine hall at 4.0, the well at (22,21) taken head-on just after hour 5) before it goes north, and the first interior comes at 86 minutes **[sim: E8-cadence, E7]**. The bot has no pull toward facilities, so it reaches the Foundry at hour 14 on this seed; a player who wants steel goes north first (§11, §15), and the strip is what the front rule alone produces. At 25 hours it is a fat blob filling the centre and north of the city, both wells inside it neutralised (12,10 at hour 17), the whole west, the south-west and the far north never held: the wells at (2,2), (2,20) and (21,3) have been ignored for the whole run because nothing the player needs is behind them, which is the ignore test (section 19) working as intended. Three-seed means at this cadence: 52 held, front 19, interior 36 at 5 h and 292, 43, 253 at 25 h; hour by hour 4 / 16 / 28 / 52 / 88 / 112 / 136 / 172 / 232 / 292 held at 1 / 2 / 3 / 5 / 8 / 10 / 12 / 15 / 20 / 25 h **[sim: E8-cadence, E8-hourly]**; the compact bot takes one or two of five wells by 25 h and the well-death rule never fires **[sim: E8-wells]**. The drawings carry no ammo line; with four assemblers from hour 3 the same bot demands ≈ 50–70 mag/min at 5 h, plateaus at 80–84 from hour 15 and holds 181 at 25 h after losing 111 **[sim: E9-hourly]**, which is why §12's late column assumes eight.
 
 ## 19. Fun checks
 
@@ -408,7 +459,7 @@ The 25-hour shape is a fat blob with two spurs: one north to the Power station, 
 2. *The river T.* Claim east and west first so that the third claim (north) makes the HQ interior at minute 40 rather than minute 60–86 (the pure compact policy's first interior time) **[sim: E7]**; the player who spots this feels like they beat the rule.
 3. *The well noose.* Hold three sides of a well, put Cannons on the fourth-side neighbours before claiming the fourth, then claim it and let the truck lay kits while the noose closes. The player who does it with zero substations lost has understood every rule in section 5.
 
-**Ignore test (can the player leave a problem alone?).** Yes. Nothing is on a clock. An awake block blooms forever but blooms are bounded (wake cap 40), and the turtle policy in the sim cost 878 magazines over five hours (176 an hour) on the scattered map, and the same on open ground since the HQ's three neighbours are never inert **[sim: E7]**: flat, tiny, survivable. The one thing that cannot be ignored is an empty hopper: 40 unshot crawlers stop the substation, about 7 minutes on a residential edge **[sim: E1-starve-substation-N40]**, and a line at ~80 % of demand by 3 h and ~96 % by 5 h, with an empty buffer from 2 h, lost 10 blocks (9–12) in five hours on the spike policy, on industrial and well edges **[sim: E1-ring-spike, E7]**. A live well behind you that guards nothing (the (22,19) well in section 18) can be ignored for the whole run. The anti-turtle pressure is finite rubble (the start block's steel runs out in ~2 hours of two excavators) and the pull of facilities, not the enemy.
+**Ignore test (can the player leave a problem alone?).** Yes. Nothing is on a clock. An awake block blooms forever but blooms are bounded (wake cap 40), and the turtle policy in the sim cost 878 magazines over five hours (176 an hour) on the scattered map, and the same on open ground since the HQ's three neighbours are never inert **[sim: E7]**: flat, tiny, survivable. The one thing that cannot be ignored is an empty hopper: 40 unshot crawlers stop the substation, about 7 minutes on a residential edge **[sim: E1-starve-substation-N40]**, and a line at ~80 % of demand by 3 h and ~96 % by 5 h, with an empty buffer from 2 h, lost 10 blocks (9–12) in five hours on the spike policy, on industrial and well edges **[sim: E1-ring-spike, E7]**. A live well behind you that guards nothing (the (22,19) well in section 18) can be ignored for the whole run. The anti-turtle pressure is finite rubble (the start block's steel runs out in ~2 hours of two excavators) and the pull of facilities, not the enemy. The prototype's steel wall is that pressure and is intended (D-P2-3): from the 3 h snapshot the stock reaches 0 at about 3:40 whatever the player does, the bot that keeps expanding is down to 2 blocks by 4:30 and an idle one loses 6, and the ways out are the ones the rules name — claim industrial, reorder the ring, retreat **[sim: calibration] [play: Gate A]**.
 
 **Tedium audit.**
 | Repeated action | Frequency | Removal point |
@@ -500,20 +551,20 @@ The 25-hour shape is a fat blob with two spurs: one north to the Power station, 
 
 ## 25. Open questions
 
-1. **Bloom cadence.** Is `T = 120/(0.5+d)` with a 10 % drop per bloom the right rhythm, or do fights need to be rarer and bigger? *Prototype first, headless.* The front simulation (`frontsim.py`, 24×22 blocks, five claim policies) now has an ammo ring with hoppers and a power model with shedding; belt latency is still not modelled. The cadence was varied on the scattered map: doubling the timer to `240/(0.5+d)` halves fights on a 20-edge front from 6.8 to 3.6 a minute and cuts ammo per edge 30 % (1.37 → 0.97 mag/edge/min); a 20 % drop per bloom instead of 10 % keeps 6.1 fights a minute and cuts ammo 24 % **[sim: E10-bloom-cadence, Python only; not re-run in Phase 1]**. Which rhythm is right is a feel question for the prototype, not a sim question.
+1. **Bloom cadence.** Is `T = 120/(0.5+d)` with a 10 % drop per bloom the right rhythm, or do fights need to be rarer and bigger? *Prototype first, headless.* The front simulation (`packages/sim`, 24×24 blocks, six claim policies; the Python `frontsim.py` it was ported from was retired in Phase 3) has an ammo ring with hoppers and a power model with shedding; belt latency is still not modelled. The cadence was varied on the scattered map: doubling the timer to `240/(0.5+d)` halves fights on a 20-edge front from 6.8 to 3.6 a minute and cuts ammo per edge 30 % (1.37 → 0.97 mag/edge/min); a 20 % drop per bloom instead of 10 % keeps 6.1 fights a minute and cuts ammo 24 % **[sim: E10-bloom-cadence, Python only; not re-run in Phase 1]**. Which rhythm is right is a feel question for the prototype, not a sim question. Locked at Gate A at the doc's values without a feel verdict (C8, D-P3-5) **[play: Gate A]**; Phase 4's playtests are the first place it can move, and E10 is ported to the harness if a number is wanted first (DEFERRED.md).
 2. **Diagonal leaks.** With 4-adjacency, can a player build a checkerboard that is all "interior"? No: each held block needs all four neighbours held, so a checkerboard is all front. But a diagonal seam of inert cells may create degenerate free enclosures. A validator rejecting 2×2 inert squares or runs of three changed nothing on three scattered seeds (0–1 such squares occur and ammo totals were identical with and without it) **[sim: E6-validators]**; keep it as a map-generator assertion, not a rule. Counting scattered inert as Dark for enclosure (the other reading of §5) changes nothing for compact or cheapest play — same claims, same ammo — and costs the river-hugging policy 26–28 % more ammo (its front-to-held ratio 0.40 against compact's 0.37); §5 stands **[sim: E6-river]**.
 3. **Global stock too easy?** It removes a Factorio friction (carrying) that some players consider the game. Test with and without a Depot-radius rule.
 4. **Well count and visibility.** Three to six always visible. Should some be hidden until adjacent? Hidden wells punish planning; visible wells are a promise. Lean visible.
-5. **Endgame hold.** Re-run at 25 h on compact play at the §18 cadence, three seeds, with the wells' ×3 and the wake-size bloom on every awake block both in the sim **[sim: E9-hold]**. At four assemblers the window demands 127 mag/min against 84 the hour before (1.5×), peak minutes 2.25×; six assemblers 190 against 125; eight 241 against 159. Blocks lost in the twenty minutes from 25:00 when production only matches demand and nothing is banked: 17–21, 29–33 and 21–30, against 4 without the surge. A bank that production cannot fill is no bank: four assemblers (80 mag/min) under an 84 mag/min demand bank nothing. At eight assemblers a 4,000-magazine bank holds on the seed where it is full at 25:00 and loses 39–42 where it drained; an uncapped bank holds ~13,700 magazines (8,700–20,000) at 25 h and loses 0 blocks on all three seeds. D4 (bankable Relight) stands as the design; open: the bank a player can build and store by hand, a Phase 10 world-view question, and the assembler count the §12 late column assumes.
+5. **Endgame hold.** Re-run at 25 h on compact play at the §18 cadence, three seeds, with the wells' ×3 and the wake-size bloom on every awake block both in the sim **[sim: E9-hold]**. At four assemblers the window demands 127 mag/min against 84 the hour before (1.5×), peak minutes 2.25×; six assemblers 190 against 125; eight 241 against 159. Blocks lost in the twenty minutes from 25:00 when production only matches demand and nothing is banked: 17–21, 29–33 and 21–30, against 4 without the surge. A bank that production cannot fill is no bank: four assemblers (80 mag/min) under an 84 mag/min demand bank nothing. At eight assemblers a 4,000-magazine bank holds on the seed where it is full at 25:00 and loses 39–42 where it drained; an uncapped bank holds ~13,700 magazines (8,700–20,000) at 25 h and loses 0 blocks on all three seeds. D4 (bankable Relight) stands as the design and D-P3-4 locks it: survivable by banking, the bank a buildable object of about two hours of eight-assembler production (~20,000 magazines), §12's late column assumes eight assemblers; Phase 10 builds the object and E20 measures what a player fills by hand.
 6. **Density farming.** Can a player leave one dark block encircled as an ammo-free "rot farm" for nothing? There is nothing to farm (no drops), so the only exploit is a stable interior with a hole; the hole costs four edges forever, which is the intended price.
 7. **The quiet-block problem** (risk 6 above). The first real-game playtest question is whether resource pull is enough to make players take dense blocks. On the scattered map the sim already prices quiet-block play above compact play (1.07×) **[sim: E6-shape]**; on open ground it is still 0.57×.
 8. **Outskirts and well edge cost in play.** Closed at 25 h: over 25 hours of compact play an outskirts edge costs 4.4 mag/min + 2.0 shells/min (hulks in 41 % of blooms) and a well edge 5.2 + 1.5 (30 %), against 4.3 + 2.0 and 5.3–8.7 + 2.1–2.6 at isolated steady state **[sim: E9-district, E3-block]**.
 9. **Coal depletion and the Turbine hall.** There is no rubble-depletion model, so "coal runs out for the second player in three" (section 15) is unsupported; it needs excavator throughput against per-block rubble stock.
-10. **The §18 drawings are ahead of the sim's cadence.** The 5-hour drawing holds 52 blocks and the 25-hour drawing 313, against 52 and 292 in the sim at one claim per 5 minutes after hour one (34 and 184 at the old 8-minute cadence); either the drawings are redrawn or the claim cadence is the thing the map-view prototype tests. The drawings imply one claim every ~5 minutes after hour one: at 4 minutes compact holds 64 at 5 h and 364 at 25 h, at 5 minutes 52 and 292, at 6 minutes 44 and 244, at 8 minutes 34 and 184 **[sim: E8-cadence]**. The drawings stay as they are; the prototype's claims-per-hour telemetry says which cadence players pick.
+10. **The §18 drawings are ahead of the sim's cadence.** The 5-hour drawing holds 52 blocks and the 25-hour drawing 313, against 52 and 292 in the sim at one claim per 5 minutes after hour one (34 and 184 at the old 8-minute cadence); either the drawings are redrawn or the claim cadence is the thing the map-view prototype tests. The drawings imply one claim every ~5 minutes after hour one: at 4 minutes compact holds 64 at 5 h and 364 at 25 h, at 5 minutes 52 and 292, at 6 minutes 44 and 244, at 8 minutes 34 and 184 **[sim: E8-cadence]**. Closed at Gate A: the cadence is locked at one claim per 15 minutes in hour one and one per 5 minutes after it (C2, D-P3-6) **[play: Gate A]**, and the §18 drawings are generated from the sim at it, so the drawings can no longer be ahead of anything.
 11. **Late-game demand.** Closed at 25 h. Compact play at the §18 cadence demands 67 mag/min at 5 h, 52 at 8–12 h and 80–84 from 15 h, where four assemblers plateau and blocks start falling (111–164 lost by 25 h); eight assemblers from hour 4 meet 145–165 at 25 h with ~20 shells/min **[sim: E9-hourly, E9-hold]**. §12's mid and late columns carry these numbers.
-12. **Fall distance.** Closed. 90 s from substation stop to Dark is the rule (§5), wherever the substation sits; the 48 s lot-centre figure is gone. Decisions matched at both **[sim: E1-starve-substation-N40]**, and 90 s leaves a 30 s rescue window against the 60 s refeed reset, which is the play we want.
+12. **Fall distance.** Closed. 90 s from substation stop to Dark is the rule (§5), wherever the substation sits; the 48 s lot-centre figure is gone. Decisions matched at both **[sim: E1-starve-substation-N40]**, and 90 s leaves a 30 s rescue window against the 60 s refeed reset, which is the play we want. Shipped as written (D-P3-2, D-P3-3): the real rescue window is the minutes of red pip before the fortieth arrival; the 30 s is the second chance (§5).
 13. **Spike on the scattered map.** Closed (D-25-13, D-P1-2): a choice the doc prices, not a trap. At the §18 cadence spike costs 2.6× compact on the scattered map and, with the ring fed in creation order, loses 10 blocks (9–12) in five hours while holding 42 (40–43) against compact's 52 **[sim: E7, E1-ring-spike]**. "Clearly worse but valid" (§19) stands; the losses are the far end of the ring, which is a feed-order lesson, not a rule to change. §12 states the demand and §24 risk 8 the price.
-14. **Power in hour one.** Closed on the draw. Front and Contested substations draw 100 kW and interior 20 kW (§5; 200/40 had no evidence behind it), and ammo, not power, is the hour-one lesson. At that draw three Generators carry hour one to minute 45 and a fourth is needed for the fifth Excavator and third Assembler (980 kW peak, two-thirds of it machines) **[sim: E4h-gen@0,6,15, E4h-gen@0,6,15,25]**; §11 says four, not five. Settled by D1: the HQ coal patch is ~700 units and mines out at about minute 29 at one Excavator, so west is wanted by minute 30 **[sim: E4h-patch700]**.
+14. **Power in hour one.** Closed on the draw. Front and Contested substations draw 100 kW and interior 20 kW (§5; 200/40 had no evidence behind it), and ammo, not power, is the hour-one lesson. At that draw three Generators carry hour one to minute 45 and a fourth is needed for the fifth Excavator and third Assembler (980 kW peak, two-thirds of it machines) **[sim: E4h-gen@0,6,15, E4h-gen@0,6,15,25]**; §11 says four, not five. Settled by D1: the HQ coal patch is ~700 units and mines out at about minute 29 at one Excavator, so west is wanted by minute 30 **[sim: E4h-patch700]**. Locked at Gate A (D-P3-1): the draw stays 100/20 kW and the hour-one lesson is ammo (§11).
 
 Prototype order: (1) headless front + ammo-line sim, two days; (2) a map-view-only prototype with claim, poles, pips and bloom rings and no world view, two weeks; (3) the world view with belts, one machine chain and turrets, eight weeks. The bet is settled by step 2: if choosing blocks on a map with a front count is not interesting on its own, no amount of belt fidelity saves it.
 
@@ -533,7 +584,7 @@ Every feature, one sentence each: *Claim tool* is the mechanic. *Substations* ma
 
 Evidence for: the one-sentence hook produces a decision at every claim (`front +N · closes N`); the sim shows a straight push costs 2.6× compact's ammo on the scattered map and quiet-block play 1.07× (1.3× and 0.57× on open ground), so the decision has weight **[sim: E6-shape, E7]**; the "one more thing" chain is built from the rule itself; the payoff is a visual event that happens 150+ times per run and gets bigger each time; the tedium audit has a removal point for every repeated action.
 
-What would raise it to 8: the map-view-only prototype (section 25, step 2) showing that testers make different shapes on the same seed and argue about them.
+What would raise it to 8: the map-view-only prototype (section 25, step 2) showing that testers make different shapes on the same seed and argue about them. Gate A (2026-09-03) was passed by the owner on the bot calibration and the smoke test, with no tester sessions, so that evidence is still outstanding and the score stays at 7 until Phase 4's human hour supplies it.
 
 What would drop it to 5: (a) testers treat the front as a tax, i.e. they always take the cheapest block and never talk about shape (the quiet-block risk); (b) the patter of small fights reads as noise rather than information, meaning pips are watched but blooms are not; (c) hour 2–4 re-fronting fatigue before the Foreman. Each has a named mitigation in section 24 and none requires a new system.
 
@@ -549,7 +600,7 @@ Neither review found a system to cut; both found the same risk (greedy quiet-blo
 
 ## Changelog
 
-Each edit as `§N — what changed — why — run name`. Every run name is a line in `python frontsim.py --experiments` (E8 also via `--experiments E8`); the sim's assumptions are printed at the top of that output. Entries from the map-view prototype brief onward are `§N — what changed — why`. From Phase 1 on, every run name is a section or row of `docs/EXPERIMENTS.md`, written by `npm run experiments` (packages/harness, TypeScript sim, config hash in the file's header); the §7 district and enemy tables and the §12 recipe table are generated from packages/sim by `npm run docsync`, and CI fails if they drift.
+Each edit as `§N — what changed — why — run name`. Run names before Phase 1 were lines of the Python `frontsim.py --experiments` output (retired in Phase 3; the fixtures it exported are frozen in `packages/sim/fixtures`). Entries from the map-view prototype brief onward are `§N — what changed — why`. From Phase 1 on, every run name is a section or row of `docs/EXPERIMENTS.md`, written by `npm run experiments` (packages/harness, TypeScript sim, config hash in the file's header); `calibration` is `docs/experiments/calibration.md`. The §7 district and enemy tables, the §12 recipe table and the §18 map-view drawings are generated from packages/sim by `npm run docsync`, and CI fails if they drift. `[play: Gate A]` marks a constant locked at Gate A (2026-09-03, `docs/TEST_RESULTS.md`): the owner passed the gate on the bot calibration and the smoke test with no tester sessions, so a `[play: Gate A]` number is a deliberate lock, not a measurement, and Phase 4's human hour is the first place it can move.
 
 - §5 — map boundary counts as Held (the sim's frontage counts assume it) — E7
 - §5 — rot timing was 2× too slow; defined lit lots vs streets and what 'lights out' means (wording gaps) — sanity
@@ -667,3 +718,14 @@ Each edit as `§N — what changed — why — run name`. Every run name is a li
 - §25 item 2 — river policy +26–28 %, front/held 0.40 vs 0.37 (was 27–31 %, 0.35 vs 0.43) — 24×24 re-run — E6-river
 - §25 item 11 — demand 67 at 5 h, 52 at 8–12 h, 80–84 from 15 h, 111–164 lost by 25 h at four assemblers (was 52 / 73 / 84, 144–164) — 24×24 re-run — E9-hourly
 - §25 item 13 — closed: a priced choice, not a trap; spike 2.6×, loses 10 (9–12), holds 42 — D-P1-2 — E7, E1-ring-spike
+- §4, §18 — the three map-view drawings are generated from the sim (compact bot, seed 3, locked cadence) by `npm run docsync`, CI-checked; the 5 h shape is a river strip, not a blob, and the bot reaches the Foundry at hour 14 for want of a facility pull — Phase 3 redraw after Gate A — E8-cadence, E8-hourly, E8-wells, E7
+- §5 — bloom timer and drop locked at `120/(0.5+d)`, 10 % (C8, D-P3-5) — Gate A passed without a feel verdict, so the slice encodes them on purpose — [play: Gate A]
+- §5 — the unfed rule as it ships (per block, 40 arrivals, 60 s all-fed clears and restarts; D-P3-3) and the rescue window as the minutes of red pip, the 30 s the second chance (D-P3-2) — the two pre-slice decisions the constitution names — E1-starve-substation-N40, E1-ring-substation-N10/N20, E1-starve-creep, [play: Gate A]
+- §11 — start ammo locked at 20 magazines with the 30 s opening flicker named as the pip ladder's lesson (C10, D-P2-1) — Gate A — [play: Gate A]
+- §11, §25 item 14 — hour-one lesson locked: ammo, not power, at the 100/20 kW draw (D-P3-1) — pre-slice decision — E4h-gen@0,6,15,25, E5-compact-1-shot-asm-h1, E3-first, [play: Gate A]
+- §12 — edges per assembler locked: one 20 mag/min assembler ≈ 7 edges of the mid-game front, 15 civic / 11 residential at steady state, the early front cheaper (C1, D-P2-2); no Mk1/Mk2 ladder in the game (C9, D-P3-7) — the constant §8 of TEST_RESULTS.md put first — E9-hourly, E3-block, calibration, [play: Gate A]
+- §16, §25 item 5 — the Relight is survivable by banking, the bank a ~20,000-magazine buildable object, §12 late assumes eight assemblers (D-P3-4) — pre-slice decision — E9-hold, [play: Gate A]
+- §19 — the prototype's steel wall is the intended anti-turtle pressure (D-P2-3) — Gate A — calibration, [play: Gate A]
+- §25 item 1 — the Python sim is retired; the TS sim is the front simulation — Phase 3 first commit
+- §25 item 10 — closed: cadence locked at 15 min in hour one, then 5 (C2, D-P3-6); §18 generated at it — Gate A — E8-cadence, [play: Gate A]
+- §27 — score stays 7; Gate A passed without tester sessions, so the shape evidence is still outstanding — Gate A
