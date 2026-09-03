@@ -157,6 +157,9 @@ export class MapScene extends Phaser.Scene {
       } else if (ev.type === 'claim') {
         const from = nearestHeld(st, ev.x, ev.y);
         if (from) this.poles.push({ x0: from.x, y0: from.y, x1: ev.x, y1: ev.y });
+      } else if (ev.type === 'hopper-empty') {
+        // M3: the same event that turns the pip red pings the block on the map
+        this.pulses.push({ x: ev.x, y: ev.y, born: now, dur: 900, r0: 10, r1: 4, color: C.red, width: 2, wake: false });
       } else if (ev.type === 'fall') {
         this.pulses.push({ x: ev.x, y: ev.y, born: now, dur: 1200, r0: 14, r1: 4, color: C.red, width: 3, wake: false });
         this.poles = this.poles.filter(l => !(l.x1 === ev.x && l.y1 === ev.y));

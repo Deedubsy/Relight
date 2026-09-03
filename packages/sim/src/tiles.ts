@@ -49,6 +49,43 @@ export function hqPatchAt(lx: number, ly: number): number {
 export function hqReserved(lx: number, ly: number): boolean {
   return ly < HQ_CLEAR_ROWS || hqPatchAt(lx, ly) !== P_NONE;
 }
+
+/** §5/§14 (M3): every lot has a pre-existing 3×3 substation that powers its whole cell. GAME-ASSUMPTION: it stands
+ *  one or two tiles in from one of the lot's street sides at a seeded spot (the grid was strung along the streets, so
+ *  a pole run on the street reaches it: pole reach 8); the HQ's is fixed at lot (18,3), above the §18 sketch's
+ *  Generator. Its footprint never carries rubble. */
+export const SUBSTATION_TILES = 3;
+export const HQ_SUBSTATION: readonly [number, number] = [18, 3];
+export function substationLot(seed: number, b: Pick<Block, 'x' | 'y'>, hq: boolean): [number, number] {
+  if (hq) return [HQ_SUBSTATION[0], HQ_SUBSTATION[1]];
+  const side = Math.floor(hash01(seed, 30, b.x, b.y) * 4);
+  const along = 3 + Math.floor(hash01(seed, 31, b.x, b.y) * (LOT_TILES - 6 - SUBSTATION_TILES + 1));
+  const near = 1 + Math.floor(hash01(seed, 32, b.x, b.y) * 2);
+  const far = LOT_TILES - SUBSTATION_TILES - near;
+  return side === 0 ? [along, near] : side === 1 ? [far, along] : side === 2 ? [along, far] : [near, along];
+}
+export function substationReserved(seed: number, b: Pick<Block, 'x' | 'y'>, hq: boolean, lx: number, ly: number): boolean {
+  const [sx, sy] = substationLot(seed, b, hq);
+  return lx >= sx && lx < sx + SUBSTATION_TILES && ly >= sy && ly < sy + SUBSTATION_TILES;
+}
+
+/** §5/§18 (M3): the cell's pre-existing streetlights, on the margin row next to the lot on each street side.
+ *  GAME-ASSUMPTION: eight a side, every three tiles (Lamp radius 4 makes a continuous strip when all work), and each
+ *  is broken with probability 3/8, so a side averages the §5 line's "3 Lamps to plug broken streetlights". They draw
+ *  nothing of their own (the substation's 100/20 kW covers the cell's fixtures) and light when the substation powers. */
+export const STREETLIGHT_STEP = 3, STREETLIGHTS_PER_SIDE = 8, STREETLIGHT_BROKEN = 3 / 8;
+export interface Streetlight { tx: number; ty: number; side: number; broken: boolean }
+export function streetlights(seed: number, b: Pick<Block, 'x' | 'y'>): Streetlight[] {
+  const out: Streetlight[] = [];
+  const ox = b.x * CELL_TILES, oy = b.y * CELL_TILES, near = MARGIN_TILES - 1, farSide = MARGIN_TILES + LOT_TILES;
+  for (let side = 0; side < 4; side++) for (let k = 0; k < STREETLIGHTS_PER_SIDE; k++) {
+    const along = MARGIN_TILES + 1 + k * STREETLIGHT_STEP;
+    const broken = hash01(seed, 40 + side * STREETLIGHTS_PER_SIDE + k, b.x, b.y) < STREETLIGHT_BROKEN;
+    const [lx, ly] = side === 0 ? [along, near] : side === 1 ? [farSide, along] : side === 2 ? [along, farSide] : [near, along];
+    out.push({ tx: ox + lx, ty: oy + ly, side, broken });
+  }
+  return out;
+}
 export type RubbleType = 'stone' | 'copper' | 'steel';
 export type DepositType = 'iron' | 'coal';
 
@@ -134,6 +171,7 @@ export function lotLayout(seed: number, b: Pick<Block, 'x' | 'y' | 'name' | 'dma
     const i = ly * LOT_TILES + lx;
     score[i] = 0.65 * s + 0.35 * hash01(seed, 100 + b.x * 64 + b.y, lx, ly);
     if (hq && hqReserved(lx, ly)) score[i] = -1;   // the start lot's Depot and patches: never district rubble
+    if (substationReserved(seed, b, hq, lx, ly)) score[i] = -1;   // M3: the lot's substation stands clear
     idx[i] = i;
   }
   idx.sort((a, c) => score[c] - score[a] || a - c);   // densest first

@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import {
   DISTRICTS, RAIL_YARD, ENEMIES, RECIPES, WELL_RANGE, WELL_CAP_BONUS, WELL_G_MULT,
   DEFAULT_CONFIG, SimConfig, generateMap, createState, step, createBot, botCommands, Command, renderMap, heldCount, frontage, interior, HELD,
+  protoCalibrated, ensureFlow, place, canPlace, advanceFlow, renderLot, flowSummary, LOT_LEGEND, CELL_TILES, MARGIN_TILES, Kind, Dir,
 } from '@relight/sim';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -98,7 +99,48 @@ function section18(): string {
   return out.join('\n').trimEnd();
 }
 
-const GENERATORS: Record<string, () => string> = { districts: districtsTable, enemies: enemiesTable, recipes: recipesTable, section18 };
+/** §18's 10-minute world-view drawing of the HQ lot (M3): the game's session config (protoCalibrated, the §14 power
+ *  model on Generators at the half draw, machines-first shed order), seed 3, no bot, and §11's first ten minutes placed
+ *  by hand at the doc's stock — two Excavators on steel → belt → Shot assembler ← copper Excavator by belt, its
+ *  magazines by belt and inserter into the north-west turret's hopper, and at minute 6 a second Generator with an
+ *  Excavator on the coal patch feeding both by belt. §11's stock (200 steel / 100 copper) is used because the sim's
+ *  80 / 40 (D-P4-4) does not buy the line the doc describes; §11 is rewritten at M6. Run name M3-rates. */
+const SECTION18_LOT_STOCK = { steel: 200, copper: 100 };
+function section18lot(): string {
+  const cfg: SimConfig = { ...protoCalibrated({ ...DEFAULT_CONFIG, scatter: true, economy: true }), power: true, supply: 'generators', draw: 'half', shed: 'machines-first' };
+  const st = createState(generateMap(SECTION18_SEED, cfg), cfg, SECTION18_SEED);
+  ensureFlow(st);
+  st.stock.steel = SECTION18_LOT_STOCK.steel; st.stock.copper = SECTION18_LOT_STOCK.copper;
+  const lot = (lx: number, ly: number): [number, number] => [st.start[0] * CELL_TILES + MARGIN_TILES + lx, st.start[1] * CELL_TILES + MARGIN_TILES + ly];
+  const put = (kind: Kind, lx: number, ly: number, dir: Dir = 0) => {
+    if (!place(st, kind, ...lot(lx, ly), dir)) throw new Error(`docsync §18 lot: ${kind} at (${lx},${ly}): ${canPlace(st, kind, ...lot(lx, ly)).reason}`);
+  };
+  const belts = (kind: Kind, from: [number, number], to: [number, number], dir: Dir) => {
+    for (let lx = Math.min(from[0], to[0]); lx <= Math.max(from[0], to[0]); lx++) for (let ly = Math.min(from[1], to[1]); ly <= Math.max(from[1], to[1]); ly++) put(kind, lx, ly, dir);
+  };
+  // 0:00 — steel: two Excavators on the patch (lot 1..5 × 7..11) facing north onto a belt east along row 6 into the assembler at 9..11 × 5..7
+  put('excavator', 1, 7, 0); put('excavator', 4, 7, 0);
+  belts('belt', [2, 6], [7, 6], 1); put('inserter', 8, 6, 1);
+  put('assembler', 9, 5, 0);
+  // magazines: out of the assembler's north face, west along row 3 and up into the north-west turret's hopper (lot 3..4 × 0..1)
+  put('inserter', 10, 4, 0); belts('belt', [4, 3], [10, 3], 3); put('inserter', 4, 2, 0);
+  // copper: an Excavator on the copper patch (1..4 × 14..16, at lot 2 to clear the west turret) facing east, belt east along row 15, north up column 15, west along row 6 to the assembler's east face
+  put('excavator', 2, 14, 1); belts('belt', [5, 15], [14, 15], 1); belts('belt', [15, 7], [15, 15], 0); belts('belt', [13, 6], [15, 6], 3); put('inserter', 12, 6, 3);
+  const run = (seconds: number) => { for (let k = 0; k < seconds * 10; k++) advanceFlow(st, 0.1); };
+  run(6 * 60);
+  // 6:00 — coal: an Excavator on the coal patch (18..20 × 14..16) facing north, belt up column 19 and west along row 11; inserters into both Generators (the start's at 19..20 × 8..9, the second at 17..18 × 8..9)
+  put('generator', 17, 8, 0);
+  put('excavator', 18, 14, 0); belts('belt', [19, 12], [19, 13], 0); belts('belt', [18, 11], [19, 11], 3); put('inserter', 19, 10, 0); put('inserter', 18, 10, 0);
+  run(4 * 60);
+  const s = flowSummary(st);
+  const head = `**10 minutes, world view of the HQ lot (seed ${SECTION18_SEED}, the game's M3 session config, §11's line placed by hand at the doc's ${SECTION18_LOT_STOCK.steel} steel / ${SECTION18_LOT_STOCK.copper} copper; ` +
+    `turret hoppers ${Math.round(s.turretRounds)}/${s.turretCap} rounds, ${Math.round(s.fired)} fired, ${s.beltAmmo} magazine${s.beltAmmo === 1 ? '' : 's'} on the belt; magazines made ${s.magsMade}; ` +
+    `power ${Math.round(s.loadKw)} / ${Math.round(s.supplyKw)} kW (demand ${Math.round(s.demandKw)}), brownout ${Math.round(s.brownoutS)} s, ${s.shedMachines} shed; ` +
+    `Generators ${s.generatorsBurning}/${s.generators} burning on ${Math.round(s.genCoal)} coal, ${Math.round(s.coalBurned)} burned; stock ${Math.round(st.stock.steel)} steel / ${Math.round(st.stock.copper)} copper) [sim: M3-rates].**`;
+  return [head, '', `Legend: ${LOT_LEGEND}`, '', '```', renderLot(st), '```'].join('\n');
+}
+
+const GENERATORS: Record<string, () => string> = { districts: districtsTable, enemies: enemiesTable, recipes: recipesTable, section18, section18lot };
 const RE = /(<!-- docsync:(\w+)[^\n]*-->\n)([\s\S]*?)(<!-- \/docsync:\2 -->)/g;
 
 function render(doc: string): { out: string; changed: string[] } {

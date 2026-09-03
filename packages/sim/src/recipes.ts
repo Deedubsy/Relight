@@ -19,3 +19,7 @@ export const START_COAL = 40;
 export const START_COAL_PATCH = 700;
 /** Rounds per magazine (§12 Shot magazine). */
 export const ROUNDS_PER_MAG = 10;
+/** §13 defence (M3): Gun turret 2×2, range 9, 5 rounds/s, 50-round hopper (5 magazines); Lamp 1×1 5 kW radius 4;
+ *  pole reach 8. */
+export const TURRET_HOPPER = 50, TURRET_RANGE = 9, TURRET_ROUNDS_PER_S = 5;
+export const LAMP_KW = 5, LAMP_RADIUS = 4, POLE_REACH = 8;

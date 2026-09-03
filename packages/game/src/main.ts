@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { SimEvent, flowSummary, canPlace, place, remove, rotate, queueCraft, setHandMine, Kind, Dir, CELL_TILES, MARGIN_TILES } from '@relight/sim';
+import { SimEvent, flowSummary, canPlace, place, remove, rotate, queueCraft, setHandMine, Kind, Dir, CELL_TILES, MARGIN_TILES, handFeed, cellLights, substationAt, poleGrid, SIM_DIR_NAMES,
+} from '@relight/sim';
 import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session } from './session';
 import { MapScene, SceneHooks, MAP_W, MAP_H } from './mapScene';
 import { WorldScene } from './worldScene';
@@ -43,6 +44,13 @@ function describe(events: SimEvent[]): void {
       case 'machine-lost': panel.toast(`Assembler on (${ev.x},${ev.y}) lost with its block — ${ev.count} running`, 'bad'); break;
       case 'run-dry': panel.toast(`Block (${ev.x},${ev.y}) is dug out — no more ${ev.district === 'civ' ? 'stone' : ev.district === 'res' ? 'copper' : 'steel'} from it`); break;
       case 'reorder': panel.toast('Ring order changed'); break;
+      // M3 (rule 8): the hopper, Generator and §14 shed rules surface as toasts from the sim's events
+      case 'hopper-empty': panel.toast(`Hopper EMPTY on block (${ev.x},${ev.y}), ${SIM_DIR_NAMES[ev.dir]} side — its pip is red until it is fed`, 'bad'); break;
+      case 'gen-dry': panel.toast('The Generator burned its last coal — hand-feed it (click it with the hand) or belt coal in. No power until then.', 'bad'); break;
+      case 'brownout': panel.toast(`Brownout: demand ${Math.round(ev.demandKw)} kW over ${Math.round(ev.supplyKw)} kW supply — machines shed first (§14), then assemblers, then substations`, 'bad'); break;
+      case 'shed': panel.toast(ev.machine ? `Brownout: a ${ev.machine} switched off` : ev.x < 0 ? 'Brownout: an assembler switched off' : `Brownout: substation (${ev.x},${ev.y}) switched off — its streetlights are out`, 'bad'); break;
+      case 'restore': panel.toast(ev.machine ? `Power back: ${ev.machine} running again` : ev.x < 0 ? 'Power back: assembler running again' : `Power back: substation (${ev.x},${ev.y}) on`, 'good'); break;
+      case 'claim': if (session.state.flow) panel.toast(`Poles strung to (${ev.x},${ev.y}) — its streetlights come on when it is held`); break;
     }
   }
 }
@@ -127,6 +135,12 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
     craft: (n = 1) => queueCraft(session.state, n),
     mine: (at: [number, number] | null) => setHandMine(session.state, at),
     hq: (lx: number, ly: number): [number, number] => [session.state.start[0] * CELL_TILES + MARGIN_TILES + lx, session.state.start[1] * CELL_TILES + MARGIN_TILES + ly],
+    // M3: hand-feed a turret or Generator, and the light/substation/pole/power queries the world view draws from
+    feed: (tx: number, ty: number) => handFeed(session.state, tx, ty),
+    lights: (bx: number, by: number) => cellLights(session.state, bx, by),
+    substation: (bx: number, by: number) => substationAt(session.state, bx, by),
+    poles: () => { const g = poleGrid(session.state); return { connected: g.connected.size, links: g.links.length, reached: g.reached.slice() }; },
+    power: () => session.state.flow?.power ?? null,
   },
   /** Render-loop sample since the last call: frames, mean and worst frame time (ms), frames over 50 ms. */
   fps: () => { const n = frameMs.length, mean = frameMs.reduce((a, b) => a + b, 0) / Math.max(1, n), worst = Math.max(0, ...frameMs), slow = frameMs.filter(d => d > 50).length; const r = { frames, sampled: n, meanMs: +mean.toFixed(2), worstMs: +worst.toFixed(1), over50ms: slow, fps: +(1000 / mean).toFixed(1) }; frames = 0; frameMs = []; return r; },

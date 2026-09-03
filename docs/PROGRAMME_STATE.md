@@ -2,7 +2,7 @@
 
 Living file. One entry per phase, newest first; the current phase is the top one. Rules are in the programme constitution (the prompt that started Phase 0); the spec is `RELIGHT-design.md`; the sim is the judge.
 
-**Current phase: 4 — the vertical slice (§11 minutes 0–60 → Gate B), in progress since 2026-09-03 on the `Go` that answered `PHASE_3_REPORT.md`. M1 Ground and M2 Flow built (`SLICE_REPORT.md`); next M3 Defence.** D-P3-9/10/11 were made by their recommendations on that `Go` (sessions in parallel, C3/C4 as locked, C8 lock accepted). PR #1 (`phase-1` → `main`), PR #2 (`phase-2` → `phase-1`) and PR #3 (`phase-3` → `phase-2`) are open, unmerged; Phase 4 is PR #4 (`phase-4` → `phase-3`). Phase 1's human five-minute smoke test and the Gate A sessions are still the user's.
+**Current phase: 4 — the vertical slice (§11 minutes 0–60 → Gate B), in progress since 2026-09-03 on the `Go` that answered `PHASE_3_REPORT.md`. M1 Ground, M2 Flow and M3 Defence built (`SLICE_REPORT.md`); next M4 Threat.** D-P3-9/10/11 were made by their recommendations on that `Go` (sessions in parallel, C3/C4 as locked, C8 lock accepted). PR #1 (`phase-1` → `main`), PR #2 (`phase-2` → `phase-1`) and PR #3 (`phase-3` → `phase-2`) are open, unmerged; Phase 4 is PR #4 (`phase-4` → `phase-3`). Phase 1's human five-minute smoke test and the Gate A sessions are still the user's.
 
 Gates passed: **Gate A, 2026-09-03, `verdict: go` by the owner on the bot calibration and the smoke test, with no tester sessions** (`TEST_RESULTS.md` §1). Every constant locked on it is tagged `[play: Gate A]`, a lock rather than a measurement; the sessions can still run (D-P3-9).
 
@@ -14,7 +14,7 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 ## Phase 4 — vertical slice (in progress, opened 2026-09-03)
 
-**Status: M1 Ground and M2 Flow built; M3–M6 not started.** Branch `phase-4` on `phase-3`, PR #4. D-P4-1/2/3 made by recommendation on the `go` that opened M2; D-P4-4/5/6 open (`DECISIONS.md`). `packages/proto` → `packages/game` (`@relight/game`); the map view is untouched and its snapshot still verifies (`snapshot:check`, hash `ee23bb1c`). Canonical config unchanged (`01dc5d02`). Checks green locally (typecheck, `npm test` incl. six tile and ten flow tests, lint, E1–E9 45/45, docsync, `snapshot:check`); PR #4's CI run is the proof. Report: `SLICE_REPORT.md` (per milestone; the §19 first-hour test sits at its top, empty until M6; Gate B is a human's `verdict: proceed` in it).
+**Status: M1 Ground, M2 Flow and M3 Defence built; M4–M6 not started.** Branch `phase-4` on `phase-3`, PR #4. D-P4-1/2/3 made by recommendation on the `go` that opened M2, D-P4-4/5/6 by recommendation on the `Go` that opened M3; D-P4-7/8/9 open (`DECISIONS.md`). `packages/proto` → `packages/game` (`@relight/game`); the map view is untouched and its snapshot still verifies (`snapshot:check`, hash `ee23bb1c`). Canonical config unchanged (`01dc5d02`). Checks green locally (typecheck, `npm test` incl. six tile, ten flow and nine defence tests, lint, E1–E9 45/45, docsync, `snapshot:check`); PR #4's CI run is the proof. Report: `SLICE_REPORT.md` (per milestone; the §19 first-hour test sits at its top, empty until M6; Gate B is a human's `verdict: proceed` in it).
 
 ### 4.1 M1 Ground — what changed
 
@@ -66,7 +66,7 @@ Three systems: the front, found tech, automated combat. M1 added a renderer and 
 
 Three systems: the front, found tech, automated combat. M2 added the Factorio layer (belts, inserters, machines with footprints) that §26 already counts as "(1) belts/inserters/machines, which they already know", so no system is new; hands add no rule (a unit a second, a magazine in 3 s). Complexity **5/10**, unchanged. §27 stays at 7.
 
-### 4.7 Milestone status
+### 4.7 Milestone status at M2
 
 - M1 Ground: **built** (4.1). M2 Flow: **built** (4.4). M3 Defence, M4 Threat, M5 Light, M6 The hour: not started.
 - "Fixed 20 ticks/s at tile level, 1 s block ticks derived": `flow.ts` `advanceFlow`, flow test 7 (72,000 tile ticks and 3,600 block ticks for 1 h at 4×, identical across frame sizes).
@@ -75,6 +75,43 @@ Three systems: the front, found tech, automated combat. M2 added the Factorio la
 - "Measured rates equal doc rates": flow tests 2–6 and the browser line (`SLICE_REPORT.md` M2 measured).
 - `DEFERRED.md` re-read at M2: every item has a phase; the machine, belt and tile-tick items are closed; prices, the second stand-in and two-lane belts added with phases.
 - Decisions: D-P4-1/2/3 **made** by recommendation on the `go` that opened M2. Three for the human from M2: **open** — D-P4-4 start stock and machine prices, D-P4-5 the two assembler stand-ins, D-P4-6 belt 7.5 vs 8.
+
+### 4.8 M3 Defence — what changed (2026-09-03)
+
+- **`packages/sim/src/flow.ts`** (run name `M3-rates`) — defence and power in the flow layer: Gun turret 2×2 with a 50-round hopper fed by inserter, belt or hand, firing 5 rounds/s at the block sim's engagements on the street it faces; Generator 2×2, 300 kW on 4 MJ coal, 40 coal at the start, burning by load; Lamp 5 kW radius 4; pole reach 8 from a pole or a claimed substation, a connected run reaching a Dark substation raises the claim and a map claim strings its own poles. Power is the block sim's §14 model with its supply and demand from the tile layer through `TileHooks`, the shed order running through the tile machines (Shot assembler, other machines, coal Excavators and the Generator-feed inserter last) before the substations; a dead grid stops everything. Events `hopper-empty` (the tick the pip turns red), `gen-dry`, `brownout`, `shed`, `restore`. `renderLot` draws a cell one character a tile; `botHands` gives the autoplay bot §11's hand-feeding (a dev aid, GA-M3-21). Nine tests.
+- **`packages/sim/src/tiles.ts`** — every lot's pre-existing 3×3 substation at a seeded street-side spot (the HQ's at lot (18,3)) and eight streetlights a side, three in eight broken; `cellLights` / `litAt` in flow.ts are the light model.
+- **`packages/game`** — tools T/L/P/G, hand-feeding by click, turrets with flash, hopper bar and empty blink, Generators with chimney and coal, poles with wires, light discs, the substation slab, shed crosses; HUD power line; panel Power / Generators / Turret rounds / Lamps / Brownout rows; toasts for hopper-empty (with the side), gen-dry, brownout, shed, restore and pole claims; the map pip pulses red on `hopper-empty`; the session turns the §14 power model on with the flow layer (`supply 'generators'`, half draw, machines-first); per-minute telemetry for hoppers, belt ammo, lamps, poles, brownout seconds, Generators and coal, kW, shed machines, rounds fired.
+- **`packages/tools/src/docsync.ts`** — generator `section18lot`: the §18 10-minute lot sketch from the world view (seed 3, the game's M3 config, §11's line placed by hand at the doc's stock), CI-checked; the hand sketch is gone.
+- Doc: §13 Generator, Gun turret (rate and hopper), Lamp and Pole rows, §14's shed order and §5's fall paragraph tagged `[sim: M3-rates]`; §14 gains the Generator-feed inserter and the dead-grid sentence; §18 caption and sketch generated; three changelog lines.
+- Constitution vs doc, reported not resolved: six start turrets vs §11's two (D-P4-8); §11's own opening line browns out at minute 0 on one 300 kW Generator at the half draw, and at the 80/40 start it cannot be bought (D-P4-7, with D-P4-4); physical turrets on the HQ only (D-P4-9).
+
+### 4.9 Untagged recount at M3
+
+37 → **33**: §13.3 (Generator 300 kW, 2×2), §13.5's rate and hopper (5 rounds/s, 50 rounds; range 9 is M4's geometry), §13.7's Lamp (5 kW, radius 4; the Floodlight is M6's unlock) and §13.9's pole (reach 8; the Big pole is M6's) carry `[sim: M3-rates]`. §5.8 (two turrets an edge, range 9) is placed but not measured until M4 brings enemies to tiles; §13.8 Barricade waits for the hulk (M4); §14.2 (the 220 kW line) is now what the tile machines draw but keeps its E2 tag. 21 tile-scale + 12 design inputs.
+
+| § | M2 | Now untagged | Tagged in M3 |
+|---|---|---|---|
+| §5 | 12 | 12 | — (5.8's pair is placed; its range is M4) |
+| §7 | 3 | 3 | — |
+| §12 | 7 | 7 | — |
+| §13 | 13 | 9 | 13.3, 13.5 (rate, hopper), 13.7 (Lamp), 13.9 (pole) |
+| §14 | 3 | 3 | — (14.2 already carries E2-demand) |
+| §15 | 1 | 1 | — |
+
+### 4.10 §26 recount at M3
+
+Three systems: the front, found tech, automated combat. M3 makes automated combat and the §14 power rule physical (turret hoppers, Generators, poles, the shed order); §26 already counts both, and the one new rule a player holds is "a Generator burns by load and the feed line sheds last", a Factorio rule they know. Complexity **5/10**, unchanged. §27 stays at 7.
+
+### 4.11 Milestone status at M3
+
+- M1 Ground: **built** (4.1). M2 Flow: **built** (4.4). M3 Defence: **built** (4.8). M4 Threat, M5 Light, M6 The hour: not started.
+- "Turret (2×2, 50-round hopper, range 9, 5 rounds/s, fed by inserter), lamps and light radii, substation, poles, Generator on coal from the start patch, power as one number with the shed order, streetlights on when the substation powers": `flow.ts`, `tiles.ts`, defence tests 1–7; range 9 is geometry M4 needs enemies for.
+- "An empty hopper turns the map view's pip red from the same event": defence test 3 (`hopper-empty` on the tick the pip turns red), `mapScene.ts` pulse.
+- Telemetry (hopper levels, belt occupancy on the ammo loop, lamps lost, brownout seconds, coal): `telemetry.ts` per-minute record; lamps lost = built − lit.
+- "Fixed 20 ticks/s tile tick; a 1 h sim at 4× must not drop the render loop": `SLICE_REPORT.md` M3 measured (roaming camera, the bot claiming).
+- "Map-view fixtures still pass": `snapshot:check` green (`ee23bb1c`), `npm test` green.
+- `DEFERRED.md` re-read at M3: every item has a phase; the substation, hopper, belt-to-hopper, Generator, power-draw and §18 sketch items are closed.
+- Decisions: D-P4-4/5/6 **made** by recommendation on the `Go` that opened M3. Three for the human from M3: **open** — D-P4-7 hour-one power, D-P4-8 six start turrets, D-P4-9 turrets on claimed blocks.
 
 ---
 

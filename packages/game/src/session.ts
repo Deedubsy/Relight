@@ -2,7 +2,7 @@
  *  everything is in `state`; this file only forwards commands and drains events. */
 import {
   SimState, SimEvent, Command, SimConfig, DEFAULT_CONFIG, generateMap, createState, advance, takeEvents,
-  Bot, createBot, botCommands, Policy, POLICIES, protoCalibrated, ensureFlow, advanceFlow,
+  Bot, createBot, botCommands, Policy, POLICIES, protoCalibrated, ensureFlow, advanceFlow, botHands,
 } from '@relight/sim';
 import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } from './telemetry';
 
@@ -92,6 +92,11 @@ export function createSession(params: UrlParams, snapshot: SimState | null = nul
   // GAME-ASSUMPTION (M2): the tile flow layer is on for every session unless ?flow=0 (bot comparisons against the
   // block-only calibration runs). Turning it on retires the HQ's Mk1 stand-in: hour one's magazines come from the
   // line the player builds on the HQ lot, or from hand-crafting (D-P4-5). A block-only snapshot gets its flow here.
+  // GAME-ASSUMPTION (M3): with the flow layer the §14 power model is on, supplied by the tile layer's Generators
+  // (supply 'generators'), at the D1 half draw (100 kW exposed / 20 kW interior per substation) and with the
+  // machines-first shed order (tile machines, then block assemblers, then substations). One 300 kW Generator on
+  // 40 coal is the whole grid at the start; the tester builds the rest. Without the flow layer nothing changes.
+  if (params.flow) Object.assign(state.config, { power: true, supply: 'generators', draw: 'half', shed: 'machines-first' });
   if (params.flow) ensureFlow(state);
   const scenario = snapshot ? 'B' : 'A';
   const tel = createTelemetry(state, location.href, params.player, scenario, snapshot ? params.state : null);
@@ -117,6 +122,7 @@ export function frame(s: Session, realDt: number): SimEvent[] {
   const playerClaims = new Set(cmds.filter(c => c.type === 'claim').map(c => `${(c as { x: number }).x},${(c as { y: number }).y}`));
   let playerBuilds = cmds.filter(c => c.type === 'addAssembler').length;   // player commands are applied first, in order
   if (s.bot) botCommands(s.state, s.bot, cmds);   // player commands first, then the bot's (dev aid only)
+  if (s.bot && s.state.flow) botHands(s.state);   // M3: the bot hand-feeds turrets and Generators from the Depot
   if (s.state.flow) advanceFlow(s.state, realDt, cmds); else advance(s.state, realDt, cmds);
   const events = takeEvents(s.state);
   for (const ev of events) {

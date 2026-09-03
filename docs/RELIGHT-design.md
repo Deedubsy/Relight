@@ -87,7 +87,7 @@ A held block touching three dark blocks costs three edges of turrets and ammo bu
 
 **What a wave looks like.** Not a wave. Each awake cell blooms on its own timer; timers are interleaved by the spawner so no two adjacent cells bloom within 10 s of each other (interleaving changes the compact policy's five-hour ammo by 0 %; it is a feel rule, not a cost rule) **[sim: E7]**. A bloom is 4 + 36·d crawlers **[sim: E3-block]** arriving in a 15-second stream at the street edge, plus shades and a hulk above the density thresholds in section 7; a wake bloom is double that, capped at 40 crawlers after doubling (a normal bloom never reaches the cap; it trims a well's wake bloom from 198 to 170 rounds **[sim: wake-cap]**). From the player's seat a front of 20 edges is a steady patter of small fights, one every few seconds somewhere on the line, not a siren and a horde.
 
-**How a block falls.** A Held block falls only when its substation stops. Four ways: brownout (grid demand > supply for 20 s; machines shed first, then substations in order of most-dark-neighbours first **[sim: E2-matrix]**), a **shade** reaching the substation (disables it for 30 s per shade, stacking), a **hulk** smashing it (600 HP, it walks through barricades and turrets to get there), or **crawlers** reaching it unshot: 40 arrivals stop it (the counter is per block across all its edges, so a corner block with two dark edges fails faster than a block with one), which on a residential edge whose hoppers have run dry is about 7 minutes after the pip went red (4–20 across seeds) **[sim: E1-starve-substation-N40]**. Lights out → rot creeps in from every dark edge at 1 tile per 3 s → **90 s after the substation stops** the block is Dark again at d = 0.3, wherever the substation sits on the lot (the rule; the sim's fall timings use it **[sim: E1-starve-substation-N40]**). With the 60 s refeed reset (D3; the sim's fall timings include it **[sim: E1-starve-substation-N40]**) that leaves a 30 s window in which running ammo to the failing block saves it, a play we want. The rule as it ships (D-P3-3): the unshot-arrival counter is per block, stops the substation at 40, and clears once every edge of the block has had a non-empty hopper for 60 s, which also restarts the substation if it is not shed; a rule that stopped at 10 or 20 arrivals loses the HQ at minute 8 and one that creeps rot in from an empty hopper falls in 2.8 min **[sim: E1-ring-substation-N10, E1-ring-substation-N20, E1-starve-creep]**. The rescue the player actually has (D-P3-2) is the 4–20 minutes of red pip before the fortieth arrival, and the 30 s after the substation stops is the second chance, not the first: in the prototype the bot that idles from the 3 h snapshot sees its first red pip about 5 minutes before its first loss, 75 real seconds at 4× speed **[sim: E1-starve-substation-N40] [play: Gate A]**. Machines on it are mothballed (greyed, contents kept). Belts and poles are never destroyed. Neighbouring Held blocks gain one frontage edge each, and while a power shortfall lasts that is a cascade: each shed front substation adds 80 kW of new front draw next door (160 kW when the cascade was measured at the old 200/40 kW draw), so a 15 % shortfall for 10 minutes cost 0–2 blocks (mean 0.7) under substation-first shedding and a 25 % shortfall 3–6 (mean 5); shedding machines first cost 0 and 0 **[sim: E2-matrix]**. Nothing cascades once supply is restored: no run under either shedding rule lost a block outside the shortfall window. **Retake** = re-power the substation → wake bloom → burn-off → everything un-greys. Rot is data, not damage; the punishment is the front you just re-grew, not lost buildings.
+**How a block falls.** A Held block falls only when its substation stops. Four ways: brownout (grid demand > supply for 20 s; machines shed first **[sim: M3-rates]**, then substations in order of most-dark-neighbours first **[sim: E2-matrix]**), a **shade** reaching the substation (disables it for 30 s per shade, stacking), a **hulk** smashing it (600 HP, it walks through barricades and turrets to get there), or **crawlers** reaching it unshot: 40 arrivals stop it (the counter is per block across all its edges, so a corner block with two dark edges fails faster than a block with one), which on a residential edge whose hoppers have run dry is about 7 minutes after the pip went red (4–20 across seeds) **[sim: E1-starve-substation-N40]**. Lights out → rot creeps in from every dark edge at 1 tile per 3 s → **90 s after the substation stops** the block is Dark again at d = 0.3, wherever the substation sits on the lot (the rule; the sim's fall timings use it **[sim: E1-starve-substation-N40]**). With the 60 s refeed reset (D3; the sim's fall timings include it **[sim: E1-starve-substation-N40]**) that leaves a 30 s window in which running ammo to the failing block saves it, a play we want. The rule as it ships (D-P3-3): the unshot-arrival counter is per block, stops the substation at 40, and clears once every edge of the block has had a non-empty hopper for 60 s, which also restarts the substation if it is not shed; a rule that stopped at 10 or 20 arrivals loses the HQ at minute 8 and one that creeps rot in from an empty hopper falls in 2.8 min **[sim: E1-ring-substation-N10, E1-ring-substation-N20, E1-starve-creep]**. The rescue the player actually has (D-P3-2) is the 4–20 minutes of red pip before the fortieth arrival, and the 30 s after the substation stops is the second chance, not the first: in the prototype the bot that idles from the 3 h snapshot sees its first red pip about 5 minutes before its first loss, 75 real seconds at 4× speed **[sim: E1-starve-substation-N40] [play: Gate A]**. Machines on it are mothballed (greyed, contents kept). Belts and poles are never destroyed. Neighbouring Held blocks gain one frontage edge each, and while a power shortfall lasts that is a cascade: each shed front substation adds 80 kW of new front draw next door (160 kW when the cascade was measured at the old 200/40 kW draw), so a 15 % shortfall for 10 minutes cost 0–2 blocks (mean 0.7) under substation-first shedding and a 25 % shortfall 3–6 (mean 5); shedding machines first cost 0 and 0 **[sim: E2-matrix]**. Nothing cascades once supply is restored: no run under either shedding rule lost a block outside the shortfall window. **Retake** = re-power the substation → wake bloom → burn-off → everything un-greys. Rot is data, not damage; the punishment is the front you just re-grew, not lost buildings.
 
 **Encircled dark blocks.** A Dark cell whose 4 neighbours are all Held keeps blooming but has no growth input from other dark cells, so it decays to its own cap alone; it is never a threat to more than four edges and you close it whenever you have the wire.
 
@@ -254,14 +254,14 @@ Nothing is more than two steps from a raw.
 |---|---|---|---|---|
 | Excavator | 3×3 | 60 kW | mines a 5×5 area under it at 0.5/s **[sim: M2-rates]** | start |
 | Assembler | 3×3 | 100 kW | any intermediate recipe (Shot magazine: 2 steel + 1 Cu in 3 s, 20 mag/min **[sim: M2-rates]**) | start |
-| Generator | 2×2 | — | 300 kW from coal or fuel | start |
+| Generator | 2×2 | — | 300 kW from coal or fuel (4 MJ a coal: 40 coal is 533 s at full load) **[sim: M3-rates]** | start |
 | Mixer | 2×2 | 150 kW | stone → concrete | Concrete crew |
-| Gun turret | 2×2 | none | range 9, 5 rounds/s, 50-round hopper | start |
+| Gun turret | 2×2 | none | range 9, 5 rounds/s, 50-round hopper (rate and hopper **[sim: M3-rates]**; range is M4's geometry) | start |
 | Cannon | 3×3 | none | range 12, 1 shell/2 s, 20-shell hopper | Arsenal |
-| Lamp | 1×1 | 5 kW | lights radius 4 | start |
+| Lamp | 1×1 | 5 kW | lights radius 4 **[sim: M3-rates]** | start |
 | Floodlight | 2×2 | 40 kW | 12-tile cone, rotatable | Electricians |
 | Barricade | 1×1 | none | 200 HP, blocks crawlers, slows hulks | Concrete crew |
-| Pole | 1×1 | — | reach 8, supplies 7×7 | start |
+| Pole | 1×1 | — | reach 8 **[sim: M3-rates]**, supplies 7×7 (in M3 a substation powers its whole cell, so a pole only links) | start |
 | Big pole | 2×2 | — | reach 12, supplies 3×3 | Electricians |
 | Belt / Fast belt | 1×1 | — | 7.5/s **[sim: M2-rates]** · 15/s | start / Foundry |
 | Inserter | 1×1 | 10 kW | 1 item/s **[sim: M2-rates]** | start |
@@ -283,7 +283,7 @@ Twenty-six placeable things. A Factorio player recognises twenty of them on sigh
 
 **Belts.** Standard two-lane belts, 7.5/s and 15/s (four items a tile; 8/16 until Phase 4 M2 fixed the tile tick at 20/s, D-P4-6), inserters at 1/s **[sim: M2-rates]**, splitters with priority, undergrounds of span 4. Belts run on lots and on streets; streets are 8 wide **[sim: M1-tiles]**, which is room for two belts, a track and a lamp line.
 
-**Power.** Poles link substations; each substation powers its whole block cell (lot and its four half-streets) so you never pole individual machines inside a held block. Grid is one pool; brownout sheds machines first (an assembler line is 220 kW **[sim: E2-demand]** and stopping it loses output, not blocks), then substations most-dark-neighbours first, so the front dims before the interior does; substation-first shedding cost 0–2 blocks in a 15 % shortfall and 6 in a 25 % one, where machines-first cost none **[sim: E2-matrix]**. Brownout shedding order: Shot and recipe Assemblers first, then other machines, Excavators feeding Generators last, substations only after all machines; substations then in most-dark-neighbours order.
+**Power.** Poles link substations; each substation powers its whole block cell (lot and its four half-streets) so you never pole individual machines inside a held block. Grid is one pool; brownout sheds machines first (an assembler line is 220 kW **[sim: E2-demand]** and stopping it loses output, not blocks), then substations most-dark-neighbours first, so the front dims before the interior does; substation-first shedding cost 0–2 blocks in a 15 % shortfall and 6 in a 25 % one, where machines-first cost none **[sim: E2-matrix]**. Brownout shedding order: Shot and recipe Assemblers first, then other machines, Excavators feeding Generators last (and the inserter that puts coal into one: shedding it first starves the second Generator, the §18 drawing's finding), substations only after all machines; substations then in most-dark-neighbours order **[sim: M3-rates]**. A grid with no Generator burning is dead, not browned out: everything on it stops at once, and a substation shed on a dead grid comes back 20 s after the supply does **[sim: M3-rates]**.
 
 **Global stock.** Anything belted into a Depot input joins one global pool. Claims, blueprints and hand-placement draw from it. Hand-collecting from a chest is slow (one stack per 2 s) so belting into the Depot is the first automation lesson. Hands do two things in hour one: hand-mining pulls one unit a second from a rubble or patch tile straight into the Depot, and hand-crafting makes a magazine in the recipe's 3 s from stock; both are the make-up while the line goes down, and neither scales **[sim: M2-rates]**.
 
@@ -331,24 +331,49 @@ Progression is territory. There is no tech tree to read, so the pull is always a
 
 Legend: `H` held, `I` interior, `C` contested, `.` dark, `~` river / inert, `Q` HQ, `F` Foundry, `A` Arsenal, `U` Turbine hall, `R` Refinery, `P` Power station, `W` rot well (`w` = neutralised: Held or dead), `E`/`N`/`G`/`K`/`M` survivors (Electricians, Concrete crew, Gunsmith, Rail crew, Foreman). Facility and survivor letters are uppercase once their block is Held and lowercase while it is dark. Map view: one character = one block cell, rows are y (0 north, river last), columns x. The Tram depot and the five Transformer yards are not in the sim's map yet (Phase 9 generator) and so not in the drawings.
 
-The three map-view drawings are generated from the sim by `npm run docsync` — the compact bot on seed 3 at the locked cadence (C2, D-P3-6: one claim per 15 min in hour one, then one per 5 min), no ammo line, the E8-cadence run — and CI fails if the doc's copy drifts from what the sim draws. They replace the hand-drawn 24×22 sketches (redrawn in Phase 3 after Gate A).
+The three map-view drawings are generated from the sim by `npm run docsync` — the compact bot on seed 3 at the locked cadence (C2, D-P3-6: one claim per 15 min in hour one, then one per 5 min), no ammo line, the E8-cadence run — and CI fails if the doc's copy drifts from what the sim draws. They replace the hand-drawn 24×22 sketches (redrawn in Phase 3 after Gate A). The tile-scale drawing of the HQ lot below is generated the same way (M3, `renderLot`): the whole 32×32 cell with its street margins, from the game's session config with §11's first ten minutes placed by hand, so the turrets, belts, streetlights and the substation it shows are the ones the world view draws.
 
-**10 minutes, world view of the HQ lot (north half, 24 tiles wide; a hand sketch at tile scale; Phase 4 M3 redraws it from the world view, once the turrets and belts it draws exist).** Front = 3. Rot mottling on the far side of every street.
+<!-- docsync:section18lot (generated from packages/sim by `npm run docsync`; renderLot on the game's M3 session config, seed 3, §11's line placed by hand) -->
+**10 minutes, world view of the HQ lot (seed 3, the game's M3 session config, §11's line placed by hand at the doc's 200 steel / 100 copper; turret hoppers 67/300 rounds, 193 fired, 10 magazines on the belt; magazines made 17; power 500 / 600 kW (demand 500), brownout 120 s, 0 shed; Generators 2/2 burning on 100 coal, 48 burned; stock 45 steel / 64 copper) [sim: M3-rates].**
+
+Legend: `:` street, `.` ground, `r` rubble, `#` steel patch, `&` copper patch, `*` coal patch, `~` inert/river; `L` streetlight lit, `l` streetlight dark, `b` streetlight broken; `T` Gun turret (hopper > 0), `t` turret with an empty hopper; `G` Generator burning, `g` Generator dry; `S` substation powered, `s` unpowered; `D` Depot; `X` Excavator running, `x` stopped; `A` Shot assembler crafting, `a` idle; `^ > v <` belt by direction, `I` inserter; `@` Lamp lit, `o` Lamp dark; `P` pole; a machine shed by the brownout is drawn in lowercase.
 
 ```
- north street (residential, d 0.22, awake, ring 40 % full)
- . . . . . . . . . . . . . . . . . . . . . . . .
- L L L L L L L L L L L L L L L L L L . . L L L L   <- streetlights (2 broken on the right)
- - - - T T - - - - - - - - - - - T T - - - - - -   <- 2 gun turrets, hoppers 5/5 and 2/5
- - - - ^ - - - - - - - - - - - - ^ - - - - - - -   <- belt stubs into hoppers
- =====================================< A A A     <- ammo belt from Assembler (Shot)
- x x x x x x . . . . . . . . . . . . . A A A
- x x x x x x . . . . . D D D D D D . . . A A A     <- x = steel rubble w/ Excavator, D = Depot 6x6
- x X X X x x . . . . . D D D D D D . . . . . .
- x X X X x x . . . . . D D D D D D . . G G . .     <- G = Generator 2x2 (coal by hand, 40 left)
- c c c . . . . . . . . D D D D D D . . . . . .     <- c = copper rubble (no excavator yet)
- (south half: more rubble, river embankment)
+ col: 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   0  : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : :
+   1  : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : :
+   2  : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : :
+   3  : : : : : b : : b : : b : : b : : L : : b : : L : : L : : : : :
+   4  : : : : . . . T T . . . . . . . . . . . t t . . . . . . : : : :
+   5  : : : b . . . T T . . . . . . . . . . . t t . . . . . . b : : :
+   6  : : : : . . . . I . . . . . . . . . . . . . . . . . . . : : : :
+   7  : : : : T T . . < < < < < < < . . . . . . . S S S . t t : : : :
+   8  : : : L T T . . . . . . . . I . . . . . . . S S S . t t b : : :
+   9  : : : : . . . . . . . . . A A A . . . . . . S S S . . . : : : :
+  10  : : : : . . > > > > > > I A A A I < < < . . . . . . . . : : : :
+  11  : : : L . X X X X X X . . A A A . . . ^ . . . . . . . . b : : :
+  12  : : : : . X X X X X X . . . . . . . . ^ . G G G G . . . : : : :
+  13  : : : : . X X X X X X . . D D D D D D ^ . G G G G . . . : : : :
+  14  : : : b . # # # # # . . . D D D D D D ^ . . I I . . . . L : : :
+  15  : : : : . # # # # # . . . D D D D D D ^ . . < < . . . . : : : :
+  16  : : : : . . . . . . . . . D D D D D D ^ . . . ^ . . . . : : : :
+  17  : : : L . . . . . . . . . D D D D D D ^ . . . ^ . . . . L : : :
+  18  : : : : . . X X X . . . . D D D D D D ^ . . X X X . . . : : : :
+  19  : : : : . & X X X > > > > > > > > > > ^ . . X X X . . . : : : :
+  20  : : : L T T X X X . . . . . . . . . . . . . X X X . t t b : : :
+  21  : : : : T T . . . . . . . . . . . . . . . . . . . . t t : : : :
+  22  : : : : r r r r r r r r r r r r r r . r r . r . . . . . : : : :
+  23  : : : L r r r r r r r r r r r r r . . r r . . r r r . . b : : :
+  24  : : : : r r r r r r r r r r r r r r . . . . . r r . . . : : : :
+  25  : : : : r r r r r r r r r r r r r r . . . r . . . . r . : : : :
+  26  : : : L r r r r r r r r r r r r r r r . . r . . . . . r b : : :
+  27  : : : : r r r r r r r r r r r r r . . r . r . . . . r . : : : :
+  28  : : : : : L : : L : : b : : L : : L : : L : : L : : b : : : : :
+  29  : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : :
+  30  : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : :
+  31  : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : :
 ```
+<!-- /docsync:section18lot -->
 
 <!-- docsync:section18 (generated from packages/sim by `npm run docsync`; compact bot, seed 3, §18 cadence, production off) -->
 **10 minutes (map view, seed 3, compact bot at the §18 cadence, no ammo line; held 1, front 3, interior 0, lost 0, wells neutralised 0 of 5) [sim: E8-cadence].**
@@ -733,3 +758,6 @@ Each edit as `§N — what changed — why — run name`. Run names before Phase
 - §18 — the 10-minute lot sketch waits for Phase 4 M3: it draws turrets and belts, which M1 does not have — Phase 4 M1
 - §13, §14 — belt 7.5/s and fast belt 15/s (was 8/16): the constitution's M2 rate, four items a tile on the 20 ticks/s tile tick (D-P4-6); Excavator 0.5/s, inserter 1/s and the Shot assembler's 3 s (20 mag/min) measured at tile level and tagged — Phase 4 M2 built the machines and the tick — M2-rates
 - §14 — hand-mining (a unit a second into the Depot) and hand-crafting (a magazine in 3 s from stock) stated as hour one's make-up — Phase 4 M2 built the hands the constitution's M2 names — M2-rates
+- §13, §14 — Generator 300 kW on 4 MJ coal (the start's 40 coal are 533 s of full load), Gun turret 50-round hopper at 5 rounds/s fed by inserter, belt or hand, Lamp 5 kW radius 4, pole reach 8, and the §14 shed order among tile machines (Shot assembler, other machines, coal Excavators and the Generator-feed inserter last, then substations; a dead grid stops everything) measured at tile level and tagged — Phase 4 M3 built defence and power — M3-rates
+- §18 — the 10-minute lot sketch is generated from the world view (`renderLot`: the game's M3 session config, §11's line placed by hand at the doc's 200/100 stock); it shows the doc's own opening browning out for 120 s until the second Generator at minute 6 — Phase 4 M3 — M3-rates
+- §11 — the sim starts with six turrets (two a street side, the north pair where §18 drew them) and the 40 coal in the Generator's hopper; the text's "two Gun turrets on the north edge" stands until D-P4-8 — Phase 4 M3 — M3-rates

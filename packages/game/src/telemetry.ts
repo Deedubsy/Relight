@@ -1,5 +1,5 @@
 /** Session telemetry. Engine-free: reads sim state and events, writes plain JSON. */
-import { SimState, SimEvent, shapeMetrics, ammoStatus, heldCount, frontage, interior, ShapeMetrics, clockOf, configHash, pipOf, slotInfo, flowSummary, FlowSummary } from '@relight/sim';
+import { SimState, SimEvent, shapeMetrics, ammoStatus, heldCount, frontage, interior, ShapeMetrics, clockOf, configHash, pipOf, slotInfo, flowSummary, FlowSummary, edgeCap } from '@relight/sim';
 
 export interface ClaimRecord {
   t: number; x: number; y: number; district: string; well: boolean; d: number;
@@ -16,6 +16,11 @@ export interface MinuteRecord {
    *  (cumulative, from totalRounds), the machines standing and the items on belts. Zero without the flow layer. */
   tileMagsMade: number; tileMagsDelivered: number; handMined: number; handCrafted: number; magsConsumed: number;
   tileMagPerMin: number; excavators: number; belts: number; inserters: number; tileAssemblers: number; beltItems: number; mined: number; coal: number;
+  /** M3 defence and power: turret hopper rounds against their capacity, magazines on belts, lamps lit, brownout
+   *  seconds so far, Generators burning, coal in the Generators, the grid's numbers and the machines shed. */
+  hopperRounds: number; hopperCap: number; beltAmmo: number; lampsLit: number; lamps: number; brownoutS: number;
+  generators: number; generatorsBurning: number; genCoal: number; supplyKw: number; demandKw: number; loadKw: number; shedMachines: number;
+  turrets: number; fired: number; coalBurned: number; polesConnected: number;
 }
 export interface Telemetry {
   meta: { seed: number; url: string; startedAt: string; config: unknown; configHash: string; player: string;
@@ -65,9 +70,8 @@ export function recordEvent(tel: Telemetry, ev: SimEvent, source: 'player' | 'bo
 /** Pip watch: the first sim time a front pip is amber or red. Called after every advance. */
 export function recordPips(tel: Telemetry, st: SimState): void {
   if (tel.firstAmber !== null && tel.firstRed !== null) return;
-  const cap = st.config.hopper;
   for (const e of st.ring) {
-    const p = pipOf(e.hopper / cap);
+    const p = pipOf(e.hopper / edgeCap(st, e));
     if (p !== 'green' && tel.firstAmber === null) tel.firstAmber = st.t;
     if (p === 'red' && tel.firstRed === null) tel.firstRed = st.t;
   }
@@ -75,9 +79,8 @@ export function recordPips(tel: Telemetry, st: SimState): void {
 
 export function recordMinute(tel: Telemetry, st: SimState): void {
   const sm = shapeMetrics(st), am = ammoStatus(st), si = slotInfo(st), fs = flowSummary(st);
-  const cap = st.config.hopper;
   let amber = 0, red = 0;
-  for (const e of st.ring) { const p = pipOf(e.hopper / cap); if (p === 'amber') amber++; else if (p === 'red') red++; }
+  for (const e of st.ring) { const p = pipOf(e.hopper / edgeCap(st, e)); if (p === 'amber') amber++; else if (p === 'red') red++; }
   tel.minutes.push({
     t: st.t, held: sm.held, front: sm.front, interior: sm.interior, contested: sm.contested, lost: sm.lost,
     bboxW: sm.bbox.w, bboxH: sm.bbox.h, aspect: sm.bbox.aspect, perimeter: sm.perimeter, perimeterOverArea: sm.perimeterOverArea,
@@ -88,6 +91,9 @@ export function recordMinute(tel: Telemetry, st: SimState): void {
     tileMagsMade: fs.magsMade, tileMagsDelivered: fs.magsDelivered, handMined: st.flow?.stats.handMined ?? 0, handCrafted: st.flow?.stats.handCrafted ?? 0,
     magsConsumed: st.totalRounds / 10, tileMagPerMin: fs.magsMade - (tel.minutes[tel.minutes.length - 1]?.tileMagsMade ?? 0),   // made in the last minute
     excavators: fs.excavators, belts: fs.belts, inserters: fs.inserters, tileAssemblers: fs.assemblers, beltItems: fs.beltItems, mined: fs.mined, coal: fs.coal,
+    hopperRounds: fs.turretRounds, hopperCap: fs.turretCap, beltAmmo: fs.beltAmmo, lampsLit: fs.lampsLit, lamps: fs.lamps, brownoutS: fs.brownoutS,
+    generators: fs.generators, generatorsBurning: fs.generatorsBurning, genCoal: fs.genCoal, supplyKw: fs.supplyKw, demandKw: fs.demandKw, loadKw: fs.loadKw, shedMachines: fs.shedMachines,
+    turrets: fs.turrets, fired: fs.fired, coalBurned: fs.coalBurned, polesConnected: fs.polesConnected,
   });
   if (tel.firstEnclosure === null && st.stats.firstInterior >= 0) tel.firstEnclosure = st.stats.firstInterior;
 }
@@ -106,6 +112,8 @@ export interface Summary {
   slotsUsed: number; slotsFree: number; machinesLost: number; ranDry: number;
   /** M2 tile layer (zeros without it). */
   flow: FlowSummary; magsConsumed: number; handMined: number; handCrafted: number;
+  /** M3 (zeros without the flow layer): brownout seconds, rounds the turrets fired, coal burned, hand-feeds. */
+  brownoutSeconds: number; fired: number; coalBurned: number; handFed: number;
 }
 
 export function summarise(tel: Telemetry, st: SimState): Summary {
@@ -129,6 +137,7 @@ export function summarise(tel: Telemetry, st: SimState): Summary {
     magsMade: Math.round(st.stats.magsMade), configHash: tel.meta.configHash,
     slotsUsed: slotInfo(st).used, slotsFree: slotInfo(st).free, machinesLost: st.stats.machinesLost, ranDry: st.stats.ranDry,
     flow: flowSummary(st), magsConsumed: st.totalRounds / 10, handMined: st.flow?.stats.handMined ?? 0, handCrafted: st.flow?.stats.handCrafted ?? 0,
+    brownoutSeconds: st.flow?.power.overS ?? 0, fired: st.flow?.stats.fired ?? 0, coalBurned: st.flow?.stats.coalBurned ?? 0, handFed: st.flow?.stats.handFed ?? 0,
   };
 }
 

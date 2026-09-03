@@ -1,6 +1,7 @@
 /** Read-only queries for a renderer. Nothing here mutates state. */
 import { SimState, Edge, DARK, CONTESTED, HELD, INERT, VOID, STATE_NAMES, District } from './types';
 import { frontage, interior, heldCount, frontageIf, interiorIf, isCandidate, rotOf, asmCount, productionMagPerMin, idxOf, inBounds, topo, isHostile, isInterior, freeSlot } from './sim';
+import { TURRET_HOPPER } from './recipes';
 
 export type Pip = 'green' | 'amber' | 'red';
 
@@ -12,17 +13,19 @@ export interface FrontEdgeView {
   darkRot: number; darkDistrict: District; darkWell: boolean;
 }
 
+/** An edge's hopper capacity: its physical turrets' hoppers (M3, 50 rounds each) or the block-level stand-in. */
+export function edgeCap(st: SimState, e: Edge): number { return e.turrets ? e.turrets * TURRET_HOPPER : st.config.hopper; }
+
 /** GAME-ASSUMPTION: the doc's pip rule is for a block's hoppers as a set (green ≥ 50 % full, amber 10–50 %,
  *  red = at least one empty). The proto shows one pip per edge, so it is applied to that edge's hopper. */
 export function pipOf(level: number): Pip { return level >= 0.5 ? 'green' : level >= 0.1 ? 'amber' : 'red'; }
 
 export function frontList(st: SimState): FrontEdgeView[] {
   const out: FrontEdgeView[] = [];
-  const cap = st.config.hopper;
   for (let r = 0; r < st.ring.length; r++) {
     const e: Edge = st.ring[r];
     const a = st.blocks[e.a], b = st.blocks[e.b];
-    const level = e.hopper / cap;
+    const level = e.hopper / edgeCap(st, e);
     out.push({ id: e.id, ringPos: r, from: { x: a.x, y: a.y }, to: { x: b.x, y: b.y }, dir: e.id % 4,
                hopper: e.hopper, level, pip: pipOf(level),
                darkRot: b.state === DARK ? b.d : 0, darkDistrict: b.name, darkWell: b.well });
@@ -78,8 +81,8 @@ export function ammoStatus(st: SimState): AmmoStatus {
   const t = st.t;
   let r60 = 0;
   for (let k = 1; k <= 60; k++) { const tk = t - k; if (tk < 0) break; r60 += st.recentRounds[tk % 600]; }
-  let hsum = 0, empty = 0;
-  for (const e of st.ring) { hsum += e.hopper; if (e.hopper <= 1e-9) empty++; }
+  let hsum = 0, hcap = 0, empty = 0;
+  for (const e of st.ring) { hsum += e.hopper; hcap += edgeCap(st, e); if (e.hopper <= 1e-9) empty++; }
   const win = Math.min(600, Math.max(1, t));
   return {
     assemblers: asmCount(st, t),
@@ -88,7 +91,7 @@ export function ammoStatus(st: SimState): AmmoStatus {
     demandMagPerMin1: r60 / 10,
     shellsPerMin: st.recentShellsSum / (win / 60),
     stockMags: st.buffer / 10,
-    hopperMean: st.ring.length ? hsum / (st.ring.length * st.config.hopper) : 1,
+    hopperMean: hcap > 0 ? hsum / hcap : 1,
     emptyHoppers: empty,
   };
 }

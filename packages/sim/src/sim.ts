@@ -93,6 +93,24 @@ export const inBounds = (st: SimState, x: number, y: number) => x >= 0 && x < st
 export const isHostile = (s: number) => s === DARK || s === CONTESTED;
 export const isSolid = (s: number) => s === HELD || s === INERT;
 
+/** M3 tile-layer hooks. flow.ts registers them at load (it imports this module, so this module cannot import it);
+ *  the block tick calls them only on a state that has a flow layer, so a block-only state behaves exactly as before.
+ *  syncEdges: mark edges covered by physical turrets (Edge.turrets/fire) and set their hopper to the turrets' sum.
+ *  drainEdges: take this second's fired rounds out of those turrets. supplyKw: the Generators' output.
+ *  demandKw: tile machines' draw (all placed machines when `unshed`, else the unshed ones on powered cells).
+ *  shedOne / restoreOne: the §14 order among tile machines; a shed machine is stack entry -(id + 2). */
+export interface TileHooks {
+  syncEdges(st: SimState): void;
+  drainEdges(st: SimState, fired: Float64Array): void;
+  supplyKw(st: SimState): number;
+  demandKw(st: SimState, unshed: boolean): number;
+  shedOne(st: SimState): { id: number; kind: string } | null;
+  restoreOne(st: SimState, id: number, room: number): { ok: boolean; kind: string };
+  setLoad(st: SimState, supply: number, demand: number, load: number, over: boolean): void;
+}
+export const tileHooks: { current: TileHooks | null } = { current: null };
+const tiles = (st: SimState): TileHooks | null => (st.flow ? tileHooks.current : null);
+
 // ------------------------------------------------------------------ state construction
 
 export function createState(spec: MapSpec, config: SimConfig, seed: number): SimState {
@@ -408,7 +426,7 @@ function rebuildEdgeAt(st: SimState): void {
 
 /** Bring the ring in line with the map: drop edges that no longer face a hostile block (hopper back to the
  *  buffer), add new ones in sorted position order at the end of the ring. */
-function syncEdges(st: SimState): void {
+export function syncEdges(st: SimState): void {
   const tp = topo(st.w, st.h), B = st.blocks, mark = tp.mark;
   const stamp = ++tp.stamp;
   for (let i = 0; i < B.length; i++) {
@@ -420,7 +438,7 @@ function syncEdges(st: SimState): void {
   let w = 0;
   for (let r = 0; r < ring.length; r++) {
     const e = ring[r];
-    if (mark[e.id] !== stamp) { st.buffer += e.hopper; st.edgeAt[e.id] = -1; continue; }
+    if (mark[e.id] !== stamp) { if (!e.turrets) st.buffer += e.hopper; st.edgeAt[e.id] = -1; continue; }   // M3: turrets keep their rounds
     ring[w++] = e;
   }
   ring.length = w;
@@ -460,7 +478,8 @@ export function demandUnshed(st: SimState): number {
     if (b.state === HELD) d += subDraw(st, b, true);
     else if (b.state === CONTESTED) d += half ? 100 : 200;
   }
-  return d + asmCount(st, st.t) * 220;
+  const th = tiles(st);
+  return d + asmCount(st, st.t) * 220 + (th ? th.demandKw(st, true) : 0);
 }
 
 /** Demand as drawn now (shed substations and assemblers excluded). */
@@ -471,7 +490,8 @@ export function demandKw(st: SimState): number {
     if (b.state === HELD) d += subDraw(st, b);
     else if (b.state === CONTESTED) d += half ? 100 : 200;
   }
-  return d + st.power.asmActive * 220;
+  const th = tiles(st);
+  return d + st.power.asmActive * 220 + (th ? th.demandKw(st, false) : 0);
 }
 
 /** §15 generator schedule (kW available by tick) for supply = 'schedule'. */
@@ -752,8 +772,11 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     let avail = st.buffer + made;
     st.buffer = 0;
     const ring = st.ring, startIdx = idxOf(st, st.start[0], st.start[1]);
+    const th = tiles(st);
+    if (th) th.syncEdges(st);   // M3: edges with physical turrets read their hoppers from the turrets
     for (let r = 0; r < ring.length; r++) {
       const e = ring[r];
+      if (e.turrets) continue;   // M3: fed by inserters and hands, not by the ring
       if (cfg.starveQuiet && e.a !== startIdx && B[e.b].d < 0.3 && B[e.b].state === DARK) {
         if (B[e.a].starveSince < 0) B[e.a].starveSince = t;
         continue;
@@ -772,16 +795,21 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     // engagements: crawlers arrive over 15 s; fed ones die, unfed ones proceed
     const eng = st.engagements;
     let w = 0;
+    // M3: an edge with physical turrets fires at most what they can this second (5 rounds/s each, §13); the rounds
+    // come out of the turrets' hoppers below. A stand-in edge has no rate limit, as before.
+    const fired = th ? new Float64Array(ring.length) : null;
     for (let q = 0; q < eng.length; q++) {
       const en = eng[q];
       const ri = st.edgeAt[en.id];
       if (ri < 0) continue;
       const e = ring[ri], hp = B[e.a];
       const a = Math.min(en.cr, en.rcr); en.cr -= a;
-      const fed = Math.min(a, e.hopper / 3.0); e.hopper -= fed * 3.0;
+      let budget = e.turrets && fired ? Math.min(e.hopper, (e.fire ?? 0) - fired[ri]) : e.hopper;
+      const fed = Math.min(a, budget / 3.0); e.hopper -= fed * 3.0; budget -= fed * 3.0;
       const un = a - fed;
       const s_ = Math.min(en.sh, en.rsh); en.sh -= s_;
-      const fedS = Math.min(s_, e.hopper / 10.0); e.hopper -= fedS * 10.0;
+      const fedS = Math.min(s_, budget / 10.0); e.hopper -= fedS * 10.0;
+      if (fired) fired[ri] += fed * 3.0 + fedS * 10.0;
       const unS = s_ - fedS;
       if (un > 1e-9 || unS > 1e-9) {
         st.stats.unfedTotal += un;
@@ -795,7 +823,15 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       if (en.cr > 1e-9 || en.sh > 1e-9) eng[w++] = en;
     }
     eng.length = w;
-    for (let r = 0; r < ring.length; r++) { const e = ring[r]; e.empty = e.hopper <= 1e-9 ? e.empty + 1 : 0; }
+    if (th && fired) th.drainEdges(st, fired);
+    for (let r = 0; r < ring.length; r++) {
+      const e = ring[r];
+      if (e.hopper <= 1e-9) {
+        // M3: the map pip turns red on this same transition (§4); the world view's turret hopper is the same number
+        if (e.empty === 0) st.events.push({ type: 'hopper-empty', t, x: B[e.a].x, y: B[e.a].y, dir: e.id % 4 });
+        e.empty++;
+      } else e.empty = 0;
+    }
     if (cfg.unfed !== 'none') {
       for (let i = 0; i < B.length; i++) {
         const b = B[i];
@@ -835,8 +871,10 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
 
   // ---- power (frontsim.py power=True): demand vs supply, shedding after 20 s over, restore 20 s after the last shed ----
   if (cfg.power) {
-    const pw = st.power;
+    const pw = st.power, th = tiles(st);
     pw.asmActive = asmActive(st, t);
+    // M3: with supply = 'generators' the grid is what the tile layer's Generators put out this second
+    if (cfg.supply === 'generators') pw.supply = th ? th.supplyKw(st) : 0;
     const dem = demandKw(st);
     if (cfg.supply === 'track' && t % 600 === 0 && !inWindow(st)) pw.supply = Math.max(pw.supply, demandUnshed(st) + cfg.headroom);
     const eff = effectiveSupply(st);
@@ -846,7 +884,13 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       if (st.stats.firstBrownout < 0) { st.stats.firstBrownout = t; st.events.push({ type: 'brownout', t, demandKw: dem, supplyKw: eff }); }
       if (pw.overTimer >= 20) {
         pw.overTimer = 0; pw.lastShed = t; st.stats.shedEvents++; st.stats.shedLog.push(t);
-        if (cfg.shed === 'machines-first' && pw.asmShed < asmCount(st, t)) {
+        // §14 order (M3): the tile layer's assemblers first, then its other machines, Excavators feeding Generators
+        // last; then the block-level assembler lines; substations only after every machine
+        const tm = th ? th.shedOne(st) : null;
+        if (tm) {
+          pw.shedStack.push(-(tm.id + 2));
+          st.events.push({ type: 'shed', t, x: -1, y: -1, machine: tm.kind });
+        } else if (cfg.shed === 'machines-first' && pw.asmShed < asmCount(st, t)) {
           pw.asmShed++; pw.shedStack.push(-1);
           st.events.push({ type: 'shed', t, x: -1, y: -1 });
         } else {
@@ -872,7 +916,10 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       pw.overTimer = 0;
       if (pw.shedStack.length && t - pw.lastShed >= 20) {
         const u = pw.shedStack[pw.shedStack.length - 1];
-        if (u === -1) {
+        if (u <= -2) {
+          const r = th ? th.restoreOne(st, -(u + 2), eff - dem) : { ok: true, kind: '' };
+          if (r.ok) { pw.shedStack.pop(); pw.lastShed = t; if (r.kind) st.events.push({ type: 'restore', t, x: -1, y: -1, machine: r.kind }); }
+        } else if (u === -1) {
           if (dem + 220 <= eff) { pw.shedStack.pop(); pw.asmShed--; pw.lastShed = t; st.events.push({ type: 'restore', t, x: -1, y: -1 }); }
         } else {
           const b = B[u];
@@ -886,6 +933,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       }
     }
     pw.asmActive = asmActive(st, t);
+    if (th) th.setLoad(st, eff, dem, Math.min(dem, eff), dem > eff);
   }
 
   // ---- creep and fall (substation off for any reason) ----

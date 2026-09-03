@@ -93,3 +93,21 @@ M2 built the tile tick and the machines (`flow.ts`). Every item above keeps its 
 - **Power draw on machines (§13 kW).** Carried on each machine, drawn by nothing. → **M3** with the Generator and the substation.
 - **Hand-collecting from a chest (§14.3).** No chest yet; hand-mining is a unit a second into the Depot. → **Phase 5** with chests.
 - **Survivor unlocks on the toolbar.** The toolbar now exists (tool keys). → **M6** wires the Electricians' unlocks (Floodlight, Big pole, Substation) once M3 has poles.
+
+## Re-read at Phase 4 M3 (2026-09-03, M3 Defence built)
+
+M3 built defence and power (`flow.ts`, `tiles.ts`). Every item above keeps its phase unless listed here. Nothing deleted.
+
+- ~~**Substation as a placed thing.**~~ **Built in M3** as a pre-existing 3×3 on every lot at a seeded street-side spot (GA-M3-16), powering its whole cell. The craftable Substation and the outskirts' missing one → **M6** (Electricians' unlocks).
+- ~~**Edge hopper 100 vs turret hopper 50.**~~ **Built in M3:** on the HQ an edge's rounds are the sum of its two 50-round turrets; every other Held block keeps the block sim's 100-round stand-in. → **D-P4-9**, decided at **M6** with D-P4-5.
+- ~~**Belt to a turret hopper.**~~ **Built in M3:** inserter from a belt of magazines into the hopper. The Gunsmith's direct belt input → **Phase 5/6** (survivor unlocks).
+- ~~**Generator / power draw on machines (§13 kW).**~~ **Built in M3:** every placed machine draws its rated kW, Generators supply by burning coal, one number with the §14 shed order through the tile machines.
+- ~~**10-minute world-view lot sketch (§18).**~~ **Built in M3:** `renderLot` + docsync `section18lot`, CI-checked; it found that §11's own line browns out at minute 0 on one Generator (→ D-P4-7) and that the Generator-feed inserter must shed last (§14 edited, `M3-rates`).
+- **Ring feed order (D-P1-2).** With physical belts it is a layout fact on the HQ; the block sim's drain among an edge's turrets is fullest-first (GA-M3-5). → **M6** with the played hour: closed if no tester asks which turret fires first.
+- **Turret range 9 as geometry; enemies as things on tiles (5.17 hulk, 7.4 crawler, 7.5 shade stats).** M3 fires at the block sim's engagements; nothing walks. → **Phase 4 M4**.
+- **Barricade 200 HP (13.8).** Nothing to stop until the hulk walks. → **Phase 4 M4** with the hulk, else **Phase 5**.
+- **Light map (M5) and the shade rule at tile level.** M3 has the light model (`cellLights`, `litAt`, radius 4, streetlights three in eight broken); nothing draws darkness yet. → **Phase 4 M5**.
+- **Electricians' unlocks (Floodlight, Big pole, craftable Substation).** Poles and Lamps exist; the toolbar has no unlock gate. → **Phase 4 M6**.
+- **Hour-one power (risk D7, "an early brownout sheds the HQ first").** At tile level with machines-first shedding the HQ substation is never shed in the §18 run; the assembler is, at minute 0, until the second Generator. → **D-P4-7**, settled at **M6** from the played hour together with D-P4-4 (the sim's 80/40 cannot buy the §11 line and that Generator).
+- **Block fall illegible (risk D4).** M3 adds the red hopper pulse, the shed crosses, the dead-grid and brownout toasts. → **M4** (rot at tile level) and **M5** (light) as before, judged at Gate B.
+- **Turrets on claimed blocks.** Physical on the HQ, block-level elsewhere. → **D-P4-9** at **M6** with D-P4-5: a claimed block gets a world-view line and turrets, or a button and a hopper, one model.

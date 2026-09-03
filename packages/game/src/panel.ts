@@ -93,14 +93,18 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   // hand craft (§11) that takes its inputs from the Depot stock like a tile assembler would from its belt.
   const lineSec = el('section');
   let vMach: HTMLElement | null = null, vBeltItems: HTMLElement | null = null, vLineRate: HTMLElement | null = null, vLineMade: HTMLElement | null = null,
-      vHand: HTMLElement | null = null, vBuffer: HTMLElement | null = null, vCoal: HTMLElement | null = null, vCrafts: HTMLElement | null = null;
+      vHand: HTMLElement | null = null, vBuffer: HTMLElement | null = null, vCoal: HTMLElement | null = null, vCrafts: HTMLElement | null = null,
+      vPower: HTMLElement | null = null, vGens: HTMLElement | null = null, vTurrets: HTMLElement | null = null, vLamps: HTMLElement | null = null, vBrown: HTMLElement | null = null;
   let btnCraft: HTMLButtonElement | null = null;
   if (flow) {
     lineSec.append(el('h2', undefined, 'Line on the HQ lot (world view)'));
     const lineList = el('ul', 'plain');
     const li2 = (label: string) => { const l = el('li'); const a = el('span', undefined, label); const v = el('span', 'mono', '0'); l.append(a, v); lineList.append(l); return v; };
     vMach = li2('Excavators / belts / inserters / Shot assemblers'); vBeltItems = li2('Items on belts'); vLineRate = li2('Line mag/min (assemblers crafting now)');
-    vLineMade = li2('Magazines made by the line'); vHand = li2('Mined / crafted by hand'); vBuffer = li2('Magazines in the line buffer'); vCoal = li2('Coal in the Depot'); vCrafts = li2('Hand crafts queued');
+    vLineMade = li2('Magazines made by the line'); vHand = li2('Mined / crafted by hand'); vBuffer = li2('Magazines in the line buffer'); vCoal = li2('Coal (Depot + Generators)'); vCrafts = li2('Hand crafts queued');
+    // M3: power as one number (§14), the Generators, the turrets' hoppers, the lights
+    vPower = li2('Power: load / supply kW (demand)'); vGens = li2('Generators burning / built'); vTurrets = li2('Turret rounds / capacity · on belts');
+    vLamps = li2('Lamps lit / built · poles connected'); vBrown = li2('Brownout seconds · machines shed');
     lineSec.append(lineList);
     const craftRow = el('div', 'row');
     btnCraft = el('button', undefined, `Craft a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s)`);
@@ -252,6 +256,11 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       vHand!.textContent = `${s.flow.stats.handMined} / ${s.flow.stats.handCrafted}`;
       vBuffer!.textContent = `${Math.floor(s.buffer / SHOT.count)} / ${Math.floor(s.config.bufferCap / SHOT.count)}`; vCoal!.textContent = String(Math.floor(fs.coal)); vCrafts!.textContent = String(fs.craftsQueued);
       btnCraft!.disabled = s.stock.steel < SHOT.inputs.steel || s.stock.copper < SHOT.inputs.copper;
+      vPower!.textContent = `${Math.round(fs.loadKw)} / ${Math.round(fs.supplyKw)} (${Math.round(fs.demandKw)})`; vPower!.parentElement!.classList.toggle('warn', fs.demandKw > fs.supplyKw + 1e-9);
+      vGens!.textContent = `${fs.generatorsBurning} / ${fs.generators}`; vGens!.parentElement!.classList.toggle('warn', fs.generators > 0 && fs.generatorsBurning === 0);
+      vTurrets!.textContent = `${Math.round(fs.turretRounds)} / ${fs.turretCap} · ${fs.beltAmmo}`; vTurrets!.parentElement!.classList.toggle('warn', fs.turrets > 0 && fs.turretRounds === 0);
+      vLamps!.textContent = `${fs.lampsLit} / ${fs.lamps} · ${fs.polesConnected} / ${fs.poles}`;
+      vBrown!.textContent = `${Math.round(fs.brownoutS)} · ${fs.shedMachines}`; vBrown!.parentElement!.classList.toggle('warn', fs.shedMachines > 0);
     }
     renderRing(frontList(s));
     const facs = facilityList(s).filter(f => f.visible);

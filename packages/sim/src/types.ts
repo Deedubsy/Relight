@@ -31,7 +31,10 @@ export interface Block {
 }
 
 /** One frontage edge: held block `a` facing hostile neighbour `b`. id = a*4 + dir, stable across removal and re-creation. */
-export interface Edge { id: number; a: number; b: number; hopper: number; empty: number }
+/** `turrets`/`fire` (M3): set by the tile layer for an edge covered by physical Gun turrets — their count and the rounds
+ *  they can fire this second (Σ min(rounds, 5)); the edge's hopper is then the sum of their hoppers, fed by inserters
+ *  and hands, not by the ring. Absent on a state without a flow layer. */
+export interface Edge { id: number; a: number; b: number; hopper: number; empty: number; turrets?: number; fire?: number }
 
 /** Crawlers from one bloom arriving at one edge over 15 s. */
 export interface Engagement { id: number; cr: number; sh: number; rcr: number; rsh: number }
@@ -69,7 +72,7 @@ export interface SimConfig {
   relight: Relight | null;
   // ---- power model (frontsim.py `power=True`); off in the regression fixtures, on in the power fixtures ----
   power: boolean;
-  supply: 'track' | 'schedule';      // track: supply follows unshed demand + headroom every 10 min; schedule: the §15 table
+  supply: 'track' | 'schedule' | 'generators';   // track: supply follows unshed demand + headroom every 10 min; schedule: the §15 table; generators (M3): the tile layer's Generators
   headroom: number;                  // kW
   shortfall: Shortfall | null;
   draw: 'doc' | 'half' | 'flat';     // doc 200/40 kW, half 100/20 kW (D1), flat 120 kW
@@ -157,8 +160,10 @@ export type SimEvent =
   | { type: 'machine-lost'; t: number; x: number; y: number; count: number }
   | { type: 'run-dry'; t: number; x: number; y: number; district: District }
   | { type: 'brownout'; t: number; demandKw: number; supplyKw: number }
-  | { type: 'shed'; t: number; x: number; y: number }          // x = y = -1: an assembler
-  | { type: 'restore'; t: number; x: number; y: number }
+  | { type: 'shed'; t: number; x: number; y: number; machine?: string }      // x = y = -1: an assembler line; machine (M3): a tile machine's kind
+  | { type: 'restore'; t: number; x: number; y: number; machine?: string }
+  | { type: 'hopper-empty'; t: number; x: number; y: number; dir: number }   // M3: an edge's hopper just ran dry (the map pip turns red on this)
+  | { type: 'gen-dry'; t: number; x: number; y: number }                     // M3: a Generator burned its last coal
   | { type: 'well-dead'; t: number; x: number; y: number }
   | { type: 'hour'; t: number; row: HourRow };
 

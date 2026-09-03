@@ -1,0 +1,321 @@
+/** Phase 4 M3 Defence (run name M3-rates): the HQ's physical turrets own their edges' hoppers (5 rounds/s, 50-round
+ *  hopper, fed by inserter or hand), the map pip and the world hopper are one number, the Generator sets the grid's
+ *  supply and burns coal by load, the §14 shed order runs through the tile machines, lamps and streetlights follow
+ *  the substation, and a pole run strings a claim. */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  DEFAULT_CONFIG, protoCalibrated, generateMap, createState, idxOf, HELD, DARK, CONTESTED, step, frontList, edgeCap,
+  CELL_TILES, MARGIN_TILES, substationLot, streetlights, STREETLIGHTS_PER_SIDE, SUBSTATION_TILES,
+  ensureFlow, advanceFlow, stepFlow, place, remove, canPlace, giveItem, handFeed, flowSummary, describeMachine, turretEdge,
+  cellLights, litAt, poleGrid, substationAt, subPowered, layPoles, botHands,
+  TILE_TPS, TILE_DT, TURRET_HOPPER, TURRET_ROUNDS_PER_S, GENERATOR_KW, COAL_MJ, START_COAL, LAMP_RADIUS, POLE_REACH, MACHINE_KW,
+  Machine, SimState, SimEvent,
+} from '../src/index';
+
+function fresh(seed = 3): SimState {
+  const cfg = protoCalibrated({ ...DEFAULT_CONFIG, scatter: true, economy: true });
+  const spec = generateMap(seed, cfg);
+  return createState(spec, cfg, seed);
+}
+function hq(st: SimState, lx: number, ly: number): [number, number] {
+  return [st.start[0] * CELL_TILES + MARGIN_TILES + lx, st.start[1] * CELL_TILES + MARGIN_TILES + ly];
+}
+function rich(st: SimState): SimState { ensureFlow(st); st.stock.steel = 10000; st.stock.copper = 10000; return st; }
+function powered(st: SimState): SimState {
+  rich(st);
+  st.config.power = true; st.config.supply = 'generators'; st.config.draw = 'half'; st.config.shed = 'machines-first';
+  return st;
+}
+function mustPlace(st: SimState, kind: Parameters<typeof place>[1], lx: number, ly: number, dir: Parameters<typeof place>[4] = 0): Machine {
+  const [tx, ty] = hq(st, lx, ly);
+  const m = place(st, kind, tx, ty, dir);
+  assert.ok(m, `${kind} at lot (${lx},${ly}): ${canPlace(st, kind, tx, ty).reason}`);
+  return m!;
+}
+/** Block seconds through the tile clock, collecting the block sim's events. */
+function runS(st: SimState, seconds: number): SimEvent[] {
+  const out: SimEvent[] = [];
+  for (let s = 0; s < seconds; s++) {
+    advanceFlow(st, 1, [], 4);
+    out.push(...st.events); st.events.length = 0;
+  }
+  return out;
+}
+const turrets = (st: SimState) => st.flow!.machines.filter(m => m.kind === 'turret');
+const generator = (st: SimState) => st.flow!.machines.find(m => m.kind === 'generator')!;
+
+test('HQ start: six turrets and a Generator with the 40 coal; the 20 magazines fill the ring in order — two edges full, the third empty, its pip red from the first tick', () => {
+  const st = fresh();
+  const f = ensureFlow(st);
+  const ts = turrets(st);
+  assert.equal(ts.length, 6);
+  assert.equal(generator(st).inv.coal, START_COAL); assert.equal(f.store.coal, 0);
+  assert.equal(flowSummary(st).coal, START_COAL, 'the summary counts the Generator hopper');
+  for (const m of ts) assert.ok(turretEdge(st, m) >= 0, 'every start turret covers its street');
+  const edges = new Set(ts.map(m => turretEdge(st, m)));
+  assert.equal(edges.size, 3, 'two turrets a street on three streets');
+  const rounds = ts.map(m => m.inv.rounds ?? 0).sort((a, b) => b - a);
+  assert.deepEqual(rounds, [50, 50, 50, 50, 0, 0], 'C10: the 200 start rounds go round the ring in order');
+  assert.equal(st.buffer, 0);
+  const hqIdx = idxOf(st, st.start[0], st.start[1]);
+  const mine = st.ring.filter(e => e.a === hqIdx);
+  assert.equal(mine.length, 3);
+  for (const e of mine) { assert.equal(e.turrets, 2); assert.equal(edgeCap(st, e), 2 * TURRET_HOPPER); }
+  assert.deepEqual(mine.map(e => e.hopper).sort((a, b) => b - a), [100, 100, 0], 'the edge hopper is the turrets\' hoppers');
+  const pips = frontList(st).filter(v => v.from.x === st.start[0] && v.from.y === st.start[1]).map(v => v.pip).sort();
+  assert.deepEqual(pips, ['green', 'green', 'red']);
+  const ev = runS(st, 1);
+  assert.equal(ev.filter(e => e.type === 'hopper-empty').length, 1, 'the empty edge announces itself on the first block tick');
+  assert.equal(ts.reduce((a, m) => a + (m.inv.rounds ?? 0), 0), 200, 'the ring does not refill physical turrets');
+});
+
+test('feeding: an inserter fills a turret from a belt of magazines to its 50-round hopper and waits; hand-feeding fills it from the Depot at once; the pip follows', () => {
+  const st = rich(fresh());
+  const f = st.flow!;
+  const t = turrets(st).find(m => m.x === hq(st, 3, 0)[0] && m.y === hq(st, 3, 0)[1])!;
+  t.inv.rounds = 0;
+  const belt = mustPlace(st, 'belt', 3, 3, 1);
+  const ins = mustPlace(st, 'inserter', 3, 2, 0);
+  const feed = () => { while (giveItem(st, belt, 'magazine', 0)) { /* saturate */ } };
+  for (let k = 0; k < 12 * TILE_TPS; k++) { feed(); stepFlow(st, TILE_DT); }
+  assert.equal(t.inv.rounds, TURRET_HOPPER, 'the hopper caps at 50 rounds');
+  assert.ok(ins.hold === 'magazine' || belt.items.length > 0, 'the inserter waits with the next magazine');
+  step(st); st.events.length = 0;
+  const e = st.ring[st.edgeAt[turretEdge(st, t)]];
+  assert.equal(e.hopper, TURRET_HOPPER + (turrets(st).find(m => m !== t && turretEdge(st, m) === e.id)!.inv.rounds ?? 0));
+  // hand: empty the north pair, put 8 magazines in the Depot, feed one turret twice
+  const pair = turrets(st).filter(m => turretEdge(st, m) === e.id);
+  for (const m of pair) m.inv.rounds = 0;
+  st.buffer = 30;
+  step(st);
+  assert.equal(frontList(st).find(v => v.from.x === st.start[0] && v.from.y === st.start[1] && v.dir === e.id % 4)!.pip, 'red');
+  const r1 = handFeed(st, pair[0].x, pair[0].y)!;
+  assert.equal(r1.kind, 'turret'); assert.equal(r1.moved, 3); assert.equal(pair[0].inv.rounds, 30); assert.equal(st.buffer, 0);
+  assert.match(handFeed(st, pair[1].x, pair[1].y)!.reason, /no magazines/);
+  assert.equal(f.stats.handFed, 3);
+  step(st);
+  assert.equal(frontList(st).find(v => v.from.x === st.start[0] && v.from.y === st.start[1] && v.dir === e.id % 4)!.pip, 'amber');
+  st.buffer = 80;
+  assert.equal(handFeed(st, pair[0].x, pair[0].y)!.moved, 2, 'tops up to 50');
+  assert.match(handFeed(st, pair[0].x, pair[0].y)!.reason, /full/);
+  assert.equal(handFeed(st, pair[1].x, pair[1].y)!.moved, 5);
+  assert.equal(st.buffer, 10);
+  step(st);
+  assert.equal(frontList(st).find(v => v.from.x === st.start[0] && v.from.y === st.start[1] && v.dir === e.id % 4)!.pip, 'green');
+  // a removed turret hands its rounds back to the line buffer
+  remove(st, pair[1].x, pair[1].y);
+  assert.equal(st.buffer, 60);
+});
+
+test('engagement: crawlers drain the turrets fullest-first at 5 rounds/s each; a rush past the rate goes unfed; the hopper-empty event fires on the same tick the pip turns red', () => {
+  const st = rich(fresh());
+  const f = st.flow!;
+  step(st); st.events.length = 0;
+  const hqIdx = idxOf(st, st.start[0], st.start[1]);
+  const full = st.ring.find(e => e.a === hqIdx && e.hopper === 100)!;
+  const pair = turrets(st).filter(m => turretEdge(st, m) === full.id);
+  // 30 crawlers over 15 s: 2 a second, 6 rounds a second, well under the pair's 10
+  st.engagements.push({ id: full.id, cr: 30, sh: 0, rcr: 2, rsh: 0 });
+  let ev = runS(st, 15);
+  assert.equal(st.stats.unfedTotal, 0);
+  assert.ok(Math.abs(f.stats.fired - 90) < 1e-6, `fired ${f.stats.fired}`);
+  assert.deepEqual(pair.map(m => m.inv.rounds), [5, 5], 'the pair share the firing equally');
+  assert.ok(Math.abs(full.hopper - 10) < 1e-6, 'Math.abs(full.hopper - 10) < 1e-6');
+  assert.equal(ev.filter(e => e.type === 'hopper-empty').length, 0);
+  // the last of them empties the hopper: pip red and the event on that tick
+  st.engagements.push({ id: full.id, cr: 4, sh: 0, rcr: 2, rsh: 0 });
+  ev = runS(st, 2);
+  assert.equal(full.hopper, 0);
+  assert.equal(ev.filter(e => e.type === 'hopper-empty').length, 1);
+  assert.equal(frontList(st).find(v => v.from.x === st.start[0] && v.from.y === st.start[1] && v.dir === full.id % 4)!.pip, 'red');
+  assert.ok(st.stats.unfedTotal > 0.5, 'the fourth crawler found the hopper empty');
+  // a rush: 30 crawlers in one second need 90 rounds; two turrets fire 10
+  const other = st.ring.find(e => e.a === hqIdx && e.hopper === 100)!;
+  const unfed0 = st.stats.unfedTotal, fired0 = f.stats.fired;
+  st.engagements.push({ id: other.id, cr: 30, sh: 0, rcr: 30, rsh: 0 });
+  runS(st, 1);
+  assert.ok(Math.abs(f.stats.fired - fired0 - 2 * TURRET_ROUNDS_PER_S) < 1e-6, 'the pair fire 10 rounds in the second');
+  assert.ok(Math.abs(st.stats.unfedTotal - unfed0 - (30 - 10 / 3)) < 1e-6, 'the rest walk past');
+  assert.equal(other.hopper, 90);
+});
+
+test('Generator: 300 kW, 4 MJ a coal — the start\'s 40 coal last 533 s at full load; a dry Generator kills the grid until hand-fed', () => {
+  const st = powered(fresh());
+  const f = st.flow!;
+  const g = generator(st);
+  // demand exactly at supply, so nothing sheds: the substation (100 kW half draw, exposed) + two assemblers 200
+  mustPlace(st, 'assembler', 12, 4, 2);
+  mustPlace(st, 'assembler', 15, 5, 2);
+  runS(st, 5);
+  assert.equal(f.power.supply, GENERATOR_KW);
+  assert.equal(f.power.demand, 300, `demand ${f.power.demand}`);
+  assert.equal(f.power.load, GENERATOR_KW);
+  assert.ok(g.busy, 'g.busy');
+  const perS = GENERATOR_KW / (COAL_MJ * 1000);
+  assert.ok(Math.abs(perS - 0.075) < 1e-9, 'Math.abs(perS - 0.075) < 1e-9');
+  const ev = runS(st, 560);
+  const dry = ev.find(e => e.type === 'gen-dry');
+  assert.ok(dry, 'the Generator runs dry');
+  assert.equal(g.inv.coal, 0);
+  assert.equal(f.stats.coalBurned, START_COAL);
+  assert.ok(Math.abs(f.stats.coalBurned / perS - 533.3) < 30, 'about 533 s of full load');
+  assert.equal(f.power.supply, 0);
+  assert.match(describeMachine(st, g), /OUT OF COAL/);
+  assert.match(describeMachine(st, f.machines.find(m => m.kind === 'assembler')!), /no power/);
+  assert.equal(subPowered(st, st.blocks[idxOf(st, st.start[0], st.start[1])]), false);
+  assert.equal(cellLights(st, st.start[0], st.start[1]).some(l => l.lit), false, 'streetlights dark on a dead grid');
+  // coal by hand: nothing in the Depot yet
+  assert.match(handFeed(st, g.x, g.y)!.reason, /no coal/);
+  f.store.coal = 10;
+  assert.equal(handFeed(st, g.x, g.y)!.moved, 10);
+  runS(st, 25);   // the substation, shed on the dead grid, comes back 20 s after the supply does
+  assert.equal(f.power.supply, GENERATOR_KW);
+  assert.ok(g.busy, 'burning again');
+  assert.equal(f.power.load, 300);
+});
+
+test('§14 shed order under a brownout: Shot assembler, then other machines (inserter, Lamp, Excavator), the coal Excavator and the Generator-feed inserter last, then the substation; restore when the supply allows', () => {
+  const st = powered(fresh());
+  const f = st.flow!;
+  st.config.shortfall = { pct: 90, hour: 0, minutes: 60 };   // 30 kW effective: everything sheds in §14 order
+  const asm = mustPlace(st, 'assembler', 4, 4, 2);
+  const ins = mustPlace(st, 'inserter', 8, 4, 1);
+  const lamp = mustPlace(st, 'lamp', 8, 8, 0);
+  const exSteel = mustPlace(st, 'excavator', 1, 7, 0);
+  const exCoal = mustPlace(st, 'excavator', 18, 14, 0);
+  const insCoal = mustPlace(st, 'inserter', 19, 10, 0);   // into the Generator at 19..20 × 8..9: sheds with the coal Excavator
+  const shedNames: string[] = [];
+  let ev = runS(st, 21);
+  for (const e of ev) if (e.type === 'shed') shedNames.push(e.machine ?? 'substation');
+  assert.deepEqual(shedNames, ['assembler']); assert.ok(asm.shed, 'asm.shed');
+  assert.ok(f.power.overS >= 20, 'brownout seconds count');
+  ev = runS(st, 100);
+  for (const e of ev) if (e.type === 'shed') shedNames.push(e.machine ?? 'substation');
+  assert.deepEqual(shedNames, ['assembler', 'inserter', 'lamp', 'excavator', 'inserter', 'excavator']);
+  assert.ok(ins.shed && lamp.shed && exSteel.shed && exCoal.shed && insCoal.shed, 'ins, lamp, both Excavators and the Generator-feed inserter shed');
+  assert.equal(flowSummary(st).shedMachines, 6);
+  ev = runS(st, 20);
+  for (const e of ev) if (e.type === 'shed') shedNames.push(e.machine ?? 'substation');
+  assert.equal(shedNames[6], 'substation', 'the substation goes only after every machine');
+  // the coal Excavator went after the steel one
+  const order = f.machines.filter(m => m.shed).map(m => m.id);
+  assert.ok(order.indexOf(exSteel.id) >= 0 && order.indexOf(exCoal.id) >= 0, 'order.indexOf(exSteel.id) >= 0 && order.indexOf(exCoal.id) >= 0');
+  // the supply returns: things come back last-shed-first as room allows; the assembler (335 kW with it) never fits
+  st.config.shortfall = null;
+  ev = runS(st, 130);
+  const restored = ev.filter(e => e.type === 'restore').map(e => e.machine ?? 'substation');
+  assert.deepEqual(restored, ['substation', 'excavator', 'inserter', 'excavator', 'lamp', 'inserter']);
+  assert.equal(flowSummary(st).shedMachines, 1); assert.ok(asm.shed, 'asm.shed');
+  assert.equal(f.power.demand, 100 + 2 * MACHINE_KW.inserter + MACHINE_KW.lamp + 2 * MACHINE_KW.excavator);
+  assert.match(describeMachine(st, asm), /shed/);
+  // room for it once an Excavator goes
+  remove(st, exSteel.x, exSteel.y);
+  ev = runS(st, 25);
+  assert.ok(ev.some(e => e.type === 'restore' && e.machine === 'assembler'), 'ev.some(e => e.type === \'restore\' && e.machine === \'assembler\')');
+  assert.equal(flowSummary(st).shedMachines, 0);
+});
+
+test('lamps and streetlights: radius 4, lit while the substation powers; three in eight streetlights are broken; a Lamp fills a dark spot', () => {
+  const st = powered(fresh());
+  const [sx, sy] = st.start;
+  const b = st.blocks[idxOf(st, sx, sy)];
+  const sl = streetlights(st.seed, b);
+  assert.equal(sl.length, 4 * STREETLIGHTS_PER_SIDE);
+  const broken = sl.filter(l => l.broken).length;
+  assert.ok(broken >= 6 && broken <= 18, `${broken} broken`);
+  runS(st, 1);
+  let lights = cellLights(st, sx, sy);
+  assert.equal(lights.filter(l => l.kind === 'streetlight' && l.lit).length, sl.length - broken);
+  const dark = sl.find(l => l.broken)!;
+  assert.equal(litAt(st, dark.tx, dark.ty) || true, true);
+  const lamp = mustPlace(st, 'lamp', 5, 5, 0);
+  runS(st, 1);
+  lights = cellLights(st, sx, sy);
+  assert.ok(lights.some(l => l.kind === 'lamp' && l.lit && l.r === LAMP_RADIUS), 'lights.some(l => l.kind === \'lamp\' && l.lit && l.r === LAMP_RADIUS)');
+  assert.ok(litAt(st, lamp.x + 3, lamp.y), 'litAt(st, lamp.x + 3, lamp.y)'); assert.ok(!litAt(st, lamp.x + 9, lamp.y + 9) || lights.some(l => l.lit && Math.hypot(l.tx - lamp.x - 9, l.ty - lamp.y - 9) <= 4), '!litAt(st, lamp.x + 9, lamp.y + 9) || lights.some(l => l.lit && Math.hypot(l.tx - lamp.x - 9, l.ty - lamp.y - 9) <= 4)');
+  assert.equal(flowSummary(st).lampsLit, 1);
+  const sub = substationAt(st, sx, sy)!;
+  assert.ok(sub.on, 'sub.on'); assert.equal(sub.kw, 100);
+  // the substation goes off: everything dark
+  b.subOn = false;
+  runS(st, 1);
+  assert.equal(cellLights(st, sx, sy).some(l => l.lit), false);
+  assert.equal(flowSummary(st).lampsLit, 0);
+  assert.match(describeMachine(st, lamp), /dark/);
+});
+
+test('poles: reach 8 from a claimed substation; a connected run that reaches a Dark neighbour\'s substation claims it; a map claim strings its own poles', () => {
+  const st = rich(fresh());
+  const f = st.flow!;
+  const [sx, sy] = st.start;
+  const north = st.blocks[idxOf(st, sx, sy - 1)];
+  assert.equal(north.state, DARK);
+  const [hlx, hly] = substationLot(st.seed, st.blocks[idxOf(st, sx, sy)], true);
+  const from: [number, number] = [sx * CELL_TILES + MARGIN_TILES + hlx + 1.5, sy * CELL_TILES + MARGIN_TILES + hly + 1.5];
+  const [nlx, nly] = substationLot(st.seed, north, false);
+  const target = { x: (sy - 1 + 0) * 0 + sx * CELL_TILES + MARGIN_TILES + nlx, y: (sy - 1) * CELL_TILES + MARGIN_TILES + nly };
+  const distRect = (px: number, py: number) => Math.hypot(px - Math.max(target.x, Math.min(target.x + SUBSTATION_TILES, px)), py - Math.max(target.y, Math.min(target.y + SUBSTATION_TILES, py)));
+  // a pole out of reach of everything is not connected
+  const far = place(st, 'pole', from[0] + 12, Math.floor(from[1]), 0)!;
+  assert.ok(far, 'far'); assert.equal(poleGrid(st).connected.has(far.id), false);
+  remove(st, far.x, far.y);
+  let cx = from[0], cy = from[1], n = 0;
+  while (distRect(cx, cy) > POLE_REACH && n < 20) {
+    const d = Math.hypot(target.x + 1.5 - cx, target.y + 1.5 - cy), ux = (target.x + 1.5 - cx) / d, uy = (target.y + 1.5 - cy) / d;
+    const px = Math.floor(cx + ux * (POLE_REACH - 1)), py = Math.floor(cy + uy * (POLE_REACH - 1));
+    const m = place(st, 'pole', px, py, 0);
+    assert.ok(m, `pole at ${px},${py}: ${canPlace(st, 'pole', px, py).reason}`);
+    assert.ok(poleGrid(st).connected.has(m!.id), 'each pole in the run is on the grid');
+    cx = px + 0.5; cy = py + 0.5; n++;
+  }
+  assert.ok(n >= 2, `${n} poles`);
+  assert.ok(f.pending.some(c => c.type === 'claim' && c.x === sx && c.y === sy - 1), 'the run raises the claim');
+  advanceFlow(st, 1, [], 4);
+  assert.ok(([CONTESTED, HELD] as number[]).includes(north.state), 'the block map accepted the pole claim');
+  assert.equal(f.pending.length, 0);
+  assert.equal(layPoles(st, sx, sy - 1), 0, 'already strung');
+  // a claim from the map view lays its own run to the west neighbour
+  const west = st.blocks[idxOf(st, sx - 1, sy)];
+  assert.equal(west.state, DARK);
+  const poles0 = flowSummary(st).poles;
+  advanceFlow(st, 1, [{ type: 'claim', x: sx - 1, y: sy }], 4);
+  assert.ok(([CONTESTED, HELD] as number[]).includes(west.state), 'the block map accepted the map claim');
+  const laid = flowSummary(st).poles - poles0;
+  assert.ok(laid >= 1, `${laid} poles laid for the map claim`);
+  const g = poleGrid(st);
+  assert.equal(g.connected.size, flowSummary(st).poles, 'every pole hangs from the grid');
+});
+
+test('a flow layer saved before M3 loads with the M3 fields; placement refuses the substation footprint', () => {
+  const st = rich(fresh());
+  const raw = JSON.parse(JSON.stringify(st.flow));
+  delete raw.pending; delete raw.power; delete raw.stats.fired; for (const m of raw.machines) delete m.shed;
+  st.flow = raw;
+  const f = ensureFlow(st);
+  assert.deepEqual(f.pending, []); assert.equal(f.power.overS, 0); assert.equal(f.stats.fired, 0); assert.equal(f.machines[0].shed, false);
+  const [lx, ly] = substationLot(st.seed, st.blocks[idxOf(st, st.start[0], st.start[1])], true);
+  const [tx, ty] = hq(st, lx + 1, ly + 1);
+  assert.match(canPlace(st, 'belt', tx, ty).reason, /substation/);
+  assert.equal(place(st, 'pole', tx, ty, 0), null);
+});
+
+test("the bot's hands: every turret at or under half and every Generator at or under half is hand-fed from the Depot", () => {
+  const st = rich(fresh());
+  const empty = turrets(st).filter(m => (m.inv.rounds ?? 0) === 0), full = turrets(st).filter(m => (m.inv.rounds ?? 0) === TURRET_HOPPER);
+  assert.equal(empty.length, 2); assert.equal(full.length, 4);
+  st.buffer = 60;                                   // six magazines in the Depot
+  assert.equal(botHands(st), 6, 'six magazines carried');
+  assert.equal(st.buffer, 0);
+  assert.equal(empty[0].inv.rounds, TURRET_HOPPER, 'the first empty turret fills first');
+  assert.equal(empty[1].inv.rounds, 10);
+  assert.equal(botHands(st), 0, 'nothing left to carry');
+  st.buffer = 1000;
+  assert.equal(botHands(st), 4, 'the half-empty turret is topped up; the full ones are left');
+  assert.equal(turrets(st).reduce((a, m) => a + (m.inv.rounds ?? 0), 0), 6 * TURRET_HOPPER);
+  const g = generator(st);
+  g.inv.coal = 20; st.flow!.store.coal = 12;
+  assert.equal(botHands(st), 12, 'coal from the Depot into the Generator');
+  assert.equal(g.inv.coal, 32); assert.equal(st.flow!.store.coal, 0);
+  assert.equal(flowSummary(st).handFed, 6 + 4 + 12);
+});

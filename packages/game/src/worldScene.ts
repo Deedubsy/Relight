@@ -3,7 +3,9 @@
  *  only camera and tool state and a tile cache keyed by `cellKey`. Camera: drag or WASD/arrows to pan, wheel to zoom
  *  0.5–3×, E back to the map at the same block. Tools (M2): X Excavator, B belt, I inserter, M Shot assembler,
  *  R rotate, Q/Esc hand, C craft a magazine by hand; left click/drag places, right click removes; with the hand,
- *  holding the left button on rubble mines it, anywhere else drags the camera. */
+ *  holding the left button on rubble mines it, anywhere else drags the camera. M3: T turret, L lamp, P pole,
+ *  G Generator; a hand click on a turret or Generator feeds it from the Depot (§11's hand-feed); substations,
+ *  streetlights, light discs and pole wires are drawn from the flow layer's M3 queries. */
 import Phaser from 'phaser';
 import {
   SimState, idxOf, DARK, CONTESTED, HELD, INERT, VOID, isInterior,
@@ -11,6 +13,8 @@ import {
   cellTiles, cellKey, CellTiles, describeTile,
   Kind, Dir, DX, DY, DIR_NAMES, Machine, MACHINE_SIZE, MACHINE_COST, SHOT, EXCAVATOR_PER_S,
   machineAt, rubbleAt, canPlace, place, remove, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
+  handFeed, cellLights, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
+  SUBSTATION_TILES, POLE_REACH,
 } from '@relight/sim';
 import { Session } from './session';
 import { View } from './view';
@@ -31,10 +35,12 @@ const RUBBLE_DARK = ['#7d848f', '#7d4119', '#3a5580'];
 const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
 /** GAME-ASSUMPTION: flat item colours (steel blue, copper orange, stone grey, coal black, magazine brass) until the art pass. */
 const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a };
-const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a };
+const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a,
+  turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e };
+const LIGHT_COL = 0xffe9a0;
 
-export type Tool = 'hand' | 'excavator' | 'belt' | 'inserter' | 'assembler';
-const TOOL_KEYS: Record<string, Tool> = { x: 'excavator', b: 'belt', i: 'inserter', m: 'assembler', q: 'hand', escape: 'hand' };
+export type Tool = 'hand' | 'excavator' | 'belt' | 'inserter' | 'assembler' | 'turret' | 'lamp' | 'pole' | 'generator';
+const TOOL_KEYS: Record<string, Tool> = { x: 'excavator', b: 'belt', i: 'inserter', m: 'assembler', t: 'turret', l: 'lamp', p: 'pole', g: 'generator', q: 'hand', escape: 'hand' };
 
 export interface WorldHooks { onHoverText(text: string | null, px: number, py: number): void; onToast(msg: string, kind?: 'info' | 'bad' | 'good'): void }
 
@@ -205,9 +211,10 @@ export class WorldScene extends Phaser.Scene {
     return false;
   }
 
-  /** Top-left tile of the tool's footprint when the pointer is on (tx, ty): 3×3 machines centre on the pointer. */
+  /** Top-left tile of the tool's footprint when the pointer is on (tx, ty): 3×3 machines centre on the pointer,
+   *  2×2 ones (turret, Generator) take the pointer's tile as their top-left. */
   private footprint(kind: Kind, tx: number, ty: number): [number, number] {
-    const off = (MACHINE_SIZE[kind] - 1) / 2;
+    const off = Math.floor((MACHINE_SIZE[kind] - 1) / 2);
     return [tx - off, ty - off];
   }
 
@@ -231,12 +238,22 @@ export class WorldScene extends Phaser.Scene {
       if (!m) return;
       if (m.kind === 'depot') { this.hooks.onToast('The Depot stays', 'bad'); return; }
       const cost = MACHINE_COST[m.kind];
+      const held = m.kind === 'turret' ? `, ${m.inv.rounds ?? 0} rounds to the line buffer` : m.kind === 'generator' ? `, ${Math.floor(m.inv.coal ?? 0)} coal to the Depot` : '';
       remove(st, tx, ty);
-      this.hooks.onToast(`${m.kind} removed — ${cost.steel} steel${cost.copper ? ` + ${cost.copper} Cu` : ''} back in the Depot`);
+      this.hooks.onToast(`${m.kind} removed — ${cost.steel} steel${cost.copper ? ` + ${cost.copper} Cu` : ''} back in the Depot${held}`);
       return;
     }
     if (!p.leftButtonDown()) return;
     if (this.tool !== 'hand' && st.flow) { this.placing = true; this.tryPlace(tx, ty, true); return; }
+    if (this.tool === 'hand' && st.flow) {
+      // §11: the tester hand-feeds turrets and the Generator; a click on one moves what the Depot has
+      const fed = handFeed(st, tx, ty);
+      if (fed) {
+        if (fed.moved > 0) this.hooks.onToast(fed.kind === 'turret' ? `Hand-fed ${fed.moved} magazines into the turret` : `Hand-fed ${fed.moved} coal into the Generator`, 'good');
+        else this.hooks.onToast(fed.reason, 'bad');
+        return;
+      }
+    }
     if (st.flow && rubbleAt(st, tx, ty)) { this.mining = true; setHandMine(st, [tx, ty]); return; }
     this.dragging = true;
   }
@@ -265,6 +282,10 @@ export class WorldScene extends Phaser.Scene {
     const m = st.flow ? machineAt(st, tx, ty) : undefined;
     const lines = [describeTile(st, tx, ty), this.blockLine(bx, by)];
     if (m) lines.unshift(describeMachine(st, m));
+    else if (st.flow && isSubstationTile(st, tx, ty)) {
+      const sub = substationAt(st, bx, by);
+      if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (brownout or the block is unfed)'}`);
+    }
     this.hooks.onHoverText(lines.join('\n'), rect.left + p.x, rect.top + p.y);
   }
 
@@ -350,12 +371,23 @@ export class WorldScene extends Phaser.Scene {
     const f = this.focusBlock();
     this.hudText.setScale(1 / cam.zoom).setPosition(cam.width / 2 + (8 - cam.width / 2) / cam.zoom, cam.height / 2 + (8 - cam.height / 2) / cam.zoom);
     const toolLine = st.flow
-      ? `\nTool: ${this.tool === 'hand' ? 'hand (hold on rubble to mine it; drag to pan)' : `${this.tool} → ${DIR_NAMES[this.dir]}`}${this.ghostReason ? ` · ${this.ghostReason}` : ''}\nX Excavator · B belt · I inserter · M assembler · R rotate · Q hand · C craft a magazine · right-click removes`
+      ? `\nTool: ${this.tool === 'hand' ? 'hand (hold on rubble to mine it; click a turret or Generator to feed it; drag to pan)' : `${this.tool} → ${DIR_NAMES[this.dir]}`}${this.ghostReason ? ` · ${this.ghostReason}` : ''}\nX Excavator · B belt · I inserter · M assembler · T turret · L lamp · P pole · G Generator · R rotate · Q hand · C craft a magazine · right-click removes${this.powerLine()}`
       : '';
     this.hudText.setText(`World view · ${this.blockLine(f[0], f[1])} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles\nE map view · drag / WASD pan · wheel zoom (${ZOOM_MIN}–${ZOOM_MAX}×) · space pause · 1 2 3 speed${toolLine}`);
   }
 
   private ghostReason = '';
+
+  /** §14 power as one number: what the grid carries against what the Generators can give, the shed count and the
+   *  coal left. Drawn every frame from `flow.power` (set by the sim's power section) and the flow summary. */
+  private powerLine(): string {
+    const st = this.st, f = st.flow;
+    if (!f || !st.config.power) return '';
+    const p = f.power, fs = flowSummary(st);
+    const mw = (kw: number) => (kw / 1000).toFixed(2);
+    const state = p.supply <= 0 ? ' · NO POWER: the Generators are out of coal' : p.demand > p.supply + 1e-9 ? ` · BROWNOUT: ${fs.shedMachines} machine${fs.shedMachines === 1 ? '' : 's'} shed` : '';
+    return `\nPower ${mw(p.load)} / ${mw(p.supply)} MW (demand ${mw(p.demand)})${state} · Generators ${fs.generatorsBurning}/${fs.generators} burning, ${Math.floor(fs.genCoal)} coal · lamps ${fs.lampsLit}/${fs.lamps} lit · brownout ${Math.round(fs.brownoutS)} s`;
+  }
 
   /** The tool's footprint under the pointer, green when it can go there, red with the reason otherwise. */
   private drawGhost(g: Phaser.GameObjects.Graphics): void {
@@ -369,7 +401,9 @@ export class WorldScene extends Phaser.Scene {
     const col = c.ok ? 0x6fe08a : 0xe05a5a;
     g.fillStyle(col, 0.25); g.fillRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
     g.lineStyle(2 / this.cameras.main.zoom, col, 0.9); g.strokeRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
-    this.arrow(g, (ox + size / 2) * TILE_PX, (oy + size / 2) * TILE_PX, this.dir, size * HALF - 4, col, 0.9);
+    if (kind === 'pole') { g.lineStyle(1 / this.cameras.main.zoom, col, 0.6); g.strokeCircle((ox + 0.5) * TILE_PX, (oy + 0.5) * TILE_PX, POLE_REACH * TILE_PX); }
+    else if (kind === 'lamp') { g.lineStyle(1 / this.cameras.main.zoom, LIGHT_COL, 0.6); g.strokeCircle((ox + 0.5) * TILE_PX, (oy + 0.5) * TILE_PX, 4 * TILE_PX); }
+    else if (kind !== 'turret') this.arrow(g, (ox + size / 2) * TILE_PX, (oy + size / 2) * TILE_PX, this.dir, size * HALF - 4, col, 0.9);
   }
 
   private arrow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, dir: Dir, len: number, col: number, alpha = 1): void {
@@ -388,10 +422,79 @@ export class WorldScene extends Phaser.Scene {
     this.depotText.setVisible(false);
     if (!f) return;
     const zoom = this.cameras.main.zoom;
+    const now = performance.now(), blink = Math.floor(now / 260) % 2 === 0;
+    // M3 light pass under the machines: streetlights and Lamps as warm discs (§13's radius), then each cell's
+    // substation slab, then the pole wires
+    const lit = new Set<number>();
+    const cx0 = Math.floor(tx0 / CELL_TILES), cy0 = Math.floor(ty0 / CELL_TILES), cx1 = Math.floor(tx1 / CELL_TILES), cy1 = Math.floor(ty1 / CELL_TILES);
+    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+      for (const l of cellLights(st, cx, cy)) {
+        const lx = (l.tx + 0.5) * TILE_PX, ly = (l.ty + 0.5) * TILE_PX;
+        if (l.lit) { g.fillStyle(LIGHT_COL, 0.11); g.fillCircle(lx, ly, l.r * TILE_PX); }
+        if (l.kind === 'lamp') { if (l.lit) lit.add(l.tx * 4096 + l.ty); continue; }
+        // streetlight post: a dot, warm when lit, dark with a cross when broken (§13's 3-in-8)
+        g.fillStyle(l.broken ? 0x2a2d36 : l.lit ? 0xfff3b0 : 0x8a8f9a, 1); g.fillCircle(lx, ly, 4);
+        if (l.broken) { g.lineStyle(1.5, 0xe05a5a, 0.8); g.lineBetween(lx - 4, ly - 4, lx + 4, ly + 4); g.lineBetween(lx - 4, ly + 4, lx + 4, ly - 4); }
+      }
+      const sub = substationAt(st, cx, cy);
+      if (sub) {
+        const sx = sub.tx * TILE_PX, sy = sub.ty * TILE_PX, ss = SUBSTATION_TILES * TILE_PX;
+        g.fillStyle(0x2b2f3a, 0.95); g.fillRect(sx + 2, sy + 2, ss - 4, ss - 4);
+        g.lineStyle(2, 0x4a5060, 1); for (let k = 0; k < 3; k++) g.strokeCircle(sx + ss / 2, sy + 22 + k * 22, 9);
+        g.lineStyle(3 / zoom, sub.on ? 0xb6e36a : sub.kw === 0 ? 0x3a4060 : 0xe05a5a, sub.on ? 0.9 : 0.8); g.strokeRect(sx + 1, sy + 1, ss - 2, ss - 2);
+        if (sub.on) { g.fillStyle(0xb6e36a, 0.6 + 0.4 * Math.sin(now / 300)); g.fillCircle(sx + ss - 10, sy + 10, 4); }
+      }
+    }
+    const grid = poleGrid(st);
+    g.lineStyle(2 / zoom, 0xc9b98a, 0.8);
+    for (const w of grid.links) g.lineBetween(w.x0 * TILE_PX, w.y0 * TILE_PX, w.x1 * TILE_PX, w.y1 * TILE_PX);
     for (const m of f.machines) {
       if (m.x + m.size <= tx0 || m.x > tx1 || m.y + m.size <= ty0 || m.y > ty1) continue;
       const px = m.x * TILE_PX, py = m.y * TILE_PX, sz = m.size * TILE_PX, cx = px + sz / 2, cy = py + sz / 2;
       switch (m.kind) {
+        case 'turret': {
+          const rounds = m.inv.rounds ?? 0, frac = Math.min(1, rounds / TURRET_HOPPER);
+          g.fillStyle(MACHINE_COL.turret, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+          g.fillStyle(0x262a34, 1); g.fillCircle(cx, cy, 19);
+          // barrel along the facing; the street it covers is the nearest one (describeMachine names it)
+          const bx = cx + DX[m.dir] * 27, by = cy + DY[m.dir] * 27;
+          g.lineStyle(7, 0x9aa3b2, 1); g.lineBetween(cx, cy, bx, by);
+          if (m.timer > 0) { g.fillStyle(0xfff0a0, m.timer / TURRET_FLASH_S); g.fillCircle(bx + DX[m.dir] * 5, by + DY[m.dir] * 5, 7); }
+          // hopper bar: green → amber → red, blinking outline when empty (the same event turns the map pip red)
+          g.fillStyle(0x1a1d26, 1); g.fillRect(px + 6, py + sz - 12, sz - 12, 6);
+          g.fillStyle(frac > 0.5 ? 0x6fe08a : frac > 0 ? 0xe8a93a : 0xe05a5a, 1); g.fillRect(px + 6, py + sz - 12, (sz - 12) * frac, 6);
+          if (rounds <= 0 && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2); }
+          if (!m.busy) { g.lineStyle(1.5, 0x8a8f9a, 0.6); g.strokeRect(px + 2, py + 2, sz - 4, sz - 4); }
+          break;
+        }
+        case 'lamp': {
+          const on = lit.has(m.x * 4096 + m.y);
+          g.fillStyle(MACHINE_COL.lamp, 1); g.fillRect(cx - 3, py + 8, 6, TILE_PX - 12);
+          g.fillStyle(on ? 0xfff3b0 : 0x3a3a40, 1); g.fillCircle(cx, py + 9, 6);
+          if (on) { g.fillStyle(LIGHT_COL, 0.35); g.fillCircle(cx, py + 9, 9); }
+          break;
+        }
+        case 'pole': {
+          const on = grid.connected.has(m.id);
+          g.fillStyle(MACHINE_COL.pole, 1); g.fillRect(cx - 3, py + 6, 6, TILE_PX - 8);
+          g.fillRect(cx - 9, py + 8, 18, 3);
+          g.fillStyle(on ? 0xb6e36a : 0x8a8f9a, 1); g.fillCircle(cx - 8, py + 9, 2.5); g.fillCircle(cx + 8, py + 9, 2.5);
+          break;
+        }
+        case 'generator': {
+          const coal = m.inv.coal ?? 0;
+          g.fillStyle(MACHINE_COL.generator, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+          g.lineStyle(2, 0x3a1c1c, 1); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12);
+          // chimney with a glow while burning
+          g.fillStyle(0x2a2a30, 1); g.fillRect(px + sz - 22, py + 6, 12, 22);
+          if (m.busy) { g.fillStyle(0xff9a3a, 0.5 + 0.3 * Math.sin(now / 90)); g.fillCircle(px + sz - 16, py + 8, 7); }
+          // coal in the hopper: one square per 5 coal, and the burn progress of the current one
+          for (let k = 0; k < Math.min(10, Math.ceil(coal / 5)); k++) { g.fillStyle(ITEM_COL.coal, 1); g.fillRect(px + 10 + (k % 5) * 9, py + 12 + Math.floor(k / 5) * 9, 7, 7); }
+          g.fillStyle(0x1e1418, 1); g.fillRect(px + 10, py + sz - 16, sz - 20, 8);
+          g.fillStyle(0xff9a3a, 1); g.fillRect(px + 10, py + sz - 16, (sz - 20) * Math.min(1, m.timer), 8);
+          if (coal <= 0 && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2); }
+          break;
+        }
         case 'belt': this.drawBelt(g, m, px, py); break;
         case 'inserter': {
           g.fillStyle(0x3a3220, 1); g.fillRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
@@ -437,6 +540,8 @@ export class WorldScene extends Phaser.Scene {
           break;
         }
       }
+      // §14: a shed machine is greyed with a cross; it comes back when the supply allows
+      if (m.shed) { g.fillStyle(0x0b0e1a, 0.55); g.fillRect(px, py, sz, sz); g.lineStyle(2 / zoom, 0xe05a5a, 0.9); g.lineBetween(px + 4, py + 4, px + sz - 4, py + sz - 4); g.lineBetween(px + 4, py + sz - 4, px + sz - 4, py + 4); }
     }
   }
 

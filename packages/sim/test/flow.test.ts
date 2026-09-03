@@ -44,7 +44,7 @@ test('the HQ lot: §11 patches, a clear Depot footprint, the Depot placed by ens
   assert.equal(hqBlock.machine, true, 'the block sim starts with the Mk1');
   const prod0 = st.config.startAsmRate;
   const f = ensureFlow(st);
-  assert.equal(f.machines.length, 1); assert.equal(f.machines[0].kind, 'depot');
+  assert.equal(f.machines.length, 8, 'Depot, six turrets, one Generator (M3)'); assert.equal(f.machines[0].kind, 'depot');
   assert.equal(hqBlock.machine, false, 'the Mk1 stand-in retires when the real machines arrive');
   assert.equal(st.asmManual, 0);
   assert.ok(prod0 !== null);
@@ -87,13 +87,13 @@ test('Excavator: 0.5 units/s onto the belt it faces, one tile at a time; the ste
   assert.equal(ex2.hold, 'steel'); assert.equal(st2.flow!.stats.mined, 1);
 });
 
-test('belt: 7.5 items/s through a 14-tile run with a corner; items keep their spacing; a head-on belt does not feed', () => {
+test('belt: 7.5 items/s through a 12-tile run with a corner; items keep their spacing; a head-on belt does not feed', () => {
   const st = rich(fresh());
   const f = st.flow!;
-  // lot row 4, lx 0..8 east, then lx 9 rows 4..8 south into the Depot at (9,9)
+  // lot row 6 (row 4 has the M3 west turret), lx 0..8 east, then lx 9 rows 6..8 south into the Depot at (9,9)
   const belts: Machine[] = [];
-  for (let lx = 0; lx < 9; lx++) belts.push(mustPlace(st, 'belt', lx, 4, 1));
-  for (let ly = 4; ly < 9; ly++) belts.push(mustPlace(st, 'belt', 9, ly, 2));
+  for (let lx = 0; lx < 9; lx++) belts.push(mustPlace(st, 'belt', lx, 6, 1));
+  for (let ly = 6; ly < 9; ly++) belts.push(mustPlace(st, 'belt', 9, ly, 2));
   assert.equal(entryDir(st, belts[9]), 1, 'the corner belt takes its items from the east-running belt');
   assert.equal(entryDir(st, belts[10]), 2);
   const feed = () => { while (giveItem(st, belts[0], 'stone', 0)) { /* saturate the head */ } };
@@ -107,7 +107,7 @@ test('belt: 7.5 items/s through a 14-tile run with a corner; items keep their sp
   assert.ok(Math.abs(perS - BELT_PER_S) <= 0.05, `belt delivers ${perS}/s, doc ${BELT_PER_S}/s`);
   // a belt pointing back at the run's end does not take its items
   const st2 = rich(fresh());
-  const a = mustPlace(st2, 'belt', 0, 4, 1), b = mustPlace(st2, 'belt', 1, 4, 3);
+  const a = mustPlace(st2, 'belt', 0, 6, 1), b = mustPlace(st2, 'belt', 1, 6, 3);
   giveItem(st2, a, 'stone', 0);
   run(st2, 5);
   assert.equal(a.items.length, 1); assert.equal(b.items.length, 0);
