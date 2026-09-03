@@ -8,7 +8,7 @@ import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } fro
 
 /** `state` names a snapshot: a bare name resolves to /snapshots/<name>.json (shipped with the proto), a path or URL
  *  is fetched as is. A snapshot is a raw SimState, or a telemetry export (whose `finalState` is taken). */
-export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | null; player: string; state: string | null }
+export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | null; player: string; state: string | null; view: 'map' | 'world' }
 
 export function parseUrl(search: string): UrlParams {
   const q = new URLSearchParams(search);
@@ -21,6 +21,7 @@ export function parseUrl(search: string): UrlParams {
     autoplay: auto && (POLICIES as string[]).includes(auto) ? (auto as Policy) : null,
     player: q.get('player') ?? '',
     state: q.get('state') || null,
+    view: q.get('view') === 'world' ? 'world' : 'map',
   };
 }
 

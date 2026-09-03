@@ -1,10 +1,11 @@
-/** The one screen: a 24×24 grid of city blocks drawn from sim state every frame. Flat colour only. */
+/** The map view: a 24×24 grid of city blocks drawn from sim state every frame. Flat colour only. The sim is stepped
+ *  by main.ts once per game step; this scene draws, consumes events for its pulses, and hands E the hovered block. */
 import Phaser from 'phaser';
 import {
   SimState, SimEvent, DARK, CONTESTED, HELD, INERT, VOID, idxOf, inBounds, isSolid, isCandidate, rotOf, rotTier,
   frontList, FrontEdgeView, claimInfo, heldInfo, HeldInfo, nearestHeld, facilityList, survivorList, isInterior, poolMax,
 } from '@relight/sim';
-import { Session, frame, queue } from './session';
+import { Session, queue } from './session';
 
 export const CELL = 24;
 export const PAD = 36;
@@ -30,12 +31,11 @@ interface PoleLine { x0: number; y0: number; x1: number; y1: number }
 export interface SceneHooks {
   onHover(info: ReturnType<typeof claimInfo> | HeldInfo | null, px: number, py: number): void;
   onPipSelect(edge: FrontEdgeView | null): void;
-  onEvents(events: SimEvent[]): void;
 }
 
 export class MapScene extends Phaser.Scene {
-  private session!: Session;
-  private hooks!: SceneHooks;
+  private readonly session: Session;
+  private readonly hooks: SceneHooks;
   private gCells!: Phaser.GameObjects.Graphics;
   private gEdges!: Phaser.GameObjects.Graphics;
   private gFx!: Phaser.GameObjects.Graphics;
@@ -51,10 +51,11 @@ export class MapScene extends Phaser.Scene {
   private facilityLabelsFor = '';
   private survivorLabels: Phaser.GameObjects.Text[] = [];
   private survivorLabelsFor = '';
+  private focusMark: { x: number; y: number; born: number } | null = null;
 
-  constructor() { super('map'); }
-
-  init(data: { session: Session; hooks: SceneHooks }): void { this.session = data.session; this.hooks = data.hooks; }
+  // The session comes in through the constructor, not Phaser's init(data): a scene added asleep (?view=world) is never
+  // initialised, yet the sim driver hands it every event, and the first one used to crash the render loop.
+  constructor(session: Session, hooks: SceneHooks) { super('map'); this.session = session; this.hooks = hooks; }
 
   create(): void {
     this.cameras.main.setBackgroundColor(C.bg);
@@ -137,15 +138,15 @@ export class MapScene extends Phaser.Scene {
 
   selectEdge(id: number | null): void { this.selectedEdge = id; }
 
-  update(time: number, delta: number): void {
-    const dt = Math.min(0.1, delta / 1000);
-    const events = frame(this.session, dt);
-    if (events.length) this.consume(events, time);
-    this.hooks.onEvents(events);
-    this.draw(time);
-  }
+  /** The block under the cursor, for E: the world camera opens on it. */
+  hoverBlock(): [number, number] | null { return this.hover ? [this.hover.x, this.hover.y] : null; }
 
-  private consume(events: SimEvent[], now: number): void {
+  /** Mark the block the world view was centred on when E brought the map back. */
+  markFocus(b: [number, number], now: number): void { this.focusMark = { x: b[0], y: b[1], born: now }; }
+
+  update(time: number): void { this.draw(time); }
+
+  consume(events: SimEvent[], now: number): void {
     const st = this.session.state;
     for (const ev of events) {
       if (ev.type === 'bloom') {
@@ -274,6 +275,20 @@ export class MapScene extends Phaser.Scene {
         const ok = isCandidate(st, idxOf(st, this.hover.x, this.hover.y));
         g.lineStyle(2, ok ? C.hover : C.bad, ok ? 0.95 : 0.6);
         g.strokeRect(px + 1, py + 1, CELL - 2, CELL - 2);
+      }
+    }
+
+    // the block the world view was looking at, for 2.5 s after E: corner brackets that fade
+    if (this.focusMark) {
+      const k = (now - this.focusMark.born) / 2500;
+      if (k >= 1) this.focusMark = null;
+      else {
+        const px = PAD + this.focusMark.x * CELL, py = PAD + this.focusMark.y * CELL, L = 7;
+        g.lineStyle(2, C.white, 1 - k);
+        g.lineBetween(px, py, px + L, py); g.lineBetween(px, py, px, py + L);
+        g.lineBetween(px + CELL, py, px + CELL - L, py); g.lineBetween(px + CELL, py, px + CELL, py + L);
+        g.lineBetween(px, py + CELL, px + L, py + CELL); g.lineBetween(px, py + CELL, px, py + CELL - L);
+        g.lineBetween(px + CELL, py + CELL, px + CELL - L, py + CELL); g.lineBetween(px + CELL, py + CELL, px + CELL, py + CELL - L);
       }
     }
 

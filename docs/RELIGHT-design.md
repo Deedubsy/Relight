@@ -26,11 +26,11 @@ The fantasy is civic, not military. Turrets are plumbing. The thing you are prou
 
 ## 4. Top-down presentation
 
-**Grid.** 32 px tiles, orthographic, no elevation. The city is a grid of **block cells**, each 32×32 tiles: a 24×24-tile buildable lot with a 4-tile street margin on every side, so two adjacent cells share an 8-tile-wide street. A standard city is 24×24 cells (768×768 tiles) with the river along the bottom row, so 23 rows are claimable (D-P1-1): the sim's canonical map **[sim: E8-cadence]**. The §18 map-view drawings are generated from the sim by `npm run docsync` (compact bot, seed 3, the locked cadence) and CI fails if they drift. Roughly 8–10 % of cells are **inert**: river, embankment, collapsed overpass. Inert cells cannot be built on and cannot hold rot.
+**Grid.** 32 px tiles, orthographic, no elevation. The city is a grid of **block cells**, each 32×32 tiles: a 24×24-tile buildable lot with a 4-tile street margin on every side, so two adjacent cells share an 8-tile-wide street **[sim: M1-tiles]**. A standard city is 24×24 cells (768×768 tiles) with the river along the bottom row, so 23 rows are claimable (D-P1-1): the sim's canonical map **[sim: E8-cadence]**. The §18 map-view drawings are generated from the sim by `npm run docsync` (compact bot, seed 3, the locked cadence) and CI fails if they drift. Roughly 8–10 % of cells are **inert**: river, embankment, collapsed overpass. Inert cells cannot be built on and cannot hold rot.
 
 **Two renderers, one data model.**
-- *World view* (zoom 1.0× down to 0.2×): sprites on the tile grid. Machines are 1×1 to 8×8 tile sprites with a single idle/active animation each. Rubble is one tileset per rubble type with five density variants. Rot is a tinted overlay tileset with five density levels (0.05 steps of visible mottling) so "how bad is this block" is readable without a tooltip.
-- *Map view* (below 0.2× or on hotkey): each block cell is a 24 px square. This is where the front is played from mid-game on. It is not a minimap; you can place claims, poles and blueprints from it.
+- *World view* (zoom 3× down to 0.5×, the slice's range, D-P4-1; E toggles to the map view at the same block): sprites on the tile grid. Machines are 1×1 to 8×8 tile sprites with a single idle/active animation each. Rubble is one tileset per rubble type with five density variants; a block's 250–350 rubble tiles are laid in three clusters, densest at the centres and denser on deeper blocks, and dig out thinnest-first as the block's pool drains **[sim: M1-tiles]**. Rot is a tinted overlay tileset with five density levels (0.05 steps of visible mottling) so "how bad is this block" is readable without a tooltip.
+- *Map view* (E, at the same block): each block cell is a 24 px square. This is where the front is played from mid-game on. It is not a minimap; you can place claims, poles and blueprints from it.
 
 **Lighting.** A low-resolution light map (one texel per tile) multiplied over the world layer. Lit tiles are full colour; unlit tiles are desaturated and darkened to ~25 %. No shadow casting. This one overlay carries the whole "lights coming on" payoff and the Shade rule (section 7) and is the only lighting tech in the game.
 
@@ -281,7 +281,7 @@ Twenty-six placeable things. A Factorio player recognises twenty of them on sigh
 
 ## 14. Logistics
 
-**Belts.** Standard two-lane belts, 8/s and 16/s, inserters at 1/s, splitters with priority, undergrounds of span 4. Belts run on lots and on streets; streets are 8 wide, which is room for two belts, a track and a lamp line.
+**Belts.** Standard two-lane belts, 8/s and 16/s, inserters at 1/s, splitters with priority, undergrounds of span 4. Belts run on lots and on streets; streets are 8 wide **[sim: M1-tiles]**, which is room for two belts, a track and a lamp line.
 
 **Power.** Poles link substations; each substation powers its whole block cell (lot and its four half-streets) so you never pole individual machines inside a held block. Grid is one pool; brownout sheds machines first (an assembler line is 220 kW **[sim: E2-demand]** and stopping it loses output, not blocks), then substations most-dark-neighbours first, so the front dims before the interior does; substation-first shedding cost 0–2 blocks in a 15 % shortfall and 6 in a 25 % one, where machines-first cost none **[sim: E2-matrix]**. Brownout shedding order: Shot and recipe Assemblers first, then other machines, Excavators feeding Generators last, substations only after all machines; substations then in most-dark-neighbours order.
 
@@ -333,7 +333,7 @@ Legend: `H` held, `I` interior, `C` contested, `.` dark, `~` river / inert, `Q` 
 
 The three map-view drawings are generated from the sim by `npm run docsync` — the compact bot on seed 3 at the locked cadence (C2, D-P3-6: one claim per 15 min in hour one, then one per 5 min), no ammo line, the E8-cadence run — and CI fails if the doc's copy drifts from what the sim draws. They replace the hand-drawn 24×22 sketches (redrawn in Phase 3 after Gate A).
 
-**10 minutes, world view of the HQ lot (north half, 24 tiles wide; a hand sketch at tile scale, Phase 4 M1 redraws it from the world view).** Front = 3. Rot mottling on the far side of every street.
+**10 minutes, world view of the HQ lot (north half, 24 tiles wide; a hand sketch at tile scale; Phase 4 M3 redraws it from the world view, once the turrets and belts it draws exist).** Front = 3. Rot mottling on the far side of every street.
 
 ```
  north street (residential, d 0.22, awake, ring 40 % full)
@@ -729,3 +729,5 @@ Each edit as `§N — what changed — why — run name`. Run names before Phase
 - §25 item 1 — the Python sim is retired; the TS sim is the front simulation — Phase 3 first commit
 - §25 item 10 — closed: cadence locked at 15 min in hour one, then 5 (C2, D-P3-6); §18 generated at it — Gate A — E8-cadence, [play: Gate A]
 - §27 — score stays 7; Gate A passed without tester sessions, so the shape evidence is still outstanding — Gate A
+- §4, §14 — cell geometry built at tile scale (32×32 cell, 24×24 lot, shared 8-tile street, 768×768 city with the river row) and 250–350 rubble tiles per block in five density variants, clustered, denser on deeper blocks, dug thinnest-first from the block's pool; the world view zooms 0.5–3× with E to the map view at the same block (the doc said 1.0–0.2×, D-P4-1) — Phase 4 M1 — M1-tiles
+- §18 — the 10-minute lot sketch waits for Phase 4 M3: it draws turrets and belts, which M1 does not have — Phase 4 M1

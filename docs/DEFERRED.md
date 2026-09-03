@@ -62,3 +62,18 @@ Gate A was passed by the owner without tester sessions (`TEST_RESULTS.md` §1). 
 - **Gate A tester sessions.** Not run. → **human, any time**; recommended in parallel with **Phase 4 M1** (D-P3-9). If they contradict a `[play: Gate A]` lock, the lock moves and the tag becomes the session name.
 - **Facility pull in the bots.** The compact bot scores a claim by front added and reaches the Foundry at hour 14 on seed 3; a player pulled by the skyline goes north at hour one (§11). The §18 drawings show the front rule alone. → **Phase 4 M1–M4** playtests show what a human does; a "toward the nearest visible facility" bot term is a harness question for **Phase 5** (E11–E13 need steel from the Foundry side). Tempting now because the strip-vs-blob difference is the §18 finding of this phase.
 - **Steel income outside industrial blocks** (D-P2-3 option b). D-P2-3 made as intended → stays **Phase 5 E11/E13**, only if a Phase 4 tester calls the wall a bug.
+
+## Re-read at Phase 4 M1 (2026-09-03, on the `Go` that opened Phase 4)
+
+Phase 4 M1 built the ground only (tiles, rubble, river, camera, E toggle); the excavator and every machine moved to M2 by the constitution's milestone text, so items that said "M1 (excavator on a lot)" now say M2. Every item above keeps its phase unless listed here. Nothing deleted.
+
+- **Machines on a lot / Excavator as a machine.** → **Phase 4 M2** (Excavator 3×3 at 0.5/s, belts, inserters, Depot, Mk1 Shot assembler, hand-mining). M1 has no machine; the HQ is a 6×6-tile slab placeholder at the lot centre.
+- **Slot count (C3) / lot footprint.** → **Phase 4 M2** measures what fits on a 24×24 lot once machines land; **Phase 5** sets the budget (D-P3-10 made as locked).
+- ~~**10-minute world-view lot sketch (§18).**~~ **Re-routed to Phase 4 M3**: the sketch draws turrets, belts and a ring, none of which M1 has; the §18 caption says so. The block-map drawings stay generated.
+- **Gate A tester sessions.** D-P3-9 made: in parallel with Phase 4, the human's to run. Nothing in M1 reads a `[play: Gate A]` lock.
+- **Fixed 20 ticks/s tile tick.** M1 steps the 1 s block sim by real delta × speed from the render loop, capped at 0.1 s a frame. → **Phase 4 M2** introduces the tile tick and derives the 1 s block tick from it, as the constitution's M2 line says.
+- **Units per rubble tile (§12 300/tile vs the sim's 3,840 pool).** M1 draws the doc's tile count and lets the block's pool set how many stand. → **Phase 5** rubble model (E11/E13), D-P4-2.
+- **Deposits as placed facilities.** M1's outskirts deposit patches are a hash placeholder. → **Phase 9** generator, D-P4-3.
+- **Rot on tiles (mottle overlay) and the light map.** M1 shows block state as a flat lot overlay (navy / amber flicker / outline). → **Phase 4 M4** (rot at tile level) and **M5** (light map), as before.
+- **Tileset art.** M1's tiles are flat-colour canvas frames drawn in code. → **Phase 12**, as before; the frame layout (street, ground, inert, river, 3 × 5 rubble, 2 × 5 deposit) is the art brief.
+- **Camera in the map view.** The map view still has no pan or zoom (a 24 px grid fits the canvas). → **Phase 9** if the generator makes cities larger than 24×24; otherwise never.

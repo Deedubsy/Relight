@@ -1,7 +1,7 @@
 /** Scenario B snapshot (PROTOTYPE_TEST_PLAN.md): the compact bot, building, on the proto's config, run to 3 h and
  *  written as a raw SimState the proto loads with ?state=<name>. Deterministic: --check regenerates and diffs.
  *
- *    npm run snapshot                       writes packages/proto/public/snapshots/b-compact-seed3.json
+ *    npm run snapshot                       writes packages/game/public/snapshots/b-compact-seed3.json
  *    npm run snapshot -- --check            exits 1 if the committed file differs from a fresh run
  *    npm run snapshot -- --bot spike --seed 4 --hours 2 --out path.json */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -16,7 +16,7 @@ const SEED = Number(flag('--seed', '3'));
 const HOURS = Number(flag('--hours', '3'));
 const CHECK = argv.includes('--check');
 const here = dirname(fileURLToPath(import.meta.url));
-const OUT = argv.includes('--out') ? resolve(process.env.INIT_CWD ?? process.cwd(), flag('--out', '')) : resolve(here, `../../proto/public/snapshots/b-${BOT}-seed${SEED}.json`);
+const OUT = argv.includes('--out') ? resolve(process.env.INIT_CWD ?? process.cwd(), flag('--out', '')) : resolve(here, `../../game/public/snapshots/b-${BOT}-seed${SEED}.json`);
 
 const config = protoCalibrated({ ...DEFAULT_CONFIG, scatter: true, economy: true });
 const st = createState(generateMap(SEED, config), config, SEED);

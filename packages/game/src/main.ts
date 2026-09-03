@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { SimEvent } from '@relight/sim';
-import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, Session } from './session';
+import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session } from './session';
 import { MapScene, SceneHooks, MAP_W, MAP_H } from './mapScene';
+import { WorldScene } from './worldScene';
+import { View } from './view';
 import { createPanel } from './panel';
 import { exportJson, summarise } from './telemetry';
 
@@ -14,10 +16,13 @@ try {
   loadError = (e as Error).message;
   session = createSession({ ...params, state: null });
 }
-let scene: MapScene | null = null;
+/** Both views share one block: the map hands the block under the cursor to the world camera, the world hands the
+ *  block under its camera centre back to the map (constitution Phase 4 M1: "E toggles map ↔ world at the same block"). */
+const view: View = { mode: params.view, focus: [session.state.start[0], session.state.start[1]], switchedAt: 0 };
 
 const panel = createPanel(session, document.getElementById('panel')!, {
-  onSelectEdge(id) { scene?.selectEdge(id); },
+  onSelectEdge(id) { mapScene.selectEdge(id); },
+  onToggleView() { toggleView(); },
 });
 if (loadError) panel.toast(`Could not load the snapshot (${loadError}); started a fresh seed ${session.state.seed} instead`, 'bad');
 else if (session.scenario === 'B') panel.toast(`Snapshot loaded at ${session.telemetry.meta.startT / 3600 | 0}:${String(Math.floor(session.telemetry.meta.startT / 60) % 60).padStart(2, '0')} — paused. Press space or a speed to begin.`, 'good');
@@ -50,13 +55,43 @@ const game = new Phaser.Game({
   render: { antialias: true, pixelArt: false },
   scene: [],
 });
-scene = new MapScene();
 const hooks: SceneHooks = {
   onHover: (info, px, py) => panel.tooltip(info, px, py),
   onPipSelect: e => panel.setSelectedEdge(e),
-  onEvents: events => { describe(events); panel.update(performance.now()); },
 };
-game.scene.add('map', scene, true, { session, hooks });
+const mapScene = new MapScene(session, hooks);
+const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py) });
+game.scene.add('map', mapScene, view.mode === 'map');
+game.scene.add('world', worldScene, view.mode === 'world');
+if (view.mode === 'world') worldScene.centreOn(view.focus[0], view.focus[1]);
+panel.setView(view.mode);
+
+// The sim runs once per game step whichever view is up; the map view consumes the events for its pulses.
+game.events.on(Phaser.Core.Events.STEP, (time: number, delta: number) => {
+  const events = frame(session, Math.min(0.1, delta / 1000));
+  if (events.length) { mapScene.consume(events, time); describe(events); }
+  panel.update(performance.now());
+});
+
+function toggleView(): void {
+  if (view.mode === 'map') {
+    view.focus = mapScene.hoverBlock() ?? view.focus;
+    view.mode = 'world';
+    panel.tooltip(null, 0, 0);
+    game.scene.sleep('map');
+    game.scene.run('world');
+    worldScene.centreOn(view.focus[0], view.focus[1]);
+  } else {
+    view.focus = worldScene.focusBlock();
+    view.mode = 'map';
+    panel.tooltipText(null, 0, 0);
+    game.scene.sleep('world');
+    game.scene.run('map');
+    mapScene.markFocus(view.focus, performance.now());
+  }
+  view.switchedAt = session.state.t;
+  panel.setView(view.mode);
+}
 
 window.addEventListener('keydown', ev => {
   if ((ev.target as HTMLElement)?.tagName === 'INPUT') return;
@@ -64,14 +99,21 @@ window.addEventListener('keydown', ev => {
   else if (ev.key === '1') setSpeed(session, 1);
   else if (ev.key === '2') setSpeed(session, 4);
   else if (ev.key === '3') setSpeed(session, 16);
+  else if (ev.key === 'e' || ev.key === 'E') toggleView();
 });
 
 // dev/test hooks (not player controls)
+let frames = 0, frameMs: number[] = [];
+game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { frames++; if (frameMs.length < 100000) frameMs.push(delta); });
 (window as unknown as { __relight: unknown }).__relight = {
-  session,
+  session, view,
   run: (ticks: number) => { runTicks(session, ticks); panel.update(performance.now()); return summarise(session.telemetry, session.state); },
   summary: () => summarise(session.telemetry, session.state),
   exportJson: () => exportJson(session.telemetry, session.state),
   stateJson: () => JSON.stringify(session.state),
   configHash: session.telemetry.meta.configHash,
+  toggleView,
+  world: { get zoom() { return worldScene.zoom; }, setZoom: (z: number) => worldScene.setZoom(z), centreOn: (x: number, y: number) => worldScene.centreOn(x, y), focus: () => worldScene.focusBlock(), get drawn() { return worldScene.drawn; } },
+  /** Render-loop sample since the last call: frames, mean and worst frame time (ms), frames over 50 ms. */
+  fps: () => { const n = frameMs.length, mean = frameMs.reduce((a, b) => a + b, 0) / Math.max(1, n), worst = Math.max(0, ...frameMs), slow = frameMs.filter(d => d > 50).length; const r = { frames, sampled: n, meanMs: +mean.toFixed(2), worstMs: +worst.toFixed(1), over50ms: slow, fps: +(1000 / mean).toFixed(1) }; frames = 0; frameMs = []; return r; },
 };

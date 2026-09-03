@@ -8,3 +8,4 @@ export * from './firsthour';
 export * from './sim';
 export * from './bots';
 export * from './queries';
+export * from './tiles';

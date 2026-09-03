@@ -7,18 +7,18 @@
     "packages/sim",
     "packages/harness",
     "packages/tools",
-    "packages/proto"
+    "packages/game"
   ],
   "scripts": {
     "test": "npm test -w packages/sim",
-    "typecheck": "npm run build -w packages/sim && npm run build -w packages/harness && npm run build -w packages/tools && npm run build -w packages/proto",
+    "typecheck": "npm run build -w packages/sim && npm run build -w packages/harness && npm run build -w packages/tools && npm run build -w packages/game",
     "lint": "eslint packages/sim/src packages/harness/src packages/tools/src",
     "experiments": "npm run experiments -w packages/harness --",
     "nightly": "npm run nightly -w packages/harness --",
     "docsync": "tsx packages/tools/src/docsync.ts",
     "docsync:check": "tsx packages/tools/src/docsync.ts --check",
-    "build": "npm run typecheck && npm run build -w packages/proto",
-    "dev": "npm run dev -w packages/proto",
+    "build": "npm run typecheck && npm run build -w packages/game",
+    "dev": "npm run dev -w packages/game",
     "calibrate": "npm run calibrate -w packages/harness --",
     "snapshot": "npm run snapshot -w packages/harness --",
     "snapshot:check": "npm run snapshot -w packages/harness -- --check"

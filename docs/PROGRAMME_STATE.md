@@ -2,7 +2,7 @@
 
 Living file. One entry per phase, newest first; the current phase is the top one. Rules are in the programme constitution (the prompt that started Phase 0); the spec is `RELIGHT-design.md`; the sim is the judge.
 
-**Current phase: 3 (built 2026-09-03; `PHASE_3_REPORT.md`; three decisions open for the human, D-P3-9/10/11). Next: Phase 4 — the vertical slice, M1 first (world view, excavator on a lot), after a `go` on this report.** PR #1 (`phase-1` → `main`) and PR #2 (`phase-2` → `phase-1`) are open, unmerged; Phase 3 is PR #3 (`phase-3` → `phase-2`). Phase 1's human five-minute smoke test is still the user's.
+**Current phase: 4 — the vertical slice (§11 minutes 0–60 → Gate B), in progress since 2026-09-03 on the `Go` that answered `PHASE_3_REPORT.md`. M1 Ground built (`SLICE_REPORT.md`); next M2 Flow.** D-P3-9/10/11 were made by their recommendations on that `Go` (sessions in parallel, C3/C4 as locked, C8 lock accepted). PR #1 (`phase-1` → `main`), PR #2 (`phase-2` → `phase-1`) and PR #3 (`phase-3` → `phase-2`) are open, unmerged; Phase 4 is PR #4 (`phase-4` → `phase-3`). Phase 1's human five-minute smoke test and the Gate A sessions are still the user's.
 
 Gates passed: **Gate A, 2026-09-03, `verdict: go` by the owner on the bot calibration and the smoke test, with no tester sessions** (`TEST_RESULTS.md` §1). Every constant locked on it is tagged `[play: Gate A]`, a lock rather than a measurement; the sessions can still run (D-P3-9).
 
@@ -10,7 +10,46 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 - ~~`/mnt/e/Factorio2` is not a git repository and has no CI.~~ Done in Phase 1: `github.com/Deedubsy/Relight` (private), branch `phase-1` → PR #1 to `main` (CI green), `.github/workflows/ci.yml` and `nightly.yml`; `main` protection is refused on a free-plan private repo (D-CI, human choice). **Decided (D-CI, 2026-09-03):** GitHub private repo, GitHub Actions, npm workspaces; push CI = lint + `tsc --strict` + fixtures + E1–E9 at three seeds; nightly = 10,000-seed and 25 h runs to `docs/experiments/`; Python sim stays as fixture exporter for one phase, then retired (**done in Phase 3**, D-P3-8). Linear for tasks. Phase 1's first task is to set this up.
 - Reports live at the repo root, not in `docs/`. Left where they are (Phase 0 changes nothing else); Phase 1 may move them under `docs/` and leave root stubs.
-- `packages/harness` and `packages/tools` exist since Phase 1; `packages/game`, `apps/steam` do not. `packages/proto` is the Phase 2 artefact (not in the constitution's layout; it becomes the game's map view in Phase 4).
+- `packages/harness` and `packages/tools` exist since Phase 1. `packages/proto` (the Phase 2 map view) was renamed `packages/game` in Phase 4 M1 and holds both views; `apps/steam` does not exist yet (Phase 14).
+
+## Phase 4 — vertical slice (in progress, opened 2026-09-03)
+
+**Status: M1 Ground built; M2–M6 not started.** Branch `phase-4` on `phase-3`, PR #4. `packages/proto` → `packages/game` (`@relight/game`); the map view is untouched and its snapshot still verifies (`snapshot:check`, hash `ee23bb1c`). Canonical config unchanged (`01dc5d02`). Checks green locally (typecheck, `npm test` incl. six tile tests, lint, E1–E9 45/45, docsync, `snapshot:check`); PR #4's CI run is the proof. Report: `SLICE_REPORT.md` (per milestone; the §19 first-hour test sits at its top, empty until M6; Gate B is a human's `verdict: proceed` in it).
+
+### 4.1 M1 Ground — what changed
+
+- **`packages/sim/src/tiles.ts`** — the tile layer as a pure derivation of the block map: 32×32-tile cells, 24×24 lots, 4-tile margins (shared 8-wide streets), 768×768 city, row 23 river under a 4-tile embankment street; rubble 250–350 tiles per block typed by district (stone / copper / steel) in five density variants, laid in three clusters and denser on deeper blocks; outskirts carry a 160-tile iron or coal deposit patch on a quarter of blocks or nothing; standing rubble = tiles × pool ÷ pool max, dug thinnest-first; `cellKey` (state + rubble left) is what a renderer caches on; `describeTile` for tooltips. Six tests (`M1-tiles`): geometry, river and inert, counts and types, gradient, authority of block state, determinism and cost.
+- **`packages/game/src/worldScene.ts`** — Phaser world view: a Blitter over a code-drawn 29-frame canvas tileset, per-cell cache keyed by `cellKey`, block-state overlay (Dark navy, Contested amber flicker, Held outline white interior / amber front), cell labels, HUD, drag / WASD pan, wheel zoom 0.5–3× about the pointer, tile tooltip, HQ slab. `view.ts` holds the mode and focus block; `main.ts` runs both scenes, steps the sim from the game's `STEP` event in either view, and **E** switches map ↔ world at the same block (map → world takes the hovered block; world → map takes the block under the camera centre and marks it for 2.5 s). `?view=world` opens in the world view. `window.__relight` gains `view`, `toggleView`, `world.{zoom,setZoom,centreOn,focus,drawn}`, `fps()`.
+- **Bug found by the M1 soak, fixed:** `MapScene` took its session from Phaser's `init(data)`, which never runs for a scene added asleep (`?view=world`), so the first sim event (0:02:47 on seed 3) threw inside the game's `STEP` handler and killed the render loop. The session now comes in through the constructor, as the world scene's does; the soak was re-run after the fix.
+- Doc: §4 world/map view lines edited to the built range and toggle (D-P4-1), §4/§14 geometry and rubble tagged `[sim: M1-tiles]`, §18 lot sketch re-routed to M3; two changelog lines.
+- Constitution vs doc, reported not resolved: zoom 0.5–3× vs 1.0–0.2× (D-P4-1); §12 300 units per rubble tile vs the sim's 3,840 pool (D-P4-2); outskirts deposits by hash vs placed facilities (D-P4-3).
+
+### 4.2 Untagged recount at M1
+
+41 → **40**: §14.1 (street 8 wide, lot 24×24) carries `[sim: M1-tiles]`. §12.1's tile count (250–350) is now what the world draws, but its units per tile are not, so 12.1 stays untagged until Phase 5. 28 tile-scale + 12 design inputs.
+
+| § | Phase 3 | Now untagged | Tagged in M1 |
+|---|---|---|---|
+| §5 | 12 | 12 | — |
+| §7 | 3 | 3 | — |
+| §12 | 7 | 7 | — (12.1 half: the tile count) |
+| §13 | 16 | 16 | — (13.1 Excavator is M2) |
+| §14 | 4 | 3 | 14.1 (`[sim: M1-tiles]`) |
+| §15 | 1 | 1 | — |
+
+### 4.3 §26 recount at M1
+
+Three systems: the front, found tech, automated combat. M1 added a renderer and a derived data layer, no system, no mechanic the player holds in their head (the tiles are where the existing front rule is drawn). Complexity **5/10**, unchanged. §27 stays at 7.
+
+### 4.4 Milestone status
+
+- M1 Ground: **built** (this entry). M2 Flow, M3 Defence, M4 Threat, M5 Light, M6 The hour: not started.
+- "A 1 h sim at 4× must not drop the render loop": see `SLICE_REPORT.md` M1 measured (30 s samples at 4× and 16× at 60 fps with no frame over 50 ms; the full-hour soak is recorded there).
+- "Map-view fixtures still pass": `snapshot:check` green; `npm test` green.
+- `DEFERRED.md` re-read at M1: every item has a phase; excavator and footprint items moved M1 → M2; lot sketch → M3.
+- Three decisions for the human: **open** — D-P4-1 zoom range, D-P4-2 units per rubble tile, D-P4-3 deposits.
+
+---
 
 ## Phase 3 — absorb Gate A (2026-09-03)
 

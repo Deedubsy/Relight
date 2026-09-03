@@ -3,12 +3,15 @@ import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityL
 import { Session, setSpeed, queue, shareUrl } from './session';
 import { summarise, exportJson } from './telemetry';
 
-export interface PanelHooks { onSelectEdge(id: number | null): void }
+export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void }
 
 export interface Panel {
   update(nowMs: number): void;
   setSelectedEdge(e: FrontEdgeView | null): void;
   tooltip(info: ClaimInfo | HeldInfo | null, px: number, py: number): void;
+  /** Plain lines (\n-separated) at a screen point; null hides. The world view's tile tooltip. */
+  tooltipText(text: string | null, px: number, py: number): void;
+  setView(mode: 'map' | 'world'): void;
   toast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
 }
 
@@ -32,7 +35,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   // header
   const header = el('section');
   const head = el('header');
-  head.append(el('h1', undefined, `Relight · map view · seed ${st.seed}`));
+  const h1 = el('h1', undefined, `Relight · map view · seed ${st.seed}`);
+  head.append(h1);
   if (session.scenario === 'B') head.append(el('span', 'badge', `Scenario B · from ${clockOf(session.startT)}`));
   const btnLink = el('button', undefined, 'Copy link');
   btnLink.title = 'Share this seed and settings';
@@ -40,7 +44,10 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const url = shareUrl(session.params);
     navigator.clipboard?.writeText(url).then(() => toast('Link copied', 'good'), () => window.prompt('Copy this link', url));
   };
-  head.append(btnLink);
+  const btnView = el('button', undefined, 'World view (E)');
+  btnView.title = 'Toggle map ↔ world view at the same block (E)';
+  btnView.onclick = () => hooks.onToggleView();
+  head.append(btnView, btnLink);
   header.append(head);
   header.append(el('p', 'hint', 'Click a Dark block next to your territory to claim it. Every Held block facing Dark is an ammo edge; each edge pulls magazines from the ring in the order below. Substations that go 40 crawlers unfed fall. Only interior blocks (white outline) have a free machine slot for an assembler; the HQ holds the Mk1. A block\'s rubble is finite: the strip at its top fades as it is dug out.'));
   root.append(header);
@@ -57,7 +64,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const speedRow = el('div', 'row');
   const speeds: [number, string][] = [[0, 'Pause'], [1, '1×'], [4, '4×'], [16, '16×']];
   const speedBtns = speeds.map(([m, label]) => { const b = el('button', undefined, label); b.onclick = () => setSpeed(session, m); speedRow.append(b); return { m, b }; });
-  speedRow.append(el('span', 'hint', 'keys: space, 1, 2, 3'));
+  speedRow.append(el('span', 'hint', 'keys: space, 1, 2, 3 · E world view'));
   hudSec.append(speedRow);
   root.append(hudSec);
 
@@ -234,6 +241,19 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     dEncl.textContent = sum.firstEnclosure;
   }
 
+  function tooltipText(text: string | null, px: number, py: number): void {
+    if (!text) { tip.hidden = true; return; }
+    tip.innerHTML = '';
+    text.split('\n').forEach((line, i) => tip.append(el('div', i ? 'muted' : undefined, line)));
+    tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = `${Math.min(px + 14, window.innerWidth - w - 8)}px`; tip.style.top = `${Math.min(py + 14, window.innerHeight - h - 8)}px`;
+  }
+  function setView(mode: 'map' | 'world'): void {
+    h1.textContent = `Relight · ${mode} view · seed ${st.seed}`;
+    btnView.textContent = mode === 'map' ? 'World view (E)' : 'Map view (E)';
+  }
+
   function tooltip(info: ClaimInfo | HeldInfo | null, px: number, py: number): void {
     if (!info) { tip.hidden = true; return; }
     if ('held' in info) {
@@ -261,7 +281,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   }
 
   return {
-    update, tooltip, toast,
+    update, tooltip, tooltipText, toast, setView,
     setSelectedEdge(e) {
       selected = e ? e.id : null; ringKey = '';
       if (e) toast(`Edge (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y}) is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);
