@@ -1,0 +1,12 @@
+{
+  "name": "relight-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": ["packages/sim", "packages/proto"],
+  "scripts": {
+    "test": "npm test -w packages/sim",
+    "build": "npm run build -w packages/sim && npm run build -w packages/proto",
+    "dev": "npm run dev -w packages/proto"
+  }
+}

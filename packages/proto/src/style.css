@@ -1,0 +1,52 @@
+:root {
+  --bg: #0b0e1a; --panel: #121a30; --panel-2: #182240; --ink: #e6e9f2; --muted: #9aa5b8;
+  --amber: #e8a93a; --red: #ff3b30; --green: #3ddc84; --amber-pip: #f2b632; --line: #26314f;
+  font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); height: 100%; }
+#app { display: flex; gap: 12px; padding: 12px; align-items: flex-start; min-height: 100vh; }
+#map { flex: 0 0 auto; border-radius: 6px; overflow: hidden; }
+#map canvas { display: block; }
+#panel { flex: 1 1 360px; max-width: 420px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+#panel section { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+#panel h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: 0.02em; }
+#panel h2 { font-size: 11px; margin: 0 0 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+#panel header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 10px; }
+.stat { display: flex; flex-direction: column; }
+.stat b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat span { color: var(--muted); font-size: 11px; }
+.stat.warn b { color: var(--red); }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+button { background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; font: inherit; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button.active { background: var(--amber); color: #1a1200; border-color: var(--amber); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
+.mono { font-variant-numeric: tabular-nums; }
+ol.ring { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; max-height: 260px; overflow-y: auto; }
+ol.ring li { display: grid; grid-template-columns: 22px 12px 1fr 52px; align-items: center; gap: 8px; padding: 4px 6px; background: var(--panel-2); border: 1px solid transparent; border-radius: 4px; cursor: grab; font-variant-numeric: tabular-nums; }
+ol.ring li.selected { border-color: #fff; }
+ol.ring li.drop-before { border-top-color: var(--amber); }
+ol.ring li.drop-after { border-bottom-color: var(--amber); }
+ol.ring li .pos { color: var(--muted); }
+ol.ring li .pip { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.pip.green { background: var(--green); } .pip.amber { background: var(--amber-pip); } .pip.red { background: var(--red); }
+ol.ring li .lvl { text-align: right; color: var(--muted); }
+ul.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+ul.plain li { display: flex; justify-content: space-between; gap: 8px; }
+ul.plain li .muted, .muted { color: var(--muted); }
+#tooltip { position: fixed; pointer-events: none; background: #05070f; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 6px 9px; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; z-index: 10; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+#tooltip .bad { color: var(--red); }
+#toasts { position: fixed; left: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 20; }
+.toast { background: #05070f; border: 1px solid var(--line); border-left: 3px solid var(--amber); border-radius: 4px; padding: 6px 10px; font-size: 12px; max-width: 420px; animation: toast-in 150ms ease-out; }
+.toast.bad { border-left-color: var(--red); }
+.toast.good { border-left-color: var(--green); }
+@keyframes toast-in { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+.summary dl { display: grid; grid-template-columns: auto auto; gap: 3px 12px; margin: 0; font-variant-numeric: tabular-nums; }
+.summary dt { color: var(--muted); } .summary dd { margin: 0; text-align: right; }
+.hint { color: var(--muted); font-size: 11px; margin-top: 6px; }
+kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; font: inherit; font-size: 11px; }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
