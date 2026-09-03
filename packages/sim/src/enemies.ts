@@ -9,7 +9,7 @@ export const ENEMIES: readonly Enemy[] = [
   { name: 'Crawler', hp: 12, costRounds: 3, costShells: 0, tilesPerSec: 3, note: '3 Shot rounds',
     footprint: '1 tile, 3 t/s', appears: 'every bloom',
     targets: 'nearest lamp, then turret, then the substation (40 unshot arrivals stop it)', special: 'none',
-    punishes: 'ammo throughput and hopper distribution: an edge left unfed loses its block in about 7 min (4–14 across seeds) **[sim: E1-starve-substation-N40]**',
+    punishes: 'ammo throughput and hopper distribution: an edge left unfed loses its block in about 7 min (4–20 across seeds) **[sim: E1-starve-substation-N40]**',
     sees: 'red supply pip, hoppers empty, crawlers eating lamps' },
   { name: 'Shade', hp: 40, costRounds: 10, costShells: 0, tilesPerSec: 2, note: '10 Shot rounds',
     footprint: '1 tile, 2 t/s', appears: '1 per 8 crawlers when d ≥ 0.3 **[sim: E3-block]**',

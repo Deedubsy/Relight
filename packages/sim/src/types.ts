@@ -202,7 +202,7 @@ export const PROTO_CALIBRATED = {
   startAsmRate: 10 as number | null,
   // PROTO-CALIBRATED: kept at 300. Lever 2 (100) was tried and rejected: 100 rounds fill one of the start block's
   // hoppers, so two pips are red at minute 0 for two minutes, and nothing else in the session changed.
-  startRounds: 300,
+  startRounds: 200,
   eco: {
     // PROTO-CALIBRATED (T3): rubble per Held block per minute, civic : residential : industrial fixed 1 : 1 : 1.
     // Lever 3, swept 4/8/12/16/24/26/28/30/32: 32 is the lowest level at which compact and cheapest reach 180 min

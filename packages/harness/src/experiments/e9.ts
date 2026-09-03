@@ -59,9 +59,12 @@ export const E9: Experiment = {
       sections.push({ title: 'E9-district: per-district cost over hours 1–25.5 of the same run (the outskirts and well edges compact play reaches only after 5 h)', header: ['district', 'n ss', 'n wake', 'shade ss', 'hulk ss', 'mag/edge/min', 'mag/block/min', 'shell/edge/min'], rows: dRows });
     }
     const base = data['relight ×3 for 10 min, 4 assemblers'] as { lostWindow: number[]; need: number[] };
-    const bank = data['relight, 4 assemblers, banked stock (buffer cap 40,000 rounds)'] as { lostWindow: number[] };
+    const noBank8 = data['relight, 8 assemblers from 4 h, no bank (buffer cap 4,000 rounds)'] as { lostWindow: number[] };
+    const bank8 = data['relight, 8 assemblers, bank 20,000 magazines (cap 200,000 rounds)'] as { lostWindow: number[] };
     checks.push(isTrue('E9 informational: the Relight window demands more than the hour before', base.need.every((n, i) => n > (data['relight ×3 for 10 min, 4 assemblers'] as { before: number[] }).before[i]), `need ${base.need.map(x => x.toFixed(1)).join('/')}`));
-    checks.push(isTrue('D4: a banked stock loses no more blocks in the window than no bank', bank.lostWindow.every((x, i) => x <= base.lostWindow[i]), `bank ${bank.lostWindow.join('/')} vs ${base.lostWindow.join('/')}`));
+    // A bank that production cannot fill is no bank (4 assemblers = 80 mag/min under a ~84 mag/min demand banks 0), so D4 is
+    // judged on the pair whose production exceeds demand: 8 assemblers with and without the 20,000-magazine bank.
+    checks.push(isTrue('D4: a filled bank loses no more blocks in the window than the same assemblers without one', bank8.lostWindow.every((x, i) => x <= noBank8.lostWindow[i]), `bank ${bank8.lostWindow.join('/')} vs ${noBank8.lostWindow.join('/')}`));
     const big = data['relight, 8 assemblers, bank 20,000 magazines (cap 200,000 rounds)'] as { lostWindow: number[]; bankedMags: number[] };
     checks.push(within('D4 (design statement): with a real bank the hold costs fewer than 5 blocks — informational until the human reads E9', mean(big.lostWindow), 0, 100, ' blocks'));
     return { id: 'E9', title: E9.title, pyNames: ['E11 (phase5.py)', 'E11b (phase5b.py)'], docRefs: ['§15', '§22', '§25 item 13'],

@@ -57,7 +57,7 @@ export const E1: Experiment = {
         }
       }
     }
-    sections.push({ title: 'E1-ring / E1-starve: compact, 5 h, 300 starting rounds; "starve" withholds from every edge whose dark block has rot < 0.3 (HQ edges exempt)',
+    sections.push({ title: 'E1-ring / E1-starve: compact, 5 h, 200 starting rounds (C10); "starve" withholds from every edge whose dark block has rot < 0.3 (HQ edges exempt)',
       note: 'lost/h = blocks lost per hour; delay = minutes from the first unfed arrival at the block to its fall',
       header: ['run', 'lost/h', 'by hour (first seed)', 'unfed crawlers', 'demand/prod @5 h', 'mean hopper (rounds)', 'res/civ falls: first-unfed→fall (min)', 'well/out/ind falls: first-unfed→fall (min)'],
       rows: matRows });
@@ -68,6 +68,6 @@ export const E1: Experiment = {
     checks.push(within('§5 unfed→fall delay, residential/civic, substation N 40 (starve): mean minutes', mean(canon), 5, 15, ' min'));
     checks.push(within('E1-start-min: starting rounds that survive the first five hours', startMin, 200, 300, ' rounds'));
     return { id: 'E1', title: E1.title, pyNames: ['E1-start', 'E1-start-min', 'E1-ring-spike', 'E1-ring-*', 'E1-starve-*'], docRefs: ['§5', '§11', '§15'],
-      setup: 'compact (spike for the ring row), canonical map, production on, 300 starting rounds unless stated', sections, checks, data };
+      setup: 'compact (spike for the ring row), canonical map, production on, 200 starting rounds (C10) unless stated', sections, checks, data };
   },
 };

@@ -15,7 +15,7 @@ export const DEFAULT_CONFIG: SimConfig = {
   asmSchedule: [[600, 1], [1800, 2], [3000, 3], [10800, 4]],
   startAssemblers: 0,
   asmRate: 20.0, asmEarlyRate: null, startAsmRate: null,
-  hopper: 100, bufferCap: 4000, startRounds: 300,
+  hopper: 100, bufferCap: 4000, startRounds: 200,   // C10: 20 magazines (§11; E1-start-min)
   unfed: 'substation', unfedN: 40, starveQuiet: false,
   scatter: true, scatterFrac: 0.09, validator: 'none',
   shadeThr: 0.3, hulkThr: 0.5, wakeCap: true, bloomBase: 4.0, jitter: 0.1, fallTiles: 30,
@@ -543,7 +543,7 @@ function wellDeaths(st: SimState): void {
         const wd = Math.abs(b.x - st.wells[j][0]) + Math.abs(b.y - st.wells[j][1]);
         if (wd <= 3) infl = Math.max(infl, 1 - wd / 4);
       }
-      const base = districtBase(b.x, b.y, st.start);
+      const base = districtBase(b.x, b.y, st.start, st.h);
       if (b.state === DARK && b.awake) catchUp(st, b, st.t);
       b.dmax = Math.min(1, base.dmax + 0.3 * infl);
       b.g = base.g * (1 + 3 * infl);

@@ -31,5 +31,7 @@ Every item above keeps its phase; the power item is half done (TS power model an
 - **Open-ground runs.** Every Phase 1 headline is on the scattered map; open ground appears only in E6-shape. The §19 turtle "same on open ground" is structural, not measured. → **nightly** if anyone wants the distribution; no phase needs it.
 - **Edge hopper 100 vs turret hopper 50 (§12).** → **Phase 4 M3** (turret ring geometry) settles turrets per edge.
 - **Relight bank as an object (C4, D4).** → **Phase 10 E20**, as before; E9-hold says the size matters more than the assembler count.
-- **Map 24×24 vs 24×22.** → **human decision D-P1-1**; if 24×24, Phase 9's generator and a nightly re-run of E8/E9.
+- **Map 24×24 vs 24×22.** → **decided 24×24 (D-P1-1)** and every experiment re-run on it. Left over: the **§18 drawings are still the 24×22 sketches** → **Phase 2** redraws them from the map view; the sim's five hand-placed wells (the southern three moved with the HQ) → **Phase 9** generator.
+- **Spike feed order (D-P1-2).** Spike's losses are the far end of the ring starving under creation-order feeding; a "feed the edge nearest the enemy first" rule is a belt/logistics question → **Phase 4** (belts and the ring), with E1-ring-spike as the before/after run.
+- **Nightly distribution at 24×24.** The 20-seed smoke was on 24×22 and is dropped from the tree; the cron's first 1,000-seed run gives the 24×24 distribution → **nightly**, nobody waits on it.
 - **Linear GitHub integration (D-CI).** → **Phase 2**, when the game tasks start moving.

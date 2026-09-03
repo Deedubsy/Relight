@@ -2,7 +2,7 @@
 
 Living file. One entry per phase, newest first; the current phase is the top one. Rules are in the programme constitution (the prompt that started Phase 0); the spec is `RELIGHT-design.md`; the sim is the judge.
 
-**Current phase: 1 (built 2026-09-03; gate pending the human five-minute smoke test and the three Phase 1 decisions — `PHASE_1_REPORT.md`). Next: Phase 2 — map-view prototype on the TS sim (`packages/proto` becomes the Phase 2 artefact), Gate A.**
+**Current phase: 1 (built 2026-09-03; the three Phase 1 decisions are made — 24×24, spike a priced choice, gate passed on the reachable 15 — and the gate waits only on the human five-minute smoke test; `PHASE_1_REPORT.md`). Next: Phase 2 — map-view prototype on the TS sim (`packages/proto` becomes the Phase 2 artefact), Gate A.**
 
 Gates passed: none. Gate A (`TEST_RESULTS.md` `verdict: go`) has not been run; the file is a template with `verdict: pending`.
 
@@ -14,14 +14,14 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 ## Phase 1 — headless front sim (2026-09-03)
 
-**Status: built; gate pending.** Experiments green locally (`npm run experiments`: 9 experiments, 3 seeds, 0 failing checks, ~45 s) and wired into CI (`.github/workflows/ci.yml`: lint, `tsc --strict`, fixtures, E1–E9, `docsync --check`). The human five-minute smoke test has not been run. Report: `PHASE_1_REPORT.md`.
+**Status: built; decisions made; gate pending the smoke test.** The canonical map is 24×24 with 200 start rounds (D-P1-1, C10; config hash `01dc5d02`). Experiments green locally (`npm run experiments`: 9 experiments, 3 seeds, 0 failing checks, ~50 s) and wired into CI (`.github/workflows/ci.yml`: lint, `tsc --strict`, fixtures, E1–E9, `docsync --check`). The human five-minute smoke test has not been run. Report: `PHASE_1_REPORT.md`.
 
 ### 1.1 What exists
 
 - `packages/sim` — pure TypeScript port of `frontsim.py` with the power model (`firsthour.ts`), districts/enemies/recipes as data (`districts.ts`, `enemies.ts`, `recipes.ts`), six bot policies (`bots.ts`: compact, spike, balanced, cheapest, river, turtle), JSON state, fixed tick, deterministic (`prng.ts`). Fixtures from the Python sim (`fixtures/*.json`, incl. `power3–5.json`) pass under `npm test`.
 - `packages/harness` — `cli.ts` (`--seeds`, `--hours`, `--out`, `--nightly --seeds-n`), `run.ts` (`runSim` → `RunSummary`), `experiments/e1–e9.ts`, `report.ts` → `docs/EXPERIMENTS.md` + `docs/experiments/E<n>.json`, `nightly.ts`.
 - `packages/tools/src/docsync.ts` — regenerates the §7 district and enemy tables and the §12 recipe table between `<!-- docsync:… -->` markers from `packages/sim`; `--check` is a CI step.
-- `docs/EXPERIMENTS.md` — every run named; config hash `7637b6e3` in the header. Run names are now the section and row names of that file.
+- `docs/EXPERIMENTS.md` — every run named; config hash `01dc5d02` in the header (24×24, 200 start rounds; the 24×22 / 300-round pass was `7637b6e3`). Run names are now the section and row names of that file.
 
 ### 1.2 Doc pass
 
@@ -29,7 +29,7 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 ### 1.3 Untagged recount
 
-Phase 0 counted 70. After the Phase 1 pass: **44** (DoD asked for ≤ 23 — missed; see the report's decision 3 for why the gate should still be judged on the 15 that a block sim can reach).
+Phase 0 counted 70. After the Phase 1 pass: **44** (DoD asked for ≤ 23 — missed). D-P1-3 passes the gate on the 15 a block sim can reach and carries the 29 tile-scale numbers as Phase 0 routed them; later DoDs count only what that phase's instrument can reach.
 
 | § | Phase 0 | Now untagged | Tagged in Phase 1 | Still untagged |
 |---|---|---|---|---|
@@ -44,7 +44,7 @@ Of the 44, **29 are tile- or world-view numbers** (all of §13, §14.1/3/4/5, §
 
 ### 1.4 Open constants after Phase 1
 
-C1 edges per assembler: E9-hourly gives 52 mag/min over 18 front edges at 5 h (≈ 2.9 mag/edge-min in play, wake tails included) → one 20 mag/min assembler feeds ~7 edges, not ~15; open. C2 cadence: §18 cadence encoded (15 min in hour one, then 5); Gate A telemetry decides. C4 buffer cap: E9-hold shows a 4,000-round cap loses the hold and a 20,000-magazine bank wins it; a game object is needed (Phase 10). C5: made (D1; doc says ~700). C8: E10 not re-run (Python only). C10 start ammo: doc 20 magazines, sim default 300 rounds = 30; E1-start-min shows 200 rounds suffice — human to pick, then the sim default follows.
+C1 edges per assembler: E9-hourly gives 67 mag/min over 20 front edges at 5 h and 52 over 21 an hour later (≈ 2.5–3.4 mag/edge-min in play, wake tails included) → one 20 mag/min assembler feeds ~6–8 edges, not ~15; open. C2 cadence: §18 cadence encoded (15 min in hour one, then 5); Gate A telemetry decides. C4 buffer cap: E9-hold shows a 4,000-round cap loses the hold and a 20,000-magazine bank wins it; a game object is needed (Phase 10). C5: made (D1; doc says ~700). C8: E10 not re-run (Python only). C10 start ammo: **made** — 20 magazines, sim default 200 rounds; holds under the 40-arrival rule with 32 accrued, falls at minute 8 under a 10- or 20-arrival rule (§11 states it).
 
 ### 1.5 §26 recount at Phase 1
 
@@ -52,8 +52,9 @@ Three systems: the front, found tech, automated combat. Phase 1 added tooling an
 
 ### 1.6 Gate status
 
-- Experiments green in CI: green locally; the PR run is the CI proof.
-- Untagged ≤ 23: **missed** (44; 29 unreachable by a block sim).
+- Experiments green in CI: green locally at 24×24; the PR run is the CI proof.
+- Untagged ≤ 23: **missed** (44; 29 unreachable by a block sim) — **passed by D-P1-3** on the 15 reachable.
+- Three decisions: **made** (D-P1-1 24×24, D-P1-2 priced choice, D-P1-3 pass with riders C10 = 20 magazines, hopper 100, `main` protection still needs Pro or public).
 - `PHASE_1_REPORT.md` names the contradictions and the runs: yes.
 - Human five-minute smoke test: **pending** (`npm run experiments`, read `docs/EXPERIMENTS.md`, then `npm run dev` for the proto).
 

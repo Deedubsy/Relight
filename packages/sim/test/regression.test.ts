@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { createState, configFromPython, step, district, wellName, hash01, pyRound, MapSpec, createBot, botCommands, Command, Policy } from '../src/index';
+import { createState, configFromPython, step, districtBase, wellInfluence, hash01, pyRound, MapSpec, createBot, botCommands, Command, Policy } from '../src/index';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SEEDS = [3, 4, 5];
@@ -44,14 +44,15 @@ test('pyRound is half-to-even', () => {
   assert.equal(pyRound(2.5), 2); assert.equal(pyRound(3.5), 4); assert.equal(pyRound(4.4999), 4); assert.equal(pyRound(4.5001), 5);
 });
 
-test('district() and wellName() match the fixture cells bit for bit', () => {
+test('districtBase() and wellInfluence() match the fixture cells bit for bit (24×22 fixture geometry)', () => {
   const fx = loadFixture(3);
   for (const c of fx.cells) {
-    const d = district(c.x, c.y);
-    assert.equal(d.dmax, c.dmax, `dmax at ${c.x},${c.y}`);
-    assert.equal(d.g, c.g, `g at ${c.x},${c.y}`);
-    assert.equal(d.name, c.name, `district at ${c.x},${c.y}`);
-    assert.equal(wellName(c.x, c.y), c.well, `well at ${c.x},${c.y}`);
+    const base = districtBase(c.x, c.y, fx.start, fx.h);
+    const infl = wellInfluence(c.x, c.y, fx.wells);
+    assert.equal(Math.min(1.0, base.dmax + 0.3 * infl), c.dmax, `dmax at ${c.x},${c.y}`);
+    assert.equal(base.g * (1 + 3 * infl), c.g, `g at ${c.x},${c.y}`);
+    assert.equal(base.name, c.name, `district at ${c.x},${c.y}`);
+    assert.equal(fx.wells.some(([wx, wy]) => Math.abs(c.x - wx) + Math.abs(c.y - wy) <= 3), c.well, `well at ${c.x},${c.y}`);
   }
 });
 

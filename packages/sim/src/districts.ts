@@ -31,17 +31,20 @@ export function districtOf(name: District): DistrictRow {
   throw new Error(`unknown district ${name}`);
 }
 
-/** The canonical map's zoning (frontsim.py district()); the district a block belongs to by its coordinates. */
-export function zoneOf(x: number, y: number): District {
+/** The canonical map's zoning (frontsim.py district() on the 24×22 map). For a taller map the rows added since
+ *  24×22 go one to the industrial band, one to the mixed band (GAME-ASSUMPTION, D-P1-1); the 4-row outskirts
+ *  band at the top and the 4-row residential band by the river keep their size. */
+export function zoneOf(x: number, y: number, h = 22): District {
+  const extra = Math.max(0, h - 22), indExtra = Math.ceil(extra / 2), mixExtra = extra - indExtra;
   if (y < 4 || x < 3 || x > 20) return 'out';
-  if (y < 11) return 'ind';
-  if (y < 17) return x >= 9 && x <= 15 ? 'ind' : 'res';
+  if (y < 11 + indExtra) return 'ind';
+  if (y < 17 + indExtra + mixExtra) return x >= 9 && x <= 15 ? 'ind' : 'res';
   return x % 3 === 0 ? 'res' : 'civ';
 }
 
 /** Cap and growth before any well: district base with the depth multiplier. Bit-identical to frontsim.py. */
-export function districtBase(x: number, y: number, start: readonly [number, number]): { dmax: number; g: number; name: District } {
-  const name = zoneOf(x, y);
+export function districtBase(x: number, y: number, start: readonly [number, number], h = 22): { dmax: number; g: number; name: District } {
+  const name = zoneOf(x, y, h);
   const r = districtOf(name);
   const d = Math.abs(x - start[0]) + Math.abs(y - start[1]);
   return { dmax: Math.min(1.0, r.base * (1 + 0.3 * d / 20)), g: r.g, name };
