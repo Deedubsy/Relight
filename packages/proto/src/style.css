@@ -32,8 +32,10 @@ ol.ring li.selected { border-color: #fff; }
 ol.ring li.drop-before { border-top-color: var(--amber); }
 ol.ring li.drop-after { border-bottom-color: var(--amber); }
 ol.ring li .pos { color: var(--muted); }
-ol.ring li .pip { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.pip.green { background: var(--green); } .pip.amber { background: var(--amber-pip); } .pip.red { background: var(--red); }
+ol.ring li .pip { width: 12px; display: inline-block; text-align: center; font-size: 11px; line-height: 1; }
+.pip.green { color: var(--green); } .pip.amber { color: var(--amber-pip); } .pip.red { color: var(--red); animation: blink 0.52s steps(2, start) infinite; }
+@keyframes blink { to { visibility: hidden; } }
+.badge { font-size: 11px; color: var(--amber); border: 1px solid var(--amber); border-radius: 3px; padding: 1px 5px; margin-left: 8px; white-space: nowrap; }
 ol.ring li .lvl { text-align: right; color: var(--muted); }
 ul.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
 ul.plain li { display: flex; justify-content: space-between; gap: 8px; }

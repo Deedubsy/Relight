@@ -12,7 +12,7 @@ export interface FrontEdgeView {
   darkRot: number; darkDistrict: District; darkWell: boolean;
 }
 
-/** PROTO-ASSUMPTION: the doc's pip rule is for a block's hoppers as a set (green ≥ 50 % full, amber 10–50 %,
+/** GAME-ASSUMPTION: the doc's pip rule is for a block's hoppers as a set (green ≥ 50 % full, amber 10–50 %,
  *  red = at least one empty). The proto shows one pip per edge, so it is applied to that edge's hopper. */
 export function pipOf(level: number): Pip { return level >= 0.5 ? 'green' : level >= 0.1 ? 'amber' : 'red'; }
 
@@ -35,7 +35,7 @@ export interface ClaimInfo {
   x: number; y: number; district: District; well: boolean;
   rot: number;              // current d (asleep blocks projected)
   frontDelta: number;       // "front +N"
-  closes: number;           // PROTO-ASSUMPTION: "closes N" = Held blocks that go Interior (the claimed block included); the doc uses the phrase without defining it
+  closes: number;           // GAME-ASSUMPTION: "closes N" = Held blocks that go Interior (the claimed block included); the doc uses the phrase without defining it
   fAfter: number; iAfter: number;
   cost: { copper: number; steel: number } | null;
   affordable: boolean;
@@ -101,7 +101,7 @@ export interface ShapeMetrics {
   lost: number;
 }
 
-/** PROTO-ASSUMPTION: shape metrics for the test plan. Perimeter counts Held sides that face a Dark, Contested or
+/** GAME-ASSUMPTION: shape metrics for the test plan. Perimeter counts Held sides that face a Dark, Contested or
  *  Void cell (inert and the map edge are walls and do not count); area = Held blocks. */
 export function shapeMetrics(st: SimState): ShapeMetrics {
   const tp = topo(st.w, st.h), B = st.blocks;
@@ -188,10 +188,27 @@ export function clockOf(t: number): string {
 }
 
 /** Facilities sorted by distance from the start, with the Held flag. */
-export function facilityList(st: SimState): { name: string; x: number; y: number; dist: number; held: boolean }[] {
+/** §8 scouting: a facility's silhouette shows when it is within SKYLINE_RANGE blocks of any Held block. */
+export const SKYLINE_RANGE = 6;
+function heldWithin(st: SimState, x: number, y: number, range: number): boolean {
+  for (const b of st.blocks) if (b.state === HELD && Math.abs(b.x - x) + Math.abs(b.y - y) <= range) return true;
+  return false;
+}
+export interface FacilityView { name: string; x: number; y: number; dist: number; held: boolean; visible: boolean }
+export function facilityList(st: SimState): FacilityView[] {
   const [sx, sy] = st.start;
   return st.facilities
-    .map(f => ({ ...f, dist: Math.abs(f.x - sx) + Math.abs(f.y - sy), held: st.blocks[idxOf(st, f.x, f.y)].state === HELD }))
+    .map(f => ({ ...f, dist: Math.abs(f.x - sx) + Math.abs(f.y - sy), held: st.blocks[idxOf(st, f.x, f.y)].state === HELD,
+                 visible: heldWithin(st, f.x, f.y, SKYLINE_RANGE) }))
+    .sort((a, b) => a.dist - b.dist);
+}
+/** §8 scouting: a block's contents (here, a survivor group) show once the block or any 4-neighbour is Held. */
+export interface SurvivorView { name: string; tag: string; x: number; y: number; dist: number; held: boolean; revealed: boolean }
+export function survivorList(st: SimState): SurvivorView[] {
+  const [sx, sy] = st.start;
+  return st.survivors
+    .map(f => ({ ...f, dist: Math.abs(f.x - sx) + Math.abs(f.y - sy), held: st.blocks[idxOf(st, f.x, f.y)].state === HELD,
+                 revealed: heldWithin(st, f.x, f.y, 1) }))
     .sort((a, b) => a.dist - b.dist);
 }
 

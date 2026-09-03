@@ -14,7 +14,7 @@ export function createBot(policy: Policy, claimGap: number | null = null, build 
   return { policy, nextClaim: 15 * 60, claimGap, build, gapAfter };
 }
 
-/** PROTO-ASSUMPTION (calibration step 4): a player who watches the HUD builds an assembler when the 10-minute demand
+/** GAME-ASSUMPTION (calibration step 4): a player who watches the HUD builds an assembler when the 10-minute demand
  *  exceeds 80 % of production and the stock covers one. The bot looks once a minute, after its claim. */
 export const BOT_BUILD_DEMAND_FRAC = 0.8;
 /** Calibration 2: the compact bot's claim-to-enclose preference. With no free interior slot and demand above this

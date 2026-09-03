@@ -60,7 +60,7 @@ Not done: nobody has played it with a mouse; touch is not handled; only headless
 
 ## 2. Assumptions (every `PROTO-ASSUMPTION` in code or plan)
 
-Each one is a gap in the doc; the question it stands in for is in italics.
+Each one is a gap in the doc; the question it stands in for is in italics. **Phase 2 (2026-09-03): every tag in code is now `GAME-ASSUMPTION` (constitution rule 6); the list, with four more, is `PHASE_2_REPORT.md` "Assumed".**
 
 1. **Rubble yield** (`packages/sim/src/sim.ts`, economy tick; `types.ts`): one rubble per Held block per minute, flat, by district — civic gives stone, residential copper, industrial steel, outskirts nothing. *What does a block yield, at what rate, and does it deplete? (`FRONT_FIX_REPORT.md` open question 4/9.)*
 2. ~~**Magazines from nothing**~~ — **removed by the calibration** (`CALIBRATION_REPORT.md`). Magazines consume the §12 recipe, 2 steel + 1 copper each (`sim.ts`, ring block); an assembler makes only what the stock pays for. Doc-derived, not an assumption; the number is kept so the references below stay valid.

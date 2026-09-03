@@ -31,7 +31,20 @@ Every item above keeps its phase; the power item is half done (TS power model an
 - **Open-ground runs.** Every Phase 1 headline is on the scattered map; open ground appears only in E6-shape. The §19 turtle "same on open ground" is structural, not measured. → **nightly** if anyone wants the distribution; no phase needs it.
 - **Edge hopper 100 vs turret hopper 50 (§12).** → **Phase 4 M3** (turret ring geometry) settles turrets per edge.
 - **Relight bank as an object (C4, D4).** → **Phase 10 E20**, as before; E9-hold says the size matters more than the assembler count.
-- **Map 24×24 vs 24×22.** → **decided 24×24 (D-P1-1)** and every experiment re-run on it. Left over: the **§18 drawings are still the 24×22 sketches** → **Phase 2** redraws them from the map view; the sim's five hand-placed wells (the southern three moved with the HQ) → **Phase 9** generator.
+- **Map 24×24 vs 24×22.** → **decided 24×24 (D-P1-1)** and every experiment re-run on it. Left over: the **§18 drawings are still the 24×22 sketches** → **Phase 3** redraws them from the compact bot at the locked cadence (the constitution's Phase 3 bullet; this line said Phase 2 until the Phase 2 re-read); the sim's five hand-placed wells (the southern three moved with the HQ) → **Phase 9** generator.
 - **Spike feed order (D-P1-2).** Spike's losses are the far end of the ring starving under creation-order feeding; a "feed the edge nearest the enemy first" rule is a belt/logistics question → **Phase 4** (belts and the ring), with E1-ring-spike as the before/after run.
 - **Nightly distribution at 24×24.** The 20-seed smoke was on 24×22 and is dropped from the tree; the cron's first 1,000-seed run gives the 24×24 distribution → **nightly**, nobody waits on it.
 - **Linear GitHub integration (D-CI).** → **Phase 2**, when the game tasks start moving.
+
+## Re-read at the Phase 2 build (2026-09-03, before Gate A)
+
+Every item above keeps its phase except the §18 redraw (corrected to Phase 3 in place). Nothing deleted. Changed or added:
+
+- **Python reference sim.** "Retire at the Phase 2 gate" — the Phase 2 gate is Gate A, which has not run. → **retire in Phase 3's first commit once `TEST_RESULTS.md` says `go`**: freeze `packages/sim/fixtures/*.json`, delete `frontsim.py`, `phase5*.py`, `export_*.py`. Nothing in Phase 2 needed it.
+- **E10-bloom-cadence (C8).** Unchanged → Gate A feel; `TEST_RESULTS.md` §8 now has a row for it.
+- **Linear GitHub integration (D-CI).** Still a GitHub UI step a human performs; no commit can do it. → **human, any time**; not blocking.
+- **Survivor unlocks.** §8 gives each group recipes on the toolbar; the proto only toasts "We're in." and lists them in the panel. → **Phase 4** (toolbar exists in world view). Tempting because the Electricians join at ~1:05 and nothing happens.
+- **Optional survivor groups (Chemist, Lamplighters, Surveyors) and "dead-end pocket" placement.** The proto places the five named groups by Manhattan band and skips the optional ones. → **Phase 9** generator. Tempting because a pocket is a shape reason and the proto is about shape.
+- **Skyline as a real skyline.** §8's "silhouettes up to 6 blocks away" is a visibility flag on a 24 px icon here. → **Phase 4 M5** (light map) or **Phase 12** (art). Tempting because a fresh start shows only the Arsenal (6 blocks off; the Foundry is 10), which reads as "one thing to head for" and gives the icon more weight than a 24 px sprite carries.
+- **Ring feed order** (nearest-the-enemy first, D-P1-2). Scenario B's cascade runs down the ring in creation order; the drag list is the only counter. → **Phase 4** as before; Gate A's reorder telemetry is the before.
+- **Steel income outside industrial blocks** (D-P2-3 option b). Only if the human calls the steel wall a bug. → **Phase 5 E11/E13** with the rubble model.

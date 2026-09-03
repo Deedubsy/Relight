@@ -119,6 +119,7 @@ export function createState(spec: MapSpec, config: SimConfig, seed: number): Sim
     w, h, start: [spec.start[0], spec.start[1]], target: [spec.target[0], spec.target[1]],
     wells: spec.wells.map(p => [p[0], p[1]] as [number, number]),
     facilities: spec.facilities.map(f => ({ ...f })),
+    survivors: (spec.survivors ?? []).map(f => ({ ...f })),
     config: JSON.parse(JSON.stringify(config)),
     blocks,
     ring: [], edgeAt: new Array(w * h * 4).fill(-1),
@@ -188,7 +189,7 @@ export function isInterior(st: SimState, i: number): boolean {
 }
 
 /** The interior block that would take the next assembler: no machine yet, nearest the start, grid order on ties.
- *  PROTO-ASSUMPTION: placement is automatic; the doc has the player place machines by hand. Returns -1 if none. */
+ *  GAME-ASSUMPTION: placement is automatic; the doc has the player place machines by hand. Returns -1 if none. */
 export function freeSlot(st: SimState): number {
   const B = st.blocks, [sx, sy] = st.start;
   let best = -1, bd = 0;
@@ -590,6 +591,10 @@ function facilityAt(st: SimState, x: number, y: number): string | null {
   for (const f of st.facilities) if (f.x === x && f.y === y) return f.name;
   return null;
 }
+function survivorAt(st: SimState, x: number, y: number): string | null {
+  for (const f of st.survivors) if (f.x === x && f.y === y) return f.name;
+  return null;
+}
 
 function rubbleOf(name: District): 'stone' | 'copper' | 'steel' | null {
   return name === 'civ' ? 'stone' : name === 'res' ? 'copper' : name === 'ind' ? 'steel' : null;
@@ -608,7 +613,7 @@ export function claim(st: SimState, x: number, y: number): boolean {
   }
   const b = st.blocks[i];
   const F = frontage(st), I = interior(st);
-  // PROTO-ASSUMPTION: the claim event's F/I "after" are projections at claim time (as if the block were Held now),
+  // GAME-ASSUMPTION: the claim event's F/I "after" are projections at claim time (as if the block were Held now),
   // not the values when it actually turns Held; the brief's telemetry does not say which.
   const fAfter = frontageIf(st, i, F), iAfter = interiorIf(st, i, I);
   catchUp(st, b, t);
@@ -694,8 +699,9 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       b.unfed = 0; b.shed = false; b.shadeOff = 0; b.unfedSince = -1; b.starveSince = -1;
       st.fallen[i] = false;
       stateChange(st, i);
-      // PROTO-ASSUMPTION: a facility is "reached" when its own block turns Held; the proto only toasts it.
-      st.events.push({ type: 'held', t, x: b.x, y: b.y, facility: facilityAt(st, b.x, b.y) });
+      // GAME-ASSUMPTION: a facility is "reached" when its own block turns Held; the proto only toasts it.
+      // GAME-ASSUMPTION: a survivor group joins ("we're in", §8) when its block turns Held; no unlock effect yet.
+      st.events.push({ type: 'held', t, x: b.x, y: b.y, facility: facilityAt(st, b.x, b.y), survivor: survivorAt(st, b.x, b.y) });
     }
   }
 
@@ -903,7 +909,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
   }
 
   // ---- economy (proto only; off in the regression) ----
-  // PROTO-ASSUMPTION: rubble comes flat per Held block by district (civ stone, res copper, ind steel, outskirts
+  // GAME-ASSUMPTION: rubble comes flat per Held block by district (civ stone, res copper, ind steel, outskirts
   // nothing) and stone has no sink; the doc has no yield numbers. Magazines cost the §12 recipe (ring block above).
   if (cfg.economy) {
     if (st.patch.steel > 0) {

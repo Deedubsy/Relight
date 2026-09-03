@@ -1,22 +1,34 @@
 import Phaser from 'phaser';
 import { SimEvent } from '@relight/sim';
-import { parseUrl, createSession, setSpeed, runTicks } from './session';
+import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, Session } from './session';
 import { MapScene, SceneHooks, MAP_W, MAP_H } from './mapScene';
 import { createPanel } from './panel';
 import { exportJson, summarise } from './telemetry';
 
 const params = parseUrl(location.search);
-const session = createSession(params);
+let loadError: string | null = null;
+let session: Session;
+try {
+  session = createSession(params, params.state ? await loadSnapshot(params.state) : null);
+} catch (e) {
+  loadError = (e as Error).message;
+  session = createSession({ ...params, state: null });
+}
 let scene: MapScene | null = null;
 
 const panel = createPanel(session, document.getElementById('panel')!, {
   onSelectEdge(id) { scene?.selectEdge(id); },
 });
+if (loadError) panel.toast(`Could not load the snapshot (${loadError}); started a fresh seed ${session.state.seed} instead`, 'bad');
+else if (session.scenario === 'B') panel.toast(`Snapshot loaded at ${session.telemetry.meta.startT / 3600 | 0}:${String(Math.floor(session.telemetry.meta.startT / 60) % 60).padStart(2, '0')} — paused. Press space or a speed to begin.`, 'good');
 
 function describe(events: SimEvent[]): void {
   for (const ev of events) {
     switch (ev.type) {
-      case 'held': if (ev.facility) panel.toast(`Reached the ${ev.facility}`, 'good'); break;
+      case 'held':
+        if (ev.facility) panel.toast(`Reached the ${ev.facility}`, 'good');
+        if (ev.survivor) panel.toast(`${ev.survivor}: "We're in."`, 'good');
+        break;
       case 'fall': panel.toast(`Block (${ev.x},${ev.y}) lost — ${ev.reason}`, 'bad'); break;
       case 'sub-off': panel.toast(`Substation (${ev.x},${ev.y}) stopped: ${session.state.config.unfedN} crawlers unfed. It falls if this goes on.`, 'bad'); break;
       case 'sub-on': panel.toast(`Substation (${ev.x},${ev.y}) back on`, 'good'); break;
@@ -60,5 +72,6 @@ window.addEventListener('keydown', ev => {
   run: (ticks: number) => { runTicks(session, ticks); panel.update(performance.now()); return summarise(session.telemetry, session.state); },
   summary: () => summarise(session.telemetry, session.state),
   exportJson: () => exportJson(session.telemetry, session.state),
+  stateJson: () => JSON.stringify(session.state),
   configHash: session.telemetry.meta.configHash,
 };

@@ -14,7 +14,8 @@ export interface MinuteRecord {
   slotsUsed: number; slotsFree: number; atRisk: number; dry: number;
 }
 export interface Telemetry {
-  meta: { seed: number; url: string; startedAt: string; config: unknown; configHash: string; player: string };
+  meta: { seed: number; url: string; startedAt: string; config: unknown; configHash: string; player: string;
+          scenario: 'A' | 'B'; snapshot: string | null; startT: number };   // startT: sim tick the session began at
   claims: ClaimRecord[];
   rejected: { t: number; x: number; y: number; reason: string }[];
   losses: { t: number; x: number; y: number; reason: string }[];
@@ -31,9 +32,10 @@ export interface Telemetry {
   hours: { h: number; held: number; front: number; interior: number; mags: number; lost: number }[];
 }
 
-export function createTelemetry(st: SimState, url: string, player = ''): Telemetry {
+export function createTelemetry(st: SimState, url: string, player = '', scenario: 'A' | 'B' = 'A', snapshot: string | null = null): Telemetry {
   return {
-    meta: { seed: st.seed, url, startedAt: new Date().toISOString(), config: st.config, configHash: configHash(st.config), player },
+    meta: { seed: st.seed, url, startedAt: new Date().toISOString(), config: st.config, configHash: configHash(st.config), player,
+            scenario, snapshot, startT: st.t },
     claims: [], rejected: [], losses: [], reorders: [], assemblers: [], assemblersRejected: [], machinesLost: [], dry: [], speeds: [], minutes: [], firstEnclosure: null,
     firstAmber: null, firstRed: null, hours: [],
   };
@@ -83,10 +85,12 @@ export function recordMinute(tel: Telemetry, st: SimState): void {
   if (tel.firstEnclosure === null && st.stats.firstInterior >= 0) tel.firstEnclosure = st.stats.firstInterior;
 }
 
+/** Session numbers count from the session's start (a snapshot's history is not the tester's); `*Total` fields
+ *  carry the whole run's counters so scenario B can be reconciled against the bot's 3 h. */
 export interface Summary {
-  simTime: string; hours: number;
-  claims: number; claimsPerHour: number; playerClaims: number;
-  held: number; front: number; interior: number; lost: number;
+  simTime: string; hours: number; startTime: string; scenario: 'A' | 'B';
+  claims: number; claimsPerHour: number; playerClaims: number; claimsTotal: number;
+  held: number; front: number; interior: number; lost: number; lostTotal: number;
   shape: ShapeMetrics;
   ammoSpentMags: number; shellsSpent: number;
   reorders: number; assemblersAdded: number; botAssemblers: number;
@@ -96,21 +100,22 @@ export interface Summary {
 }
 
 export function summarise(tel: Telemetry, st: SimState): Summary {
-  const hours = st.t / 3600;
+  const startT = tel.meta.startT;
+  const hours = (st.t - startT) / 3600;
   const sm = shapeMetrics(st);
   return {
-    simTime: clockOf(st.t), hours,
-    claims: st.stats.claims, claimsPerHour: hours > 0 ? st.stats.claims / hours : 0,
+    simTime: clockOf(st.t), hours, startTime: clockOf(startT), scenario: tel.meta.scenario,
+    claims: tel.claims.length, claimsPerHour: hours > 0 ? tel.claims.length / hours : 0, claimsTotal: st.stats.claims,
     playerClaims: tel.claims.filter(c => c.source === 'player').length,
-    held: heldCount(st), front: frontage(st), interior: interior(st), lost: st.stats.lost,
+    held: heldCount(st), front: frontage(st), interior: interior(st), lost: tel.losses.length, lostTotal: st.stats.lost,
     shape: sm,
     ammoSpentMags: st.totalRounds / 10, shellsSpent: st.totalShells,
-    reorders: st.stats.ringReorders, assemblersAdded: st.stats.assemblersAdded,
+    reorders: tel.reorders.length, assemblersAdded: tel.assemblers.length,
     botAssemblers: tel.assemblers.filter(a => a.source === 'bot').length,
     firstEnclosure: st.stats.firstInterior >= 0 ? clockOf(st.stats.firstInterior) : 'never',
     firstAmber: tel.firstAmber !== null ? clockOf(tel.firstAmber) : 'never',
     firstRed: tel.firstRed !== null ? clockOf(tel.firstRed) : 'never',
-    firstLoss: st.stats.firstFall >= 0 ? clockOf(st.stats.firstFall) : 'never',
+    firstLoss: tel.losses.length ? clockOf(tel.losses[0].t) : 'never',
     stock: { copper: Math.floor(st.stock.copper), steel: Math.floor(st.stock.steel), stone: Math.floor(st.stock.stone) },
     magsMade: Math.round(st.stats.magsMade), configHash: tel.meta.configHash,
     slotsUsed: slotInfo(st).used, slotsFree: slotInfo(st).free, machinesLost: st.stats.machinesLost, ranDry: st.stats.ranDry,

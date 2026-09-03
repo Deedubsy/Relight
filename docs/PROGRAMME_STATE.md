@@ -2,15 +2,53 @@
 
 Living file. One entry per phase, newest first; the current phase is the top one. Rules are in the programme constitution (the prompt that started Phase 0); the spec is `RELIGHT-design.md`; the sim is the judge.
 
-**Current phase: 1 (built 2026-09-03; the three Phase 1 decisions are made — 24×24, spike a priced choice, gate passed on the reachable 15 — and the gate waits only on the human five-minute smoke test; `PHASE_1_REPORT.md`). Next: Phase 2 — map-view prototype on the TS sim (`packages/proto` becomes the Phase 2 artefact), Gate A.**
+**Current phase: 2 (built 2026-09-03; waiting on Gate A — a human runs `PROTOTYPE_TEST_PLAN.md` and writes `TEST_RESULTS.md` `verdict: go`; `PHASE_2_REPORT.md`). Next: Phase 3 — absorb Gate A (lock constants as `[play]`, re-run E1–E9, redraw §18).** Phase 1's own gate still carries the human five-minute smoke test, and PR #1 (`phase-1` → `main`) is open, unmerged; Phase 2 is PR #2 (`phase-2` → `phase-1`).
 
-Gates passed: none. Gate A (`TEST_RESULTS.md` `verdict: go`) has not been run; the file is a template with `verdict: pending`.
+Gates passed: none. Gate A has not been run; `TEST_RESULTS.md` is a template with `verdict: pending`, hashes `ee23bb1c` / `825d2d09`.
 
 Housekeeping the constitution assumes and the repo does not have (a human decides how, not whether):
 
 - ~~`/mnt/e/Factorio2` is not a git repository and has no CI.~~ Done in Phase 1: `github.com/Deedubsy/Relight` (private), branch `phase-1` → PR #1 to `main` (CI green), `.github/workflows/ci.yml` and `nightly.yml`; `main` protection is refused on a free-plan private repo (D-CI, human choice). **Decided (D-CI, 2026-09-03):** GitHub private repo, GitHub Actions, npm workspaces; push CI = lint + `tsc --strict` + fixtures + E1–E9 at three seeds; nightly = 10,000-seed and 25 h runs to `docs/experiments/`; Python sim stays as fixture exporter for one phase, then retired. Linear for tasks. Phase 1's first task is to set this up.
 - Reports live at the repo root, not in `docs/`. Left where they are (Phase 0 changes nothing else); Phase 1 may move them under `docs/` and leave root stubs.
-- `packages/harness` and `packages/tools` exist since Phase 1; `packages/game`, `apps/steam` do not. `packages/proto` exists and is not in the constitution's layout; it becomes the Phase 2 artefact.
+- `packages/harness` and `packages/tools` exist since Phase 1; `packages/game`, `apps/steam` do not. `packages/proto` is the Phase 2 artefact (not in the constitution's layout; it becomes the game's map view in Phase 4).
+
+## Phase 2 — map-view prototype → Gate A (2026-09-03)
+
+**Status: built; calibrated; three decisions open for the human at the gate; Gate A pending.** The proto runs on the TS sim at config hash `ee23bb1c` (`PROTO_CALIBRATED` over the canonical `01dc5d02`: economy on, scattered map; `825d2d09` with `economy=0`). Checks green locally (typecheck, `npm test`, lint, E1–E9, docsync, `snapshot:check`); the PR's CI run is the proof. Report: `PHASE_2_REPORT.md`.
+
+### 2.1 What exists
+
+- `packages/proto` — one Phaser screen: 24 px grid with states, wells, skyline-gated facility silhouettes (§8: within 6 blocks of a Held block), **survivor markers** (revealed when a 4-neighbour is Held, "We're in." on Held), claim tool with `Claim — rot N % · front +N · closes N`, pole line, **shape-coded pips** (● ▲ ✕), ring drag list, bloom pulses, slots, rubble strip, HUD with clock/speed/pause, seed in the URL, **`?state=` snapshot loading** (opens paused), Save snapshot, telemetry export with session-relative summary and `meta.scenario`.
+- `packages/sim` — survivors placed by §8 band (`placeSurvivors`), `survivorList`, `FacilityView.visible`, `SKYLINE_RANGE`. No measured rule changed; experiments and fixtures bit-identical.
+- `packages/harness` — `calibrate.ts` (C1–C7, `--out`, `--md`), `snapshot.ts` (`--check`). Root scripts `calibrate`, `snapshot`, `snapshot:check`. CI runs both (calibration reported, not gated).
+- `packages/proto/public/snapshots/b-compact-seed3.json` — Scenario B: compact bot, seed 3, 3:00:00 (28 held / 11 front / 18 interior / 3 assemblers / 0 lost).
+- `docs/PROTOTYPE_TEST_PLAN.md` (two scenarios, bot timelines for each, hashes), `docs/TEST_RESULTS.md` (`verdict: pending`), `docs/experiments/calibration.{json,md}`.
+
+### 2.2 Calibration (rule 5)
+
+C3–C7 met on all seeds. C1 and C2 are missed only at t = 0: 200 start rounds (C10) leave the HQ's third hopper empty for 30 s. After the transient compact **never** sees amber in three hours — the edges-per-assembler constant showing itself, recorded as D-P2-2 as the constitution instructs. Lever sweep (start production, start rounds, pool, yield, costs, each alone): only 300 start rounds turns C1/C2 green, and that reverses C10 (D-P2-1); every other lever either does nothing or breaks C3/C7. `PROTO_CALIBRATED` unchanged.
+
+### 2.3 Untagged recount
+
+No doc number changed in Phase 2 (the proto follows the doc; no changelog line). Count stays at **44** (29 tile-scale, 15 design inputs) as D-P1-3 carries it; Gate A's `[play]` tags are what reduce it next.
+
+### 2.4 Open constants after Phase 2
+
+C1 edges per assembler: **the gate's first decision (D-P2-2)** — one Mk1 feeds a 16-block blob to 2:30 with no pip; B's telemetry decides. C2 cadence: Gate A `summary.claimsPerHour`. C3 slots: enclosure at 1:00 is the only route to a second assembler; observer notes. C4 buffer cap: stock sits at 400 in A and drains in ten minutes in B. C8 bloom rhythm: Gate A feel. C10: made at 20, with a 30 s opening flicker (D-P2-1). New: **the steel wall** (D-P2-3) — steel 0 at ≈ 3:40 from the snapshot whatever the tester does.
+
+### 2.5 §26 recount at Phase 2
+
+Three systems: the front, found tech, automated combat. Survivors and the skyline are §8 content of "found tech", not a system. Complexity **5/10**, unchanged.
+
+### 2.6 Gate status
+
+- Experiments green in CI: green locally; PR #2's run is the proof.
+- Calibration reported with each lever: yes (`PHASE_2_REPORT.md` Measured).
+- Test plan, results template, snapshot, config hash: yes.
+- Three decisions for the human: **open** — D-P2-1 start rounds, D-P2-2 edges per assembler, D-P2-3 the steel wall (recommendations in the report).
+- **Gate A: pending.** Five testers + control, seed 3, A then B; a human writes `verdict: go`. The programme does not continue on `pending`.
+
+---
 
 ## Phase 1 — headless front sim (2026-09-03)
 
