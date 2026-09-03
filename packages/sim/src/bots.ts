@@ -6,11 +6,12 @@ import { ammoStatus } from './queries';
 export type Policy = 'compact' | 'spike' | 'balanced' | 'cheapest' | 'river' | 'turtle';
 export const POLICIES: Policy[] = ['compact', 'spike', 'balanced', 'cheapest', 'river', 'turtle'];
 
-export interface Bot { policy: Policy; nextClaim: number; claimGap: number | null; build: boolean }
+export interface Bot { policy: Policy; nextClaim: number; claimGap: number | null; build: boolean; gapAfter: number }
 
-/** `build` turns on the assembler rule below (proto and calibration harness); the fixtures run without it. */
-export function createBot(policy: Policy, claimGap: number | null = null, build = false): Bot {
-  return { policy, nextClaim: 15 * 60, claimGap, build };
+/** `build` turns on the assembler rule below (proto and calibration harness); the fixtures run without it.
+ *  `gapAfter` is the claim gap after hour one (frontsim.py gap_after, default 300 s = the §18 cadence). */
+export function createBot(policy: Policy, claimGap: number | null = null, build = false, gapAfter = 5 * 60): Bot {
+  return { policy, nextClaim: 15 * 60, claimGap, build, gapAfter };
 }
 
 /** PROTO-ASSUMPTION (calibration step 4): a player who watches the HUD builds an assembler when the 10-minute demand
@@ -82,7 +83,7 @@ export function botCommands(st: SimState, bot: Bot, out: Command[]): void {
     }
     const i = choose(st, bot.policy, enclose);
     if (i >= 0) { const b = st.blocks[i]; if (b.state === DARK) out.push({ type: 'claim', x: b.x, y: b.y }); }
-    const gap = bot.claimGap ?? (st.t < 3600 ? 15 * 60 : 5 * 60);
+    const gap = bot.claimGap ?? (st.t < 3600 ? 15 * 60 : bot.gapAfter);
     bot.nextClaim = st.t + gap;
   }
   if (bot.build && st.config.economy && st.t > 0 && st.t % 60 === 0) {

@@ -3,6 +3,7 @@
  *  so a TS seed is a different map from the same Python seed; parity is tested from fixtures. */
 import { District, MapSpec, CellSpec, Facility, SimConfig } from './types';
 import { rngInt, rngUniform, seedRng, pyRound } from './prng';
+import { districtBase, wellInfluence } from './districts';
 
 export const W = 24, H = 22;               // city blocks; row 21 = river (inert)
 export const START: [number, number] = [12, 20];
@@ -10,26 +11,9 @@ export const TARGET: [number, number] = [12, 10];   // "the foundry", 10 blocks 
 export const WELLS: [number, number][] = [[12, 8], [2, 2], [21, 3], [2, 18], [22, 19]];
 
 export function district(x: number, y: number): { dmax: number; g: number; name: District } {
-  const d = Math.abs(x - START[0]) + Math.abs(y - START[1]);
-  let base: number, g: number, name: District;
-  if (y < 4 || x < 3 || x > 20) { base = 1.0; g = 0.0008; name = 'out'; }
-  else if (y < 11) { base = 0.6; g = 0.0006; name = 'ind'; }
-  else if (y < 17) {
-    if (x >= 9 && x <= 15) { base = 0.6; g = 0.0006; name = 'ind'; }
-    else { base = 0.45; g = 0.0005; name = 'res'; }
-  } else {
-    if (x % 3 === 0) { base = 0.45; g = 0.0005; name = 'res'; }
-    else { base = 0.3; g = 0.0004; name = 'civ'; }
-  }
-  let dmax = Math.min(1.0, base * (1 + 0.3 * d / 20));
-  let infl = 0.0;
-  for (const [wx, wy] of WELLS) {
-    const wd = Math.abs(x - wx) + Math.abs(y - wy);
-    if (wd <= 3) infl = Math.max(infl, 1 - wd / 4);
-  }
-  dmax = Math.min(1.0, dmax + 0.3 * infl);
-  g *= (1 + 3 * infl);
-  return { dmax, g, name };
+  const { dmax: base, g, name } = districtBase(x, y, START);
+  const infl = wellInfluence(x, y, WELLS);
+  return { dmax: Math.min(1.0, base + 0.3 * infl), g: g * (1 + 3 * infl), name };
 }
 
 export function wellName(x: number, y: number): boolean {

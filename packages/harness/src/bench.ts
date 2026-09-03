@@ -1,5 +1,5 @@
 /** Throughput check: 24×22, compact bot, ammo ring on. The proto needs 16 ticks per frame at 60 fps = 960 ticks/s. */
-import { generateMap, createState, DEFAULT_CONFIG, step, createBot, botCommands, Command } from '../src/index';
+import { generateMap, createState, DEFAULT_CONFIG, step, createBot, botCommands, Command } from '@relight/sim';
 
 const spec = generateMap(3, DEFAULT_CONFIG);
 const st = createState(spec, { ...DEFAULT_CONFIG, economy: true, startAssemblers: 1, asmSchedule: [] }, 3);

@@ -1,0 +1,32 @@
+# Push CI (D-CI): lint, tsc --strict on every package, fixtures, the experiment suite at three seeds, and the
+# doc-sync check. A red experiment is a red build (constitution rule 3).
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Experiment suite (E1–E9, three seeds)
+        run: npm run experiments
+      - name: Docs sync (§7 and §12 tables match packages/sim)
+        run: npm run docsync:check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experiments
+          path: |
+            docs/EXPERIMENTS.md
+            docs/experiments/*.json
+          retention-days: 30

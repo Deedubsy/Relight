@@ -2,15 +2,60 @@
 
 Living file. One entry per phase, newest first; the current phase is the top one. Rules are in the programme constitution (the prompt that started Phase 0); the spec is `RELIGHT-design.md`; the sim is the judge.
 
-**Current phase: 0 (complete, 2026-09-03; the three Phase 0 decisions were made by the human the same day — `DECISIONS.md`). Next: Phase 1 — repo + CI (D-CI), headless front sim with the power model, experiments E1–E9 in CI, `EXPERIMENTS.md`, doc pass (D1 coal ~700, D3 sentence in §5, §25 item 13 reopened, contradictions 0.2).**
+**Current phase: 1 (built 2026-09-03; gate pending the human five-minute smoke test and the three Phase 1 decisions — `PHASE_1_REPORT.md`). Next: Phase 2 — map-view prototype on the TS sim (`packages/proto` becomes the Phase 2 artefact), Gate A.**
 
 Gates passed: none. Gate A (`TEST_RESULTS.md` `verdict: go`) has not been run; the file is a template with `verdict: pending`.
 
 Housekeeping the constitution assumes and the repo does not have (a human decides how, not whether):
 
-- `/mnt/e/Factorio2` is **not a git repository** and has no CI. **Decided (D-CI, 2026-09-03):** GitHub private repo, GitHub Actions, npm workspaces; push CI = lint + `tsc --strict` + fixtures + E1–E9 at three seeds; nightly = 10,000-seed and 25 h runs to `docs/experiments/`; Python sim stays as fixture exporter for one phase, then retired. Linear for tasks. Phase 1's first task is to set this up.
+- ~~`/mnt/e/Factorio2` is not a git repository and has no CI.~~ Done in Phase 1: `github.com/Deedubsy/Relight` (private), branch `phase-1` → PR to `main`, `.github/workflows/ci.yml` and `nightly.yml`. **Decided (D-CI, 2026-09-03):** GitHub private repo, GitHub Actions, npm workspaces; push CI = lint + `tsc --strict` + fixtures + E1–E9 at three seeds; nightly = 10,000-seed and 25 h runs to `docs/experiments/`; Python sim stays as fixture exporter for one phase, then retired. Linear for tasks. Phase 1's first task is to set this up.
 - Reports live at the repo root, not in `docs/`. Left where they are (Phase 0 changes nothing else); Phase 1 may move them under `docs/` and leave root stubs.
-- `packages/harness`, `packages/tools`, `packages/game`, `apps/steam` do not exist. `packages/proto` exists and is not in the constitution's layout; it becomes the Phase 2 artefact.
+- `packages/harness` and `packages/tools` exist since Phase 1; `packages/game`, `apps/steam` do not. `packages/proto` exists and is not in the constitution's layout; it becomes the Phase 2 artefact.
+
+## Phase 1 — headless front sim (2026-09-03)
+
+**Status: built; gate pending.** Experiments green locally (`npm run experiments`: 9 experiments, 3 seeds, 0 failing checks, ~45 s) and wired into CI (`.github/workflows/ci.yml`: lint, `tsc --strict`, fixtures, E1–E9, `docsync --check`). The human five-minute smoke test has not been run. Report: `PHASE_1_REPORT.md`.
+
+### 1.1 What exists
+
+- `packages/sim` — pure TypeScript port of `frontsim.py` with the power model (`firsthour.ts`), districts/enemies/recipes as data (`districts.ts`, `enemies.ts`, `recipes.ts`), six bot policies (`bots.ts`: compact, spike, balanced, cheapest, river, turtle), JSON state, fixed tick, deterministic (`prng.ts`). Fixtures from the Python sim (`fixtures/*.json`, incl. `power3–5.json`) pass under `npm test`.
+- `packages/harness` — `cli.ts` (`--seeds`, `--hours`, `--out`, `--nightly --seeds-n`), `run.ts` (`runSim` → `RunSummary`), `experiments/e1–e9.ts`, `report.ts` → `docs/EXPERIMENTS.md` + `docs/experiments/E<n>.json`, `nightly.ts`.
+- `packages/tools/src/docsync.ts` — regenerates the §7 district and enemy tables and the §12 recipe table between `<!-- docsync:… -->` markers from `packages/sim`; `--check` is a CI step.
+- `docs/EXPERIMENTS.md` — every run named; config hash `7637b6e3` in the header. Run names are now the section and row names of that file.
+
+### 1.2 Doc pass
+
+29 disagreements listed in `PHASE_1_REPORT.md` before editing; 27 edited into the doc with changelog lines (§4, §5, §7, §9, §11, §12, §14, §15, §16, §17, §18, §19, §23, §24, §25, §27), two left as flagged assumptions (edge hopper 100 vs turret hopper 50; assembler line 220 kW). Every `[sim: …]` tag outside the changelog now names a section or row of `docs/EXPERIMENTS.md`, except `E10-bloom-cadence` (Python only, marked as such).
+
+### 1.3 Untagged recount
+
+Phase 0 counted 70. After the Phase 1 pass: **44** (DoD asked for ≤ 23 — missed; see the report's decision 3 for why the gate should still be judged on the 15 that a block sim can reach).
+
+| § | Phase 0 | Now untagged | Tagged in Phase 1 | Still untagged |
+|---|---|---|---|---|
+| §5 | 24 | 14 | 5.6, 5.10, 5.12, 5.13, 5.14, 5.15, 5.19, 5.20, 5.22, 5.23 | 5.1, 5.2, 5.3, 5.4, 5.5, 5.7, 5.8, 5.9, 5.11, 5.16, 5.17, 5.18, 5.21, 5.24 |
+| §7 | 7 | 3 | 7.3, 7.5, 7.6, 7.7 | 7.1, 7.2, 7.4 (design inputs) |
+| §12 | 9 | 8 | 12.8 | 12.1, 12.2, 12.3, 12.4 (generated from code, no run varies them), 12.5, 12.6, 12.7, 12.9 |
+| §13 | 16 | 16 | — | all: tile-scale machine rows, Phase 4–9 |
+| §14 | 5 | 4 | 14.2 | 14.1, 14.3, 14.4, 14.5 |
+| §15 | 9 | 1 | 15.1–15.8 | 15.9 |
+
+Of the 44, **29 are tile- or world-view numbers** (all of §13, §14.1/3/4/5, §5.1/5/8/9/18, §12.1/2/3/7) that no block sim can evidence — they belong to Phases 4–9 as Phase 0 already routed them. The remaining **15** are design inputs the sim takes as given (bloom timer and drop, claim cost, burn-off, district dmax/g, recipes, hopper, assembler rate, wells per map, Relight 40 MW, endgame hours) — evidenced only by `[play]` at Gate A or by a run that varies them.
+
+### 1.4 Open constants after Phase 1
+
+C1 edges per assembler: E9-hourly gives 52 mag/min over 18 front edges at 5 h (≈ 2.9 mag/edge-min in play, wake tails included) → one 20 mag/min assembler feeds ~7 edges, not ~15; open. C2 cadence: §18 cadence encoded (15 min in hour one, then 5); Gate A telemetry decides. C4 buffer cap: E9-hold shows a 4,000-round cap loses the hold and a 20,000-magazine bank wins it; a game object is needed (Phase 10). C5: made (D1; doc says ~700). C8: E10 not re-run (Python only). C10 start ammo: doc 20 magazines, sim default 300 rounds = 30; E1-start-min shows 200 rounds suffice — human to pick, then the sim default follows.
+
+### 1.5 §26 recount at Phase 1
+
+Three systems: the front, found tech, automated combat. Phase 1 added tooling and data, no system. Complexity **5/10**, unchanged.
+
+### 1.6 Gate status
+
+- Experiments green in CI: green locally; the PR run is the CI proof.
+- Untagged ≤ 23: **missed** (44; 29 unreachable by a block sim).
+- `PHASE_1_REPORT.md` names the contradictions and the runs: yes.
+- Human five-minute smoke test: **pending** (`npm run experiments`, read `docs/EXPERIMENTS.md`, then `npm run dev` for the proto).
 
 ---
 

@@ -12,8 +12,8 @@
 import { writeFileSync } from 'node:fs';
 import {
   DEFAULT_CONFIG, SimConfig, protoCalibrated, configHash, generateMap, createState, step, takeEvents,
-  createBot, botCommands, Command, Policy, heldCount, frontage, interior, ammoStatus, pipOf, clockOf, slotInfo, asmCount,
-} from '../src/index';
+  createBot, botCommands, Command, Policy, heldCount, frontage, interior, ammoStatus, pipOf, slotInfo, asmCount,
+} from '@relight/sim';
 
 const argv = process.argv.slice(2);
 const flag = (name: string, dflt: string): string => { const i = argv.indexOf(name); return i >= 0 && i + 1 < argv.length ? argv[i + 1] : dflt; };

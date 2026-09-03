@@ -19,5 +19,17 @@ Re-read at every phase gate (constitution rule 9): every item carries the phase 
 
 ## Added at Phase 0
 
-- **`frontsim_legacy_backup.py`.** Pre-`FRONT_FIX_REPORT` copy of the Python sim; nothing references it → **Phase 1: delete once the TS sim carries the power model and the experiment suite is green in CI.**
+- ~~**`frontsim_legacy_backup.py`.**~~ **Deleted in Phase 1** (2026-09-03): the TS sim carries the power model and the suite is green.
 - **Python reference sim (`frontsim.py`, `phase5*.py`, `export_fixtures.py`).** The doc's `[sim]` tags trace to it → **Phase 1: keep as the fixture source until the TS experiment suite reproduces every tagged number; then retire it and retag to the TS runs.**
+
+## Re-read at the Phase 1 gate (2026-09-03)
+
+Every item above keeps its phase; the power item is half done (TS power model and E4h exist; the substation as a placed thing stays Phase 4 M3). Added:
+
+- **Python reference sim.** Fixtures pass and every doc tag now names a TS run → **retire at the Phase 2 gate**: freeze `packages/sim/fixtures/*.json`, delete `frontsim.py`, `phase5*.py`, `export_*.py`.
+- **E10-bloom-cadence (§25 item 1, C8).** The only Python-only number left in the doc. → **Phase 2 Gate A** decides the rhythm by feel; if a number is wanted first, port E10 to the harness (a day).
+- **Open-ground runs.** Every Phase 1 headline is on the scattered map; open ground appears only in E6-shape. The §19 turtle "same on open ground" is structural, not measured. → **nightly** if anyone wants the distribution; no phase needs it.
+- **Edge hopper 100 vs turret hopper 50 (§12).** → **Phase 4 M3** (turret ring geometry) settles turrets per edge.
+- **Relight bank as an object (C4, D4).** → **Phase 10 E20**, as before; E9-hold says the size matters more than the assembler count.
+- **Map 24×24 vs 24×22.** → **human decision D-P1-1**; if 24×24, Phase 9's generator and a nightly re-run of E8/E9.
+- **Linear GitHub integration (D-CI).** → **Phase 2**, when the game tasks start moving.
