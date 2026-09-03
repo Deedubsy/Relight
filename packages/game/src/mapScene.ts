@@ -12,7 +12,7 @@ export const PAD = 36;
 export const MAP_W = PAD * 2 + 24 * CELL;
 export const MAP_H = PAD * 2 + 24 * CELL;
 
-const C = {
+export const C = {
   bg: 0x0b0e1a, grid: 0x0e1326,
   dark: 0x16204a, wellZone: 0x121a40, wellCell: 0x1e1250, wellGlow: 0x5a3aa8,
   mottle: [0x000000, 0x2b3a75, 0x4b5fa8, 0x8b9ad8],
@@ -33,7 +33,15 @@ export interface SceneHooks {
   onPipSelect(edge: FrontEdgeView | null): void;
 }
 
-export class MapScene extends Phaser.Scene {
+/** What main.ts needs from whichever map scene is up (the lattice MapScene or the city's CityMapScene). */
+export interface MapView extends Phaser.Scene {
+  selectEdge(id: number | null): void;
+  hoverBlock(): [number, number] | null;
+  markFocus(b: [number, number], now: number): void;
+  consume(events: SimEvent[], now: number): void;
+}
+
+export class MapScene extends Phaser.Scene implements MapView {
   private readonly session: Session;
   private readonly hooks: SceneHooks;
   private gCells!: Phaser.GameObjects.Graphics;
@@ -87,12 +95,11 @@ export class MapScene extends Phaser.Scene {
   /** Pixel position of an edge's bar centre: the street between blocks a and b. */
   private edgePos(e: FrontEdgeView): { x: number; y: number; vertical: boolean } {
     const ax = PAD + e.from.x * CELL, ay = PAD + e.from.y * CELL;
-    switch (e.dir) {
-      case 0: return { x: ax + CELL, y: ay + CELL / 2, vertical: true };
-      case 1: return { x: ax, y: ay + CELL / 2, vertical: true };
-      case 2: return { x: ax + CELL / 2, y: ay + CELL, vertical: false };
-      default: return { x: ax + CELL / 2, y: ay, vertical: false };
-    }
+    const dx = e.to.x - e.from.x, dy = e.to.y - e.from.y;   // lattice: a unit step to the neighbour
+    if (dx > 0) return { x: ax + CELL, y: ay + CELL / 2, vertical: true };
+    if (dx < 0) return { x: ax, y: ay + CELL / 2, vertical: true };
+    if (dy > 0) return { x: ax + CELL / 2, y: ay + CELL, vertical: false };
+    return { x: ax + CELL / 2, y: ay, vertical: false };
   }
 
   private pipAt(px: number, py: number): FrontEdgeView | null {
@@ -218,7 +225,7 @@ export class MapScene extends Phaser.Scene {
           // §5 machine slot: a small square at the bottom right — outline = empty interior slot, filled = assembler
           // (the HQ's Mk1 included), red = a machine on a block that is no longer interior (a neighbour fell)
           const hq = b.x === st.start[0] && b.y === st.start[1];
-          if (b.machine) {
+          if (b.machines > 0) {
             const risk = !inner && !hq;
             g.fillStyle(risk ? C.red : C.machine, 1); g.fillRect(px + CELL - 10, py + CELL - 10, 7, 7);
             if (risk && blinkSlow) { g.lineStyle(1.5, C.red, 1); g.strokeRect(px + CELL - 11.5, py + CELL - 11.5, 10, 10); }

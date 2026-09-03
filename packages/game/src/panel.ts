@@ -12,6 +12,8 @@ export interface Panel {
   /** Plain lines (\n-separated) at a screen point; null hides. The world view's tile tooltip. */
   tooltipText(text: string | null, px: number, py: number): void;
   setView(mode: 'map' | 'world'): void;
+  /** Show/hide the debug sections (stock, line, ring order, skyline, summary); returns the new visibility. */
+  toggleDebug(): boolean;
   toast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
 }
 
@@ -36,7 +38,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   // header
   const header = el('section');
   const head = el('header');
-  const h1 = el('h1', undefined, `Relight · map view · seed ${st.seed}`);
+  const mapName = st.city ? `${st.city.preset} city` : 'lattice';   // D6: the street-first city is the default map
+  const h1 = el('h1', undefined, `Relight · map view · ${mapName} · seed ${st.seed}`);
   head.append(h1);
   if (session.scenario === 'B') head.append(el('span', 'badge', `Scenario B · from ${clockOf(session.startT)}`));
   const btnLink = el('button', undefined, 'Copy link');
@@ -45,12 +48,12 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const url = shareUrl(session.params);
     navigator.clipboard?.writeText(url).then(() => toast('Link copied', 'good'), () => window.prompt('Copy this link', url));
   };
-  const btnView = el('button', undefined, 'World view (E)');
-  btnView.title = 'Toggle map ↔ world view at the same block (E)';
+  const btnView = el('button', undefined, 'World view (M)');
+  btnView.title = 'Toggle map ↔ world view at the same block (M, D5)';
   btnView.onclick = () => hooks.onToggleView();
   head.append(btnView, btnLink);
   header.append(head);
-  header.append(el('p', 'hint', 'Click a Dark block next to your territory to claim it. Every Held block facing Dark is an ammo edge; each edge pulls magazines from the ring in the order below. Substations that go 40 crawlers unfed fall. Only interior blocks (white outline) have a free machine slot for an assembler' + (flow ? '; hour one\'s magazines come from the line you build on the HQ lot in the world view (E), or from your hands' : '; the HQ holds the Mk1') + '. A block\'s rubble is finite: the strip at its top fades as it is dug out.'));
+  header.append(el('p', 'hint', 'Click a Dark block next to your territory to claim it. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary).'));
   root.append(header);
 
   // HUD
@@ -65,9 +68,15 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const speedRow = el('div', 'row');
   const speeds: [number, string][] = [[0, 'Pause'], [1, '1×'], [4, '4×'], [16, '16×']];
   const speedBtns = speeds.map(([m, label]) => { const b = el('button', undefined, label); b.onclick = () => setSpeed(session, m); speedRow.append(b); return { m, b }; });
-  speedRow.append(el('span', 'hint', 'keys: space, 1, 2, 3 · E world view'));
+  speedRow.append(el('span', 'hint', 'keys: space, 1, 2, 3 · M map ↔ world · ` debug panel'));
   hudSec.append(speedRow);
   root.append(hudSec);
+
+  // Rework Step 5: the side panel is held / front / interior / ammo made vs demanded / stock / blocks lost;
+  // the rest sits behind the debug key (backquote) so a tester reads the map, not the panel.
+  const debug = el('div', 'debug');
+  debug.hidden = true;
+  root.append(debug);
 
   // stock + assembler
   const stockSec = el('section');
@@ -87,7 +96,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   asmRow.append(btnAsm);
   stockSec.append(asmRow);
   if (eco) stockSec.append(el('p', 'hint', `A claim costs ${st.config.eco.claimCost.copper} Cu (10 wire) and ${st.config.eco.claimCost.steel} steel (5 frames). A magazine costs ${st.config.eco.magazineCost.steel} steel + ${st.config.eco.magazineCost.copper} Cu (§12); assemblers stop when the stock runs out. Held blocks yield their district's rubble: civic stone, residential copper, industrial steel.`));
-  root.append(stockSec);
+  debug.append(stockSec);
 
   // M2: the tile line on the HQ lot (world view). Counts and rates come from flowSummary; the Craft button queues a
   // hand craft (§11) that takes its inputs from the Depot stock like a tile assembler would from its belt.
@@ -114,7 +123,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     lineSec.append(craftRow);
     const mc = MACHINE_COST;
     lineSec.append(el('p', 'hint', `World view keys: X Excavator (${mc.excavator.steel} steel, 3×3, ${'0.5'}/s onto the belt it faces), B belt (${mc.belt.steel} steel, 7.5 items/s), I inserter (${mc.inserter.steel} steel + ${mc.inserter.copper} Cu, 1/s), M Shot assembler (${mc.assembler.steel} steel + ${mc.assembler.copper} Cu; ${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu → a magazine in ${SHOT.seconds} s), R rotate, Q hand, right-click removes (full refund). Hold the left button on rubble with the hand to mine it a unit a second. Magazines reach the ring only through the Depot: belt or inserter them into it.`));
-    root.append(lineSec);
+    debug.append(lineSec);
   }
 
   // ring order
@@ -124,7 +133,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   ringSec.append(ring);
   const ringHint = el('p', 'hint', 'Edges fill from the top. The last edges starve first when production falls short. Pips: ● hopper at least half full · ▲ running low · ✕ empty, blinking.');
   ringSec.append(ringHint);
-  root.append(ringSec);
+  debug.append(ringSec);
 
   // facilities (§8: silhouettes within SKYLINE_RANGE blocks of a Held block) and survivors (§8: a block's contents
   // show once a neighbour is Held)
@@ -135,7 +144,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   facSec.append(el('p', 'hint', `A facility shows once it is within ${SKYLINE_RANGE} blocks of a Held block; survivors show once a block next to them is Held, and join when their block is.`));
   const survList = el('ul', 'plain');
   facSec.append(el('h2', undefined, 'Survivors'), survList);
-  root.append(facSec);
+  debug.append(facSec);
 
   // summary
   const sumSec = el('section', 'summary');
@@ -171,7 +180,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   };
   sumRow.append(btnState);
   sumSec.append(sumRow);
-  root.append(sumSec);
+  debug.append(sumSec);
 
   // tooltip + toasts
   const tip = document.getElementById('tooltip')!;
@@ -293,8 +302,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     tip.style.left = `${Math.min(px + 14, window.innerWidth - w - 8)}px`; tip.style.top = `${Math.min(py + 14, window.innerHeight - h - 8)}px`;
   }
   function setView(mode: 'map' | 'world'): void {
-    h1.textContent = `Relight · ${mode} view · seed ${st.seed}`;
-    btnView.textContent = mode === 'map' ? 'World view (E)' : 'Map view (E)';
+    h1.textContent = `Relight · ${mode} view · ${mapName} · seed ${st.seed}`;
+    btnView.textContent = mode === 'map' ? 'World view (M)' : 'Map view (M)';
   }
 
   function tooltip(info: ClaimInfo | HeldInfo | null, px: number, py: number): void {
@@ -325,6 +334,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
 
   return {
     update, tooltip, tooltipText, toast, setView,
+    toggleDebug() { debug.hidden = !debug.hidden; return !debug.hidden; },
     setSelectedEdge(e) {
       selected = e ? e.id : null; ringKey = '';
       if (e) toast(`Edge (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y}) is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);

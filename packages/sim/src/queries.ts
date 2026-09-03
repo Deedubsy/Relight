@@ -1,6 +1,7 @@
 /** Read-only queries for a renderer. Nothing here mutates state. */
 import { SimState, Edge, DARK, CONTESTED, HELD, INERT, VOID, STATE_NAMES, District } from './types';
-import { frontage, interior, heldCount, frontageIf, interiorIf, isCandidate, rotOf, asmCount, productionMagPerMin, idxOf, inBounds, topo, isHostile, isInterior, freeSlot } from './sim';
+import { frontage, interior, heldCount, frontageIf, interiorIf, isCandidate, rotOf, asmCount, productionMagPerMin, idxOf, inBounds, isHostile, isInterior, freeSlot } from './sim';
+import { hopsFrom } from './graph';
 import { TURRET_HOPPER } from './recipes';
 
 export type Pip = 'green' | 'amber' | 'red';
@@ -8,7 +9,8 @@ export type Pip = 'green' | 'amber' | 'red';
 export interface FrontEdgeView {
   id: number; ringPos: number;
   from: { x: number; y: number }; to: { x: number; y: number };
-  dir: number;                // 0 +x, 1 -x, 2 +y, 3 -y (from -> to)
+  kit: boolean;               // D5: false = the edge's turrets have not been carried out yet (walk on)
+  len: number;                // D6: the street segment's length in tiles
   hopper: number; level: number; pip: Pip;
   darkRot: number; darkDistrict: District; darkWell: boolean;
 }
@@ -26,7 +28,7 @@ export function frontList(st: SimState): FrontEdgeView[] {
     const e: Edge = st.ring[r];
     const a = st.blocks[e.a], b = st.blocks[e.b];
     const level = e.hopper / edgeCap(st, e);
-    out.push({ id: e.id, ringPos: r, from: { x: a.x, y: a.y }, to: { x: b.x, y: b.y }, dir: e.id % 4,
+    out.push({ id: e.id, ringPos: r, from: { x: a.x, y: a.y }, to: { x: b.x, y: b.y }, kit: e.kit !== false, len: st.len[e.a][e.id % st.deg],
                hopper: e.hopper, level, pip: pipOf(level),
                darkRot: b.state === DARK ? b.d : 0, darkDistrict: b.name, darkWell: b.well });
   }
@@ -99,37 +101,41 @@ export function ammoStatus(st: SimState): AmmoStatus {
 export interface ShapeMetrics {
   held: number; front: number; interior: number; contested: number;
   bbox: { x0: number; y0: number; x1: number; y1: number; w: number; h: number; aspect: number };
-  perimeter: number;           // Held sides facing an in-bounds non-Held, non-inert cell
-  perimeterOverArea: number;
+  perimeter: number;           // Held sides (graph edges) facing a non-Held, non-inert block
+  perimeterOverArea: number;   // sides per Held block
+  areaTiles: number;           // D6: buildable tiles of the Held blocks
+  perimeterTiles: number;      // D6: tiles of street segment along those sides
   lost: number;
 }
 
 /** GAME-ASSUMPTION: shape metrics for the test plan. Perimeter counts Held sides that face a Dark, Contested or
- *  Void cell (inert and the map edge are walls and do not count); area = Held blocks. */
+ *  Void block (inert and the map edge are walls and do not count); area = Held blocks. D6 adds the tile forms:
+ *  area = buildable tiles, perimeter = front-segment tiles. */
 export function shapeMetrics(st: SimState): ShapeMetrics {
-  const tp = topo(st.w, st.h), B = st.blocks;
-  let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, held = 0, contested = 0, per = 0;
+  const B = st.blocks;
+  let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, held = 0, contested = 0, per = 0, areaT = 0, perT = 0;
   for (let i = 0; i < B.length; i++) {
     const b = B[i];
     if (b.state === CONTESTED) contested++;
     if (b.state !== HELD) continue;
     held++;
     if (b.x < x0) x0 = b.x; if (b.x > x1) x1 = b.x; if (b.y < y0) y0 = b.y; if (b.y > y1) y1 = b.y;
-    const ns = tp.nb[i];
-    for (let k = 0; k < ns.length; k++) { const s = B[ns[k]].state; if (isHostile(s) || s === VOID) per++; }
+    areaT += b.area;
+    const ns = st.nb[i];
+    for (let k = 0; k < ns.length; k++) { const s = B[ns[k]].state; if (isHostile(s) || s === VOID) { per++; perT += st.len[i][k]; } }
   }
   const w = x1 - x0 + 1, h = y1 - y0 + 1;
   return {
     held, front: frontage(st), interior: interior(st), contested,
     bbox: { x0, y0, x1, y1, w, h, aspect: h ? w / h : 0 },
-    perimeter: per, perimeterOverArea: held ? per / held : 0,
+    perimeter: per, perimeterOverArea: held ? per / held : 0, areaTiles: areaT, perimeterTiles: perT,
     lost: st.stats.lost,
   };
 }
 
 export interface SlotInfo {
-  used: number;      // Held blocks with a machine (the HQ's Mk1 included)
-  free: number;      // Interior blocks without a machine
+  used: number;      // machines standing on Held blocks (the HQ's Mk1 included)
+  free: number;      // free slots on Interior blocks (D6: a big lot has several)
   atRisk: number;    // machines on a block that is no longer Interior (a neighbour fell) — the HQ's Mk1 excluded
   next: { x: number; y: number } | null;   // where the next assembler would go
   dry: number;       // Held blocks whose rubble pool is empty
@@ -144,8 +150,8 @@ export function slotInfo(st: SimState): SlotInfo {
     const b = B[i];
     if (b.state !== HELD) continue;
     const inner = isInterior(st, i);
-    if (b.machine) { used++; if (!inner && i !== hq) atRisk++; }
-    else if (inner) free++;
+    if (b.machines > 0) { used += b.machines; if (!inner && i !== hq) atRisk += b.machines; }
+    if (inner) free += Math.max(0, b.slots - b.machines);
     const max = poolMax(st, b.name);
     if (max > 0) { nPool++; fracSum += b.pool / max; if (b.pool <= 0) dry++; }
   }
@@ -166,7 +172,7 @@ export function heldInfo(st: SimState, x: number, y: number): HeldInfo | null {
   const i = idxOf(st, x, y), b = st.blocks[i];
   if (b.state !== HELD) return null;
   const max = poolMax(st, b.name), inner = isInterior(st, i), hq = x === st.start[0] && y === st.start[1];
-  const slot = b.machine ? (hq ? 'Mk1' : inner ? 'assembler' : 'at risk') : inner ? 'free' : max > 0 || b.name === 'out' ? 'front' : 'none';
+  const slot = b.machines > 0 ? (hq ? 'Mk1' : inner ? 'assembler' : 'at risk') : inner ? 'free' : max > 0 || b.name === 'out' ? 'front' : 'none';
   return { held: true, x, y, district: b.name, poolLeft: b.pool, poolFrac: max > 0 ? b.pool / max : 0, slot };
 }
 
@@ -194,34 +200,38 @@ export function clockOf(t: number): string {
 /** §8 scouting: a facility's silhouette shows when it is within SKYLINE_RANGE blocks of any Held block. */
 export const SKYLINE_RANGE = 6;
 function heldWithin(st: SimState, x: number, y: number, range: number): boolean {
-  for (const b of st.blocks) if (b.state === HELD && Math.abs(b.x - x) + Math.abs(b.y - y) <= range) return true;
+  const i = idxOf(st, x, y);
+  if (i < 0) return false;
+  const d = hopsFrom(st, i);
+  for (let j = 0; j < st.blocks.length; j++) if (st.blocks[j].state === HELD && d[j] >= 0 && d[j] <= range) return true;
   return false;
 }
 export interface FacilityView { name: string; x: number; y: number; dist: number; held: boolean; visible: boolean }
 export function facilityList(st: SimState): FacilityView[] {
-  const [sx, sy] = st.start;
   return st.facilities
-    .map(f => ({ ...f, dist: Math.abs(f.x - sx) + Math.abs(f.y - sy), held: st.blocks[idxOf(st, f.x, f.y)].state === HELD,
+    .map(f => ({ ...f, dist: st.hops[idxOf(st, f.x, f.y)], held: st.blocks[idxOf(st, f.x, f.y)].state === HELD,
                  visible: heldWithin(st, f.x, f.y, SKYLINE_RANGE) }))
     .sort((a, b) => a.dist - b.dist);
 }
 /** §8 scouting: a block's contents (here, a survivor group) show once the block or any 4-neighbour is Held. */
 export interface SurvivorView { name: string; tag: string; x: number; y: number; dist: number; held: boolean; revealed: boolean }
 export function survivorList(st: SimState): SurvivorView[] {
-  const [sx, sy] = st.start;
   return st.survivors
-    .map(f => ({ ...f, dist: Math.abs(f.x - sx) + Math.abs(f.y - sy), held: st.blocks[idxOf(st, f.x, f.y)].state === HELD,
+    .map(f => ({ ...f, dist: st.hops[idxOf(st, f.x, f.y)], held: st.blocks[idxOf(st, f.x, f.y)].state === HELD,
                  revealed: heldWithin(st, f.x, f.y, 1) }))
     .sort((a, b) => a.dist - b.dist);
 }
 
 /** Nearest Held block to (x, y) (for the decorative pole line), or null. */
 export function nearestHeld(st: SimState, x: number, y: number): { x: number; y: number } | null {
+  const i = idxOf(st, x, y);
+  if (i < 0) return null;
+  const hd = hopsFrom(st, i);
   let best: { x: number; y: number } | null = null, bd = 1e9;
-  for (const b of st.blocks) {
-    if (b.state !== HELD) continue;
-    const d = Math.abs(b.x - x) + Math.abs(b.y - y);
-    if (d < bd) { bd = d; best = { x: b.x, y: b.y }; }
+  for (let j = 0; j < st.blocks.length; j++) {
+    const b = st.blocks[j];
+    if (b.state !== HELD || hd[j] < 0) continue;
+    if (hd[j] < bd) { bd = hd[j]; best = { x: b.x, y: b.y }; }
   }
   return best;
 }

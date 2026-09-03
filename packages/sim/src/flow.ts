@@ -11,6 +11,7 @@
  *  belt 7.5 items/s (4 items a tile at 1.875 tiles/s), inserter 1 item/s, Shot assembler 3 s a magazine (20/min). */
 import { SimState, Block, HELD, CONTESTED, DARK, Command } from './types';
 import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing } from './sim';
+import { edgeId, edgeTo } from './graph';
 import { RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH } from './recipes';
 import {
   CELL_TILES, MARGIN_TILES, LOT_TILES, P_STEEL, P_COPPER, P_COAL, HQ_PATCHES, DEPOT_LOT, DEPOT_TILES, SUBSTATION_TILES,
@@ -127,7 +128,7 @@ export function ensureFlow(st: SimState): FlowState {
   st.acc = 0;
   const [sx, sy] = st.start;
   const hq = st.blocks[idxOf(st, sx, sy)];
-  if (hq.machine) { hq.machine = false; st.asmManual = Math.max(0, st.asmManual - st.config.startAssemblers); }
+  if (hq.machines > 0) { hq.machines = 0; st.asmManual = Math.max(0, st.asmManual - st.config.startAssemblers); }
   const lot = (lx: number, ly: number): [number, number] => [sx * CELL_TILES + MARGIN_TILES + lx, sy * CELL_TILES + MARGIN_TILES + ly];
   addMachine(st, 'depot', ...lot(DEPOT_LOT, DEPOT_LOT), 0);
   // §11: "two Gun turrets on the north edge with 20 magazines in stock", and later "you have hand-fed the west and east
@@ -700,7 +701,8 @@ export function describeMachine(st: SimState, m: Machine): string {
   switch (m.kind) {
     case 'turret': {
       const id = turretEdge(st, m), b = blockOf(st, m);
-      const where = id < 0 ? 'too far from any street' : st.edgeAt[id] >= 0 ? `covers the ${SIM_DIR_NAMES[id % 4]} street` : `${SIM_DIR_NAMES[id % 4]} street: nothing to shoot at`;
+      const side = id < 0 ? '' : streetName(st, m, id);
+      const where = id < 0 ? 'too far from any street' : st.edgeAt[id] >= 0 ? `covers the ${side} street` : `${side} street: nothing to shoot at`;
       return `Gun turret · ${Math.floor(m.inv.rounds ?? 0)} / ${TURRET_HOPPER} rounds · range ${TURRET_RANGE} · ${where}${m.out > 0 ? ` · firing ${Math.round(m.out)}/s` : ''}${(m.inv.rounds ?? 0) <= 0 && b.state === HELD ? ' · EMPTY: feed it (hand or inserter)' : ''}${on}`;
     }
     case 'lamp': return `Lamp · ${LAMP_KW} kW · radius ${LAMP_RADIUS} · ${running(st, m) ? 'lit' : 'dark'}${on}`;
@@ -718,7 +720,14 @@ export function describeMachine(st: SimState, m: Machine): string {
 
 /** The street a turret covers: the nearest of its cell's four street centre lines, if within range 9 of the turret's
  *  centre. GAME-ASSUMPTION: one street a turret, the nearest; a turret deeper in the lot than its range covers
- *  nothing. Returns the block sim's edge id (block × 4 + edge dir) or -1. */
+ *  nothing. Returns the block sim's edge id (graph.ts) or -1. */
+/** The compass name of the street an edge crosses from the turret's block (lattice) or 'front' in a city. */
+function streetName(st: SimState, m: Machine, id: number): string {
+  if (!st.lattice) return 'front';
+  const b = st.blocks[edgeTo(st, id)], bx = Math.floor(m.x / CELL_TILES), by = Math.floor(m.y / CELL_TILES);
+  return SIM_DIR_NAMES[b.x > bx ? 0 : b.x < bx ? 1 : b.y > by ? 2 : 3];
+}
+
 export function turretEdge(st: SimState, m: Machine): number {
   const bx = Math.floor(m.x / CELL_TILES), by = Math.floor(m.y / CELL_TILES);
   if (by >= st.h - 1) return -1;
@@ -727,7 +736,9 @@ export function turretEdge(st: SimState, m: Machine): number {
   let best = 0;
   for (let k = 1; k < 4; k++) if (d[k] < d[best]) best = k;
   if (d[best] > TURRET_RANGE) return -1;
-  return idxOf(st, bx, by) * 4 + SIM_DIR[best];
+  const dx = [0, 1, 0, -1][best], dy = [-1, 0, 1, 0][best];   // the neighbour across that street
+  if (bx + dx < 0 || bx + dx >= st.w || by + dy < 0 || by + dy >= st.h) return -1;
+  return edgeId(st, idxOf(st, bx, by), idxOf(st, bx + dx, by + dy));
 }
 
 /** GAME-ASSUMPTION: on the HQ block — the one lot Phase 4 really builds on — an edge fires only through physical

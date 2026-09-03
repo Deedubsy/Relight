@@ -89,20 +89,20 @@ test('feeding: an inserter fills a turret from a belt of magazines to its 50-rou
   for (const m of pair) m.inv.rounds = 0;
   st.buffer = 30;
   step(st);
-  assert.equal(frontList(st).find(v => v.from.x === st.start[0] && v.from.y === st.start[1] && v.dir === e.id % 4)!.pip, 'red');
+  assert.equal(frontList(st).find(v => v.id === e.id)!.pip, 'red');
   const r1 = handFeed(st, pair[0].x, pair[0].y)!;
   assert.equal(r1.kind, 'turret'); assert.equal(r1.moved, 3); assert.equal(pair[0].inv.rounds, 30); assert.equal(st.buffer, 0);
   assert.match(handFeed(st, pair[1].x, pair[1].y)!.reason, /no magazines/);
   assert.equal(f.stats.handFed, 3);
   step(st);
-  assert.equal(frontList(st).find(v => v.from.x === st.start[0] && v.from.y === st.start[1] && v.dir === e.id % 4)!.pip, 'amber');
+  assert.equal(frontList(st).find(v => v.id === e.id)!.pip, 'amber');
   st.buffer = 80;
   assert.equal(handFeed(st, pair[0].x, pair[0].y)!.moved, 2, 'tops up to 50');
   assert.match(handFeed(st, pair[0].x, pair[0].y)!.reason, /full/);
   assert.equal(handFeed(st, pair[1].x, pair[1].y)!.moved, 5);
   assert.equal(st.buffer, 10);
   step(st);
-  assert.equal(frontList(st).find(v => v.from.x === st.start[0] && v.from.y === st.start[1] && v.dir === e.id % 4)!.pip, 'green');
+  assert.equal(frontList(st).find(v => v.id === e.id)!.pip, 'green');
   // a removed turret hands its rounds back to the line buffer
   remove(st, pair[1].x, pair[1].y);
   assert.equal(st.buffer, 60);
@@ -128,7 +128,7 @@ test('engagement: crawlers drain the turrets fullest-first at 5 rounds/s each; a
   ev = runS(st, 2);
   assert.equal(full.hopper, 0);
   assert.equal(ev.filter(e => e.type === 'hopper-empty').length, 1);
-  assert.equal(frontList(st).find(v => v.from.x === st.start[0] && v.from.y === st.start[1] && v.dir === full.id % 4)!.pip, 'red');
+  assert.equal(frontList(st).find(v => v.id === full.id)!.pip, 'red');
   assert.ok(st.stats.unfedTotal > 0.5, 'the fourth crawler found the hopper empty');
   // a rush: 30 crawlers in one second need 90 rounds; two turrets fire 10
   const other = st.ring.find(e => e.a === hqIdx && e.hopper === 100)!;

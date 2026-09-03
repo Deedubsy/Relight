@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
-import { SimEvent, flowSummary, canPlace, place, remove, rotate, queueCraft, setHandMine, Kind, Dir, CELL_TILES, MARGIN_TILES, handFeed, cellLights, substationAt, poleGrid, SIM_DIR_NAMES,
+import { SimEvent, flowSummary, canPlace, place, remove, rotate, queueCraft, setHandMine, Kind, Dir, CELL_TILES, MARGIN_TILES, handFeed, cellLights, substationAt, poleGrid,
 } from '@relight/sim';
 import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session } from './session';
-import { MapScene, SceneHooks, MAP_W, MAP_H } from './mapScene';
+import { MapScene, MapView, SceneHooks, MAP_W, MAP_H } from './mapScene';
+import { CityMapScene } from './cityMapScene';
 import { WorldScene } from './worldScene';
 import { View } from './view';
 import { createPanel } from './panel';
@@ -45,7 +46,7 @@ function describe(events: SimEvent[]): void {
       case 'run-dry': panel.toast(`Block (${ev.x},${ev.y}) is dug out — no more ${ev.district === 'civ' ? 'stone' : ev.district === 'res' ? 'copper' : 'steel'} from it`); break;
       case 'reorder': panel.toast('Ring order changed'); break;
       // M3 (rule 8): the hopper, Generator and §14 shed rules surface as toasts from the sim's events
-      case 'hopper-empty': panel.toast(`Hopper EMPTY on block (${ev.x},${ev.y}), ${SIM_DIR_NAMES[ev.dir]} side — its pip is red until it is fed`, 'bad'); break;
+      case 'hopper-empty': panel.toast(`Hopper EMPTY on block (${ev.x},${ev.y}) facing (${ev.nx},${ev.ny}) — its pip is red until it is fed`, 'bad'); break;
       case 'gen-dry': panel.toast('The Generator burned its last coal — hand-feed it (click it with the hand) or belt coal in. No power until then.', 'bad'); break;
       case 'brownout': panel.toast(`Brownout: demand ${Math.round(ev.demandKw)} kW over ${Math.round(ev.supplyKw)} kW supply — machines shed first (§14), then assemblers, then substations`, 'bad'); break;
       case 'shed': panel.toast(ev.machine ? `Brownout: a ${ev.machine} switched off` : ev.x < 0 ? 'Brownout: an assembler switched off' : `Brownout: substation (${ev.x},${ev.y}) switched off — its streetlights are out`, 'bad'); break;
@@ -68,7 +69,8 @@ const hooks: SceneHooks = {
   onHover: (info, px, py) => panel.tooltip(info, px, py),
   onPipSelect: e => panel.setSelectedEdge(e),
 };
-const mapScene = new MapScene(session, hooks);
+// D6: the city map draws polygons; the lattice MapScene stays for ?map=lattice and the lattice-era snapshots
+const mapScene: MapView = session.state.city ? new CityMapScene(session, hooks) : new MapScene(session, hooks);
 const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind) });
 game.scene.add('map', mapScene, view.mode === 'map');
 game.scene.add('world', worldScene, view.mode === 'world');
@@ -83,6 +85,8 @@ game.events.on(Phaser.Core.Events.STEP, (time: number, delta: number) => {
 });
 
 function toggleView(): void {
+  // GAME-ASSUMPTION (rework D6): the world view is lattice-bound until slice M1 ports the tile layer to irregular lots
+  if (session.state.city) { panel.toast('The world view (on foot, on the tiles) comes with slice M1 on the city; ?map=lattice still has the old one', 'info'); return; }
   if (view.mode === 'map') {
     view.focus = mapScene.hoverBlock() ?? view.focus;
     view.mode = 'world';
@@ -108,7 +112,8 @@ window.addEventListener('keydown', ev => {
   else if (ev.key === '1') setSpeed(session, 1);
   else if (ev.key === '2') setSpeed(session, 4);
   else if (ev.key === '3') setSpeed(session, 16);
-  else if (ev.key === 'e' || ev.key === 'E') toggleView();
+  else if (ev.key === 'm' || ev.key === 'M') toggleView();   // D5: M = map view
+  else if (ev.key === '`') panel.toggleDebug();
   else if (view.mode === 'world' && worldScene.key(ev.key)) ev.preventDefault();
 });
 

@@ -1,8 +1,9 @@
 /** One experiment run: a policy bot on a generated map for N hours, with the per-run bookkeeping the Python
  *  experiments read (frontsim.py `stats`): bloom records, edge-minutes per district, hopper samples, fall delays. */
+import { idxOf } from '@relight/sim';
 import {
   SimConfig, Command, DEFAULT_CONFIG, createState, generateMap, step, createBot, botCommands, Policy,
-  HourRow, DARK, HELD, District,
+  HourRow, DARK, HELD, District, CityPreset, citySpec,
 } from '@relight/sim';
 
 export type DistrictKey = District | 'well';
@@ -12,6 +13,10 @@ export interface RunOpts {
   cfg?: Partial<SimConfig>;
   claimGap?: number | null;   // fixed claim gap (frontsim.py claim_gap); null = the §18 cadence
   gapAfter?: number;          // claim gap after hour one (default 300 s)
+  map?: 'lattice' | CityPreset;   // D6: the lattice fixtures' map, or a street-first city preset (default lattice)
+  walk?: boolean;             // D5: the engineer walks (kits gate edges, the bot walks to claim)
+  rifle?: boolean;            // D5: the bot fires the rifle at a red edge of its block
+  plazas?: 'inert' | 'buildable';   // D6 (E6): a city's plazas as inert faces (canonical) or as buildable lots
 }
 
 export interface BloomRec { t: number; key: DistrictKey; wake: boolean; cr: number; sh: number; hu: number; rounds: number; shells: number }
@@ -38,6 +43,8 @@ export interface RunSummary {
   wellHeldAt: number[];   // seconds at which a well block itself became Held (the bot took the well head-on)
   bufferAt: Record<number, number>;                     // rounds in the buffer at each hour mark
   ticks: number;
+  engineer: { walkedHour: number[]; fired: number; firstShot: number; hurt: number; downs: number; kills: number; truckAt: number };
+  walks: { t: number; reason: string; tiles: number }[];
 }
 
 /** The canonical experiment configuration: the fixture config of the regression (scattered 9 % map, wake cap on,
@@ -45,21 +52,27 @@ export interface RunSummary {
  *  what they change. GAME-ASSUMPTION: the doc's headline numbers refer to this map (E6 measures the open map too). */
 export const CANON: SimConfig = { ...DEFAULT_CONFIG, eco: { ...DEFAULT_CONFIG.eco } };
 
+/** The map every run uses unless it says otherwise: `npm run experiments -- --map river` (D6) or `--map lattice`. */
+export let DEFAULT_MAP: 'lattice' | CityPreset = 'river';
+export function setDefaultMap(m: 'lattice' | CityPreset): void { DEFAULT_MAP = m; }
+
 export function runSim(o: RunOpts): RunSummary {
+  o = { ...o, map: o.map ?? DEFAULT_MAP };
   const cfg: SimConfig = { ...CANON, ...(o.cfg ?? {}), eco: { ...CANON.eco } };
-  const spec = generateMap(o.seed, cfg);
+  if (o.walk) cfg.walk = true;
+  const spec = o.map && o.map !== 'lattice' ? citySpec(o.seed, o.map, cfg, {}, o.plazas ?? 'inert') : generateMap(o.seed, cfg);
   const st = createState(spec, cfg, o.seed);
-  const bot = createBot(o.policy, o.claimGap ?? null, false, o.gapAfter ?? 300);
+  const bot = createBot(o.policy, o.claimGap ?? null, false, o.gapAfter ?? 300, o.rifle ?? false);
   const cmds: Command[] = [];
   const ticks = Math.round(o.hours * 3600);
   const blooms: BloomRec[] = [], lostLog: FallRec[] = [], lostByHour: number[] = [];
   const edgeMin: Record<string, number> = {}, awakeMin: Record<string, number> = {};
   const ratios: Record<number, [number, number]> = {}, asmAt: Record<number, number> = {};
   let hopSum = 0, hopN = 0, minBuf = Infinity;
-  let firstShade = -1, firstHulk = -1, hqFell = -1;
+  let firstShade = -1, firstHulk = -1, hqFell = -1, truckAt = -1;
   const wellDeadAt: number[] = [], wellHeldAt: number[] = [], bufferAt: Record<number, number> = {};
-  const wellKeys = new Set(spec.wells.map(([x, y]) => x * st.h + y));
-  const keyOf = (x: number, y: number): DistrictKey => { const b = st.blocks[x * st.h + y]; return b.well ? 'well' : b.name; };
+  const wellKeys = new Set(spec.wells.map(([x, y]) => idxOf(st, x, y)));
+  const keyOf = (x: number, y: number): DistrictKey => { const b = st.blocks[idxOf(st, x, y)]; return b.well ? 'well' : b.name; };
   for (let k = 0; k < ticks; k++) {
     cmds.length = 0;
     botCommands(st, bot, cmds);
@@ -76,8 +89,10 @@ export function runSim(o: RunOpts): RunSummary {
         if (ev.x === spec.start[0] && ev.y === spec.start[1]) hqFell = ev.t;
       } else if (ev.type === 'well-dead') {
         wellDeadAt.push(ev.t);
+      } else if (ev.type === 'truck') {
+        if (truckAt < 0) truckAt = ev.t;
       } else if (ev.type === 'held') {
-        if (wellKeys.has(ev.x * st.h + ev.y)) wellHeldAt.push(ev.t);
+        if (wellKeys.has(idxOf(st, ev.x, ev.y))) wellHeldAt.push(ev.t);
       } else if (ev.type === 'hour') {
         ratios[ev.row.h] = [ev.row.mags, ev.row.production]; asmAt[ev.row.h] = ev.row.production / Math.max(1e-9, cfg.asmRate);
       }
@@ -93,8 +108,8 @@ export function runSim(o: RunOpts): RunSummary {
         for (let i = 0; i < st.blocks.length; i++) {
           const b = st.blocks[i];
           if (b.state === HELD) {
-            for (let d = 0; d < 4; d++) {
-              const ri = st.edgeAt[i * 4 + d];
+            for (let d = 0; d < st.deg; d++) {
+              const ri = st.edgeAt[i * st.deg + d];
               if (ri < 0) continue;
               const n = st.blocks[st.ring[ri].b];
               if (n.state === DARK) { const kk = n.well ? 'well' : n.name; edgeMin[kk] = (edgeMin[kk] ?? 0) + 1; }
@@ -106,7 +121,7 @@ export function runSim(o: RunOpts): RunSummary {
   }
   let held = 0;
   for (const b of st.blocks) { if (b.state === HELD) held++; }
-  const nScatter = cfg.scatter ? spec.scatteredInert.length : 0;
+  const nScatter = spec.graph ? spec.graph.inert.length : cfg.scatter ? spec.scatteredInert.length : 0;   // a city's plazas count as its inert cells
   const last = st.hourly[st.hourly.length - 1];
   return {
     opts: o, hourly: st.hourly, totalMags: st.totalRounds / 10, totalShells: st.totalShells,
@@ -119,6 +134,9 @@ export function runSim(o: RunOpts): RunSummary {
     power: { demandKw: st.power.demandKw, supplyKw: st.power.supplyKw, shedLog: st.stats.shedLog, shedEvents: st.stats.shedEvents,
              firstBrownout: st.stats.firstBrownout, lostInWindow: st.stats.lostInWindow, lostAfterWindow: st.stats.lostAfterWindow },
     wellsDead: st.stats.wellsDead,
+    engineer: { walkedHour: st.engineer.walkedHour.slice(), fired: st.engineer.fired, firstShot: st.engineer.firstShot, hurt: st.engineer.hurt,
+                downs: st.engineer.downs, kills: st.engineer.kills, truckAt },
+    walks: bot.walks.map(w => ({ ...w })),
     firstShade, firstHulk, hqFell, wellDeadAt, wellHeldAt, bufferAt,
     ticks,
   };

@@ -1,0 +1,248 @@
+{
+ "id": "E7",
+ "title": "Shape ratios",
+ "pyNames": [
+  "E7 regression",
+  "E12"
+ ],
+ "docRefs": [
+  "§7",
+  "§9",
+  "§27"
+ ],
+ "setup": "compact, balanced, spike, cheapest; canonical map; production on",
+ "sections": [
+  {
+   "title": "E7: five policies on the canonical map, 5 h, production on (turtle never claims: the HQ alone)",
+   "header": [
+    "cadence",
+    "policy",
+    "total magazines",
+    "total shells",
+    "first interior (min) per seed",
+    "held",
+    "front",
+    "lost"
+   ],
+   "rows": [
+    [
+     "§18 cadence (15 min in h1, then 5 min)",
+     "compact",
+     "6458 [5999–7006]",
+     "307 [120–520]",
+     "86/76/60",
+     "52 [52–52]",
+     "19 [18–20]",
+     "0.0 [0.0–0.0]"
+    ],
+    [
+     "§18 cadence (15 min in h1, then 5 min)",
+     "balanced",
+     "16139 [15340–17173]",
+     "2200 [2140–2250]",
+     "101/81/106",
+     "45 [41–47]",
+     "30 [28–34]",
+     "7.3 [5.0–11.0]"
+    ],
+    [
+     "§18 cadence (15 min in h1, then 5 min)",
+     "spike",
+     "16768 [16210–17183]",
+     "2463 [2300–2600]",
+     "101/81/106",
+     "42 [40–43]",
+     "38 [34–42]",
+     "10.3 [9.0–12.0]"
+    ],
+    [
+     "§18 cadence (15 min in h1, then 5 min)",
+     "cheapest",
+     "6887 [6563–7436]",
+     "143 [100–170]",
+     "60/60/60",
+     "52 [52–52]",
+     "24 [23–25]",
+     "0.0 [0.0–0.0]"
+    ],
+    [
+     "§18 cadence (15 min in h1, then 5 min)",
+     "turtle",
+     "878 [877–879]",
+     "0 [0–0]",
+     "never/never/never",
+     "1 [1–1]",
+     "3 [3–3]",
+     "0.0 [0.0–0.0]"
+    ],
+    [
+     "§18 cadence (15 min in h1, then 5 min)",
+     "spike/compact",
+     "2.60×",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    [
+     "§18 cadence (15 min in h1, then 5 min)",
+     "cheapest/compact",
+     "1.07×",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    [
+     "legacy 8-min cadence",
+     "compact",
+     "4093 [3773–4551]",
+     "60 [20–90]",
+     "101/85/60",
+     "34 [34–34]",
+     "15 [13–18]",
+     "0.0 [0.0–0.0]"
+    ],
+    [
+     "legacy 8-min cadence",
+     "balanced",
+     "14595 [14043–15516]",
+     "2030 [1960–2150]",
+     "125/93/133",
+     "34 [34–34]",
+     "30 [28–32]",
+     "0.0 [0.0–0.0]"
+    ],
+    [
+     "legacy 8-min cadence",
+     "spike",
+     "15281 [14444–15786]",
+     "2020 [1870–2150]",
+     "125/93/133",
+     "34 [34–34]",
+     "38 [36–39]",
+     "0.0 [0.0–0.0]"
+    ],
+    [
+     "legacy 8-min cadence",
+     "cheapest",
+     "5408 [4994–5933]",
+     "77 [40–120]",
+     "60/60/60",
+     "34 [34–34]",
+     "19 [16–23]",
+     "0.0 [0.0–0.0]"
+    ],
+    [
+     "legacy 8-min cadence",
+     "turtle",
+     "878 [877–879]",
+     "0 [0–0]",
+     "never/never/never",
+     "1 [1–1]",
+     "3 [3–3]",
+     "0.0 [0.0–0.0]"
+    ],
+    [
+     "legacy 8-min cadence",
+     "spike/compact",
+     "3.73×",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    [
+     "legacy 8-min cadence",
+     "cheapest/compact",
+     "1.32×",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    [
+     "§18 cadence + interleave 10 s",
+     "compact",
+     "6392 [5966–6943]",
+     "293 [80–510]",
+     "86/76/60",
+     "52 [52–52]",
+     "19 [18–20]",
+     "0.0 [0.0–0.0]"
+    ],
+    [
+     "§18 cadence + interleave 10 s",
+     "spike",
+     "16827 [16381–17228]",
+     "2463 [2360–2630]",
+     "101/81/106",
+     "41 [39–44]",
+     "38 [36–40]",
+     "10.7 [8.0–13.0]"
+    ]
+   ]
+  }
+ ],
+ "checks": [
+  {
+   "name": "§7/§9 spike costs more ammo than compact (§18 cadence)",
+   "pass": true,
+   "detail": "2.60× (expected 2–3.5×)"
+  },
+  {
+   "name": "§7/§17 cheapest costs more than compact on the scattered map (§18 cadence)",
+   "pass": true,
+   "detail": "1.07× (expected 1–1.5×)"
+  },
+  {
+   "name": "§5 interleaving adjacent blooms by 10 s changes compact ammo by < 10 %",
+   "pass": true,
+   "detail": "0.99× (expected 0.9–1.1×)"
+  }
+ ],
+ "data": {
+  "cadence18": {
+   "totals": {
+    "compact": 6457.8,
+    "balanced": 16139.066666666666,
+    "spike": 16767.666666666668,
+    "cheapest": 6886.766666666667,
+    "turtle": 878.1
+   },
+   "spikeCompact": 2.596498291471812,
+   "cheapestCompact": 1.066426130674017,
+   "balancedCompact": 2.499158640197384,
+   "turtle": 878.1
+  },
+  "cadence8": {
+   "totals": {
+    "compact": 4092.633333333333,
+    "balanced": 14595.1,
+    "spike": 15281.033333333333,
+    "cheapest": 5407.6,
+    "turtle": 878.1
+   },
+   "spikeCompact": 3.733789980371236,
+   "cheapestCompact": 1.321300873927952,
+   "balancedCompact": 3.56618802889745,
+   "turtle": 878.1
+  },
+  "interleave": {
+   "compact": 0.9897694777375162,
+   "spike": 1.0035524720195614
+  }
+ },
+ "meta": {
+  "seeds": [
+   3,
+   4,
+   5
+  ],
+  "hours": 5
+ }
+}

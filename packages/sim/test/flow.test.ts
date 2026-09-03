@@ -41,11 +41,11 @@ test('the HQ lot: §11 patches, a clear Depot footprint, the Depot placed by ens
   const lay = lotLayout(st.seed, st.blocks[idxOf(st, sx, sy)], true);
   assert.equal(lay.tiles, HQ_RUBBLE_TILES, 'the start lot is cleared down to its south strip');
   const hqBlock = st.blocks[idxOf(st, sx, sy)];
-  assert.equal(hqBlock.machine, true, 'the block sim starts with the Mk1');
+  assert.equal(hqBlock.machines, 1, 'the block sim starts with the Mk1');
   const prod0 = st.config.startAsmRate;
   const f = ensureFlow(st);
   assert.equal(f.machines.length, 8, 'Depot, six turrets, one Generator (M3)'); assert.equal(f.machines[0].kind, 'depot');
-  assert.equal(hqBlock.machine, false, 'the Mk1 stand-in retires when the real machines arrive');
+  assert.equal(hqBlock.machines, 0, 'the Mk1 stand-in retires when the real machines arrive');
   assert.equal(st.asmManual, 0);
   assert.ok(prod0 !== null);
   const [dx, dy] = hq(st, 9, 9);

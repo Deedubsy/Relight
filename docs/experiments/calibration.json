@@ -1,5 +1,7 @@
 {
- "hash": "ee23bb1c",
+ "hash": "5eae8618",
+ "map": "river",
+ "walk": true,
  "overrides": {},
  "economy": true,
  "build": true,
@@ -42,6 +44,7 @@
   "wellDeath": false,
   "interleave": false,
   "economy": true,
+  "walk": true,
   "eco": {
    "yieldPerMin": 32,
    "claimCost": {
@@ -59,7 +62,9 @@
    },
    "startPatch": {
     "steel": 7680,
-    "perMin": 64
+    "perMin": 64,
+    "copper": 3840,
+    "copperPerMin": 32
    },
    "magazineCost": {
     "steel": 2,
@@ -76,10 +81,10 @@
   {
    "bot": "compact",
    "seed": 3,
-   "firstAmber": 1,
-   "firstRed": 1,
-   "firstAmberAfter1": null,
-   "firstRedAfter1": null,
+   "firstAmber": 1830,
+   "firstRed": 1830,
+   "firstAmberAfter1": 1830,
+   "firstRedAfter1": 1830,
    "firstLoss": null,
    "firstEnclosure": 3629,
    "lost": 0,
@@ -94,112 +99,25 @@
     "150": 22,
     "180": 28
    },
-   "front180": 11,
-   "interior180": 18,
-   "copper180": 16736.099999994363,
-   "steel180": 1798.5999999999253,
+   "front180": 20,
+   "interior180": 17,
+   "copper180": 13886.053333330612,
+   "steel180": 1396.6399999999592,
    "minSteel": 80.73333333333333,
    "minSteelAt": 1,
    "patchOutAt": 7201,
    "assemblers": [
-    3780,
-    9780
+    4260,
+    7800
    ],
    "production180": 50,
-   "peakDemand": 27.889999999999997,
-   "peakDemandAt": 10440,
-   "mags": 2305.7,
-   "magsMade": 2805.7000000000357,
-   "magsPerHeld": 82.34642857142856,
-   "amberTicks": 30,
-   "redTicks": 6,
-   "slots": {
-    "60": {
-     "used": 1,
-     "free": 0,
-     "dry": 0
-    },
-    "120": {
-     "used": 2,
-     "free": 7,
-     "dry": 1
-    },
-    "180": {
-     "used": 3,
-     "free": 15,
-     "dry": 4
-    }
-   },
-   "maxAsmBefore120": 2,
-   "machinesLost": 0,
-   "distinctLost": 0,
-   "dryLog": [
-    {
-     "t": 7199,
-     "x": 12,
-     "y": 22,
-     "district": "res"
-    },
-    {
-     "t": 8128,
-     "x": 11,
-     "y": 22,
-     "district": "civ"
-    },
-    {
-     "t": 9027,
-     "x": 13,
-     "y": 22,
-     "district": "civ"
-    },
-    {
-     "t": 9928,
-     "x": 10,
-     "y": 22,
-     "district": "civ"
-    }
-   ]
-  },
-  {
-   "bot": "compact",
-   "seed": 4,
-   "firstAmber": 1,
-   "firstRed": 1,
-   "firstAmberAfter1": null,
-   "firstRedAfter1": null,
-   "firstLoss": null,
-   "firstEnclosure": 3629,
-   "lost": 0,
-   "stalls": 0,
-   "firstStall": null,
-   "claims": 27,
-   "held": {
-    "30": 2,
-    "60": 4,
-    "90": 10,
-    "120": 16,
-    "150": 22,
-    "180": 28
-   },
-   "front180": 10,
-   "interior180": 20,
-   "copper180": 14431.899999996736,
-   "steel180": 1964.5999999999913,
-   "minSteel": 80.73333333333333,
-   "minSteelAt": 1,
-   "patchOutAt": 7201,
-   "assemblers": [
-    3780,
-    9720
-   ],
-   "production180": 50,
-   "peakDemand": 25.76,
-   "peakDemandAt": 10020,
-   "mags": 2214.1,
-   "magsMade": 2722.7000000000485,
-   "magsPerHeld": 79.075,
-   "amberTicks": 30,
-   "redTicks": 6,
+   "peakDemand": 25.71,
+   "peakDemandAt": 8340,
+   "mags": 2407,
+   "magsMade": 3006.6800000000267,
+   "magsPerHeld": 85.96428571428571,
+   "amberTicks": 122,
+   "redTicks": 122,
    "slots": {
     "60": {
      "used": 1,
@@ -209,11 +127,11 @@
     "120": {
      "used": 2,
      "free": 6,
-     "dry": 1
+     "dry": 0
     },
     "180": {
      "used": 3,
-     "free": 17,
+     "free": 14,
      "dry": 4
     }
    },
@@ -222,40 +140,146 @@
    "distinctLost": 0,
    "dryLog": [
     {
-     "t": 7199,
-     "x": 12,
-     "y": 22,
-     "district": "res"
-    },
-    {
-     "t": 8128,
-     "x": 13,
-     "y": 22,
+     "t": 8928,
+     "x": 424,
+     "y": 597,
      "district": "civ"
     },
     {
-     "t": 9028,
-     "x": 11,
-     "y": 22,
+     "t": 9749,
+     "x": 421,
+     "y": 634,
      "district": "civ"
     },
     {
-     "t": 9928,
-     "x": 14,
-     "y": 22,
+     "t": 10378,
+     "x": 356,
+     "y": 649,
+     "district": "civ"
+    },
+    {
+     "t": 10716,
+     "x": 390,
+     "y": 596,
      "district": "civ"
     }
    ]
   },
   {
    "bot": "compact",
+   "seed": 4,
+   "firstAmber": 930,
+   "firstRed": 930,
+   "firstAmberAfter1": 930,
+   "firstRedAfter1": 930,
+   "firstLoss": 9171,
+   "firstEnclosure": 2733,
+   "lost": 1,
+   "stalls": 2,
+   "firstStall": 10200,
+   "claims": 25,
+   "held": {
+    "30": 2,
+    "60": 4,
+    "90": 10,
+    "120": 16,
+    "150": 22,
+    "180": 25
+   },
+   "front180": 16,
+   "interior180": 16,
+   "copper180": 25284.26666665226,
+   "steel180": 0,
+   "minSteel": 0,
+   "minSteelAt": 10105,
+   "patchOutAt": 7201,
+   "assemblers": [
+    3780,
+    7920,
+    8880
+   ],
+   "production180": 70,
+   "peakDemand": 43.089999999999996,
+   "peakDemandAt": 9180,
+   "mags": 3479.6,
+   "magsMade": 3695.000000000024,
+   "magsPerHeld": 139.184,
+   "amberTicks": 237,
+   "redTicks": 237,
+   "slots": {
+    "60": {
+     "used": 1,
+     "free": 0,
+     "dry": 0
+    },
+    "120": {
+     "used": 2,
+     "free": 7,
+     "dry": 0
+    },
+    "180": {
+     "used": 4,
+     "free": 13,
+     "dry": 7
+    }
+   },
+   "maxAsmBefore120": 2,
+   "machinesLost": 0,
+   "distinctLost": 1,
+   "dryLog": [
+    {
+     "t": 8920,
+     "x": 498,
+     "y": 657,
+     "district": "res"
+    },
+    {
+     "t": 8945,
+     "x": 494,
+     "y": 623,
+     "district": "res"
+    },
+    {
+     "t": 9586,
+     "x": 597,
+     "y": 617,
+     "district": "civ"
+    },
+    {
+     "t": 9721,
+     "x": 591,
+     "y": 649,
+     "district": "civ"
+    },
+    {
+     "t": 9816,
+     "x": 431,
+     "y": 664,
+     "district": "civ"
+    },
+    {
+     "t": 9963,
+     "x": 573,
+     "y": 672,
+     "district": "civ"
+    },
+    {
+     "t": 10784,
+     "x": 570,
+     "y": 620,
+     "district": "res"
+    }
+   ]
+  },
+  {
+   "bot": "compact",
    "seed": 5,
-   "firstAmber": 1,
-   "firstRed": 1,
-   "firstAmberAfter1": null,
-   "firstRedAfter1": null,
+   "firstAmber": 930,
+   "firstRed": 930,
+   "firstAmberAfter1": 930,
+   "firstRedAfter1": 930,
    "firstLoss": null,
-   "firstEnclosure": 3629,
+   "firstEnclosure": 2728,
    "lost": 0,
    "stalls": 0,
    "firstStall": null,
@@ -269,24 +293,23 @@
     "180": 28
    },
    "front180": 17,
-   "interior180": 14,
-   "copper180": 17041.96666666066,
-   "steel180": 1432.1999999998527,
+   "interior180": 18,
+   "copper180": 21734.88666665646,
+   "steel180": 2366.8399999998783,
    "minSteel": 80.73333333333333,
    "minSteelAt": 1,
    "patchOutAt": 7201,
    "assemblers": [
-    4260,
-    8820
+    3960
    ],
-   "production180": 50,
-   "peakDemand": 26.360000000000003,
-   "peakDemandAt": 10800,
-   "mags": 2441.9,
-   "magsMade": 2988.900000000009,
-   "magsPerHeld": 87.21071428571429,
-   "amberTicks": 30,
-   "redTicks": 6,
+   "production180": 30,
+   "peakDemand": 18.29,
+   "peakDemandAt": 8640,
+   "mags": 1951,
+   "magsMade": 2541.579999999968,
+   "magsPerHeld": 69.67857142857143,
+   "amberTicks": 256,
+   "redTicks": 256,
    "slots": {
     "60": {
      "used": 1,
@@ -295,439 +318,13 @@
     },
     "120": {
      "used": 2,
-     "free": 4,
+     "free": 9,
      "dry": 1
     },
     "180": {
-     "used": 3,
-     "free": 11,
-     "dry": 4
-    }
-   },
-   "maxAsmBefore120": 2,
-   "machinesLost": 0,
-   "distinctLost": 0,
-   "dryLog": [
-    {
-     "t": 7199,
-     "x": 12,
-     "y": 22,
-     "district": "res"
-    },
-    {
-     "t": 8128,
-     "x": 13,
-     "y": 22,
-     "district": "civ"
-    },
-    {
-     "t": 9029,
-     "x": 14,
-     "y": 22,
-     "district": "civ"
-    },
-    {
-     "t": 9927,
-     "x": 11,
-     "y": 22,
-     "district": "civ"
-    }
-   ]
-  },
-  {
-   "bot": "spike",
-   "seed": 3,
-   "firstAmber": 1,
-   "firstRed": 1,
-   "firstAmberAfter1": 3908,
-   "firstRedAfter1": 3911,
-   "firstLoss": 4097,
-   "firstEnclosure": null,
-   "lost": 24,
-   "stalls": 0,
-   "firstStall": null,
-   "claims": 27,
-   "held": {
-    "30": 2,
-    "60": 4,
-    "90": 4,
-    "120": 4,
-    "150": 4,
-    "180": 4
-   },
-   "front180": 9,
-   "interior180": 0,
-   "copper180": 13465.000000000306,
-   "steel180": 6438.800000003161,
-   "minSteel": 80.73333333333333,
-   "minSteelAt": 1,
-   "patchOutAt": 7201,
-   "assemblers": [],
-   "production180": 10,
-   "peakDemand": 25.53,
-   "peakDemandAt": 4260,
-   "mags": 2225.2,
-   "magsMade": 1800.0000000002597,
-   "magsPerHeld": 556.3,
-   "amberTicks": 5727,
-   "redTicks": 4812,
-   "slots": {
-    "60": {
-     "used": 1,
-     "free": 0,
-     "dry": 0
-    },
-    "120": {
-     "used": 1,
-     "free": 0,
-     "dry": 1
-    },
-    "180": {
-     "used": 1,
-     "free": 0,
-     "dry": 4
-    }
-   },
-   "maxAsmBefore120": 1,
-   "machinesLost": 0,
-   "distinctLost": 2,
-   "dryLog": [
-    {
-     "t": 7199,
-     "x": 12,
-     "y": 22,
-     "district": "res"
-    },
-    {
-     "t": 8132,
-     "x": 12,
-     "y": 21,
-     "district": "res"
-    },
-    {
-     "t": 9035,
-     "x": 12,
-     "y": 20,
-     "district": "res"
-    },
-    {
-     "t": 9934,
-     "x": 12,
-     "y": 19,
-     "district": "res"
-    }
-   ]
-  },
-  {
-   "bot": "spike",
-   "seed": 4,
-   "firstAmber": 1,
-   "firstRed": 1,
-   "firstAmberAfter1": 3908,
-   "firstRedAfter1": 3912,
-   "firstLoss": 4097,
-   "firstEnclosure": null,
-   "lost": 24,
-   "stalls": 0,
-   "firstStall": null,
-   "claims": 27,
-   "held": {
-    "30": 2,
-    "60": 4,
-    "90": 4,
-    "120": 4,
-    "150": 4,
-    "180": 4
-   },
-   "front180": 9,
-   "interior180": 0,
-   "copper180": 13465.000000000306,
-   "steel180": 6436.133333336493,
-   "minSteel": 80.73333333333333,
-   "minSteelAt": 1,
-   "patchOutAt": 7201,
-   "assemblers": [],
-   "production180": 10,
-   "peakDemand": 24.09,
-   "peakDemandAt": 4260,
-   "mags": 2203.9,
-   "magsMade": 1800.0000000002597,
-   "magsPerHeld": 550.975,
-   "amberTicks": 5655,
-   "redTicks": 4827,
-   "slots": {
-    "60": {
-     "used": 1,
-     "free": 0,
-     "dry": 0
-    },
-    "120": {
-     "used": 1,
-     "free": 0,
-     "dry": 1
-    },
-    "180": {
-     "used": 1,
-     "free": 0,
-     "dry": 4
-    }
-   },
-   "maxAsmBefore120": 1,
-   "machinesLost": 0,
-   "distinctLost": 2,
-   "dryLog": [
-    {
-     "t": 7199,
-     "x": 12,
-     "y": 22,
-     "district": "res"
-    },
-    {
-     "t": 8132,
-     "x": 12,
-     "y": 21,
-     "district": "res"
-    },
-    {
-     "t": 9035,
-     "x": 12,
-     "y": 20,
-     "district": "res"
-    },
-    {
-     "t": 9935,
-     "x": 12,
-     "y": 19,
-     "district": "res"
-    }
-   ]
-  },
-  {
-   "bot": "spike",
-   "seed": 5,
-   "firstAmber": 1,
-   "firstRed": 1,
-   "firstAmberAfter1": 3906,
-   "firstRedAfter1": 3910,
-   "firstLoss": 4097,
-   "firstEnclosure": null,
-   "lost": 24,
-   "stalls": 0,
-   "firstStall": null,
-   "claims": 27,
-   "held": {
-    "30": 2,
-    "60": 4,
-    "90": 4,
-    "120": 4,
-    "150": 4,
-    "180": 4
-   },
-   "front180": 9,
-   "interior180": 0,
-   "copper180": 13465.000000000306,
-   "steel180": 6421.200000003151,
-   "minSteel": 80.73333333333333,
-   "minSteelAt": 1,
-   "patchOutAt": 7201,
-   "assemblers": [],
-   "production180": 10,
-   "peakDemand": 25.29,
-   "peakDemandAt": 4260,
-   "mags": 2227.3,
-   "magsMade": 1800.0000000002597,
-   "magsPerHeld": 556.825,
-   "amberTicks": 5599,
-   "redTicks": 4840,
-   "slots": {
-    "60": {
-     "used": 1,
-     "free": 0,
-     "dry": 0
-    },
-    "120": {
-     "used": 1,
-     "free": 0,
-     "dry": 1
-    },
-    "180": {
-     "used": 1,
-     "free": 0,
-     "dry": 4
-    }
-   },
-   "maxAsmBefore120": 1,
-   "machinesLost": 0,
-   "distinctLost": 2,
-   "dryLog": [
-    {
-     "t": 7199,
-     "x": 12,
-     "y": 22,
-     "district": "res"
-    },
-    {
-     "t": 8132,
-     "x": 12,
-     "y": 21,
-     "district": "res"
-    },
-    {
-     "t": 9035,
-     "x": 12,
-     "y": 20,
-     "district": "res"
-    },
-    {
-     "t": 9935,
-     "x": 12,
-     "y": 19,
-     "district": "res"
-    }
-   ]
-  },
-  {
-   "bot": "cheapest",
-   "seed": 3,
-   "firstAmber": 1,
-   "firstRed": 1,
-   "firstAmberAfter1": null,
-   "firstRedAfter1": null,
-   "firstLoss": null,
-   "firstEnclosure": 3629,
-   "lost": 0,
-   "stalls": 0,
-   "firstStall": null,
-   "claims": 27,
-   "held": {
-    "30": 2,
-    "60": 4,
-    "90": 10,
-    "120": 16,
-    "150": 22,
-    "180": 28
-   },
-   "front180": 13,
-   "interior180": 19,
-   "copper180": 10114.120000001512,
-   "steel180": 989.840000000052,
-   "minSteel": 80.73333333333333,
-   "minSteelAt": 1,
-   "patchOutAt": 7201,
-   "assemblers": [
-    3780,
-    6420
-   ],
-   "production180": 50,
-   "peakDemand": 26.330000000000002,
-   "peakDemandAt": 6660,
-   "mags": 2619,
-   "magsMade": 3210.0800000000427,
-   "magsPerHeld": 93.53571428571429,
-   "amberTicks": 30,
-   "redTicks": 6,
-   "slots": {
-    "60": {
-     "used": 1,
-     "free": 0,
-     "dry": 0
-    },
-    "120": {
-     "used": 3,
-     "free": 1,
-     "dry": 1
-    },
-    "180": {
-     "used": 3,
-     "free": 16,
-     "dry": 4
-    }
-   },
-   "maxAsmBefore120": 3,
-   "machinesLost": 0,
-   "distinctLost": 0,
-   "dryLog": [
-    {
-     "t": 7199,
-     "x": 12,
-     "y": 22,
-     "district": "res"
-    },
-    {
-     "t": 8128,
-     "x": 11,
-     "y": 22,
-     "district": "civ"
-    },
-    {
-     "t": 9027,
-     "x": 13,
-     "y": 22,
-     "district": "civ"
-    },
-    {
-     "t": 9928,
-     "x": 11,
-     "y": 21,
-     "district": "civ"
-    }
-   ]
-  },
-  {
-   "bot": "cheapest",
-   "seed": 4,
-   "firstAmber": 1,
-   "firstRed": 1,
-   "firstAmberAfter1": null,
-   "firstRedAfter1": null,
-   "firstLoss": null,
-   "firstEnclosure": 3629,
-   "lost": 0,
-   "stalls": 0,
-   "firstStall": null,
-   "claims": 27,
-   "held": {
-    "30": 2,
-    "60": 4,
-    "90": 10,
-    "120": 16,
-    "150": 22,
-    "180": 28
-   },
-   "front180": 11,
-   "interior180": 21,
-   "copper180": 9473.926666668629,
-   "steel180": 1274.253333333277,
-   "minSteel": 80.73333333333333,
-   "minSteelAt": 1,
-   "patchOutAt": 7201,
-   "assemblers": [
-    3960,
-    7860
-   ],
-   "production180": 50,
-   "peakDemand": 24.79,
-   "peakDemandAt": 7860,
-   "mags": 2483.9,
-   "magsMade": 3067.8733333333494,
-   "magsPerHeld": 88.71071428571429,
-   "amberTicks": 30,
-   "redTicks": 6,
-   "slots": {
-    "60": {
-     "used": 1,
-     "free": 0,
-     "dry": 0
-    },
-    "120": {
      "used": 2,
-     "free": 3,
-     "dry": 1
-    },
-    "180": {
-     "used": 3,
-     "free": 18,
-     "dry": 4
+     "free": 21,
+     "dry": 2
     }
    },
    "maxAsmBefore120": 2,
@@ -735,71 +332,263 @@
    "distinctLost": 0,
    "dryLog": [
     {
-     "t": 7199,
-     "x": 12,
-     "y": 22,
+     "t": 5816,
+     "x": 266,
+     "y": 641,
+     "district": "civ"
+    },
+    {
+     "t": 9157,
+     "x": 235,
+     "y": 633,
      "district": "res"
-    },
-    {
-     "t": 8128,
-     "x": 13,
-     "y": 22,
-     "district": "civ"
-    },
-    {
-     "t": 9028,
-     "x": 11,
-     "y": 22,
-     "district": "civ"
-    },
-    {
-     "t": 9928,
-     "x": 13,
-     "y": 21,
-     "district": "civ"
     }
    ]
   },
   {
-   "bot": "cheapest",
-   "seed": 5,
-   "firstAmber": 1,
-   "firstRed": 1,
-   "firstAmberAfter1": null,
-   "firstRedAfter1": null,
-   "firstLoss": null,
-   "firstEnclosure": 3629,
-   "lost": 0,
+   "bot": "spike",
+   "seed": 3,
+   "firstAmber": 1830,
+   "firstRed": 1830,
+   "firstAmberAfter1": 1830,
+   "firstRedAfter1": 1830,
+   "firstLoss": 4095,
+   "firstEnclosure": null,
+   "lost": 24,
    "stalls": 0,
    "firstStall": null,
    "claims": 27,
    "held": {
     "30": 2,
     "60": 4,
-    "90": 10,
-    "120": 16,
-    "150": 22,
-    "180": 28
+    "90": 4,
+    "120": 4,
+    "150": 4,
+    "180": 4
    },
-   "front180": 24,
-   "interior180": 14,
-   "copper180": 8694.400000003341,
+   "front180": 12,
+   "interior180": 0,
+   "copper180": 1945.0000000004934,
+   "steel180": 4251.066666668161,
+   "minSteel": 80.73333333333333,
+   "minSteelAt": 1,
+   "patchOutAt": 7201,
+   "assemblers": [],
+   "production180": 10,
+   "peakDemand": 23.69,
+   "peakDemandAt": 4380,
+   "mags": 2316,
+   "magsMade": 1800.0000000002597,
+   "magsPerHeld": 579,
+   "amberTicks": 6359,
+   "redTicks": 5911,
+   "slots": {
+    "60": {
+     "used": 1,
+     "free": 0,
+     "dry": 0
+    },
+    "120": {
+     "used": 1,
+     "free": 0,
+     "dry": 0
+    },
+    "180": {
+     "used": 1,
+     "free": 0,
+     "dry": 2
+    }
+   },
+   "maxAsmBefore120": 1,
+   "machinesLost": 0,
+   "distinctLost": 3,
+   "dryLog": [
+    {
+     "t": 8928,
+     "x": 424,
+     "y": 597,
+     "district": "civ"
+    },
+    {
+     "t": 9749,
+     "x": 421,
+     "y": 634,
+     "district": "civ"
+    }
+   ]
+  },
+  {
+   "bot": "spike",
+   "seed": 4,
+   "firstAmber": 930,
+   "firstRed": 930,
+   "firstAmberAfter1": 930,
+   "firstRedAfter1": 930,
+   "firstLoss": 4213,
+   "firstEnclosure": null,
+   "lost": 24,
+   "stalls": 0,
+   "firstStall": null,
+   "claims": 27,
+   "held": {
+    "30": 2,
+    "60": 4,
+    "90": 5,
+    "120": 4,
+    "150": 4,
+    "180": 4
+   },
+   "front180": 12,
+   "interior180": 0,
+   "copper180": 1945.0000000004934,
+   "steel180": 3962.5333333344593,
+   "minSteel": 80.73333333333333,
+   "minSteelAt": 1,
+   "patchOutAt": 7201,
+   "assemblers": [],
+   "production180": 10,
+   "peakDemand": 24.919999999999998,
+   "peakDemandAt": 4440,
+   "mags": 2266.2,
+   "magsMade": 1800.0000000002597,
+   "magsPerHeld": 566.55,
+   "amberTicks": 5960,
+   "redTicks": 5597,
+   "slots": {
+    "60": {
+     "used": 1,
+     "free": 0,
+     "dry": 0
+    },
+    "120": {
+     "used": 1,
+     "free": 0,
+     "dry": 0
+    },
+    "180": {
+     "used": 1,
+     "free": 0,
+     "dry": 1
+    }
+   },
+   "maxAsmBefore120": 1,
+   "machinesLost": 0,
+   "distinctLost": 3,
+   "dryLog": [
+    {
+     "t": 9816,
+     "x": 431,
+     "y": 664,
+     "district": "civ"
+    }
+   ]
+  },
+  {
+   "bot": "spike",
+   "seed": 5,
+   "firstAmber": 930,
+   "firstRed": 930,
+   "firstAmberAfter1": 930,
+   "firstRedAfter1": 930,
+   "firstLoss": 4098,
+   "firstEnclosure": null,
+   "lost": 24,
+   "stalls": 0,
+   "firstStall": null,
+   "claims": 27,
+   "held": {
+    "30": 2,
+    "60": 4,
+    "90": 4,
+    "120": 4,
+    "150": 5,
+    "180": 4
+   },
+   "front180": 12,
+   "interior180": 0,
+   "copper180": 10064.466666668844,
+   "steel180": 3890.000000000987,
+   "minSteel": 80.73333333333333,
+   "minSteelAt": 1,
+   "patchOutAt": 7201,
+   "assemblers": [],
+   "production180": 10,
+   "peakDemand": 23.15,
+   "peakDemandAt": 4440,
+   "mags": 2242.9,
+   "magsMade": 1800.0000000002597,
+   "magsPerHeld": 560.725,
+   "amberTicks": 6623,
+   "redTicks": 6132,
+   "slots": {
+    "60": {
+     "used": 1,
+     "free": 0,
+     "dry": 0
+    },
+    "120": {
+     "used": 1,
+     "free": 0,
+     "dry": 0
+    },
+    "180": {
+     "used": 1,
+     "free": 0,
+     "dry": 1
+    }
+   },
+   "maxAsmBefore120": 1,
+   "machinesLost": 0,
+   "distinctLost": 2,
+   "dryLog": [
+    {
+     "t": 10353,
+     "x": 292,
+     "y": 606,
+     "district": "civ"
+    }
+   ]
+  },
+  {
+   "bot": "cheapest",
+   "seed": 3,
+   "firstAmber": 1830,
+   "firstRed": 1830,
+   "firstAmberAfter1": 1830,
+   "firstRedAfter1": 1830,
+   "firstLoss": 5122,
+   "firstEnclosure": 5437,
+   "lost": 1,
+   "stalls": 1,
+   "firstStall": 10500,
+   "claims": 26,
+   "held": {
+    "30": 2,
+    "60": 4,
+    "90": 9,
+    "120": 15,
+    "150": 21,
+    "180": 26
+   },
+   "front180": 37,
+   "interior180": 4,
+   "copper180": 0,
    "steel180": 0,
    "minSteel": 0,
-   "minSteelAt": 10578,
+   "minSteelAt": 10448,
    "patchOutAt": 7201,
    "assemblers": [
-    4080,
-    6420
+    5460,
+    6540
    ],
    "production180": 50,
-   "peakDemand": 33.239999999999995,
-   "peakDemandAt": 7320,
-   "mags": 3160,
-   "magsMade": 3705.000000000109,
-   "magsPerHeld": 112.85714285714286,
-   "amberTicks": 30,
-   "redTicks": 6,
+   "peakDemand": 36.86,
+   "peakDemandAt": 10320,
+   "mags": 3171.1,
+   "magsMade": 3709.9999999999263,
+   "magsPerHeld": 121.96538461538461,
+   "amberTicks": 876,
+   "redTicks": 868,
    "slots": {
     "60": {
      "used": 1,
@@ -809,41 +598,199 @@
     "120": {
      "used": 3,
      "free": 0,
-     "dry": 1
+     "dry": 0
     },
     "180": {
      "used": 3,
-     "free": 11,
-     "dry": 4
+     "free": 2,
+     "dry": 5
     }
    },
    "maxAsmBefore120": 3,
    "machinesLost": 0,
+   "distinctLost": 1,
+   "dryLog": [
+    {
+     "t": 8928,
+     "x": 424,
+     "y": 597,
+     "district": "civ"
+    },
+    {
+     "t": 9749,
+     "x": 421,
+     "y": 634,
+     "district": "civ"
+    },
+    {
+     "t": 10078,
+     "x": 356,
+     "y": 649,
+     "district": "civ"
+    },
+    {
+     "t": 10466,
+     "x": 361,
+     "y": 575,
+     "district": "civ"
+    },
+    {
+     "t": 10716,
+     "x": 390,
+     "y": 596,
+     "district": "civ"
+    }
+   ]
+  },
+  {
+   "bot": "cheapest",
+   "seed": 4,
+   "firstAmber": 930,
+   "firstRed": 930,
+   "firstAmberAfter1": 930,
+   "firstRedAfter1": 930,
+   "firstLoss": null,
+   "firstEnclosure": 2729,
+   "lost": 0,
+   "stalls": 2,
+   "firstStall": 10200,
+   "claims": 25,
+   "held": {
+    "30": 2,
+    "60": 4,
+    "90": 10,
+    "120": 16,
+    "150": 22,
+    "180": 26
+   },
+   "front180": 35,
+   "interior180": 9,
+   "copper180": 616.5333333333409,
+   "steel180": 0,
+   "minSteel": 0,
+   "minSteelAt": 10004,
+   "patchOutAt": 7201,
+   "assemblers": [
+    2880,
+    7620,
+    9300
+   ],
+   "production180": 70,
+   "peakDemand": 43.94,
+   "peakDemandAt": 9660,
+   "mags": 3487.6,
+   "magsMade": 3695.000000000209,
+   "magsPerHeld": 134.13846153846154,
+   "amberTicks": 798,
+   "redTicks": 656,
+   "slots": {
+    "60": {
+     "used": 2,
+     "free": 0,
+     "dry": 0
+    },
+    "120": {
+     "used": 2,
+     "free": 5,
+     "dry": 0
+    },
+    "180": {
+     "used": 4,
+     "free": 6,
+     "dry": 2
+    }
+   },
+   "maxAsmBefore120": 2,
+   "machinesLost": 0,
    "distinctLost": 0,
    "dryLog": [
     {
-     "t": 7199,
-     "x": 12,
-     "y": 22,
+     "t": 9816,
+     "x": 431,
+     "y": 664,
+     "district": "civ"
+    },
+    {
+     "t": 10593,
+     "x": 365,
+     "y": 610,
+     "district": "civ"
+    }
+   ]
+  },
+  {
+   "bot": "cheapest",
+   "seed": 5,
+   "firstAmber": 930,
+   "firstRed": 930,
+   "firstAmberAfter1": 930,
+   "firstRedAfter1": 930,
+   "firstLoss": 10630,
+   "firstEnclosure": 2728,
+   "lost": 1,
+   "stalls": 2,
+   "firstStall": 10200,
+   "claims": 25,
+   "held": {
+    "30": 2,
+    "60": 4,
+    "90": 10,
+    "120": 16,
+    "150": 22,
+    "180": 25
+   },
+   "front180": 32,
+   "interior180": 8,
+   "copper180": 7533.866666670899,
+   "steel180": 0,
+   "minSteel": 0,
+   "minSteelAt": 9923,
+   "patchOutAt": 7201,
+   "assemblers": [
+    4560,
+    9360,
+    9660
+   ],
+   "production180": 70,
+   "peakDemand": 45.68,
+   "peakDemandAt": 9360,
+   "mags": 3600.3,
+   "magsMade": 3694.999999999893,
+   "magsPerHeld": 144.012,
+   "amberTicks": 758,
+   "redTicks": 752,
+   "slots": {
+    "60": {
+     "used": 1,
+     "free": 0,
+     "dry": 0
+    },
+    "120": {
+     "used": 2,
+     "free": 0,
+     "dry": 1
+    },
+    "180": {
+     "used": 4,
+     "free": 5,
+     "dry": 2
+    }
+   },
+   "maxAsmBefore120": 2,
+   "machinesLost": 0,
+   "distinctLost": 1,
+   "dryLog": [
+    {
+     "t": 5816,
+     "x": 266,
+     "y": 641,
+     "district": "civ"
+    },
+    {
+     "t": 10057,
+     "x": 235,
+     "y": 633,
      "district": "res"
-    },
-    {
-     "t": 8128,
-     "x": 13,
-     "y": 22,
-     "district": "civ"
-    },
-    {
-     "t": 9028,
-     "x": 11,
-     "y": 22,
-     "district": "civ"
-    },
-    {
-     "t": 9928,
-     "x": 13,
-     "y": 21,
-     "district": "civ"
     }
    ]
   }
@@ -852,32 +799,32 @@
   {
    "id": "C1",
    "what": "compact: first enclosure before first amber (from minute 1)",
-   "ok": true,
-   "val": "s3:encl 60m amber never s4:encl 60m amber never s5:encl 60m amber never"
+   "ok": false,
+   "val": "s3:encl 60m amber 31m s4:encl 46m amber 16m s5:encl 45m amber 16m"
   },
   {
    "id": "C2",
    "what": "compact: no red before 120 min (from minute 1)",
-   "ok": true,
-   "val": "s3:never s4:never s5:never"
+   "ok": false,
+   "val": "s3:31m s4:16m s5:16m"
   },
   {
    "id": "C3",
    "what": "compact: 0 lost and no stall to 180",
-   "ok": true,
-   "val": "s3:lost 0 stalls 0 s4:lost 0 stalls 0 s5:lost 0 stalls 0"
+   "ok": false,
+   "val": "s3:lost 0 stalls 0 s4:lost 1 stalls 2 s5:lost 0 stalls 0"
   },
   {
    "id": "C4",
    "what": "spike: red by 90 min",
    "ok": true,
-   "val": "s3:0m s4:0m s5:0m"
+   "val": "s3:31m s4:16m s5:16m"
   },
   {
    "id": "C5",
    "what": "spike: 1–4 distinct blocks lost by 180",
    "ok": true,
-   "val": "s3:2 distinct (24 falls) s4:2 distinct (24 falls) s5:2 distinct (24 falls)"
+   "val": "s3:3 distinct (24 falls) s4:3 distinct (24 falls) s5:2 distinct (24 falls)"
   },
   {
    "id": "C6",
@@ -888,20 +835,20 @@
   {
    "id": "C7",
    "what": "cheapest: no stall; ammo per held block 0.7–1.3× compact",
-   "ok": true,
-   "val": "s3:stalls 0 ratio 1.14 s4:stalls 0 ratio 1.12 s5:stalls 0 ratio 1.29"
+   "ok": false,
+   "val": "s3:stalls 1 ratio 1.42 s4:stalls 2 ratio 0.96 s5:stalls 2 ratio 2.07"
   },
   {
    "id": "i1",
    "what": "info — compact: first amber 60–120 min (CALIBRATION_REPORT T1)",
    "ok": false,
-   "val": "s3:never s4:never s5:never"
+   "val": "s3:31m s4:16m s5:16m"
   },
   {
    "id": "i2",
    "what": "info — all: held at 120 min in 20–30 (CALIBRATION_REPORT T7)",
    "ok": false,
-   "val": "c3:16 c4:16 c5:16 s3:4 s4:4 s5:4 c3:16 c4:16 c5:16"
+   "val": "c3:16 c4:16 c5:16 s3:4 s4:4 s5:4 c3:15 c4:16 c5:16"
   }
  ]
 }

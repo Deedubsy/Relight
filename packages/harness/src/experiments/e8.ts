@@ -10,7 +10,10 @@ export const E8: Experiment = {
   run(ctx): ExperimentResult {
     const { seeds } = ctx;
     const sections: Section[] = [], checks: Check[] = [], data: Record<string, unknown> = {};
-    const target = { h5: [52, 19, 36], h25: [292, 43, 253] };   // §18 caption, three-seed means at gap 5 min (C2 locked, D-P3-6)
+    /** §18 caption, three-seed means at gap 5 min (C2 locked, D-P3-6). Retagged on the street-first city 2026-09-03 (D6
+     *  rework, run E8-cadence): the lattice caption was 52/19/36 and 292/43/253. Held is the cadence's count on both maps;
+     *  the irregular graph shows more front at 5 h and less at 25 h. */
+    const target = { h5: [52, 27, 39], h25: [292, 23, 276] };
     const rows: (string | number)[][] = [];
     const errs: Record<number, number> = {}, errsHI: Record<number, number> = {};
     const hourly: Record<number, Record<number, number[]>> = {};
@@ -44,7 +47,7 @@ export const E8: Experiment = {
     data.best = { gapAfter: +best[0], maxErr: best[1], heldInteriorErr: errsHI[+best[0]] };
     checks.push(within(`§18 held and interior counts reproduced at the ${+best[0] / 60}-min cadence within 10 %`, errsHI[+best[0]], 0, 0.10));
     checks.push(within('the locked cadence (5 min, C2) is the one that best matches §18', +best[0], 300, 300, ' s'));
-    checks.push(within('first well neutralised (claimed or dead) at the §18 cadence, mean of seeds; §15 said hours 6–9, the sim says 13–24 h', mean(firstWell.filter(x => isFinite(x))), 10, 25, ' h'));
+    checks.push(within('first well neutralised (claimed or dead) at the §18 cadence, mean of seeds; §15 says hours 6–9 (the lattice said 13–24 h, the city 5–10 h)', mean(firstWell.filter(x => isFinite(x))), 5, 10, ' h'));
     return { id: 'E8', title: E8.title, pyNames: ['E9 claim cadence (phase5.py, retired Phase 3)'], docRefs: ['§18'],
       setup: 'compact, canonical map, production off, 25 h', sections, checks, data };
   },

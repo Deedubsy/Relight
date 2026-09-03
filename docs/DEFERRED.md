@@ -111,3 +111,23 @@ M3 built defence and power (`flow.ts`, `tiles.ts`). Every item above keeps its p
 - **Hour-one power (risk D7, "an early brownout sheds the HQ first").** At tile level with machines-first shedding the HQ substation is never shed in the §18 run; the assembler is, at minute 0, until the second Generator. → **D-P4-7**, settled at **M6** from the played hour together with D-P4-4 (the sim's 80/40 cannot buy the §11 line and that Generator).
 - **Block fall illegible (risk D4).** M3 adds the red hopper pulse, the shed crosses, the dead-grid and brownout toasts. → **M4** (rot at tile level) and **M5** (light) as before, judged at Gate B.
 - **Turrets on claimed blocks.** Physical on the HQ, block-level elsewhere. → **D-P4-9** at **M6** with D-P4-5: a claimed block gets a world-view line and turrets, or a button and a hopper, one model.
+
+## Re-read at the rework (2026-09-04, D5/D6 applied; the slice to be rebuilt from `docs/relight-prompt-B-vertical-slice.md`)
+
+Every item above keeps its phase unless listed here. The lattice M1–M3 items that said "M4", "M5", "M6" now mean prompt B's M4–M6 on the city. Nothing deleted.
+
+- **Tile layer on faces (`tiles.ts`, `flow.ts`, `worldScene.ts` are 32×32-lattice-bound).** → **Prompt B M1** ports rubble, lots, streets, the river and the substation to rasterised faces; M2/M3 re-place machines and turrets on them (a turret covers its nearest segment). Tempting to keep the lattice world under the city map, and the three game stubs do exactly that until M1.
+- **The engineer as a sprite, reach ring, pockets panel, walk anywhere.** → **Prompt B M1**. The block-level engineer (`engineer.ts`) is the calibration's and stays.
+- **Hand-mining into the pockets (M2 had it go to the Depot).** → **Prompt B M1/M2** with the chest.
+- **The rifle as a held button, retaliation, HP bar, knockdown and respawn at tile level.** → **Prompt B M4**. The hand lamp (D-R1 option b) → **M5**, only if D-R1 takes it.
+- **The truck driven (Tram depot) and self-driving (Line truck).** E-walk finds it at 91–146 min, outside the hour → **Phase 5** (driven), **Phase 8** (Line truck, as before). The block-level ×3 / 200 stacks model stays the calibration's.
+- **The Arsenal rifle upgrade (1.4 s).** → **Phase 6** with the Arsenal.
+- **Light texture at 800×800; burn-off sweeping along ridges.** → **Prompt B M5**.
+- **Camera in the map view.** The polygon map fits 800 tiles in 648 px at 0.8 px a tile; faces of 20 tiles are 16 px. → **Prompt B M1** if the palette test (§24 risk 11) fails at Gate B; otherwise never.
+- **Plazas' value (GA-R3).** A plaza is a free wall and nothing else. → **Phase 9** generator (a plaza as a facility site, a park as a well site) if a human wants them to matter; noted in `REWORK_REPORT.md` §8.
+- **Preset-specific canvases and validators (GA-R1).** All five presets share 800×800 and one validator. → **Phase 9**.
+- **Lattice map, fixtures and results.** Kept behind `--map lattice` / `?map=lattice` as the archived baseline for E-variance's lattice-vs-city rows. → **delete at the Phase 5 gate** if nothing reads them by then.
+- **Gate B on the lattice slice.** Not scored (D5/D6 rule). → the rebuilt slice's Gate B, with the two new rows (first fire minute and whether it mattered; the walking row).
+- **D-P4-4/5/7/8/9.** Still settled at **M6**, now prompt B's M6 on the city.
+- **E9's bank evidence on the city.** On the lattice the same assemblers without a bank lost 21–30 blocks in the Relight window; on the city they lose none, so E9 no longer produces evidence for D4 and the check passes trivially. → **Phase 10 E20** needs a harder window (a longer hold, or the surge on a bigger front) before the bank's size can be argued from the sim — E9-hold, this run.
+

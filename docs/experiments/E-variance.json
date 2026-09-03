@@ -1,0 +1,258 @@
+{
+ "id": "E-variance",
+ "title": "Seed variance on the street-first city",
+ "pyNames": [
+  "nightly"
+ ],
+ "docRefs": [
+  "§7",
+  "§9",
+  "§17",
+  "§18",
+  "D6"
+ ],
+ "setup": "10000 seeds through the generator, 1000 through compact/spike/cheapest 5 h on both maps",
+ "sections": [
+  {
+   "title": "E-variance-neighbours: land-neighbour count per block over 10000 seeds (River city)",
+   "note": "mean 4.91 neighbours; the lattice had 4 everywhere",
+   "header": [
+    "neighbours",
+    "blocks",
+    "share"
+   ],
+   "rows": [
+    [
+     1,
+     3425,
+     "0.1 %"
+    ],
+    [
+     2,
+     100639,
+     "3.0 %"
+    ],
+    [
+     3,
+     380127,
+     "11.2 %"
+    ],
+    [
+     4,
+     750131,
+     "22.1 %"
+    ],
+    [
+     5,
+     1039556,
+     "30.6 %"
+    ],
+    [
+     6,
+     777534,
+     "22.9 %"
+    ],
+    [
+     7,
+     289041,
+     "8.5 %"
+    ],
+    [
+     8,
+     48304,
+     "1.4 %"
+    ],
+    [
+     9,
+     3631,
+     "0.1 %"
+    ],
+    [
+     10,
+     64,
+     "0.0 %"
+    ]
+   ]
+  },
+  {
+   "title": "E-variance-slots: machine slots per block (one per ~600 buildable tiles, at least one; the lattice lot had one)",
+   "header": [
+    "slots",
+    "blocks",
+    "share"
+   ],
+   "rows": [
+    [
+     1,
+     2827917,
+     "83.4 %"
+    ],
+    [
+     2,
+     518922,
+     "15.3 %"
+    ],
+    [
+     3,
+     45613,
+     "1.3 %"
+    ]
+   ]
+  },
+  {
+   "title": "E-variance-city: per-seed city size",
+   "header": [
+    "metric",
+    "mean [min–max]"
+   ],
+   "rows": [
+    [
+     "live blocks",
+     "339 [305–372]"
+    ],
+    [
+     "inert share",
+     "9.0 [7.9–10.1] %"
+    ],
+    [
+     "max hops from the HQ",
+     "19 [16–23]"
+    ],
+    [
+     "civic share",
+     "10 [4–17] %"
+    ],
+    [
+     "residential share",
+     "17 [8–28] %"
+    ],
+    [
+     "industrial share",
+     "33 [21–45] %"
+    ],
+    [
+     "outskirts share",
+     "40 [35–45] %"
+    ],
+    [
+     "invalid after all attempts",
+     "0 / 10000"
+    ],
+    [
+     "attempts used",
+     "0.35 [0.00–8.00]"
+    ]
+   ]
+  },
+  {
+   "title": "E-variance-ammo: compact 5 h on 1000 seeds, city vs lattice",
+   "header": [
+    "map",
+    "magazines per Held block",
+    "held",
+    "lost",
+    "spike/compact",
+    "cheapest/compact"
+   ],
+   "rows": [
+    [
+     "city (River)",
+     "150.2 [94.1–292.8]",
+     "52.0 [45.0–52.0]",
+     "0.01 [0.00–7.00]",
+     "2.20 [1.14–3.70]×",
+     "1.36 [0.76–2.33]×"
+    ],
+    [
+     "lattice",
+     "123.5 [88.1–271.2]",
+     "52.0 [50.0–52.0]",
+     "0.00 [0.00–2.00]",
+     "2.60 [1.15–3.64]×",
+     "1.09 [0.48–1.54]×"
+    ]
+   ]
+  }
+ ],
+ "checks": [
+  {
+   "name": "D6: every seed validates within its attempt budget",
+   "pass": true,
+   "detail": "0 invalid of 10000"
+  },
+  {
+   "name": "D6: 3–7 neighbours is the bulk of the city (share of blocks)",
+   "pass": true,
+   "detail": "95.40 % (expected 85–100 %)"
+  },
+  {
+   "name": "§7/§9 spike still costs 2–3.5× compact on the graph",
+   "pass": true,
+   "detail": "2.20× (expected 2–3.5×)"
+  },
+  {
+   "name": "city ammo per Held block within ±35 % of the lattice",
+   "pass": true,
+   "detail": "1.22× (expected 0.65–1.35×)"
+  }
+ ],
+ "data": {
+  "generator": {
+   "genN": 10000,
+   "deg": {
+    "1": 3425,
+    "2": 100639,
+    "3": 380127,
+    "4": 750131,
+    "5": 1039556,
+    "6": 777534,
+    "7": 289041,
+    "8": 48304,
+    "9": 3631,
+    "10": 64
+   },
+   "slots": {
+    "1": 2827917,
+    "2": 518922,
+    "3": 45613
+   },
+   "degMean": 4.908434960907332,
+   "invalid": 0,
+   "invalidSeeds": [],
+   "blocks": "339 [305–372]",
+   "inertShare": 0.08996781327416223
+  },
+  "sim": {
+   "simN": 1000,
+   "perHeld": {
+    "city": 150.24022648717965,
+    "lattice": 123.51206384615384
+   },
+   "spikeCompact": {
+    "city": 2.1974258660478014,
+    "lattice": 2.5992217728919806
+   },
+   "cheapestCompact": {
+    "city": 1.360793137948372,
+    "lattice": 1.0856391058313364
+   },
+   "lost": {
+    "city": 0.009,
+    "lattice": 0.002
+   },
+   "held": {
+    "city": 51.991,
+    "lattice": 51.998
+   }
+  }
+ },
+ "meta": {
+  "seeds": [
+   3,
+   4,
+   5
+  ],
+  "hours": 5,
+  "map": "river"
+ }
+}

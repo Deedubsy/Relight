@@ -24,7 +24,7 @@ interface SeedFixture {
   cells: MapSpec['cells']; scattered_inert: [number, number][];
 }
 
-const load = <T>(name: string): T => JSON.parse(readFileSync(join(here, '..', 'fixtures', name), 'utf8'));
+const load = <T>(name: string): T => JSON.parse(readFileSync(join(here, '..', 'fixtures', 'lattice', name), 'utf8'));
 
 for (const seed of SEEDS) {
   const fx = load<PowerFixture>(`power${seed}.json`);

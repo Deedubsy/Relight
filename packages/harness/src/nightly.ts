@@ -2,7 +2,7 @@
  *  and the 25 h runs (E8, E9) at ten seeds. Writes docs/experiments/nightly-<date>.json and nightly.md. */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { runSim } from './run';
+import { runSim, DEFAULT_MAP } from './run';
 import { E8 } from './experiments/e8';
 import { E9 } from './experiments/e9';
 import { Policy } from '@relight/sim';
@@ -30,8 +30,8 @@ export function nightly(o: { seedsN: number; outDir: string; log: (s: string) =>
     if (seed % 500 === 0) o.log(`${seed}/${o.seedsN} seeds, ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   }
   const seeds10 = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-  const e8 = E8.run({ seeds: seeds10, hours: 5, log: o.log, nightly: true });
-  const e9 = E9.run({ seeds: seeds10, hours: 5, log: o.log, nightly: true });
+  const e8 = E8.run({ seeds: seeds10, hours: 5, log: o.log, nightly: true, map: DEFAULT_MAP, big: true });
+  const e9 = E9.run({ seeds: seeds10, hours: 5, log: o.log, nightly: true, map: DEFAULT_MAP, big: true });
   const date = new Date().toISOString().slice(0, 10);
   const summary = {
     date, seedsN: o.seedsN, seconds: (Date.now() - t0) / 1000,

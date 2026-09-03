@@ -2,7 +2,9 @@
 
 Living document: one section per milestone, appended as each is built. Gate B is the last line of this file.
 
-## §19 first-hour test (human play) — not yet scored
+## §19 first-hour test (human play) — not scored on this slice
+
+**Rework note (2026-09-04):** D5 (the engineer on foot) and D6 (the street-first city) invalidate M1–M3 below as a test of the game being made: Gate B is not scored here. The slice is rebuilt from `docs/relight-prompt-B-vertical-slice.md` and this file is rewritten from the top when that starts (`REWORK_REPORT.md`). M1–M3 stay as the record of what the lattice slice built and measured.
 
 Scored by a human after M6, from a played hour. Nothing here is filled in by the bot.
 
