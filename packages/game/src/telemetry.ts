@@ -21,6 +21,8 @@ export interface MinuteRecord {
   hopperRounds: number; hopperCap: number; beltAmmo: number; lampsLit: number; lamps: number; brownoutS: number;
   generators: number; generatorsBurning: number; genCoal: number; supplyKw: number; demandKw: number; loadKw: number; throttle: number;
   turrets: number; fired: number; coalBurned: number; polesConnected: number;
+  /** M4 threat: crawlers alive on the tile layer, unshot arrivals and lamps eaten so far, kills by hand, HP lost. */
+  crawlers: number; arrivals: number; lampsEaten: number; rifleKills: number; hpLost: number;
 }
 export interface Telemetry {
   meta: { seed: number; url: string; startedAt: string; config: unknown; configHash: string; player: string;
@@ -97,6 +99,7 @@ export function recordMinute(tel: Telemetry, st: SimState): void {
     hopperRounds: fs.turretRounds, hopperCap: fs.turretCap, beltAmmo: fs.beltAmmo, lampsLit: fs.lampsLit, lamps: fs.lamps, brownoutS: fs.brownoutS,
     generators: fs.generators, generatorsBurning: fs.generatorsBurning, genCoal: fs.genCoal, supplyKw: fs.supplyKw, demandKw: fs.demandKw, loadKw: fs.loadKw, throttle: fs.throttle,
     turrets: fs.turrets, fired: fs.fired, coalBurned: fs.coalBurned, polesConnected: fs.polesConnected,
+    crawlers: fs.crawlers, arrivals: fs.arrivals, lampsEaten: fs.lampsEaten, rifleKills: fs.rifleKills, hpLost: st.engineer.hurt,
   });
   if (tel.firstEnclosure === null && st.stats.firstInterior >= 0) tel.firstEnclosure = st.stats.firstInterior;
 }
@@ -121,13 +124,22 @@ export interface Summary {
    *  capped at 10 %, danger at 5 %; `dangerShotShare` says whether danger came from the rifle (retaliation) or from
    *  crawlers loose on the player's block. */
   shootPct: number; dangerPct: number; dangerShotShare: number; rifleRounds: number; rifleKills: number;
+  /** Prompt B M4 telemetry: minutes walked in each sim hour (index = hour), trips to the chest, placements refused
+   *  for reach, the clock of the first rifle shot, HP lost and knockdowns over the whole run, and every hand-fired
+   *  engagement with whether its edge held (null: still open). `walkedPct` is the walking share of the session
+   *  against §19's 15 %. Zeros / 'never' / [] without the flow layer. */
+  walkedMinPerHour: number[]; walkedPct: number; chestTrips: number; reachRefused: number; firstRifleShot: string;
+  hpLost: number; knockdowns: number; lampsEaten: number; arrivals: number; turretKills: number;
+  handFights: { edge: number; t: string; rounds: number; kills: number; held: boolean | null }[]; handFightsHeld: number; handFightsFell: number;
 }
 
 export function summarise(tel: Telemetry, st: SimState): Summary {
   const startT = tel.meta.startT;
   const hours = (st.t - startT) / 3600, elapsed = st.t - startT;
   const shootS = (st.engineer.shootS ?? 0) - tel.meta.startShootS, danger = (st.engineer.danger ?? 0) - tel.meta.startDanger, dangerShot = (st.engineer.dangerShot ?? 0) - tel.meta.startDangerShot;
-  const sm = shapeMetrics(st);
+  const sm = shapeMetrics(st), fs = flowSummary(st), fights = st.flow?.threat?.fights ?? [];
+  // walking seconds inside the session: the per-hour buckets from the session's start hour on (a snapshot's hours are the bot's)
+  const walkedS = st.engineer.walkedHour.reduce((a, s, h) => a + ((h + 1) * 3600 > startT ? (s ?? 0) : 0), 0);
   return {
     simTime: clockOf(st.t), hours, startTime: clockOf(startT), scenario: tel.meta.scenario,
     claims: tel.claims.length, claimsPerHour: hours > 0 ? tel.claims.length / hours : 0, claimsTotal: st.stats.claims,
@@ -144,10 +156,16 @@ export function summarise(tel: Telemetry, st: SimState): Summary {
     stock: { copper: Math.floor(st.stock.copper), steel: Math.floor(st.stock.steel), stone: Math.floor(st.stock.stone) },
     magsMade: Math.round(st.stats.magsMade), configHash: tel.meta.configHash,
     slotsUsed: slotInfo(st).used, slotsFree: slotInfo(st).free, machinesLost: st.stats.machinesLost, ranDry: st.stats.ranDry,
-    flow: flowSummary(st), magsConsumed: st.totalRounds / 10, handMined: st.flow?.stats.handMined ?? 0, handCrafted: st.flow?.stats.handCrafted ?? 0,
+    flow: fs, magsConsumed: st.totalRounds / 10, handMined: st.flow?.stats.handMined ?? 0, handCrafted: st.flow?.stats.handCrafted ?? 0,
     brownoutSeconds: st.flow?.power.overS ?? 0, fired: st.flow?.stats.fired ?? 0, coalBurned: st.flow?.stats.coalBurned ?? 0, handFed: st.flow?.stats.handFed ?? 0,
     shootPct: elapsed > 0 ? 100 * shootS / elapsed : 0, dangerPct: elapsed > 0 ? 100 * danger / elapsed : 0,
     dangerShotShare: danger > 0 ? dangerShot / danger : 0, rifleRounds: st.engineer.fired, rifleKills: st.engineer.kills,
+    walkedMinPerHour: Array.from(st.engineer.walkedHour, s => Math.round((s ?? 0) / 6) / 10), walkedPct: elapsed > 0 ? 100 * walkedS / elapsed : 0,
+    chestTrips: st.flow?.stats.chestTrips ?? 0, reachRefused: st.flow?.stats.reachRefused ?? 0,
+    firstRifleShot: st.engineer.firstShot >= 0 ? clockOf(st.engineer.firstShot) : 'never',
+    hpLost: Math.round(st.engineer.hurt), knockdowns: st.engineer.downs, lampsEaten: fs.lampsEaten, arrivals: fs.arrivals, turretKills: fs.turretKills,
+    handFights: fights.map(f => ({ edge: f.edge, t: clockOf(f.t), rounds: f.rounds, kills: f.kills, held: f.held })),
+    handFightsHeld: fights.filter(f => f.held === true).length, handFightsFell: fights.filter(f => f.held === false).length,
   };
 }
 

@@ -8,6 +8,7 @@ import { SimState, Engineer } from './types';
 import type { FlowState } from './flow';
 import { Ground, ground, walkable, inGround, hqLot, cityGeomOf } from './ground';
 import { segBetween } from './city';
+import { threatHooks } from './engineer';
 import {
   speedOf, kitBlock, hqIdx, markShot, rifleRate, ENGINEER_HP, REGEN_AFTER_S, REGEN_HP_PER_S,
   SPRINT_MULT, SPRINT_S, STAMINA_REFILL_S, DODGE_TILES, DODGE_S, DODGE_COST, RIFLE_RANGE, RIFLE_HIT_RADIUS,
@@ -240,13 +241,20 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
  *  out to RIFLE_RANGE: the nearest engaged ring edge whose street comes within RIFLE_HIT_RADIUS of the line takes the
  *  round, and the block step turns those rounds into kills (`rifleHits`). No auto-target, no lock-on: a shot at empty
  *  street hits nothing and still costs a round. Returns false when the pockets hold no round. */
-function fireRound(st: SimState, e: Engineer): boolean {
+/** Take one round out of the pockets' magazines (false with none left); counts the shot and the first-shot minute. */
+export function spendRound(st: SimState, e: Engineer): boolean {
   const mags = e.inv.magazine ?? 0;
   if (mags * ROUNDS_PER_MAG < 1 - 1e-9) return false;
   e.inv.magazine = Math.max(0, mags - 1 / ROUNDS_PER_MAG);
   e.fired += 1;
   if (e.firstShot < 0) { e.firstShot = st.t; st.events.push({ type: 'rifle', t: st.t, x: e.x, y: e.y }); }
   markShot(st);
+  return true;
+}
+function fireRound(st: SimState, e: Engineer): boolean {
+  if (!spendRound(st, e)) return false;
+  // M4: on a city the round meets the tile crawlers (threat.ts); the lattice keeps the block-level ridge hitscan
+  if (threatHooks.current?.fire(st, e, e.aim![0], e.aim![1])) return true;
   const dx = e.aim![0] - e.x, dy = e.aim![1] - e.y, L = Math.hypot(dx, dy);
   if (L < 1e-6) return true;
   const ux = dx / L, uy = dy / L, cg = cityGeomOf(st), tw = cg.tw;

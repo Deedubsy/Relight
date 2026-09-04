@@ -60,6 +60,20 @@ function describe(events: SimEvent[]): void {
       }
       case 'kitted': panel.toast(`Kits laid on block (${ev.x},${ev.y}) — ${ev.edges} edge${ev.edges === 1 ? '' : 's'} armed`, 'good'); break;
       case 'engineer-down': panel.toast('The engineer is down — back at the HQ workbench in 10 s', 'bad'); break;
+      // M4 (rule 8): the tile threat's rules surface as toasts — retaliation only (D5), lamps eaten, the 40-arrival count
+      case 'engineer-up': panel.toast('Back on your feet at the HQ workbench — pockets intact, no other penalty', 'good'); break;
+      case 'retaliate': panel.toast(ev.cause === 'shot' ? 'A crawler turned on you: you shot it. It bites at arm\'s reach (5 HP/s) — finish it (3 rounds) or step back' : 'A crawler turned on you: you are standing in its path. Step aside, or shoot it', 'bad'); break;
+      case 'lamp-eaten': panel.toast(`A crawler put out the lamp on tile (${ev.tx},${ev.ty}) — block (${ev.x},${ev.y}) is darker; the next ones head for its turrets, then the substation`, 'bad'); break;
+      case 'arrival': panel.toast(`${ev.shade ? 'A shade' : 'A crawler'} reached the substation on block (${ev.x},${ev.y}) unshot — ${ev.n} of ${ev.of}${ev.shade ? ' (the substation is off 30 s)' : ''}`, 'bad'); break;
+      case 'bloom': {
+        // GAME-ASSUMPTION: only the blooms on or next to the engineer's block toast; the rest are the map view's pulses
+        const st = session.state, e = st.engineer;
+        if (!st.flow || st.lattice) break;
+        const eb = blockOfTile(st, Math.floor(e.x), Math.floor(e.y));
+        if (eb < 0 || Math.abs(st.blocks[eb].x - ev.x) > 1 || Math.abs(st.blocks[eb].y - ev.y) > 1) break;
+        panel.toast(`Bloom on (${ev.x},${ev.y}) beside you: ${Math.round(ev.cr)} crawler${Math.round(ev.cr) === 1 ? '' : 's'}${ev.sh >= 0.5 ? ` and ${Math.round(ev.sh)} shade${Math.round(ev.sh) === 1 ? '' : 's'}` : ''} at the ridge, coming for the lit lamps`, 'bad');
+        break;
+      }
     }
   }
 }

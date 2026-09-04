@@ -8,7 +8,7 @@ import {
 import { hash01, rngNext, seedRng, pyRound } from './prng';
 import { districtBase } from './districts';
 import { latticeGraph, bfsHops, edgeId, LATTICE_AREA } from './graph';
-import { createEngineer, tickEngineer, rifle, rifleHits, engineerCommand, bornFed } from './engineer';
+import { createEngineer, tickEngineer, rifle, rifleHits, engineerCommand, bornFed, threatHooks } from './engineer';
 import { SURVIVOR_UNLOCK_NAMES } from './map';
 
 // ------------------------------------------------------------------ config
@@ -844,12 +844,18 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     // or crawlers past the turrets on the block the engineer stands on. dangerShot: of those, seconds the rifle fired.
     const player = st.engineer;
     let dangerNow = false, shotNow = false;
+    // GAME-ASSUMPTION (M4): on a city with the tile layer, an edge with physical turrets hands its arrivals to the tiles (threat.ts):
+    // the turrets shoot them there, out of the same hoppers, and what reaches the substation counts below. A stand-in
+    // edge (D-P4-9, a claimed block's abstract kit) still feeds here and hands only what got past it to the tiles.
+    const thr = th && !st.lattice ? threatHooks.current : null;
     for (let q = 0; q < eng.length; q++) {
       const en = eng[q];
       const ri = st.edgeAt[en.id];
       if (ri < 0) continue;
       const e = ring[ri], hp = B[e.a];
       const a = Math.min(en.cr, en.rcr); en.cr -= a;
+      const s_ = Math.min(en.sh, en.rsh); en.sh -= s_;
+      if (thr && e.turrets && thr.spawn(st, en.id, a, s_, false)) { if (en.cr > 1e-9 || en.sh > 1e-9) eng[w++] = en; continue; }
       let budget = e.kit === false ? 0 : e.turrets && fired ? Math.min(e.hopper, (e.fire ?? 0) - fired[ri]) : e.hopper;   // D5: an unkitted edge fires nothing
       const fed = Math.min(a, budget / 3.0); e.hopper -= fed * 3.0; budget -= fed * 3.0;
       let un = a - fed;
@@ -858,11 +864,11 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
         if (k > 1e-9) { dangerNow = true; shotNow = true; }
         un -= k;
       }
-      if (un > 1e-9 && e.a === player.block && player.down < 0) dangerNow = true;
-      const s_ = Math.min(en.sh, en.rsh); en.sh -= s_;
+      if (un > 1e-9 && e.a === player.block && player.down < 0 && !thr) dangerNow = true;
       const fedS = Math.min(s_, budget / 10.0); e.hopper -= fedS * 10.0;
       if (fired) fired[ri] += fed * 3.0 + fedS * 10.0;
-      const unS = s_ - fedS;
+      let unS = s_ - fedS;
+      if (thr && (un > 1e-9 || unS > 1e-9) && thr.spawn(st, en.id, un, unS, true)) { un = 0; unS = 0; }   // past the stand-in: they walk to the substation
       if (un > 1e-9 || unS > 1e-9) {
         st.stats.unfedTotal += un;
         if (st.stats.firstUnfed < 0) st.stats.firstUnfed = t;
@@ -875,6 +881,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       if (en.cr > 1e-9 || en.sh > 1e-9) eng[w++] = en;
     }
     eng.length = w;
+    if (thr) { const r = thr.second(st); if (r.danger) dangerNow = true; if (r.shot) shotNow = true; }
     if (dangerNow) { player.danger++; const h = Math.floor(t / 3600); player.dangerHour[h] = (player.dangerHour[h] ?? 0) + 1; if (shotNow) player.dangerShot++; }
     player.shots = {}; player.iframes = 0;   // rounds that found no crawler this second are gone; the dodge's cover is spent
     if (th && fired) th.drainEdges(st, fired);

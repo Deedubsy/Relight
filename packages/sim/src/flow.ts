@@ -20,7 +20,8 @@ import {
 } from './tiles';
 import { ground, inGround, hqLot, blockOfTile, goneOf, poolCap, substationOwner, blocksNear, inReach, cityGeomOf, segAxis, segLength } from './ground';
 import { tickEngineerTiles, workbenchTile } from './walk';
-import { take as pocketTake, drop as pocketDrop, invStacks, invCap, handHook, hqIdx as hqIndex, upgradeEngineer } from './engineer';
+import { take as pocketTake, drop as pocketDrop, invStacks, invCap, handHook, hqIdx as hqIndex, upgradeEngineer, threatHooks } from './engineer';
+import type { ThreatState } from './threat';
 import { segBetween, frontTiles, CitySeg } from './city';
 
 export const TILE_TPS = 20;                    // constitution: fixed 20 ticks/s at tile level
@@ -131,16 +132,22 @@ export interface FlowState {
   /** Items with no home in the block sim's stock. §11: the start's 40 coal (the Generator is M3). */
   store: { coal: number };
   /** M1 (prompt B): `full` is raised when the pockets refused a mined unit (the game toasts it and clears it). */
-  hand: { mine: [number, number] | null; prog: number; crafts: number; crafting: boolean; craftProg: number; full: boolean };
+  hand: { mine: [number, number] | null; prog: number; crafts: number; crafting: boolean; craftProg: number; full: boolean;
+          /** M4 telemetry: the engineer has been out of the Depot's reach since the last chest transaction (a "trip"). */
+          away: boolean };
   stats: { magsMade: number; magsDelivered: number; mined: number; handMined: number; handCrafted: number; delivered: Record<Item, number>;
            /** M3: rounds the turrets fired, coal the Generators burned, magazines and coal fed by hand. */
-           fired: number; coalBurned: number; handFed: number };
+           fired: number; coalBurned: number; handFed: number;
+           /** M4 telemetry (§19): trips to the chest, placements the reach refused. */
+           chestTrips: number; reachRefused: number };
   /** M3: commands the tile layer raises for the block map (a pole run reaching a Dark block's substation claims it). */
   pending: Command[];
   /** M3: the grid as of the last block tick — kW supplied, demanded, delivered; seconds demand exceeded supply. */
   /** §14 as one number: kW the Generators give, kW asked, kW carried, seconds short so far, and the D-B3-4 throttle
    *  (supply ÷ demand, 1 when covered) every drawing machine runs at this second. */
   power: { supply: number; demand: number; load: number; overS: number; throttle: number };
+  /** M4: the tile threat (threat.ts): crawlers, eaten lights, hand-fired engagements. Created on first use. */
+  threat?: ThreatState;
 }
 
 /** The flow layer, created on first use: the Depot goes on the start lot, the block-level Mk1 stand-in retires
@@ -151,9 +158,9 @@ export function ensureFlow(st: SimState): FlowState {
   const f: FlowState = {
     version: 1, tick: 0, next: 1, rev: 0, tw: ground(st).tw, machines: [], occ: {}, dug: {}, units: {},
     store: { coal: 0 },
-    hand: { mine: null, prog: 0, crafts: 0, crafting: false, craftProg: 0, full: false },
+    hand: { mine: null, prog: 0, crafts: 0, crafting: false, craftProg: 0, full: false, away: false },
     stats: { magsMade: 0, magsDelivered: 0, mined: 0, handMined: 0, handCrafted: 0, delivered: { steel: 0, copper: 0, stone: 0, coal: 0, magazine: 0 },
-             fired: 0, coalBurned: 0, handFed: 0 },
+             fired: 0, coalBurned: 0, handFed: 0, chestTrips: 0, reachRefused: 0 },
     pending: [],
     power: { supply: 0, demand: 0, load: 0, overS: 0, throttle: 1 },
   };
@@ -283,7 +290,8 @@ export const START_CHEST = { steel: 200, copper: 100, stone: 50, magazines: 20 }
 function upgrade(f: FlowState): FlowState {
   f.pending ??= []; f.power ??= { supply: 0, demand: 0, load: 0, overS: 0, throttle: 1 }; f.power.throttle ??= 1;
   f.stats.fired ??= 0; f.stats.coalBurned ??= 0; f.stats.handFed ??= 0;
-  f.hand.full ??= false;
+  f.hand.full ??= false; f.hand.away ??= false;
+  f.stats.chestTrips ??= 0; f.stats.reachRefused ??= 0;
   for (const m of f.machines) delete (m as { shed?: boolean }).shed;   // pre-D-B3-4 snapshots carried a shed flag
   return f;
 }
@@ -627,6 +635,7 @@ function tickAssembler(st: SimState, m: Machine, dt: number): void {
 
 function tickHand(st: SimState, f: FlowState, dt: number): void {
   const h = f.hand;
+  if (!h.away && !nearDepot(st)) h.away = true;   // M4 telemetry: the next chest transaction is a trip
   if (h.mine) {
     const r = rubbleAt(st, h.mine[0], h.mine[1]);
     if (!r || !inReach(st, h.mine[0], h.mine[1])) { h.mine = null; h.prog = 0; }   // dug out, or walked away (D5: reach 8)
@@ -684,6 +693,7 @@ export function stepFlow(st: SimState, dt = TILE_DT): void {
   const f = st.flow;
   if (!f) return;
   tickEngineerTiles(st, dt);   // D5: the engineer moves (and lays kits) ahead of the machines and the block tick
+  threatHooks.current?.tick(st, dt);   // M4: crawlers walk, turrets and the bots' rifle shoot, arrivals count
   for (const m of beltOrder(st, f)) if (running(st, m)) tickBelt(st, m, dt);
   let gens = 0;
   for (const m of f.machines) if (m.kind === 'generator' && (m.inv.coal ?? 0) > 0 && running(st, m)) gens++;
@@ -792,6 +802,8 @@ function addMachine(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir):
   const m: Machine = { id: f.next++, kind, x: tx, y: ty, dir, size: MACHINE_SIZE[kind], items: [], hold: null, timer: 0, phase: 0, inv: {}, out: 0, busy: false };
   f.machines.push(m);
   for (let y = ty; y < ty + m.size; y++) for (let x = tx; x < tx + m.size; x++) f.occ[y * f.tw + x] = m.id;
+  // GAME-ASSUMPTION (M4): a new machine on an eaten lamp's tile is a fresh lamp (the eaten one was picked up)
+  if (f.threat?.broken.length) f.threat.broken = f.threat.broken.filter(t => { const x = t % f.tw, y = Math.floor(t / f.tw); return x < tx || x >= tx + m.size || y < ty || y >= ty + m.size; });
   f.rev++;
   return m;
 }
@@ -899,14 +911,21 @@ export interface FlowSummary {
   turrets: number; lamps: number; lampsLit: number; poles: number; polesConnected: number; generators: number; generatorsBurning: number;
   turretRounds: number; turretCap: number; genCoal: number; beltAmmo: number;
   supplyKw: number; demandKw: number; loadKw: number; brownoutS: number; fired: number; coalBurned: number; handFed: number; throttle: number;   // throttle: D-B3-4, 1 = every machine at full speed
+  /** M4: crawlers and shades on the tiles now, and the hour's tallies. */
+  crawlers: number; shades: number; onPlayer: number; lampsEaten: number; arrivals: number; turretKills: number; rifleKills: number;
 }
 export function flowSummary(st: SimState): FlowSummary {
   const f = st.flow;
   const s: FlowSummary = { excavators: 0, belts: 0, inserters: 0, assemblers: 0, beltItems: 0, assemblersBusy: 0, productionMagPerMin: 0,
                            magsMade: 0, magsDelivered: 0, mined: 0, coal: 0, craftsQueued: 0,
                            turrets: 0, lamps: 0, lampsLit: 0, poles: 0, polesConnected: 0, generators: 0, generatorsBurning: 0, turretRounds: 0, turretCap: 0, genCoal: 0, beltAmmo: 0,
-                           supplyKw: 0, demandKw: 0, loadKw: 0, brownoutS: 0, fired: 0, coalBurned: 0, handFed: 0, throttle: 1 };
+                           supplyKw: 0, demandKw: 0, loadKw: 0, brownoutS: 0, fired: 0, coalBurned: 0, handFed: 0, throttle: 1,
+                           crawlers: 0, shades: 0, onPlayer: 0, lampsEaten: 0, arrivals: 0, turretKills: 0, rifleKills: 0 };
   if (!f) return s;
+  if (f.threat) {
+    for (const c of f.threat.crawlers) { if (c.kind === 'shade') s.shades++; else s.crawlers++; if (c.onPlayer) s.onPlayer++; }
+    s.lampsEaten = f.threat.stats.lampsEaten; s.arrivals = f.threat.stats.arrivals; s.turretKills = f.threat.stats.turretKills; s.rifleKills = f.threat.stats.rifleKills;
+  }
   for (const m of f.machines) {
     if (m.kind === 'excavator') s.excavators++;
     else if (m.kind === 'belt') { s.belts++; s.beltItems += m.items.length; for (const it of m.items) if (it.k === 'magazine') s.beltAmmo++; }
@@ -1107,17 +1126,29 @@ export function blockLights(st: SimState, bi: number): Light[] {
   const b = st.blocks[bi];
   if (b.state !== HELD && b.state !== CONTESTED && b.state !== DARK) return [];
   const on = subPowered(st, b);
-  const out: Light[] = ground(st).blocks[bi].lights.map(l => ({ tx: l.tx, ty: l.ty, r: LAMP_RADIUS, lit: on && !l.broken, broken: l.broken, kind: 'streetlight' as const }));
-  const f = st.flow;
+  const f = st.flow, tw = ground(st).tw, eaten = f ? brokenSet(f) : null;   // GAME-ASSUMPTION (M4): lights a crawler ate stay dark until M5 repairs them
+  const out: Light[] = ground(st).blocks[bi].lights.map(l => {
+    const broken = l.broken || (eaten?.has(l.ty * tw + l.tx) ?? false);
+    return { tx: l.tx, ty: l.ty, r: LAMP_RADIUS, lit: on && !broken, broken, kind: 'streetlight' as const };
+  });
   if (f) for (const m of f.machines) {
     if (blockIdxOf(st, m) !== bi) continue;
-    if (m.kind === 'lamp') out.push({ tx: m.x, ty: m.y, r: LAMP_RADIUS, lit: running(st, m), broken: false, kind: 'lamp' });
+    if (m.kind === 'lamp') { const broken = eaten!.has(m.y * tw + m.x); out.push({ tx: m.x, ty: m.y, r: LAMP_RADIUS, lit: running(st, m) && !broken, broken, kind: 'lamp' }); }
     // prompt B M3: a Floodlight throws a 12-tile cone from its centre along its facing (60° wide, GAME-ASSUMPTION)
     else if (m.kind === 'floodlight') out.push({ tx: m.x + 0.5, ty: m.y + 0.5, r: FLOODLIGHT_RANGE, lit: running(st, m), broken: false, kind: 'floodlight', dir: m.dir });
   }
   return out;
 }
 export function cellLights(st: SimState, bx: number, by: number): Light[] { return blockLights(st, idxOf(st, bx, by)); }
+const brokenSets = new WeakMap<FlowState, { n: number; set: Set<number> }>();
+function brokenSet(f: FlowState): Set<number> {
+  const arr = f.threat?.broken ?? [];
+  const c = brokenSets.get(f);
+  if (c && c.n === arr.length) return c.set;
+  const set = new Set(arr);
+  brokenSets.set(f, { n: arr.length, set });
+  return set;
+}
 /** Is a tile lit by any light within its radius (its block's or a neighbour's)? */
 export function litAt(st: SimState, tx: number, ty: number): boolean {
   for (const bi of blocksNear(st, tx, ty)) {
@@ -1340,6 +1371,8 @@ export function chestCount(st: SimState, item: ChestItem): number {
   if (item === 'kit') return Infinity;
   return Math.floor(st.stock[item]);
 }
+/** GAME-ASSUMPTION (M4 telemetry): a trip to the chest is the first transaction after being out of the Depot's reach. */
+function chestTrip(f: FlowState): void { if (f.hand.away) { f.stats.chestTrips++; f.hand.away = false; } }
 /** Move up to `n` of an item from the chest to the pockets (as many as fit). */
 export function chestTake(st: SimState, item: ChestItem, n: number): { moved: number; reason: string } {
   const f = ensureFlow(st);
@@ -1348,6 +1381,7 @@ export function chestTake(st: SimState, item: ChestItem, n: number): { moved: nu
   if (want <= 0) return { moved: 0, reason: `no ${item === 'magazine' ? 'magazines' : item} in the Depot` };
   const got = pocketTake(st.engineer, item, want);
   if (got <= 0) return { moved: 0, reason: 'the pockets are full' };
+  chestTrip(f);
   if (item === 'magazine') st.buffer -= got * SHOT.count;
   else if (item === 'coal') f.store.coal -= got;
   else if (item !== 'kit') st.stock[item] -= got;
@@ -1362,6 +1396,7 @@ export function chestPut(st: SimState, item: ChestItem, n: number): { moved: num
   if (item === 'magazine') want = Math.min(want, Math.floor((st.config.bufferCap - st.buffer) / SHOT.count));
   if (want <= 0) return { moved: 0, reason: have <= 0 ? `no ${item} in the pockets` : 'the line buffer is full' };
   const put = pocketDrop(st.engineer, item, want);
+  chestTrip(f);
   if (item === 'magazine') { st.buffer += put * SHOT.count; f.stats.magsDelivered += put; }
   else if (item === 'coal') f.store.coal += put;
   else if (item !== 'kit') st.stock[item] += put;

@@ -113,11 +113,18 @@ test('the rifle aimed at empty street spends a round a shot and hits nothing; ai
   assert.ok(bd <= RIFLE_RANGE, `ridge ${bd} tiles away`);
   e.inv.magazine = 5; e.fired = 0;
   const before = e.hp;
-  for (let s = 0; s < 4; s++) {
+  // M4: the crawlers are bodies on the ridge now; the mouse follows the nearest one (the block-level ridge hitscan
+  // stays on the lattice only)
+  for (let s = 0; s < 8; s++) {
     st.engagements.push({ id: edge.id, cr: 3, sh: 0, rcr: 1, rsh: 0 });
-    advanceFlow(st, 1, [{ type: 'aim', at: [sg.mx + 0.5, sg.my + 0.5] }]);
+    for (let k = 0; k < 10; k++) {
+      let c: { x: number; y: number } | null = null, cd = Infinity;
+      for (const q of st.flow!.threat?.crawlers ?? []) { const d = Math.hypot(q.x - e.x, q.y - e.y); if (d < cd) { cd = d; c = q; } }
+      advanceFlow(st, 0.1, [{ type: 'aim', at: c ? [c.x, c.y] : [sg.mx + 0.5, sg.my + 0.5] }]);
+    }
   }
   assert.ok(e.kills > 0.5, `kills ${e.kills}`);
+  assert.ok((st.flow!.threat?.stats.turned ?? 0) >= 1, 'a shot crawler turned on the engineer');
   assert.ok(e.hp < before, 'retaliation landed');
   assert.ok(e.danger >= 1 && e.dangerShot >= 1, `danger ${e.danger} / ${e.dangerShot}`);
   assert.ok(e.shootS >= 2, `shooting seconds ${e.shootS}`);

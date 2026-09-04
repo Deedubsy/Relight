@@ -22,6 +22,7 @@ import {
   handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
   POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST,
   lockReason, KIND_LABEL, FLOODLIGHT_HALF_ANGLE, FLOODLIGHT_RANGE, BIG_POLE_REACH,
+  threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
 } from '@relight/sim';
 import { Session, queue } from './session';
 import { View } from './view';
@@ -72,6 +73,7 @@ export class WorldScene extends Phaser.Scene {
   private bobs: Phaser.GameObjects.Bob[] = [];
   private gOver!: Phaser.GameObjects.Graphics;
   private gMach!: Phaser.GameObjects.Graphics;
+  private gThreat!: Phaser.GameObjects.Graphics;
   private gEng!: Phaser.GameObjects.Graphics;
   private hudText!: Phaser.GameObjects.Text;
   private depotText!: Phaser.GameObjects.Text;
@@ -110,6 +112,7 @@ export class WorldScene extends Phaser.Scene {
     this.blitter = this.add.blitter(0, 0, 'ground');
     this.gMach = this.add.graphics().setDepth(1);
     this.gOver = this.add.graphics().setDepth(2);
+    this.gThreat = this.add.graphics().setDepth(3);
     this.gEng = this.add.graphics().setDepth(3);
     this.depotText = this.add.text(0, 0, 'Depot', { fontSize: '20px', color: '#e8ecf4', fontStyle: 'bold' }).setDepth(3).setOrigin(0.5).setVisible(false);
     this.hudText = this.add.text(8, 8, '', { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } }).setScrollFactor(0).setDepth(10);
@@ -335,6 +338,7 @@ export class WorldScene extends Phaser.Scene {
    *  the "walk closer" cursor and the ghost's reason. Without the flow layer there is no engineer on the tiles. */
   private reachable(tx: number, ty: number, size: number, loud: boolean): boolean {
     if (!this.onFoot || inReach(this.st, tx, ty, size)) return true;
+    if (loud && this.st.flow) this.st.flow.stats.reachRefused++;   // GAME-ASSUMPTION (M4 telemetry): placements refused for reach count one per click, not per drag step
     if (loud && !this.walkCloserToasted) { this.walkCloserToasted = true; this.hooks.onToast(`Walk closer — the engineer reaches ${REACH} tiles (WASD or click the ground)`, 'bad'); }
     return false;
   }
@@ -453,6 +457,8 @@ export class WorldScene extends Phaser.Scene {
       const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
       if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (the block is unfed, or the grid is dead)'}`);
     }
+    const cw = st.flow ? crawlerAt(st, tx + 0.5, ty + 0.5) : null;   // M4: a crawler under the cursor (shades only on lit tiles)
+    if (cw) lines.unshift(describeCrawler(st, cw));
     // the "walk closer" cursor: something to do here, out of reach
     const actionable = this.onFoot && (this.tool !== 'hand' || !!m || !!rubbleAt(st, tx, ty));
     const far = actionable && !inReach(st, tx, ty, 1);
@@ -528,7 +534,9 @@ export class WorldScene extends Phaser.Scene {
     this.drawMachines(tx0, ty0, tx1, ty1, vis);
 
     // GAME-ASSUMPTION: a flat block-state overlay on each lot (Dark navy, Contested amber, Held outline) stands in for
-    // rot presence (M4) and the light texture (M5); it is the block map's word on the lot, drawn, not simulated.
+    // the light texture (M5); it is the block map's word on the lot, drawn, not simulated. M4: rot is tile presence in
+    // a Dark face — the navy deepens with the block's rot and specks of it sit on a share of the lot's tiles equal to
+    // the rot (a hash per tile, so the specks hold still); the specks are a reading of `b.d`, not a second rot model.
     // M1: lots are faces, so the tint runs along each row of the lot's tiles and the Held rim follows its boundary.
     const g = this.gOver;
     g.clear();
@@ -541,9 +549,22 @@ export class WorldScene extends Phaser.Scene {
       for (let tx = tx0; tx <= tx1 + 1; tx++) {
         const o = tx <= tx1 ? own[ty * tw + tx] : -1, c = o >= 0 ? cls[o] : 0, key = c === 1 || c === 2 ? o : -1;
         if (key !== run) {
-          if (run >= 0) { const rc = cls[run]; if (rc === 1) g.fillStyle(0x0b1030, 0.45); else g.fillStyle(0xd99a2b, flicker); g.fillRect(runX * TILE_PX, ty * TILE_PX, (tx - runX) * TILE_PX, TILE_PX); }
+          if (run >= 0) { const rc = cls[run]; if (rc === 1) g.fillStyle(0x0b1030, 0.25 + 0.35 * st.blocks[run].d); else g.fillStyle(0xd99a2b, flicker); g.fillRect(runX * TILE_PX, ty * TILE_PX, (tx - runX) * TILE_PX, TILE_PX); }
           run = key; runX = tx;
         }
+      }
+    }
+    // M4 rot specks on Dark lots (skipped zoomed far out, where the tint carries it). Rects, not circles, and at most
+    // a third of the lot's tiles: the first soak drew a circle a tile as the rot deepened and halved the frame rate.
+    if (cam.zoom >= 0.6) {
+      g.fillStyle(0x2a1a4a, 0.75);
+      for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+        const o = own[ty * tw + tx];
+        if (o < 0 || cls[o] !== 1) continue;
+        const h = (Math.imul(tx, 73856093) ^ Math.imul(ty, 19349663)) >>> 0;
+        if ((h % 1000) / 1000 >= Math.min(0.34, st.blocks[o].d)) continue;
+        const r = 3 + (h >>> 5) % 3;
+        g.fillRect((tx + 0.3 + 0.4 * ((h >>> 10) % 100) / 100) * TILE_PX - r, (ty + 0.3 + 0.4 * ((h >>> 20) % 100) / 100) * TILE_PX - r, 2 * r, 2 * r);
       }
     }
     // Held rims: the lot's boundary edges, white for interior, amber for the front
@@ -575,13 +596,17 @@ export class WorldScene extends Phaser.Scene {
       g.lineStyle(2 / cam.zoom, 0xffffff, 0.8); g.strokeRect(d.x * TILE_PX, d.y * TILE_PX, d.size * TILE_PX, d.size * TILE_PX);
     }
     this.drawGhost(g);
+    this.drawThreat();
     this.drawEngineer();
 
     // HUD: scrollFactor 0 still zooms about the camera centre, so pin it to the top-left at screen scale
     const f = this.focusBlock(), fi = idxOf(st, f[0], f[1]);
     this.hudText.setScale(1 / cam.zoom).setPosition(cam.width / 2 + (8 - cam.width / 2) / cam.zoom, cam.height / 2 + (8 - cam.height / 2) / cam.zoom);
     const e = st.engineer;
-    const pockets = this.onFoot ? ` · pockets ${invStacks(e.inv)}/${INV_STACKS} stacks${e.inv.kit ? ` · ${e.inv.kit} kit${e.inv.kit === 1 ? '' : 's'}` : ''} · HP ${Math.round(e.hp)}` : '';
+    // D5: the HP bar and number only when below full; M4: the crawlers on the tile layer and how many have turned on you
+    const th = st.flow?.threat, onYou = th ? th.crawlers.filter(c => c.onPlayer).length : 0;
+    const threatLine = th && threatActive(st) && th.crawlers.length ? ` · crawlers ${th.crawlers.length}${onYou ? ` (${onYou} on you)` : ''}` : '';
+    const pockets = this.onFoot ? ` · pockets ${invStacks(e.inv)}/${INV_STACKS} stacks${e.inv.kit ? ` · ${e.inv.kit} kit${e.inv.kit === 1 ? '' : 's'}` : ''}${e.hp < ENGINEER_HP ? ` · HP ${Math.round(e.hp)}/${ENGINEER_HP}` : ''}${threatLine}` : threatLine;
     const rounds = Math.floor((e.inv.magazine ?? 0) * ROUNDS_PER_MAG);
     const inHand = this.tool === 'hand' ? 'empty hand (hold left-click on rubble to mine it; click a turret or Generator to feed it; E interacts)'
       : this.tool === 'rifle' ? `rifle (hold left-click to fire toward the cursor, ${RIFLE_RANGE} tiles; Q puts it away) · ${rounds} round${rounds === 1 ? '' : 's'} in the pockets${rounds ? '' : ' — take magazines from the chest (E on the Depot)'}`
@@ -627,6 +652,30 @@ export class WorldScene extends Phaser.Scene {
       g.fillStyle(0x1a1d26, 1); g.fillRect(ex - 12, ey + 18, 24, 3);
       g.fillStyle(e.stamina <= DODGE_COST + 1e-6 ? 0xe0a050 : 0xf0d060, 1); g.fillRect(ex - 12, ey + 18, 24 * e.stamina, 3);
       g.fillStyle(0xffffff, 0.8); g.fillRect(ex - 12 + 24 * DODGE_COST - 0.5, ey + 17, 1, 5);   // one dodge's worth
+    }
+  }
+
+  /** M4: the crawlers on the tile layer — a dark disc with an HP bar once hurt, a red rim while it has turned on the
+   *  engineer (D5 retaliation), a birth ring for its first second at the ridge; shades are faint and drawn only on
+   *  lit tiles (§7: untargetable, and unseen, off them). GAME-ASSUMPTION: code-drawn discs stand in for the crawler
+   *  and shade sprites until the art pass. */
+  private drawThreat(): void {
+    const g = this.gThreat, st = this.st, th = st.flow?.threat;
+    g.clear();
+    if (!th || !threatActive(st)) return;
+    const cam = this.cameras.main, zoom = cam.zoom, wv = cam.worldView;
+    for (const c of th.crawlers) {
+      const px = c.x * TILE_PX, py = c.y * TILE_PX;
+      if (px < wv.x - 48 || px > wv.right + 48 || py < wv.y - 48 || py > wv.bottom + 48) continue;
+      const shade = c.kind === 'shade';
+      if (shade && !litAt(st, Math.floor(c.x), Math.floor(c.y))) continue;
+      const r = shade ? 8 : 9, age = st.t - c.born, maxHp = ENEMIES[shade ? 1 : 0].hp;
+      g.fillStyle(0x0b0e1a, shade ? 0.25 : 0.7); g.fillCircle(px + 2, py + 3, r);
+      g.fillStyle(shade ? 0x7a6a9a : 0x3a2a4a, shade ? 0.45 : 1); g.fillCircle(px, py, r);
+      if (c.onPlayer) { g.lineStyle(3 / zoom, 0xe05a5a, 0.95); g.strokeCircle(px, py, r + 2); }
+      else { g.lineStyle(1.5 / zoom, 0x9a7ab0, 0.6); g.strokeCircle(px, py, r); }
+      if (age < 1) { g.lineStyle(2 / zoom, 0xd0a0ff, 1 - age); g.strokeCircle(px, py, r + 4 + age * 10); }
+      if (c.hp < maxHp) { g.fillStyle(0x1a1d26, 1); g.fillRect(px - 10, py - r - 7, 20, 3); g.fillStyle(0xe05a5a, 1); g.fillRect(px - 10, py - r - 7, 20 * Math.max(0, c.hp) / maxHp, 3); }
     }
   }
 

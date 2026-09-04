@@ -1,6 +1,6 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
-  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason } from '@relight/sim';
+  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined } from '@relight/sim';
 import { Session, setSpeed, queue, shareUrl } from './session';
 import { summarise, exportJson } from './telemetry';
 
@@ -135,6 +135,11 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     buildCarried.push({ kind: b.kind, v: carried, btn, lock });
     buildList.append(li);
   }
+  // GAME-ASSUMPTION (M4): the Arsenal's rifle upgrade (§8, 1.4 s a crawler) is a toolbar entry only — the upgrade itself is outside the hour
+  const mk2Lock = el('span', 'hint', '');
+  const mk2 = el('li');
+  mk2.append(el('span', 'mono', 'Rifle Mk2'), el('span', 'hint', ' · twin barrels, 1.4 s a crawler (the Mk1 takes 3 rounds, 2 s) '), mk2Lock);
+  buildList.append(mk2);
   buildSec.append(buildList);
   buildSec.append(el('p', 'hint', 'In the world view: left-click places what the hand holds from the pockets (a carried machine first, else its price in carried steel and copper — take them from the chest), R rotates, Q pipettes the machine under the cursor or clears the hand, right-click with an empty hand picks a machine up into the pockets. 9 is the rifle: while it is in hand, holding left-click fires toward the cursor and nothing else happens until you clear it.'));
   root.append(buildSec);
@@ -333,6 +338,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       const n = s.engineer.inv[b.kind] ?? 0; b.v.textContent = n > 0 ? `· ${n} carried` : '';
       const lk = lockReason(s, b.kind); b.btn.disabled = !!lk; b.lock.textContent = lk ? ` · locked: ${lk}` : '';
     }
+    if (!buildSec.hidden) mk2Lock.textContent = survivorJoined(s, 'Arsenal') ? '· the Arsenal are in — the upgrade itself is outside the hour (prompt B M4)' : '· locked: the Arsenal unlock it — hold their block';
     if (vCu) { vCu.textContent = String(Math.floor(s.stock.copper)); vSteel!.textContent = String(Math.floor(s.stock.steel)); vStone!.textContent = String(Math.floor(s.stock.stone)); vPatch!.textContent = String(Math.floor(s.patch.steel)); }
     vAsm.textContent = String(h.ammo.assemblers);
     const si = slotInfo(s);

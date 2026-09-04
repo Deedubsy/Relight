@@ -410,7 +410,92 @@ The human's decisions before M4: D-B3-1 (a) 50 steel + 25 Cu in rubble until Pha
 - **D-P4-7** — made: settled before M4; the script realigned, the gate holds, the Generator-feed question moot.
 - **New, not a decision row yet, for the human to place:** (1) *coal past the hour* — the HQ patch is out by minute 29 and the Depot bare at 60:00 with four Generators; §11 leans on west's rubble, which Phase 5 logistics bring — does M6's played hour end at 60:00, or does the slice need a coal stand-in (a bigger patch, or the bot's hands fetching from a claimed block) before then? (2) *the pip's lead* — under a sustained brownout the red pip leads the fall by 2–8 minutes because the buffer drains first; if that is too short, the candidates are a Depot-buffer warning on the HUD (a number the player already sees) or an amber pip at buffer-empty, not a change to the rule. (3) *the start hoppers* — with the line at E4's minutes the first red pip is at 5:34–6:21 on every seed, before the assembler's first magazine; M4's crawlers decide whether that is §11's lesson or a start-fill (C10) question for M6.
 
-## Prompt B M4 Threat — not built
+## Prompt B M4 Threat, and the rifle — built 2026-09-04
+
+Run names `B-M4-threat` (crawlers as bodies on the tiles: the ridge, the chain, the turrets, retaliation, the rifle; scratch probes on seed 3) and `B-M4-hour` (the §11 hour on the E4 schedule with the tile threat on, seeds 3 / 4 / 5, the bot's rifle off and on). The block model's engagement arithmetic (`sim.ts`) is untouched on the lattice and on stand-in edges; on a city edge with physical turrets it now hands its arrivals to the tiles and takes the count back.
+
+### Built
+
+- **Rot as tile presence** (`worldScene.ts` overlay): a Dark lot's navy tint deepens with the block's `d` and carries hashed rot specks at zoom ≥ 0.6; nothing is simulated on the lot, it is the block map's word drawn.
+- **Blooms at the ridge** (`threat.ts` `spawnAt`; `sim.ts` engagement loop): when the block sim opens an engagement on an edge the tiles know (the HQ's and any Held face's segments; `threatHooks.spawn`), its crawlers and shades are born on the segment ridge facing the held block, one tile a body chosen by a seeded hash along the ridge and the nearest passable tile from there (GA-B4-2). A stand-in edge (D-P4-9, a claimed block's abstract kit) keeps the block-level fed count and hands only its unfed remainder to the tiles as already-escaped bodies (GA-B4-4). No hulks.
+- **The per-face flow field** (`fieldFor`, `stepCrawler`): a multi-source breadth-first field from the target class's footprints over the passable tiles of the two blocks the edge joins, 8-connected without corner cutting, cached per (face, from, class) and rebuilt at most once a block second (GA-B4-5); a crawler never leaves its two blocks. Target classes: the lit lamps and Floodlights (class 0, eaten from the next tile, `EAT_R` 1.6, the light stays dark until M5's repair, GA-B4-7), then the turret as a waypoint it does not harm (class 1, GA-B4-6), then the substation footprint — on an outskirts block the pole tile (class 2, GA-B4-3). Crawlers walk 3 tiles/s, shades 2 (`ENEMIES`); a body that cannot move for 30 s is gone (`STUCK_S`).
+- **The 40-arrival rule at tile level** (`arrive`): a body that reaches class 2 counts one unshot arrival on the block (`b.unfed`, `stats.unfedTotal`), the block sim's threshold and 30 s substation-off for shades unchanged; the `arrival` event fires on the 1st and every 10th (a toast "n of 40").
+- **Shades** only when a residential block's rot reaches its threshold (the block sim's `shades` count, as before); untargetable by turrets and the rifle off lit tiles (`litAt`), walk straight to the substation (GA-B4-1).
+- **Turrets shoot bodies** (`tickTurrets`): each running turret takes the nearest body within `TURRET_RANGE` 9 out of its own hopper, `ROUND_DMG` 4 a round (12 HP ÷ 3 rounds a crawler, 40 ÷ 10 a shade, GA-B4-1), 0.6 s a crawler at the rate; the hopper-empty pip is the same event.
+- **Retaliation only (D5)** (`turn`, `stepCrawler`): a crawler turns on the engineer only when the engineer's round hits it or the engineer stands in its path (`PATH_R` 0.9; a `retaliate` event with the cause, a toast); it then chases while the engineer is up and within its two blocks (GA-B4-8) and lands 5 HP/s within `CONTACT_R` 1.2 unless the dash's cover holds (GA-B4-9). Danger is any body within `DANGER_R` 3 (the M2 `dangerS` clock).
+- **HP, regen, knockdown** (`engineer.ts` `hurt` / `tickEngineer`): 100 HP, 5 HP/s regen after 5 s out of contact, knockdown at zero (the `engineer-down` toast), up at the HQ workbench 10 s later with pockets intact (`engineer-up` toast: "no other penalty"); the HUD shows HP only below full; a body under the cursor is described (`describeCrawler`).
+- **The rifle** (`walk.ts` `fireRound` → `threatHooks.fire`; `threat.ts` `fire`): a round along the aim line, `RIFLE_RANGE` 9, hits the first body within `RIFLE_HIT_RADIUS` 1.5 of the line; 1.5 rounds/s, 3 rounds a crawler, a shade off a lit tile cannot be hit. Fired with the left mouse button as D-B1-5 has it (the prompt's right-mouse wording is a disagreement, below). The harness bot's rifle (`botRifle`) shoots the nearest body of the edge it is engaging.
+- **Hand-fired engagements** (`Fight`, `stats.fights`): every engagement the engineer fires into records the edge, the minute, rounds, kills and whether the edge held (resolved true when no body and no engagement remains a second after the last round, false when the block is lost or its substation stops).
+- **The Arsenal's Rifle Mk2** (`map.ts` `SURVIVOR_UNLOCK_NAMES`, `panel.ts`): a toolbar entry only, "locked: the Arsenal unlock it — hold their block" until the Arsenal's block turns Held, then "the upgrade itself is outside the hour" (GA-B4-11). The truck stays outside the hour.
+- **Telemetry** (`telemetry.ts`, `flow.ts` `stats`): minutes walked per sim hour (`walkedHour`), trips to the chest (`chestTrips`, the first transaction after leaving the Depot's reach, GA-B4-10), placements refused for reach (`reachRefused`, one a click, GA-B4-12), the minute of the first rifle shot, rounds fired by hand, kills by hand, HP lost, knockdowns, and every hand-fired engagement with its held flag; the minute record adds crawlers alive, arrivals, lamps eaten, rifle kills and HP lost.
+- **In-game** (`main.ts`, `worldScene.ts`): toasts for `bloom` (only on or beside the engineer's block, GA-B4-13), `retaliate`, `lamp-eaten`, `arrival`, `engineer-up`; bodies drawn as dark discs with a birth ring, a red rim once turned, an HP bar once hurt, shades faint and only on lit tiles; the HUD line "crawlers N (M on you)".
+- **Tests** (`threat.test.ts` 7, `body.test.ts` edited): the chain on seed 3's HQ (lamps out one by one, the turret waypoint, the substation, 40 arrivals, the fall); fed turrets at 3 rounds a crawler draining to the same pip; retaliation only (ignored beside the path, turned by a shot, turned by standing in the path, 5 HP/s, knockdown and the 10 s return with pockets intact, regen after 5 s); the rifle's rate, damage, range and the shade rule; hand fights resolving held / fell; the lattice untouched (no threat, the block arithmetic identical); an M3 snapshot loads without the M4 fields. The M1 rifle test aims at the nearest body instead of the block-level ridge — a test change, not a rules change.
+
+### Assumed (every `GAME-ASSUMPTION` in prompt B M4 code)
+
+| Tag | Where | Assumption |
+|---|---|---|
+| GA-B4-1 | `threat.ts` header, `ROUND_DMG` / `CONTACT_R` / `DANGER_R` / `PATH_R` / `EAT_R` / `STUCK_S` | a round does 4 HP (12 ÷ 3 a crawler, 40 ÷ 10 a shade); arm's reach is 1.2 tiles; danger is a body within 3; "stands in its path" is within 0.9 of the path; a lamp is eaten from 1.6; a body stuck 30 s is gone; shades walk straight to the substation — D-B4-2 |
+| GA-B4-2 | `threat.ts` `spawnAt` | the birth tile is a seeded hash along the ridge, then the nearest passable ridge tile |
+| GA-B4-3 | `threat.ts` `targetsFor` | an outskirts block has no substation, so class 2 is its pole tile |
+| GA-B4-4 | `sim.ts` engagement loop | an edge with physical turrets hands all its arrivals to the tiles; a stand-in edge feeds at block level and hands only the unfed remainder over as escaped bodies |
+| GA-B4-5 | `threat.ts` `fieldFor` | a flow field is rebuilt at most once a block second per (face, class), so a machine placed mid-second reroutes a moment late |
+| GA-B4-6 | `threat.ts` `arrive` | crawlers do not harm a turret (§7 gives them no such attack); it is the chain's waypoint — D-B4-3 |
+| GA-B4-7 | `flow.ts` `placeMachine`, `blockLights` | a light a crawler ate stays dark until M5 repairs it; a new machine on its tile is a fresh lamp |
+| GA-B4-8 | `threat.ts` `stepCrawler` | a turned crawler keeps chasing while the engineer is up and within its two blocks; leaving them ends it |
+| GA-B4-9 | `threat.ts` `stepCrawler` | the dash's cover (D5) holds at tile level too |
+| GA-B4-10 | `flow.ts` `chestTrip` | a trip to the chest is the first transaction after being out of the Depot's reach |
+| GA-B4-11 | `panel.ts` | the Arsenal's Rifle Mk2 is a toolbar entry only; the upgrade itself is outside the hour |
+| GA-B4-12 | `worldScene.ts` `reachable` | placements refused for reach count one a click, not one a drag step |
+| GA-B4-13 | `main.ts` `bloom` toast | only the blooms on or beside the engineer's block toast; the rest are the map view's pulses |
+
+The M1–M3 and lattice tags stand. GA-M3's "the slice runs with power on" stands (`session.ts`).
+
+### Deferred
+
+- **Rifle Mk2 itself** (1.4 s a crawler, §8) and **the truck** → outside the hour, **M6 / Phase 5**; the toolbar entry is built.
+- **Hulks** → **Phase 5** (§7 gives them the barricade chain; no barricade in the slice).
+- **Shades inside the hour**: no residential block reached its threshold on seeds 3 / 4 / 5 in the §11 hour, so the shade rules are tested (`threat.test.ts`) but not measured in play → **M6** on the played hour.
+- **Lights a crawler ate** stay dark until repair → **M5** (the light texture and repair).
+- **The stand-in edge's bodies** (D-P4-9): a claimed block's unfed remainder walks the tiles, but its fed count is the block sim's → **M6** with D-P4-5 / D-P4-9.
+- **Crawlers vs the player's own machines** (belts, inserters, the assembler): bodies walk around them and never harm them → **Phase 5** with §7's barricade.
+- **A player's minutes walked** (§19's 15 %): the bot's 2.6–4.1 % is a bot's → **M6** playtest.
+- **The first pip before the line** (the M3 re-read): measured below with real bodies; the start hoppers / buffer question → **M6**.
+
+### Measured
+
+Scratch scripts `m4measure.ts` (the E4-doc schedule, seeds 3 / 4 / 5, the compact bot with and without its rifle, events taken each block second) and `hopprobe.ts` / `chestprobe.ts`; the tile tick at 20/s.
+
+| What | Measured | Doc |
+|---|---|---|
+| the chain, seed 3 HQ, one 10-crawler bloom on a dry edge (`B-M4-threat`) | born on the segment ridge; the pack eats all 14 lit lights of the face (first at 3 s, the last by 28 s), walks to the turret (unharmed), first substation arrival 29 s, the 40th arrival and the substation off at 68 s, the block lost at 158 s | §7 lamp → turret → substation, 40 arrivals |
+| the same with fed turrets | 4 × 10 crawlers all killed, 100 rounds for 33 kills (3.0 a kill), first hopper-empty at 26 s, 0 arrivals, 0 lights eaten | §13 3 rounds a crawler, 0.6 s |
+| shades, seed 3 | untargetable off lit tiles; first shade arrival at 49 s against a dry edge; on a lit tile a turret takes 10 rounds | §7, §13 |
+| §11 hour, E4 schedule, power on, the bot's rifle off (`B-M4-hour`), seeds 3 / 4 / 5 | 467 / 370 / 241 crawlers born in 104 / 81 / 78 blooms (first 2:46 / 2:42 / 3:03); 461 / 370 / 241 turret kills; arrivals 6 / 0 / 0 (seed 3's first at 31:17); lights eaten 5 / 9 / 5 (first 3:05 / 5:39 / 9:28); peak 5 alive, 467 / 324 / 209 s with any alive; 0 shades; the HQ holds, 4 held, 0 lost, 0 brownout s, peak 1,090 of 1,200 kW; 806 / 770 / 784 magazines made; first hopper-empty 15:29 / 5:37 / 15:29 | §11, §7 |
+| the same with the bot's rifle on | the same threat; seed 4: first shot 8:19, 3 rounds by hand, 1 kill, 1 turned, one hand fight `8:19 e3242 3 rounds / 1 kill, held`, 2 s shooting, 2 s danger; seeds 3 / 5 never shoot; 0 HP lost, 0 knockdowns on every seed; lights eaten 10 / 13 / 7; first hopper-empty 6:11 / 5:34 / 6:10 on an HQ segment with the buffer at 0 | §11 "run six magazines" |
+| the engineer's hour (bot) | walked 2 min of 60 (3.5 / 2.6 / 4.1 %), 0 chest trips, 0 placements refused (the bot places from the Depot's reach) | §19 15 % walking |
+| the first pip with the rifle bot | `restock` pulls the buffer's 10 start magazines into the bot's pockets (15 magazines) at 0:00, so the hands cannot feed the HQ's corner sliver and it runs dry at 6:10–6:11; with the rifle off the buffer's 10 keep it fed to 15:29 — a harness-bot artefact (the pre-M4 gate's 6:18 was this), not a rules change | §11 |
+| a 1 h sim at 4× in the world view (`soak.cjs`, headless swiftshader, seed 3, autoplay compact) | 43,781 frames over 900 s real (sim 5,406 s: 1 h 30 min), mean 19.0–23.2 ms by minute, worst 33.3 ms, 0 frames over 50 ms, sim 0.03–0.82 ms a tick; the HQ held with §11's line and two Generators, 729 magazines made, 1,139 turret kills, 5 lamps eaten, 0 arrivals, no page errors. The first soak, before the speck fix and without the line, fell to 24 fps from sim minute 12 (circles a tile as the rot deepened) and lost the HQ at ~19:30 on dry hoppers | prompt B "must not drop the render loop" |
+
+Browser check: the world view at seed 3 draws the bodies, the birth ring and the HP bar; the hover line names a crawler ("crawler, 8 of 12 HP, for the lamps, turned on you"); the HP line appears only below full; the "Rifle Mk2" row reads "locked: the Arsenal unlock it — hold their block". The map scene's hopper-empty pulse crashed a world-view session before the map scene's `create()` ran (`this.geom` unset, sim 6:11 on the first soak); guarded, the pulse sits on the block until the map is opened.
+
+Checks: `npm test` 110 / 110 (103 + the seven M4 tests), `typecheck` (incl. the game build), `lint`, `snapshot:check` (`68d07000`, unchanged), `docsync:check`, `experiments` 12 / 108 s / 0 failing checks, `calibrate` output identical (C1 / C2 MET, C7 / i1 / i2 as before). Fixtures `city{3,4,5}.json` unchanged (the block sim's arithmetic is the same on the lattice and on the city's stand-in edges).
+
+### Where prompt B M4 and the doc disagree (reported, not resolved)
+
+- **The prompt's "fired with the right mouse button held"** vs D-B1-5's left-click (the human's decision at M1): D-B1-5 kept; the rifle fires on the left button while the cursor aims. Decision D-B4-1.
+- **§7 "nearest lamp, then turret, then the substation"** vs built: the turret is a waypoint the crawlers pass unharmed (§7 gives a crawler no attack on a turret; a turret is a machine, and §7's damage is "lights go out"). Decision D-B4-3.
+- **§19 "15 % is walking or driving"**: the harness bot walks 2.6–4.1 % of the §11 hour; the doc's number is a player's estimate and stays, tagged with the bot's.
+- **§11 "run six magazines to its turrets"** against a first red pip at 5:34–6:21 with the line at E4's minutes: the pip is real at tile level with real bodies (the sliver's two turrets against 3–5 crawlers a bloom); the bot's hands carry it. Not resolved; M6.
+- **§7's shades "once residential rot reaches its threshold"**: never inside the hour on seeds 3 / 4 / 5 (rot does not reach it before 60:00); tested, not played.
+- **The prompt's "never more than two blocks"** holds by construction (the field is restricted to the two blocks); the doc's §17 "cached per block edge" is per (face, from, class) — the same thing at one more level of detail.
+
+### Decisions for the human (recommended in `DECISIONS.md` D-B4-1–D-B4-3)
+
+- **D-B4-1 the rifle's button**: keep D-B1-5's left click, the cursor aims (a) / the prompt's right button held, left free for placement (b) / left fires only with the rifle key held, R (c). Recommend (a).
+- **D-B4-2 the threat constants** (`threat.ts` header): as built — 4 HP a round, 1.2 arm's reach, 3 danger, 0.9 path, 1.6 eat, 30 s stuck (a) / widen the path to 1.5 so a player standing near a chain is turned on more often, the D5 feel (b) / shorten stuck to 10 s (c). Recommend (a) until M6's playtest has a number.
+- **D-B4-3 the turret in the chain**: a waypoint the crawlers pass unharmed, as built (a) / a turret takes contact damage (a new HP number for a machine) and the chain is lamp → turret → substation as §7 reads (b) / drop the turret from the chain, lamps then the substation (c). Recommend (a); §7 edited to say "then past the turret" only if (a) is chosen.
+
 
 ## Prompt B M5 Light — not built
 

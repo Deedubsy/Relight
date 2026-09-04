@@ -191,3 +191,18 @@ Every item above keeps its phase unless listed here.
 - **The first red pip before the line runs**: with the line at E4's minutes the HQ's start hoppers run dry at 5:34–6:21, before the assembler's first magazine at ~8:00; the bot's hands from the buffer carry the ring. §11's "run six magazines to its turrets" is that moment. → **M4** measures it with real crawlers; **M6** decides whether the start hoppers (C10 fill) or the buffer change.
 - **A brownout at tile level in the block sim's window** (`E2`): the E2 6-hour rows are block-sim runs; the tile-level ring under a sustained brownout (the HQ's assemblers at 50 %) is measured only for the hour (`B-M4-gate`, no shortfall). → **M4** soak with power on.
 - **Turrets and belts under a brownout**: never slowed (GA in `stepFlow`, §14). A rule, not a constant; revisit only if M4's playtest wants a brownout to bite the front. → **M6**.
+
+## Re-read at prompt B M4 (2026-09-04, Threat and the rifle built)
+
+Every item above keeps its phase unless listed here.
+
+- **The first red pip before the line runs**: measured with real bodies — the HQ's corner sliver (two turrets by reach) meets 3–5 crawlers a bloom from 2:42–3:03 and runs dry at 5:34–6:21 on the E4 schedule; the bot's hands from the buffer carry it. The 6:10–6:11 pip with the rifle bot is its `restock` emptying the buffer, a harness artefact. → **M6** decides the start hoppers / the buffer with the played hour.
+- **A brownout at tile level in the block sim's window**: the M4 soak ran the hour with power on and the tile threat, 0 brownout seconds (the E4 schedule never falls short). A tile-level shortfall soak is still unrun. → **M6**.
+- **Shades in play**: no residential block reaches its threshold in the §11 hour on seeds 3 / 4 / 5; the rules are tested only. → **M6** (a longer or harder played hour).
+- **Lights a crawler ate** (5–13 an hour) stay dark with no way to relight them. → **M5** repair.
+- **The stand-in edge's bodies** (D-P4-9): a claimed block's unfed remainder walks the tiles while its fed count is the block sim's; the bot's first claim gets its own red pip at 15:29 on seeds 3 / 5 with 0 tile turrets. → **M6** with D-P4-5 / D-P4-9.
+- **Rifle Mk2 and the truck**: the toolbar row is in; the upgrade (1.4 s a crawler) and the truck are outside the hour. → **M6 / Phase 5**.
+- **Hulks and the barricade chain** (§7): no barricade in the slice. → **Phase 5**.
+- **Crawlers and the player's own machines**: bodies walk around belts, inserters and assemblers and never harm them; §7 has no rule for it. → **Phase 5** with the barricade.
+- **A player's walking share** (§19's 15 %): the bot's 2.6–4.1 % is a bot's. → **M6** playtest.
+

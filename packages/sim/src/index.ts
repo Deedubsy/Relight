@@ -15,3 +15,4 @@ export * from './flow';
 export * from './city';
 export * from './ground';
 export * from './walk';
+export * from './threat';

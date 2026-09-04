@@ -152,6 +152,19 @@ export function hurt(st: SimState, hp: number): void {
   }
 }
 
+/** Prompt B M4: the tile threat layer (threat.ts) installs itself here; the block sim and walk.ts call through it so
+ *  neither imports the tile layer. `spawn` returns false where there is no tile threat (the lattice), and the block
+ *  model's arithmetic carries on as before. */
+export interface ThreatHooks {
+  tick(st: SimState, dt: number): void;
+  spawn(st: SimState, edgeId: number, crawlers: number, shades: number, escaped: boolean): boolean;
+  /** Danger this block second (a crawler within reach of the engineer) and whether the rifle fired in it. */
+  second(st: SimState): { danger: boolean; shot: boolean };
+  /** An aimed round toward (ax, ay); false where there is no tile threat to hit. */
+  fire(st: SimState, e: Engineer, ax: number, ay: number): boolean;
+}
+export const threatHooks: { current: ThreatHooks | null } = { current: null };
+
 /** Where the engineer stands: the lattice cell under a tile, or the resolver the tile layer installs for a city. */
 export const blockAtHook: { current: ((st: SimState, x: number, y: number) => number) | null } = { current: null };
 export function blockAt(st: SimState, x: number, y: number): number {

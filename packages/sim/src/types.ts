@@ -207,6 +207,9 @@ export type SimEvent =
   | { type: 'truck'; t: number }                                             // D5: the truck found at the Tram depot
   | { type: 'rifle'; t: number; x: number; y: number }                       // D5: first rifle shot (Gate B: at what minute)
   | { type: 'gen-dry'; t: number; x: number; y: number }                     // M3: a Generator burned its last coal
+  | { type: 'retaliate'; t: number; tx: number; ty: number; cause: 'shot' | 'path' }   // M4: a crawler turned on the engineer (D5: shot by them, or they stood in its path)
+  | { type: 'lamp-eaten'; t: number; x: number; y: number; tx: number; ty: number }    // M4: a crawler put a lit lamp out on block (x,y)
+  | { type: 'arrival'; t: number; x: number; y: number; n: number; of: number; shade: boolean }   // M4: the 1st and every 10th unshot arrival at a block's substation (n of the 40)
   | { type: 'well-dead'; t: number; x: number; y: number }
   | { type: 'hour'; t: number; row: HourRow };
 

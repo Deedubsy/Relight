@@ -110,8 +110,9 @@ export const SURVIVOR_BANDS: { name: string; tag: string; min: number; max: numb
   { name: 'Foreman', tag: 'M', min: 6, max: 10 },
 ];
 /** §8's unlock column for the groups the slice builds (prompt B M3): the Electricians' three land on the toolbar
- *  when their block turns Held; the flow layer's `SURVIVOR_UNLOCKS` holds the kinds. */
-export const SURVIVOR_UNLOCK_NAMES: Record<string, readonly string[]> = { Electricians: ['Floodlight', 'Big pole', 'Substation'] };
+ *  when their block turns Held; the flow layer's `SURVIVOR_UNLOCKS` holds the kinds. M4: the Arsenal's Rifle Mk2 is
+ *  named here (the build menu lists it locked) but is a toolbar entry only — the upgrade is outside the hour. */
+export const SURVIVOR_UNLOCK_NAMES: Record<string, readonly string[]> = { Electricians: ['Floodlight', 'Big pole', 'Substation'], Arsenal: ['Rifle Mk2'] };
 export function placeSurvivors(seed: number, inert: Set<number>, facilities: Facility[]): Survivor[] {
   const rng = { rng: seedRng(Math.imul(seed, 48611) + 11) };
   const taken = new Set<number>([START[0] * H + START[1]]);

@@ -172,7 +172,8 @@ export class CityMapScene extends Phaser.Scene implements MapView {
       } else if (ev.type === 'hopper-empty') {
         // prompt B M3: the pulse lands on the segment's pip — the same event turns that pip red — not the block's centre
         const i = idxOf(st, ev.x, ev.y), j = idxOf(st, ev.nx, ev.ny); if (i < 0) continue;
-        const k = j >= 0 ? this.geom.segAt.get(segKey(st.blocks.length, i, j)) ?? -1 : -1;
+        // prompt B M4: in a world-view session the map scene consumes events before its create() ran; no geometry yet, so the pulse sits on the block
+        const k = j >= 0 && this.geom ? this.geom.segAt.get(segKey(st.blocks.length, i, j)) ?? -1 : -1;
         const at = k >= 0 ? { x: PAD + this.geom.segs[k].mx * this.ppt, y: PAD + this.geom.segs[k].my * this.ppt } : {};
         this.pulses.push({ i, ...at, born: now, dur: 900, r0: 10, r1: 4, color: C.red, width: 2, wake: false });
       } else if (ev.type === 'fall') {
