@@ -1,5 +1,5 @@
 {
- "source_commit": "9fa9739b7667d1530ec694879419489e2608b48e",
+ "source_commit": "7ddc3c812fd5bcb0f203febdcb25f9b1c5291d62",
  "config_hash": "b95922d2",
  "config_ref": {
   "kind": "experiments"
@@ -295,50 +295,50 @@
    "rows": [
     [
      3,
-     519,
-     519,
+     503,
+     503,
      "0.00 %",
-     864,
-     861,
-     0,
-     0,
-     22,
-     0,
-     463,
+     879,
+     868,
+     1,
+     1,
+     81,
+     14,
+     495,
      "14:02",
-     "0",
+     "1",
      0
     ],
     [
      4,
-     519,
-     519,
-     "0.00 %",
-     822,
-     819,
-     0,
-     0,
-     26,
-     6,
-     322,
+     511,
+     512,
+     "0.20 %",
+     813,
+     808,
+     1,
+     1,
+     80,
+     12,
+     352,
      "5:37",
      "0",
      0
     ],
     [
      5,
-     519,
-     519,
+     510,
+     510,
      "0.00 %",
-     792,
      788,
-     0,
-     0,
+     788,
+     1,
+     1,
+     32,
      9,
-     2,
-     226,
+     262,
      "6:26",
-     "0",
+     "4",
      0
     ]
    ]
@@ -431,10 +431,10 @@
      57,
      "holds",
      "holds",
-     7,
-     21,
-     "20",
-     "80",
+     9,
+     27,
+     "4",
+     "97",
      "-"
     ],
     [
@@ -448,8 +448,8 @@
      "holds",
      8,
      24,
-     "12",
-     "89",
+     "22",
+     "88",
      "-"
     ],
     [
@@ -518,13 +518,13 @@
      5,
      "20:00",
      "(292,606)",
-     68,
+     69,
      "holds",
      "holds",
-     8,
-     24,
-     "45",
-     "55",
+     9,
+     27,
+     "35",
+     "70",
      "-"
     ],
     [
@@ -533,13 +533,13 @@
      5,
      "35:00",
      "(292,606)",
-     29,
+     28,
      "holds",
      "holds",
      8,
      24,
-     "12",
-     "89",
+     "22",
+     "88",
      "-"
     ],
     [
@@ -611,10 +611,10 @@
      107,
      "falls at +7.2 min (unfed)",
      "holds",
-     30,
-     90,
-     "79",
-     "75",
+     33,
+     99,
+     "44",
+     "78",
      "-"
     ],
     [
@@ -626,11 +626,11 @@
      60,
      "holds",
      "holds",
-     32,
-     96,
-     "120",
-     "42",
-     "-"
+     31,
+     95,
+     "164",
+     "0",
+     "down ×1"
     ],
     [
      "600 s",
@@ -668,11 +668,11 @@
      4,
      "20:00",
      "(498,657)",
-     124,
+     125,
      "falls at +8.4 min (unfed)",
      "holds",
-     19,
-     57,
+     18,
+     54,
      "34",
      "80",
      "-"
@@ -683,7 +683,7 @@
      4,
      "35:00",
      "(498,657)",
-     83,
+     85,
      "falls at +8.9 min (unfed)",
      "holds",
      21,
@@ -698,13 +698,13 @@
      5,
      "20:00",
      "(292,606)",
-     141,
+     142,
      "falls at +4.3 min (unfed)",
      "falls at +4.4 min (unfed)",
      16,
      48,
-     "80",
-     "55",
+     "58",
+     "70",
      "-"
     ],
     [
@@ -716,10 +716,10 @@
      97,
      "falls at +5.6 min (unfed)",
      "falls at +7.7 min (unfed)",
-     23,
-     70,
-     "73",
-     "67",
+     24,
+     72,
+     "137",
+     "29",
      "-"
     ]
    ]
@@ -764,12 +764,12 @@
   {
    "name": "tile: the rifle changes the hour's magazine bill by < 5 % (mean |diff|)",
    "pass": true,
-   "detail": "0.00 % (expected 0–5 %)"
+   "detail": "0.07 % (expected 0–5 %)"
   },
   {
    "name": "tile: nothing falls in the hour, rifle off or on",
-   "pass": true,
-   "detail": "falls per seed 0/0/0"
+   "pass": false,
+   "detail": "falls per seed 2/2/2"
   },
   {
    "name": "tile: one dry edge (§11's rescue, the belt never comes) — the rifle saves every block that falls without it",
@@ -783,8 +783,8 @@
   },
   {
    "name": "tile: the engineer is never knocked down in a rescue",
-   "pass": true,
-   "detail": "HP lost 0–120, HP min 34"
+   "pass": false,
+   "detail": "HP lost 0–164, HP min 0"
   }
  ],
  "data": {
@@ -1414,10 +1414,10 @@
      "fell": false,
      "fellAt": -1,
      "reason": "-",
-     "kills": 7,
-     "fired": 21,
-     "hurt": 20,
-     "hpMin": 80,
+     "kills": 9,
+     "fired": 27,
+     "hurt": 3.75,
+     "hpMin": 96.75,
      "downs": 0,
      "crawlers": 57
     },
@@ -1434,9 +1434,9 @@
      "reason": "-",
      "kills": 0,
      "fired": 0,
-     "hurt": 0,
-     "hpMin": 100,
-     "downs": 0,
+     "hurt": 100,
+     "hpMin": 0,
+     "downs": 1,
      "crawlers": 22
     },
     {
@@ -1452,8 +1452,8 @@
      "reason": "-",
      "kills": 8,
      "fired": 24,
-     "hurt": 12,
-     "hpMin": 88.75,
+     "hurt": 22,
+     "hpMin": 87.5,
      "downs": 0,
      "crawlers": 22
     },
@@ -1617,7 +1617,7 @@
      "hurt": 0,
      "hpMin": 100,
      "downs": 0,
-     "crawlers": 68
+     "crawlers": 69
     },
     {
      "seed": 5,
@@ -1630,12 +1630,12 @@
      "fell": false,
      "fellAt": -1,
      "reason": "-",
-     "kills": 8,
-     "fired": 24,
-     "hurt": 45.25,
-     "hpMin": 54.75,
+     "kills": 9,
+     "fired": 27,
+     "hurt": 35.25,
+     "hpMin": 69.75,
      "downs": 0,
-     "crawlers": 68
+     "crawlers": 69
     },
     {
      "seed": 5,
@@ -1650,10 +1650,10 @@
      "reason": "-",
      "kills": 0,
      "fired": 0,
-     "hurt": 0,
-     "hpMin": 100,
-     "downs": 0,
-     "crawlers": 29
+     "hurt": 100,
+     "hpMin": 0,
+     "downs": 1,
+     "crawlers": 28
     },
     {
      "seed": 5,
@@ -1668,10 +1668,10 @@
      "reason": "-",
      "kills": 8,
      "fired": 24,
-     "hurt": 12,
-     "hpMin": 88.75,
+     "hurt": 22,
+     "hpMin": 87.5,
      "downs": 0,
-     "crawlers": 29
+     "crawlers": 28
     },
     {
      "seed": 3,
@@ -1826,7 +1826,7 @@
      "belt": 600,
      "rifle": false,
      "fell": true,
-     "fellAt": 1630,
+     "fellAt": 1631,
      "reason": "unfed",
      "kills": 0,
      "fired": 0,
@@ -1846,10 +1846,10 @@
      "fell": false,
      "fellAt": -1,
      "reason": "-",
-     "kills": 30,
-     "fired": 90,
-     "hurt": 79.25,
-     "hpMin": 75,
+     "kills": 33,
+     "fired": 99,
+     "hurt": 43.75,
+     "hpMin": 78,
      "downs": 0,
      "crawlers": 98
     },
@@ -1866,9 +1866,9 @@
      "reason": "-",
      "kills": 0,
      "fired": 0,
-     "hurt": 0,
-     "hpMin": 100,
-     "downs": 0,
+     "hurt": 100,
+     "hpMin": 0,
+     "downs": 1,
      "crawlers": 60
     },
     {
@@ -1882,11 +1882,11 @@
      "fell": false,
      "fellAt": -1,
      "reason": "-",
-     "kills": 32,
-     "fired": 96,
-     "hurt": 119.5,
-     "hpMin": 41.75,
-     "downs": 0,
+     "kills": 31,
+     "fired": 95,
+     "hurt": 163.75,
+     "hpMin": 0,
+     "downs": 1,
      "crawlers": 60
     },
     {
@@ -1970,14 +1970,14 @@
      "belt": 600,
      "rifle": false,
      "fell": true,
-     "fellAt": 1703,
+     "fellAt": 1704,
      "reason": "unfed",
      "kills": 0,
      "fired": 0,
      "hurt": 100,
      "hpMin": 0,
      "downs": 1,
-     "crawlers": 124
+     "crawlers": 125
     },
     {
      "seed": 4,
@@ -1990,8 +1990,8 @@
      "fell": false,
      "fellAt": -1,
      "reason": "-",
-     "kills": 19,
-     "fired": 57,
+     "kills": 18,
+     "fired": 54,
      "hurt": 33.75,
      "hpMin": 80.25,
      "downs": 0,
@@ -2006,14 +2006,14 @@
      "belt": 600,
      "rifle": false,
      "fell": true,
-     "fellAt": 2634,
+     "fellAt": 2632,
      "reason": "unfed",
      "kills": 0,
      "fired": 0,
      "hurt": 0,
      "hpMin": 100,
      "downs": 0,
-     "crawlers": 83
+     "crawlers": 85
     },
     {
      "seed": 4,
@@ -2049,7 +2049,7 @@
      "hurt": 0,
      "hpMin": 100,
      "downs": 0,
-     "crawlers": 141
+     "crawlers": 142
     },
     {
      "seed": 5,
@@ -2060,14 +2060,14 @@
      "belt": 600,
      "rifle": true,
      "fell": true,
-     "fellAt": 1462,
+     "fellAt": 1464,
      "reason": "unfed",
      "kills": 16,
      "fired": 48,
-     "hurt": 80.25,
-     "hpMin": 54.75,
+     "hurt": 58.25,
+     "hpMin": 69.75,
      "downs": 0,
-     "crawlers": 141
+     "crawlers": 142
     },
     {
      "seed": 5,
@@ -2078,13 +2078,13 @@
      "belt": 600,
      "rifle": false,
      "fell": true,
-     "fellAt": 2435,
+     "fellAt": 2436,
      "reason": "unfed",
      "kills": 0,
      "fired": 0,
-     "hurt": 0,
-     "hpMin": 100,
-     "downs": 0,
+     "hurt": 100,
+     "hpMin": 0,
+     "downs": 1,
      "crawlers": 97
     },
     {
@@ -2098,10 +2098,10 @@
      "fell": true,
      "fellAt": 2561,
      "reason": "unfed",
-     "kills": 23,
-     "fired": 70,
-     "hurt": 73,
-     "hpMin": 67,
+     "kills": 24,
+     "fired": 72,
+     "hurt": 137.25,
+     "hpMin": 29,
      "downs": 0,
      "crawlers": 109
     }
@@ -2109,7 +2109,7 @@
    "fellWithout": 7,
    "fellWith": 4,
    "savedByRifle": 3,
-   "damageHp": 38.697916666666664
+   "damageHp": 40.5625
   }
  },
  "meta": {

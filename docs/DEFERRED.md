@@ -262,3 +262,10 @@ Nothing parked: the audit built nothing. Every gap it found is a `STANDARDS.md` 
 - **Parked here from this milestone**: the Depot beacon's six-block silhouette (Phase 12 art, STANDARDS C.2); the survivor row's face and the §8 gift (Phase 7, GA-EF-3); the hand-lamp preview on the second play (D-B5-1).
 - **Deleted**: nothing.
 - **Still owed by earlier sections**: unchanged — the generated-report freshness rule (next verification pass), the reference-machine soak by hand, the M5 repair-by-E and hand-lamp preview in the played hour.
+
+## Re-read at the economy-fix task (2026-09-05, `ECONOMY_FIX_REPORT.md` — E-hour and E-rifle red on the decided minutes)
+
+- **Kept, with a phase**: north's minute and the coal after the HQ patch → D-P4-10, the human, before ROADMAP §0 line 4 can be ticked (north at 40 falls at 48:54–52:43 on every seed after the 40:01→45:00 brownout, `B-M6-hour-2`); the minute-15 steel cluster (steel2 + Generator 3 + east's kits empty the chest at 15:02–15:04) → D-HOUR-2, recommended, the human; the engineer knocked down in the 600 s edge rescue on seed 5 at 35:00 (E-rifle 10 / 12) → Gate B's rifle row, re-measured when D-P4-10 settles north's minute; the two-claim variant (north at 65) and D-P4-9's own coal → after Gate B, unchanged.
+- **Parked here from this task**: the headless soak script lives only in the session scratchpad (`soak.cjs`, Playwright over the Vite preview) — committing it under `packages/tools` is proposed, a human choice (it is a check, not a rule); `docs/ROADMAP_OLD.md` is untracked in the working tree, left alone.
+- **Deleted**: the "`docsync:check` red by design" risk (ROADMAP Risks, `GUARDRAILS_REPORT.md` §5 items 2–7) — the nine decided rows settled every disagreement; `docsync:check` is green with zero disagreements.
+- **Still owed by earlier sections**: the reference-machine soak by hand, the M5 repair-by-E and hand-lamp preview in the played hour, the controls walkthrough (ROADMAP §0 line 5).
