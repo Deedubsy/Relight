@@ -1,6 +1,7 @@
 /** Nightly: the 10,000-seed distribution of the headline numbers (E7 shape ratios, E1 losses, first interior) at 5 h,
  *  and the 25 h runs (E8, E9) at ten seeds. Writes docs/experiments/nightly-<date>.json and nightly.md. */
 import { writeFileSync, mkdirSync } from 'node:fs';
+import { stamp, stampLine } from './provenance';
 import { join } from 'node:path';
 import { runSim, DEFAULT_MAP } from './run';
 import { E8 } from './experiments/e8';
@@ -40,8 +41,9 @@ export function nightly(o: { seedsN: number; outDir: string; log: (s: string) =>
     e8: e8.data, e9: e9.data,
   };
   mkdirSync(o.outDir, { recursive: true });
-  writeFileSync(join(o.outDir, `nightly-${date}.json`), JSON.stringify(summary, null, 1));
-  const md: string[] = [`# Nightly ${date}`, '', `${o.seedsN} seeds × 4 policies × 5 h; E8/E9 at ten seeds; ${summary.seconds.toFixed(0)} s.`, '',
+  const prov = stamp({ kind: 'experiments' });
+  writeFileSync(join(o.outDir, `nightly-${date}.json`), JSON.stringify({ ...prov, ...summary }, null, 1));
+  const md: string[] = [stampLine(prov), `# Nightly ${date}`, '', `${o.seedsN} seeds × 4 policies × 5 h; E8/E9 at ten seeds; ${summary.seconds.toFixed(0)} s.`, '',
     '| policy | total mags mean | p5 | p50 | p95 | lost mean | p95 | interior never |', '|---|---|---|---|---|---|---|---|'];
   for (const p of ['compact', 'spike', 'cheapest', 'balanced'] as Policy[]) {
     const s = summary.policies[p]; md.push(`| ${p} | ${s.mags.mean.toFixed(0)} | ${s.mags.p5.toFixed(0)} | ${s.mags.p50.toFixed(0)} | ${s.mags.p95.toFixed(0)} | ${s.lost.mean.toFixed(2)} | ${s.lost.p95} | ${s.interiorNever} |`);

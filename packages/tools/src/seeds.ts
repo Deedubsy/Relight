@@ -14,6 +14,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { deflateSync } from 'node:zlib';
+import { stamp } from '@relight/harness/src/provenance';
 import { generateCity, CITY_PRESETS, CityPreset, CityGeom, LAND, STREET, WATER, DISTRICT_NAMES } from '@relight/sim';
 
 const argv = process.argv.slice(2);
@@ -107,12 +108,14 @@ export function summarise(g: CityGeom): string {
 const isMain = process.argv[1] && /seeds\.(ts|js)$/.test(process.argv[1]);
 if (isMain) {
   mkdirSync(OUT, { recursive: true });
+  const prov = JSON.stringify(stamp({ kind: 'seeds' }), null, 1) + '\n';   // rule 11 sidecar next to every PNG
   for (const preset of PRESETS) for (const seed of SEEDS) {
     const t0 = Date.now();
     const g = generateCity(seed, preset);
     const { w, h, rgb } = renderCity(g, SCALE);
     const name = `${preset}-${seed}`;
     writeFileSync(join(OUT, `${name}.png`), png(w, h, rgb));
+    writeFileSync(join(OUT, `${name}.json`), prov);
     const text = summarise(g);
     if (LABELS) writeFileSync(join(OUT, `${name}.txt`), text + '\n');
     console.log(`${text}\n  → ${join(OUT, `${name}.png`)} (${w}×${h}, ${Date.now() - t0} ms)`);

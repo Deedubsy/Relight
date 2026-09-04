@@ -9,6 +9,7 @@ import { ExperimentResult } from './util';
 import { nightly } from './nightly';
 import { setDefaultMap, DEFAULT_MAP } from './run';
 import { CityPreset } from '@relight/sim';
+import { stamp } from './provenance';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..', '..', '..');
@@ -38,8 +39,9 @@ if (args.includes('--nightly')) {
   const seconds = (Date.now() - t0) / 1000;
   const simVersion = (JSON.parse(readFileSync(join(root, 'packages', 'sim', 'package.json'), 'utf8')) as { version: string }).version;
   mkdirSync(join(outDir, 'experiments'), { recursive: true });
-  for (const r of results) writeFileSync(join(outDir, 'experiments', `${r.id}.json`), JSON.stringify({ ...r, meta: { seeds, hours, map } }, null, 1));
-  if (!only.length) writeFileSync(join(outDir, 'EXPERIMENTS.md'), toMarkdown(results, { seeds, hours, map, date: new Date().toISOString().slice(0, 10), seconds, simVersion }));
+  const prov = stamp({ kind: 'experiments' });   // rule 11: commit + config hash in every generated file
+  for (const r of results) writeFileSync(join(outDir, 'experiments', `${r.id}.json`), JSON.stringify({ ...prov, ...r, meta: { seeds, hours, map } }, null, 1));
+  if (!only.length) writeFileSync(join(outDir, 'EXPERIMENTS.md'), toMarkdown(results, { seeds, hours, map, date: new Date().toISOString().slice(0, 10), seconds, simVersion, prov }));
   const failing = results.flatMap(r => r.checks.filter(c => !c.pass).map(c => `${r.id}: ${c.name}`));
   console.log(`${results.length} experiments, ${seconds.toFixed(0)} s, ${failing.length} failing check(s)`);
   if (failing.length) { for (const f of failing) console.log(`  ${f}`); process.exit(1); }

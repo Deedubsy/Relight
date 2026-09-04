@@ -17,6 +17,7 @@
     "nightly": "npm run nightly -w packages/harness --",
     "docsync": "tsx packages/tools/src/docsync.ts",
     "docsync:check": "tsx packages/tools/src/docsync.ts --check",
+    "freshness:check": "tsx packages/tools/src/freshness.ts",
     "seeds": "tsx packages/tools/src/seeds.ts",
     "section18": "tsx packages/tools/src/section18.ts",
     "build": "npm run typecheck && npm run build -w packages/game",

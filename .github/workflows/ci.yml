@@ -1,5 +1,5 @@
 # Push CI (D-CI): lint, tsc --strict on every package, fixtures, the experiment suite at three seeds, and the
-# doc-sync check. A red experiment is a red build (constitution rule 3).
+# doc-sync and freshness checks. A red experiment is a red build (constitution rule 3).
 name: ci
 on:
   push:
@@ -10,6 +10,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # freshness:check needs the history to test source_commit ancestry
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -18,6 +20,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - name: Generated files carry the commit and config hash they were made from (constitution rule 11)
+        run: npm run freshness:check
       - name: Experiment suite (E1–E9, three seeds)
         run: npm run experiments
       - name: Docs sync (§7 and §12 tables match packages/sim)

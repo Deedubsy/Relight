@@ -9,11 +9,12 @@
 import { writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
-  DEFAULT_CONFIG, SimConfig, createState, step, createBot, botCommands, Command, citySpec, generateCity, CityGeom,
+  SimConfig, createState, step, createBot, botCommands, Command, citySpec, generateCity, CityGeom,
   DARK, CONTESTED, HELD, INERT, idxOf, rotOf, rotTier, isInterior, heldCount, frontage, interior, frontList, segKey, STREET, WATER,
   SimState, ROUNDS_PER_MAG,
 } from '@relight/sim';
 import { png } from './seeds';
+import { configOf, stamp } from '@relight/harness/src/provenance';
 
 const ROOT = resolve(process.env.INIT_CWD ?? process.cwd());
 const OUT = join(ROOT, 'docs');
@@ -62,15 +63,17 @@ function render(st: SimState, g: CityGeom): Uint8Array {
   return rgb;
 }
 
-const cfg: SimConfig = { ...DEFAULT_CONFIG, production: false, eco: { ...DEFAULT_CONFIG.eco } };   // E8's config: production off, so the caption is the front's cost, not the line's
+const cfg: SimConfig = configOf({ kind: 'section18' });   // DEFAULT_CONFIG with production off (provenance.ts); E8's config: production off, so the caption is the front's cost, not the line's
 const st = createState(citySpec(SEED, PRESET, cfg), cfg, SEED);
 const g = generateCity(SEED, PRESET);
 const bot = createBot('compact', null, false);
 const cmds: Command[] = [];
+const PROV = stamp({ kind: 'section18' });
 for (const [name, until] of STOPS) {
   while (st.t < until) { cmds.length = 0; botCommands(st, bot, cmds); step(st, cmds); st.events.length = 0; }
   const rgb = render(st, g);
   const file = join(OUT, `section18-${name}.png`);
   writeFileSync(file, png(Math.ceil(g.tw / SCALE), Math.ceil(g.th / SCALE), rgb));
+  writeFileSync(file.replace(/\.png$/, '.json'), JSON.stringify(PROV, null, 1) + '\n');   // rule 11 sidecar: commit + config hash
   console.log(`${name.padEnd(6)} held ${heldCount(st)}  front ${frontage(st)}  interior ${interior(st)}  lost ${st.stats.lost}  mags ${Math.round(st.totalRounds / ROUNDS_PER_MAG)}  → ${file}`);
 }
