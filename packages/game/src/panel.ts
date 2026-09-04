@@ -180,7 +180,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     vLineMade = li2('Magazines made by the line'); vHand = li2('Mined / crafted by hand'); vBuffer = li2('Magazines in the line buffer'); vCoal = li2('Coal (Depot + Generators)'); vCrafts = li2('Hand crafts queued');
     // M3: power as one number (§14), the Generators, the turrets' hoppers, the lights
     vPower = li2('Power: load / supply kW (demand)'); vGens = li2('Generators burning / built'); vTurrets = li2('Turret rounds / capacity · on belts');
-    vLamps = li2('Lamps lit / built · poles connected'); vBrown = li2('Brownout seconds · machines shed');
+    vLamps = li2('Lamps lit / built · poles connected'); vBrown = li2('Brownout seconds · machines running at %');
     lineSec.append(lineList);
     const craftRow = el('div', 'row');
     btnCraft = el('button', undefined, `Craft a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s)`);
@@ -351,7 +351,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       vGens!.textContent = `${fs.generatorsBurning} / ${fs.generators}`; vGens!.parentElement!.classList.toggle('warn', fs.generators > 0 && fs.generatorsBurning === 0);
       vTurrets!.textContent = `${Math.round(fs.turretRounds)} / ${fs.turretCap} · ${fs.beltAmmo}`; vTurrets!.parentElement!.classList.toggle('warn', fs.turrets > 0 && fs.turretRounds === 0);
       vLamps!.textContent = `${fs.lampsLit} / ${fs.lamps} · ${fs.polesConnected} / ${fs.poles}`;
-      vBrown!.textContent = `${Math.round(fs.brownoutS)} · ${fs.shedMachines}`; vBrown!.parentElement!.classList.toggle('warn', fs.shedMachines > 0);
+      vBrown!.textContent = `${Math.round(fs.brownoutS)} · ${Math.round(fs.throttle * 100)} %`; vBrown!.parentElement!.classList.toggle('warn', fs.throttle < 1 - 1e-9);
     }
     renderRing(frontList(s));
     const facs = facilityList(s).filter(f => f.visible);

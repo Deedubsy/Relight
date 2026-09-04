@@ -451,7 +451,7 @@ export class WorldScene extends Phaser.Scene {
     if (m) lines.unshift(describeMachine(st, m));
     else if (st.flow && isSubstationTile(st, tx, ty)) {
       const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
-      if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (brownout or the block is unfed)'}`);
+      if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (the block is unfed, or the grid is dead)'}`);
     }
     // the "walk closer" cursor: something to do here, out of reach
     const actionable = this.onFoot && (this.tool !== 'hand' || !!m || !!rubbleAt(st, tx, ty));
@@ -632,14 +632,14 @@ export class WorldScene extends Phaser.Scene {
 
   private ghostReason = '';
 
-  /** §14 power as one number: what the grid carries against what the Generators can give, the shed count and the
-   *  coal left. Drawn every frame from `flow.power` (set by the sim's power section) and the flow summary. */
+  /** §14 power as one number: what the grid carries against what the Generators can give, the speed every
+   *  machine runs at under a brownout (D-B3-4) and the coal left. Drawn every frame from `flow.power` (set by the sim's power section) and the flow summary. */
   private powerLine(): string {
     const st = this.st, f = st.flow;
     if (!f || !st.config.power) return '';
     const p = f.power, fs = flowSummary(st);
     const mw = (kw: number) => (kw / 1000).toFixed(2);
-    const state = p.supply <= 0 ? ' · NO POWER: the Generators are out of coal' : p.demand > p.supply + 1e-9 ? ` · BROWNOUT: ${fs.shedMachines} machine${fs.shedMachines === 1 ? '' : 's'} shed` : '';
+    const state = p.supply <= 0 ? ' · NO POWER: the Generators are out of coal' : p.demand > p.supply + 1e-9 ? ` · BROWNOUT: every machine at ${Math.round(fs.throttle * 100)} %` : '';
     return `\nPower ${mw(p.load)} / ${mw(p.supply)} MW (demand ${mw(p.demand)})${state} · Generators ${fs.generatorsBurning}/${fs.generators} burning, ${Math.floor(fs.genCoal)} coal · lamps ${fs.lampsLit}/${fs.lamps} lit · brownout ${Math.round(fs.brownoutS)} s`;
   }
 
@@ -825,8 +825,6 @@ export class WorldScene extends Phaser.Scene {
           break;
         }
       }
-      // §14: a shed machine is greyed with a cross; it comes back when the supply allows
-      if (m.shed) { g.fillStyle(0x0b0e1a, 0.55); g.fillRect(px, py, sz, sz); g.lineStyle(2 / zoom, 0xe05a5a, 0.9); g.lineBetween(px + 4, py + 4, px + sz - 4, py + sz - 4); g.lineBetween(px + 4, py + sz - 4, px + sz - 4, py + 4); }
     }
   }
 

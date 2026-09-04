@@ -30,12 +30,13 @@ export interface RunSummary {
   lost: number; retakes: number; claims: number;
   held: number; front: number; interior: number; nScatter: number;
   lostLog: FallRec[]; lostByHour: number[];
+  hopperEmpty: number[];   // ticks a turret edge's hopper ran empty (the red pip, §5); the first 2000
   ratios: Record<number, [number, number]>;   // hour → [demand mag/min, production mag/min]
   asmAt: Record<number, number>;
   hopperMean: number; minBufferAfter2h: number;
   blooms: BloomRec[];
   edgeMin: Record<string, number>; awakeMin: Record<string, number>;
-  power: { demandKw: number[]; supplyKw: number[]; shedLog: number[]; shedEvents: number; firstBrownout: number;
+  power: { demandKw: number[]; supplyKw: number[]; brownoutS: number; throttleMin: number; firstBrownout: number;
            lostInWindow: number; lostAfterWindow: number };
   wellsDead: number;
   firstShade: number; firstHulk: number; hqFell: number;   // seconds, -1 = never
@@ -66,7 +67,7 @@ export function runSim(o: RunOpts): RunSummary {
   const bot = createBot(o.policy, o.claimGap ?? null, false, o.gapAfter ?? 300, o.rifle ?? false);
   const cmds: Command[] = [];
   const ticks = Math.round(o.hours * 3600);
-  const blooms: BloomRec[] = [], lostLog: FallRec[] = [], lostByHour: number[] = [];
+  const blooms: BloomRec[] = [], lostLog: FallRec[] = [], lostByHour: number[] = [], hopperEmpty: number[] = [];
   const edgeMin: Record<string, number> = {}, awakeMin: Record<string, number> = {};
   const ratios: Record<number, [number, number]> = {}, asmAt: Record<number, number> = {};
   let hopSum = 0, hopN = 0, minBuf = Infinity;
@@ -84,6 +85,8 @@ export function runSim(o: RunOpts): RunSummary {
         blooms.push({ t: ev.t, key: keyOf(ev.x, ev.y), wake: ev.wake, cr: ev.cr, sh: ev.sh, hu: ev.hu, rounds: ev.cr * 3 + ev.sh * 10, shells: ev.hu * 10 });
         if (firstShade < 0 && ev.sh > 0) firstShade = ev.t;
         if (firstHulk < 0 && ev.hu > 0) firstHulk = ev.t;
+      } else if (ev.type === 'hopper-empty') {
+        if (hopperEmpty.length < 2000) hopperEmpty.push(ev.t);
       } else if (ev.type === 'fall') {
         lostLog.push({ t: ev.t, reason: ev.reason, x: ev.x, y: ev.y, key: keyOf(ev.x, ev.y), delay: ev.delay, starved: ev.starved });
         const h = Math.floor(ev.t / 3600); lostByHour[h] = (lostByHour[h] ?? 0) + 1;
@@ -129,10 +132,10 @@ export function runSim(o: RunOpts): RunSummary {
     firstInterior: st.stats.firstInterior, firstFall: st.stats.firstFall, firstUnfed: st.stats.firstUnfed, unfedTotal: st.stats.unfedTotal,
     lost: st.stats.lost, retakes: st.stats.retakes, claims: st.stats.claims,
     held, front: last ? last.front : 0, interior: last ? last.interior : 0, nScatter,
-    lostLog, lostByHour, ratios, asmAt,
+    lostLog, lostByHour, hopperEmpty, ratios, asmAt,
     hopperMean: hopN ? hopSum / hopN : 0, minBufferAfter2h: minBuf === Infinity ? NaN : minBuf,
     blooms, edgeMin, awakeMin,
-    power: { demandKw: st.power.demandKw, supplyKw: st.power.supplyKw, shedLog: st.stats.shedLog, shedEvents: st.stats.shedEvents,
+    power: { demandKw: st.power.demandKw, supplyKw: st.power.supplyKw, brownoutS: st.stats.brownoutS, throttleMin: st.stats.throttleMin,
              firstBrownout: st.stats.firstBrownout, lostInWindow: st.stats.lostInWindow, lostAfterWindow: st.stats.lostAfterWindow },
     wellsDead: st.stats.wellsDead,
     engineer: { walkedHour: st.engineer.walkedHour.slice(), fired: st.engineer.fired, firstShot: st.engineer.firstShot, hurt: st.engineer.hurt,

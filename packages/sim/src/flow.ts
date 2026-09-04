@@ -1,6 +1,6 @@
 /** Tile-level flow (constitution Phase 4 M2 + M3): Excavator, belts, inserters, the Depot, the Mk1 Shot assembler,
  *  hand-mining and hand-crafting (M2); Gun turrets, Lamps, poles, Generators, the lot substations and streetlights,
- *  and power as one number with the §14 shed order (M3), ticking at a fixed 20 ticks/s. The block map stays the judge of territory: a
+ *  and power as one number with the §14 proportional brownout (M3, D-B3-4), ticking at a fixed 20 ticks/s. The block map stays the judge of territory: a
  *  machine runs only while its block is Held, digging draws the same pools the block economy draws, magazines
  *  reach the same line buffer the ring hoppers fill from, and one block tick (`step`) closes every 20 tile ticks.
  *
@@ -96,10 +96,6 @@ export const MACHINE_COST: Record<Kind, { steel: number; copper: number }> = {
 export const MACHINE_KW: Record<Kind, number> = { excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: 0, lamp: LAMP_KW, pole: 0, generator: 0, floodlight: FLOODLIGHT_KW, bigpole: 0, substation: 0 };
 /** GAME-ASSUMPTION: a Generator holds 50 coal (the §11 start's 40 fit); a turret's muzzle flash lasts half a second. */
 export const GENERATOR_COAL_CAP = 50, TURRET_FLASH_S = 0.5;
-/** §14 shed order among tile machines: Shot assemblers first, then other machines, Excavators feeding Generators
- *  last. GAME-ASSUMPTION: "feeding a Generator" = digging coal, and the inserter that puts coal into a Generator sheds
- *  with those Excavators (shedding it first starved the second Generator in the §18 drawing); Lamps count as other machines. */
-const SHED_RANK: Record<Kind, number> = { assembler: 0, inserter: 1, lamp: 2, floodlight: 2, excavator: 3, belt: 9, depot: 9, turret: 9, pole: 9, generator: 9, bigpole: 9, substation: 9 };
 
 export interface BeltItem { k: Item; p: number }
 export interface Machine {
@@ -116,8 +112,6 @@ export interface Machine {
    *  Turret (M3): `inv.rounds` in the hopper, `out` rounds fired last second, `timer` flash left, `busy` = covers a live edge.
    *  Generator: `inv.coal`, `timer` the fraction of a coal burned, `busy` while burning. */
   inv: Record<string, number>; out: number; busy: boolean;
-  /** M3: switched off by the brownout shedder (§14); back on when the supply allows. */
-  shed: boolean;
 }
 export interface FlowState {
   version: 1;
@@ -144,7 +138,9 @@ export interface FlowState {
   /** M3: commands the tile layer raises for the block map (a pole run reaching a Dark block's substation claims it). */
   pending: Command[];
   /** M3: the grid as of the last block tick — kW supplied, demanded, delivered; seconds demand exceeded supply. */
-  power: { supply: number; demand: number; load: number; overS: number };
+  /** §14 as one number: kW the Generators give, kW asked, kW carried, seconds short so far, and the D-B3-4 throttle
+   *  (supply ÷ demand, 1 when covered) every drawing machine runs at this second. */
+  power: { supply: number; demand: number; load: number; overS: number; throttle: number };
 }
 
 /** The flow layer, created on first use: the Depot goes on the start lot, the block-level Mk1 stand-in retires
@@ -159,7 +155,7 @@ export function ensureFlow(st: SimState): FlowState {
     stats: { magsMade: 0, magsDelivered: 0, mined: 0, handMined: 0, handCrafted: 0, delivered: { steel: 0, copper: 0, stone: 0, coal: 0, magazine: 0 },
              fired: 0, coalBurned: 0, handFed: 0 },
     pending: [],
-    power: { supply: 0, demand: 0, load: 0, overS: 0 },
+    power: { supply: 0, demand: 0, load: 0, overS: 0, throttle: 1 },
   };
   st.flow = f;
   st.acc = 0;
@@ -285,10 +281,10 @@ export const START_CHEST = { steel: 200, copper: 100, stone: 50, magazines: 20 }
 
 /** A flow layer saved before M3 gets the M3 fields. */
 function upgrade(f: FlowState): FlowState {
-  f.pending ??= []; f.power ??= { supply: 0, demand: 0, load: 0, overS: 0 };
+  f.pending ??= []; f.power ??= { supply: 0, demand: 0, load: 0, overS: 0, throttle: 1 }; f.power.throttle ??= 1;
   f.stats.fired ??= 0; f.stats.coalBurned ??= 0; f.stats.handFed ??= 0;
   f.hand.full ??= false;
-  for (const m of f.machines) m.shed ??= false;
+  for (const m of f.machines) delete (m as { shed?: boolean }).shed;   // pre-D-B3-4 snapshots carried a shed flag
   return f;
 }
 
@@ -354,7 +350,7 @@ function blockOf(st: SimState, m: Machine): Block {
 }
 function blockIdxOf(st: SimState, m: Machine): number { return blockOfTile(st, m.x, m.y); }
 /** §14: each substation powers its whole cell. It is powered when its block is claimed (Held or Contested), the
- *  block sim has not switched it off (unfed, shed, shade), and the grid has any supply at all. GAME-ASSUMPTION: a
+ *  block sim has not switched it off (unfed, shade), and the grid has any supply at all. GAME-ASSUMPTION: a
  *  grid with no Generator burning is dead, not browned out — everything on it stops at once. */
 export function subPowered(st: SimState, b: Block): boolean {
   if (b.state !== HELD && b.state !== CONTESTED) return false;
@@ -362,11 +358,15 @@ export function subPowered(st: SimState, b: Block): boolean {
   if (st.config.power && effectiveSupply(st) <= 0) return false;
   return true;
 }
-/** A machine with a draw runs only while its cell is powered and the shedder has not switched it off. */
+/** A machine with a draw runs while its cell is powered. D-B3-4: power never switches a machine off; short of supply
+ *  every machine runs at `flow.power.throttle` (see `stepFlow`). */
 export function powered(st: SimState, m: Machine): boolean {
   if (MACHINE_KW[m.kind] === 0) return true;
-  if (m.shed) return false;
   return subPowered(st, blockOf(st, m));
+}
+/** D-B3-4: the speed every drawing machine runs at this second (supply ÷ demand, 1 when the grid is covered). */
+export function throttle(st: SimState): number {
+  return st.config.power && st.flow ? st.flow.power.throttle : 1;
 }
 function running(st: SimState, m: Machine): boolean {
   return blockIdxOf(st, m) >= 0 && blockOf(st, m).state === HELD && powered(st, m);
@@ -374,8 +374,8 @@ function running(st: SimState, m: Machine): boolean {
 function stopReason(st: SimState, m: Machine): string {
   if (blockIdxOf(st, m) < 0 || blockOf(st, m).state !== HELD) return ' · stopped (block not Held)';
   if (MACHINE_KW[m.kind] === 0) return '';
-  if (m.shed) return ' · shed (brownout)';
   if (!subPowered(st, blockOf(st, m))) return ' · no power';
+  if (throttle(st) < 1 - 1e-9) return ` · at ${Math.round(throttle(st) * 100)} % (brownout)`;
   return '';
 }
 
@@ -688,13 +688,17 @@ export function stepFlow(st: SimState, dt = TILE_DT): void {
   let gens = 0;
   for (const m of f.machines) if (m.kind === 'generator' && (m.inv.coal ?? 0) > 0 && running(st, m)) gens++;
   const share = gens ? f.power.load / gens : 0;
+  // D-B3-4: short of supply every drawing machine runs at supply ÷ demand — its clock runs that much slower.
+  // GAME-ASSUMPTION: a Lamp or Floodlight cannot run slower; it stays lit at any throttle above zero and goes dark
+  // only on a dead grid (no Generator burning). Belts and turrets draw nothing and are never slowed.
+  const thr = st.config.power ? f.power.throttle : 1, mdt = dt * thr;
   for (const m of f.machines) {
     if (m.kind === 'turret') { m.timer = Math.max(0, m.timer - dt); continue; }
     if (m.kind === 'generator') { if (running(st, m)) tickGenerator(st, m, dt, share); continue; }
     if (m.kind === 'belt' || m.kind === 'depot' || m.kind === 'lamp' || m.kind === 'pole' || m.kind === 'floodlight' || m.kind === 'bigpole' || m.kind === 'substation' || !running(st, m)) continue;
-    if (m.kind === 'inserter') tickInserter(st, m, dt);
-    else if (m.kind === 'excavator') tickExcavator(st, m, dt);
-    else tickAssembler(st, m, dt);
+    if (m.kind === 'inserter') tickInserter(st, m, mdt);
+    else if (m.kind === 'excavator') tickExcavator(st, m, mdt);
+    else tickAssembler(st, m, mdt);
   }
   tickHand(st, f, dt);
 }
@@ -785,7 +789,7 @@ export function canPlace(st: SimState, kind: Kind, tx: number, ty: number): Plac
 
 function addMachine(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir): Machine {
   const f = st.flow!;
-  const m: Machine = { id: f.next++, kind, x: tx, y: ty, dir, size: MACHINE_SIZE[kind], items: [], hold: null, timer: 0, phase: 0, inv: {}, out: 0, busy: false, shed: false };
+  const m: Machine = { id: f.next++, kind, x: tx, y: ty, dir, size: MACHINE_SIZE[kind], items: [], hold: null, timer: 0, phase: 0, inv: {}, out: 0, busy: false };
   f.machines.push(m);
   for (let y = ty; y < ty + m.size; y++) for (let x = tx; x < tx + m.size; x++) f.occ[y * f.tw + x] = m.id;
   f.rev++;
@@ -894,17 +898,16 @@ export interface FlowSummary {
   /** M3: defence and power. */
   turrets: number; lamps: number; lampsLit: number; poles: number; polesConnected: number; generators: number; generatorsBurning: number;
   turretRounds: number; turretCap: number; genCoal: number; beltAmmo: number;
-  supplyKw: number; demandKw: number; loadKw: number; brownoutS: number; fired: number; coalBurned: number; handFed: number; shedMachines: number;
+  supplyKw: number; demandKw: number; loadKw: number; brownoutS: number; fired: number; coalBurned: number; handFed: number; throttle: number;   // throttle: D-B3-4, 1 = every machine at full speed
 }
 export function flowSummary(st: SimState): FlowSummary {
   const f = st.flow;
   const s: FlowSummary = { excavators: 0, belts: 0, inserters: 0, assemblers: 0, beltItems: 0, assemblersBusy: 0, productionMagPerMin: 0,
                            magsMade: 0, magsDelivered: 0, mined: 0, coal: 0, craftsQueued: 0,
                            turrets: 0, lamps: 0, lampsLit: 0, poles: 0, polesConnected: 0, generators: 0, generatorsBurning: 0, turretRounds: 0, turretCap: 0, genCoal: 0, beltAmmo: 0,
-                           supplyKw: 0, demandKw: 0, loadKw: 0, brownoutS: 0, fired: 0, coalBurned: 0, handFed: 0, shedMachines: 0 };
+                           supplyKw: 0, demandKw: 0, loadKw: 0, brownoutS: 0, fired: 0, coalBurned: 0, handFed: 0, throttle: 1 };
   if (!f) return s;
   for (const m of f.machines) {
-    if (m.shed) s.shedMachines++;
     if (m.kind === 'excavator') s.excavators++;
     else if (m.kind === 'belt') { s.belts++; s.beltItems += m.items.length; for (const it of m.items) if (it.k === 'magazine') s.beltAmmo++; }
     else if (m.kind === 'inserter') s.inserters++;
@@ -916,7 +919,7 @@ export function flowSummary(st: SimState): FlowSummary {
   }
   s.productionMagPerMin = s.assemblers * 60 / SHOT.seconds;
   s.magsMade = f.stats.magsMade; s.magsDelivered = f.stats.magsDelivered; s.mined = f.stats.mined; s.coal = f.store.coal + s.genCoal; s.craftsQueued = f.hand.crafts;
-  s.supplyKw = f.power.supply; s.demandKw = f.power.demand; s.loadKw = f.power.load; s.brownoutS = f.power.overS;
+  s.supplyKw = f.power.supply; s.demandKw = f.power.demand; s.loadKw = f.power.load; s.brownoutS = f.power.overS; s.throttle = st.config.power ? f.power.throttle : 1;
   s.fired = f.stats.fired; s.coalBurned = f.stats.coalBurned; s.handFed = f.stats.handFed;
   if (s.poles) s.polesConnected = poleGrid(st).connected.size;
   return s;
@@ -1045,7 +1048,7 @@ function hookSupplyKw(st: SimState): number {
   for (const m of f.machines) if (m.kind === 'generator' && (m.inv.coal ?? 0) > 0 && running(st, m)) kw += GENERATOR_KW;
   return kw;
 }
-function hookDemandKw(st: SimState, unshed: boolean): number {
+function hookDemandKw(st: SimState, all: boolean): number {
   const f = st.flow!;
   let kw = 0;
   for (const m of f.machines) {
@@ -1054,44 +1057,21 @@ function hookDemandKw(st: SimState, unshed: boolean): number {
     if (blockIdxOf(st, m) < 0) continue;
     const b = blockOf(st, m);
     if (b.state !== HELD) continue;
-    if (unshed || (!m.shed && b.subOn && st.t >= b.shadeOff)) kw += w;
+    if (all || (b.subOn && st.t >= b.shadeOff)) kw += w;
   }
   return kw;
 }
-function shedRank(st: SimState, m: Machine): number {
-  if (m.kind === 'excavator') { const r = findRubble(st, m); return r && r.type === 'coal' ? 4 : 3; }
-  if (m.kind === 'inserter') { const [dx, dy] = outputTile(m); if (machineAt(st, dx, dy)?.kind === 'generator') return 4; }
-  return SHED_RANK[m.kind];
-}
-function hookShedOne(st: SimState): { id: number; kind: string } | null {
+function hookSetLoad(st: SimState, supply: number, demand: number, load: number, throttle: number): void {
   const f = st.flow!;
-  let best: Machine | null = null, br = 99;
-  for (const m of f.machines) {
-    if (!MACHINE_KW[m.kind] || m.shed || !running(st, m)) continue;
-    const r = shedRank(st, m);
-    if (r < br || (r === br && best && m.id > best.id)) { best = m; br = r; }
-  }
-  if (!best) return null;
-  best.shed = true;
-  return { id: best.id, kind: best.kind };
-}
-function hookRestoreOne(st: SimState, id: number, room: number): { ok: boolean; kind: string } {
-  const m = machineById(st, id);
-  if (!m) return { ok: true, kind: '' };
-  if (MACHINE_KW[m.kind] <= room + 1e-9) { m.shed = false; return { ok: true, kind: m.kind }; }
-  return { ok: false, kind: m.kind };
-}
-function hookSetLoad(st: SimState, supply: number, demand: number, load: number, over: boolean): void {
-  const f = st.flow!;
-  f.power.supply = supply; f.power.demand = demand; f.power.load = load;
-  if (over) f.power.overS++;
+  f.power.supply = supply; f.power.demand = demand; f.power.load = load; f.power.throttle = throttle;
+  if (throttle < 1 - 1e-9) f.power.overS++;
 }
 /** D-B1-4: an edge is covered when a running turret serves it (`edgeTurrets`). */
 function hookCovered(st: SimState, id: number): boolean {
   return edgeTurrets(st, id).length > 0;
 }
 
-tileHooks.current = { syncEdges: hookSyncEdges, covered: hookCovered, drainEdges: hookDrainEdges, supplyKw: hookSupplyKw, demandKw: hookDemandKw, shedOne: hookShedOne, restoreOne: hookRestoreOne, setLoad: hookSetLoad };
+tileHooks.current = { syncEdges: hookSyncEdges, covered: hookCovered, drainEdges: hookDrainEdges, supplyKw: hookSupplyKw, demandKw: hookDemandKw, setLoad: hookSetLoad };
 
 // ------------------------------------------------------------------ M3: substations, streetlights, light
 
@@ -1410,8 +1390,8 @@ export const LOT_LEGEND =
   '`:` street, `.` ground, `r` rubble, `#` steel patch, `&` copper patch, `*` coal patch, `~` inert/river; ' +
   '`L` streetlight lit, `l` streetlight dark, `b` streetlight broken; `T` Gun turret (hopper > 0), `t` turret with an empty hopper; ' +
   '`G` Generator burning, `g` Generator dry; `S` substation powered, `s` unpowered; `D` Depot; `X` Excavator running, `x` stopped; ' +
-  '`A` Shot assembler crafting, `a` idle; `^ > v <` belt by direction, `I` inserter; `@` Lamp lit, `o` Lamp dark; `P` pole; ' +
-  'a machine shed by the brownout is drawn in lowercase.';
+  '`A` Shot assembler crafting, `a` idle; `^ > v <` belt by direction, `I` inserter; `@` Lamp lit, `o` Lamp dark; `P` pole. ' +
+  'A brownout (D-B3-4) slows every machine instead of stopping any, so it does not show in the drawing.';
 
 /** One character per tile of a cell (default the HQ), the whole 32×32 cell with its street margins, rows ty 0 (north)
  *  down, columns tx: the world view's tile-scale drawing for §18, generated by `npm run docsync` (M3). */
@@ -1439,17 +1419,16 @@ export function renderLot(st: SimState, bx = st.start[0], by = st.start[1]): str
       case 'depot': ch = 'D'; break;
       case 'turret': ch = (m.inv.rounds ?? 0) > 0 ? 'T' : 't'; break;
       case 'generator': ch = m.busy ? 'G' : 'g'; break;
-      case 'excavator': ch = running(st, m) && !m.shed ? 'X' : 'x'; break;
+      case 'excavator': ch = running(st, m) ? 'X' : 'x'; break;
       case 'assembler': ch = m.busy && running(st, m) ? 'A' : 'a'; break;
       case 'belt': ch = '^>v<'[m.dir]; break;
-      case 'inserter': ch = m.shed ? 'i' : 'I'; break;
+      case 'inserter': ch = 'I'; break;
       case 'lamp': ch = running(st, m) ? '@' : 'o'; break;
       case 'pole': ch = 'P'; break;
       case 'floodlight': ch = running(st, m) ? 'F' : 'f'; break;
       case 'bigpole': ch = 'B'; break;
       case 'substation': ch = 'S'; break;
     }
-    if (m.shed) ch = ch.toLowerCase();
     for (let dy = 0; dy < m.size; dy++) for (let dx = 0; dx < m.size; dx++) put(m.x + dx - ox, m.y + dy - oy, ch);
   }
   const head = ' col: ' + Array.from({ length: CELL_TILES }, (_, i) => String(i % 10)).join(' ');

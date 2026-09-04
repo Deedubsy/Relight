@@ -106,10 +106,10 @@ export function createSession(params: UrlParams, snapshot: SimState | null = nul
   // block-only calibration runs). Turning it on retires the HQ's Mk1 stand-in: hour one's magazines come from the
   // line the player builds on the HQ lot, or from hand-crafting (D-P4-5). A block-only snapshot gets its flow here.
   // GAME-ASSUMPTION (M3): with the flow layer the §14 power model is on, supplied by the tile layer's Generators
-  // (supply 'generators'), at the D1 half draw (100 kW exposed / 20 kW interior per substation) and with the
-  // machines-first shed order (tile machines, then block assemblers, then substations). One 300 kW Generator on
-  // 40 coal is the whole grid at the start; the tester builds the rest. Without the flow layer nothing changes.
-  if (params.flow) Object.assign(state.config, { power: true, supply: 'generators', draw: 'half', shed: 'machines-first' });
+  // (supply 'generators'), at the D1 half draw (100 kW exposed / 20 kW interior per substation). D-B3-4: a shortfall
+  // slows every machine to supply ÷ demand; nothing is shed. One 300 kW Generator on 40 coal is the whole grid at
+  // the start; the tester builds the rest. Without the flow layer nothing changes.
+  if (params.flow) Object.assign(state.config, { power: true, supply: 'generators', draw: 'half' });
   if (params.flow) ensureFlow(state);
   const scenario = snapshot ? 'B' : 'A';
   const tel = createTelemetry(state, location.href, params.player, scenario, snapshot ? params.state : null);

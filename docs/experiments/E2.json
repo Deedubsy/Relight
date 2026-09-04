@@ -1,6 +1,6 @@
 {
  "id": "E2",
- "title": "Brownout cascade",
+ "title": "Brownout: proportional throttle, the ring and the red pip",
  "pyNames": [
   "E2-h500-*",
   "E2-h1000-*",
@@ -15,244 +15,251 @@
   "§14",
   "§15"
  ],
- "setup": "compact, canonical map, power model on, production off unless stated",
+ "setup": "compact, canonical map, power model on with production and the unfed rule (demand curves: production off)",
  "sections": [
   {
-   "title": "E2-matrix: compact, power on, production off, 10-minute shortfall at hour 4",
-   "note": "headroom = spare supply above full demand, recomputed every 10 min; demand @4 h with every substation on",
+   "title": "E2-matrix: compact, the slice power model (D1 draw, production on, unfed rule N40), shortfall from hour 4 for 10 minutes, to 5 h, or 6 h",
+   "note": "headroom = spare supply above full demand, recomputed every 10 min outside the shortfall; every machine runs at supply ÷ demand while short (D-B3-4); pips before = hopper-empty events in the first 4 h; pip / fall = minutes after the shortfall starts, per seed, - = never; lead = fall − first pip",
    "header": [
+    "window",
     "headroom kW",
     "shortfall %",
-    "variant",
     "lost",
     "in window",
     "after window",
-    "shed events",
-    "demand @4 h MW"
+    "brownout min",
+    "worst throttle",
+    "pips before",
+    "first red pip (min after start)",
+    "first fall (min after start)",
+    "lead (min)",
+    "held at end"
    ],
    "rows": [
     [
+     "10 min",
      500,
      5,
-     "D1 (100/20 kW, shed substations)",
      "0.0 [0.0–0.0]",
      "0.0 [0.0–0.0]",
      "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "2.59 [2.40–2.72]"
+     "0 [0–0]",
+     "1.00 [1.00–1.00]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
     ],
     [
+     "10 min",
+     500,
+     15,
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "5 [1–10]",
+     "0.98 [0.96–1.00]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
+    ],
+    [
+     "10 min",
+     500,
+     25,
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "10 [10–10]",
+     "0.86 [0.85–0.88]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
+    ],
+    [
+     "10 min",
+     500,
+     50,
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "10 [10–10]",
+     "0.58 [0.57–0.59]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
+    ],
+    [
+     "10 min",
+     1000,
+     25,
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "2 [0–5]",
+     "0.99 [0.98–1.00]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
+    ],
+    [
+     "10 min",
+     1000,
+     50,
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "10 [10–10]",
+     "0.67 [0.66–0.69]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
+    ],
+    [
+     "sustained (to 5 h)",
      500,
      5,
-     "D1 + shed machines-first",
      "0.0 [0.0–0.0]",
      "0.0 [0.0–0.0]",
      "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "2.59 [2.40–2.72]"
+     "11 [0–17]",
+     "0.97 [0.95–1.00]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
     ],
     [
-     500,
-     5,
-     "D1 + interior grace 300 s",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "2.59 [2.40–2.72]"
-    ],
-    [
-     500,
-     5,
-     "doc draw 200/40 kW",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.3 [0.0–1.0]",
-     "4.29 [3.92–4.56]"
-    ],
-    [
-     500,
-     5,
-     "flat 120 kW",
-     "1.0 [1.0–1.0]",
-     "1.0 [1.0–1.0]",
-     "0.0 [0.0–0.0]",
-     "2.3 [2.0–3.0]",
-     "5.68 [5.68–5.68]"
-    ],
-    [
+     "sustained (to 5 h)",
      500,
      15,
-     "D1 (100/20 kW, shed substations)",
-     "1.0 [0.0–2.0]",
-     "1.0 [0.0–2.0]",
      "0.0 [0.0–0.0]",
-     "1.7 [1.0–2.0]",
-     "2.59 [2.40–2.72]"
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "50 [38–56]",
+     "0.87 [0.85–0.90]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
     ],
     [
-     500,
-     15,
-     "D1 + shed machines-first",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "1.3 [1.0–2.0]",
-     "2.59 [2.40–2.72]"
-    ],
-    [
-     500,
-     15,
-     "D1 + interior grace 300 s",
-     "1.0 [0.0–2.0]",
-     "1.0 [0.0–2.0]",
-     "0.0 [0.0–0.0]",
-     "1.7 [1.0–2.0]",
-     "2.59 [2.40–2.72]"
-    ],
-    [
-     500,
-     15,
-     "doc draw 200/40 kW",
-     "2.7 [2.0–4.0]",
-     "2.7 [2.0–4.0]",
-     "0.0 [0.0–0.0]",
-     "3.0 [2.0–4.0]",
-     "4.29 [3.92–4.56]"
-    ],
-    [
-     500,
-     15,
-     "flat 120 kW",
-     "6.0 [6.0–6.0]",
-     "6.0 [6.0–6.0]",
-     "0.0 [0.0–0.0]",
-     "6.0 [6.0–6.0]",
-     "5.68 [5.68–5.68]"
-    ],
-    [
+     "sustained (to 5 h)",
      500,
      25,
-     "D1 (100/20 kW, shed substations)",
-     "5.7 [4.0–7.0]",
-     "5.7 [4.0–7.0]",
      "0.0 [0.0–0.0]",
-     "5.7 [4.0–7.0]",
-     "2.59 [2.40–2.72]"
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "60 [60–60]",
+     "0.77 [0.75–0.79]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
     ],
     [
+     "sustained (to 5 h)",
      500,
+     50,
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "60 [60–60]",
+     "0.51 [0.50–0.53]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
+    ],
+    [
+     "sustained (to 5 h)",
+     1000,
      25,
-     "D1 + shed machines-first",
      "0.0 [0.0–0.0]",
      "0.0 [0.0–0.0]",
      "0.0 [0.0–0.0]",
-     "2.3 [2.0–3.0]",
-     "2.59 [2.40–2.72]"
+     "40 [18–55]",
+     "0.89 [0.87–0.93]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
     ],
     [
+     "sustained (to 5 h)",
+     1000,
+     50,
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "0.0 [0.0–0.0]",
+     "60 [60–60]",
+     "0.59 [0.58–0.62]",
+     "1/2/0",
+     "never / never / never",
+     "never / never / never",
+     "- / - / -",
+     "52/52/52"
+    ],
+    [
+     "sustained 6 h (10 h run)",
      500,
-     25,
-     "D1 + interior grace 300 s",
-     "4.0 [3.0–5.0]",
-     "4.0 [3.0–5.0]",
+     50,
+     "50.7 [34.0–60.0]",
+     "50.7 [34.0–60.0]",
      "0.0 [0.0–0.0]",
-     "4.0 [3.0–5.0]",
-     "2.59 [2.40–2.72]"
+     "360 [360–360]",
+     "0.46 [0.39–0.50]",
+     "1/2/0",
+     "66.9 / 215.6 / 78.0",
+     "71.5 / 223.1 / 81.0",
+     "4.6 / 7.5 / 2.9",
+     "52/78/54"
     ],
     [
+     "sustained 6 h (10 h run)",
      500,
-     25,
-     "doc draw 200/40 kW",
-     "7.0 [6.0–8.0]",
-     "7.0 [6.0–8.0]",
+     75,
+     "78.7 [66.0–96.0]",
+     "78.7 [66.0–96.0]",
      "0.0 [0.0–0.0]",
-     "7.0 [6.0–8.0]",
-     "4.29 [3.92–4.56]"
+     "360 [360–360]",
+     "0.28 [0.27–0.28]",
+     "1/2/0",
+     "17.5 / 34.5 / 21.9",
+     "22.2 / 37.7 / 24.8",
+     "4.7 / 3.2 / 2.9",
+     "16/46/38"
     ],
     [
+     "sustained 6 h (10 h run)",
      500,
-     25,
-     "flat 120 kW",
-     "11.0 [11.0–11.0]",
-     "11.0 [11.0–11.0]",
+     90,
+     "96.3 [96.0–97.0]",
+     "96.3 [96.0–97.0]",
      "0.0 [0.0–0.0]",
-     "11.0 [11.0–11.0]",
-     "5.68 [5.68–5.68]"
-    ],
-    [
-     1000,
-     15,
-     "D1 (100/20 kW, shed substations)",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "2.59 [2.40–2.72]"
-    ],
-    [
-     1000,
-     15,
-     "D1 + shed machines-first",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "2.59 [2.40–2.72]"
-    ],
-    [
-     1000,
-     15,
-     "D1 + interior grace 300 s",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "2.59 [2.40–2.72]"
-    ],
-    [
-     1000,
-     15,
-     "doc draw 200/40 kW",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.7 [0.0–2.0]",
-     "4.29 [3.92–4.56]"
-    ],
-    [
-     1000,
-     15,
-     "flat 120 kW",
-     "3.0 [3.0–3.0]",
-     "3.0 [3.0–3.0]",
-     "0.0 [0.0–0.0]",
-     "3.0 [3.0–3.0]",
-     "5.68 [5.68–5.68]"
-    ]
-   ]
-  },
-  {
-   "title": "E2-coupling: machines-first with production and the unfed rule on (15 %, D1 draw)",
-   "header": [
-    "headroom kW",
-    "lost",
-    "in window",
-    "after window"
-   ],
-   "rows": [
-    [
-     500,
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]"
-    ],
-    [
-     1000,
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]",
-     "0.0 [0.0–0.0]"
+     "360 [360–360]",
+     "0.11 [0.11–0.11]",
+     "1/2/0",
+     "11.6 / 14.5 / 15.6",
+     "14.5 / 16.2 / 17.6",
+     "2.9 / 1.7 / 2.1",
+     "15/16/16"
     ]
    ]
   },
@@ -302,119 +309,67 @@
    ]
   },
   {
-   "title": "E2-schedule: blocks lost if supply follows the §15 generator schedule (0.3 MW → 0.6 @30 min → 0.9 @1 h → 1.2 @2 h → 1.5 @3 h → 1.8 @4 h → 2.1 @5 h)",
+   "title": "E2-schedule: blocks lost if supply follows the §15 generator schedule (0.3 MW → 0.6 @30 min → 0.9 @1 h → 1.2 @2 h → 1.5 @3 h → 1.8 @4 h → 2.1 @5 h), production and the unfed rule on",
    "header": [
     "draw",
     "lost in 5 h",
     "first fall (min) per seed",
-    "shed events"
+    "brownout min",
+    "worst throttle"
    ],
    "rows": [
     [
      "D1 100/20 kW",
-     "1.0 [1.0–1.0]",
-     "11.8 / 11.8 / 11.8",
-     "31 [31–31]"
+     "0.0 [0.0–0.0]",
+     "never / never / never",
+     "290 [290–290]",
+     "0.53 [0.53–0.54]"
     ],
     [
      "doc 200/40 kW",
-     "1.0 [1.0–1.0]",
-     "11.8 / 11.8 / 11.8",
-     "31 [31–31]"
+     "12.7 [9.0–17.0]",
+     "248.8 / 160.3 / 258.7",
+     "290 [290–290]",
+     "0.32 [0.32–0.33]"
     ]
    ]
   }
  ],
  "checks": [
   {
-   "name": "E2-h500-5pct-D1 (100/20 kW, shed substations): losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-5pct-D1 + shed machines-first: losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-5pct-D1 + shed machines-first: nothing cascades (no block lost)",
+   "name": "E2-window-h500-5pct: a 10-minute shortfall of 5 % loses nothing",
    "pass": true,
    "detail": "lost per seed 0/0/0"
   },
   {
-   "name": "E2-h500-5pct-D1 + interior grace 300 s: losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-5pct-doc draw 200/40 kW: losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-5pct-flat 120 kW: losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-15pct-D1 (100/20 kW, shed substations): losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-15pct-D1 + shed machines-first: losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-15pct-D1 + shed machines-first: nothing cascades (no block lost)",
+   "name": "E2-window-h500-15pct: a 10-minute shortfall of 15 % loses nothing",
    "pass": true,
    "detail": "lost per seed 0/0/0"
   },
   {
-   "name": "E2-h500-15pct-D1 + interior grace 300 s: losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-15pct-doc draw 200/40 kW: losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-15pct-flat 120 kW: losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-25pct-D1 (100/20 kW, shed substations): losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-25pct-D1 + shed machines-first: losses stop at restoration (none after the window)",
-   "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
-  },
-  {
-   "name": "E2-h500-25pct-D1 + shed machines-first: nothing cascades (no block lost)",
+   "name": "E2-window-h500-25pct: a 10-minute shortfall of 25 % loses nothing",
    "pass": true,
    "detail": "lost per seed 0/0/0"
   },
   {
-   "name": "E2-h500-25pct-D1 + interior grace 300 s: losses stop at restoration (none after the window)",
+   "name": "E2-window-h1000-25pct: a 10-minute shortfall of 25 % loses nothing",
    "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
+   "detail": "lost per seed 0/0/0"
   },
   {
-   "name": "E2-h500-25pct-doc draw 200/40 kW: losses stop at restoration (none after the window)",
+   "name": "E2-sustained6h-h500-50pct: the red pip leads every first fall",
    "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
+   "detail": "fall − first pip (min) per losing seed 4.6/7.5/2.9"
   },
   {
-   "name": "E2-h500-25pct-flat 120 kW: losses stop at restoration (none after the window)",
+   "name": "E2-sustained6h-h500-75pct: the red pip leads every first fall",
    "pass": true,
-   "detail": "after-window losses per seed 0/0/0"
+   "detail": "fall − first pip (min) per losing seed 4.7/3.2/2.9"
+  },
+  {
+   "name": "E2-sustained6h-h500-90pct: the red pip leads every first fall",
+   "pass": true,
+   "detail": "fall − first pip (min) per losing seed 2.9/1.7/2.1"
   },
   {
    "name": "§15 demand at 4 h under D1 (compact, first seed)",
@@ -424,7 +379,7 @@
  ],
  "data": {
   "matrix": {
-   "E2-h500-5pct-D1 (100/20 kW, shed substations)": {
+   "E2-window-h500-5pct": {
     "lost": [
      0,
      0,
@@ -440,199 +395,120 @@
      0,
      0
     ],
-    "shed": [
+    "brownoutMin": [
      0,
      0,
      0
     ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
-    ],
-    "timeline": {
-     "sheds": [],
-     "falls": []
-    }
-   },
-   "E2-h500-5pct-D1 + shed machines-first": {
-    "lost": [
-     0,
-     0,
-     0
-    ],
-    "inWindow": [
-     0,
-     0,
-     0
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
-     0,
-     0,
-     0
-    ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
-    ],
-    "timeline": {
-     "sheds": [],
-     "falls": []
-    }
-   },
-   "E2-h500-5pct-D1 + interior grace 300 s": {
-    "lost": [
-     0,
-     0,
-     0
-    ],
-    "inWindow": [
-     0,
-     0,
-     0
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
-     0,
-     0,
-     0
-    ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
-    ],
-    "timeline": {
-     "sheds": [],
-     "falls": []
-    }
-   },
-   "E2-h500-5pct-doc draw 200/40 kW": {
-    "lost": [
-     0,
-     0,
-     0
-    ],
-    "inWindow": [
-     0,
-     0,
-     0
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
-     1,
-     0,
-     0
-    ],
-    "demand4h": [
-     4.4,
-     3.92,
-     4.56
-    ],
-    "timeline": {
-     "sheds": [
-      14719
-     ],
-     "falls": []
-    }
-   },
-   "E2-h500-5pct-flat 120 kW": {
-    "lost": [
+    "throttleMin": [
      1,
      1,
      1
     ],
-    "inWindow": [
+    "pipBefore": [
      1,
+     2,
+     0
+    ],
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "falls": []
+   },
+   "E2-window-h500-15pct": {
+    "lost": [
+     0,
+     0,
+     0
+    ],
+    "inWindow": [
+     0,
+     0,
+     0
+    ],
+    "afterWindow": [
+     0,
+     0,
+     0
+    ],
+    "brownoutMin": [
+     10,
+     0.8666666666666667,
+     5.55
+    ],
+    "throttleMin": [
+     0.9608695652173913,
+     0.9984126984126984,
+     0.9816901408450704
+    ],
+    "pipBefore": [
      1,
-     1
+     2,
+     0
     ],
-    "afterWindow": [
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "falls": []
+   },
+   "E2-window-h500-25pct": {
+    "lost": [
      0,
      0,
      0
-    ],
-    "shed": [
-     2,
-     3,
-     2
-    ],
-    "demand4h": [
-     5.68,
-     5.68,
-     5.68
-    ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14719
-     ],
-     "falls": [
-      [
-       246.8,
-       "brownout"
-      ]
-     ]
-    }
-   },
-   "E2-h500-15pct-D1 (100/20 kW, shed substations)": {
-    "lost": [
-     2,
-     0,
-     1
     ],
     "inWindow": [
-     2,
      0,
-     1
+     0,
+     0
     ],
     "afterWindow": [
      0,
      0,
      0
     ],
-    "shed": [
-     2,
+    "brownoutMin": [
+     10,
+     10,
+     10
+    ],
+    "throttleMin": [
+     0.8478260869565217,
+     0.8809523809523809,
+     0.8661971830985915
+    ],
+    "pipBefore": [
      1,
-     2
+     2,
+     0
     ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
     ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14719
-     ],
-     "falls": [
-      [
-       241.8,
-       "brownout"
-      ],
-      [
-       246.8,
-       "brownout"
-      ]
-     ]
-    }
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "falls": []
    },
-   "E2-h500-15pct-D1 + shed machines-first": {
+   "E2-window-h500-50pct": {
     "lost": [
      0,
      0,
@@ -648,246 +524,120 @@
      0,
      0
     ],
-    "shed": [
+    "brownoutMin": [
+     10,
+     10,
+     10
+    ],
+    "throttleMin": [
+     0.5652173913043478,
+     0.5873015873015873,
+     0.5774647887323944
+    ],
+    "pipBefore": [
      1,
+     2,
+     0
+    ],
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "falls": []
+   },
+   "E2-window-h1000-25pct": {
+    "lost": [
+     0,
+     0,
+     0
+    ],
+    "inWindow": [
+     0,
+     0,
+     0
+    ],
+    "afterWindow": [
+     0,
+     0,
+     0
+    ],
+    "brownoutMin": [
+     1.1333333333333333,
+     0,
+     5
+    ],
+    "throttleMin": [
+     0.9836956521739131,
      1,
-     2
+     0.9982394366197183
     ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
-    ],
-    "timeline": {
-     "sheds": [
-      14419
-     ],
-     "falls": []
-    }
-   },
-   "E2-h500-15pct-D1 + interior grace 300 s": {
-    "lost": [
-     2,
-     0,
-     1
-    ],
-    "inWindow": [
-     2,
-     0,
-     1
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
-     2,
+    "pipBefore": [
      1,
-     2
-    ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
-    ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14719
-     ],
-     "falls": [
-      [
-       241.8,
-       "brownout"
-      ],
-      [
-       246.8,
-       "brownout"
-      ]
-     ]
-    }
-   },
-   "E2-h500-15pct-doc draw 200/40 kW": {
-    "lost": [
-     4,
      2,
-     2
+     0
+    ],
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "falls": []
+   },
+   "E2-window-h1000-50pct": {
+    "lost": [
+     0,
+     0,
+     0
     ],
     "inWindow": [
-     4,
+     0,
+     0,
+     0
+    ],
+    "afterWindow": [
+     0,
+     0,
+     0
+    ],
+    "brownoutMin": [
+     10,
+     10,
+     10
+    ],
+    "throttleMin": [
+     0.6557971014492754,
+     0.6865079365079365,
+     0.6654929577464789
+    ],
+    "pipBefore": [
+     1,
      2,
-     2
-    ],
-    "afterWindow": [
-     0,
-     0,
      0
     ],
-    "shed": [
-     4,
-     3,
-     2
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
     ],
-    "demand4h": [
-     4.4,
-     3.92,
-     4.56
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
     ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14439,
-      14719,
-      14739
-     ],
-     "falls": [
-      [
-       241.8,
-       "brownout"
-      ],
-      [
-       242.2,
-       "brownout"
-      ],
-      [
-       246.8,
-       "brownout"
-      ],
-      [
-       247.2,
-       "brownout"
-      ]
-     ]
-    }
+    "falls": []
    },
-   "E2-h500-15pct-flat 120 kW": {
-    "lost": [
-     6,
-     6,
-     6
-    ],
-    "inWindow": [
-     6,
-     6,
-     6
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
-     6,
-     6,
-     6
-    ],
-    "demand4h": [
-     5.68,
-     5.68,
-     5.68
-    ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14439,
-      14459,
-      14479,
-      14499,
-      14719
-     ],
-     "falls": [
-      [
-       241.8,
-       "brownout"
-      ],
-      [
-       242.2,
-       "brownout"
-      ],
-      [
-       242.5,
-       "brownout"
-      ],
-      [
-       242.8,
-       "brownout"
-      ],
-      [
-       243.2,
-       "brownout"
-      ],
-      [
-       246.8,
-       "brownout"
-      ]
-     ]
-    }
-   },
-   "E2-h500-25pct-D1 (100/20 kW, shed substations)": {
-    "lost": [
-     6,
-     4,
-     7
-    ],
-    "inWindow": [
-     6,
-     4,
-     7
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
-     6,
-     4,
-     7
-    ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
-    ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14439,
-      14459,
-      14479,
-      14719,
-      14739
-     ],
-     "falls": [
-      [
-       241.8,
-       "brownout"
-      ],
-      [
-       242.2,
-       "brownout"
-      ],
-      [
-       242.5,
-       "brownout"
-      ],
-      [
-       242.8,
-       "brownout"
-      ],
-      [
-       246.8,
-       "brownout"
-      ],
-      [
-       247.2,
-       "brownout"
-      ]
-     ]
-    }
-   },
-   "E2-h500-25pct-D1 + shed machines-first": {
+   "E2-sustained-h500-5pct": {
     "lost": [
      0,
      0,
@@ -903,239 +653,34 @@
      0,
      0
     ],
-    "shed": [
+    "brownoutMin": [
+     16.75,
+     0,
+     16.133333333333333
+    ],
+    "throttleMin": [
+     0.95,
+     1,
+     0.9558282208588957
+    ],
+    "pipBefore": [
+     1,
      2,
-     3,
-     2
-    ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
-    ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14439
-     ],
-     "falls": []
-    }
-   },
-   "E2-h500-25pct-D1 + interior grace 300 s": {
-    "lost": [
-     5,
-     3,
-     4
-    ],
-    "inWindow": [
-     5,
-     3,
-     4
-    ],
-    "afterWindow": [
-     0,
-     0,
      0
     ],
-    "shed": [
-     5,
-     3,
-     4
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
     ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
     ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14439,
-      14459,
-      14479,
-      14719
-     ],
-     "falls": [
-      [
-       241.8,
-       "brownout"
-      ],
-      [
-       242.2,
-       "brownout"
-      ],
-      [
-       242.5,
-       "brownout"
-      ],
-      [
-       242.8,
-       "brownout"
-      ],
-      [
-       246.8,
-       "brownout"
-      ]
-     ]
-    }
+    "falls": []
    },
-   "E2-h500-25pct-doc draw 200/40 kW": {
-    "lost": [
-     7,
-     6,
-     8
-    ],
-    "inWindow": [
-     7,
-     6,
-     8
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
-     7,
-     6,
-     8
-    ],
-    "demand4h": [
-     4.4,
-     3.92,
-     4.56
-    ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14439,
-      14459,
-      14479,
-      14719,
-      14739,
-      14759
-     ],
-     "falls": [
-      [
-       241.8,
-       "brownout"
-      ],
-      [
-       242.2,
-       "brownout"
-      ],
-      [
-       242.5,
-       "brownout"
-      ],
-      [
-       242.8,
-       "brownout"
-      ],
-      [
-       246.8,
-       "brownout"
-      ],
-      [
-       247.2,
-       "brownout"
-      ],
-      [
-       247.5,
-       "brownout"
-      ]
-     ]
-    }
-   },
-   "E2-h500-25pct-flat 120 kW": {
-    "lost": [
-     11,
-     11,
-     11
-    ],
-    "inWindow": [
-     11,
-     11,
-     11
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
-     11,
-     11,
-     11
-    ],
-    "demand4h": [
-     5.68,
-     5.68,
-     5.68
-    ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14439,
-      14459,
-      14479,
-      14499,
-      14519,
-      14539,
-      14559,
-      14579,
-      14599,
-      14719
-     ],
-     "falls": [
-      [
-       241.8,
-       "brownout"
-      ],
-      [
-       242.2,
-       "brownout"
-      ],
-      [
-       242.5,
-       "brownout"
-      ],
-      [
-       242.8,
-       "brownout"
-      ],
-      [
-       243.2,
-       "brownout"
-      ],
-      [
-       243.5,
-       "brownout"
-      ],
-      [
-       243.8,
-       "brownout"
-      ],
-      [
-       244.2,
-       "brownout"
-      ],
-      [
-       244.5,
-       "brownout"
-      ],
-      [
-       244.8,
-       "brownout"
-      ],
-      [
-       246.8,
-       "brownout"
-      ]
-     ]
-    }
-   },
-   "E2-h1000-15pct-D1 (100/20 kW, shed substations)": {
+   "E2-sustained-h500-15pct": {
     "lost": [
      0,
      0,
@@ -1151,164 +696,1348 @@
      0,
      0
     ],
-    "shed": [
-     0,
-     0,
-     0
+    "brownoutMin": [
+     55.56666666666667,
+     37.6,
+     55.55
     ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
+    "throttleMin": [
+     0.85,
+     0.8985714285714286,
+     0.8552147239263803
     ],
-    "timeline": {
-     "sheds": [],
-     "falls": []
-    }
-   },
-   "E2-h1000-15pct-D1 + shed machines-first": {
-    "lost": [
-     0,
-     0,
-     0
-    ],
-    "inWindow": [
-     0,
-     0,
-     0
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
-     0,
-     0,
-     0
-    ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
-    ],
-    "timeline": {
-     "sheds": [],
-     "falls": []
-    }
-   },
-   "E2-h1000-15pct-D1 + interior grace 300 s": {
-    "lost": [
-     0,
-     0,
-     0
-    ],
-    "inWindow": [
-     0,
-     0,
-     0
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
-     0,
-     0,
-     0
-    ],
-    "demand4h": [
-     2.64,
-     2.4,
-     2.72
-    ],
-    "timeline": {
-     "sheds": [],
-     "falls": []
-    }
-   },
-   "E2-h1000-15pct-doc draw 200/40 kW": {
-    "lost": [
-     0,
-     0,
-     0
-    ],
-    "inWindow": [
-     0,
-     0,
-     0
-    ],
-    "afterWindow": [
-     0,
-     0,
-     0
-    ],
-    "shed": [
+    "pipBefore": [
+     1,
      2,
+     0
+    ],
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "falls": []
+   },
+   "E2-sustained-h500-25pct": {
+    "lost": [
+     0,
      0,
      0
     ],
-    "demand4h": [
-     4.4,
-     3.92,
-     4.56
-    ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14719
-     ],
-     "falls": []
-    }
-   },
-   "E2-h1000-15pct-flat 120 kW": {
-    "lost": [
-     3,
-     3,
-     3
-    ],
     "inWindow": [
-     3,
-     3,
-     3
+     0,
+     0,
+     0
     ],
     "afterWindow": [
      0,
      0,
      0
     ],
-    "shed": [
-     3,
-     3,
-     3
+    "brownoutMin": [
+     60,
+     60,
+     60
     ],
-    "demand4h": [
-     5.68,
-     5.68,
-     5.68
+    "throttleMin": [
+     0.75,
+     0.7928571428571428,
+     0.754601226993865
     ],
-    "timeline": {
-     "sheds": [
-      14419,
-      14439,
-      14719
+    "pipBefore": [
+     1,
+     2,
+     0
+    ],
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "falls": []
+   },
+   "E2-sustained-h500-50pct": {
+    "lost": [
+     0,
+     0,
+     0
+    ],
+    "inWindow": [
+     0,
+     0,
+     0
+    ],
+    "afterWindow": [
+     0,
+     0,
+     0
+    ],
+    "brownoutMin": [
+     60,
+     60,
+     60
+    ],
+    "throttleMin": [
+     0.5,
+     0.5285714285714286,
+     0.5030674846625767
+    ],
+    "pipBefore": [
+     1,
+     2,
+     0
+    ],
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "falls": []
+   },
+   "E2-sustained-h1000-25pct": {
+    "lost": [
+     0,
+     0,
+     0
+    ],
+    "inWindow": [
+     0,
+     0,
+     0
+    ],
+    "afterWindow": [
+     0,
+     0,
+     0
+    ],
+    "brownoutMin": [
+     46.7,
+     18.316666666666666,
+     55
+    ],
+    "throttleMin": [
+     0.8701923076923077,
+     0.9267857142857143,
+     0.8696319018404908
+    ],
+    "pipBefore": [
+     1,
+     2,
+     0
+    ],
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "falls": []
+   },
+   "E2-sustained-h1000-50pct": {
+    "lost": [
+     0,
+     0,
+     0
+    ],
+    "inWindow": [
+     0,
+     0,
+     0
+    ],
+    "afterWindow": [
+     0,
+     0,
+     0
+    ],
+    "brownoutMin": [
+     60,
+     60,
+     60
+    ],
+    "throttleMin": [
+     0.5801282051282052,
+     0.6178571428571429,
+     0.5797546012269938
+    ],
+    "pipBefore": [
+     1,
+     2,
+     0
+    ],
+    "pipAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "fallAfterStart": [
+     -1,
+     -1,
+     -1
+    ],
+    "falls": []
+   },
+   "E2-sustained6h-h500-50pct": {
+    "lost": [
+     60,
+     34,
+     58
+    ],
+    "inWindow": [
+     60,
+     34,
+     58
+    ],
+    "afterWindow": [
+     0,
+     0,
+     0
+    ],
+    "brownoutMin": [
+     360,
+     360,
+     360
+    ],
+    "throttleMin": [
+     0.4968152866242038,
+     0.3894736842105263,
+     0.47953216374269003
+    ],
+    "pipBefore": [
+     1,
+     2,
+     0
+    ],
+    "pipAfterStart": [
+     66.9,
+     215.56666666666666,
+     78.01666666666667
+    ],
+    "fallAfterStart": [
+     71.48333333333333,
+     223.08333333333334,
+     80.95
+    ],
+    "falls": [
+     [
+      311.5,
+      "shade"
      ],
-     "falls": [
-      [
-       241.8,
-       "brownout"
-      ],
-      [
-       242.2,
-       "brownout"
-      ],
-      [
-       246.8,
-       "brownout"
-      ]
+     [
+      312.6,
+      "shade"
+     ],
+     [
+      313.7,
+      "shade"
+     ],
+     [
+      319,
+      "shade"
+     ],
+     [
+      324,
+      "shade"
+     ],
+     [
+      329,
+      "unfed"
+     ],
+     [
+      336.4,
+      "unfed"
+     ],
+     [
+      337.9,
+      "shade"
+     ],
+     [
+      346.4,
+      "unfed"
+     ],
+     [
+      348,
+      "shade"
+     ],
+     [
+      356.4,
+      "unfed"
+     ],
+     [
+      358,
+      "shade"
+     ],
+     [
+      366.4,
+      "unfed"
+     ],
+     [
+      368,
+      "shade"
+     ],
+     [
+      376.2,
+      "unfed"
+     ],
+     [
+      378,
+      "shade"
+     ],
+     [
+      386.4,
+      "unfed"
+     ],
+     [
+      388,
+      "shade"
+     ],
+     [
+      396.3,
+      "unfed"
+     ],
+     [
+      398,
+      "shade"
+     ],
+     [
+      406.4,
+      "unfed"
+     ],
+     [
+      408,
+      "shade"
+     ],
+     [
+      416.4,
+      "unfed"
+     ],
+     [
+      418,
+      "shade"
+     ],
+     [
+      426.4,
+      "unfed"
+     ],
+     [
+      428,
+      "shade"
+     ],
+     [
+      436.4,
+      "unfed"
+     ],
+     [
+      438,
+      "shade"
+     ],
+     [
+      445.7,
+      "shade"
+     ],
+     [
+      448,
+      "shade"
+     ],
+     [
+      456.4,
+      "unfed"
+     ],
+     [
+      458,
+      "shade"
+     ],
+     [
+      465.4,
+      "shade"
+     ],
+     [
+      468,
+      "shade"
+     ],
+     [
+      475.9,
+      "unfed"
+     ],
+     [
+      478,
+      "shade"
+     ],
+     [
+      486.4,
+      "unfed"
+     ],
+     [
+      488,
+      "shade"
+     ],
+     [
+      496.4,
+      "unfed"
+     ],
+     [
+      498,
+      "shade"
+     ],
+     [
+      506.4,
+      "unfed"
+     ],
+     [
+      508,
+      "shade"
+     ],
+     [
+      516.4,
+      "unfed"
+     ],
+     [
+      518,
+      "shade"
+     ],
+     [
+      526.1,
+      "unfed"
+     ],
+     [
+      528,
+      "shade"
+     ],
+     [
+      536.4,
+      "unfed"
+     ],
+     [
+      538,
+      "shade"
+     ],
+     [
+      546.4,
+      "unfed"
+     ],
+     [
+      548,
+      "shade"
+     ],
+     [
+      556.4,
+      "unfed"
+     ],
+     [
+      558,
+      "shade"
+     ],
+     [
+      566.4,
+      "unfed"
+     ],
+     [
+      568,
+      "shade"
+     ],
+     [
+      576,
+      "unfed"
+     ],
+     [
+      578,
+      "shade"
+     ],
+     [
+      586.1,
+      "unfed"
+     ],
+     [
+      588,
+      "shade"
+     ],
+     [
+      596.4,
+      "unfed"
+     ],
+     [
+      598,
+      "shade"
      ]
-    }
+    ]
+   },
+   "E2-sustained6h-h500-75pct": {
+    "lost": [
+     96,
+     66,
+     74
+    ],
+    "inWindow": [
+     96,
+     66,
+     74
+    ],
+    "afterWindow": [
+     0,
+     0,
+     0
+    ],
+    "brownoutMin": [
+     360,
+     360,
+     360
+    ],
+    "throttleMin": [
+     0.2746478873239437,
+     0.2781954887218045,
+     0.2751677852348993
+    ],
+    "pipBefore": [
+     1,
+     2,
+     0
+    ],
+    "pipAfterStart": [
+     17.516666666666666,
+     34.55,
+     21.95
+    ],
+    "fallAfterStart": [
+     22.166666666666668,
+     37.71666666666667,
+     24.833333333333332
+    ],
+    "falls": [
+     [
+      262.2,
+      "shade"
+     ],
+     [
+      263.6,
+      "shade"
+     ],
+     [
+      264.4,
+      "shade"
+     ],
+     [
+      269.3,
+      "unfed"
+     ],
+     [
+      270.3,
+      "shade"
+     ],
+     [
+      270.8,
+      "unfed"
+     ],
+     [
+      276.1,
+      "unfed"
+     ],
+     [
+      276.6,
+      "unfed"
+     ],
+     [
+      277,
+      "unfed"
+     ],
+     [
+      277.1,
+      "unfed"
+     ],
+     [
+      279.7,
+      "shade"
+     ],
+     [
+      280.2,
+      "unfed"
+     ],
+     [
+      286.4,
+      "unfed"
+     ],
+     [
+      286.5,
+      "unfed"
+     ],
+     [
+      286.6,
+      "unfed"
+     ],
+     [
+      286.9,
+      "unfed"
+     ],
+     [
+      288.9,
+      "unfed"
+     ],
+     [
+      291.3,
+      "unfed"
+     ],
+     [
+      295.3,
+      "unfed"
+     ],
+     [
+      295.9,
+      "unfed"
+     ],
+     [
+      298.6,
+      "unfed"
+     ],
+     [
+      298.7,
+      "unfed"
+     ],
+     [
+      301.5,
+      "unfed"
+     ],
+     [
+      302.3,
+      "unfed"
+     ],
+     [
+      303.9,
+      "unfed"
+     ],
+     [
+      304,
+      "shade"
+     ],
+     [
+      307.1,
+      "unfed"
+     ],
+     [
+      307.8,
+      "unfed"
+     ],
+     [
+      310.6,
+      "unfed"
+     ],
+     [
+      316.5,
+      "unfed"
+     ],
+     [
+      318.9,
+      "shade"
+     ],
+     [
+      319.7,
+      "unfed"
+     ],
+     [
+      319.9,
+      "unfed"
+     ],
+     [
+      325.6,
+      "unfed"
+     ],
+     [
+      326.9,
+      "unfed"
+     ],
+     [
+      328.9,
+      "unfed"
+     ],
+     [
+      331.7,
+      "unfed"
+     ],
+     [
+      332,
+      "unfed"
+     ],
+     [
+      336,
+      "unfed"
+     ],
+     [
+      336.5,
+      "unfed"
+     ],
+     [
+      340.3,
+      "unfed"
+     ],
+     [
+      346.4,
+      "unfed"
+     ],
+     [
+      346.6,
+      "unfed"
+     ],
+     [
+      351.2,
+      "unfed"
+     ],
+     [
+      352.8,
+      "unfed"
+     ],
+     [
+      352.8,
+      "unfed"
+     ],
+     [
+      355.2,
+      "unfed"
+     ],
+     [
+      359.2,
+      "unfed"
+     ],
+     [
+      359.5,
+      "unfed"
+     ],
+     [
+      361.5,
+      "unfed"
+     ],
+     [
+      362.4,
+      "unfed"
+     ],
+     [
+      365.7,
+      "unfed"
+     ],
+     [
+      369.1,
+      "unfed"
+     ],
+     [
+      371.5,
+      "shade"
+     ],
+     [
+      375.1,
+      "unfed"
+     ],
+     [
+      384.2,
+      "unfed"
+     ],
+     [
+      391.5,
+      "unfed"
+     ],
+     [
+      401.6,
+      "unfed"
+     ],
+     [
+      411.7,
+      "unfed"
+     ],
+     [
+      416.6,
+      "unfed"
+     ],
+     [
+      421.6,
+      "unfed"
+     ],
+     [
+      426.5,
+      "unfed"
+     ],
+     [
+      427,
+      "unfed"
+     ],
+     [
+      430.9,
+      "unfed"
+     ],
+     [
+      442.7,
+      "unfed"
+     ],
+     [
+      446.7,
+      "unfed"
+     ],
+     [
+      452,
+      "unfed"
+     ],
+     [
+      456.5,
+      "unfed"
+     ],
+     [
+      457.3,
+      "unfed"
+     ],
+     [
+      473.9,
+      "unfed"
+     ],
+     [
+      474.9,
+      "shade"
+     ],
+     [
+      475.3,
+      "unfed"
+     ],
+     [
+      481.3,
+      "unfed"
+     ],
+     [
+      487.1,
+      "unfed"
+     ],
+     [
+      492.7,
+      "unfed"
+     ],
+     [
+      497.2,
+      "unfed"
+     ],
+     [
+      504.9,
+      "unfed"
+     ],
+     [
+      510.5,
+      "unfed"
+     ],
+     [
+      514.8,
+      "shade"
+     ],
+     [
+      516.6,
+      "unfed"
+     ],
+     [
+      522.5,
+      "unfed"
+     ],
+     [
+      526.5,
+      "unfed"
+     ],
+     [
+      532.7,
+      "unfed"
+     ],
+     [
+      536.5,
+      "unfed"
+     ],
+     [
+      541.7,
+      "unfed"
+     ],
+     [
+      555.1,
+      "shade"
+     ],
+     [
+      558.7,
+      "unfed"
+     ],
+     [
+      560.6,
+      "unfed"
+     ],
+     [
+      564,
+      "unfed"
+     ],
+     [
+      570,
+      "unfed"
+     ],
+     [
+      571.5,
+      "unfed"
+     ],
+     [
+      576.5,
+      "unfed"
+     ],
+     [
+      581.5,
+      "unfed"
+     ],
+     [
+      586.5,
+      "unfed"
+     ],
+     [
+      587.8,
+      "unfed"
+     ],
+     [
+      591.7,
+      "unfed"
+     ]
+    ]
+   },
+   "E2-sustained6h-h500-90pct": {
+    "lost": [
+     97,
+     96,
+     96
+    ],
+    "inWindow": [
+     97,
+     96,
+     96
+    ],
+    "afterWindow": [
+     0,
+     0,
+     0
+    ],
+    "brownoutMin": [
+     360,
+     360,
+     360
+    ],
+    "throttleMin": [
+     0.11223021582733811,
+     0.1129770992366412,
+     0.11081081081081079
+    ],
+    "pipBefore": [
+     1,
+     2,
+     0
+    ],
+    "pipAfterStart": [
+     11.616666666666667,
+     14.483333333333333,
+     15.55
+    ],
+    "fallAfterStart": [
+     14.533333333333333,
+     16.166666666666668,
+     17.616666666666667
+    ],
+    "falls": [
+     [
+      254.5,
+      "shade"
+     ],
+     [
+      255.7,
+      "shade"
+     ],
+     [
+      258.2,
+      "shade"
+     ],
+     [
+      259.3,
+      "shade"
+     ],
+     [
+      261.1,
+      "shade"
+     ],
+     [
+      261.1,
+      "unfed"
+     ],
+     [
+      263.9,
+      "unfed"
+     ],
+     [
+      265.2,
+      "shade"
+     ],
+     [
+      267.6,
+      "unfed"
+     ],
+     [
+      268.1,
+      "unfed"
+     ],
+     [
+      268.8,
+      "unfed"
+     ],
+     [
+      272.1,
+      "unfed"
+     ],
+     [
+      272.9,
+      "unfed"
+     ],
+     [
+      273.9,
+      "unfed"
+     ],
+     [
+      274.3,
+      "unfed"
+     ],
+     [
+      275.6,
+      "unfed"
+     ],
+     [
+      275.9,
+      "unfed"
+     ],
+     [
+      277.6,
+      "unfed"
+     ],
+     [
+      279.9,
+      "unfed"
+     ],
+     [
+      282.4,
+      "unfed"
+     ],
+     [
+      283.2,
+      "unfed"
+     ],
+     [
+      286.5,
+      "unfed"
+     ],
+     [
+      286.5,
+      "unfed"
+     ],
+     [
+      289.2,
+      "shade"
+     ],
+     [
+      289.7,
+      "unfed"
+     ],
+     [
+      289.8,
+      "unfed"
+     ],
+     [
+      290.5,
+      "unfed"
+     ],
+     [
+      292.4,
+      "unfed"
+     ],
+     [
+      293.7,
+      "unfed"
+     ],
+     [
+      296.5,
+      "unfed"
+     ],
+     [
+      298.9,
+      "unfed"
+     ],
+     [
+      299,
+      "shade"
+     ],
+     [
+      300.4,
+      "unfed"
+     ],
+     [
+      301.8,
+      "unfed"
+     ],
+     [
+      304.3,
+      "unfed"
+     ],
+     [
+      306.5,
+      "unfed"
+     ],
+     [
+      309.3,
+      "unfed"
+     ],
+     [
+      309.7,
+      "unfed"
+     ],
+     [
+      316.1,
+      "unfed"
+     ],
+     [
+      316.5,
+      "unfed"
+     ],
+     [
+      316.7,
+      "unfed"
+     ],
+     [
+      319.2,
+      "unfed"
+     ],
+     [
+      326.6,
+      "unfed"
+     ],
+     [
+      331.6,
+      "unfed"
+     ],
+     [
+      341.8,
+      "unfed"
+     ],
+     [
+      343.8,
+      "unfed"
+     ],
+     [
+      353.8,
+      "unfed"
+     ],
+     [
+      355.6,
+      "shade"
+     ],
+     [
+      358.9,
+      "unfed"
+     ],
+     [
+      366.7,
+      "unfed"
+     ],
+     [
+      368.8,
+      "unfed"
+     ],
+     [
+      376.7,
+      "unfed"
+     ],
+     [
+      378.9,
+      "unfed"
+     ],
+     [
+      386.7,
+      "unfed"
+     ],
+     [
+      388.9,
+      "unfed"
+     ],
+     [
+      396.7,
+      "unfed"
+     ],
+     [
+      399.1,
+      "unfed"
+     ],
+     [
+      406.7,
+      "unfed"
+     ],
+     [
+      408.8,
+      "unfed"
+     ],
+     [
+      416.7,
+      "unfed"
+     ],
+     [
+      418.8,
+      "unfed"
+     ],
+     [
+      426.7,
+      "unfed"
+     ],
+     [
+      428.8,
+      "unfed"
+     ],
+     [
+      436.7,
+      "unfed"
+     ],
+     [
+      438.8,
+      "unfed"
+     ],
+     [
+      446.7,
+      "unfed"
+     ],
+     [
+      448.9,
+      "unfed"
+     ],
+     [
+      456.7,
+      "unfed"
+     ],
+     [
+      458.8,
+      "unfed"
+     ],
+     [
+      468.8,
+      "unfed"
+     ],
+     [
+      470.7,
+      "shade"
+     ],
+     [
+      473.9,
+      "unfed"
+     ],
+     [
+      481.7,
+      "unfed"
+     ],
+     [
+      483.9,
+      "unfed"
+     ],
+     [
+      491.7,
+      "unfed"
+     ],
+     [
+      493.9,
+      "unfed"
+     ],
+     [
+      501.7,
+      "unfed"
+     ],
+     [
+      503.8,
+      "unfed"
+     ],
+     [
+      511.7,
+      "unfed"
+     ],
+     [
+      514,
+      "unfed"
+     ],
+     [
+      521.7,
+      "unfed"
+     ],
+     [
+      523.9,
+      "unfed"
+     ],
+     [
+      531.7,
+      "unfed"
+     ],
+     [
+      533.8,
+      "unfed"
+     ],
+     [
+      541.7,
+      "unfed"
+     ],
+     [
+      543.9,
+      "unfed"
+     ],
+     [
+      551.7,
+      "unfed"
+     ],
+     [
+      553.8,
+      "unfed"
+     ],
+     [
+      561.7,
+      "unfed"
+     ],
+     [
+      564,
+      "unfed"
+     ],
+     [
+      571.7,
+      "unfed"
+     ],
+     [
+      573.8,
+      "unfed"
+     ],
+     [
+      583.8,
+      "unfed"
+     ],
+     [
+      585.7,
+      "shade"
+     ],
+     [
+      588.9,
+      "unfed"
+     ],
+     [
+      596.7,
+      "unfed"
+     ],
+     [
+      598.9,
+      "unfed"
+     ]
+    ]
    }
   },
   "demand": {
@@ -1343,36 +2072,42 @@
   },
   "schedule-half": [
    {
-    "lost": 1,
-    "firstFall": 709,
-    "shed": 31
+    "lost": 0,
+    "firstFall": -1,
+    "brownoutMin": 290,
+    "throttleMin": 0.5294117647058824
    },
    {
-    "lost": 1,
-    "firstFall": 709,
-    "shed": 31
+    "lost": 0,
+    "firstFall": -1,
+    "brownoutMin": 290,
+    "throttleMin": 0.5294117647058824
    },
    {
-    "lost": 1,
-    "firstFall": 709,
-    "shed": 31
+    "lost": 0,
+    "firstFall": -1,
+    "brownoutMin": 290,
+    "throttleMin": 0.539568345323741
    }
   ],
   "schedule-doc": [
    {
-    "lost": 1,
-    "firstFall": 709,
-    "shed": 31
+    "lost": 12,
+    "firstFall": 14926,
+    "brownoutMin": 290,
+    "throttleMin": 0.32432432432432434
    },
    {
-    "lost": 1,
-    "firstFall": 709,
-    "shed": 31
+    "lost": 17,
+    "firstFall": 9618,
+    "brownoutMin": 290,
+    "throttleMin": 0.3284671532846715
    },
    {
-    "lost": 1,
-    "firstFall": 709,
-    "shed": 31
+    "lost": 9,
+    "firstFall": 15520,
+    "brownoutMin": 290,
+    "throttleMin": 0.32051282051282054
    }
   ]
  },

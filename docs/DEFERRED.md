@@ -180,3 +180,14 @@ Every item above keeps its phase unless listed here.
 - **The Floodlight as light** (a cone of light on the ground rather than a filled sector in the world view). → **M5** with the light texture.
 - **Hour-one power with the line on** (D-P4-7): on the city with power on, the §11 line plus the HQ's draw is 350 kW against one Generator and the Shot assembler is shed first, the HQ lost at 12:25. → stays with **D-P4-7** (open); the slice runs with power off until it settles.
 - **The bot and the Electricians**: the compact bot never claims the Electricians' block (3 hops, civic on seeds 3 / 4 / 5) within the hour, so no harness run exercises the unlocks; the browser check and the tests do. → **M6** (the played hour) or a `river`-policy run that targets a survivor block, if Gate B wants the bot's number.
+
+## Re-read before prompt B M4 (2026-09-04, D-P4-7 settled, D-B3-4 built)
+
+Every item above keeps its phase unless listed here.
+
+- **Hour-one power with the line on** (D-P4-7): closed. The M3 script was the pre-E4 hour; on the E4 schedule the tile-level hour holds on seeds 3 / 4 / 5 with 0 brownout seconds (`B-M4-gate`), and the slice now runs with power on (`session.ts` `power: true`). → **done**.
+- **The Generator feed in the shed order** (D-P4-7's second half): moot — there is no shed order (D-B3-4). → **closed**.
+- **Coal past the hour**: the HQ patch's ~700 coal is out of the Depot at 60:00 on every seed with four Generators burning (639 / 621 / 621 burned, 103–121 left in the Generators, about six minutes), so the E4 finding "west is wanted by minute 30" is now a tile-level one; the bot's hands cannot fetch coal from a claimed block. → **M6** with the played hour (the west claim's rubble into the Depot is Phase 5 logistics).
+- **The first red pip before the line runs**: with the line at E4's minutes the HQ's start hoppers run dry at 5:34–6:21, before the assembler's first magazine at ~8:00; the bot's hands from the buffer carry the ring. §11's "run six magazines to its turrets" is that moment. → **M4** measures it with real crawlers; **M6** decides whether the start hoppers (C10 fill) or the buffer change.
+- **A brownout at tile level in the block sim's window** (`E2`): the E2 6-hour rows are block-sim runs; the tile-level ring under a sustained brownout (the HQ's assemblers at 50 %) is measured only for the hour (`B-M4-gate`, no shortfall). → **M4** soak with power on.
+- **Turrets and belts under a brownout**: never slowed (GA in `stepFlow`, §14). A rule, not a constant; revisit only if M4's playtest wants a brownout to bite the front. → **M6**.

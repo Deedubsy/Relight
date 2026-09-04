@@ -14,7 +14,7 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 ## Prompt B — the slice rebuilt on the city (Phase 4 reopened, opened 2026-09-04)
 
-**Status: M1 Ground and the engineer built 2026-09-04; the four pre-M2 items ("Four small things before Prompt B M2": D-B1-5 direct control, D-B1-4 placement by face geometry, C1/C2 birth artefact, reference machine) done 2026-09-04; M2 Flow on the faces built 2026-09-04; M3 Defence on the segment built 2026-09-04; M4–M6 not started.** Branch `phase-4`, PR #4. Report `SLICE_REPORT.md` (rewritten from the top; the lattice slice is its appendix; the four items are its "Before M2" section). Decisions D-B1-1 … D-B1-3 taken by recommendation on the human's `go` for M1, **D-B1-4 and D-B1-5 made by the human 2026-09-04** (`DECISIONS.md`); D-P4-8 superseded by D-B1-4; D-P4-7 and D-P4-9 open.
+**Status: M1 Ground and the engineer built 2026-09-04; the four pre-M2 items ("Four small things before Prompt B M2": D-B1-5 direct control, D-B1-4 placement by face geometry, C1/C2 birth artefact, reference machine) done 2026-09-04; M2 Flow on the faces built 2026-09-04; M3 Defence on the segment built 2026-09-04; before M4 (2026-09-04) D-P4-7 settled and D-B3-4 proportional brownout built, the M4 gate (the §11 hour on seeds 3 / 4 / 5 with power on, the E4 schedule, proportional brownout) holds; M4–M6 not started.** Branch `phase-4`, PR #4. Report `SLICE_REPORT.md` (rewritten from the top; the lattice slice is its appendix; the four items are its "Before M2" section). Decisions D-B1-1 … D-B1-3 taken by recommendation on the human's `go` for M1, **D-B1-4, D-B1-5, D-B3-1–D-B3-4 and D-P4-7 made by the human 2026-09-04** (`DECISIONS.md`); D-P4-8 superseded by D-B1-4; D-P4-9 open (M6).
 
 ```yaml
 reference_machine:            # the only host whose fps is reported against the 60 fps DoD (item 4, 2026-09-04)
@@ -75,6 +75,18 @@ reference_machine:            # the only host whose fps is reported against the 
 ### B.6 Untagged recount at prompt B M3
 
 33 → **33**. `[sim: B-M3-unlocks]` lands on §13.7's Floodlight half and §13.9's Big pole half, whose rows left the untagged set at the lattice M3 (13.7 / 13.9 under `M3-rates`), on §8's Electricians row and §7's outskirts paragraph (rules, not numbers); §13.14 (the Substation's recipe) stays untagged: the 50 + 25 is a stand-in, not the number. No number moved. §26 status unchanged: three systems, 5 of 10 gate criteria measurable; the one new rule a player holds is "a survivor's block Held is their machines on the menu", which §26 already counts under found tech.
+
+### B.7 Before M4 — D-P4-7 settled, D-B3-4 built (2026-09-04, `SLICE_REPORT.md` "Before M4")
+
+- **The human's decisions**: D-B3-1 (a), D-B3-2 (a), D-B3-3 (a); D-P4-7 settled now, not at M6; D-B3-4 proportional brownout given and built.
+- **D-P4-7 part 1** (run `B-M4-gate`): the M3 script was the pre-E4 hour (one Generator, the whole line at 0:00). Realigned to E4 (Generators 0 / 6 / 15 / 45 and 0 / 6 / 15 / 25, the machines at E4's minutes, the coal Excavator on the HQ patch into the Depot) the tile-level §11 hour holds on seeds 3 / 4 / 5 with power on: 0 brownout seconds, peak 1,090 of 1,200 kW, 806 / 801 / 806 magazines (the same as with power off), the HQ patch's coal out of the Depot at 60:00 (639 / 621 / 621 burned). **The M4 gate holds.** The stale script under D-B3-4 also holds the hour, at 42–73 % with 500 magazines.
+- **D-B3-4** (runs `M3-rates`, `E2-matrix`, `E2-sustained6h-h500-*`): every machine runs at supply ÷ demand while short; nothing is shed, no substation is stopped by power; lights lit at any throttle above zero; belts and turrets never slowed (GA in `stepFlow`). The shed order, `SimConfig.shed`, the shed events and the game's red cross are gone; toasts, panel row and world-view line carry the percentage. E2 rewritten: a 10-minute or one-hour shortfall of up to 50 % costs nothing; from hour 4 to hour 10 a 50 / 75 / 90 % shortfall starves the ring behind the red pip (first pip 67–216 / 18–35 / 12–16 min, the fall 1.7–7.5 min after it, the pip leading on every seed), never through power.
+- **Doc**: §5, §11, §13, §14, §19, §23, §24 risks 7 and 9, §25 item 14, §26 edited; `[sim: B-M4-gate]`, `[sim: E2-sustained6h-h500-50pct/75pct/90pct]`; three changelog lines. `DEFERRED.md` "Re-read before prompt B M4" (D-P4-7 closed; coal past the hour, the first pip before the line, the tile-level brownout soak → M4 / M6).
+- Checks: `npm test` 103/103, `typecheck`, `lint`, `snapshot:check` (regenerated, config hash `5f3417b9` → `68d07000`: SimConfig lost `shed`), `docsync:check`, `experiments` 12 / 107 s / 0 failing, `calibrate` identical (header hash `5eae8618` → `03328db7`) — green. Fixtures `city{3,4,5}.json` regenerated, unchanged; `lattice/power*.json` pinned on their pre-first-shed prefix.
+
+### B.8 Untagged recount before prompt B M4
+
+33 → **33**. `[sim: B-M4-gate]` lands on §11 (0–10 and 10–30 min), §24 risk 7 and §25 item 14, all already tagged by the E4h rows; `[sim: E2-sustained6h-*]` on §5, §14, §23 and §24 risk 9, replacing `E2-matrix`'s shed-order numbers with the starvation ones. §14's shed order was a rule, never a numbered row; its replacement is one too. No number moved, no row left or joined the untagged set. §26: three systems, 5 of 10 gate criteria measurable; the power rule a player holds is now "everything slows, one bar", which §26 counts under the front.
 
 ## Rework — the engineer and the street-first city (D5, D6; applied 2026-09-03 → 2026-09-04)
 

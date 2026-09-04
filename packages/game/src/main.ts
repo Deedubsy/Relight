@@ -47,12 +47,11 @@ function describe(events: SimEvent[]): void {
       case 'machine-lost': panel.toast(`Assembler on (${ev.x},${ev.y}) lost with its block — ${ev.count} running`, 'bad'); break;
       case 'run-dry': panel.toast(`Block (${ev.x},${ev.y}) is dug out — no more ${ev.district === 'civ' ? 'stone' : ev.district === 'res' ? 'copper' : 'steel'} from it`); break;
       case 'reorder': panel.toast('Ring order changed'); break;
-      // M3 (rule 8): the hopper, Generator and §14 shed rules surface as toasts from the sim's events
+      // M3 (rule 8): the hopper, Generator and §14 brownout rules surface as toasts from the sim's events
       case 'hopper-empty': panel.toast(`Hopper EMPTY on block (${ev.x},${ev.y}) facing (${ev.nx},${ev.ny}) — its pip is red until it is fed`, 'bad'); break;
       case 'gen-dry': panel.toast('The Generator burned its last coal — hand-feed it (click it with the hand) or belt coal in. No power until then.', 'bad'); break;
-      case 'brownout': panel.toast(`Brownout: demand ${Math.round(ev.demandKw)} kW over ${Math.round(ev.supplyKw)} kW supply — machines shed first (§14), then assemblers, then substations`, 'bad'); break;
-      case 'shed': panel.toast(ev.machine ? `Brownout: a ${ev.machine} switched off` : ev.x < 0 ? 'Brownout: an assembler switched off' : `Brownout: substation (${ev.x},${ev.y}) switched off — its streetlights are out`, 'bad'); break;
-      case 'restore': panel.toast(ev.machine ? `Power back: ${ev.machine} running again` : ev.x < 0 ? 'Power back: assembler running again' : `Power back: substation (${ev.x},${ev.y}) on`, 'good'); break;
+      case 'brownout': panel.toast(`Brownout: demand ${Math.round(ev.demandKw)} kW over ${Math.round(ev.supplyKw)} kW supply — every machine runs at ${Math.round(100 * Math.max(0, ev.supplyKw) / ev.demandKw)} % until a Generator is added or fed (§14). Nothing switches off.`, 'bad'); break;
+      case 'power-ok': panel.toast('Power back: supply covers demand, every machine at full speed', 'good'); break;
       case 'claim': {
         if (!session.state.flow) break;
         const kits = session.state.engineer.inv.kit ?? 0;

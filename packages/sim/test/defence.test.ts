@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFAULT_CONFIG, protoCalibrated, generateMap, createState, idxOf, HELD, DARK, CONTESTED, step, frontList, edgeCap,
+  EXCAVATOR_PER_S, DEFAULT_CONFIG, protoCalibrated, generateMap, createState, idxOf, HELD, DARK, CONTESTED, step, frontList, edgeCap,
   CELL_TILES, MARGIN_TILES, substationLot, streetlights, STREETLIGHTS_PER_SIDE, SUBSTATION_TILES,
   ensureFlow, advanceFlow, stepFlow, place, remove, canPlace, giveItem, handFeed, flowSummary, describeMachine, turretEdge,
   cellLights, litAt, poleGrid, substationAt, subPowered, layPoles, botHands,
@@ -27,7 +27,7 @@ function hq(st: SimState, lx: number, ly: number): [number, number] {
 function rich(st: SimState): SimState { ensureFlow(st); st.engineer.inv.steel = 1000; st.engineer.inv.copper = 500; return st; }   // M2: paid from the pockets
 function powered(st: SimState): SimState {
   rich(st);
-  st.config.power = true; st.config.supply = 'generators'; st.config.draw = 'half'; st.config.shed = 'machines-first';
+  st.config.power = true; st.config.supply = 'generators'; st.config.draw = 'half';
   return st;
 }
 function mustPlace(st: SimState, kind: Parameters<typeof place>[1], lx: number, ly: number, dir: Parameters<typeof place>[4] = 0): Machine {
@@ -150,7 +150,7 @@ test('Generator: 300 kW, 4 MJ a coal — the start\'s 40 coal last 533 s at full
   const st = powered(fresh());
   const f = st.flow!;
   const g = generator(st);
-  // demand exactly at supply, so nothing sheds: the substation (100 kW half draw, exposed) + two assemblers 200
+  // demand exactly at supply, no brownout: the substation (100 kW half draw, exposed) + two assemblers 200
   mustPlace(st, 'assembler', 12, 4, 2);
   mustPlace(st, 'assembler', 15, 5, 2);
   runS(st, 5);
@@ -175,51 +175,61 @@ test('Generator: 300 kW, 4 MJ a coal — the start\'s 40 coal last 533 s at full
   assert.match(handFeed(st, g.x, g.y)!.reason, /no coal/);
   st.engineer.inv.coal = 10;
   assert.equal(handFeed(st, g.x, g.y)!.moved, 10);
-  runS(st, 25);   // the substation, shed on the dead grid, comes back 20 s after the supply does
+  runS(st, 2);   // D-B3-4: power never sheds the substation; it is back the second the supply is
   assert.equal(f.power.supply, GENERATOR_KW);
   assert.ok(g.busy, 'burning again');
   assert.equal(f.power.load, 300);
 });
 
-test('§14 shed order under a brownout: Shot assembler, then other machines (inserter, Lamp, Excavator), the coal Excavator and the Generator-feed inserter last, then the substation; restore when the supply allows', () => {
+test('D-B3-4 proportional brownout: short of supply every machine runs at supply ÷ demand — the Excavator mines that much slower, the Lamp stays lit, the substation stays on, nothing switches off — and full speed returns the second the supply covers demand', () => {
   const st = powered(fresh());
   const f = st.flow!;
-  st.config.shortfall = { pct: 90, hour: 0, minutes: 60 };   // 30 kW effective: everything sheds in §14 order
-  const asm = mustPlace(st, 'assembler', 4, 4, 2);
-  const ins = mustPlace(st, 'inserter', 8, 4, 1);
+  const hq = st.blocks[idxOf(st, st.start[0], st.start[1])];
+  const ex = mustPlace(st, 'excavator', 1, 7, 0);
+  for (let lx = 2; lx < 9; lx++) mustPlace(st, 'belt', lx, 6, 1);
+  for (let ly = 6; ly < 9; ly++) mustPlace(st, 'belt', 9, ly, 2);
   const lamp = mustPlace(st, 'lamp', 8, 8, 0);
-  const exSteel = mustPlace(st, 'excavator', 1, 7, 0);
-  const exCoal = mustPlace(st, 'excavator', 18, 14, 0);
-  const insCoal = mustPlace(st, 'inserter', 19, 10, 0);   // into the Generator at 19..20 × 8..9: sheds with the coal Excavator
-  const shedNames: string[] = [];
-  let ev = runS(st, 21);
-  for (const e of ev) if (e.type === 'shed') shedNames.push(e.machine ?? 'substation');
-  assert.deepEqual(shedNames, ['assembler']); assert.ok(asm.shed, 'asm.shed');
-  assert.ok(f.power.overS >= 20, 'brownout seconds count');
-  ev = runS(st, 100);
-  for (const e of ev) if (e.type === 'shed') shedNames.push(e.machine ?? 'substation');
-  assert.deepEqual(shedNames, ['assembler', 'inserter', 'lamp', 'excavator', 'inserter', 'excavator']);
-  assert.ok(ins.shed && lamp.shed && exSteel.shed && exCoal.shed && insCoal.shed, 'ins, lamp, both Excavators and the Generator-feed inserter shed');
-  assert.equal(flowSummary(st).shedMachines, 6);
-  ev = runS(st, 20);
-  for (const e of ev) if (e.type === 'shed') shedNames.push(e.machine ?? 'substation');
-  assert.equal(shedNames[6], 'substation', 'the substation goes only after every machine');
-  // the coal Excavator went after the steel one
-  const order = f.machines.filter(m => m.shed).map(m => m.id);
-  assert.ok(order.indexOf(exSteel.id) >= 0 && order.indexOf(exCoal.id) >= 0, 'order.indexOf(exSteel.id) >= 0 && order.indexOf(exCoal.id) >= 0');
-  // the supply returns: things come back last-shed-first as room allows; the assembler (335 kW with it) never fits
+  runS(st, 60);
+  // 100 (substation) + 60 + the Lamp: covered by the 300 kW Generator
+  assert.equal(f.power.throttle, 1); assert.equal(f.stats.mined, 60 * EXCAVATOR_PER_S);
+  assert.equal(flowSummary(st).throttle, 1);
+  // two assemblers push demand past the Generator
+  const asm = mustPlace(st, 'assembler', 12, 4, 2);
+  const asm2 = mustPlace(st, 'assembler', 15, 5, 2);
+  let ev = runS(st, 1);
+  const dem = 100 + MACHINE_KW.excavator + MACHINE_KW.lamp + 2 * MACHINE_KW.assembler;
+  assert.equal(f.power.demand, dem); assert.equal(f.power.supply, GENERATOR_KW); assert.equal(f.power.load, GENERATOR_KW);
+  const thr = GENERATOR_KW / dem;
+  assert.ok(Math.abs(f.power.throttle - thr) < 1e-9, `throttle ${f.power.throttle} = ${thr}`);
+  const m0 = f.stats.mined;
+  ev = ev.concat(runS(st, 60));
+  assert.ok(ev.some(e => e.type === 'brownout'), 'the brownout is announced once');
+  assert.equal(ev.filter(e => e.type === 'brownout').length, 1);
+  assert.ok(Math.abs(f.stats.mined - m0 - 60 * EXCAVATOR_PER_S * thr) <= 1, `mined ${f.stats.mined - m0} ≈ ${60 * EXCAVATOR_PER_S * thr} at ${thr}`);
+  assert.ok(f.power.overS >= 60, 'brownout seconds count');
+  assert.equal(hq.subOn, true, 'the substation is never shed by power'); assert.equal(subPowered(st, hq), true);
+  assert.equal(flowSummary(st).lampsLit, 1, 'the Lamp stays lit at any throttle');
+  assert.match(describeMachine(st, asm), / at \d+ % \(brownout\)/);
+  assert.match(describeMachine(st, ex), / at \d+ % \(brownout\)/);
+  assert.equal(describeMachine(st, lamp).includes('dark'), false);
+  assert.ok(Math.abs(flowSummary(st).throttle - thr) < 1e-9);
+  // a 90 % shortfall: 30 kW effective, everything at a tenth of that
+  st.config.shortfall = { pct: 90, hour: 0, minutes: 60 };
+  runS(st, 1);
+  const m1 = f.stats.mined;
+  runS(st, 60);
+  const thr2 = 0.1 * GENERATOR_KW / dem;
+  assert.ok(Math.abs(f.power.throttle - thr2) < 1e-9, `throttle ${f.power.throttle} = ${thr2}`);
+  assert.ok(Math.abs(f.stats.mined - m1 - 60 * EXCAVATOR_PER_S * thr2) <= 1, `mined ${f.stats.mined - m1} at ${thr2}`);
+  assert.equal(hq.subOn, true); assert.equal(hq.state, HELD); assert.equal(flowSummary(st).lampsLit, 1);
+  assert.ok(Math.abs(st.stats.throttleMin - thr2) < 1e-9, 'the worst throttle is recorded');
+  // the supply returns and one assembler goes: covered, full speed at once, no 20 s wait
   st.config.shortfall = null;
-  ev = runS(st, 130);
-  const restored = ev.filter(e => e.type === 'restore').map(e => e.machine ?? 'substation');
-  assert.deepEqual(restored, ['substation', 'excavator', 'inserter', 'excavator', 'lamp', 'inserter']);
-  assert.equal(flowSummary(st).shedMachines, 1); assert.ok(asm.shed, 'asm.shed');
-  assert.equal(f.power.demand, 100 + 2 * MACHINE_KW.inserter + MACHINE_KW.lamp + 2 * MACHINE_KW.excavator);
-  assert.match(describeMachine(st, asm), /shed/);
-  // room for it once an Excavator goes
-  remove(st, exSteel.x, exSteel.y);
-  ev = runS(st, 25);
-  assert.ok(ev.some(e => e.type === 'restore' && e.machine === 'assembler'), 'ev.some(e => e.type === \'restore\' && e.machine === \'assembler\')');
-  assert.equal(flowSummary(st).shedMachines, 0);
+  remove(st, asm2.x, asm2.y);
+  ev = runS(st, 2);
+  assert.equal(f.power.throttle, 1); assert.equal(f.power.demand, dem - MACHINE_KW.assembler);
+  assert.ok(ev.some(e => e.type === 'power-ok'), 'the all-clear is announced');
+  assert.doesNotMatch(describeMachine(st, asm), /brownout/);
 });
 
 test('lamps and streetlights: radius 4, lit while the substation powers; three in eight streetlights are broken; a Lamp fills a dark spot', () => {
@@ -296,10 +306,10 @@ test('poles: reach 8 from a claimed substation; a connected run that reaches a D
 test('a flow layer saved before M3 loads with the M3 fields; placement refuses the substation footprint', () => {
   const st = rich(fresh());
   const raw = JSON.parse(JSON.stringify(st.flow));
-  delete raw.pending; delete raw.power; delete raw.stats.fired; for (const m of raw.machines) delete m.shed;
+  delete raw.pending; delete raw.power; delete raw.stats.fired; for (const m of raw.machines) m.shed = false;   // a pre-D-B3-4 flag
   st.flow = raw;
   const f = ensureFlow(st);
-  assert.deepEqual(f.pending, []); assert.equal(f.power.overS, 0); assert.equal(f.stats.fired, 0); assert.equal(f.machines[0].shed, false);
+  assert.deepEqual(f.pending, []); assert.equal(f.power.overS, 0); assert.equal(f.power.throttle, 1); assert.equal(f.stats.fired, 0); assert.equal('shed' in f.machines[0], false);
   const [lx, ly] = substationLot(st.seed, st.blocks[idxOf(st, st.start[0], st.start[1])], true);
   const [tx, ty] = hq(st, lx + 1, ly + 1);
   assert.match(canPlace(st, 'belt', tx, ty).reason, /substation/);
@@ -331,7 +341,7 @@ test("the bot's hands: every turret at or under half and every Generator at or u
 test('city HQ (D-B1-4): the start turrets are derived from the HQ\'s segments — one per 16 tiles, at least one a segment, a corner sliver served by the turrets that reach it — so every live segment is a covered turret edge on seeds 3, 4 and 5, and the HQ holds three minutes with no hopper empty', () => {
   for (const seed of [3, 4, 5]) {
     const cfg = protoCalibrated({ ...DEFAULT_CONFIG, walk: true });
-    Object.assign(cfg, { power: true, supply: 'generators', draw: 'half', shed: 'machines-first' });
+    Object.assign(cfg, { power: true, supply: 'generators', draw: 'half' });
     const st = createState(citySpec(seed, 'river', cfg), cfg, seed);
     ensureFlow(st);
     const hqI = hqIdx(st), cg = cityGeomOf(st), mine = st.ring.filter(e => e.a === hqI);
@@ -357,7 +367,7 @@ test('city HQ (D-B1-4): the start turrets are derived from the HQ\'s segments �
 
 function cityState(seed: number): SimState {
   const cfg = protoCalibrated({ ...DEFAULT_CONFIG, walk: true });
-  Object.assign(cfg, { power: true, supply: 'generators', draw: 'half', shed: 'machines-first' });
+  Object.assign(cfg, { power: true, supply: 'generators', draw: 'half' });
   const st = createState(citySpec(seed, 'river', cfg), cfg, seed);
   ensureFlow(st); st.engineer.inv.steel = 1000; st.engineer.inv.copper = 500;
   return st;
@@ -430,10 +440,10 @@ test('Floodlight: 2×2, 40 kW, lights a 12-tile 60° cone along its facing while
   assert.equal(litAt(st, cx + 13, cy), false, 'beyond 12 tiles');
   assert.equal(litAt(st, cx - 5, cy), false, 'behind it');
   assert.equal(litAt(st, cx, cy), true, 'under the fixture');
-  // shed with the lamps (§14 rank 2): switched off, its cone dark
-  m.shed = true;
-  assert.equal(litAt(st, cx + 6, cy), false, 'dark when shed');
-  m.shed = false;
+  // D-B3-4: a brownout slows machines, never a light; the cone stays lit at any throttle above zero
+  st.flow!.power.throttle = 0.2;
+  assert.equal(litAt(st, cx + 6, cy), true, 'lit under a brownout');
+  st.flow!.power.throttle = 1;
   // R turns it: facing south lights south, not east
   m.dir = 2; st.flow!.rev++;
   assert.equal(litAt(st, cx, cy + 6), true); assert.equal(litAt(st, cx + 6, cy), false);

@@ -25,7 +25,7 @@ export const DEFAULT_CONFIG: SimConfig = {
   hulkRoll: 'hash',
   bloomT: 120.0, bloomDrop: 0.9,
   relight: null,
-  power: false, supply: 'track', headroom: 500, shortfall: null, draw: 'doc', shed: 'substations', interiorGrace: 0, asmTrack: 0,
+  power: false, supply: 'track', headroom: 500, shortfall: null, draw: 'doc', interiorGrace: 0, asmTrack: 0,
   wellDeath: false, interleave: false,
   economy: false,
   walk: false,
@@ -49,7 +49,7 @@ export function configFromPython(py: Record<string, unknown>, over: Partial<SimC
     starve_quiet: 'starveQuiet', scatter: 'scatter', scatter_frac: 'scatterFrac', validator: 'validator',
     shade_thr: 'shadeThr', hulk_thr: 'hulkThr', wake_cap: 'wakeCap', bloom_base: 'bloomBase', jitter: 'jitter',
     fall_tiles: 'fallTiles', hulk_roll: 'hulkRoll', bloom_t: 'bloomT', bloom_drop: 'bloomDrop',
-    power: 'power', supply: 'supply', headroom: 'headroom', draw: 'draw', shed: 'shed', interior_grace: 'interiorGrace',
+    power: 'power', supply: 'supply', headroom: 'headroom', draw: 'draw', interior_grace: 'interiorGrace',
     asm_track: 'asmTrack',
   };
   for (const k in py) {
@@ -94,18 +94,16 @@ export const isSolid = (s: number) => s === HELD || s === INERT;
  *  the block tick calls them only on a state that has a flow layer, so a block-only state behaves exactly as before.
  *  syncEdges: mark edges covered by physical turrets (Edge.turrets/fire) and set their hopper to the turrets' sum.
  *  drainEdges: take this second's fired rounds out of those turrets. supplyKw: the Generators' output.
- *  demandKw: tile machines' draw (all placed machines when `unshed`, else the unshed ones on powered cells).
- *  shedOne / restoreOne: the §14 order among tile machines; a shed machine is stack entry -(id + 2). */
+ *  demandKw: tile machines' draw (every placed machine when `all`, else those on powered cells).
+ *  setLoad: the grid's numbers for this second, including the D-B3-4 throttle every tile machine runs at. */
 export interface TileHooks {
   syncEdges(st: SimState): void;
   /** D-B1-4: whether physical turrets already cover this edge (a new edge born covered is born kitted). */
   covered(st: SimState, edgeId: number): boolean;
   drainEdges(st: SimState, fired: Float64Array): void;
   supplyKw(st: SimState): number;
-  demandKw(st: SimState, unshed: boolean): number;
-  shedOne(st: SimState): { id: number; kind: string } | null;
-  restoreOne(st: SimState, id: number, room: number): { ok: boolean; kind: string };
-  setLoad(st: SimState, supply: number, demand: number, load: number, over: boolean): void;
+  demandKw(st: SimState, all: boolean): number;
+  setLoad(st: SimState, supply: number, demand: number, load: number, throttle: number): void;
 }
 export const tileHooks: { current: TileHooks | null } = { current: null };
 const tiles = (st: SimState): TileHooks | null => (st.flow ? tileHooks.current : null);
@@ -131,7 +129,7 @@ export function createState(spec: MapSpec, config: SimConfig, seed: number): Sim
       machines: 0, slots: slotsOf(area), area,
       // D6: the rubble pool scales with the lot's area (GAME-ASSUMPTION: linearly; the lattice lot is the unit)
       pool: poolOf(config, c.name) * area / LATTICE_AREA,
-      exposed: true, exposedAt: 0, shed: false,
+      exposed: true, exposedAt: 0,
     };
   });
   if (config.scatter) {
@@ -175,10 +173,10 @@ export function createState(spec: MapSpec, config: SimConfig, seed: number): Sim
     stats: { lost: 0, retakes: 0, claims: 0, firstInterior: -1, firstFall: -1, firstUnfed: -1, unfedTotal: 0,
              lostLog: [], ringReorders: 0, assemblersAdded: 0, claimsRejected: 0, magsMade: 0,
              machinesLost: 0, ranDry: 0, dryLog: [],
-             firstBrownout: -1, shedEvents: 0, shedLog: [], lostInWindow: 0, lostAfterWindow: 0, wellsDead: 0 },
+             firstBrownout: -1, brownoutS: 0, throttleMin: 1, lostInWindow: 0, lostAfterWindow: 0, wellsDead: 0 },
     stock: { ...config.eco.startStock },
     patch: { steel: config.eco.startPatch.steel, copper: config.eco.startPatch.copper ?? 0 },
-    power: { supply: 300, overTimer: 0, shedStack: [], lastShed: -999, asmShed: 0, asmActive: 0, demandKw: [], supplyKw: [] },
+    power: { supply: 300, throttle: 1, short: false, shortAt: -1, okAt: -999, asmActive: 0, demandKw: [], supplyKw: [] },
     asmTrack: { n: 0, at: -1 },
     wellDead: spec.wells.map(() => false),
     wellEnclosedSince: spec.wells.map(() => -1),
@@ -417,9 +415,10 @@ export function asmCount(st: SimState, t: number): number {
   return n + st.asmManual;
 }
 
-/** Assemblers actually running: the count less any the brownout shedder turned off. */
+/** Assemblers running: every one built. D-B3-4: nothing is switched off by power; a shortfall slows them all
+ *  (`productionMagPerMin` carries the throttle). */
 export function asmActive(st: SimState, t: number): number {
-  return Math.max(0, asmCount(st, t) - st.power.asmShed);
+  return asmCount(st, t);
 }
 
 export function asmRate(st: SimState, t: number): number {
@@ -429,14 +428,16 @@ export function asmRate(st: SimState, t: number): number {
 }
 
 /** Magazines per minute from every assembler. With `startAsmRate` set (proto: the starting "Mk1" assembler) the
- *  first `startAssemblers` hand-built assemblers run at that rate and every other one at `asmRate`. */
+ *  first `startAssemblers` hand-built assemblers run at that rate and every other one at `asmRate`. Under a
+ *  brownout (D-B3-4) every assembler runs at supply ÷ demand, so the rate is scaled by the throttle. */
 export function productionMagPerMin(st: SimState, t: number): number {
   const c = st.config;
   const n = asmActive(st, t);
-  if (c.startAsmRate === null) return n * asmRate(st, t);
+  const thr = c.power ? st.power.throttle : 1;
+  if (c.startAsmRate === null) return n * asmRate(st, t) * thr;
   const hq = st.blocks[idxOf(st, st.start[0], st.start[1])];
-  const mk1 = Math.min(hq.machines > 0 ? Math.min(st.asmManual, c.startAssemblers) : 0, n);   // the Mk1 falls with the HQ; shed last
-  return mk1 * c.startAsmRate + (n - mk1) * asmRate(st, t);
+  const mk1 = Math.min(hq.machines > 0 ? Math.min(st.asmManual, c.startAssemblers) : 0, n);   // the Mk1 falls with the HQ
+  return (mk1 * c.startAsmRate + (n - mk1) * asmRate(st, t)) * thr;
 }
 
 function rebuildEdgeAt(st: SimState): void {
@@ -515,7 +516,7 @@ export function demandUnshed(st: SimState): number {
   return d + asmCount(st, st.t) * 220 + (th ? th.demandKw(st, true) : 0);
 }
 
-/** Demand as drawn now (shed substations and assemblers excluded). */
+/** Demand as drawn now (substations that are off — unfed, shade — excluded). */
 export function demandKw(st: SimState): number {
   const half = st.config.draw === 'half';
   let d = 0;
@@ -615,10 +616,8 @@ function fall(st: SimState, i: number, reason: LostEntry['reason']): void {
     if (ri >= 0 && st.ring[ri].hopper <= 1e-9) { const n = st.blocks[st.ring[ri].b]; starved = n.well ? 'well' : n.name; break; }
   }
   b.state = DARK; b.d = 0.3; b.upto = st.t + 1; b.timer = -1; b.creep = 0; b.unfed = 0;
-  b.subOn = true; b.shed = false; b.shadeOff = 0; b.fedTimer = 0;
+  b.subOn = true; b.shadeOff = 0; b.fedTimer = 0;
   b.unfedSince = -1; b.starveSince = -1;
-  const si = st.power.shedStack.indexOf(i);
-  if (si >= 0) st.power.shedStack.splice(si, 1);
   if (st.config.shortfall) {
     const sf = st.config.shortfall;
     if (inWindow(st)) st.stats.lostInWindow++;
@@ -749,7 +748,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     const b = B[i];
     if (b.state === CONTESTED && t >= b.contestUntil) {
       b.state = HELD; b.d = 0; b.timer = -1; b.subOn = true; b.creep = 0;
-      b.unfed = 0; b.shed = false; b.shadeOff = 0; b.unfedSince = -1; b.starveSince = -1;
+      b.unfed = 0; b.shadeOff = 0; b.unfedSince = -1; b.starveSince = -1;
       st.fallen[i] = false;
       stateChange(st, i);
       // GAME-ASSUMPTION: a facility is "reached" when its own block turns Held; the proto only toasts it.
@@ -904,7 +903,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
           if (b.unfed >= cfg.unfedN) {
             if (b.subOn) st.events.push({ type: 'sub-off', t, x: b.x, y: b.y });
             b.subOn = false;
-          } else if (!b.shed && !b.subOn && b.fedTimer >= 60) {
+          } else if (!b.subOn && b.fedTimer >= 60) {
             b.subOn = true;
             st.events.push({ type: 'sub-on', t, x: b.x, y: b.y });
           }
@@ -924,7 +923,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     }
   }
 
-  // ---- power (frontsim.py power=True): demand vs supply, shedding after 20 s over, restore 20 s after the last shed ----
+  // ---- power (§14, D-B3-4): one pool, no shedding; short of supply, every machine runs at supply ÷ demand ----
   if (cfg.power) {
     const pw = st.power, th = tiles(st);
     pw.asmActive = asmActive(st, t);
@@ -934,61 +933,21 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     if (cfg.supply === 'track' && t % 600 === 0 && !inWindow(st)) pw.supply = Math.max(pw.supply, demandUnshed(st) + cfg.headroom);
     const eff = effectiveSupply(st);
     if (t % 60 === 0) { pw.demandKw.push(demandUnshed(st)); pw.supplyKw.push(eff); }
-    if (dem > eff) {
-      pw.overTimer++;
-      if (st.stats.firstBrownout < 0) { st.stats.firstBrownout = t; st.events.push({ type: 'brownout', t, demandKw: dem, supplyKw: eff }); }
-      if (pw.overTimer >= 20) {
-        pw.overTimer = 0; pw.lastShed = t; st.stats.shedEvents++; st.stats.shedLog.push(t);
-        // §14 order (M3): the tile layer's assemblers first, then its other machines, Excavators feeding Generators
-        // last; then the block-level assembler lines; substations only after every machine
-        const tm = th ? th.shedOne(st) : null;
-        if (tm) {
-          pw.shedStack.push(-(tm.id + 2));
-          st.events.push({ type: 'shed', t, x: -1, y: -1, machine: tm.kind });
-        } else if (cfg.shed === 'machines-first' && pw.asmShed < asmCount(st, t)) {
-          pw.asmShed++; pw.shedStack.push(-1);
-          st.events.push({ type: 'shed', t, x: -1, y: -1 });
-        } else {
-          // the most exposed substation, then the one farthest from the start (Python max(): first of equals)
-          let v = -1, vh = -1, vd = -1;
-          for (let i = 0; i < B.length; i++) {
-            const b = B[i];
-            if (b.state !== HELD || !b.subOn || b.shed) continue;
-            const ns = st.nb[i];
-            let hc = 0;
-            for (let k = 0; k < ns.length; k++) if (isHostile(B[ns[k]].state)) hc++;
-            const dd = st.hops[i];
-            if (v < 0 || hc > vh || (hc === vh && dd > vd)) { v = i; vh = hc; vd = dd; }
-          }
-          if (v >= 0) {
-            const b = B[v];
-            b.subOn = false; b.shed = true; pw.shedStack.push(v);
-            st.events.push({ type: 'shed', t, x: b.x, y: b.y });
-          }
-        }
-      }
-    } else {
-      pw.overTimer = 0;
-      if (pw.shedStack.length && t - pw.lastShed >= 20) {
-        const u = pw.shedStack[pw.shedStack.length - 1];
-        if (u <= -2) {
-          const r = th ? th.restoreOne(st, -(u + 2), eff - dem) : { ok: true, kind: '' };
-          if (r.ok) { pw.shedStack.pop(); pw.lastShed = t; if (r.kind) st.events.push({ type: 'restore', t, x: -1, y: -1, machine: r.kind }); }
-        } else if (u === -1) {
-          if (dem + 220 <= eff) { pw.shedStack.pop(); pw.asmShed--; pw.lastShed = t; st.events.push({ type: 'restore', t, x: -1, y: -1 }); }
-        } else {
-          const b = B[u];
-          if (b.state !== HELD) pw.shedStack.pop();
-          else {
-            b.subOn = true; b.shed = false;
-            if (demandKw(st) <= eff) { pw.shedStack.pop(); pw.lastShed = t; st.events.push({ type: 'restore', t, x: b.x, y: b.y }); }
-            else { b.subOn = false; b.shed = true; }
-          }
-        }
-      }
+    const short = dem > eff + 1e-9;
+    if (short) {
+      st.stats.brownoutS++;
+      if (st.stats.firstBrownout < 0) st.stats.firstBrownout = t;
+      // one toast per shortfall: a grid flickering around its demand (a Generator running dry as another is fed)
+      // does not re-announce itself within a minute of the last all-clear
+      if (!pw.short) { pw.shortAt = t; if (t - pw.okAt >= 60 || st.stats.firstBrownout === t) st.events.push({ type: 'brownout', t, demandKw: dem, supplyKw: eff }); }
+    } else if (pw.short) {
+      if (t - pw.shortAt >= 20) st.events.push({ type: 'power-ok', t });
+      pw.okAt = t; pw.shortAt = -1;
     }
-    pw.asmActive = asmActive(st, t);
-    if (th) th.setLoad(st, eff, dem, Math.min(dem, eff), dem > eff);
+    pw.short = short;
+    pw.throttle = short ? Math.max(0, eff) / dem : 1;
+    if (short) st.stats.throttleMin = Math.min(st.stats.throttleMin, pw.throttle);
+    if (th) th.setLoad(st, eff, dem, Math.min(dem, eff), pw.throttle);
   }
 
   // ---- creep and fall (substation off for any reason) ----
@@ -999,7 +958,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       const on = b.subOn && t >= b.shadeOff;
       if (!on) {
         b.creep += 1 / 3.0;
-        if (b.creep >= cfg.fallTiles) fall(st, i, b.shed ? 'brownout' : t < b.shadeOff ? 'shade' : 'unfed');
+        if (b.creep >= cfg.fallTiles) fall(st, i, t < b.shadeOff ? 'shade' : 'unfed');
       } else if (b.creep > 0) {
         b.creep = Math.max(0, b.creep - 1 / 20.0);
       }

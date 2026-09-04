@@ -10,13 +10,13 @@ export const E4: Experiment = {
     const row = (label: string, o: Partial<FirstHourOptions>): (string | number)[] => {
       const r = firstHour(o); data[label] = r;
       const full = { ...o } as FirstHourOptions;
-      return [label, min(r.firstBrownout), min(r.coalOut), min(r.shedHqAt), r.throttleMin.toFixed(2), r.peakKw.toFixed(0), r.gensNeeded.join(' '), r.coalBurned.toFixed(0),
+      return [label, min(r.firstBrownout), min(r.coalOut), (r.brownoutS / 60).toFixed(1), r.throttleMin.toFixed(2), r.peakKw.toFixed(0), r.gensNeeded.join(' '), r.coalBurned.toFixed(0),
               o.patch != null ? `${min(r.patchOut)} (${r.patchLeft.toFixed(0)} left)` : '-', (full.gens ?? [0, 1800]).map(g => g / 60).join(',')];
     };
-    const header = ['run', 'first brownout (min)', 'coal out (min)', 'HQ shed at (min)', 'worst throttle', 'peak kW', 'Generators needed per 10 min', 'coal burned in h1', 'patch mined out', 'Generators at (min)'];
+    const header = ['run', 'first brownout (min)', 'coal out (min)', 'brownout minutes', 'worst throttle', 'peak kW', 'Generators needed per 10 min', 'coal burned in h1', 'patch mined out', 'Generators at (min)'];
     const lit: (string | number)[][] = [
-      row('E4-literal', {}), row('E4-hq-exempt', { hqExempt: true }), row('E4-hq-draw-40', { hqDraw: 40 }), row('E4-flat-120', { drawFlat: true }),
-      row('E4-start-coal-rubble', { coalRubble: true }), row('E4-coal-120', { startCoal: 120, hqExempt: true }),
+      row('E4-literal', {}), row('E4-hq-draw-40', { hqDraw: 40 }), row('E4-flat-120', { drawFlat: true }),
+      row('E4-start-coal-rubble', { coalRubble: true }), row('E4-coal-120', { startCoal: 120 }),
       row('E4-rubble+gen@6,15,25,40', { coalRubble: true, gens: [0, 360, 900, 1500, 2400] }),
       row('E4-rubble+gen@6,15,25,40,45', { coalRubble: true, gens: [0, 360, 900, 1500, 2400, 2700] }),
       row('E4-rubble+hq40+gen@15,25,40', { coalRubble: true, hqDraw: 40, gens: [0, 900, 1500, 2400] }),
@@ -24,14 +24,14 @@ export const E4: Experiment = {
     ];
     let minCoal = -1;
     for (let c = 40; c < 400; c += 10) {
-      const r = firstHour({ startCoal: c, hqExempt: true });
+      const r = firstHour({ startCoal: c });
       if (r.coalOut < 0 || r.coalOut >= r.coalArrives + 120) { minCoal = c; break; }
     }
     data.minCoal = minCoal;
     sections.push({ title: 'E4-literal: §11 literally, 300 kW Generator, 40 coal, HQ 200 kW, substations 200/40 kW, machines at §11\'s minutes, coal rubble 60 s after the west block is Held',
       note: `E4-min-coal: ${minCoal} starting coal lasts until the west coal excavator + 2 min (coal arrives at ${(firstHour({}).coalArrives / 60).toFixed(1)} min)`, header, rows: lit });
     const d1: (string | number)[][] = [
-      row('E4h-literal-1gen', { ...FIRST_HOUR_D1 }), row('E4h-hq-exempt-1gen', { ...FIRST_HOUR_D1, hqExempt: true }),
+      row('E4h-literal-1gen', { ...FIRST_HOUR_D1 }),
       row('E4h-gen@0,6', { ...FIRST_HOUR_D1, gens: [0, 360] }), row('E4h-gen@0,6,15', { ...FIRST_HOUR_D1, gens: [0, 360, 900] }),
       row('E4h-gen@0,6,15,25', { ...FIRST_HOUR_D1, gens: [0, 360, 900, 1500] }), row('E4h-gen@0,6,15,45', { ...FIRST_HOUR_D1, gens: [0, 360, 900, 2700] }),
     ];

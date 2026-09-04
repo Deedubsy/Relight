@@ -17,9 +17,9 @@ export interface MinuteRecord {
   tileMagsMade: number; tileMagsDelivered: number; handMined: number; handCrafted: number; magsConsumed: number;
   tileMagPerMin: number; excavators: number; belts: number; inserters: number; tileAssemblers: number; beltItems: number; mined: number; coal: number;
   /** M3 defence and power: turret hopper rounds against their capacity, magazines on belts, lamps lit, brownout
-   *  seconds so far, Generators burning, coal in the Generators, the grid's numbers and the machines shed. */
+   *  seconds so far, Generators burning, coal in the Generators, the grid's numbers and the D-B3-4 throttle. */
   hopperRounds: number; hopperCap: number; beltAmmo: number; lampsLit: number; lamps: number; brownoutS: number;
-  generators: number; generatorsBurning: number; genCoal: number; supplyKw: number; demandKw: number; loadKw: number; shedMachines: number;
+  generators: number; generatorsBurning: number; genCoal: number; supplyKw: number; demandKw: number; loadKw: number; throttle: number;
   turrets: number; fired: number; coalBurned: number; polesConnected: number;
 }
 export interface Telemetry {
@@ -95,7 +95,7 @@ export function recordMinute(tel: Telemetry, st: SimState): void {
     magsConsumed: st.totalRounds / 10, tileMagPerMin: fs.magsMade - (tel.minutes[tel.minutes.length - 1]?.tileMagsMade ?? 0),   // made in the last minute
     excavators: fs.excavators, belts: fs.belts, inserters: fs.inserters, tileAssemblers: fs.assemblers, beltItems: fs.beltItems, mined: fs.mined, coal: fs.coal,
     hopperRounds: fs.turretRounds, hopperCap: fs.turretCap, beltAmmo: fs.beltAmmo, lampsLit: fs.lampsLit, lamps: fs.lamps, brownoutS: fs.brownoutS,
-    generators: fs.generators, generatorsBurning: fs.generatorsBurning, genCoal: fs.genCoal, supplyKw: fs.supplyKw, demandKw: fs.demandKw, loadKw: fs.loadKw, shedMachines: fs.shedMachines,
+    generators: fs.generators, generatorsBurning: fs.generatorsBurning, genCoal: fs.genCoal, supplyKw: fs.supplyKw, demandKw: fs.demandKw, loadKw: fs.loadKw, throttle: fs.throttle,
     turrets: fs.turrets, fired: fs.fired, coalBurned: fs.coalBurned, polesConnected: fs.polesConnected,
   });
   if (tel.firstEnclosure === null && st.stats.firstInterior >= 0) tel.firstEnclosure = st.stats.firstInterior;

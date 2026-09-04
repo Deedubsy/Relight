@@ -30,7 +30,6 @@ export interface Block {
   pool: number;         // §12: rubble left in the block (finite); drawn down by the yield, never refilled
   exposed: boolean;     // power: any hostile neighbour (frontage draw) — recomputed when the map is dirty
   exposedAt: number;    // tick the block last became exposed (interiorGrace)
-  shed: boolean;        // power: substation turned off by the brownout shedder
 }
 
 /** One frontage edge: held block `a` facing hostile neighbour `b`. id = a*deg + slot of b in nb[a] (graph.ts), stable across removal and re-creation.
@@ -88,7 +87,6 @@ export interface SimConfig {
   headroom: number;                  // kW
   shortfall: Shortfall | null;
   draw: 'doc' | 'half' | 'flat';     // doc 200/40 kW, half 100/20 kW (D1), flat 120 kW
-  shed: 'substations' | 'machines-first';
   interiorGrace: number;             // seconds a newly exposed block keeps the interior draw (0 = off)
   asmTrack: number;                  // >0: assemblers are added when demand/production exceeds this (E5 track variant)
   // ---- §5 rules the Python sim never had; off by default so the fixtures stay exact ----
@@ -130,7 +128,7 @@ export interface HourRow {
   production: number;   // mag/min at the hour mark
 }
 
-export interface LostEntry { t: number; reason: 'unfed' | 'shade' | 'starved' | 'brownout'; x: number; y: number }
+export interface LostEntry { t: number; reason: 'unfed' | 'shade' | 'starved'; x: number; y: number }
 
 export interface SimStats {
   lost: number; retakes: number; claims: number;
@@ -145,21 +143,22 @@ export interface SimStats {
   dryLog: { t: number; x: number; y: number; district: District }[];
   // power
   firstBrownout: number;   // tick demand first exceeded supply, -1 = never
-  shedEvents: number;
-  shedLog: number[];
+  brownoutS: number;     // D-B3-4: seconds with demand > supply (every machine ran at supply ÷ demand)
+  throttleMin: number;   // the lowest supply ÷ demand seen (1 = never short)
   lostInWindow: number; lostAfterWindow: number;   // blocks lost during / after the shortfall window
   wellsDead: number;
 }
 
-/** Power-model state (frontsim.py). `shedStack` holds block indices; -1 stands for one shed assembler. */
+/** Power-model state. D-B3-4 (§14): one pool, no shedding; while demand exceeds supply every machine runs at
+ *  `throttle` = supply ÷ demand. Substations are never touched by power (they stop only under the unfed rule, §5). */
 export interface PowerState {
-  supply: number;        // kW available (track mode)
-  overTimer: number;     // consecutive seconds of demand > supply
-  shedStack: number[];
-  lastShed: number;
-  asmShed: number;       // assemblers turned off by the shedder
-  asmActive: number;     // assemblers running this tick
-  demandKw: number[];    // unshed demand, one sample per minute
+  supply: number;        // kW the grid can give this second (track / schedule / the Generators)
+  throttle: number;      // supply ÷ demand, 1 when supply covers demand
+  short: boolean;        // demand > supply this second
+  shortAt: number;       // tick the current shortfall began (-1 when not short)
+  okAt: number;          // tick the last shortfall ended
+  asmActive: number;     // block assemblers running this tick (= the count; kept for the harness)
+  demandKw: number[];    // as-built demand, one sample per minute
   supplyKw: number[];    // effective supply, one sample per minute
 }
 
@@ -200,8 +199,7 @@ export type SimEvent =
   | { type: 'machine-lost'; t: number; x: number; y: number; count: number }
   | { type: 'run-dry'; t: number; x: number; y: number; district: District }
   | { type: 'brownout'; t: number; demandKw: number; supplyKw: number }
-  | { type: 'shed'; t: number; x: number; y: number; machine?: string }      // x = y = -1: an assembler line; machine (M3): a tile machine's kind
-  | { type: 'restore'; t: number; x: number; y: number; machine?: string }
+  | { type: 'power-ok'; t: number }                                          // D-B3-4: the shortfall ended
   | { type: 'hopper-empty'; t: number; x: number; y: number; nx: number; ny: number }   // M3: an edge's hopper just ran dry (the map pip turns red on this); (nx,ny) = the dark block it faces
   | { type: 'engineer-down'; t: number; x: number; y: number }               // D5: knocked down; respawns at the HQ
   | { type: 'engineer-up'; t: number }

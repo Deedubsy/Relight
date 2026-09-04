@@ -1,11 +1,10 @@
 /** §11 first hour as a closed timeline (frontsim.py first_hour(), ported line for line): one 300 kW Generator, the
  *  starting coal, the HQ substation, machines placed at the minutes §11 states, three starting neighbours, coal from
- *  the west block's rubble once it is Held. Deterministic, no map. E4. */
+ *  the west block's rubble once it is Held. Deterministic, no map. E4. A shortfall throttles (D-B3-4). */
 import { COAL_MJ, GENERATOR_KW } from './recipes';
 
 export interface FirstHourOptions {
   startCoal: number;        // units in the HQ's starting stock (§11: 40)
-  hqExempt: boolean;        // never shed the HQ; throttle instead
   hqDraw: number;           // kW; the HQ substation
   coalRubble: boolean;      // coal rubble available from t = 0 (instead of after the west block is Held)
   drawFlat: boolean;        // every substation 120 kW
@@ -17,7 +16,7 @@ export interface FirstHourOptions {
 }
 
 export const FIRST_HOUR_DEFAULTS: FirstHourOptions = {
-  startCoal: 40, hqExempt: false, hqDraw: 200, coalRubble: false, drawFlat: false, gens: [0, 30 * 60],
+  startCoal: 40, hqDraw: 200, coalRubble: false, drawFlat: false, gens: [0, 30 * 60],
   subKw: 200, interiorKw: 40, patch: null, patchExcAt: 6 * 60,
 };
 
@@ -25,8 +24,8 @@ export const FIRST_HOUR_DEFAULTS: FirstHourOptions = {
 export const FIRST_HOUR_D1: Partial<FirstHourOptions> = { subKw: 100, interiorKw: 20, hqDraw: 100, patch: 700 };
 
 export interface FirstHourResult {
-  firstBrownout: number; coalOut: number; shedHqAt: number; patchOut: number;   // ticks, -1 = never
-  throttleMin: number; coalArrives: number; peakKw: number;
+  firstBrownout: number; coalOut: number; patchOut: number;   // ticks, -1 = never
+  throttleMin: number; brownoutS: number; coalArrives: number; peakKw: number;   // D-B3-4: worst supply ÷ demand and seconds short
   gensNeeded: number[];   // per 10-minute slot: ceil(demand / 300 kW)
   coalBurned: number; burn30: number; patchLeft: number;
   demandKw: number[];     // per minute
@@ -49,7 +48,7 @@ export function firstHour(over: Partial<FirstHourOptions> = {}): FirstHourResult
   machines.push([coalExcAt, 60]);
   machines.push([45 * 60, 60], [45 * 60, 100]);                                       // 5th excavator, 3rd assembler
   if (o.patch !== null) machines.push([o.patchExcAt, 60]);                            // excavator on the HQ coal patch
-  let firstBrownout = -1, coalOut = -1, shedHqAt = -1, throttleMin = 1.0, peak = 0, coalBurned = 0, burn30 = 0;
+  let firstBrownout = -1, coalOut = -1, throttleMin = 1.0, brownoutS = 0, peak = 0, coalBurned = 0, burn30 = 0;
   const gensNeeded: number[] = [], demandKw: number[] = [];
   for (let t = 0; t < 3600; t++) {
     let d = o.drawFlat ? 120 : o.hqDraw;
@@ -67,9 +66,10 @@ export function firstHour(over: Partial<FirstHourOptions> = {}): FirstHourResult
     gensNeeded[slot] = Math.max(gensNeeded[slot] ?? 0, Math.ceil(d / genKw - 1e-9));
     if (t % 60 === 0) demandKw.push(d);
     if (d > cap) {
+      // D-B3-4: nothing is shed; every machine (and the HQ) runs at cap ÷ demand
       if (firstBrownout < 0) firstBrownout = t;
-      if (o.hqExempt || o.drawFlat) throttleMin = Math.min(throttleMin, d ? cap / d : 1);
-      else if (shedHqAt < 0) shedHqAt = t + 20;   // doc rule: shed the substation with the most dark neighbours = the HQ
+      brownoutS++;
+      throttleMin = Math.min(throttleMin, d ? cap / d : 1);
     }
     const burn = Math.min(d, cap);
     coalBurned += burn / 1000 / COAL_MJ;
@@ -83,6 +83,6 @@ export function firstHour(over: Partial<FirstHourOptions> = {}): FirstHourResult
     if (E <= 0 && coalOut < 0 && !o.coalRubble && t < coalExcAt) coalOut = t;
     E = !(o.coalRubble || t >= coalExcAt) ? Math.max(E, 0) : Math.min(E, 1e9);
   }
-  return { firstBrownout, coalOut, shedHqAt, patchOut, throttleMin, coalArrives: coalExcAt, peakKw: peak,
+  return { firstBrownout, coalOut, patchOut, throttleMin, brownoutS, coalArrives: coalExcAt, peakKw: peak,
            gensNeeded, coalBurned, burn30, patchLeft, demandKw };
 }

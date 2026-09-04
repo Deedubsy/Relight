@@ -338,6 +338,78 @@ Checks: `npm test` 103 / 103 (99 + the four M3 tests), `typecheck` (incl. the ga
 - **D-B3-3 when unlocks land and whether they stay**: on Held, kept after a fall, on keys 0 / [ / ] (a) / lost with the block until it is Held again (b) / on the group's walk into the Depot, §11's picture, which the sim has no event for (c). Recommend (a).
 
 
+## Before M4 — D-P4-7 settled, D-B3-4 built (2026-09-04)
+
+The human's decisions before M4: D-B3-1 (a) 50 steel + 25 Cu in rubble until Phase 5; D-B3-2 (a) the tile/block split through M5, settled with D-P4-9 at M6; D-B3-3 (a) as built; **D-P4-7 settled now, in two parts**, and the gate for M4 is the §11 hour on seeds 3 / 4 / 5 with power on. Run names `B-M4-gate` (scratch script `m4gate.ts`, the tile tick at 20/s, the block tick at 1 s, the compact bot's commands and hands, materials assumed on hand: 1,000 steel / 500 Cu in the pockets) and `E2-matrix` / `E2-sustained6h-h500-{50,75,90}pct` (the harness).
+
+### Part 1 — the §11 script against E4
+
+**What the schedule was.** The M3 measurement laid the whole §11 line at 0:00 on one 300 kW Generator and ran the hour on it: no second Generator, no coal Excavator, no stand-ins for E4's later draws. That is the pre-E4 hour (E4's post-D1 result is a second Generator at ~minute 6, a third at 15 and a fourth by 45), so the "350 vs 300 kW, the Shot assembler shed at 0:20, the HQ lost at 12:25" row was the stale script, not the doc's hour. **What it is now.** The line at E4's minutes: the three Excavators and their belts at 6:00 (steel and copper to the assembler, the coal Excavator on the HQ patch belted into the Depot) with the second Generator; the Shot assembler, three inserters and the ammo belt at 8:00; the third Generator at 15:00; E4's stand-in draws (a 60 kW Excavator at 16:34 for the east claim's copper, a 100 kW assembler at 17:34 for wire, a 60 kW Excavator at 26:34 for the west coal, an Excavator and an assembler at 45:00 for the fifth Excavator and third assembler); the fourth Generator at 45:00 (`E4-doc`, §11's schedule) or at 25:00 (`E4-check`, E4's "four by 25"). Every Generator after the first is hand-fed from the Depot's coal by the bot.
+
+### Measured — the §11 hour, seeds 3 / 4 / 5, the M3 table's power row filled in
+
+| Schedule | Power | HQ | Held / lost at 60:00 | Brownout s (worst throttle) | Peak demand / supply | Magazines made | First hopper-empty | Hand-fed mags | Coal at 60:00 (burned) |
+|---|---|---|---|---|---|---|---|---|---|
+| M3 (stale): 1 Generator, whole line at 0:00 | off | holds | 4 / 0 | — | — | 848 / 793 / 815 | 15:29 ×3 | 132 / 108 / 68 | 40 in the Generator + 702 in the Depot (0) |
+| M3 (stale), the same line | **on** | **holds** | 4 / 0 | **3,600 (42 %)** — the whole hour, 410 → 710 kW on 300 | 710 / 300 kW | 500 / 512 / 512 | 15:29 ×3 | 407 / 383 / 343 | 46 + 427 (269) |
+| E4-doc: Generators 0 / 6 / 15 / 45, machines at E4's minutes | off | holds | 4 / 0 | — | — | 806 / 801 / 806 | 6:18 / 5:34 / 6:21 | 255 / 231 / 195 | 166 + 576 (0) |
+| **E4-doc, the same** | **on** | **holds** | 4 / 0 | **0 (100 %)** | 1,090 / 1,200 kW (600 from 6:00, 900 from 15:00, 1,200 from 45:00) | 806 / 801 / 806 | 6:18 / 5:34 / 6:21 | 831 / 807 / 771 | 103–121 in the Generators + **0** in the Depot (639 / 621 / 621) |
+| **E4-check: Generators 0 / 6 / 15 / 25** | **on** | **holds** | 4 / 0 | **0 (100 %)** | 1,090 / 1,200 kW (1,200 from 25:00) | 806 / 801 / 806 | 6:18 / 5:34 / 6:21 | 831 / 805 / 769 | 103–119 + 0–2 (639 / 621 / 621) |
+
+**The gate holds**: on seeds 3, 4 and 5 with power on, the E4 schedule in the script and proportional brownout in the sim, the §11 hour never browns out, the HQ holds, and the hour's output is the same with power on as off (806 / 801 / 806 magazines both ways). Three things the table also says:
+
+- **The stale script holds too under D-B3-4.** One Generator against the whole line is a brownout for the whole hour at 42–73 %, and the line still makes 500 magazines and the HQ still holds; under the shed order the same run lost the HQ at 12:25. That is the difference between the two rules in one row.
+- **Coal is the hour's edge.** With four Generators the HQ patch's ~700 coal is mined out at about 29 minutes (the Depot peaks at 452 at 30:00) and the Depot is bare at 60:00 on every seed, 103–121 coal in the Generators — about six minutes at 1,090 kW. E4's "west is wanted by minute 30" is now a tile-level fact; the bot has no way to bring the west's coal in (Phase 5 logistics), so a played hour past 60:00 goes dark unless the player does. Deferred to M6; reported to the human below.
+- **The first red pip is at 5:34–6:21, before the line runs.** With the line at E4's minutes rather than at 0:00, the HQ's start hoppers (200 of 300 rounds, the C10 fill) run dry before the assembler's first magazine at ~8:00, and the bot's hands from the buffer carry the ring until then (771–831 magazines hand-fed over the hour against 132–255 with the line at 0:00). That is §11's "run six magazines to its turrets" and D-P3-1's "ammo, not power, is the hour-one lesson", on the tiles. M4 puts real crawlers behind that pip.
+
+### Part 2 — D-B3-4 proportional brownout
+
+**Built.** When demand exceeds supply every machine on the grid runs at supply ÷ demand (`PowerState.throttle`, `flow.power.throttle`; `stepFlow` ticks inserters, Excavators and assemblers with `dt × throttle`; the block sim's `productionMagPerMin` scales the same way). Nothing switches off, nothing has an order, no substation is ever stopped by power: `Block.shed`, `SimConfig.shed`, the shed stack, the shed / restore events, `Machine.shed`, `SHED_RANK` and the game's red cross are gone; a substation is binary and stops only under the unfed rule (`'unfed'`) or a shade. Events: `brownout` on entering a shortfall (once per 60 s of all-clear) and `power-ok` on leaving one that lasted ≥ 20 s. Stats: `brownoutS`, `throttleMin`, `firstBrownout`. In the game: the toast "Brownout: demand X kW over Y kW supply — every machine runs at Z % until a Generator is added or fed (§14). Nothing switches off.", "Power back: supply covers demand, every machine at full speed", the panel row "Brownout seconds · machines running at %", the world view's power line "BROWNOUT: every machine at N %", a machine's reason "… at N % (brownout)", the substation tooltip "off · no power (the block is unfed, or the grid is dead)". `firstHour` throttles the same way (its `hqExempt` option is gone with E4's `E4-hq-exempt` rows). The harness result carries `power.{brownoutS, throttleMin, firstBrownout}` and `hopperEmpty` (the pip ticks).
+
+**Assumed (every `GAME-ASSUMPTION` added or changed):**
+
+| Tag | Where | Assumption |
+|---|---|---|
+| GA in `stepFlow` (`flow.ts:692`) | sim | A Lamp or Floodlight cannot run slower: lit at any throttle above zero, dark only on a dead grid. Belts and turrets are never slowed (a brownout bites production, never the front). |
+| GA-M3 (`session.ts:108`, edited) | game | The slice runs with power on (generators, half draw); a shortfall slows every machine to supply ÷ demand; nothing is shed. |
+| `m4gate.ts` (scratch, not shipped) | measurement | Materials on hand for the whole hour (1,000 steel / 500 Cu in the pockets), since D-P4-4's 80 / 40 start cannot buy the line; the bot's hands feed Generators from the Depot's coal. |
+
+**Tests.** `defence.test.ts`: the shed-order test replaced by "D-B3-4 proportional brownout" (a 300 kW grid at 410 kW demand → throttle 300 ÷ 410, the Excavator mines 60 × 0.5 × throttle ± 1 in a minute, one `brownout` event, the substation on, the Lamp lit, the reason "at 73 % (brownout)"; a 90 % shortfall → 30 ÷ demand and `throttleMin` recorded; the shortfall lifted and an assembler removed → throttle 1 and `power-ok`); the Generator test now asserts the substation is back the second the supply is; the Floodlight stays lit at throttle 0.2; the snapshot-shape test drops a pre-D-B3-4 `shed` on load. `power.test.ts`: parity with the frozen Python fixtures holds up to the minute of the Python run's first shed (≥ 10 min), then the first-brownout tick, the sample count and the D-B3-4 invariants (no unfed fall, no more lost than Python, nothing lost inside the window; full speed again by 5 h except under the §15 schedule, which stays short) — the fixtures' shed logs are history (`fixtures/README.md`). 103 / 103.
+
+### Measured — E2 under proportional brownout (the harness, compact, D1 draw, production and the unfed rule on, shortfall from hour 4)
+
+| Window | Headroom | Shortfall | Lost after start (per seed) | Brownout min | Worst throttle | First red pip (min after start) | First fall | Lead (fall − pip) | Held at end |
+|---|---|---|---|---|---|---|---|---|---|
+| 10 min | 500 kW | 5 / 15 / 25 / 50 % | 0 | 0 / 5 / 10 / 10 | 1.00 / 0.98 / 0.86 / 0.58 | never | never | — | — |
+| 10 min | 1 MW | 25 / 50 % | 0 | 2 / 10 | 0.99 / 0.67 | never | never | — | — |
+| to 5 h (60 min) | 500 kW | 5 / 15 / 25 / 50 % | 0 | 11 / 50 / 60 / 60 | 0.97 / 0.87 / 0.77 / 0.51 | never | never | — | — |
+| to 5 h | 1 MW | 25 / 50 % | 0 | 40 / 60 | 0.89 / 0.59 | never | never | — | — |
+| **6 h (10 h run)** | 500 kW | **50 %** | 60 / 34 / 58 | 360 | 0.46 | **66.9 / 215.6 / 78.0** | 71.5 / 223.1 / 81.0 | **4.6 / 7.5 / 2.9** | 52 / 78 / 54 |
+| 6 h | 500 kW | 75 % | 96 / 66 / 74 | 360 | 0.28 | 17.5 / 34.5 / 21.9 | 22.2 / 37.7 / 24.8 | 4.7 / 3.2 / 2.9 | 16 / 46 / 38 |
+| 6 h | 500 kW | 90 % | 97 / 96 / 96 | 360 | 0.11 | 11.6 / 14.5 / 15.6 | 14.5 / 16.2 / 17.6 | 2.9 / 1.7 / 2.1 | 15 / 16 / 16 |
+
+**Does a sustained shortfall starve the ring slowly enough that the red pip is the warning?** Yes, with one qualification. Slowly: a 50 % shortfall from hour 4 costs nothing for the first 67–216 minutes (the Depot buffer, filled over four hours, carries the ring at half production), and a 10-minute or one-hour shortfall of any depth up to 50 % costs nothing at all — the 5 h runs of the old matrix never lose a block, which is why the sustained window had to grow to 6 h for the check to fire. Behind the pip: the red pip led the first fall on every losing seed in every run (checks `E2-sustained6h-h500-{50,75,90}pct` green). The qualification is the lead: 1.7–7.5 minutes, and shorter the deeper the shortfall, because a brownout drains the buffer first and the hopper last, so by the time a pip goes red the buffer is gone and the fortieth arrival is one hopper-drain away. The warning the player actually has is the HUD bar (brownout seconds and the percentage, on from the first second) plus the Depot's buffer count; the pip is the last call, not the first. Once the ring starts falling it keeps falling for as long as the shortfall does (52 / 78 / 54 of the blocks held at 10 h under 50 %, 15 / 16 / 16 under 90 %); nothing cascades — every loss is `unfed`, none is power.
+
+### Doc (§ edited, changelog lines at the end of `RELIGHT-design.md`)
+
+§5 (how a block falls: three ways, a brownout is not one; the cascade paragraph replaced by the slow-starvation measurement), §13 Floodlight (lit at any throttle), §14 Power (the rule, its legibility, what a shortfall costs, lights, belts and turrets, the dead grid), §19 (one HUD number, nothing stops), §23 (turrets-need-power: the dependency stays one step removed, the speed measured), §24 risks 7 and 9 (retired by D-B3-4, the remaining risk named), §25 item 14 and §11 0–10 / 10–30 min (the tile-level hour on the E4 schedule, `[sim: B-M4-gate]`), §26 (a power model with a proportional brownout). Three changelog lines. `docsync:check` green (no table number moved).
+
+### Where this and the doc disagree (reported, not resolved)
+
+- **§11's "one Generator alone browns out at minute 8"** is still the block model's ramp; at tile level the brownout is at 0:00 if the line is laid at once (the stale script) and never if the line follows E4's minutes. The sentence is kept with the tag; §11's minute 8 is not a tile-level number.
+- **Coal past the hour** (§11 10–30 min: "coal does not run out in hour one, but 609 of the 740 coal in reach are burned by minute 60") — on the tiles 639 / 621 / 621 of 740 are burned and the Depot is bare at 60:00. The doc's number holds; what the doc does not say is that the tile layer has no way to bring west's coal in yet.
+- **§5's brownout timing** (the old "grid demand > supply for 20 s") is gone; the 20 s survives only as the `power-ok` event's minimum shortfall. A rule, not a constant.
+
+### Checks
+
+`npm test` 103 / 103; `typecheck` (incl. the game build); `lint`; `snapshot:check` — the snapshot regenerated: config hash **`5f3417b9` → `68d07000`** (SimConfig lost `shed`; the state shape lost `Block.shed`, `PowerState.{overTimer, shedStack, lastShed, asmShed}`, `Stats.{shedEvents, shedLog}`, `Machine.shed`, and gained `PowerState.{throttle, short, shortAt, okAt}`, `flow.power.throttle`, `Stats.{brownoutS, throttleMin}`); `docsync:check`; `experiments` 12 / 107 s / 0 failing checks (E2 rewritten: 8 checks; E4's `E4-hq-exempt` rows dropped); `calibrate` — results identical to M3 (C1 / C2 MET), only the config hash in its header moved (`5eae8618` → `03328db7`). Fixtures `city{3,4,5}.json` regenerated and **unchanged** (power is off in them): the block rules the D6 regression set pins did not move. The frozen `lattice/power*.json` fixtures are pinned on their pre-first-shed prefix (above).
+
+### Decisions for the human (`DECISIONS.md`)
+
+- **D-B3-4** — made by the human, built as specified; the row records what the sim found (above) and the one GA the rule needed (lights, belts and turrets are never slowed).
+- **D-P4-7** — made: settled before M4; the script realigned, the gate holds, the Generator-feed question moot.
+- **New, not a decision row yet, for the human to place:** (1) *coal past the hour* — the HQ patch is out by minute 29 and the Depot bare at 60:00 with four Generators; §11 leans on west's rubble, which Phase 5 logistics bring — does M6's played hour end at 60:00, or does the slice need a coal stand-in (a bigger patch, or the bot's hands fetching from a claimed block) before then? (2) *the pip's lead* — under a sustained brownout the red pip leads the fall by 2–8 minutes because the buffer drains first; if that is too short, the candidates are a Depot-buffer warning on the HUD (a number the player already sees) or an amber pip at buffer-empty, not a change to the rule. (3) *the start hoppers* — with the line at E4's minutes the first red pip is at 5:34–6:21 on every seed, before the assembler's first magazine; M4's crawlers decide whether that is §11's lesson or a start-fill (C10) question for M6.
+
 ## Prompt B M4 Threat — not built
 
 ## Prompt B M5 Light — not built
