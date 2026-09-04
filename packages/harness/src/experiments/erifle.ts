@@ -169,18 +169,24 @@ export const ERIFLE: Experiment = {
     // ---- tile scale (ROADMAP §0 line 2): §11's hour on the river city, flow + power on, the hour bot
     // steady: the hour with the rifle off and on — the magazine bill, falls, rounds fired, HP lost
     const tsRows: (string | number)[][] = [], tsDiff: number[] = [], tsFell: number[] = [], tsFired: number[] = [];
+    const tsShoot: number[] = [], tsDanger: number[] = [];   // §19's two guards at tile scale (D-B1-5), the shares the block-scale rows measure on the compact bot
     for (const seed of seeds) {
       const runs = [false, true].map(rifle => { const st = hourCity(seed), bot = createHourBot(rifle); ctx.log(`E-rifle-tile-steady seed ${seed} rifle ${rifle ? 'on' : 'off'}`); runHour(st, bot, 3600); return { st, r: hourReport(st, bot) }; });
       const [off, on] = runs;
       const diff = off.r.magsMade > 0 ? 100 * (on.r.magsMade - off.r.magsMade) / off.r.magsMade : 0;
-      tsDiff.push(diff); tsFell.push(off.r.fell + on.r.fell); tsFired.push(on.r.fired);
-      tsRows.push([seed, off.r.magsMade, on.r.magsMade, diff.toFixed(2) + ' %', off.r.handFed, on.r.handFed, off.r.fell, on.r.fell, on.r.fired, on.r.rifleKills, on.r.turretKills, mmssOf(on.r.marks['first-shot']), on.st.engineer.hurt.toFixed(0), on.st.engineer.downs]);
+      const shootPct = 100 * on.st.engineer.shootS / 3600, dangerPct = 100 * on.st.engineer.danger / 3600;
+      tsDiff.push(diff); tsFell.push(off.r.fell + on.r.fell); tsFired.push(on.r.fired); tsShoot.push(shootPct); tsDanger.push(dangerPct);
+      tsRows.push([seed, off.r.magsMade, on.r.magsMade, diff.toFixed(2) + ' %', off.r.handFed, on.r.handFed, off.r.fell, on.r.fell, on.r.fired, on.r.rifleKills, on.r.turretKills, mmssOf(on.r.marks['first-shot']), on.st.engineer.hurt.toFixed(0), on.st.engineer.downs, shootPct.toFixed(2) + ' %', dangerPct.toFixed(2) + ' %']);
     }
     sections.push({ title: 'E-rifle-tile-steady: §11\'s hour on the tile layer (the hour bot), rifle off vs on — the reflex fires at the nearest crawler in range while the bot walks its script',
       note: 'the tile-scale steady run; the lattice rows above are the 5 h compact bot',
-      header: ['seed', 'line magazines (no rifle)', 'line magazines (rifle)', 'diff', 'hand-fed (no rifle)', 'hand-fed (rifle)', 'falls (no rifle)', 'falls (rifle)', 'rifle rounds', 'rifle kills', 'turret kills', 'first shot', 'HP lost', 'downs'], rows: tsRows });
+      header: ['seed', 'line magazines (no rifle)', 'line magazines (rifle)', 'diff', 'hand-fed (no rifle)', 'hand-fed (rifle)', 'falls (no rifle)', 'falls (rifle)', 'rifle rounds', 'rifle kills', 'turret kills', 'first shot', 'HP lost', 'downs', 'shooting (§19: 10)', 'danger (§19: 5)'], rows: tsRows });
     checks.push(within('tile: the rifle changes the hour\'s magazine bill by < 5 % (mean |diff|)', mean(tsDiff.map(Math.abs)), 0, 5, ' %'));
     checks.push(isTrue('tile: nothing falls in the hour, rifle off or on', tsFell.every(x => x === 0), `falls per seed ${tsFell.join('/')}`));
+    data.tileSteady = { diffs: tsDiff, fell: tsFell, fired: tsFired, shootPct: tsShoot, dangerPct: tsDanger };
+    // §19's two caps, measured where the rifle actually is: the block-scale rows above run the 5 h compact bot, this one runs §11's hour on the tile layer.
+    checks.push(within('tile §19: shooting time ≤ 10 % of the hour (max over seeds)', Math.max(...tsShoot), 0, 10, ' %'));
+    checks.push(within('tile §19 (D-B1-5): time in danger ≤ 5 % of the hour (max over seeds)', Math.max(...tsDanger), 0, 5, ' %'));
     // rescue at tile scale: at 20:00 (HQ + east Held, front 4) and 35:00 (HQ + east + west, front 5)
     const trRows: (string | number)[][] = [], tr: TileRescue[] = [];
     for (const belt of [90, 600]) for (const scope of ['edge', 'ring'] as const) for (const seed of seeds) for (const at of [20 * 60, 35 * 60]) {
