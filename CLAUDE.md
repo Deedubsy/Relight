@@ -2,13 +2,13 @@
 
 **At the start of every session, read these files in this order:**
 1. `docs/CONSTITUTION.md` — the rules.
-2. `docs/ROADMAP.md`, section 0 "Next actions" — the ordered list of what to do next.
+2. `docs/PROGRESS.md` — the task list. The top task that is not done is the next task.
 3. `docs/PROGRAMME_STATE.md` — the true current state. If it disagrees with the roadmap, PROGRAMME_STATE is right.
-4. The phase prompt named in ROADMAP section 0.
+4. The phase prompt named in the current task of `docs/PROGRESS.md`, if it names one.
 5. `docs/DECISIONS.md` — only the rows whose status is not `decided`.
 6. `docs/DEFERRED.md`.
 
-**Then do the top line of ROADMAP section 0 that is not ticked.** If that line's owner is "human", stop, tell the user what the line is, and do nothing else. If the line is owned by Claude Code, do it.
+**Then do the top task in `docs/PROGRESS.md` whose status is not done.** If its owner is human, stop and tell the user which task it is and what it needs. If its owner is claude and it is blocked, stop and name what it is blocked by.
 
 **Before starting any milestone:** compare the milestone's prompt with the design doc and with the decided rows of `DECISIONS.md`. If the prompt contains a number or a rule that is not in either, list every one, say what it conflicts with, and stop (Constitution rule 12).
 

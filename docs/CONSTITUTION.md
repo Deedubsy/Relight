@@ -41,4 +41,5 @@ docs/               RELIGHT-design.md, reports, PROGRAMME_STATE.md, DECISIONS.md
 * **Telemetry** keeps one schema from the prototype to launch; the analyser reads all of it.
 * **Docs sync**: CI fails if `recipes.ts`, `districts.ts` or `enemies.ts` differ from the doc's tables, which are generated from them.
 * **DECISIONS.md**: one line per human decision — phase, evidence file, the doc sentence it produced.
+* **PROGRESS.md** is the only task list. A task is done when its evidence file contains the result, not when someone says so. Only a human marks a human-owned task done.
 * **The two human gates (A and B) and the engine gate are the only places the programme waits.** Everything else is a report and a next phase.
