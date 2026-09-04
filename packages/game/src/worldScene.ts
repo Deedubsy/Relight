@@ -21,6 +21,7 @@ import {
   machineAt, rubbleAt, canPlace, place, remove, canPickUp, costStr, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
   handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
   POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST,
+  lockReason, KIND_LABEL, FLOODLIGHT_HALF_ANGLE, FLOODLIGHT_RANGE, BIG_POLE_REACH,
 } from '@relight/sim';
 import { Session, queue } from './session';
 import { View } from './view';
@@ -44,15 +45,18 @@ const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
 /** GAME-ASSUMPTION: flat item colours (steel blue, copper orange, stone grey, coal black, magazine brass) until the art pass. */
 const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a };
 const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a,
-  turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e };
+  turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a };
 const LIGHT_COL = 0xffe9a0;
 
 export type Tool = 'hand' | 'rifle' | Exclude<Kind, 'depot'>;
 /** D-B1-5: the hotbar. GAME-ASSUMPTION: 1 belt, 2 inserter, 3 Excavator, 4 Shot assembler, 5 turret, 6 lamp, 7 pole,
  *  8 Generator, 9 the rifle — the rifle is a hotbar item like any building, and while it is in hand you cannot mine
- *  or place until you clear it (Q, or pick something else). */
+ *  or place until you clear it (Q, or pick something else). Prompt B M3: the Electricians' unlocks sit after the
+ *  digits — 0 Floodlight, [ Big pole, ] Substation — and answer with why they are locked until the group joins. */
 export const HOTBAR: readonly Tool[] = ['belt', 'inserter', 'excavator', 'assembler', 'turret', 'lamp', 'pole', 'generator', 'rifle'];
-export const TOOL_KEY_LINE = '1 belt · 2 inserter · 3 Excavator · 4 Shot assembler · 5 turret · 6 lamp · 7 pole · 8 Generator · 9 rifle · B build menu · R rotate · Q pipette / clear hand · E interact · right-click removes (empty hand) or clears the hand';
+/** GAME-ASSUMPTION: the Electricians' unlocks sit on 0, [ and ] (§4 gives the hotbar 1–9; - and = are the speed keys). */
+export const UNLOCK_KEYS: Readonly<Record<string, Tool>> = { '0': 'floodlight', '[': 'bigpole', ']': 'substation' };
+export const TOOL_KEY_LINE = '1 belt · 2 inserter · 3 Excavator · 4 Shot assembler · 5 turret · 6 lamp · 7 pole · 8 Generator · 9 rifle · 0 / [ / ] Floodlight / Big pole / Substation (Electricians) · B build menu · R rotate · Q pipette / clear hand · E interact · right-click removes (empty hand) or clears the hand';
 
 export interface WorldHooks {
   onHoverText(text: string | null, px: number, py: number): void;
@@ -260,6 +264,13 @@ export class WorldScene extends Phaser.Scene {
     if (!st.flow) return false;
     const slot = '123456789'.indexOf(k);
     if (slot >= 0) { this.setTool(HOTBAR[slot]); return true; }
+    const unlock = UNLOCK_KEYS[k];
+    if (unlock) {
+      // prompt B M3: a locked unlock says who unlocks it (rule 8) and stays out of the hand
+      const lock = lockReason(st, unlock as Kind);
+      if (lock) this.hooks.onToast(`${KIND_LABEL[unlock as Kind]}: ${lock}`, 'bad'); else this.setTool(unlock);
+      return true;
+    }
     if (lower === 'escape') { this.setTool('hand'); return true; }
     if (lower === 'q') {
       // pipette: the machine under the cursor into the hand; nothing there (or the Depot) clears the hand
@@ -397,7 +408,7 @@ export class WorldScene extends Phaser.Scene {
         if (!this.reachable(m.x, m.y, m.size, true)) return;
         const fed = handFeed(st, tx, ty);
         if (fed) {
-          if (fed.moved > 0) this.hooks.onToast(fed.kind === 'turret' ? `Hand-fed ${fed.moved} magazines into the turret` : `Hand-fed ${fed.moved} coal into the Generator`, 'good');
+          if (fed.moved > 0) this.hooks.onToast(fed.kind === 'turret' ? `Hand-fed ${fed.moved} magazine${fed.moved === 1 ? '' : 's'} from the pockets into the turret` : `Hand-fed ${fed.moved} coal from the pockets into the Generator`, 'good');
           else this.hooks.onToast(fed.reason, 'bad');
           return;
         }
@@ -646,9 +657,16 @@ export class WorldScene extends Phaser.Scene {
     const col = c.ok && !far ? 0x6fe08a : 0xe05a5a;
     g.fillStyle(col, 0.25); g.fillRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
     g.lineStyle(2 / this.cameras.main.zoom, col, 0.9); g.strokeRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
-    if (kind === 'pole') { g.lineStyle(1 / this.cameras.main.zoom, col, 0.6); g.strokeCircle((ox + 0.5) * TILE_PX, (oy + 0.5) * TILE_PX, POLE_REACH * TILE_PX); }
-    else if (kind === 'lamp') { g.lineStyle(1 / this.cameras.main.zoom, LIGHT_COL, 0.6); g.strokeCircle((ox + 0.5) * TILE_PX, (oy + 0.5) * TILE_PX, 4 * TILE_PX); }
-    else if (kind !== 'turret') this.arrow(g, (ox + size / 2) * TILE_PX, (oy + size / 2) * TILE_PX, this.dir, size * HALF - 4, col, 0.9);
+    const gcx = (ox + size / 2) * TILE_PX, gcy = (oy + size / 2) * TILE_PX;
+    if (kind === 'pole' || kind === 'bigpole') { g.lineStyle(1 / this.cameras.main.zoom, col, 0.6); g.strokeCircle(gcx, gcy, (kind === 'bigpole' ? BIG_POLE_REACH : POLE_REACH) * TILE_PX); }
+    else if (kind === 'lamp') { g.lineStyle(1 / this.cameras.main.zoom, LIGHT_COL, 0.6); g.strokeCircle(gcx, gcy, 4 * TILE_PX); }
+    else if (kind === 'floodlight') {
+      // the cone it would throw (M3: 12 tiles, 60° about the facing)
+      const a = Math.atan2(DY[this.dir], DX[this.dir]);
+      g.lineStyle(1 / this.cameras.main.zoom, LIGHT_COL, 0.6); g.beginPath(); g.slice(gcx, gcy, FLOODLIGHT_RANGE * TILE_PX, a - FLOODLIGHT_HALF_ANGLE, a + FLOODLIGHT_HALF_ANGLE, false); g.closePath(); g.strokePath();
+      this.arrow(g, gcx, gcy, this.dir, size * HALF - 4, col, 0.9);
+    }
+    else if (kind !== 'turret' && kind !== 'substation') this.arrow(g, gcx, gcy, this.dir, size * HALF - 4, col, 0.9);
   }
 
   private arrow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, dir: Dir, len: number, col: number, alpha = 1): void {
@@ -674,8 +692,11 @@ export class WorldScene extends Phaser.Scene {
     for (const bi of vis) {
       for (const l of blockLights(st, bi)) {
         const lx = (l.tx + 0.5) * TILE_PX, ly = (l.ty + 0.5) * TILE_PX;
-        if (l.lit) { g.fillStyle(LIGHT_COL, 0.11); g.fillCircle(lx, ly, l.r * TILE_PX); }
-        if (l.kind === 'lamp') { if (l.lit) lit.add(l.tx * 4096 + l.ty); continue; }
+        if (l.lit && l.kind === 'floodlight') {   // M3: the Floodlight's cone
+          const a = Math.atan2(DY[l.dir!], DX[l.dir!]);
+          g.fillStyle(LIGHT_COL, 0.11); g.beginPath(); g.slice(lx, ly, l.r * TILE_PX, a - FLOODLIGHT_HALF_ANGLE, a + FLOODLIGHT_HALF_ANGLE, false); g.closePath(); g.fillPath();
+        } else if (l.lit) { g.fillStyle(LIGHT_COL, 0.11); g.fillCircle(lx, ly, l.r * TILE_PX); }
+        if (l.kind !== 'streetlight') { if (l.lit) lit.add(Math.floor(l.tx) * 4096 + Math.floor(l.ty)); continue; }
         // streetlight post: a dot, warm when lit, dark with a cross when broken (§13's 3-in-8)
         g.fillStyle(l.broken ? 0x2a2d36 : l.lit ? 0xfff3b0 : 0x8a8f9a, 1); g.fillCircle(lx, ly, 4);
         if (l.broken) { g.lineStyle(1.5, 0xe05a5a, 0.8); g.lineBetween(lx - 4, ly - 4, lx + 4, ly + 4); g.lineBetween(lx - 4, ly + 4, lx + 4, ly - 4); }
@@ -725,6 +746,26 @@ export class WorldScene extends Phaser.Scene {
           g.fillStyle(on ? 0xb6e36a : 0x8a8f9a, 1); g.fillCircle(cx - 8, py + 9, 2.5); g.fillCircle(cx + 8, py + 9, 2.5);
           break;
         }
+        // M3 (Electricians): a Big pole is a wider, taller pole with two crossarms; a Floodlight a 2×2 base with a
+        // head along its facing that glows while lit; a built Substation is drawn as the face's slab above (it is one)
+        case 'bigpole': {
+          const on = grid.connected.has(m.id);
+          g.fillStyle(0x1a1d26, 0.6); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+          g.fillStyle(MACHINE_COL.bigpole, 1); g.fillRect(cx - 5, py + 8, 10, sz - 12);
+          g.fillRect(cx - 20, py + 12, 40, 4); g.fillRect(cx - 14, py + 24, 28, 4);
+          g.fillStyle(on ? 0xb6e36a : 0x8a8f9a, 1); g.fillCircle(cx - 18, py + 14, 3); g.fillCircle(cx + 18, py + 14, 3); g.fillCircle(cx - 12, py + 26, 3); g.fillCircle(cx + 12, py + 26, 3);
+          break;
+        }
+        case 'floodlight': {
+          const on = lit.has(m.x * 4096 + m.y), hx = cx + DX[m.dir] * 16, hy = cy + DY[m.dir] * 16;
+          g.fillStyle(MACHINE_COL.floodlight, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+          g.fillStyle(0x262a34, 1); g.fillCircle(cx, cy, 10);
+          g.lineStyle(8, 0x3a3f4c, 1); g.lineBetween(cx, cy, hx, hy);
+          g.fillStyle(on ? 0xfff3b0 : 0x3a3a40, 1); g.fillCircle(hx, hy, 9);
+          if (on) { g.fillStyle(LIGHT_COL, 0.35); g.fillCircle(hx, hy, 14); }
+          break;
+        }
+        case 'substation': { g.lineStyle(1.5, 0x8a8f9a, 0.6); g.strokeRect(px + 4, py + 4, sz - 8, sz - 8); break; }
         case 'generator': {
           const coal = m.inv.coal ?? 0;
           g.fillStyle(MACHINE_COL.generator, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);

@@ -261,7 +261,82 @@ Checks: `npm test` 99 / 99, `typecheck` (incl. the game build), `lint`, `snapsho
 - **D-B2-2 slot count vs footprint**: keep `floor(area / 600)` as the economic cap (a) / derive slots from free footprint (~1 per 150 free tiles) (b) / drop slots when tile lines replace the stand-in at M6 (c). Recommend (a) now, (c) at M6.
 - **D-B2-3 pick-up contents**: into the pockets as their own stacks, turret rounds as whole magazines and the remainder to the buffer, a full pocket refuses (a) / spill onto the ground (b) / lost (c). Recommend (a).
 
-## Prompt B M3 Defence — not built
+## Prompt B M3 Defence on the segment — built 2026-09-04
+
+Run names `B-M3-segments` (an edge is a street segment: the HQ's start turrets by segment, the hopper-empty pip), `B-M3-unlocks` (the Electricians' Floodlight, Big pole and craftable Substation; the outskirts) and `B-M3-hands` (hand-feeding from the pockets). The lattice M3 machines (turret, Lamp, pole, Generator, the §14 shed order, `M3-rates`) do what they did; D-B1-4 had already put the pre-existing substation, the streetlights and the start turrets on the face by geometry. What M3 adds is the unlock gate, three machines, the outskirts rule and the pockets as the hand's source.
+
+### Built
+
+- **An edge is a street segment** (`flow.ts` `faceSegOf` / `turretEdge` / `edgeTurrets`, since D-B1-4; `cityMapScene.ts`): a turret serves the segment whose front ring holds most of its footprint, else the nearest ridge within 9; an edge's rounds are the sum of its turrets' hoppers (`hookSyncEdges`); a segment no turret serves is covered by the neighbouring turrets that reach it. The `hopper-empty` event carries the segment (block and neighbour) and the map view's pulse now lands on that segment's pip — the same event that turns the pip red — not on the block's centre.
+- **The Electricians' unlocks** (`flow.ts` `SURVIVOR_UNLOCKS` / `survivorJoined` / `lockReason` / `unlockedKinds`; `map.ts` `SURVIVOR_UNLOCK_NAMES`; `sim.ts` held event `unlocks`; `worldScene.ts` `UNLOCK_KEYS`; `panel.ts`; `main.ts`): Floodlight, Big pole and Substation are locked kinds until the Electricians' block turns Held. `placeable` refuses a locked kind first ("the Electricians unlock it — hold their block"); the build menu shows the three rows disabled with the lock text, the keys 0 / [ / ] toast it; the held event names the group and its unlocks and the toast reads `Electricians: "We're in." — Floodlight, Big pole, Substation are on the build menu`. The unlocks stay after the block falls (GA-B3-1).
+- **Floodlight** (2×2, 40 kW, `MACHINE_KW`; `blockLights` / `litAt`): a 12-tile cone 60° wide along its facing (GA-B3-3), R rotates it, lit while the face is powered, shed with the Lamps (rank 2); the ghost draws the cone and its arrow, the world view fills it.
+- **Big pole** (2×2, `reachOf` 12): a post that stands in rubble, on the street and on Dark or Contested faces like a pole; it hangs from a substation 12 tiles out where a pole needs 8, claims across the street through `poleClaims` like a pole, and a wire spans the longer of its two ends' reaches (GA-B3-4), so a pole 11 tiles from a Big pole is on the grid.
+- **Craftable Substation** (3×3, `faceSub` / `substationAt` / `isSubstationTile` / `poleGrid` / `layPoles`): goes on the lot of a Held face that has no substation, one a face ("the face has a substation" on the HQ), pays 50 steel + 25 Cu in rubble as a stand-in for §13's frames, wire and boards (GA-B3-2, D-B3-1); once placed it is the face's substation for every rule that reads one — the slab the world view draws, the pole anchor, the powered view — and a pick-up takes it back into the pockets.
+- **The outskirts** (`ground.ts`): a face in district 3 gets no substation and no streetlights, §7's rule; the block sim's abstract substation still powers a Held one (GA-B3-6, D-B3-2 / D-P4-9's split), so the craftable Substation is what a player would place there.
+- **Hand-feeding from the pockets** (`handFeed`, E on a turret or Generator): whole magazines from the pockets into a hopper, coal into a Generator, with the reasons "the hopper is full" / "no magazines in the pockets (take them from the Depot chest with I, or craft at the workbench with E)" / "the Generator is full" / "no coal in the pockets (…)"; the Depot chest is never drawn on. The harness bot, which has no pockets, keeps the Depot path (`depotFeed` / `botHands`, GA-B3-5).
+- **Tests** (`defence.test.ts` 14, `tiles.test.ts`): the four M3 tests on the city — the unlock gate on seeds 3/4/5 (locked, the held event's `unlocks`, unlocked, kept after a fall, 12 kinds); the Floodlight's cone (ahead, 17° inside, 45° outside, beyond 12, behind, under the fixture, dark when shed, turned south by R) and its 40 kW on the face's demand; the Big pole on the grid where a pole at the same spot is not, and a pole hanging from it at 11; the craftable Substation on a dark outskirts face (none before, locked, placed, priced, the face's substation, a second refused, the HQ refuses, picked up into the pockets). `npm test` 103 / 103.
+
+### Assumed (every `GAME-ASSUMPTION` in prompt B M3 code)
+
+| Tag | Where | Assumption |
+|---|---|---|
+| GA-B3-1 | `flow.ts` `SURVIVOR_UNLOCKS`, `survivorJoined` | a group's unlocks land on the toolbar when its block turns Held and stay after the block falls (§11: the group has walked into the Depot) — D-B3-3 |
+| GA-B3-2 | `flow.ts` `MACHINE_COST` | Substation 50 steel + 25 Cu in rubble stands in for §13's 20 frames + 20 wire + 10 boards (Phase 5 items); Floodlight 10 steel + 5 Cu and Big pole 4 steel + 4 Cu are priced like the rest — D-B3-1 |
+| GA-B3-3 | `recipes.ts` `FLOODLIGHT_HALF_ANGLE`, `flow.ts` `litAt` | the Floodlight's cone is 60° wide (±30° about its facing; §13 gives only the 12-tile length); the tiles under the fixture count as lit |
+| GA-B3-4 | `flow.ts` `reachOf`, `poleGrid` | a wire spans the longer of its two ends' reaches, so a Big pole reaches a pole 12 out and the pole reaches back |
+| GA-B3-5 | `flow.ts` `handFeed`, `depotFeed`, `botHands` | hand-feeding is instant and draws the pockets only; the harness bot has no pockets and keeps feeding turrets and Generators from the Depot |
+| GA-B3-6 | `ground.ts` city loop | an outskirts face (district 3) has no substation and no streetlights at tile level (§7) while the block sim's abstract substation still powers a Held one until D-P4-9 settles — D-B3-2 |
+| GA-B3-7 | `sim.ts` held event | a survivor group joins ("we're in", §8) the second its block turns Held; the event carries the unlock names |
+| GA-B3-8 | `worldScene.ts` `UNLOCK_KEYS` | the unlocks sit on 0, [ and ] (§4 gives the hotbar 1–9; - and = are the speed keys) |
+
+The lattice M3 tags (GA-M3-1…16, the hopper drain, the shed order, the substation as a pre-existing 3×3) stand; GA-M3-16's "seeded street-side spot" is D-B1-4's centroid rule since the four pre-M2 items.
+
+### Deferred
+
+- **Turrets on claimed blocks** (D-P4-9): on the HQ an edge fires through its turrets; every other Held block keeps the block sim's 100-round hopper. The Electricians' block, once Held, fires the block sim's way → **M6** with D-P4-5.
+- **"Supplies 7×7" / "supplies 3×3"** (§13 Pole / Big pole): a substation powers its whole cell, so a pole and a Big pole only link and claim → **M6 / Phase 5** with D-P4-9 (if a claimed block's machines ever need poling, the supply area is the rule that returns).
+- **The Substation's recipe** (frames, wire, boards; §13.14) → **Phase 5**; the 50 + 25 stand-in is D-B3-1.
+- **The other groups' unlocks** (Concrete crew, Foreman, Arsenal, …; §8): `SURVIVOR_UNLOCK_NAMES` names the Electricians only; the gate is the same one line a group → **M6 / Phase 5** with their machines.
+- **The Floodlight's light texture** (a cone drawn as light rather than a filled sector) → **M5**.
+- **The block sim's outskirts** (a Held outskirts block powered by an abstract substation the tiles do not show) → **M6** with D-P4-9; D-B3-2.
+- **Hour-one power with the line on** (D-P4-7, below): the §11 line plus the HQ's start draw sheds the Shot assembler at once under one Generator → stays with **D-P4-7**, evidence added.
+
+### Measured
+
+Script `m3measure.ts` (scratch), the tile tick at 20/s, the block tick at 1 s; the compact walking rifle bot as the harness runs it; the §11 line laid as in the M2 measurement.
+
+| What | Measured | Doc |
+|---|---|---|
+| seed 3 HQ start turrets by segment (`B-M3-segments`) | 6 turrets, 300 rounds; segments to 332 (5.0 tiles, a corner sliver): 0 of its own, 1 by reach, 50 rounds; 334 (31.4): 2, 100; 353 (41.3): 2, 100; 355 (41.0): 2, 100; no turret serves nothing | §13 one per 16 tiles, at least one a segment (D-B1-4) |
+| hopper-empty → pip, no line and no hands | first hopper-empty 6:08 on the sliver; the HQ lost at 12:54 "unfed starved", 0 magazines made — the unfed consequence at tile level, as the lattice M3 soak found it | §5, §25 item 4 |
+| the same with the §11 line and the bot's hands, seeds 3 / 4 / 5 | first hopper-empty 30:29 / 30:33 / 30:29, on the bot's first claim's segment (30.5 / 52.2 / 23.4 tiles), the pulse on that pip the same tick; the HQ holds the hour, 4 held, 0 lost, 845 / 783 / 810 magazines made, 132 / 108 / 68 hand-fed, buffer ≈ 3,990 | §4 the pip turns red on the transition |
+| the Electricians' block, seeds 3 / 4 / 5 | 3 hops out, civic, on all three; the compact bot never claims it in the hour, so no unlock lands on the bot's toolbar — a player who claims it does (browser check) | §8 ≤ 3 blocks; §11 30–60 min |
+| power on (generators, half draw) with the §11 line, seed 3 | demand 350 kW against 300 from the first tick: the Shot assembler shed 20 s in, 1 magazine made, the HQ lost at 12:25 | §11 "one Generator alone browns out at minute 8"; D-P4-7 |
+| Floodlight vs Lamp on the HQ face (183 / 780 tiles lit at start) | Lamp +51 tiles, Floodlight (east) +82 tiles; face demand 200 → 240 kW of 300 | §13 r 4 / 12-tile cone, 5 / 40 kW |
+| pole / Big pole, farthest centre-to-substation-edge distance still on the grid | 7.91 / 12.00 tiles | §13 reach 8 / 12 |
+| outskirts faces, seeds 3 / 4 / 5 | 134 of 347 / 131 of 337 / 128 of 315 live faces have no substation and no streetlights; 213 / 206 / 187 pre-existing substations; 5,289 / 5,243 / 4,752 streetlights | §7 |
+| craftable Substation on seed 3's nearest outskirts face (15 hops) | 3×3 placed for 50 steel + 25 Cu; `substationAt` → on, 100 kW; a second refused; picked up into the pockets | §13.14 (recipe Phase 5) |
+| hand-feed (`B-M3-hands`) | 3 magazines in the pockets into an empty hopper → 30 / 50 rounds, pockets 0, the Depot at buffer 100 untouched; again → the "no magazines in the pockets" reason; 10 coal → the Generator 10, pockets 0 | §11 "run six magazines to its turrets" |
+
+Browser check (`m3game.cjs`, headless swiftshader against the preview build, seed 3): the three build rows disabled with " · locked: the Electricians unlock it — hold their block"; key 0 toasts `Floodlight: the Electricians unlock it — hold their block` and the hand stays; the Electricians' block turned Held through the block sim (Contested, clock run out, one tick) enables the rows and key 0 puts the Floodlight in the hand; one placed within reach facing south; ] on the HQ lot refuses with `No substation here: the face has a substation`; with the turrets drained the map view toasts `Hopper EMPTY on block (421,634) facing (390,596) — its pip is red until it is fed` for each HQ segment on the next tick; 0 page errors.
+
+Checks: `npm test` 103 / 103 (99 + the four M3 tests), `typecheck` (incl. the game build), `lint`, `snapshot:check` (`5f3417b9`, unchanged), `docsync:check`, `experiments` 12 / 113 s / 0 failing checks, `calibrate` (output identical to the M2 run: C1 / C2 MET). Fixtures `city{3,4,5}.json` regenerated and unchanged: the block sim's rules did not move (the outskirts' missing substation is tile-level only, GA-B3-6).
+
+### Where prompt B M3 and the doc disagree (reported, not resolved)
+
+- **The prompt's substation "at a street-side spot on the face's longest ridge"** vs D-B1-4's "the buildable 3×3 nearest the lot's centroid" (the human's decision before M2): D-B1-4 kept; the prompt predates it.
+- **The prompt's "the pre-existing 3×3 substation per face"** vs §7's outskirts, which have none: §7 kept at tile level (134 / 131 / 128 faces on seeds 3 / 4 / 5), while the block sim still powers a Held outskirts block through its abstract substation (GA-B3-6). Decision D-B3-2.
+- **§11's "the Electricians walk into the Depot: Floodlight, Big pole, Substation appear on the toolbar"** (30–60 min) vs built: the unlocks land when their block turns Held, whenever that is, and stay if it falls; §11 edited with the tag. Decision D-B3-3.
+- **§13 Pole "supplies 7×7" / Big pole "supplies 3×3"**: a substation powers its cell, so both only link (the lattice M3 note); deferred with D-P4-9.
+- **§13.14 the Substation's price**: frames, wire and boards are Phase 5 items; 50 steel + 25 Cu in rubble stands in. Decision D-B3-1.
+- **§11 / §14 power at the start, on the city**: with power on, §11's line plus the HQ's 100 kW draw is 350 kW against one 300 kW Generator, and §14's "Shot assemblers first" sheds the ammo line 20 s after it is laid; with nothing refilling the hoppers the HQ falls at 12:25. §11 says one Generator browns out at minute 8 and D-P3-1 says hour one's lesson is ammo; at tile level with power on it is power, and the shed order's first victim is the one machine the hold depends on. Reported under D-P4-7 (open); the slice runs with power off until it settles.
+
+### Decisions for the human (recommended in `DECISIONS.md` D-B3-1–D-B3-3)
+
+- **D-B3-1 the Substation's price**: 50 steel + 25 Cu in rubble as built (a) / free for the Electricians, the group brings it (b) / wait for Phase 5's frames, wire and boards and leave the outskirts unholdable until then (c). Recommend (a).
+- **D-B3-2 the outskirts at tile level**: no substation and no streetlights on the tiles while the block sim's abstract substation still powers a Held one, settled with D-P4-9 at M6 (a) / make the block sim require the craftable Substation for an outskirts hold now — a rules change that moves the fixtures (b) / give the outskirts a pre-existing substation too, against §7 (c). Recommend (a).
+- **D-B3-3 when unlocks land and whether they stay**: on Held, kept after a fall, on keys 0 / [ / ] (a) / lost with the block until it is Held again (b) / on the group's walk into the Depot, §11's picture, which the sim has no event for (c). Recommend (a).
+
 
 ## Prompt B M4 Threat — not built
 

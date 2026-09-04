@@ -12,7 +12,7 @@
 import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command, Engineer } from './types';
 import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing } from './sim';
 import { edgeId, edgeFrom, edgeTo } from './graph';
-import { RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH } from './recipes';
+import { RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH, FLOODLIGHT_KW, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH } from './recipes';
 import {
   CELL_TILES, P_STEEL, P_COPPER, P_COAL, HQ_PATCHES, DEPOT_LOT, DEPOT_TILES, SUBSTATION_TILES,
   T_STREET, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
@@ -30,8 +30,35 @@ const EPS = 1e-9;
 export type Dir = 0 | 1 | 2 | 3;               // N E S W
 export const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 export const DIR_NAMES = ['north', 'east', 'south', 'west'];
-export type Kind = 'excavator' | 'belt' | 'inserter' | 'assembler' | 'depot' | 'turret' | 'lamp' | 'pole' | 'generator';
-export const KINDS: readonly Kind[] = ['excavator', 'belt', 'inserter', 'assembler', 'depot', 'turret', 'lamp', 'pole', 'generator'];
+export type Kind = 'excavator' | 'belt' | 'inserter' | 'assembler' | 'depot' | 'turret' | 'lamp' | 'pole' | 'generator' | 'floodlight' | 'bigpole' | 'substation';
+export const KINDS: readonly Kind[] = ['excavator', 'belt', 'inserter', 'assembler', 'depot', 'turret', 'lamp', 'pole', 'generator', 'floodlight', 'bigpole', 'substation'];
+/** Prompt B M3 (run name B-M3-unlocks): the Electricians' unlocks (§8, §13). GAME-ASSUMPTION: a group's unlocks land
+ *  on the toolbar when its block turns Held and stay if the block later falls (§11: "the Electricians walk into the
+ *  Depot"); the other groups' unlocks are not in the slice. */
+export const SURVIVOR_UNLOCKS: Record<string, readonly Kind[]> = { Electricians: ['floodlight', 'bigpole', 'substation'] };
+export const KIND_LABEL: Record<Kind, string> = {
+  excavator: 'Excavator', belt: 'belt', inserter: 'inserter', assembler: 'Shot assembler', depot: 'Depot', turret: 'Gun turret', lamp: 'Lamp',
+  pole: 'pole', generator: 'Generator', floodlight: 'Floodlight', bigpole: 'Big pole', substation: 'Substation',
+};
+export function unlockedBy(kind: Kind): string | null {
+  for (const [name, ks] of Object.entries(SURVIVOR_UNLOCKS)) if (ks.includes(kind)) return name;
+  return null;
+}
+/** Has a survivor group joined: its block Held now, or Held once and since lost (`st.fallen`). */
+export function survivorJoined(st: SimState, name: string): boolean {
+  for (const sv of st.survivors) {
+    if (sv.name !== name) continue;
+    const i = idxOf(st, sv.x, sv.y);
+    if (i >= 0 && (st.blocks[i].state === HELD || st.fallen[i])) return true;
+  }
+  return false;
+}
+/** Why a kind cannot be placed yet ('' when it can): the group that unlocks it has not joined. */
+export function lockReason(st: SimState, kind: Kind): string {
+  const who = unlockedBy(kind);
+  return who && !survivorJoined(st, who) ? `the ${who} unlock it — hold their block` : '';
+}
+export function unlockedKinds(st: SimState): Kind[] { return KINDS.filter(k => !lockReason(st, k)); }
 export function isKind(s: string): s is Kind { return (KINDS as readonly string[]).includes(s); }
 /** Flow directions (N E S W) to the block sim's edge directions (+x −x +y −y) and back. */
 export const SIM_DIR: readonly number[] = [3, 0, 2, 1], FLOW_DIR: readonly Dir[] = [1, 3, 2, 0];
@@ -51,25 +78,28 @@ export const ASM_INPUT_MULT = 4, ASM_OUTPUT_CAP = 5;
 /** GAME-ASSUMPTION: hand-mining takes one unit a second straight into the Depot; hand-crafting a magazine takes the
  *  recipe's 3 s and its 2 steel + 1 Cu from the stock (§11 hand-feeds the first turrets). */
 export const HAND_MINE_PER_S = 1;
-export const MACHINE_SIZE: Record<Kind, number> = { excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2 };
+export const MACHINE_SIZE: Record<Kind, number> = { excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2, floodlight: 2, bigpole: 2, substation: SUBSTATION_TILES };
 /** GAME-ASSUMPTION: machine costs in rubble (§13 gives none). The assembler costs what the block-level one does
  *  (§12: 20 Cu + 40 steel); the Excavator 10 steel; a belt tile 1 steel; an inserter 1 steel + 1 Cu; (M3) a Gun
  *  turret 15 steel + 5 Cu, a Lamp and a pole 1 steel + 1 Cu each, a Generator 30 steel + 10 Cu. Pick-up returns the machine itself
- *  to the pockets (prompt B M2), never a rubble refund. */
+ *  to the pockets (prompt B M2), never a rubble refund. Prompt B M3, the Electricians' unlocks: the craftable Substation is
+ *  §13's 20 frames + 20 wire + 10 boards paid as the raw rubble those recipes take (50 steel + 25 Cu; frames, wire and
+ *  boards are Phase 5 items); a Floodlight 10 steel + 5 Cu and a Big pole 4 steel + 4 Cu are GAME-ASSUMPTIONS like the rest. */
 export const MACHINE_COST: Record<Kind, { steel: number; copper: number }> = {
   excavator: { steel: 10, copper: 0 }, belt: { steel: 1, copper: 0 }, inserter: { steel: 1, copper: 1 },
   assembler: { steel: 40, copper: 20 }, depot: { steel: 0, copper: 0 },
   turret: { steel: 15, copper: 5 }, lamp: { steel: 1, copper: 1 }, pole: { steel: 1, copper: 1 }, generator: { steel: 30, copper: 10 },
+  floodlight: { steel: 10, copper: 5 }, bigpole: { steel: 4, copper: 4 }, substation: { steel: 50, copper: 25 },
 };
 /** §13 power draw (kW). A machine with a draw runs only on a powered cell (M3); belts, turrets, poles and Generators
  *  draw nothing. GAME-ASSUMPTION: a placed machine draws its rated kW whether busy or idle (§13 has no idle draw). */
-export const MACHINE_KW: Record<Kind, number> = { excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: 0, lamp: LAMP_KW, pole: 0, generator: 0 };
+export const MACHINE_KW: Record<Kind, number> = { excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: 0, lamp: LAMP_KW, pole: 0, generator: 0, floodlight: FLOODLIGHT_KW, bigpole: 0, substation: 0 };
 /** GAME-ASSUMPTION: a Generator holds 50 coal (the §11 start's 40 fit); a turret's muzzle flash lasts half a second. */
 export const GENERATOR_COAL_CAP = 50, TURRET_FLASH_S = 0.5;
 /** §14 shed order among tile machines: Shot assemblers first, then other machines, Excavators feeding Generators
  *  last. GAME-ASSUMPTION: "feeding a Generator" = digging coal, and the inserter that puts coal into a Generator sheds
  *  with those Excavators (shedding it first starved the second Generator in the §18 drawing); Lamps count as other machines. */
-const SHED_RANK: Record<Kind, number> = { assembler: 0, inserter: 1, lamp: 2, excavator: 3, belt: 9, depot: 9, turret: 9, pole: 9, generator: 9 };
+const SHED_RANK: Record<Kind, number> = { assembler: 0, inserter: 1, lamp: 2, floodlight: 2, excavator: 3, belt: 9, depot: 9, turret: 9, pole: 9, generator: 9, bigpole: 9, substation: 9 };
 
 export interface BeltItem { k: Item; p: number }
 export interface Machine {
@@ -661,7 +691,7 @@ export function stepFlow(st: SimState, dt = TILE_DT): void {
   for (const m of f.machines) {
     if (m.kind === 'turret') { m.timer = Math.max(0, m.timer - dt); continue; }
     if (m.kind === 'generator') { if (running(st, m)) tickGenerator(st, m, dt, share); continue; }
-    if (m.kind === 'belt' || m.kind === 'depot' || m.kind === 'lamp' || m.kind === 'pole' || !running(st, m)) continue;
+    if (m.kind === 'belt' || m.kind === 'depot' || m.kind === 'lamp' || m.kind === 'pole' || m.kind === 'floodlight' || m.kind === 'bigpole' || m.kind === 'substation' || !running(st, m)) continue;
     if (m.kind === 'inserter') tickInserter(st, m, dt);
     else if (m.kind === 'excavator') tickExcavator(st, m, dt);
     else tickAssembler(st, m, dt);
@@ -714,7 +744,10 @@ export const costStr = (c: { steel: number; copper: number }): string => c.steel
 export function placeable(st: SimState, kind: Kind, tx: number, ty: number): string {
   tx = Math.floor(tx); ty = Math.floor(ty);
   const f = ensureFlow(st), G = ground(st), size = MACHINE_SIZE[kind];
-  const post = kind === 'pole' || kind === 'lamp';
+  const lock = lockReason(st, kind);
+  if (lock) return lock;
+  // posts (poles, Lamps, Big poles) stand in rubble; pole-likes may also stand on the street and on claimed or Dark blocks
+  const post = kind === 'pole' || kind === 'lamp' || kind === 'bigpole', polelike = kind === 'pole' || kind === 'bigpole';
   for (let y = ty; y < ty + size; y++) for (let x = tx; x < tx + size; x++) {
     if (!inGround(G, x, y)) return 'outside the city';
     const t = y * G.tw + x, o = G.owner[t];
@@ -722,9 +755,11 @@ export function placeable(st: SimState, kind: Kind, tx: number, ty: number): str
     const margin = o === -1, bi = margin ? G.near[t] : o;
     if (bi < 0) return 'outside the city';
     const b = st.blocks[bi];
-    if (b.state !== HELD && !(kind === 'pole' && (margin || b.state === CONTESTED || b.state === DARK))) return 'the block is not Held';
+    if (b.state !== HELD && !(polelike && (margin || b.state === CONTESTED || b.state === DARK))) return 'the block is not Held';
     if (f.occ[t] !== undefined) return 'another machine is there';
-    if (margin && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && !post) return 'not on the street';
+    if (margin && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && !post) return 'not on the street';
+    // prompt B M3: a craftable Substation goes on a face that has none (§7: the outskirts), on the lot, one a face
+    if (kind === 'substation' && faceSub(st, bi)) return 'the face has a substation';
     if (!margin && substationOwner(st, x, y) >= 0) return 'the substation is there';
     if (kind !== 'excavator' && kind !== 'depot' && !post && rubbleAt(st, x, y)) return 'rubble in the way';
   }
@@ -766,7 +801,7 @@ export function place(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir
   if (chk.carried) pocketDrop(st.engineer, kind, 1);
   else { pocketDrop(st.engineer, 'steel', chk.cost.steel); pocketDrop(st.engineer, 'copper', chk.cost.copper); }
   const m = addMachine(st, kind, tx, ty, dir);
-  if (kind === 'pole') poleClaims(st, m);
+  if (kind === 'pole' || kind === 'bigpole') poleClaims(st, m);
   return m;
 }
 
@@ -820,7 +855,7 @@ export function remove(st: SimState, tx: number, ty: number): Machine | null {
 /** Turn a placed machine a quarter clockwise. */
 export function rotate(st: SimState, tx: number, ty: number): Machine | null {
   const m = machineAt(st, tx, ty);
-  if (!m || !st.flow || m.kind === 'depot' || m.kind === 'pole' || m.kind === 'lamp') return null;
+  if (!m || !st.flow || m.kind === 'depot' || m.kind === 'pole' || m.kind === 'lamp' || m.kind === 'bigpole' || m.kind === 'substation') return null;
   m.dir = ((m.dir + 1) % 4) as Dir;
   st.flow.rev++;
   return m;
@@ -875,8 +910,8 @@ export function flowSummary(st: SimState): FlowSummary {
     else if (m.kind === 'inserter') s.inserters++;
     else if (m.kind === 'assembler') { s.assemblers++; if (m.busy) s.assemblersBusy++; }
     else if (m.kind === 'turret') { s.turrets++; s.turretRounds += m.inv.rounds ?? 0; s.turretCap += TURRET_HOPPER; }
-    else if (m.kind === 'lamp') { s.lamps++; if (running(st, m)) s.lampsLit++; }
-    else if (m.kind === 'pole') s.poles++;
+    else if (m.kind === 'lamp' || m.kind === 'floodlight') { s.lamps++; if (running(st, m)) s.lampsLit++; }   // a Floodlight counts as a lamp here
+    else if (m.kind === 'pole' || m.kind === 'bigpole') s.poles++;
     else if (m.kind === 'generator') { s.generators++; s.genCoal += m.inv.coal ?? 0; if (m.busy) s.generatorsBurning++; }
   }
   s.productionMagPerMin = s.assemblers * 60 / SHOT.seconds;
@@ -899,6 +934,9 @@ export function describeMachine(st: SimState, m: Machine): string {
     }
     case 'lamp': return `Lamp · ${LAMP_KW} kW · radius ${LAMP_RADIUS} · ${running(st, m) ? 'lit' : 'dark'}${on}`;
     case 'pole': return `Pole · reach ${POLE_REACH} · ${poleGrid(st).connected.has(m.id) ? 'on the grid' : 'not connected'}`;
+    case 'floodlight': return `Floodlight → ${DIR_NAMES[m.dir]} · ${FLOODLIGHT_KW} kW · ${FLOODLIGHT_RANGE}-tile cone · ${running(st, m) ? 'lit' : 'dark'}${on}`;
+    case 'bigpole': return `Big pole · reach ${BIG_POLE_REACH} · ${poleGrid(st).connected.has(m.id) ? 'on the grid' : 'not connected'}`;
+    case 'substation': return `Substation (built) · powers the face · ${subPowered(st, blockOf(st, m)) ? 'on' : 'off'}`;
     case 'generator': return `Generator · ${GENERATOR_KW} kW · ${Math.floor(m.inv.coal ?? 0)} / ${GENERATOR_COAL_CAP} coal · ${m.busy ? `burning (${Math.round(st.flow!.power.load / Math.max(1, st.flow!.machines.filter(g => g.kind === 'generator' && g.busy).length))} kW)` : (m.inv.coal ?? 0) > 0 ? 'idle' : 'OUT OF COAL'}${on}`;
     case 'belt': return `belt → ${DIR_NAMES[m.dir]} · ${m.items.length} item${m.items.length === 1 ? '' : 's'}${on}`;
     case 'inserter': return `inserter → ${DIR_NAMES[m.dir]} · ${m.hold ? `carrying ${m.hold}` : 'empty'}${on}`;
@@ -1058,21 +1096,30 @@ tileHooks.current = { syncEdges: hookSyncEdges, covered: hookCovered, drainEdges
 // ------------------------------------------------------------------ M3: substations, streetlights, light
 
 export interface SubstationView { tx: number; ty: number; size: number; on: boolean; kw: number }
-/** The block's pre-existing substation (ground.ts places it), with whether it is powered and what it draws now. */
+/** A face's substation: the pre-existing one ground.ts places, else (prompt B M3) a craftable Substation the
+ *  Electricians unlocked, standing on the face. Null on an outskirts face with neither (§7). */
+export function faceSub(st: SimState, bi: number): { x: number; y: number; size: number } | null {
+  const g = ground(st).blocks[bi].sub;
+  if (g) return g;
+  const f = st.flow;
+  if (f) for (const m of f.machines) if (m.kind === 'substation' && blockIdxOf(st, m) === bi) return { x: m.x, y: m.y, size: m.size };
+  return null;
+}
+/** The block's substation (pre-existing or built), with whether it is powered and what it draws now. */
 export function substationAt(st: SimState, bx: number, by: number): SubstationView | null {
   const bi = idxOf(st, bx, by);
   if (bi < 0) return null;
-  const b = st.blocks[bi], sub = ground(st).blocks[bi].sub;
+  const b = st.blocks[bi], sub = faceSub(st, bi);
   if (!sub || (b.state !== HELD && b.state !== CONTESTED && b.state !== DARK)) return null;
   const half = st.config.draw === 'half';
   const kw = b.state === DARK ? 0 : b.state === CONTESTED ? (half ? 100 : 200) : st.config.draw === 'flat' ? 120 : b.exposed ? (half ? 100 : 200) : (half ? 20 : 40);
   return { tx: sub.x, ty: sub.y, size: sub.size, on: subPowered(st, b), kw };
 }
 export function isSubstationTile(st: SimState, tx: number, ty: number): boolean {
-  return substationOwner(st, tx, ty) >= 0;
+  return substationOwner(st, tx, ty) >= 0 || machineAt(st, tx, ty)?.kind === 'substation';
 }
 
-export interface Light { tx: number; ty: number; r: number; lit: boolean; broken: boolean; kind: 'streetlight' | 'lamp' }
+export interface Light { tx: number; ty: number; r: number; lit: boolean; broken: boolean; kind: 'streetlight' | 'lamp' | 'floodlight'; dir?: Dir }
 /** Everything that can light a block: its streetlights (lit when the substation powers and they are not broken) and
  *  the Lamps on it (lit while powered). Radii are §13's 4 tiles; the light texture itself is M5. */
 export function blockLights(st: SimState, bi: number): Light[] {
@@ -1083,8 +1130,10 @@ export function blockLights(st: SimState, bi: number): Light[] {
   const out: Light[] = ground(st).blocks[bi].lights.map(l => ({ tx: l.tx, ty: l.ty, r: LAMP_RADIUS, lit: on && !l.broken, broken: l.broken, kind: 'streetlight' as const }));
   const f = st.flow;
   if (f) for (const m of f.machines) {
-    if (m.kind !== 'lamp' || blockIdxOf(st, m) !== bi) continue;
-    out.push({ tx: m.x, ty: m.y, r: LAMP_RADIUS, lit: running(st, m), broken: false, kind: 'lamp' });
+    if (blockIdxOf(st, m) !== bi) continue;
+    if (m.kind === 'lamp') out.push({ tx: m.x, ty: m.y, r: LAMP_RADIUS, lit: running(st, m), broken: false, kind: 'lamp' });
+    // prompt B M3: a Floodlight throws a 12-tile cone from its centre along its facing (60° wide, GAME-ASSUMPTION)
+    else if (m.kind === 'floodlight') out.push({ tx: m.x + 0.5, ty: m.y + 0.5, r: FLOODLIGHT_RANGE, lit: running(st, m), broken: false, kind: 'floodlight', dir: m.dir });
   }
   return out;
 }
@@ -1094,8 +1143,13 @@ export function litAt(st: SimState, tx: number, ty: number): boolean {
   for (const bi of blocksNear(st, tx, ty)) {
     for (const l of blockLights(st, bi)) {
       if (!l.lit) continue;
-      const ex = l.tx - tx, ey = l.ty - ty;
-      if (ex * ex + ey * ey <= l.r * l.r + 1e-9) return true;
+      const ex = tx - l.tx, ey = ty - l.ty, d2 = ex * ex + ey * ey;
+      if (d2 > l.r * l.r + 1e-9) continue;
+      if (l.kind === 'floodlight' && d2 > 2) {   // the tiles under the fixture count as lit; beyond, only inside the cone
+        const cos = (ex * DX[l.dir!] + ey * DY[l.dir!]) / Math.sqrt(d2);
+        if (Math.acos(Math.max(-1, Math.min(1, cos))) > FLOODLIGHT_HALF_ANGLE + 1e-9) continue;
+      }
+      return true;
     }
   }
   return false;
@@ -1116,43 +1170,49 @@ function distToRect(px: number, py: number, rx: number, ry: number, size: number
   const qx = Math.max(rx, Math.min(rx + size, px)), qy = Math.max(ry, Math.min(ry + size, py));
   return Math.hypot(px - qx, py - qy);
 }
+/** A pole's reach: 8, a Big pole's 12 (§13); a wire spans the longer of its two ends' reaches (GAME-ASSUMPTION). */
+export const reachOf = (m: Machine): number => (m.kind === 'bigpole' ? BIG_POLE_REACH : POLE_REACH);
+const isPole = (m: Machine): boolean => m.kind === 'pole' || m.kind === 'bigpole';
+const pcx = (m: Machine): number => m.x + m.size / 2, pcy = (m: Machine): number => m.y + m.size / 2;
 /** GAME-ASSUMPTION: a pole hangs from any pole or claimed substation within reach 8 (centre to centre, or to the
  *  substation's nearest edge). The block map stays the judge of power: the poles are how a claim is strung and shown,
  *  and a Dark substation a connected pole reaches raises the claim; a claimed block keeps its power whether or not
- *  its poles still stand. */
+ *  its poles still stand. A built Substation (prompt B M3) anchors like a pre-existing one. */
 export function poleGrid(st: SimState): PoleGrid {
   const f = ensureFlow(st);
   const c = gridCache.get(f);
   if (c && c.rev === f.rev && c.t === st.t) return c.grid;
   const grid: PoleGrid = { connected: new Set(), links: [], reached: [] };
-  const poles = f.machines.filter(m => m.kind === 'pole');
+  const poles = f.machines.filter(isPole);
   const subs: { bi: number; x: number; y: number; size: number; claimed: boolean }[] = [];
   const G = ground(st);
   for (const bg of G.blocks) {
     const b = st.blocks[bg.i];
-    if (!bg.sub || (b.state !== HELD && b.state !== CONTESTED && b.state !== DARK)) continue;
-    subs.push({ bi: bg.i, x: bg.sub.x, y: bg.sub.y, size: bg.sub.size, claimed: b.state !== DARK });
+    if (b.state !== HELD && b.state !== CONTESTED && b.state !== DARK) continue;
+    const sub = faceSub(st, bg.i);
+    if (!sub) continue;
+    subs.push({ bi: bg.i, x: sub.x, y: sub.y, size: sub.size, claimed: b.state !== DARK });
   }
   const queue: Machine[] = [];
   for (const m of poles) {
     for (const s of subs) {
-      if (!s.claimed || distToRect(m.x + 0.5, m.y + 0.5, s.x, s.y, s.size) > POLE_REACH) continue;
+      if (!s.claimed || distToRect(pcx(m), pcy(m), s.x, s.y, s.size) > reachOf(m)) continue;
       grid.connected.add(m.id); queue.push(m);
-      grid.links.push({ x0: m.x + 0.5, y0: m.y + 0.5, x1: s.x + s.size / 2, y1: s.y + s.size / 2 });
+      grid.links.push({ x0: pcx(m), y0: pcy(m), x1: s.x + s.size / 2, y1: s.y + s.size / 2 });
       break;
     }
   }
   for (let q = 0; q < queue.length; q++) {
     const a = queue[q];
     for (const m of poles) {
-      if (grid.connected.has(m.id) || Math.hypot(m.x - a.x, m.y - a.y) > POLE_REACH) continue;
+      if (grid.connected.has(m.id) || Math.hypot(pcx(m) - pcx(a), pcy(m) - pcy(a)) > Math.max(reachOf(m), reachOf(a))) continue;
       grid.connected.add(m.id); queue.push(m);
-      grid.links.push({ x0: m.x + 0.5, y0: m.y + 0.5, x1: a.x + 0.5, y1: a.y + 0.5 });
+      grid.links.push({ x0: pcx(m), y0: pcy(m), x1: pcx(a), y1: pcy(a) });
     }
   }
   for (const s of subs) {
     if (s.claimed) continue;
-    for (const m of queue) if (distToRect(m.x + 0.5, m.y + 0.5, s.x, s.y, s.size) <= POLE_REACH) { grid.reached.push(s.bi); break; }
+    for (const m of queue) if (distToRect(pcx(m), pcy(m), s.x, s.y, s.size) <= reachOf(m)) { grid.reached.push(s.bi); break; }
   }
   gridCache.set(f, { rev: f.rev, t: st.t, grid });
   return grid;
@@ -1165,8 +1225,8 @@ function poleClaims(st: SimState, m: Machine): void {
   for (const bi of g.reached) {
     const b = st.blocks[bi];
     if (f.pending.some(c => c.type === 'claim' && c.x === b.x && c.y === b.y)) continue;
-    const sub = ground(st).blocks[bi].sub;
-    if (!sub || distToRect(m.x + 0.5, m.y + 0.5, sub.x, sub.y, sub.size) > POLE_REACH) continue;
+    const sub = faceSub(st, bi);
+    if (!sub || distToRect(pcx(m), pcy(m), sub.x, sub.y, sub.size) > reachOf(m)) continue;
     f.pending.push({ type: 'claim', x: b.x, y: b.y });
   }
 }
@@ -1175,21 +1235,21 @@ function poleClaims(st: SimState, m: Machine): void {
  *  nearest free tile. GAME-ASSUMPTION: the claim's 10 wire + 5 frames already paid for them; a run that finds no room
  *  simply stops short (the map still powers the block). */
 export function layPoles(st: SimState, x: number, y: number): number {
-  const f = ensureFlow(st), G = ground(st), bi = idxOf(st, x, y);
+  const f = ensureFlow(st), bi = idxOf(st, x, y);
   if (bi < 0) return 0;
-  const b = st.blocks[bi], sub = G.blocks[bi].sub;
-  if (!sub || (b.state !== HELD && b.state !== CONTESTED)) return 0;
+  const b = st.blocks[bi], sub = faceSub(st, bi);
+  if (!sub || (b.state !== HELD && b.state !== CONTESTED)) return 0;   // an outskirts face has no substation to string to (§7)
   const tx = sub.x, ty = sub.y, tcx = tx + sub.size / 2, tcy = ty + sub.size / 2;
   const g = poleGrid(st);
   let from: [number, number] | null = null, best = Infinity;
   for (const m of f.machines) {
-    if (m.kind !== 'pole' || !g.connected.has(m.id)) continue;
-    const d = distToRect(m.x + 0.5, m.y + 0.5, tx, ty, sub.size);
-    if (d <= POLE_REACH) return 0;   // already strung (a world-view claim)
-    if (d < best) { best = d; from = [m.x + 0.5, m.y + 0.5]; }
+    if (!isPole(m) || !g.connected.has(m.id)) continue;
+    const d = distToRect(pcx(m), pcy(m), tx, ty, sub.size);
+    if (d <= reachOf(m)) return 0;   // already strung (a world-view claim)
+    if (d < best) { best = d; from = [pcx(m), pcy(m)]; }
   }
   for (const ni of st.nb[bi]) {
-    const nb = st.blocks[ni], ns = G.blocks[ni].sub;
+    const nb = st.blocks[ni], ns = faceSub(st, ni);
     if (!ns || (nb.state !== HELD && nb.state !== CONTESTED)) continue;
     const cx = ns.x + ns.size / 2, cy = ns.y + ns.size / 2;
     const d = Math.hypot(cx - tcx, cy - tcy);
@@ -1220,36 +1280,53 @@ export function layPoles(st: SimState, x: number, y: number): number {
 
 // ------------------------------------------------------------------ M3: hands
 
-/** Hand-feed a turret from the Depot's magazines (the line buffer) or a Generator from the Depot's coal, filling it.
- *  GAME-ASSUMPTION: instant — §11's "hand-fed the west and east turrets twice each" is two clicks. */
-export function handFeed(st: SimState, tx: number, ty: number): { kind: 'turret' | 'generator'; moved: number; reason: string } | null {
+export interface HandFed { kind: 'turret' | 'generator'; moved: number; reason: string }
+/** Prompt B M3 (run name B-M3-hands): a click with the hand moves what the pockets carry — whole magazines into a
+ *  turret's hopper, coal into a Generator — filling it. The pockets are filled from the Depot chest (I, within reach)
+ *  or the workbench (E); the Depot itself is never drawn on here, as for placement (M2). GAME-ASSUMPTION: instant —
+ *  §11's "hand-fed the west and east turrets twice each" is two clicks. Reach is the caller's (the scene's cursor). */
+export function handFeed(st: SimState, tx: number, ty: number): HandFed | null {
   const f = st.flow, m = machineAt(st, tx, ty);
   if (!f || !m) return null;
+  const inv = st.engineer.inv;
   if (m.kind === 'turret') {
-    const room = Math.floor((TURRET_HOPPER - (m.inv.rounds ?? 0)) / SHOT.count), have = Math.floor(st.buffer / SHOT.count);
+    const room = Math.floor((TURRET_HOPPER - (m.inv.rounds ?? 0)) / SHOT.count), have = Math.floor(inv.magazine ?? 0);
     const mags = Math.max(0, Math.min(room, have));
-    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * SHOT.count; st.buffer -= mags * SHOT.count; f.stats.handFed += mags; }
-    return { kind: 'turret', moved: mags, reason: mags ? '' : room <= 0 ? 'the hopper is full' : 'no magazines in the Depot (craft with C, or build the line)' };
+    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * SHOT.count; pocketDrop(st.engineer, 'magazine', mags); f.stats.handFed += mags; }
+    return { kind: 'turret', moved: mags, reason: mags ? '' : room <= 0 ? 'the hopper is full' : 'no magazines in the pockets (take them from the Depot chest with I, or craft at the workbench with E)' };
   }
   if (m.kind === 'generator') {
-    const n = Math.max(0, Math.min(GENERATOR_COAL_CAP - (m.inv.coal ?? 0), Math.floor(f.store.coal)));
-    if (n > 0) { m.inv.coal = (m.inv.coal ?? 0) + n; f.store.coal -= n; f.stats.handFed += n; }
-    return { kind: 'generator', moved: n, reason: n ? '' : (m.inv.coal ?? 0) >= GENERATOR_COAL_CAP ? 'the Generator is full' : 'no coal in the Depot (mine the coal patch by hand or Excavator)' };
+    const n = Math.max(0, Math.min(GENERATOR_COAL_CAP - (m.inv.coal ?? 0), Math.floor(inv.coal ?? 0)));
+    if (n > 0) { m.inv.coal = (m.inv.coal ?? 0) + n; pocketDrop(st.engineer, 'coal', n); f.stats.handFed += n; }
+    return { kind: 'generator', moved: n, reason: n ? '' : (m.inv.coal ?? 0) >= GENERATOR_COAL_CAP ? 'the Generator is full' : 'no coal in the pockets (take it from the Depot chest with I, or dig the coal patch)' };
   }
   return null;
 }
+/** The bot's feed: from the Depot's magazines (the line buffer) and the Depot's coal, filling the machine. */
+function depotFeed(st: SimState, m: Machine): number {
+  const f = st.flow!;
+  if (m.kind === 'turret') {
+    const mags = Math.max(0, Math.min(Math.floor((TURRET_HOPPER - (m.inv.rounds ?? 0)) / SHOT.count), Math.floor(st.buffer / SHOT.count)));
+    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * SHOT.count; st.buffer -= mags * SHOT.count; f.stats.handFed += mags; }
+    return mags;
+  }
+  const n = Math.max(0, Math.min(GENERATOR_COAL_CAP - (m.inv.coal ?? 0), Math.floor(f.store.coal)));
+  if (n > 0) { m.inv.coal = (m.inv.coal ?? 0) + n; f.store.coal -= n; f.stats.handFed += n; }
+  return n;
+}
 
 /** The bot's hands (autoplay only, a dev aid like the bot itself): each frame, hand-feed every turret and Generator at
- *  or under half from the Depot, the way §11's player does in the first minutes. GAME-ASSUMPTION: the bot never builds
- *  a line, so with the flow layer on the HQ's 200 rounds are its whole game unless the harness places one; a soak that
- *  measures the hour places §11's line and lets these hands carry magazines from the Depot to six turrets. */
+ *  or under half from the Depot, the way §11's player does in the first minutes. GAME-ASSUMPTION: the bot has no
+ *  pockets to fill, so its hands draw on the Depot directly (the player's draw on the pockets, `handFeed`); the bot
+ *  never builds a line, so with the flow layer on the HQ's 200 rounds are its whole game unless the harness places
+ *  one; a soak that measures the hour places §11's line and lets these hands carry magazines to six turrets. */
 export function botHands(st: SimState): number {
   const f = st.flow;
   if (!f) return 0;
   let moved = 0;
   for (const m of f.machines) {
-    if (m.kind === 'turret' && (m.inv.rounds ?? 0) <= TURRET_HOPPER / 2) moved += handFeed(st, m.x, m.y)?.moved ?? 0;
-    else if (m.kind === 'generator' && (m.inv.coal ?? 0) <= GENERATOR_COAL_CAP / 2) moved += handFeed(st, m.x, m.y)?.moved ?? 0;
+    if (m.kind === 'turret' && (m.inv.rounds ?? 0) <= TURRET_HOPPER / 2) moved += depotFeed(st, m);
+    else if (m.kind === 'generator' && (m.inv.coal ?? 0) <= GENERATOR_COAL_CAP / 2) moved += depotFeed(st, m);
   }
   return moved;
 }
@@ -1368,6 +1445,9 @@ export function renderLot(st: SimState, bx = st.start[0], by = st.start[1]): str
       case 'inserter': ch = m.shed ? 'i' : 'I'; break;
       case 'lamp': ch = running(st, m) ? '@' : 'o'; break;
       case 'pole': ch = 'P'; break;
+      case 'floodlight': ch = running(st, m) ? 'F' : 'f'; break;
+      case 'bigpole': ch = 'B'; break;
+      case 'substation': ch = 'S'; break;
     }
     if (m.shed) ch = ch.toLowerCase();
     for (let dy = 0; dy < m.size; dy++) for (let dx = 0; dx < m.size; dx++) put(m.x + dx - ox, m.y + dy - oy, ch);

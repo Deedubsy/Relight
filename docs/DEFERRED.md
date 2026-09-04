@@ -92,13 +92,13 @@ M2 built the tile tick and the machines (`flow.ts`). Every item above keeps its 
 - **Two-lane belts, fast belts, splitters, undergrounds, chests (§13/§14).** M2 belts are one lane at 7.5/s. → **Phase 5**, when the wire and frame recipes need a second input lane.
 - **Power draw on machines (§13 kW).** Carried on each machine, drawn by nothing. → **M3** with the Generator and the substation.
 - **Hand-collecting from a chest (§14.3).** No chest yet; hand-mining is a unit a second into the Depot. → **Phase 5** with chests.
-- **Survivor unlocks on the toolbar.** The toolbar now exists (tool keys). → **M6** wires the Electricians' unlocks (Floodlight, Big pole, Substation) once M3 has poles.
+- ~~**Survivor unlocks on the toolbar.**~~ **Built at prompt B M3** (`flow.ts` `lockReason` / `unlockedKinds`, keys 0 / [ / ]): the Electricians' three land when their block turns Held. The other groups' unlocks → **M6 / Phase 5** with their machines.
 
 ## Re-read at Phase 4 M3 (2026-09-03, M3 Defence built)
 
 M3 built defence and power (`flow.ts`, `tiles.ts`). Every item above keeps its phase unless listed here. Nothing deleted.
 
-- ~~**Substation as a placed thing.**~~ **Built in M3** as a pre-existing 3×3 on every lot at a seeded street-side spot (GA-M3-16), powering its whole cell. The craftable Substation and the outskirts' missing one → **M6** (Electricians' unlocks).
+- ~~**Substation as a placed thing.**~~ **Built in M3** as a pre-existing 3×3 (D-B1-4 places it nearest the lot's centroid since the pre-M2 items). ~~The craftable Substation and the outskirts' missing one~~ **built at prompt B M3** (`faceSub`; §7's outskirts have none at tile level, D-B3-2).
 - ~~**Edge hopper 100 vs turret hopper 50.**~~ **Built in M3:** on the HQ an edge's rounds are the sum of its two 50-round turrets; every other Held block keeps the block sim's 100-round stand-in. → **D-P4-9**, decided at **M6** with D-P4-5.
 - ~~**Belt to a turret hopper.**~~ **Built in M3:** inserter from a belt of magazines into the hopper. The Gunsmith's direct belt input → **Phase 5/6** (survivor unlocks).
 - ~~**Generator / power draw on machines (§13 kW).**~~ **Built in M3:** every placed machine draws its rated kW, Generators supply by burning coal, one number with the §14 shed order through the tile machines.
@@ -107,10 +107,10 @@ M3 built defence and power (`flow.ts`, `tiles.ts`). Every item above keeps its p
 - **Turret range 9 as geometry; enemies as things on tiles (5.17 hulk, 7.4 crawler, 7.5 shade stats).** M3 fires at the block sim's engagements; nothing walks. → **Phase 4 M4**.
 - **Barricade 200 HP (13.8).** Nothing to stop until the hulk walks. → **Phase 4 M4** with the hulk, else **Phase 5**.
 - **Light map (M5) and the shade rule at tile level.** M3 has the light model (`cellLights`, `litAt`, radius 4, streetlights three in eight broken); nothing draws darkness yet. → **Phase 4 M5**.
-- **Electricians' unlocks (Floodlight, Big pole, craftable Substation).** Poles and Lamps exist; the toolbar has no unlock gate. → **Phase 4 M6**.
+- ~~**Electricians' unlocks (Floodlight, Big pole, craftable Substation).**~~ **Built at prompt B M3** (run `B-M3-unlocks`).
 - **Hour-one power (risk D7, "an early brownout sheds the HQ first").** At tile level with machines-first shedding the HQ substation is never shed in the §18 run; the assembler is, at minute 0, until the second Generator. → **D-P4-7**, settled at **M6** from the played hour together with D-P4-4 (the sim's 80/40 cannot buy the §11 line and that Generator).
 - **Block fall illegible (risk D4).** M3 adds the red hopper pulse, the shed crosses, the dead-grid and brownout toasts. → **M4** (rot at tile level) and **M5** (light) as before, judged at Gate B.
-- **Turrets on claimed blocks.** Physical on the HQ, block-level elsewhere. → **D-P4-9** at **M6** with D-P4-5: a claimed block gets a world-view line and turrets, or a button and a hopper, one model.
+- **Turrets on claimed blocks.** Physical on the HQ, block-level elsewhere — still so after prompt B M3 (the Electricians' block Held fires the block sim's way). → **D-P4-9** at **M6** with D-P4-5: a claimed block gets a world-view line and turrets, or a button and a hopper, one model.
 
 ## Re-read at the rework (2026-09-04, D5/D6 applied; the slice to be rebuilt from `docs/relight-prompt-B-vertical-slice.md`)
 
@@ -152,7 +152,7 @@ Every item above keeps its phase unless listed here. Nothing deleted.
 Every item above keeps its phase unless listed here.
 
 - ~~**Click-to-walk in the world view.**~~ **Deleted (D-B1-5, the human's decision):** the world view is direct control only (WASD, Shift sprint, Space dodge, the hand on left-click); the map view's walk-here is the only auto-walk. `walkTo` stays in `walk.ts` for the harness bots and the `__relight` dev hook, never bound to a click in the world.
-- **Start turrets on segments (D-P4-8, "prompt B M3").** **Done before M2 by D-B1-4** (`flow.ts` `startTurrets`: one per 16 tiles of HQ segment, at least one a segment, a corner sliver served by the turrets that reach it). M3 keeps only the player's turrets on claimed segments (D-P4-9, open).
+- ~~**Start turrets on segments (D-P4-8, "prompt B M3").**~~ **Done before M2 by D-B1-4** (`flow.ts` `startTurrets`); prompt B M3 measured them on seed 3 (1 by reach / 2 / 2 / 2 over four segments) and put the hopper-empty pulse on the segment's pip. The player's turrets on claimed segments stay with D-P4-9.
 - **The stamina bar, the dodge's look and the rifle's aim line** (D-B1-5) are code-drawn like the engineer's disc → **Phase 12** art pass, with the sprite.
 - **The reference-machine measurement** is by hand once a milestone (`soak.cjs` over CDP to the Windows Chrome, `PROGRAMME_STATE.md` `reference_machine:`); the headless swiftshader soak stays the regression check → **not automated**; a CI GPU runner is a Phase 13 question if the DoD is ever gated in CI.
 - **The block-only harness start ring** (`sim.ts` `syncEdges`: with no tile layer the HQ's edges at t = 0 are kitted and fed as an abstract ring, GA-B1-15) → **delete with the lattice at the Phase 5 gate**, when every state has tiles and `startTurrets` is the only source.
@@ -168,3 +168,15 @@ Every item above keeps its phase unless listed here.
 - **Slots from area vs footprint** (D-P3-10 measured, D-B2-2): `slotsOf` stays C3's cap for the slice; the tile layer does not enforce it. → **M6** when tile lines replace the block stand-in; if the human takes option (b), C3/C4 and the calibration move.
 - **Belt side-loading and splitters**: a belt that meets another belt's side neither gives nor takes. → **Phase 5**.
 - **The copper arm's 3:1 over-supply** of one assembler (one Excavator at 0.5/s against 0.333/s): the belt backs up and the drill stops, as a belt should; a smaller copper source or a second consumer is a **Phase 5** recipe question.
+
+## Re-read at prompt B M3 (2026-09-04, Defence on the segment built)
+
+Every item above keeps its phase unless listed here.
+
+- **Turrets on claimed blocks and the outskirts' abstract substation** (D-P4-9, D-B3-2): the HQ fires through its turrets and an outskirts face has no substation on the tiles, while every other Held block — outskirts included — runs the block sim's hopper and substation. → **M6** with D-P4-5, one model for a claimed block.
+- **Pole "supplies 7×7" / Big pole "supplies 3×3"** (§13): a substation powers its cell, so both only link and claim. → **M6 / Phase 5** with D-P4-9.
+- **The Substation's recipe** (§13.14, frames + wire + boards): 50 steel + 25 Cu in rubble stands in (GA-B3-2, D-B3-1). → **Phase 5** recipes.
+- **The other survivor groups' unlocks** (§8: Concrete crew, Foreman, Arsenal, Rail crew, …): the gate is one line a group in `SURVIVOR_UNLOCK_NAMES`; their machines do not exist. → **M6 / Phase 5** as each machine lands.
+- **The Floodlight as light** (a cone of light on the ground rather than a filled sector in the world view). → **M5** with the light texture.
+- **Hour-one power with the line on** (D-P4-7): on the city with power on, the §11 line plus the HQ's draw is 350 kW against one Generator and the Shot assembler is shed first, the HQ lost at 12:25. → stays with **D-P4-7** (open); the slice runs with power off until it settles.
+- **The bot and the Electricians**: the compact bot never claims the Electricians' block (3 hops, civic on seeds 3 / 4 / 5) within the hour, so no harness run exercises the unlocks; the browser check and the tests do. → **M6** (the played hour) or a `river`-policy run that targets a survivor block, if Gate B wants the bot's number.

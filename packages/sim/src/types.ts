@@ -189,7 +189,7 @@ export type SimEvent =
       fBefore: number; fAfter: number; iBefore: number; iAfter: number; retake: boolean;
       cr: number; sh: number; hu: number }
   | { type: 'claim-rejected'; t: number; x: number; y: number; reason: string }
-  | { type: 'held'; t: number; x: number; y: number; facility: string | null; survivor: string | null }
+  | { type: 'held'; t: number; x: number; y: number; facility: string | null; survivor: string | null; unlocks: string[] }   // unlocks (prompt B M3): what the survivor group puts on the toolbar
   | { type: 'bloom'; t: number; x: number; y: number; cr: number; sh: number; hu: number; wake: boolean }
   | { type: 'fall'; t: number; x: number; y: number; reason: string; delay: number; starved: string }   // delay: s from first unfed arrival (-1 none); starved: district of the empty edge's dark block ('-' none)
   | { type: 'sub-off'; t: number; x: number; y: number }

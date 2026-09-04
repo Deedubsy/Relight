@@ -12,6 +12,8 @@ import {
   TILE_TPS, TILE_DT, TURRET_HOPPER, TURRET_ROUNDS_PER_S, GENERATOR_KW, COAL_MJ, START_COAL, LAMP_RADIUS, POLE_REACH, MACHINE_KW,
   Machine, SimState, SimEvent, citySpec, hqIdx,
   cityGeomOf, segBetween, segLength, TURRET_PER_TILES, canPickUp,
+  lockReason, unlockedKinds, survivorJoined, faceSub, blockLights, hqLot, ground, machineAt, step as blockStep,
+  FLOODLIGHT_KW, FLOODLIGHT_RANGE, BIG_POLE_REACH, SURVIVOR_UNLOCKS,
 } from '../src/index';
 
 function fresh(seed = 3): SimState {
@@ -71,7 +73,7 @@ test('HQ start: six turrets and a Generator with the 40 coal; the 20 magazines f
   assert.equal(ts.reduce((a, m) => a + (m.inv.rounds ?? 0), 0), 200, 'the ring does not refill physical turrets');
 });
 
-test('feeding: an inserter fills a turret from a belt of magazines to its 50-round hopper and waits; hand-feeding fills it from the Depot at once; the pip follows', () => {
+test('feeding: an inserter fills a turret from a belt of magazines to its 50-round hopper and waits; hand-feeding fills it from the pockets at once (prompt B M3); the pip follows', () => {
   const st = rich(fresh());
   const f = st.flow!;
   const t = turrets(st).find(m => m.x === hq(st, 3, 0)[0] && m.y === hq(st, 3, 0)[1])!;
@@ -85,30 +87,31 @@ test('feeding: an inserter fills a turret from a belt of magazines to its 50-rou
   step(st); st.events.length = 0;
   const e = st.ring[st.edgeAt[turretEdge(st, t)]];
   assert.equal(e.hopper, TURRET_HOPPER + (turrets(st).find(m => m !== t && turretEdge(st, m) === e.id)!.inv.rounds ?? 0));
-  // hand: empty the north pair, put 8 magazines in the Depot, feed one turret twice
+  // hand: empty the north pair, put 3 magazines in the pockets, feed one turret twice
   const pair = turrets(st).filter(m => turretEdge(st, m) === e.id);
   for (const m of pair) m.inv.rounds = 0;
-  st.buffer = 30;
+  st.engineer.inv.magazine = 3; st.buffer = 0;
   step(st);
   assert.equal(frontList(st).find(v => v.id === e.id)!.pip, 'red');
   const r1 = handFeed(st, pair[0].x, pair[0].y)!;
-  assert.equal(r1.kind, 'turret'); assert.equal(r1.moved, 3); assert.equal(pair[0].inv.rounds, 30); assert.equal(st.buffer, 0);
+  assert.equal(r1.kind, 'turret'); assert.equal(r1.moved, 3); assert.equal(pair[0].inv.rounds, 30); assert.equal(st.engineer.inv.magazine ?? 0, 0); assert.equal(st.buffer, 0, 'the Depot is never drawn on');
   assert.match(handFeed(st, pair[1].x, pair[1].y)!.reason, /no magazines/);
   assert.equal(f.stats.handFed, 3);
   step(st);
   assert.equal(frontList(st).find(v => v.id === e.id)!.pip, 'amber');
-  st.buffer = 80;
+  st.engineer.inv.magazine = 8;
   assert.equal(handFeed(st, pair[0].x, pair[0].y)!.moved, 2, 'tops up to 50');
   assert.match(handFeed(st, pair[0].x, pair[0].y)!.reason, /full/);
   assert.equal(handFeed(st, pair[1].x, pair[1].y)!.moved, 5);
-  assert.equal(st.buffer, 10);
+  assert.equal(st.engineer.inv.magazine, 1);
   step(st);
   assert.equal(frontList(st).find(v => v.id === e.id)!.pip, 'green');
   // M2: a picked-up turret goes to the pockets with its rounds as whole magazines (§11's four stacks for two turrets); the line buffer keeps what it had
   assert.equal(pair[1].inv.rounds, 50);
+  delete st.engineer.inv.magazine;   // the last magazine spent, so the pick-up needs a magazine stack of its own
   assert.equal(canPickUp(st, pair[1].x, pair[1].y).stacks, 2, 'a turret and its magazines: two stacks');
   remove(st, pair[1].x, pair[1].y);
-  assert.equal(st.buffer, 10); assert.equal(st.engineer.inv.turret, 1); assert.equal(st.engineer.inv.magazine, 5);
+  assert.equal(st.buffer, 0); assert.equal(st.engineer.inv.turret, 1); assert.equal(st.engineer.inv.magazine, 5);
 });
 
 test('engagement: crawlers drain the turrets fullest-first at 5 rounds/s each; a rush past the rate goes unfed; the hopper-empty event fires on the same tick the pip turns red', () => {
@@ -168,9 +171,9 @@ test('Generator: 300 kW, 4 MJ a coal — the start\'s 40 coal last 533 s at full
   assert.match(describeMachine(st, f.machines.find(m => m.kind === 'assembler')!), /no power/);
   assert.equal(subPowered(st, st.blocks[idxOf(st, st.start[0], st.start[1])]), false);
   assert.equal(cellLights(st, st.start[0], st.start[1]).some(l => l.lit), false, 'streetlights dark on a dead grid');
-  // coal by hand: nothing in the Depot yet
+  // coal by hand: nothing in the pockets yet (prompt B M3: the hand feeds from the pockets)
   assert.match(handFeed(st, g.x, g.y)!.reason, /no coal/);
-  f.store.coal = 10;
+  st.engineer.inv.coal = 10;
   assert.equal(handFeed(st, g.x, g.y)!.moved, 10);
   runS(st, 25);   // the substation, shed on the dead grid, comes back 20 s after the supply does
   assert.equal(f.power.supply, GENERATOR_KW);
@@ -348,4 +351,152 @@ test('city HQ (D-B1-4): the start turrets are derived from the HQ\'s segments �
     assert.equal(st.blocks[hqI].state, HELD, `seed ${seed}: the HQ holds`);
     assert.ok(!evs.some(e => e.type === 'hopper-empty' && e.x === st.blocks[hqI].x && e.y === st.blocks[hqI].y), `seed ${seed}: no HQ hopper ran empty`);
   }
+});
+
+// ------------------------------------------------------------------ prompt B M3: the Electricians' unlocks (run name B-M3-unlocks)
+
+function cityState(seed: number): SimState {
+  const cfg = protoCalibrated({ ...DEFAULT_CONFIG, walk: true });
+  Object.assign(cfg, { power: true, supply: 'generators', draw: 'half', shed: 'machines-first' });
+  const st = createState(citySpec(seed, 'river', cfg), cfg, seed);
+  ensureFlow(st); st.engineer.inv.steel = 1000; st.engineer.inv.copper = 500;
+  return st;
+}
+const electricians = (st: SimState) => st.survivors.find(v => v.name === 'Electricians')!;
+/** The Electricians' block turns Held the block sim's way: Contested with its clock run out, then one block tick. */
+function joinElectricians(st: SimState): SimEvent[] {
+  const sv = electricians(st), b = st.blocks[idxOf(st, sv.x, sv.y)];
+  b.state = CONTESTED; b.contestUntil = st.t;
+  st.events.length = 0; blockStep(st);
+  const evs = [...st.events]; st.events.length = 0;
+  return evs;
+}
+/** First lot spot on the HQ face where `kind` can go, scanning the lot; the callback may refuse a spot. */
+function hqSpot(st: SimState, kind: Parameters<typeof place>[1], ok: (tx: number, ty: number) => boolean = () => true): [number, number] {
+  for (let ly = 0; ly < 24; ly++) for (let lx = 0; lx < 24; lx++) {
+    const [tx, ty] = hqLot(st, lx, ly);
+    if (canPlace(st, kind, tx, ty).ok && ok(tx, ty)) return [tx, ty];
+  }
+  throw new Error(`no spot for a ${kind} on the HQ face`);
+}
+const distToRect = (px: number, py: number, rx: number, ry: number, size: number) => {
+  const qx = Math.max(rx, Math.min(rx + size, px)), qy = Math.max(ry, Math.min(ry + size, py));
+  return Math.hypot(px - qx, py - qy);
+};
+
+test("unlocks: the Electricians' Floodlight, Big pole and Substation are locked until their block turns Held, the held event names them, and losing the block later keeps them", () => {
+  for (const seed of [3, 4, 5]) {
+    const st = cityState(seed), sv = electricians(st), bi = idxOf(st, sv.x, sv.y);
+    assert.ok(bi >= 0 && st.hops[bi] >= 1 && st.hops[bi] <= 3, `seed ${seed}: the Electricians sit 1–3 hops out (${st.hops[bi]})`);
+    for (const k of SURVIVOR_UNLOCKS.Electricians) {
+      assert.match(lockReason(st, k), /Electricians/, `seed ${seed}: ${k} locked`);
+      assert.match(canPlace(st, k, ...hqLot(st, 4, 4)).reason, /Electricians/, `seed ${seed}: ${k} refuses to place`);
+    }
+    assert.ok(!unlockedKinds(st).includes('floodlight') && unlockedKinds(st).includes('turret'));
+    assert.equal(survivorJoined(st, 'Electricians'), false);
+    const evs = joinElectricians(st);
+    const held = evs.find(e => e.type === 'held' && e.survivor === 'Electricians');
+    assert.ok(held && held.type === 'held', `seed ${seed}: the held event names the group`);
+    assert.deepEqual(held.unlocks, ['Floodlight', 'Big pole', 'Substation']);
+    assert.equal(st.blocks[bi].state, HELD);
+    for (const k of SURVIVOR_UNLOCKS.Electricians) assert.equal(lockReason(st, k), '', `seed ${seed}: ${k} unlocked`);
+    assert.equal(unlockedKinds(st).length, 12);
+    // the block falls: the group has walked into the Depot (§11) — the toolbar keeps the rows
+    st.blocks[bi].state = DARK; st.fallen[bi] = true;
+    assert.equal(survivorJoined(st, 'Electricians'), true);
+    assert.equal(lockReason(st, 'substation'), '');
+  }
+});
+
+test('Floodlight: 2×2, 40 kW, lights a 12-tile 60° cone along its facing while the face is powered, and nothing behind or beside it', () => {
+  const st = cityState(3);
+  joinElectricians(st);
+  blockStep(st); const before = flowSummary(st).demandKw;
+  // a spot whose cone to the east stays on the HQ's tiles for 12 tiles
+  // (and whose probe tiles no streetlight or start lamp already lights)
+  const dark = (x: number, y: number, pts: [number, number][]) => pts.every(([dx, dy]) => !litAt(st, x + 0.5 + dx, y + 0.5 + dy));
+  const [tx, ty] = hqSpot(st, 'floodlight', (x, y) => { const [x1] = hqLot(st, 23, 0); return x + 13 <= x1 && y > hqLot(st, 0, 4)[1] && dark(x, y, [[-5, 0], [6, 6], [13, 0], [6, 0], [0, 6], [10, 3], [0, 0]]); });
+  const m = place(st, 'floodlight', tx, ty, 1)!;   // facing east
+  assert.equal(m.size, 2);
+  blockStep(st); assert.equal(flowSummary(st).demandKw, before + FLOODLIGHT_KW, 'the face draws 40 kW more');
+  const cx = tx + 0.5, cy = ty + 0.5;   // the fixture's centre in tile units
+  assert.equal(describeMachine(st, m).includes('lit'), true, describeMachine(st, m));
+  const l = blockLights(st, hqIdx(st)).find(v => v.kind === 'floodlight')!;
+  assert.ok(l && l.lit && l.r === FLOODLIGHT_RANGE && l.dir === 1);
+  assert.equal(litAt(st, cx + 6, cy), true, 'straight ahead');
+  assert.equal(litAt(st, cx + 10, cy + 3), true, 'inside the cone (17°)');
+  assert.equal(litAt(st, cx + 11.5, cy), true, 'to the cone\'s end');
+  assert.equal(litAt(st, cx + 6, cy + 6), false, 'outside the cone (45°)');
+  assert.equal(litAt(st, cx + 13, cy), false, 'beyond 12 tiles');
+  assert.equal(litAt(st, cx - 5, cy), false, 'behind it');
+  assert.equal(litAt(st, cx, cy), true, 'under the fixture');
+  // shed with the lamps (§14 rank 2): switched off, its cone dark
+  m.shed = true;
+  assert.equal(litAt(st, cx + 6, cy), false, 'dark when shed');
+  m.shed = false;
+  // R turns it: facing south lights south, not east
+  m.dir = 2; st.flow!.rev++;
+  assert.equal(litAt(st, cx, cy + 6), true); assert.equal(litAt(st, cx + 6, cy), false);
+});
+
+test('Big pole: 2×2, reach 12 — it hangs from a substation a pole at the same distance cannot reach, and claims through poleClaims like a pole', () => {
+  const st = cityState(3);
+  joinElectricians(st);
+  const hq = st.blocks[hqIdx(st)], sub = substationAt(st, hq.x, hq.y)!;
+  assert.ok(sub && sub.size === 3);
+  // a lot spot 9–11 tiles from the substation's edge where both kinds can go
+  const [tx, ty] = hqSpot(st, 'bigpole', (x, y) => { const d = distToRect(x + 1, y + 1, sub.tx, sub.ty, sub.size); return d > POLE_REACH + 1 && d < BIG_POLE_REACH - 1 && canPlace(st, 'pole', x, y).ok; });
+  const pole = place(st, 'pole', tx, ty, 0)!;
+  assert.equal(poleGrid(st).connected.has(pole.id), false, 'a pole 9+ tiles out is not on the grid');
+  remove(st, tx, ty);
+  const big = place(st, 'bigpole', tx, ty, 0)!;
+  assert.equal(big.size, 2);
+  assert.equal(poleGrid(st).connected.has(big.id), true, 'a Big pole at the same spot is');
+  assert.match(describeMachine(st, big), /Big pole · reach 12 · on the grid/);
+  // a small pole hangs from the Big pole at the Big pole's reach (the wire spans the longer of the two)
+  const [px, py] = hqSpot(st, 'pole', (x, y) => { const d = Math.hypot(x + 0.5 - (tx + 1), y + 0.5 - (ty + 1)); return d > POLE_REACH + 0.5 && d < BIG_POLE_REACH - 0.5 && distToRect(x + 0.5, y + 0.5, sub.tx, sub.ty, sub.size) > BIG_POLE_REACH; });
+  const p2 = place(st, 'pole', px, py, 0)!;
+  assert.equal(poleGrid(st).connected.has(p2.id), true);
+  assert.equal(poleGrid(st).links.length, 2);
+});
+
+test('craftable Substation: an outskirts face has none (§7) — no slab, no streetlights, no pole anchor — until the Electricians\' 3×3 is built on it; one a face; picked up, the face is bare again', () => {
+  const st = cityState(3), cg = cityGeomOf(st), G = ground(st);
+  // an outskirts face, forced Held for the test (the block sim's abstract substation powers it — D-P4-9's split)
+  const oi = st.blocks.findIndex((b, i) => cg.district[i] === 3 && !cg.blocks[i].inert && b.state === DARK);
+  assert.ok(oi >= 0, 'the city has a dark outskirts face');
+  const ob = st.blocks[oi];
+  ob.state = HELD; ob.subOn = true;
+  assert.equal(faceSub(st, oi), null); assert.equal(substationAt(st, ob.x, ob.y), null); assert.equal(blockLights(st, oi).length, 0);
+  assert.equal(subPowered(st, ob), true, 'the block sim still powers a Held outskirts block');
+  const fit = (x: number, y: number) => canPlace(st, 'substation', x, y);
+  let spot: [number, number] | null = null;
+  for (const t of G.blocks[oi].tiles) { const x = t % G.tw, y = (t - x) / G.tw; if (fit(x, y).ok) { spot = [x, y]; break; } }
+  // locked first
+  const t0 = G.blocks[oi].tiles[0];
+  assert.match(fit(t0 % G.tw, (t0 - t0 % G.tw) / G.tw).reason, /Electricians/);
+  joinElectricians(st);
+  for (const t of G.blocks[oi].tiles) { const x = t % G.tw, y = (t - x) / G.tw; if (fit(x, y).ok) { spot = [x, y]; break; } }
+  assert.ok(spot, 'a 3×3 fits on the face');
+  const steel = st.engineer.inv.steel, cu = st.engineer.inv.copper;
+  const m = place(st, 'substation', spot![0], spot![1], 0)!;
+  assert.equal(m.size, SUBSTATION_TILES);
+  assert.equal(st.engineer.inv.steel, steel - 50); assert.equal(st.engineer.inv.copper, cu - 25);
+  assert.deepEqual(faceSub(st, oi), { x: spot![0], y: spot![1], size: 3 });
+  const view = substationAt(st, ob.x, ob.y)!;
+  assert.ok(view && view.on && view.size === 3, 'the face now shows a powered substation');
+  assert.match(describeMachine(st, m), /Substation \(built\) · powers the face · on/);
+  // one a face: a second refuses; the HQ, which has one, refuses too
+  for (const t of G.blocks[oi].tiles) { const x = t % G.tw, y = (t - x) / G.tw; const r = fit(x, y); if (!r.ok && /has a substation/.test(r.reason)) { spot = null; break; } }
+  assert.equal(spot, null, 'a second Substation on the face is refused');
+  { let seen = false; for (let ly = 0; ly < 24 && !seen; ly++) for (let lx = 0; lx < 24; lx++) { const r = canPlace(st, 'substation', ...hqLot(st, lx, ly)); if (/has a substation/.test(r.reason)) { seen = true; break; } }
+    assert.ok(seen, 'the HQ face, which has one, refuses a Substation for that reason'); }
+  // a pole beside it hangs from it
+  const pole = place(st, 'pole', m.x + m.size + 1, m.y, 0);
+  if (pole) assert.equal(poleGrid(st).connected.has(pole.id), true, 'a pole hangs from the built Substation');
+  // picked up: bare again, the machine in the pockets
+  assert.equal(canPickUp(st, m.x, m.y).ok, true);
+  remove(st, m.x, m.y);
+  assert.equal(st.engineer.inv.substation, 1);
+  assert.equal(faceSub(st, oi), null); assert.equal(substationAt(st, ob.x, ob.y), null);
 });

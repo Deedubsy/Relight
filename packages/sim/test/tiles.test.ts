@@ -47,7 +47,7 @@ test('geometry: a lot is a rasterised face, streets are the ridges between faces
   assert.ok(hq.sub && hq.sub.size === 3, 'the HQ has its 3×3 substation');
 });
 
-test('the river is river tiles and no block; plazas and parks are inert faces with no rubble, no substation, no lights', () => {
+test('the river is river tiles and no block; plazas and parks are inert faces with no rubble, no substation, no lights; outskirts faces (§7) have neither a substation nor streetlights', () => {
   const st = fresh();
   const G = ground(st), cg = generateCity(3, 'river');
   let river = 0;
@@ -60,8 +60,12 @@ test('the river is river tiles and no block; plazas and parks are inert faces wi
     assert.equal(bg.count, 0); assert.equal(bg.rubble, null); assert.equal(bg.sub, null); assert.equal(bg.lights.length, 0);
     for (const t of bg.tiles) assert.equal(tileAt(st, t % G.tw, Math.floor(t / G.tw)).kind, T_INERT);
   }
-  // a live face has a substation on its own tiles and lights on its streets
-  const live = G.blocks.filter(bg => !cg.blocks[bg.i].inert && st.blocks[bg.i].state !== INERT);
+  // §7 (prompt B M3): an outskirts face has no substation and no streetlights — the Electricians' Substation gives it one
+  const out = G.blocks.filter(bg => !cg.blocks[bg.i].inert && st.blocks[bg.i].state !== INERT && cg.district[bg.i] === 3);
+  assert.ok(out.length > 0, 'the city has outskirts faces');
+  for (const bg of out) { assert.equal(bg.sub, null); assert.equal(bg.lights.length, 0); }
+  // every other live face has a substation on its own tiles and lights on its streets
+  const live = G.blocks.filter(bg => !cg.blocks[bg.i].inert && st.blocks[bg.i].state !== INERT && cg.district[bg.i] !== 3);
   let threeByThree = 0, lit = 0;
   for (const bg of live) {
     assert.ok(bg.sub);

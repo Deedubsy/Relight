@@ -150,8 +150,13 @@ function cityGround(st: SimState): Ground {
       i, tiles: cb.tiles, x0: cb.x0, y0: cb.y0, x1: cb.x1, y1: cb.y1, sub: null, lights: [], rubble: null, deposit: null,
       count: 0, order: new Int32Array(0), hq, pole: [cb.cx, cb.cy],
     };
-    bg.sub = hq ? { x: hqb.sqx + HQ_SUBSTATION[0], y: hqb.sqy + HQ_SUBSTATION[1], size: SUBSTATION_TILES } : inert ? null : faceSubstation(G, cg, i);
-    if (!inert) bg.lights = faceLights(G, cg, st.seed, i);
+    // §7 (prompt B M3, run name B-M3-unlocks): an outskirts face has no substation and no streetlights; the
+    // Electricians' craftable Substation (flow.ts `faceSub`) is how one gets a substation. GAME-ASSUMPTION: the block
+    // sim still powers a Held outskirts block (its abstract substation, D-P4-9's split) — at tile level nothing there
+    // anchors a pole run or lights the kerb until a Substation is built.
+    const outskirts = cg.district[i] === 3;
+    bg.sub = hq ? { x: hqb.sqx + HQ_SUBSTATION[0], y: hqb.sqy + HQ_SUBSTATION[1], size: SUBSTATION_TILES } : inert || outskirts ? null : faceSubstation(G, cg, i);
+    if (!inert && !outskirts) bg.lights = faceLights(G, cg, st.seed, i);
     if (bg.sub) for (let dy = 0; dy < bg.sub.size; dy++) for (let dx = 0; dx < bg.sub.size; dx++) G.rank[(bg.sub.y + dy) * tw + bg.sub.x + dx] = RESERVED;
     if (hq) {
       for (let ly = 0; ly < LOT_TILES; ly++) for (let lx = 0; lx < LOT_TILES; lx++) if (hqReserved(lx, ly)) G.rank[(hqb.sqy + ly) * tw + hqb.sqx + lx] = RESERVED;

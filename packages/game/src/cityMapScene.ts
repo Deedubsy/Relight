@@ -18,7 +18,8 @@ const DARK_TIER = [0x16204a, 0x1c2a5e, 0x243774, 0x30478f];
 const DARK_WELL = [0x161a48, 0x1c2260, 0x262d78, 0x333b94];
 const STREET_C = 0x0e1326, WATER_C = 0x2f3a4f, OUTSIDE_C = 0x0b0e1a, KIT_WAIT = 0x7a3020;
 
-interface Pulse { i: number; born: number; dur: number; r0: number; r1: number; color: number; width: number; wake: boolean }
+/** A ring drawn at a block's centre, or (M3: the hopper-empty pulse) at a segment's pip when `x`/`y` are set. */
+interface Pulse { i: number; x?: number; y?: number; born: number; dur: number; r0: number; r1: number; color: number; width: number; wake: boolean }
 interface HulkMark { i: number; born: number }
 interface PoleLine { a: number; b: number }
 
@@ -169,7 +170,11 @@ export class CityMapScene extends Phaser.Scene implements MapView {
         const from = nearestHeld(st, ev.x, ev.y), i = idxOf(st, ev.x, ev.y);
         if (from && i >= 0) this.poles.push({ a: idxOf(st, from.x, from.y), b: i });
       } else if (ev.type === 'hopper-empty') {
-        const i = idxOf(st, ev.x, ev.y); if (i >= 0) this.pulses.push({ i, born: now, dur: 900, r0: 10, r1: 4, color: C.red, width: 2, wake: false });
+        // prompt B M3: the pulse lands on the segment's pip — the same event turns that pip red — not the block's centre
+        const i = idxOf(st, ev.x, ev.y), j = idxOf(st, ev.nx, ev.ny); if (i < 0) continue;
+        const k = j >= 0 ? this.geom.segAt.get(segKey(st.blocks.length, i, j)) ?? -1 : -1;
+        const at = k >= 0 ? { x: PAD + this.geom.segs[k].mx * this.ppt, y: PAD + this.geom.segs[k].my * this.ppt } : {};
+        this.pulses.push({ i, ...at, born: now, dur: 900, r0: 10, r1: 4, color: C.red, width: 2, wake: false });
       } else if (ev.type === 'fall') {
         const i = idxOf(st, ev.x, ev.y); if (i < 0) continue;
         this.pulses.push({ i, born: now, dur: 1200, r0: 14, r1: 4, color: C.red, width: 3, wake: false });
@@ -321,9 +326,9 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     }
     this.pulses = this.pulses.filter(p => now - p.born < p.dur);
     for (const p of this.pulses) {
-      const k = Math.max(0, (now - p.born) / p.dur), r = p.r0 + (p.r1 - p.r0) * k;
-      g.lineStyle(p.width, p.color, 1 - k); g.strokeCircle(this.px(p.i), this.py(p.i), r);
-      if (p.wake) { g.lineStyle(1, p.color, (1 - k) * 0.5); g.strokeCircle(this.px(p.i), this.py(p.i), r * 1.25); }
+      const k = Math.max(0, (now - p.born) / p.dur), r = p.r0 + (p.r1 - p.r0) * k, cx = p.x ?? this.px(p.i), cy = p.y ?? this.py(p.i);
+      g.lineStyle(p.width, p.color, 1 - k); g.strokeCircle(cx, cy, r);
+      if (p.wake) { g.lineStyle(1, p.color, (1 - k) * 0.5); g.strokeCircle(cx, cy, r * 1.25); }
     }
     this.hulks = this.hulks.filter(h => now - h.born < 1600);
     for (const h of this.hulks) {

@@ -14,7 +14,7 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 ## Prompt B — the slice rebuilt on the city (Phase 4 reopened, opened 2026-09-04)
 
-**Status: M1 Ground and the engineer built 2026-09-04; the four pre-M2 items ("Four small things before Prompt B M2": D-B1-5 direct control, D-B1-4 placement by face geometry, C1/C2 birth artefact, reference machine) done 2026-09-04; M2 Flow on the faces built 2026-09-04; M3–M6 not started.** Branch `phase-4`, PR #4. Report `SLICE_REPORT.md` (rewritten from the top; the lattice slice is its appendix; the four items are its "Before M2" section). Decisions D-B1-1 … D-B1-3 taken by recommendation on the human's `go` for M1, **D-B1-4 and D-B1-5 made by the human 2026-09-04** (`DECISIONS.md`); D-P4-8 superseded by D-B1-4; D-P4-7 and D-P4-9 open.
+**Status: M1 Ground and the engineer built 2026-09-04; the four pre-M2 items ("Four small things before Prompt B M2": D-B1-5 direct control, D-B1-4 placement by face geometry, C1/C2 birth artefact, reference machine) done 2026-09-04; M2 Flow on the faces built 2026-09-04; M3 Defence on the segment built 2026-09-04; M3–M6 not started.** Branch `phase-4`, PR #4. Report `SLICE_REPORT.md` (rewritten from the top; the lattice slice is its appendix; the four items are its "Before M2" section). Decisions D-B1-1 … D-B1-3 taken by recommendation on the human's `go` for M1, **D-B1-4 and D-B1-5 made by the human 2026-09-04** (`DECISIONS.md`); D-P4-8 superseded by D-B1-4; D-P4-7 and D-P4-9 open.
 
 ```yaml
 reference_machine:            # the only host whose fps is reported against the 60 fps DoD (item 4, 2026-09-04)
@@ -62,6 +62,19 @@ reference_machine:            # the only host whose fps is reported against the 
 ### B.4 Untagged recount at prompt B M2
 
 33 → **33**. M2's `[sim: B-M2-pockets]` tags land on §13's Workbench row and §14's pocket paragraph, whose numbers were already tagged (3 s and 2 steel + 1 Cu under `M2-rates`; reach 8 and 40 stacks under GA §25 items 15/16); the Workbench's 2×2 is the M1 lot mark, untouched. No number moved from untagged to tagged. §26 status unchanged: three systems, 5 of 10 gate criteria measurable.
+
+### B.5 M3 Defence on the segment (2026-09-04, `SLICE_REPORT.md` "Prompt B M3")
+
+- **An edge is a street segment** (run `B-M3-segments`): a turret serves the segment its front ring or nearest ridge gives it (D-B1-4's `faceSegOf`), an edge's rounds are the sum of its turrets, and the map view's hopper-empty pulse lands on the segment's pip, the same event that turns it red. Seed 3's HQ: 6 start turrets serve its four segments 1 (by reach, the 5-tile sliver) / 2 / 2 / 2.
+- **The Electricians' unlocks** (run `B-M3-unlocks`): Floodlight (2×2, 40 kW, a 12-tile cone 60° wide, GA-B3-3), Big pole (2×2, reach 12, GA-B3-4) and the craftable Substation (3×3, one a face, on a Held face that has none; 50 steel + 25 Cu stand in for §13.14, GA-B3-2) are locked kinds (`lockReason`) until the Electricians' block turns Held, then on the build menu (0, [, ]) and kept after a fall (GA-B3-1); the held event carries the names. The outskirts have no substation and no streetlights at tile level (§7, GA-B3-6) while the block sim still powers a Held one (D-P4-9's split).
+- **Hands from the pockets** (run `B-M3-hands`): E on a turret or Generator feeds magazines or coal from the pockets with the M2 reasons; the Depot is never drawn on; the harness bot keeps the Depot path (GA-B3-5).
+- **Measured**: with the §11 line and the bot's hands the HQ holds the hour on seeds 3 / 4 / 5 (845 / 783 / 810 magazines, first hopper-empty at 30:29 / 30:33 / 30:29 on the bot's first claim); with no line the HQ falls at 12:54 (the unfed consequence at tile level, as the lattice soak found); with power on the §11 line is 350 kW against one 300 kW Generator and §14's order sheds the Shot assembler first, the HQ lost at 12:25 (D-P4-7 evidence). Floodlight +82 tiles vs Lamp +51 on the HQ face; pole / Big pole on the grid to 7.91 / 12.00 tiles; the Electricians sit 3 hops out on all three seeds and the compact bot never claims them in the hour.
+- **Doc**: §7, §8, §11, §13 tagged `[sim: B-M3-unlocks]`, §11 `[sim: B-M3-hands]`; three changelog lines. Decisions for the human: D-B3-1 the Substation's price, D-B3-2 the outskirts at tile level, D-B3-3 when unlocks land. Deferred: turrets on claimed blocks and the outskirts' abstract substation (D-P4-9, M6), the poles' supply areas, the Substation recipe and the other groups' unlocks (Phase 5), the Floodlight's light texture (M5) → `DEFERRED.md` "Re-read at prompt B M3".
+- Checks: `npm test` 103/103, `typecheck` (incl. the game build), `lint`, `snapshot:check` (`5f3417b9`), `docsync:check`, `experiments` 12 / 113 s / 0 failing, `calibrate` identical — green. Fixtures `city{3,4,5}.json` regenerated, unchanged.
+
+### B.6 Untagged recount at prompt B M3
+
+33 → **33**. `[sim: B-M3-unlocks]` lands on §13.7's Floodlight half and §13.9's Big pole half, whose rows left the untagged set at the lattice M3 (13.7 / 13.9 under `M3-rates`), on §8's Electricians row and §7's outskirts paragraph (rules, not numbers); §13.14 (the Substation's recipe) stays untagged: the 50 + 25 is a stand-in, not the number. No number moved. §26 status unchanged: three systems, 5 of 10 gate criteria measurable; the one new rule a player holds is "a survivor's block Held is their machines on the menu", which §26 already counts under found tech.
 
 ## Rework — the engineer and the street-first city (D5, D6; applied 2026-09-03 → 2026-09-04)
 

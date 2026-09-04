@@ -36,7 +36,7 @@ function describe(events: SimEvent[]): void {
     switch (ev.type) {
       case 'held':
         if (ev.facility) panel.toast(`Reached the ${ev.facility}`, 'good');
-        if (ev.survivor) panel.toast(`${ev.survivor}: "We're in."`, 'good');
+        if (ev.survivor) panel.toast(`${ev.survivor}: "We're in."${ev.unlocks.length ? ` — ${ev.unlocks.join(', ')} are on the build menu (B; keys 0, [ and ])` : ''}`, 'good');
         break;
       case 'fall': panel.toast(`Block (${ev.x},${ev.y}) lost — ${ev.reason}`, 'bad'); break;
       case 'sub-off': panel.toast(`Substation (${ev.x},${ev.y}) stopped: ${session.state.config.unfedN} crawlers unfed. It falls if this goes on.`, 'bad'); break;

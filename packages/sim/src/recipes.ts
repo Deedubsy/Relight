@@ -23,3 +23,6 @@ export const ROUNDS_PER_MAG = 10;
  *  pole reach 8. */
 export const TURRET_HOPPER = 50, TURRET_RANGE = 9, TURRET_ROUNDS_PER_S = 5;
 export const LAMP_KW = 5, LAMP_RADIUS = 4, POLE_REACH = 8;
+/** §13 Electricians' unlocks (prompt B M3): Floodlight 2×2 40 kW with a 12-tile cone; Big pole 2×2 reach 12.
+ *  GAME-ASSUMPTION: the cone is 60° wide (±30° about the facing — §13 gives only its length). */
+export const FLOODLIGHT_KW = 40, FLOODLIGHT_RANGE = 12, FLOODLIGHT_HALF_ANGLE = Math.PI / 6, BIG_POLE_REACH = 12;

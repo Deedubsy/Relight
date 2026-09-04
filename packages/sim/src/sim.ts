@@ -9,6 +9,7 @@ import { hash01, rngNext, seedRng, pyRound } from './prng';
 import { districtBase } from './districts';
 import { latticeGraph, bfsHops, edgeId, LATTICE_AREA } from './graph';
 import { createEngineer, tickEngineer, rifle, rifleHits, engineerCommand, bornFed } from './engineer';
+import { SURVIVOR_UNLOCK_NAMES } from './map';
 
 // ------------------------------------------------------------------ config
 
@@ -752,9 +753,10 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       st.fallen[i] = false;
       stateChange(st, i);
       // GAME-ASSUMPTION: a facility is "reached" when its own block turns Held; the proto only toasts it.
-      // GAME-ASSUMPTION: a survivor group joins ("we're in", §8) when its block turns Held; no unlock effect yet.
-      const fac = facilityAt(st, b.x, b.y);
-      st.events.push({ type: 'held', t, x: b.x, y: b.y, facility: fac, survivor: survivorAt(st, b.x, b.y) });
+      // GAME-ASSUMPTION: a survivor group joins ("we're in", §8) when its block turns Held; the Electricians' unlocks
+      // land on the toolbar from this event (prompt B M3, flow.ts `survivorJoined`); the other groups have no effect yet.
+      const fac = facilityAt(st, b.x, b.y), sv = survivorAt(st, b.x, b.y);
+      st.events.push({ type: 'held', t, x: b.x, y: b.y, facility: fac, survivor: sv, unlocks: sv ? [...(SURVIVOR_UNLOCK_NAMES[sv] ?? [])] : [] });
       if (fac === 'Tram depot' && !st.engineer.truckFound) { st.engineer.truckFound = true; st.events.push({ type: 'truck', t }); }   // D5
     }
   }

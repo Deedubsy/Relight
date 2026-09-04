@@ -1,6 +1,6 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
-  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS } from '@relight/sim';
+  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason } from '@relight/sim';
 import { Session, setSpeed, queue, shareUrl } from './session';
 import { summarise, exportJson } from './telemetry';
 
@@ -110,7 +110,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
   root.append(pocketSec);
 
-  // D-B1-5: the build menu (B). The hotbar (1–8) is its shortcut; 9 is the rifle.
+  // D-B1-5: the build menu (B). The hotbar (1–8) is its shortcut; 9 is the rifle. Prompt B M3: the Electricians'
+  // three (0, [, ]) are listed locked, with who unlocks them, until the group's block turns Held (rule 8).
   const buildSec = el('section');
   buildSec.hidden = true;
   buildSec.append(el('h2', undefined, 'Build menu (B)'));
@@ -120,16 +121,18 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     { kind: 'excavator', key: '3', what: '3×3, 0.5/s onto the belt it faces' }, { kind: 'assembler', key: '4', what: `Shot assembler, ${SHOT.seconds} s a magazine` },
     { kind: 'turret', key: '5', what: '2×2, range 9, 50-round hopper' }, { kind: 'lamp', key: '6', what: 'lights 8 tiles' },
     { kind: 'pole', key: '7', what: 'carries power, claims across the street' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
+    { kind: 'floodlight', key: '0', what: '2×2, 40 kW, a 12-tile cone along its facing (R rotates)' }, { kind: 'bigpole', key: '[', what: '2×2, reach 12' },
+    { kind: 'substation', key: ']', what: '3×3, gives a face that has none (the outskirts) its substation' },
   ];
-  const buildCarried: { kind: BuildKind; v: HTMLElement }[] = [];
+  const buildCarried: { kind: BuildKind; v: HTMLElement; btn: HTMLButtonElement; lock: HTMLElement }[] = [];
   for (const b of BUILD) {
-    const li = el('li'), btn = el('button', undefined, `${b.key} · ${b.kind}`);
+    const li = el('li'), btn = el('button', undefined, `${b.key} · ${b.kind}`) as HTMLButtonElement;
     const c = MACHINE_COST[b.kind];
     btn.title = `Put a ${b.kind} in the hand (hotbar ${b.key})`;
     btn.onclick = () => panelRef.onPick?.(b.kind);
-    const carried = el('span', 'mono', '');
-    li.append(btn, el('span', 'hint', ` ${c.steel} steel${c.copper ? ` + ${c.copper} Cu` : ''} from the pockets · ${b.what} `), carried);
-    buildCarried.push({ kind: b.kind, v: carried });
+    const carried = el('span', 'mono', ''), lock = el('span', 'hint', '');
+    li.append(btn, el('span', 'hint', ` ${c.steel} steel${c.copper ? ` + ${c.copper} Cu` : ''} from the pockets · ${b.what} `), carried, lock);
+    buildCarried.push({ kind: b.kind, v: carried, btn, lock });
     buildList.append(li);
   }
   buildSec.append(buildList);
@@ -326,7 +329,10 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       const mach = KINDS.filter(k => (e.inv[k] ?? 0) > 0).map(k => `${e.inv[k]} ${k}`);
       pocketMachV.textContent = mach.length ? mach.join(', ') : 'none';
     }
-    if (!buildSec.hidden) for (const b of buildCarried) { const n = s.engineer.inv[b.kind] ?? 0; b.v.textContent = n > 0 ? `· ${n} carried` : ''; }
+    if (!buildSec.hidden) for (const b of buildCarried) {
+      const n = s.engineer.inv[b.kind] ?? 0; b.v.textContent = n > 0 ? `· ${n} carried` : '';
+      const lk = lockReason(s, b.kind); b.btn.disabled = !!lk; b.lock.textContent = lk ? ` · locked: ${lk}` : '';
+    }
     if (vCu) { vCu.textContent = String(Math.floor(s.stock.copper)); vSteel!.textContent = String(Math.floor(s.stock.steel)); vStone!.textContent = String(Math.floor(s.stock.stone)); vPatch!.textContent = String(Math.floor(s.patch.steel)); }
     vAsm.textContent = String(h.ammo.assemblers);
     const si = slotInfo(s);
