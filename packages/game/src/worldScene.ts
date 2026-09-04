@@ -36,6 +36,16 @@ import { View } from './view';
 /** GAME-ASSUMPTION: the constitution's 0.5–3× zoom, not §4's 1.0–0.2×; the doc is edited to this range (D-P4-1). */
 export const ZOOM_MIN = 0.5, ZOOM_MAX = 3, ZOOM_STEP = 1.15;
 const PAN_PX_PER_S = 900;
+/** Layout pass, drawing only: the share of the viewport's height the HQ lot fills at the opening zoom. */
+const HQ_SCREEN_FRAC = 1 / 3;
+/** Layout pass, drawing only: how much of the viewport's width the top-left key strip may wrap across before it
+ *  would run under the territory block in the opposite corner. */
+const KEY_STRIP_FRAC = 0.56;
+/** The sim clock for the bottom-right corner: m:ss inside the hour, h:mm:ss past it. */
+const clock = (t: number): string => {
+  const s = Math.max(0, Math.floor(t)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, sec = s % 60;
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+};
 const CHUNK_PX = CHUNK * TILE_PX;   // 1024 px
 const HALF = TILE_PX / 2;
 /** Camera follow: the fraction of the gap to the engineer closed per second (the sim moves them 20× a second). */
@@ -60,6 +70,12 @@ const LIGHT_COL = 0xffe9a0;
  *  only when a texel changed; a Contested lot's specks burn off within `SWEEP_R` tiles of every lit lamp as the
  *  burn-off runs, so the far corners clear last. */
 const UNLIT_RGB = [62, 66, 98], LIGHT_REFRESH_MS = 125, SWEEP_R = 16;
+/** Layout pass, drawing only: how far towards lit an unlit tile is carried by the blurred light map. Below 1 so the
+ *  falloff softens the edge without lighting the dark: at 0.7 the first unlit ring reads about a third lit. */
+const LIGHT_SOFT = 0.7;
+/** Layout pass, drawing only: the machines whose footprint is a box, so they take the common drop shadow and rim.
+ *  Belts, inserters and the posts are not boxes — a rim per tile would draw a ladder down a belt run. */
+const BOX_MACHINE = new Set(['turret', 'floodlight', 'generator', 'excavator', 'assembler', 'bigpole']);
 /** D-B5-1's hand lamp, drawing only: a 2-tile disc on the engineer in the light map when the human takes it (`?handlamp=1`). */
 const HAND_LAMP_R = 2;
 
@@ -89,20 +105,36 @@ export class WorldScene extends Phaser.Scene {
   private gMach!: Phaser.GameObjects.Graphics;
   private gThreat!: Phaser.GameObjects.Graphics;
   private gEng!: Phaser.GameObjects.Graphics;
-  private hudText!: Phaser.GameObjects.Text;
   private lightTex!: Phaser.Textures.CanvasTexture;
   private lightPix!: Uint8Array;        // the lit mask the texture shows (1 lit)
   private lightScratch!: Uint8Array;
+  /** Layout pass, drawing only: the blurred copy of the lit mask the texture is painted from. `lightPix` stays the
+   *  sim's binary lit set — this is only how it is coloured. */
+  private lightSoft!: Float32Array;
+  private lightBlur!: Float32Array;
   private lightAtMs = -Infinity;
   /** D-B5-1 preview: the engineer carries a 2-tile light (off by default; `?handlamp=1` or `__relight.handLamp(true)`). */
   handLamp = false;
   private depotText!: Phaser.GameObjects.Text;
   private depotLabel = '';
-  /** Layout pass: the key strip pinned to the bottom of the viewport (STANDARDS 4.3) and the Depot beacon at the
-   *  viewport's edge when the Depot is out of view (C.2). */
+  /** Layout pass (ROADMAP §2 "Layout and readability pass"): the HUD is four corner overlays rather than one block
+   *  in the top-left — territory top-right, power and pockets bottom-left, speed and clock bottom-right, toasts
+   *  bottom-centre (the toasts are the panel's, `style.css`). GAME-ASSUMPTION: the ROADMAP names those four corners
+   *  and the key strip (STANDARDS 4.3) is not one of them, so it takes the corner left over — top-left, with the
+   *  in-hand line, the two things that answer "what am I holding and what can I press". The Depot beacon (C.2)
+   *  rides the viewport edge nearest the Depot while it is out of view. */
+  private terrText!: Phaser.GameObjects.Text;
+  private powText!: Phaser.GameObjects.Text;
+  private clockText!: Phaser.GameObjects.Text;
   private keyText!: Phaser.GameObjects.Text;
   private beaconText!: Phaser.GameObjects.Text;
   private keyWrap = 0;
+  private powWrap = 0;
+  /** The engineer's facing as last drawn, so an idle engineer keeps pointing where they last moved (`e.face` is the
+   *  sim's own facing vector, set by walk.ts; this only survives the frames where it reads [0,0]). */
+  private lastFace: [number, number] = [1, 0];
+  /** Set the moment the human turns the wheel: after that the opening `fitZoom` never overrides their choice. */
+  private zoomTouched = false;
   /** The city's geometry (segment midpoints for the kerb pips), generated once — `cityGeomOf` regenerates the city. */
   private cg: CityGeom | null = null;
   private labels: Phaser.GameObjects.Text[] = [];
@@ -143,6 +175,7 @@ export class WorldScene extends Phaser.Scene {
     const G0 = ground(this.st);
     this.lightTex = (this.textures.exists('light') ? this.textures.get('light') : this.textures.createCanvas('light', G0.tw, G0.th)) as Phaser.Textures.CanvasTexture;
     this.lightPix = new Uint8Array(G0.tw * G0.th); this.lightScratch = new Uint8Array(G0.tw * G0.th);
+    this.lightSoft = new Float32Array(G0.tw * G0.th); this.lightBlur = new Float32Array(G0.tw * G0.th);
     this.lightAtMs = -Infinity;
     this.paintLight(this.lightPix);   // all unlit until the first read
     this.add.image(0, 0, 'light').setOrigin(0).setScale(TILE_PX).setDepth(1.5).setBlendMode(Phaser.BlendModes.MULTIPLY);
@@ -150,13 +183,16 @@ export class WorldScene extends Phaser.Scene {
     this.gThreat = this.add.graphics().setDepth(3);
     this.gEng = this.add.graphics().setDepth(3);
     this.depotText = this.add.text(0, 0, 'Depot', { fontSize: '20px', color: '#e8ecf4', fontStyle: 'bold' }).setDepth(3).setOrigin(0.5).setVisible(false);
-    this.hudText = this.add.text(8, 8, '', { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } }).setScrollFactor(0).setDepth(10);
-    this.keyText = this.add.text(0, 0, '', { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } }).setScrollFactor(0).setDepth(10).setOrigin(0, 1);
+    const hud = { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } };
+    this.keyText = this.add.text(0, 0, '', hud).setScrollFactor(0).setDepth(10).setOrigin(0, 0);
+    this.terrText = this.add.text(0, 0, '', { ...hud, align: 'right' }).setScrollFactor(0).setDepth(10).setOrigin(1, 0);
+    this.powText = this.add.text(0, 0, '', hud).setScrollFactor(0).setDepth(10).setOrigin(0, 1);
+    this.clockText = this.add.text(0, 0, '', { ...hud, align: 'right' }).setScrollFactor(0).setDepth(10).setOrigin(1, 1);
     this.beaconText = this.add.text(0, 0, '', { fontSize: '13px', color: '#ffffff', fontStyle: 'bold', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 3 } }).setScrollFactor(0).setDepth(10).setOrigin(0.5).setVisible(false);
     this.cg = this.st.city ? cityGeomOf(this.st) : null;
     const cam = this.cameras.main, G = ground(this.st);
     cam.setBounds(0, 0, G.tw * TILE_PX, G.th * TILE_PX);
-    cam.setZoom(1);
+    cam.setZoom(this.fitZoom());
     cam.setRoundPixels(true);
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT,SHIFT,SPACE') as WorldScene['keys'];
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
@@ -167,6 +203,9 @@ export class WorldScene extends Phaser.Scene {
       const f = dy > 0 ? 1 / ZOOM_STEP : ZOOM_STEP;
       if (this.onFoot) this.zoomAt(...this.engineerScreen(), f); else this.zoomAt(p.x, p.y, f);
     });
+    // Layout pass: the canvas fills the window (Scale.RESIZE), so the opening zoom is re-fitted when the window
+    // changes size — until the human turns the wheel, after which their zoom stands.
+    this.scale.on('resize', () => { if (!this.zoomTouched) this.cameras.main.setZoom(this.fitZoom()); });
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.onWake());
     this.events.on(Phaser.Scenes.Events.SLEEP, () => { this.onUp(); this.sendWalk(0, 0); this.sendSprint(false); });
     this.onWake();
@@ -244,6 +283,19 @@ export class WorldScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ camera
 
+  /** Layout pass: the opening zoom puts the HQ lot at about a third of the viewport's height, so the first thing on
+   *  screen is the lot you start on with the streets around it — at the old fixed 1× a 6-tile lot was a fifth of a
+   *  short window and a tenth of a tall one. GAME-ASSUMPTION: the ROADMAP asks for "the HQ lot ≈ one third of screen
+   *  height" and names no tolerance; `HQ_SCREEN_FRAC` is that third, clamped to the constitution's 0.5–3× range
+   *  (D-P4-1), and it is drawing only — no rule reads it. Recomputed on a resize, but never after the human has
+   *  touched the wheel (`zoomTouched`). */
+  private fitZoom(): number {
+    const cam = this.cameras.main, G = ground(this.st), hq = G.blocks.find(b => b.hq);
+    if (!hq || cam.height <= 0) return 1;
+    const lotPx = (hq.y1 - hq.y0 + 1) * TILE_PX;
+    return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, (cam.height * HQ_SCREEN_FRAC) / Math.max(1, lotPx)));
+  }
+
   /** World point under a screen point, for the camera's current scroll and zoom (no rotation). */
   private worldAt(sx: number, sy: number, zoom = this.cameras.main.zoom): { x: number; y: number } {
     const cam = this.cameras.main;
@@ -264,6 +316,7 @@ export class WorldScene extends Phaser.Scene {
 
   zoomAt(sx: number, sy: number, factor: number): void {
     const cam = this.cameras.main;
+    this.zoomTouched = true;
     const z1 = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoom * factor));
     if (z1 === cam.zoom) return;
     const w = this.worldAt(sx, sy);
@@ -645,6 +698,20 @@ export class WorldScene extends Phaser.Scene {
         g.fillRect((tx + 0.3 + 0.4 * ((h >>> 10) % 100) / 100) * TILE_PX - r, (ty + 0.3 + 0.4 * ((h >>> 20) % 100) / 100) * TILE_PX - r, 2 * r, 2 * r);
       }
     }
+    // Layout pass (ROADMAP §2 "street surface and kerb line"): the street surface is the tileset's own T_STREET;
+    // the kerb is drawn here — a thin pale line on every edge where a lot tile meets a street tile, so the street
+    // reads as a street rather than as a gap between lots. Screen-constant width, and not drawn against the river
+    // (owner -2), which has its own bank. GAME-ASSUMPTION: drawing only; nothing reads it.
+    g.lineStyle(1.5 / cam.zoom, 0x8d95a6, 0.45);
+    for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+      const o = own[ty * tw + tx];
+      if (o < 0) continue;
+      const px = tx * TILE_PX, py = ty * TILE_PX;
+      if (ty > 0 && own[(ty - 1) * tw + tx] === -1) g.lineBetween(px, py, px + TILE_PX, py);
+      if (ty < G.th - 1 && own[(ty + 1) * tw + tx] === -1) g.lineBetween(px, py + TILE_PX, px + TILE_PX, py + TILE_PX);
+      if (tx > 0 && own[ty * tw + tx - 1] === -1) g.lineBetween(px, py, px, py + TILE_PX);
+      if (tx < tw - 1 && own[ty * tw + tx + 1] === -1) g.lineBetween(px + TILE_PX, py, px + TILE_PX, py + TILE_PX);
+    }
     // Held rims: the lot's boundary edges, white for interior, amber for the front
     for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
       const o = own[ty * tw + tx];
@@ -678,26 +745,40 @@ export class WorldScene extends Phaser.Scene {
     this.drawThreat();
     this.drawEngineer();
 
-    // HUD: scrollFactor 0 still zooms about the camera centre, so pin it to the top-left at screen scale
-    const f = this.focusBlock(), fi = idxOf(st, f[0], f[1]);
-    this.hudText.setScale(1 / cam.zoom).setPosition(cam.width / 2 + (8 - cam.width / 2) / cam.zoom, cam.height / 2 + (8 - cam.height / 2) / cam.zoom);
-    const e = st.engineer;
+    // The HUD is four corner overlays (ROADMAP §2). `setScrollFactor(0)` still zooms about the camera centre, so
+    // every one is pinned at screen scale through `pin`.
+    const pin = (sx: number, sy: number): [number, number] => [cam.width / 2 + (sx - cam.width / 2) / cam.zoom, cam.height / 2 + (sy - cam.height / 2) / cam.zoom];
+    const f = this.focusBlock(), fi = idxOf(st, f[0], f[1]), e = st.engineer;
     // D5: the HP bar and number only when below full; M4: the crawlers on the tile layer and how many have turned on you
     const th = st.flow?.threat, onYou = th ? th.crawlers.filter(c => c.onPlayer).length : 0;
     const threatLine = th && threatActive(st) && th.crawlers.length ? ` · crawlers ${th.crawlers.length}${onYou ? ` (${onYou} on you)` : ''}` : '';
-    const pockets = this.onFoot ? ` · pockets ${invStacks(e.inv)}/${INV_STACKS} stacks${e.inv.kit ? ` · ${e.inv.kit} kit${e.inv.kit === 1 ? '' : 's'}` : ''}${e.hp < ENGINEER_HP ? ` · HP ${Math.round(e.hp)}/${ENGINEER_HP}` : ''}${threatLine}` : threatLine;
     const rounds = Math.floor((e.inv.magazine ?? 0) * ROUNDS_PER_MAG);
     const inHand = this.tool === 'hand' ? 'empty hand (hold left-click on rubble to mine it; click a turret or Generator to feed it; E interacts)'
       : this.tool === 'rifle' ? `rifle (hold left-click to fire toward the cursor, ${RIFLE_RANGE} tiles; Q puts it away) · ${rounds} round${rounds === 1 ? '' : 's'} in the pockets${rounds ? '' : ' — take magazines from the chest (E on the Depot)'}`
       : `${this.tool} → ${DIR_NAMES[this.dir]}`;
-    const toolLine = st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}${this.powerLine()}` : '';
     const moveLine = this.onFoot ? 'M map view (click a Held or street tile there to walk) · WASD move · Shift sprint · Space dodge · Tab/I pockets · wheel zoom' : 'M map view · drag / WASD pan · wheel zoom';
-    this.hudText.setText(`World view · ${fi >= 0 ? this.blockLine(fi) : ''} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles${pockets}${toolLine}`);
-    // the key strip (STANDARDS 4.3: the keys visible, not hidden) pinned to the bottom edge, wrapped to the viewport
-    const pin = (sx: number, sy: number): [number, number] => [cam.width / 2 + (sx - cam.width / 2) / cam.zoom, cam.height / 2 + (sy - cam.height / 2) / cam.zoom];
-    if (this.keyWrap !== cam.width - 16) { this.keyWrap = cam.width - 16; this.keyText.setWordWrapWidth(this.keyWrap); }
-    this.keyText.setScale(1 / cam.zoom).setPosition(...pin(8, cam.height - 8))
-      .setText(`${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}`);
+
+    // top-left: the key strip (STANDARDS 4.3, the keys visible rather than in a tooltip) and what is in the hand,
+    // wrapped to a little over half the viewport so it never runs under the territory block opposite it
+    const wrap = Math.round(cam.width * KEY_STRIP_FRAC);
+    if (this.keyWrap !== wrap) { this.keyWrap = wrap; this.keyText.setWordWrapWidth(wrap); }
+    this.keyText.setScale(1 / cam.zoom).setPosition(...pin(8, 8))
+      .setText(`${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}${st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}` : ''}`);
+
+    // top-right: territory — the block under the engineer, what the view holds, the zoom
+    this.terrText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8, 8))
+      .setText(`World view · ${n} tiles · zoom ${cam.zoom.toFixed(2)}×${fi >= 0 ? `\n${this.blockLine(fi)}` : ''}`);
+
+    // bottom-left: power and pockets (the two stocks that decide the hour)
+    const pockets = this.onFoot ? `Pockets ${invStacks(e.inv)}/${INV_STACKS} stacks${e.inv.kit ? ` · ${e.inv.kit} kit${e.inv.kit === 1 ? '' : 's'}` : ''}${e.hp < ENGINEER_HP ? ` · HP ${Math.round(e.hp)}/${ENGINEER_HP}` : ''}${threatLine}` : threatLine.replace(/^ · /, '');
+    const power = this.powerLine().replace(/^\n/, '');
+    if (this.powWrap !== wrap) { this.powWrap = wrap; this.powText.setWordWrapWidth(wrap); }
+    this.powText.setScale(1 / cam.zoom).setPosition(...pin(8, cam.height - 8))
+      .setText([pockets, power].filter(Boolean).join('\n') || ' ');
+
+    // bottom-right: the clock and the speed the sim is running at (P pauses, - / = change it)
+    this.clockText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8, cam.height - 8))
+      .setText(`${clock(st.t)}\n${st.speed <= 0 ? 'PAUSED (P)' : `${st.speed}× speed`}`);
     // the Depot beacon (STANDARDS C.2: the landmark reads from the far edge of the viewport): when the Depot is out
     // of view, its direction and distance sit on the edge of the screen nearest it
     if (st.flow) {
@@ -713,19 +794,22 @@ export class WorldScene extends Phaser.Scene {
     } else this.beaconText.setVisible(false);
   }
 
-  /** Layout pass (STANDARDS B.3, B.6): the map's edge pip on the kerb — one per live HQ segment at the street's
-   *  midpoint, at screen scale so it reads at any zoom: ● green at least half full, ▲ amber running low, ✕ red empty,
-   *  blinking. The same `pipOf` the map and the panel use, so the three never disagree. */
+  /** Layout pass (STANDARDS B.3, B.6; ROADMAP §2 "front-segment pip state on the kerb"): the map's edge pip on the
+   *  kerb — one per live segment at the street's midpoint, at screen scale so it reads at any zoom: ● green at least
+   *  half full, ▲ amber running low, ✕ red empty, blinking. The same `pipOf` the map and the panel use, so the three
+   *  never disagree. It was the HQ's segments alone; every Held block's front now carries its own, so a claimed block
+   *  reads the same as the one you started on. */
   private drawKerbPips(g: Phaser.GameObjects.Graphics): void {
     const st = this.st, cg = this.cg;
     if (!cg || !st.flow) return;
-    const zoom = this.cameras.main.zoom, hq = st.blocks.findIndex(b => b.x === st.start[0] && b.y === st.start[1]);
+    const cam = this.cameras.main, zoom = cam.zoom, wv = cam.worldView;
     const blink = Math.floor(performance.now() / 260) % 2 === 0, r = 7 / zoom;
     for (const e of st.ring) {
-      if (e.a !== hq) continue;
-      const sg = segBetween(cg, hq, e.b);
+      if (st.blocks[e.a].state !== HELD) continue;
+      const sg = segBetween(cg, e.a, e.b);
       if (!sg) continue;
       const pip = pipOf(e.hopper / edgeCap(st, e)), x = sg.mx * TILE_PX, y = sg.my * TILE_PX;
+      if (x < wv.x - 32 || x > wv.right + 32 || y < wv.y - 32 || y > wv.bottom + 32) continue;
       g.fillStyle(0x0b0e1a, 0.8); g.fillCircle(x, y, r * 1.7);
       if (pip === 'green') { g.fillStyle(0x3ddc84, 1); g.fillCircle(x, y, r); }
       else if (pip === 'amber') { g.fillStyle(0xf2b632, 1); g.fillTriangle(x, y - r, x - r, y + r * 0.8, x + r, y + r * 0.8); }
@@ -752,10 +836,32 @@ export class WorldScene extends Phaser.Scene {
     this.lightPix.set(m);
     this.paintLight(this.lightPix);
   }
+  /** Layout pass (ROADMAP §2 "soft light falloff"): the lit edge was a hard texel step, so a lamp's reach ended on a
+   *  straight line. The mask is blurred with two passes of [1,2,1]/4 and an unlit texel is lerped that far towards
+   *  white; a lit texel is still full white. GAME-ASSUMPTION: the blur is a render choice — `lightPix` is untouched,
+   *  `lightMask`/`litAt` still decide what is lit, so what a shade may stand on and what burns off is unchanged.
+   *  The texture is one texel per tile drawn at `TILE_PX`, and `antialias` is on, so the card's bilinear filter
+   *  carries the ramp the rest of the way. */
   private paintLight(mask: Uint8Array): void {
-    const G = ground(this.st), ctx = this.lightTex.getContext(), img = ctx.createImageData(G.tw, G.th), d = img.data;
-    for (let i = 0, j = 0; i < mask.length; i++, j += 4) {
-      if (mask[i]) { d[j] = 255; d[j + 1] = 255; d[j + 2] = 255; } else { d[j] = UNLIT_RGB[0]; d[j + 1] = UNLIT_RGB[1]; d[j + 2] = UNLIT_RGB[2]; }
+    const G = ground(this.st), tw = G.tw, th = G.th, n = tw * th;
+    const ctx = this.lightTex.getContext(), img = ctx.createImageData(tw, th), d = img.data;
+    const soft = this.lightSoft, tmp = this.lightBlur;
+    for (let pass = 0; pass < 2; pass++) {
+      const src: ArrayLike<number> = pass === 0 ? mask : soft;
+      for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {   // horizontal
+        const i = y * tw + x;
+        tmp[i] = (src[x > 0 ? i - 1 : i] + 2 * src[i] + src[x < tw - 1 ? i + 1 : i]) / 4;
+      }
+      for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {   // vertical
+        const i = y * tw + x;
+        soft[i] = (tmp[y > 0 ? i - tw : i] + 2 * tmp[i] + tmp[y < th - 1 ? i + tw : i]) / 4;
+      }
+    }
+    for (let i = 0, j = 0; i < n; i++, j += 4) {
+      const v = mask[i] ? 1 : Math.min(1, soft[i] * LIGHT_SOFT);
+      d[j] = UNLIT_RGB[0] + (255 - UNLIT_RGB[0]) * v;
+      d[j + 1] = UNLIT_RGB[1] + (255 - UNLIT_RGB[1]) * v;
+      d[j + 2] = UNLIT_RGB[2] + (255 - UNLIT_RGB[2]) * v;
       d[j + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
@@ -790,9 +896,19 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     if (e.down >= 0) { g.fillStyle(0xe05a5a, 0.9); g.fillCircle(ex, ey, 11); return; }
+    // Layout pass (ROADMAP §2 "engineer as a two-tone sprite with facing"): the amber head rides the sim's own
+    // `face` vector rather than sitting at a fixed offset, with a chevron on the leading edge, so which way the
+    // engineer is turned is readable while standing still. `lastFace` holds the last non-zero facing, because
+    // `face` is [0, 0] at a standstill. GAME-ASSUMPTION: drawing only — nothing reads the chevron, and the lamp
+    // cone the ROADMAP line also asks for is NOT drawn (D-B5-1 decided against a personal light).
+    if (e.face[0] || e.face[1]) this.lastFace = [e.face[0], e.face[1]];
+    const fl = Math.hypot(this.lastFace[0], this.lastFace[1]) || 1, fx = this.lastFace[0] / fl, fy = this.lastFace[1] / fl;
     g.fillStyle(0x0b0e1a, 0.6); g.fillCircle(ex + 2, ey + 3, 11);
     g.fillStyle(e.dash > 0 ? 0xbfe8ff : 0xf5f0e0, 1); g.fillCircle(ex, ey, 10);
-    g.fillStyle(0xe8a93a, 1); g.fillCircle(ex, ey - 2, 5);
+    g.fillStyle(0xe8a93a, 1); g.fillCircle(ex + fx * 3, ey + fy * 3, 5);
+    g.lineStyle(2 / zoom, 0x0b0e1a, 0.8);
+    g.lineBetween(ex + fx * 10 - fy * 5, ey + fy * 10 + fx * 5, ex + fx * 13, ey + fy * 13);
+    g.lineBetween(ex + fx * 10 + fy * 5, ey + fy * 10 - fx * 5, ex + fx * 13, ey + fy * 13);
     if (e.hp < 100) { g.fillStyle(0x1a1d26, 1); g.fillRect(ex - 12, ey + 13, 24, 4); g.fillStyle(0x6fe08a, 1); g.fillRect(ex - 12, ey + 13, 24 * e.hp / 100, 4); }
     if (e.stamina < 1 || e.sprint) {
       g.fillStyle(0x1a1d26, 1); g.fillRect(ex - 12, ey + 18, 24, 3);
@@ -810,16 +926,27 @@ export class WorldScene extends Phaser.Scene {
     g.clear();
     if (!th || !threatActive(st)) return;
     const cam = this.cameras.main, zoom = cam.zoom, wv = cam.worldView;
+    // Layout pass (ROADMAP §2 "distinct crawler / shade shapes"): both were discs a pixel apart in radius. The
+    // crawler keeps the disc; the shade is a diamond, which reads at a glance and at 0.5×. GAME-ASSUMPTION:
+    // drawing only — the hitbox, the rifle and §7's lit-tile rule are unchanged.
+    const dia = (cxp: number, cyp: number, rr: number): Phaser.Types.Math.Vector2Like[] =>
+      [{ x: cxp, y: cyp - rr }, { x: cxp + rr, y: cyp }, { x: cxp, y: cyp + rr }, { x: cxp - rr, y: cyp }];
     for (const c of th.crawlers) {
       const px = c.x * TILE_PX, py = c.y * TILE_PX;
       if (px < wv.x - 48 || px > wv.right + 48 || py < wv.y - 48 || py > wv.bottom + 48) continue;
       const shade = c.kind === 'shade';
       if (shade && !litAt(st, Math.floor(c.x), Math.floor(c.y))) continue;
-      const r = shade ? 8 : 9, age = st.t - c.born, maxHp = ENEMIES[shade ? 1 : 0].hp;
-      g.fillStyle(0x0b0e1a, shade ? 0.25 : 0.7); g.fillCircle(px + 2, py + 3, r);
-      g.fillStyle(shade ? 0x7a6a9a : 0x3a2a4a, shade ? 0.45 : 1); g.fillCircle(px, py, r);
-      if (c.onPlayer) { g.lineStyle(3 / zoom, 0xe05a5a, 0.95); g.strokeCircle(px, py, r + 2); }
-      else { g.lineStyle(1.5 / zoom, 0x9a7ab0, 0.6); g.strokeCircle(px, py, r); }
+      const r = 9, age = st.t - c.born, maxHp = ENEMIES[shade ? 1 : 0].hp;
+      if (shade) {
+        g.fillStyle(0x0b0e1a, 0.25); g.fillPoints(dia(px + 2, py + 3, r), true);
+        g.fillStyle(0x7a6a9a, 0.45); g.fillPoints(dia(px, py, r), true);
+      } else {
+        g.fillStyle(0x0b0e1a, 0.7); g.fillCircle(px + 2, py + 3, r);
+        g.fillStyle(0x3a2a4a, 1); g.fillCircle(px, py, r);
+      }
+      const rim = (rr: number) => { if (shade) g.strokePoints(dia(px, py, rr), true); else g.strokeCircle(px, py, rr); };
+      if (c.onPlayer) { g.lineStyle(3 / zoom, 0xe05a5a, 0.95); rim(r + 2); }
+      else { g.lineStyle(1.5 / zoom, 0x9a7ab0, 0.6); rim(r); }
       if (age < 1) { g.lineStyle(2 / zoom, 0xd0a0ff, 1 - age); g.strokeCircle(px, py, r + 4 + age * 10); }
       if (c.hp < maxHp) { g.fillStyle(0x1a1d26, 1); g.fillRect(px - 10, py - r - 7, 20, 3); g.fillStyle(0xe05a5a, 1); g.fillRect(px - 10, py - r - 7, 20 * Math.max(0, c.hp) / maxHp, 3); }
     }
@@ -908,6 +1035,13 @@ export class WorldScene extends Phaser.Scene {
     for (const m of f.machines) {
       if (m.x + m.size <= tx0 || m.x > tx1 || m.y + m.size <= ty0 || m.y > ty1) continue;
       const px = m.x * TILE_PX, py = m.y * TILE_PX, sz = m.size * TILE_PX, cx = px + sz / 2, cy = py + sz / 2;
+      // Layout pass (ROADMAP §2 "distinct machine silhouettes with outlines"): the shapes were already distinct but
+      // the outlines were not — the turret's showed only while idle, the generator, excavator and assembler had an
+      // inner line and no rim, the lamp and pole had neither. Every box machine now gets the same two marks, drawn
+      // here and closed after the switch: a dark drop shadow that lifts it off the ground, and a screen-constant
+      // rim. The posts (lamp, pole) take a dark backing slab in their own case. GAME-ASSUMPTION: drawing only.
+      const box = BOX_MACHINE.has(m.kind);
+      if (box || m.kind === 'depot') { g.fillStyle(0x05070d, 0.5); g.fillRect(px + 5, py + 6, sz - 4, sz - 4); }
       switch (m.kind) {
         case 'turret': {
           const rounds = m.inv.rounds ?? 0, frac = Math.min(1, rounds / TURRET_HOPPER);
@@ -920,12 +1054,13 @@ export class WorldScene extends Phaser.Scene {
           // hopper bar: green → amber → red, blinking outline when empty (the same event turns the map pip red)
           g.fillStyle(0x1a1d26, 1); g.fillRect(px + 6, py + sz - 12, sz - 12, 6);
           g.fillStyle(frac > 0.5 ? 0x6fe08a : frac > 0 ? 0xe8a93a : 0xe05a5a, 1); g.fillRect(px + 6, py + sz - 12, (sz - 12) * frac, 6);
-          if (rounds <= 0 && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2); }
-          if (!m.busy) { g.lineStyle(1.5, 0x8a8f9a, 0.6); g.strokeRect(px + 2, py + 2, sz - 4, sz - 4); }
+          // `busy` is "covers a live edge": a turret that covers nothing keeps its grey mark, now inside the rim
+          if (!m.busy) { g.lineStyle(1.5 / zoom, 0x8a8f9a, 0.6); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12); }
           break;
         }
         case 'lamp': {
           const on = lit.has(m.x * 4096 + m.y);
+          g.fillStyle(0x05070d, 0.5); g.fillRect(cx - 6, py + 6, 12, TILE_PX - 8);
           g.fillStyle(MACHINE_COL.lamp, 1); g.fillRect(cx - 3, py + 8, 6, TILE_PX - 12);
           g.fillStyle(on ? 0xfff3b0 : 0x3a3a40, 1); g.fillCircle(cx, py + 9, 6);
           if (on) { g.fillStyle(LIGHT_COL, 0.35); g.fillCircle(cx, py + 9, 9); }
@@ -933,6 +1068,7 @@ export class WorldScene extends Phaser.Scene {
         }
         case 'pole': {
           const on = grid.connected.has(m.id);
+          g.fillStyle(0x05070d, 0.5); g.fillRect(cx - 11, py + 5, 22, TILE_PX - 6);
           g.fillStyle(MACHINE_COL.pole, 1); g.fillRect(cx - 3, py + 6, 6, TILE_PX - 8);
           g.fillRect(cx - 9, py + 8, 18, 3);
           g.fillStyle(on ? 0xb6e36a : 0x8a8f9a, 1); g.fillCircle(cx - 8, py + 9, 2.5); g.fillCircle(cx + 8, py + 9, 2.5);
@@ -969,12 +1105,12 @@ export class WorldScene extends Phaser.Scene {
           for (let k = 0; k < Math.min(10, Math.ceil(coal / 5)); k++) { g.fillStyle(ITEM_COL.coal, 1); g.fillRect(px + 10 + (k % 5) * 9, py + 12 + Math.floor(k / 5) * 9, 7, 7); }
           g.fillStyle(0x1e1418, 1); g.fillRect(px + 10, py + sz - 16, sz - 20, 8);
           g.fillStyle(0xff9a3a, 1); g.fillRect(px + 10, py + sz - 16, (sz - 20) * Math.min(1, m.timer), 8);
-          if (coal <= 0 && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2); }
           break;
         }
         case 'belt': this.drawBelt(g, m, px, py); break;
         case 'inserter': {
           g.fillStyle(0x3a3220, 1); g.fillRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
+          g.lineStyle(1.5 / zoom, 0x9aa3b8, 0.6); g.strokeRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
           g.fillStyle(MACHINE_COL.inserter, 1); g.fillCircle(cx, cy, 7);
           const [ix, iy] = inputTile(m), [ox, oy] = outputTile(m);
           const toOut = m.phase === 1;
@@ -1027,6 +1163,12 @@ export class WorldScene extends Phaser.Scene {
           this.depotText.setPosition(cx, cy - 6).setScale(Math.max(1, 1 / zoom)).setVisible(true);
           break;
         }
+      }
+      if (box) {
+        g.lineStyle(2 / zoom, 0x9aa3b8, 0.75); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2);
+        // the empty alert is drawn after the rim so it still wins: a turret with no rounds, a Generator with no coal
+        const empty = m.kind === 'turret' ? (m.inv.rounds ?? 0) <= 0 : m.kind === 'generator' ? (m.inv.coal ?? 0) <= 0 : false;
+        if (empty && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2); }
       }
     }
   }

@@ -938,6 +938,39 @@ The steel curve: 200 → 42 at 10:00 and 15:00 → **0 at 15:02** → 29 / 27 / 
 
 **Unchanged from the previous run (`B-M6-hour`):** the 0–10 script (mine 0:20, craft 1:20, first crawler 2:44–3:05, first red 5:33–6:18, Generator 2 at 6:01–6:02, first line magazine 8:07–8:10), east and west (15 / 25), Generator 4 at 45, walking under 5 %, the HQ standing at the hour on every seed, the logged hour replaying to the same state. **Changed by the decided minutes:** the second steel Excavator 12 → 15 (steel min 30 → 0) and north 65 → 40 (a fall inside the hour and 299–300 s of brownout).
 
+## Layout and readability pass — built 2026-09-05 (unverified; `docs/PROGRESS.md` T3)
+
+Full report: **`docs/LAYOUT_PASS_REPORT.md`**. This finishes the pass the economy-fix task started
+on 2026-09-04 (the section above: `Scale.RESIZE` and the full-viewport world, the top-left HUD and
+the bottom-left key strip, the HQ's kerb pips, the Depot's outline, fill bar and beacon). Drawing only — no file in `packages/sim` was opened,
+the config hash is unmoved (`0176f61d`), and no measured number in this report can have changed.
+
+Ten of `ROADMAP.md` §2's eleven readability items were built: the HUD as four corner overlays with
+the toasts moved to bottom-centre, the map view as a centred full-screen overlay that refits on
+resize, an opening zoom that puts the HQ lot at about a third of the viewport's height, the kerb
+line where a lot meets a street, a soft light falloff (a render-side blur over the lit mask —
+`lightPix`, `lightMask` and `litAt` are untouched), a common drop shadow and rim on every box
+machine, the engineer's facing from `e.face` with a chevron, the shade as a diamond against the
+crawler's disc, and the kerb pip on every Held block's front rather than the HQ's alone. The
+full-viewport canvas and the clumped rubble were already built.
+
+**The eleventh item was refused.** §2's line asks for the engineer to carry "a lamp cone";
+**D-B5-1** (decided, Daniel, 2026-09-04) decided against a personal light. The facing was built,
+the cone was not, and the ROADMAP line is reported as wrong rather than edited (constitution rule
+12). D-B5-1 reopens only on STANDARDS row A.7 — the played-dark sentence — which the T5–T8 waiver
+did not produce (`GATE_B.md`).
+
+**Cheap checks green:** `npm test` 121/121, `typecheck`, `lint`, `docsync:check`, `snapshot:check`.
+**Unverified:** the light-map blur costs 7–12 ms of arithmetic per repaint in Node at eight
+repaints a second, and the map view rebuilds its raster on every resize step; both want the 900 s
+soak on the reference machine before the pass's frame numbers mean anything. The pass's own success
+condition — a stranger points to street, lot edge, lit area, rubble, Depot and engineer unaided —
+is **untested**: T7 was waived and `docs/layout-pass/STRANGER_TEST.md` was never written.
+
+**Three decisions:** D-LP-1 (the opening zoom clamps to 0.5× at 1080p and seed 4's 46-tile HQ lot
+never reaches a third), D-LP-2 (the key strip's corner), D-LP-3 (the falloff strength — the one
+that touches the identity).
+
 ## Gate B
 
 verdict:

@@ -10,8 +10,10 @@ import {
   STREET, WATER, segKey,
 } from '@relight/sim';
 import { Session, queue } from './session';
-import { SceneHooks, MapView, MAP_W, MAP_H, C } from './mapScene';
+import { SceneHooks, MapView, C } from './mapScene';
 
+/** Layout pass (ROADMAP §2 "the map view as a full-screen overlay"): the inset the map keeps from the canvas edge.
+ *  It used to be the inset inside a fixed 648 px square; the square is gone and the map is fitted to the canvas. */
 const PAD = 4;
 /** Dark lots by rot tier (0–3), plain and inside a well's influence. */
 const DARK_TIER = [0x16204a, 0x1c2a5e, 0x243774, 0x30478f];
@@ -29,6 +31,10 @@ export class CityMapScene extends Phaser.Scene implements MapView {
   private geom!: CityGeom;
   private ppt = 1;   // pixels per tile
   private W = 0; private H = 0;
+  /** Where the fitted map's top-left sits on the canvas — it is centred, so this is not `PAD` any more. */
+  private ox = PAD; private oy = PAD;
+  private groundImg!: Phaser.GameObjects.Image;
+  private headText!: Phaser.GameObjects.Text;
   private pixOwner!: Int32Array;              // per ground pixel: block id, -1 street, -2 water, -3 outside the canvas
   private ridgePx: Int32Array[] = [];         // per street segment: the ground pixels of its ridge
   private tex!: Phaser.Textures.CanvasTexture;
@@ -56,38 +62,58 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     this.cameras.main.setBackgroundColor(C.bg);
     this.geom = generateCity(st.city!.seed, st.city!.preset as CityPreset);
     const g = this.geom;
-    this.W = MAP_W - 2 * PAD; this.H = MAP_H - 2 * PAD;
-    this.ppt = Math.min(this.W / g.tw, this.H / g.th);
-    // one sample per ground pixel (the canvas is 0.8 px per tile; the narrowest street is 6 tiles, so it always shows)
-    this.pixOwner = new Int32Array(this.W * this.H);
-    for (let py = 0; py < this.H; py++) for (let px = 0; px < this.W; px++) {
-      const tx = Math.floor(px / this.ppt), ty = Math.floor(py / this.ppt);
-      let o = -3;
-      if (tx < g.tw && ty < g.th) { const k = g.kind[ty * g.tw + tx]; o = k === STREET ? -1 : k === WATER ? -2 : g.owner[ty * g.tw + tx]; }
-      this.pixOwner[py * this.W + px] = o;
-    }
-    this.ridgePx = g.segs.map(s => {
-      const set = new Set<number>();
-      for (const t of s.ridge) { const px = Math.floor((t % g.tw) * this.ppt), py = Math.floor(Math.floor(t / g.tw) * this.ppt); if (px < this.W && py < this.H) set.add(py * this.W + px); }
-      return Int32Array.from(set);
-    });
-    this.tex = this.textures.createCanvas('city-ground', this.W, this.H)!;
-    this.img = this.tex.context.createImageData(this.W, this.H);
-    this.add.image(PAD, PAD, 'city-ground').setOrigin(0);
+    this.tex = (this.textures.exists('city-ground') ? this.textures.get('city-ground') : this.textures.createCanvas('city-ground', 8, 8)) as Phaser.Textures.CanvasTexture;
+    this.groundImg = this.add.image(PAD, PAD, 'city-ground').setOrigin(0);
     this.gEdges = this.add.graphics();
     this.gFx = this.add.graphics();
-    this.add.text(PAD + 4, PAD + 2, `${st.city!.preset} · seed ${st.seed} · ${st.blocks.length} blocks`, { fontSize: '10px', color: '#5c6a8a' }).setDepth(6);
+    this.headText = this.add.text(PAD + 4, PAD + 2, `${g.tw}×${g.th} · ${st.city!.preset} · seed ${st.seed} · ${st.blocks.length} blocks`, { fontSize: '10px', color: '#5c6a8a' }).setDepth(6);
+    this.layout();
+    this.scale.on('resize', () => this.layout());
 
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
     this.input.on('gameout', () => { this.setHover(-1); this.hooks.onHover(null, 0, 0); });
   }
 
+  /** Layout pass: fit the map to the canvas — the largest whole-tile scale that fits inside `PAD`, centred. The
+   *  ground raster is one sample per pixel, so it is rebuilt whenever the fitted size changes; at the old fixed
+   *  648 px it was 0.8 px per tile, and a wider canvas simply buys more of them. */
+  private layout(): void {
+    const g = this.geom, cam = this.cameras.main;
+    const ppt = Math.min(Math.max(64, cam.width - 2 * PAD) / g.tw, Math.max(64, cam.height - 2 * PAD) / g.th);
+    const W = Math.max(1, Math.floor(g.tw * ppt)), H = Math.max(1, Math.floor(g.th * ppt));
+    this.ppt = ppt;
+    if (W !== this.W || H !== this.H) {
+      this.W = W; this.H = H;
+      // one sample per ground pixel (the narrowest street is 6 tiles, so it always shows)
+      this.pixOwner = new Int32Array(W * H);
+      for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+        const tx = Math.floor(px / ppt), ty = Math.floor(py / ppt);
+        let o = -3;
+        if (tx < g.tw && ty < g.th) { const k = g.kind[ty * g.tw + tx]; o = k === STREET ? -1 : k === WATER ? -2 : g.owner[ty * g.tw + tx]; }
+        this.pixOwner[py * W + px] = o;
+      }
+      this.ridgePx = g.segs.map(s => {
+        const set = new Set<number>();
+        for (const t of s.ridge) { const px = Math.floor((t % g.tw) * ppt), py = Math.floor(Math.floor(t / g.tw) * ppt); if (px < W && py < H) set.add(py * W + px); }
+        return Int32Array.from(set);
+      });
+      this.tex.setSize(W, H);
+      this.groundImg.setTexture('city-ground');   // re-reads the base frame, so the image takes the new size
+      this.img = this.tex.context.createImageData(W, H);
+      this.lastPaint = -1e9;   // repaint at the new size on the next frame
+    }
+    this.ox = Math.round((cam.width - W) / 2);
+    this.oy = Math.round((cam.height - H) / 2);
+    this.groundImg.setPosition(this.ox, this.oy);
+    this.headText.setPosition(this.ox + 4, this.oy + 2);
+  }
+
   // --- geometry helpers ---------------------------------------------------------------------------------------
-  private px(i: number): number { return PAD + this.geom.blocks[i].cx * this.ppt; }
-  private py(i: number): number { return PAD + this.geom.blocks[i].cy * this.ppt; }
+  private px(i: number): number { return this.ox + this.geom.blocks[i].cx * this.ppt; }
+  private py(i: number): number { return this.oy + this.geom.blocks[i].cy * this.ppt; }
   private blockAtPixel(x: number, y: number): number {
-    const px = Math.floor(x - PAD), py = Math.floor(y - PAD);
+    const px = Math.floor(x - this.ox), py = Math.floor(y - this.oy);
     if (px < 0 || py < 0 || px >= this.W || py >= this.H) return -1;
     const o = this.pixOwner[py * this.W + px];
     return o >= 0 ? o : -1;
@@ -101,7 +127,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     const k = this.segOf(e);
     if (k < 0) return { x: this.px(idxOf(this.session.state, e.from.x, e.from.y)), y: this.py(idxOf(this.session.state, e.from.x, e.from.y)) };
     const s = this.geom.segs[k];
-    return { x: PAD + s.mx * this.ppt, y: PAD + s.my * this.ppt };
+    return { x: this.ox + s.mx * this.ppt, y: this.oy + s.my * this.ppt };
   }
   private edges(): FrontEdgeView[] {
     const st = this.session.state;
@@ -135,7 +161,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
       return;
     }
     const st = this.session.state, g = this.geom;
-    const tx = Math.floor((p.x - PAD) / this.ppt), ty = Math.floor((p.y - PAD) / this.ppt);
+    const tx = Math.floor((p.x - this.ox) / this.ppt), ty = Math.floor((p.y - this.oy) / this.ppt);
     const onMap = tx >= 0 && ty >= 0 && tx < g.tw && ty < g.th;
     const owner = onMap ? g.owner[ty * g.tw + tx] : -2;
     // D-B1-5: a click on a street tile or a Held block's tile sets a walk-here target (the A* in walk.ts) — the only
@@ -174,7 +200,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
         const i = idxOf(st, ev.x, ev.y), j = idxOf(st, ev.nx, ev.ny); if (i < 0) continue;
         // prompt B M4: in a world-view session the map scene consumes events before its create() ran; no geometry yet, so the pulse sits on the block
         const k = j >= 0 && this.geom ? this.geom.segAt.get(segKey(st.blocks.length, i, j)) ?? -1 : -1;
-        const at = k >= 0 ? { x: PAD + this.geom.segs[k].mx * this.ppt, y: PAD + this.geom.segs[k].my * this.ppt } : {};
+        const at = k >= 0 ? { x: this.ox + this.geom.segs[k].mx * this.ppt, y: this.oy + this.geom.segs[k].my * this.ppt } : {};
         this.pulses.push({ i, ...at, born: now, dur: 900, r0: 10, r1: 4, color: C.red, width: 2, wake: false });
       } else if (ev.type === 'fall') {
         const i = idxOf(st, ev.x, ev.y); if (i < 0) continue;
@@ -299,7 +325,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
       const k = (now - this.focusMark.born) / 2500;
       if (k >= 1) this.focusMark = null;
       else {
-        const b = this.geom.blocks[this.focusMark.i], x0 = PAD + b.x0 * this.ppt, y0 = PAD + b.y0 * this.ppt, x1 = PAD + (b.x1 + 1) * this.ppt, y1 = PAD + (b.y1 + 1) * this.ppt, L = 6;
+        const b = this.geom.blocks[this.focusMark.i], x0 = this.ox + b.x0 * this.ppt, y0 = this.oy + b.y0 * this.ppt, x1 = this.ox + (b.x1 + 1) * this.ppt, y1 = this.oy + (b.y1 + 1) * this.ppt, L = 6;
         g.lineStyle(2, C.white, 1 - k);
         g.lineBetween(x0, y0, x0 + L, y0); g.lineBetween(x0, y0, x0, y0 + L); g.lineBetween(x1, y0, x1 - L, y0); g.lineBetween(x1, y0, x1, y0 + L);
         g.lineBetween(x0, y1, x0 + L, y1); g.lineBetween(x0, y1, x0, y1 - L); g.lineBetween(x1, y1, x1 - L, y1); g.lineBetween(x1, y1, x1, y1 - L);
@@ -338,7 +364,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     }
     // D5: the engineer — a white dot (red while knocked down) at its tile, with a ring while walking
     if (st.engineer) {
-      const e = st.engineer, ex = PAD + e.x * this.ppt, ey = PAD + e.y * this.ppt;
+      const e = st.engineer, ex = this.ox + e.x * this.ppt, ey = this.oy + e.y * this.ppt;
       g.fillStyle(e.down >= 0 ? C.red : C.white, 1); g.fillCircle(ex, ey, 3); g.lineStyle(1, 0x000000, 0.8); g.strokeCircle(ex, ey, 3);
       if (e.dest >= 0 || e.target) { g.lineStyle(1, C.white, 0.4 + 0.4 * throb); g.strokeCircle(ex, ey, 6); }
     }
