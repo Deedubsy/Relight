@@ -248,3 +248,10 @@ Every item above keeps its phase unless listed here.
 - **The Playwright check of M5's repair by E and `?handlamp=1`** → **Gate B**: the soak script exercised neither; the played hour does.
 - **The kerb reads lit, the road does not** (M5 measured: the kerb row 50–68 %, the half-street 26–41 %) → **Gate B** says whether a street should read lit; the options are in `SLICE_REPORT.md` M5 "disagree".
 - **The game's chest against the harness's** (D-B1-1: the same bot held 2 in the browser and 3 in the harness) → **D-P4-4 / D-B1-1 at Gate B**; until then the harness's numbers are the ones this report quotes and the browser's are marked as the browser's.
+- **Generated-report freshness in full** (the earlier `ROADMAP.md` §6 claimed every generated report carries its source commit and config hash and CI fails on a mismatch; only the snapshot check gates and only config hashes are written) → **next verification pass**: stamp the commit into `calibration.md`, `EXPERIMENTS.md` and the snapshot, and fail `docsync:check` on a stale hash.
+- **M6's two unrun checks** (rail-yard coal reaching the Generators with ≥ 10 min margin before the Depot's coal is gone; the arrival count at the ≈ 6-minute first red pip on seeds 3/4/5) → **next verification pass**, as E-hour rows.
+- **E-rifle at tile scale** (the block-scale E-rifle never sees the rifle decide a rescue: twelve of twelve hold either way) → **before Gate B if a go falls free; otherwise Absorb Gate B**, with M4's bodies.
+
+## Re-read at the standards audit (2026-09-04)
+
+Nothing parked: the audit built nothing. Every gap it found is a `STANDARDS.md` row in a phase (46 rows) or a `## Considered` entry with its §22 / §23 / constitution reason (29 items); none is deferred here. Standing rule from here on: an add-later STANDARDS row that slips its phase gets a line in this file naming the phase it moves to, never a silent drop. The three Step 0 items above (freshness, M6's two checks, E-rifle at tile scale) keep their owners.
