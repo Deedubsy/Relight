@@ -22,18 +22,13 @@ npm run calibrate -- --out docs/experiments/calibration.json --md docs/experimen
 
 plus the 900 s Playwright soak against the Vite preview. A red experiment is a red build. Fixtures `packages/sim/fixtures/city{3,4,5}.json` are the D6 regression set: a change that moves them is a rules change and is reported as one (regenerate with `npx tsx packages/sim/test/_exportCity.ts`). Until a verification pass has run, a milestone's measured numbers are marked *unverified* in the report; nothing else waits on it.
 
-## Constitution
+## The rules
 
-- **Doc follows sim.** A doc number found wrong is edited, with a changelog line at the end of `RELIGHT-design.md`: `- §N — what changed — why — run name`. Numbers the sim confirms get a `[sim: run-name]` tag.
-- **GAME-ASSUMPTION tags live in code** and every milestone report lists all of them.
-- **Humans decide constants.** Give a recommendation and add a row to `docs/DECISIONS.md`; never settle it silently.
-- **Rules surface in-game** (toasts, ghost reasons, panel text), never only in code.
-- **Where the build disagrees with the doc, report it, do not resolve it.**
-- A bare "go" from the user means the next milestone in the current prompt: **code changes and a light review only**. Do not ask questions; make the routine calls and state the assumptions. No scripted checks, experiments, calibration or soaks — those are the verification pass above, on request.
+**The rules are in `docs/CONSTITUTION.md`. Read it at the start of every session. Nothing in this file overrides it. If this file and CONSTITUTION.md ever disagree, CONSTITUTION.md is right and this file must be fixed.**
 
 ## Every milestone ends with
 
-1. A light review: read the diff back once for type errors, dead paths, rules that do not surface in-game, and tags missing from the report. Fix what the read finds; do not run the tool chain.
+1. A light review: read the diff back once for type errors, dead paths, rules that do not surface in-game, and tags missing from the report. Fix what the read finds. Run the cheap checks (test, typecheck, lint, docsync). If any is red, fix it before writing the report. Do not run experiments, calibration or the soak unless the user said 'verify'.
 2. Its `docs/SLICE_REPORT.md` section: built / assumed (every GAME-ASSUMPTION) / deferred / measured (marked *unverified* until the verification pass; list what the pass should measure) / where it disagrees with the doc / three decisions for the human.
 3. `docs/PROGRAMME_STATE.md` status line and section, plus the §26 untagged recount.
 4. A `docs/DEFERRED.md` re-read section.
