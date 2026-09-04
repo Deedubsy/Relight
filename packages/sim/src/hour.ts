@@ -9,7 +9,7 @@
  *  rifle matter" row). The bot is a dev aid: not a player control, never on by default (`?autoplay=hour`). */
 import { SimState, Command, HELD, DARK, CONTESTED, INERT } from './types';
 import { edgeTo } from './graph';
-import { hqIdx, RIFLE_RANGE } from './engineer';
+import { hqIdx, RIFLE_RANGE, INV_STACKS, KIT_STACKS, invStacks, invCap } from './engineer';
 import { ground, hqLot, inReach, cityGeomOf } from './ground';
 import { LOT_TILES } from './tiles';
 import { segBetween, frontTiles } from './city/geom';
@@ -94,10 +94,15 @@ export interface HourBot {
 }
 
 /** GAME-ASSUMPTION (M6): the bot's numbers where §11 gives none — 20 steel hand-mined (ten magazines' worth), ten
- *  magazines crafted, six kits a claim (one an edge, the spare comes back), a rounds run every five minutes from
+ *  magazines crafted, a full load of kits a claim, a rounds run every five minutes from
  *  minute 10 (20 magazines and 50 coal a trip, turrets and Generators at or under half topped up); the hand-feed
  *  beat (D-P4-8) fires on a red HQ pip at most once a minute and tops up the turrets at or under half. */
-export const HOUR_MINE_STEEL = 20, HOUR_CRAFT_MAGS = 10, HOUR_KITS = 6, HOUR_RUN_FROM = 10 * 60, HOUR_RUN_GAP = 5 * 60;
+/** A kit costs KIT_STACKS of the engineer's INV_STACKS pockets (D5), so four is every kit one trip can hold and the
+ *  claim step empties the pockets into the chest first to get all four. A claimed block whose ring is born with more
+ *  than HOUR_KITS edges cannot be fully kitted in one trip: kits are spent at the instant an edge is born (D-B1-4),
+ *  so a second trip cannot fix it. `kitsTask` logs that as a refusal rather than letting it pass in silence. */
+export const HOUR_KITS = Math.floor(INV_STACKS / KIT_STACKS);
+export const HOUR_MINE_STEEL = 20, HOUR_CRAFT_MAGS = 10, HOUR_RUN_FROM = 10 * 60, HOUR_RUN_GAP = 5 * 60;
 export const HOUR_RUN_MAGS = 20, HOUR_RUN_COAL = 50, HOUR_FEED_GAP = 60;
 /** D-P4-7 / D-HOUR-1: the second steel Excavator, belted into the Depot chest, at constants.HOUR's minute (15), placed
  *  before Generator 3 at the same minute so the chest never reaches zero. (GA-EF-1's 12:00 was withdrawn by the
@@ -192,6 +197,14 @@ function kitted(st: SimState, i: number): boolean {
   return true;
 }
 
+/** Every turret standing on a Held block — the HQ's and the ones carried to a claim. A carried turret takes its
+ *  edge off the ring feed (`hookSyncEdges`: an edge with physical turrets fires only through them), so the hands are
+ *  the only thing that fills it: a beat that watched the HQ alone left north's carried turrets empty for minutes. */
+const heldTurrets = (st: SimState): Machine[] => {
+  const G = ground(st);
+  return st.flow!.machines.filter(m => m.kind === 'turret' && st.blocks[G.owner[m.y * G.tw + m.x]]?.state === HELD);
+};
+
 const hqTurrets = (st: SimState): Machine[] => {
   const hq = hqIdx(st), G = ground(st);
   return st.flow!.machines.filter(m => m.kind === 'turret' && G.owner[m.y * G.tw + m.x] === hq);
@@ -220,6 +233,27 @@ function takeTask(bot: HourBot, wants: Partial<Record<'steel' | 'copper' | 'coal
       out.push({ type: 'chestTake', item, n: Math.min(n, have) });
     }
   });
+}
+
+/** D-B1-4: a kit is spent at the instant an edge is born, so a claim has one trip to carry one per edge. A kit costs
+ *  KIT_STACKS of INV_STACKS, so the surplus (rubble and magazines) goes back into the chest first to make room for
+ *  all HOUR_KITS of them; what the pockets end up holding is written down, because fewer kits than edges is a block
+ *  that can never be fully kitted. */
+function kitsTask(bot: HourBot): Task[] {
+  return [
+    act('the pockets into the chest, then the kits', (st, out) => {
+      for (const item of ['steel', 'copper', 'stone', 'coal', 'magazine'] as const) {
+        const n = st.engineer.inv[item] ?? 0;
+        if (n > 0) out.push({ type: 'chestPut', item, n });
+      }
+      out.push({ type: 'chestTake', item: 'kit', n: HOUR_KITS });
+    }),
+    act('kits carried', st => {
+      const k = st.engineer.inv.kit ?? 0;
+      note(bot, st, `${k} kit(s) in the pockets (${invStacks(st.engineer.inv)} of ${invCap(st.engineer)} stacks used)`);
+      if (k < HOUR_KITS) refused(bot, st, `take ${HOUR_KITS} kits`, `only ${k} fit — ${invStacks(st.engineer.inv)} of ${invCap(st.engineer)} stacks are full`);
+    }),
+  ];
 }
 
 /** Walk within reach of a lot position and place there; a refusal (reach, cost, the tile) is logged, never forced. */
@@ -321,12 +355,13 @@ function turretPip(st: SimState, m: Machine): 'green' | 'amber' | 'red' {
 /** D-P4-8's hand-feed beat: a red pip on an HQ edge sends the bot to every HQ turret at or under half, worst pip first,
  *  E on each from the pockets (a chest stop first when the pockets are empty). */
 function feedBeat(bot: HourBot, st: SimState): Task[] {
-  const hq = hqIdx(st), rank = { red: 0, amber: 1, green: 2 };
-  const low = hqTurrets(st).filter(m => (m.inv.rounds ?? 0) <= TURRET_HOPPER / 2).sort((a, b) => rank[turretPip(st, a)] - rank[turretPip(st, b)] || dirOf(st, hq, edgeTo(st, turretEdge(st, a))).localeCompare(dirOf(st, hq, edgeTo(st, turretEdge(st, b)))));
+  const rank = { red: 0, amber: 1, green: 2 }, e = st.engineer;
+  const low = heldTurrets(st).filter(m => (m.inv.rounds ?? 0) <= TURRET_HOPPER / 2)
+    .sort((a, b) => rank[turretPip(st, a)] - rank[turretPip(st, b)] || (Math.hypot(a.x - e.x, a.y - e.y) - Math.hypot(b.x - e.x, b.y - e.y)));
   if (!low.length) return [];
   note(bot, st, `hand-feed beat: ${low.length} turret(s) at or under half, ${low.filter(m => turretPip(st, m) === 'red').length} on a red edge`);
   const t: Task[] = [];
-  if ((st.engineer.inv.magazine ?? 0) < low.length) t.push(chest('to the chest for magazines', st), takeTask(bot, { magazine: HOUR_RUN_MAGS }));
+  if ((st.engineer.inv.magazine ?? 0) < low.length * TURRET_HOPPER / SHOT.count) t.push(chest('to the chest for magazines', st), takeTask(bot, { magazine: Math.max(HOUR_RUN_MAGS, Math.ceil(low.length * TURRET_HOPPER / SHOT.count)) }));
   for (const m of low) t.push(goto('turret', m.x, m.y, m.size, 'hand-feed beat'), feedTask('turret', m.x, m.y));
   t.push(act('fed', st2 => { mark(bot, st2, 'first-hand-feed'); if (bot.fedAtFeedDone < 0) bot.fedAtFeedDone = st2.flow!.stats.handFed; note(bot, st2, `${st2.flow!.stats.handFed} magazines fed by hand so far`); }));
   return t;
@@ -334,8 +369,10 @@ function feedBeat(bot: HourBot, st: SimState): Task[] {
 /** A red pip on an HQ edge, the pockets or the chest holding magazines, and a minute since the last beat. */
 function feedDue(bot: HourBot, st: SimState): boolean {
   if (st.t - bot.lastFeed < HOUR_FEED_GAP) return false;
-  const hq = hqIdx(st);
-  for (const ed of st.ring) if (ed.a === hq && ed.kit !== false && pipOf(ed.hopper / edgeCap(st, ed)) === 'red') return (st.engineer.inv.magazine ?? 0) > 0 || chestCount(st, 'magazine') > 0;
+  for (const ed of st.ring) {
+    if (st.blocks[ed.a].state !== HELD || ed.kit === false || !ed.turrets) continue;   // ring-fed edges need no hands
+    if (pipOf(ed.hopper / edgeCap(st, ed)) === 'red') return (st.engineer.inv.magazine ?? 0) > 0 || chestCount(st, 'magazine') > 0;
+  }
   return false;
 }
 
@@ -357,7 +394,11 @@ function claimStep(bot: HourBot, dir: HourDir): Task[] {
         goto(`${dir}'s lot`, sx, sy, 1, `walk-over ${dir}`),
         act(`arrived on ${dir}`, st2 => { mark(bot, st2, `arrive-${dir}`); }),
         until(`${dir} Held and kitted`, st2 => kitted(st2, i), burnOffS(b.d) + 180),
-        act(`${dir} kitted`, st2 => { if (kitted(st2, i)) mark(bot, st2, `kitted-${dir}`); }),
+        act(`${dir} kitted`, st2 => {
+          if (kitted(st2, i)) { mark(bot, st2, `kitted-${dir}`); return; }
+          const mine = st2.ring.filter(e => e.a === i), un = mine.filter(e => e.kit === false);
+          if (un.length) refused(bot, st2, `kit ${dir}'s ring`, `${un.length} of ${mine.length} edges were born unkitted (${st2.engineer.inv.kit ?? 0} kits left) — a kit is spent at the instant an edge is born`);
+        }),
         chest(`back from ${dir}`, st),
       ];
     }),
@@ -443,7 +484,7 @@ export function hourSteps(bot: HourBot): HourStep[] {
   } });
   const claimMin = (dir: HourDir): number => dir === 'north' ? bot.northAt : HOUR_CLAIM_AT[dir];
   const claimAt = (dir: HourDir): HourStep => ({ at: claimMin(dir), name: `§11 ${claimMin(dir) / 60}:00 — claim ${dir}`, tasks: st => [
-    chest('to the chest for kits', st), takeTask(bot, { kit: HOUR_KITS }), ...claimStep(bot, dir)] });
+    chest('to the chest for kits', st), ...kitsTask(bot), ...claimStep(bot, dir)] });
   const burnE = burnOffS(0.22);
   return [
     { at: 0, name: '§11 0:00 — to the steel patch, hand-mine 20 steel', tasks: st => {
@@ -453,7 +494,10 @@ export function hourSteps(bot: HourBot): HourStep[] {
       return [goto('the steel patch', p[0], p[1], 1, 'to the steel patch'), act('mine', mine),
         until(`${HOUR_MINE_STEEL} steel in the pockets`, st2 => (st2.engineer.inv.steel ?? 0) >= HOUR_MINE_STEEL, HOUR_MINE_STEEL * 3,
           (st2, out) => { if (!st2.flow!.hand.mine && st2.flow!.tick % TILE_TPS === 0) mine(st2, out); }),
-        act('mined', st2 => { mark(bot, st2, 'mine-done'); note(bot, st2, `${st2.engineer.inv.steel ?? 0} steel in the pockets`); })];
+        // The hands keep digging the tile until they are told to stop (worldScene sends (-1,-1) on mouse-up), so
+        // §11's "hand-mine 20 steel" ends with the hands off: without it the engineer mines the whole tile out and
+        // carries ~290 steel round the hour, and the pockets it fills have no room left for a claim's kits.
+        act('mined', (st2, out) => { out.push({ type: 'mineAt', x: -1, y: -1 }); mark(bot, st2, 'mine-done'); note(bot, st2, `${st2.engineer.inv.steel ?? 0} steel in the pockets`); })];
     } },
     { at: 0, name: '§11 — back to the workbench: craft ten magazines, the chest\'s 20 into the pockets', tasks: st => {
       let before = 0;

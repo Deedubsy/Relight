@@ -16,13 +16,15 @@ Rules for this file:
    file, naming the evidence.
 6. New tasks are added at the position they must run, not at the end.
 
-**Now:** Phase 4 (vertical slice). Next task: T1.
+**Now:** Phase 4 (vertical slice). T1 is `blocked` on three decision rows (see below); the
+next task that can start is T2, which is blocked by T1. Nothing moves until the human
+writes D-P4-9, D-HOUR-2 and D-P4-10.
 
 ## Tasks
 
 | id | task | owner | status | blocked by | evidence | done on |
 |---|---|---|---|---|---|---|
-| T1 | Resolve the eight constant disagreements, rebuild the economy fix, make main green | claude | doing | decision rows D-P4-4, D-B1-1, D-P4-7, D-P4-8, D-B5-4, D-ENGINE-1, D-INSERTERS-1, D-HOUR-1 must be `decided` first | `docs/ECONOMY_FIX_REPORT.md` | |
+| T1 | Resolve the eight constant disagreements, rebuild the economy fix, make main green | claude | blocked | the eight rows of the original cell (D-P4-4, D-B1-1, D-P4-7, D-P4-8, D-B5-4, D-ENGINE-1, D-INSERTERS-1, D-HOUR-1) are `decided` and clauses 1 and 2 are done; "make main green" now waits on decision rows **D-P4-9**, **D-HOUR-2** and **D-P4-10** | `docs/ECONOMY_FIX_REPORT.md` | |
 | T2 | Re-run E-hour until no block falls on seeds 3, 4 and 5 | claude | todo | T1 | `docs/SLICE_REPORT.md` section "M6 re-run after the economy fix" | |
 | T3 | Layout and readability pass | claude | todo | | `docs/LAYOUT_PASS_REPORT.md` | |
 | T4 | E-rifle at tile scale: the rescue run and the steady run | claude | todo | | `docs/EXPERIMENTS.md` row `E-rifle-tile` | |
@@ -39,10 +41,26 @@ Rules for this file:
 - T6 — Build a two-assembler ammo line unaided in ten minutes.
 - T7 — Stranger test: eight questions, a person who has not seen the game.
 - T8 — Gate B: play the §11 hour on seed 3 and fill the §19 table.
-- Decision rows: none. Every row named in a `blocked by` cell (D-P4-4, D-B1-1,
-  D-P4-7, D-P4-8, D-B5-4, D-ENGINE-1, D-INSERTERS-1, D-HOUR-1) has status
-  `decided`.
+- Decision row **D-P4-9** — turrets on claimed blocks. Blocks T1. §11's two
+  carried turrets are what loses north: removing them is measured green (no
+  falls, four Held, every run); keeping them costs three runs of six.
+- Decision row **D-HOUR-2** — the minute-15 steel cluster. Blocks T1. The
+  decided 200 start steel is the decided minute list's bill to minute 15
+  exactly, so the chest reads zero at 15:02–15:04.
+- Decision row **D-P4-10** — north at 40:00 against Generator 4 at 45:00.
+  Blocks T1. Exactly 300 s of brownout, by construction.
+- The eight rows of T1's original `blocked by` cell (D-P4-4, D-B1-1, D-P4-7,
+  D-P4-8, D-B5-4, D-ENGINE-1, D-INSERTERS-1, D-HOUR-1) are all `decided`.
 
 ## Log
 
-- (no tasks completed yet)
+- 2026-09-05 — T1 started and blocked. Clauses 1 ("the eight constant
+  disagreements") and 2 ("rebuild the economy fix") are done and were already
+  on the branch. Clause 3 ("make main green") is not: three hour-bot defects
+  were found and fixed (the hands never stopped after §11's 20 steel; six kits
+  could never fit in 40 stacks, so north's ring was born part-unkitted; the
+  hand-feed beat watched the HQ alone), which took the falls from six runs of
+  six to three and north's kit from `never` to 40:29–40:34 — but the six
+  remaining red checks are decided-constant arithmetic, not defects. Evidence:
+  `docs/ECONOMY_FIX_REPORT.md` §8. T1 is `blocked` on D-P4-9, D-HOUR-2 and
+  D-P4-10.
