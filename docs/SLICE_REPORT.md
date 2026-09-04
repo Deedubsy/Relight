@@ -18,8 +18,8 @@ Gate B's two new rows (prompt B M6; the harness answers the second half of each 
 
 | Row | Answer |
 |---|---|
-| At what minute did the player first fire, and did it matter? (`npm run replay -- <export.json>` → `held anyway` / `saved it` / `fell anyway`) | — |
-| The walking row: minutes walked and chest trips in the hour, against §19's 15 % (the export's `summary.walkedPct`, `summary.chestTrips`) | — |
+| At what minute did the player first fire, and did it matter? (`npm run replay -- <export.json>` → `held anyway` / `saved it` / `fell anyway`) | — (the human's). The bot beside it, E-hour rifle on, 2026-09-04: first shot 2:48 / 2:44 / 3:05 on seeds 3 / 4 / 5, the first crawler's tick; **held anyway** on seeds 3 and 4, **fell anyway** on seed 5 (north fell at 58:27 with the rifle and without); the browser's hour on seed 3: 19 hand-fired fights, all held anyway |
+| The walking row: minutes walked and chest trips in the hour, against §19's 15 % (the export's `summary.walkedPct`, `summary.chestTrips`) | — (the human's). The bot beside it: 2.8 / 3.1 / 2.8 min walked = 4.6 / 5.1 / 4.7 %, 11 / 10 / 9 chest trips (E-hour); the browser's hour 5.0 %, 18 trips |
 
 ## GAME-ASSUMPTION register (generated from the Assumed tables below, prompt B M6)
 
@@ -622,9 +622,9 @@ Checks: `npm test` 110 / 110 (103 + the seven M4 tests), `typecheck` (incl. the 
 - **D-B4-3 the turret in the chain**: a waypoint the crawlers pass unharmed, as built (a) / a turret takes contact damage (a new HP number for a machine) and the chain is lamp → turret → substation as §7 reads (b) / drop the turret from the chain, lamps then the substation (c). Recommend (a); §7 edited to say "then past the turret" only if (a) is chosen.
 
 
-## Prompt B M5 Light — built 2026-09-04 (unverified)
+## Prompt B M5 Light — built 2026-09-04, verified 2026-09-04
 
-Run name `B-M5-light` (the light map as data, the streetlight sequence, the burn-off, repair; `light.test.ts`). **Unverified**: built under the working mode of 2026-09-04 — no scripted check, experiment, calibration or soak has run on it. The numbers below are what the code says, not what a run measured, until the verification pass.
+Run name `B-M5-light` (the light map as data, the streetlight sequence, the burn-off, repair; `light.test.ts`). **Verified 2026-09-04** on the pass that also covered M6 (`PROGRAMME_STATE.md` B.15): every scripted check green after three test fixes, one 1-ulp snapshot regeneration and no sim rule moved; the Measured section is the run's numbers.
 
 ### Built
 
@@ -662,18 +662,17 @@ GA-B4-7 ("a light a crawler ate stays dark until M5 repairs it") is closed by th
 - **Shades on lit tiles in play** → **M6** (no shade inside the hour on seeds 3 / 4 / 5 at M4).
 - **A frame-time cost**: a city-sized texture upload on every change during a sequence (8 a second at most) → the verification pass's soak.
 
-### Measured — *unverified*
+### Measured (verification pass, 2026-09-04)
 
-No run has measured M5. What the code says, to be confirmed by the verification pass:
-
-| What | From the code | Doc |
+| What | Measured | Doc |
 |---|---|---|
-| the lit kerb of a powered face | every 4th kerb tile carries a radius-4 light, so a face's street tiles are lit end to end but for the 3-in-8 broken gaps; the lot is lit only under Lamps and the Floodlight's cone | §4, §5 "streetlights come on" |
-| a claimed block's lights | sound streetlights on at 3/s from the substation out; a 12-light face is fully lit after 4 s | §6 three per second |
-| the burn-off | 20 + 60·d s: 38 s at d 0.3, 80 s at d 1.0; the specks clear within 16·p tiles of each lit lamp | §5 step 4 |
-| a repair | 1 Cu; the light is lit again at once (a streetlight while its face is powered, a Lamp while its block is claimed and powered) | — |
-
-The verification pass should run and record: `npm test` (the four `light.test.ts` cases), `typecheck` (the game build: the canvas texture, `MULTIPLY`), `lint`, `snapshot:check` (expected unchanged — `repaired` / `repairs` are optional and created on first repair; `burnOffS` is the number the claim already used), `docsync:check`, `experiments` and `calibrate` (expected identical for the same reason), then measure: the lit kerb and lot fractions per face on seeds 3 / 4 / 5 (`litCount`), the sequence and sweep timings at d 0.3 / 1.0, a shade on a lit tile taking rounds, the 900 s soak's frame time with the light map, and the Playwright check at `?view=world&seed=3` (the multiply visible, lit streets, dark lots, a repair by E, `?handlamp=1`).
+| the scripted checks | `npm test` 121 / 121 (the four `light.test.ts` cases pass after three fixes to the tests, none to the sim: the kerb assertion's denominator, the sequence's slot count, a lamp placed on the Depot's tile); `typecheck` and `lint` clean; `snapshot:check` red by one value — `blocks[286].contestUntil` differs in its last digit because `burnOffS` associates `t + (20 + 60·d)` where the old code wrote `t + 20 + 60·d`; the summary and config hash `68d07000` are unchanged, the snapshot was regenerated, not a rules change; `docsync:check` match; `experiments` 13 / 137 s / 0 red; `calibrate` byte-identical; the D6 fixtures `city{3,4,5}.json` unchanged | — |
+| the lit kerb of a powered face (`litCount`, seed 3 / 4 / 5 HQ) | the **kerb row** (the street tiles touching the lot): 72 / 112 = 64 %, 101 / 148 = 68 %, 61 / 121 = 50 %; the **half-street to the midline** (`G.near`, 6–7 tiles deep): 41 %, 34 %, 26 %; the lot 24 % (the streetlights' radius reaching in; no Lamp); the HQ's broken share 6 / 20, 10 / 25, 12 / 21 against §13's 3 in 8 | §4, §5 "streetlights come on" — **not "end to end"**, below |
+| a claimed block's lights | the sequence runs over every light of the face including the broken ones (24 slots, 16 sound on seed 3's first claim), so the last sound light is on at N ÷ 3 s = 8 s, not sound ÷ 3 s; nearest the substation first | §6 three per second — the pace holds, the count is the face's, below |
+| the burn-off | `contestUntil` = 20 + 60·d exactly (the test), the progress mid-way, Held at its end; in E-hour east (d ≈ 0.2) burned off in 30–35 s, west and north in 29–35 s | §5 step 4; §11 "40-second burn-off" edited, below |
+| a repair | 1 Cu; a §13-broken streetlight lit again at once while its face is powered, an eaten Lamp likewise; refused without copper and on a bare tile (the test) | — |
+| the frame time with the light map | the 900 s soak (M6's, `?autoplay=hour&rifle=1&view=world&seed=3`, 4×, headless swiftshader 1280×800): 36,947 frames over 902.9 s real (sim 1 h 30 min), mean 40.9 fps, per-minute 28–49.5 fps, worst 68.3 ms, **61 frames over 50 ms in five bursts** at real 140 / 240 / 710 / 740 / 860 s (the minutes between them 0 over 50 ms). M4's soak on the same rig: 43,781 frames, worst 33.3 ms, 0 over 50 ms. A regression flag, not a measurement (headless swiftshader is for regressions only): the bursts fall on the hour bot's long walks and claims, not on the light sequence, and the texture's 8 Hz re-read did not move the per-minute mean outside M4's band in the quiet minutes (20–24 ms) | prompt B "must not drop the render loop" — the reference-machine soak is the human's |
+| the Playwright check | `?view=world&seed=3` under the soak: the multiply visible (lit kerbs pale, the lots and Dark blocks at the unlit level), lit streets and dark lots in the screenshot; the repair by E and `?handlamp=1` were not exercised by the script — they are the played hour's | — |
 
 ### Where prompt B M5 and the doc disagree (reported, not resolved)
 
@@ -681,6 +680,8 @@ The verification pass should run and record: `npm test` (the four `light.test.ts
 - **§4 "desaturated and darkened to ~25 %"**: a multiply darkens and tints but cannot desaturate; the cool cast stands in (GA-B5-1). Decision D-B5-3 carries the unlit level.
 - **The prompt's "streets and lamp radii lit, lots unlit"**: read as the kerb streetlights' radii covering the street; a face's broken 3-in-8 leaves gaps on the street until repaired. Not a disagreement, a reading — stated so the human can say otherwise.
 - **§5 step 3 "the rot begins burning off from the lamps outward"**: built as drawing (the specks), the rot number itself is still the block's `d` falling by the block sim's rule; the doc's sentence is about the picture and stands.
+- **Verified: "a powered face's street is lit end to end but for the broken gaps"** (this report's Built and the M5 test as first written) vs the measurement: the kerb row is 50–68 % lit and the half-street to the midline 26–41 %. Two causes, neither a bug: §13's broken share came out 30–57 % on the three HQs (3 in 8 = 37.5 % is the rule, the hash lands where it lands), and a radius-4 light on a kerb one every 4 tiles covers the kerb row but not a street 6–7 tiles deep. The picture is a lit kerb with a dark road, not a lit street. Reported, not resolved: the doc's §4 sentence is a picture, the human decides whether a street should read lit (a bigger radius, lights on both kerbs, or repairs as the opening's chore — copper for repairs is in `DEFERRED.md`). The test now asserts the kerb row over 50 % and the half-street over 25 %.
+- **Verified: the sequence's count.** A face's broken lights keep their slot in the 3 a second sequence (`blockLights` ranks every light), so a 24-light face with 16 sound is fully lit at 8 s, not 5.3 s. §6 says nothing either way; the built rule is "three slots a second". Stated so the human can choose "three sound lights a second" instead.
 
 ### Decisions for the human (recommended in `DECISIONS.md` D-B5-1–D-B5-3)
 
@@ -688,9 +689,9 @@ The verification pass should run and record: `npm test` (the four `light.test.ts
 - **D-B5-2 the sequence's pace**: §6's three per second, the sweep of the specks carrying the 20 + 60·d s (a) / the prompt's spread — the face's lights come on evenly over the burn-off (b) / three per second for the lights, and the Lamps on the lot come on at the end (c). Recommend (a).
 - **D-B5-3 the repair cost and the unlit level**: 1 Cu a repair and the unlit multiply at ≈ 25 % with a cool cast, as built (a) / 2 Cu and 20 % (darker, the dark reads harder) (b) / repairs free, 35 % (c). Recommend (a) until M6's played hour says the copper runs short.
 
-## Prompt B M6 The hour — built 2026-09-04 (unverified)
+## Prompt B M6 The hour — built 2026-09-04, verified 2026-09-04
 
-Run name `B-M6-hour` (the §11 hour bot on the tile layer, the command-log replay, E-hour; `hour.test.ts`). **Unverified**: built under the working mode of 2026-09-04 — no scripted check, experiment, calibration or soak has run on it. The bot has not yet played a single hour anywhere but in the author's head: every timeline row below is what the code schedules, not what a run measured, until the verification pass runs `E-hour`.
+Run name `B-M6-hour` (the §11 hour bot on the tile layer, the command-log replay, E-hour; `hour.test.ts`). **Verified 2026-09-04** (`PROGRAMME_STATE.md` B.15): the bot has now played the hour six times in the harness (seeds 3 / 4 / 5 × rifle off / on, `E-hour`, `docs/experiments/E-hour.json`) and once in the browser under the 900 s soak. One sim fix came out of the pass — `replayVerdict` compared a fight's own outcome with the block's end state in the replay and read "saved it" on a block that fell in both runs; it now compares the block's end state in both runs (`FightVerdict.fightHeld` keeps the fight's own outcome). The Measured section is the run's numbers; the findings are under "Where prompt B M6 and the doc disagree".
 
 ### Built
 
@@ -729,38 +730,52 @@ The M1–M5 and lattice tags stand; the register below lists them all with what 
 - **A snapshot session's replay** (scenario B) → when a scenario-B hour is played.
 - **Frame-time under the hour bot at 4×** → the verification pass's soak (`?autoplay=hour` at `speed 4`).
 
-### Measured — *unverified*
+### Measured (verification pass, 2026-09-04)
 
-No run has measured M6. The timeline the code schedules, against §11 and the calibration — the "measured" column is E-hour's to fill:
+The scripted checks: `npm test` 121 / 121 (the seven `hour.test.ts` cases pass after one test fix — the minute-10 case expected two Assemblers and the bot builds one, the Depot being the block-level start Assembler, D-P4-5); `typecheck`, `lint`, `docsync:check` clean; `snapshot:check` (M5's 1 ulp, above); `experiments` 13 runs, 137 s, 0 red, `E-hour` 6 / 6 runs and 6 / 6 checks (the logged hour replays to the same Held set, machine count and shots on every seed; walking 5.21 % worst; claim walk-overs 17 s worst; the HQ stands 6 / 6); `calibrate` byte-identical.
 
-| Moment | §11 / calibration | The bot schedules | Measured |
+**The timeline** (E-hour, rifle off; rifle on is the same clock to the second except the pips, which the rifle delays — seed 3 first amber 5:38 and red 6:15 rifle on against 3:14 / 6:09 off):
+
+| Moment | §11 / calibration | The bot schedules | Measured (seed 3 / 4 / 5) |
 |---|---|---|---|
-| to the steel patch, 20 steel mined | 0–10 min ("a few frames' worth") | from 0:00, ≈ 20 s of mining plus the walk | *unverified* |
-| ten magazines crafted at the workbench | 0–10 | ≈ 30 s after the walk back | *unverified* |
-| the turrets fed twice, west and east | 0–10 | two rounds of the HQ's turrets with a chest trip between | *unverified* |
-| the first bloom, turrets fire | ≈ 3:00 (north) | the sim's | *unverified* |
-| Generator 2, coal Excavator belted, steel and copper lines | 6:00 | 6:00 trip, then ≈ 50 belt placements from the pockets | *unverified* |
-| Shot line, ammo automated | by 10:00 (20 mag/min) | 8:00 | *unverified* |
-| Generator 3 | E4-doc 15:00 | 15:00 | *unverified* |
-| east claimed, the walk over | 10–30 min, ≈ 40 s | 15:00; the walk timed | *unverified* |
-| west claimed | 10–30 | 25:00 | *unverified* |
-| north claimed, the HQ interior | 30–60, border ≈ 40:00 | 40:00 | *unverified* |
-| the two turrets carried | 30–60 | after north is Held | *unverified* |
-| the Electricians in the Depot | 30–60 | when their block turns Held | *unverified* |
-| first shade | 32–47 min | the sim's (none inside the hour at M4) | *unverified* |
-| Generator 4, fifth Excavator, third Assembler | E4-doc 45:00 | 45:00 | *unverified* |
-| first amber / first red | calibration 16–31 min | — | *unverified* |
-| enclosure | calibration 45–60 min | — | *unverified* |
-| held at 60 | calibration 4 | — | *unverified* |
-| walked (§19: ≤ 15 %), chest trips | the rework's bot: 2.6–4.1 % (M4) | the lot's trips are real now: the walk to the patch, the chest trips, ≈ 60 placements each within 8 tiles | *unverified* |
-| claim walk-overs (rework: < 60 s in all) | — | three walks of two street widths and a lot | *unverified* |
-| first fire / did it matter | Gate B's row | rifle off: never; rifle on: the reflex's first shot, the replay's verdict | *unverified* |
+| to the steel patch, 20 steel mined | 0–10 min ("a few frames' worth") | from 0:00, ≈ 20 s of mining plus the walk | mine-done **0:20** on all three |
+| ten magazines crafted at the workbench | 0–10 | ≈ 30 s after the walk back | craft-done **0:50** on all three |
+| the turrets fed twice, west and east | 0–10 | two rounds of the HQ's turrets with a chest trip between | feed-done 1:06 / 1:17 / 0:58 — and **the feeds moved nothing**: the six turrets start with full hoppers; the chest's 20 magazines were 10 (5 on seed 4) at the first take and 0 at the second (four refusals a run) |
+| the first bloom, turrets fire | ≈ 3:00 (north) | the sim's | first crawler = first turret fire **2:48 / 2:44 / 3:05** |
+| Generator 2, coal Excavator belted, steel and copper lines | 6:00 | 6:00 trip, then ≈ 50 belt placements from the pockets | Generator 2 6:03 / 6:02 / 6:03, **placed unfed** (the chest has 0 coal at 6:00, a refusal on every run); the line Excavators 6:13 / 6:13 / 6:14 |
+| Shot line, ammo automated | by 10:00 (20 mag/min) | 8:00 | Assembler 8:01, first line magazine **8:06**, first rounds run 10:13 / 10:16 / 10:07 |
+| Generator 3 | E4-doc 15:00 | 15:00 | 15:00 on all three |
+| east claimed, the walk over | 10–30 min, ≈ 40 s | 15:00; the walk timed | claim 15:00, arrive 15:07 / 15:03 / 15:04 (**7 / 3 / 4 s**), Held and kitted 15:31 / 15:35 / 15:30 (burn-off 30–35 s) |
+| west claimed | 10–30 | 25:00 | claim 25:00, Held 25:35 / 25:30 / 25:30 |
+| north claimed, the HQ interior | 30–60, border ≈ 40:00 | 40:00 | claim 40:00, Held 40:29 / 40:34 / 40:30; kitted the same second on seeds 3 / 4, **never on seed 5** (the wait timed out after 208 s — one north edge never got its kit); **the HQ never turned interior** (enclosure never, 3 of its 4 street neighbours Held at best) |
+| the two turrets carried | 30–60 | after north is Held | picked up 40:36 / 40:43 / 43:45, stood on north's front and fed 40:45 / 40:54 / 43:54 |
+| the Electricians in the Depot | 30–60 | when their block turns Held | never (their block was not among the three claims) |
+| first shade | 32–47 min | the sim's (none inside the hour at M4) | **42:22 / 40:33 / never** — inside the band on two seeds; 5 / 4 / 0 shades in the hour |
+| Generator 4, fifth Excavator, third Assembler | E4-doc 45:00 | 45:00 | **never**: at 45:00 the chest has 0 steel and 27 Cu (80 steel + 30 Cu asked), both placements refused; the 17:34 stand-in Assembler for east was refused the same way (2 steel in the chest) — see D-P4-4 below |
+| first amber / first red | calibration 16–31 min | — | amber **3:14 / 2:55 / 3:15**, red **6:09 / 5:33 / 6:14** — the M4 "first red at ≈ 6 min" finding, now on every seed |
+| first brownout | §11 none | — | **8:01** on all three, 166 / 166 / 170 s in the hour: Generator 2 unfed from 6:03, the Shot line's draw from 8:01 until the 10:13 rounds run coals it |
+| enclosure | calibration 45–60 min | — | never |
+| held at 60 | calibration 4 | — | **3** on all three (HQ, east, west): **north fell** at 45:34 / 45:35 / 58:27, rifle off and on alike |
+| the end state | §11: 8 turrets, 4 Generators, 5 Excavators, 3 Assemblers | — | turrets 6 / 7 / 5 (the two carried included; seed 5 lost one to the fall), Generators 3, Excavators **6** (three line + three stand-ins, one more than §11's 5), Assemblers 1; line magazines 786 / 793 / 793 |
+| walked (§19: ≤ 15 %), chest trips | the rework's bot: 2.6–4.1 % (M4) | the lot's trips are real now | walked 2.8 / 3.1 / 2.8 min = **4.6 / 5.1 / 4.7 %**; chest trips 11 / 10 / 9; hand-fed 718 / 677 / 697 units (magazines and coal); reach refusals 0 |
+| claim walk-overs (rework: < 60 s in all) | — | three walks of two street widths and a lot | **16 / 14 / 17 s for all three claims** — the candidate lot's kerb is across one shared street, not two widths and a lot |
+| the threat | — | — | crawlers 541 / 429 / 340, turret kills 492 / 351 / 285, rifle kills (rifle on) 11 / 15 / 7 |
+| first fire / did it matter | Gate B's row | rifle off: never; rifle on: the reflex's first shot, the replay's verdict | first shot **2:48 / 2:44 / 3:05** (the first crawler's tick), 76 / 79 / 45 rounds, 15 / 13 / 14 hand-fired fights; seeds 3 and 4 **held anyway** (every fight's block stood in both runs); seed 5 **fell anyway** (7 of its fights were on north, which fell at 58:27 rifle on and off) |
 
-The verification pass should run and record: `npm test` (the seven `hour.test.ts` cases — the first thing that shows whether the bot's walks, placements and claims work at all), `typecheck` (the game build: the session's command log), `lint`, `snapshot:check` (expected unchanged — no sim rule moved; the three commands are new cases), `docsync:check`, `experiments` (now with `E-hour`, ≈ 6 hour-runs plus 6 replays), `calibrate` (expected identical), then read `E-hour`'s four sections into this table and the findings into "Where prompt B M6 and the doc disagree"; the 900 s soak at `?autoplay=hour&rifle=1` with the frame time; the Playwright check that `__relight.hour()`, `commandLog()` and `replay()` answer and that the export carries `commands`.
+**The soak** (`?autoplay=hour&rifle=1&view=world&seed=3`, 4×, headless swiftshader, 902.9 s real, sim 1:30:11): the frame time is in M5's Measured (40.9 fps mean, 61 frames over 50 ms in five bursts, worst 68.3 ms). The browser's hour diverged from the harness's: **held 2 at the hour** (HQ and east), the west claim refused at 25:01 "stock 0 steel, 22 Cu" and north at 40:03 the same, the steel gone by 16:34 (a 10-steel take found 2) where the harness's chest lasted to 26:34; **567 s of brownout** (the coal ran out at 73:53 and the rounds runs found 0 coal after); 20 refusals; 951 units hand-fed, 18 chest trips, 271 s walked = 5.01 %; 112 rounds fired by hand, 19 hand-fired fights all held. Same bot, same seed, a different chest (D-B1-1: the game's §11 chest against the harness's calibrated one, config `d51dfee0` against the harness's) and a different steel curve — the divergence is a finding under D-P4-4, below. The M6 hooks answer: `__relight.hour()` (32 marks, the refusal list, the narrative), `commandLog()` (723 commands of 8 kinds: mineAt, chestTake, craft, move, feed, aim, place, claim), `replay({rifleOff:true})` (a verdict per fight and for the run) and `exportJson()` carries `commands` and `hour`. No page errors.
 
 ### Where prompt B M6 and the doc disagree (reported, not resolved)
 
-- **Nothing measured yet**: the findings against §11 and the calibration are E-hour's output and land here after the verification pass. What the code already knows it does differently from §11's prose: the claims on the calibration's minutes rather than "10–30 / 30–60" (GA-B6-2); the claimed lots' Excavators as stand-ins on the HQ lot (D-P4-5); six start turrets fed, not two (D-P4-8, GA-B6-7); the chest's 20 magazines run out on the second feed round unless the line has delivered (D-P4-4 / D-B1-1 — the bot logs the refusal).
+- **§11 "You walk over (two street widths and a lot, about 40 s)"** — measured 3–7 s on every seed: the claim candidate is a street neighbour and its kerb is across the one shared street. **Edited** to the measurement `[sim: B-M6-hour]`; the "two street widths and a lot" was the lattice's geometry.
+- **§11 "40-second burn-off"** for east — measured 30–35 s (20 + 60·d at east's d ≈ 0.2). **Edited** `[sim: B-M6-hour]`; the 20–80 s rule itself stands.
+- **§11's machine list cannot be afforded by minute 45** on the block sim's start chest: the bot's chest was at 2 steel by 17:34 (east's stand-in Assembler refused) and 0 by 26:34, and Generator 4, the fifth Excavator and the third Assembler were refused at 45:00 (0 steel, 27 Cu in the chest, 80 + 30 asked). The line's three Excavators and their belts, three Generators, three claims' kits and three stand-ins spend it; the steel Excavator's take is belted into the chest but at one Excavator it does not cover a claim every ten minutes. So §11's end counts (4 Generators, 5 Excavators, 3 Assemblers, 8 turrets) are not reached: 3 / 6 / 1 / 5–7. And the browser, on §11's own 200-steel chest, ran out sooner still and could not claim west or north at all (the soak, above). **Reported, not resolved** — D-P4-4 / D-B1-1 with the evidence appended; the human decides the start stock and the prices from the played hour, as those rows say.
+- **The calibration's "first amber / first red 16–31 min"** is contradicted on every seed (amber ≈ 3 min, red ≈ 6): the block-level hoppers of the calibration never emptied before the line came up; the tile-level HQ's six turrets fire from the first crawler at 2:48 and the chest's magazines are gone by 1:00. M4 saw it once (seed 3); it is now the rule. The bands are `docs/experiments/lattice/calibration.md`'s and stay as the lattice's record; no §11 number carries them. Reported.
+- **"Held 4 at 60" and the enclosure 45–60** are not reached: north falls at 45–58 min on every seed (the hour's third claim is the one the rounds runs cannot keep fed once the chest's coal and steel are spent; seed 5's north never got its last kit), the HQ never turns interior, the Electricians' block is never claimed. Reported under D-P4-9 (a claimed block has no turrets of its own to hold north with) and D-P4-7 (the brownout).
+- **§11 "one Generator alone browns out at minute 8"** — confirmed by accident: the brownout comes at 8:01 on every seed because Generator 2 is placed with no coal in the chest (the 40 start coal are in Generator 1's hopper, not the chest) and the Shot line's draw arrives at 8:01; it lasts until the first rounds run at 10:13. §11's sentence is about a player who never builds the second Generator; the bot's is about a player who builds it unfed. No edit; D-P4-7's recommendation carries it.
+- **§11's first shade at 32–47 min** — 42:22 / 40:33 on seeds 3 / 4, never on seed 5 (0 shades in its hour). Inside the band on two of three; no tag on a band the third seed misses.
+- **The chest's magazines**: "20 magazines in the chest" (§11) were 10 (seed 3, 5), 5 (seed 4) at the first take (the six start turrets' hoppers were filled from the chest, D-P4-8) and 0 at the second, on every run; and the turrets took none of them — their hoppers were full. §11's "walk the magazines to the turrets" in 0–10 min is a walk with nothing to carry. Reported under D-P4-8.
+- **Six Excavators against §11's five**: the bot stands the claimed lots' Excavators on the HQ lot (D-P4-5, GA-B6-3) and the HQ line has three of its own (coal, steel, copper): 3 + 3. §11 counts the east lot's copper Excavator and the west lot's coal as its fourth and fifth. Settles with D-P4-5.
+- What the code knew before the run and the run confirmed: the claims on the calibration's minutes rather than "10–30 / 30–60" (GA-B6-2 — the bot was never idle waiting for the clock; each claim's walk and kit took 30–35 s and the burn-off the rest); six start turrets fed, not two (D-P4-8, GA-B6-7).
 - **The prompt's `docs/experiments/calibration.md`** is at `docs/experiments/lattice/calibration.md` since the rework's move; the bands quoted are the same (first amber / red 16–31, enclosure 45–60, held 4 / 16 / 25–28).
 - **§11's "two south-facing turrets on east and west"**: the HQ has no turret on a claimed block to carry (D-P4-9 keeps claimed blocks on the block-level hopper), so the bot carries the HQ's own idle pair (GA-B6-4). The sentence stands until D-P4-9 is settled.
 - **§19's walking share** is a player's estimate; the bot's number is beside it, not in its place (as at M4).

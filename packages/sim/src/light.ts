@@ -24,11 +24,20 @@ export function lightMask(st: SimState, into?: Uint8Array): Uint8Array {
   return mask;
 }
 
-export interface LitCount { street: number; lot: number; streetOf: number; lotOf: number }
-/** How much of a block's street kerb and lot the mask lights: its lot tiles, and the street tiles nearest it. */
+export interface LitCount { street: number; lot: number; streetOf: number; lotOf: number;
+  /** The kerb row: street tiles 4-adjacent to the lot (the strip §13's streetlights stand on and light). */
+  kerb: number; kerbOf: number }
+/** How much of a block's street and lot the mask lights: its lot tiles, the street tiles nearest it (the half-street
+ *  to the midline, 6–7 tiles deep on the river city — radius-4 kerb lights do not reach its far side), and the kerb row. */
 export function litCount(st: SimState, bi: number, mask = lightMask(st)): LitCount {
-  const G = ground(st), bg = G.blocks[bi], out: LitCount = { street: 0, lot: 0, streetOf: 0, lotOf: bg.tiles.length };
+  const G = ground(st), bg = G.blocks[bi], out: LitCount = { street: 0, lot: 0, streetOf: 0, lotOf: bg.tiles.length, kerb: 0, kerbOf: 0 };
   for (let k = 0; k < bg.tiles.length; k++) if (mask[bg.tiles[k]]) out.lot++;
+  const tw = G.tw, kerb = new Set<number>();
+  for (let k = 0; k < bg.tiles.length; k++) {
+    const t = bg.tiles[k], x = t % tw;
+    for (const u of [x > 0 ? t - 1 : -1, x < tw - 1 ? t + 1 : -1, t - tw, t + tw]) if (u >= 0 && u < G.owner.length && G.owner[u] === -1) kerb.add(u);
+  }
+  for (const t of kerb) { out.kerbOf++; if (mask[t]) out.kerb++; }
   for (let t = 0; t < G.near.length; t++) if (G.near[t] === bi && G.owner[t] === -1) { out.streetOf++; if (mask[t]) out.street++; }
   return out;
 }

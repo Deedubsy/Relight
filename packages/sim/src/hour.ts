@@ -623,7 +623,9 @@ export function replay(st: SimState, log: readonly LoggedCommand[], untilTick: n
 }
 
 export type Verdict = 'held anyway' | 'saved it' | 'fell anyway' | 'open';
-export interface FightVerdict { t: number; edge: number; bx: number; by: number; rounds: number; played: boolean | null; replayed: boolean; verdict: Verdict }
+export interface FightVerdict { t: number; edge: number; bx: number; by: number; rounds: number;
+  /** The fight's own outcome in play (null while it was still running at the end). */ fightHeld: boolean | null;
+  /** Whether the fight's block stood at the end of the played run and of the replay: the verdict compares these. */ played: boolean; replayed: boolean; verdict: Verdict }
 export interface ReplayVerdict { firstShot: number; fights: FightVerdict[]; hq: Verdict; heldPlayed: number; heldReplayed: number; verdict: Verdict }
 
 /** Gate B's row: for every hand-fired engagement of the played run, did its block stand in the replay without the
@@ -637,9 +639,11 @@ export function replayVerdict(played: SimState, replayed: SimState): ReplayVerdi
   if (T) for (const fg of T.fights) {
     if (fg.rounds <= 0) continue;
     const bi = idx(played, fg.bx, fg.by);
-    const p = fg.held, r = bi >= 0 && stood(replayed, bi);
-    const verdict: Verdict = p === null ? 'open' : p && r ? 'held anyway' : p && !r ? 'saved it' : 'fell anyway';
-    fights.push({ t: fg.t, edge: fg.edge, bx: fg.bx, by: fg.by, rounds: fg.rounds, played: p, replayed: r, verdict });
+    // the block's end state in both runs (verification pass: comparing the fight's own outcome in play with the block's
+    // end state in the replay read "saved it" on a block that fell in both runs an hour later)
+    const p = bi >= 0 && stood(played, bi), r = bi >= 0 && stood(replayed, bi);
+    const verdict: Verdict = fg.held === null && p === r ? 'open' : p && r ? 'held anyway' : p && !r ? 'saved it' : 'fell anyway';
+    fights.push({ t: fg.t, edge: fg.edge, bx: fg.bx, by: fg.by, rounds: fg.rounds, fightHeld: fg.held, played: p, replayed: r, verdict });
   }
   const hqP = stood(played, hqIdx(played)), hqR = stood(replayed, hqIdx(replayed));
   const hq: Verdict = hqP && hqR ? 'held anyway' : hqP && !hqR ? 'saved it' : 'fell anyway';

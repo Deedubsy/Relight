@@ -34,7 +34,7 @@ test('hour bot, minute 10: the three Excavators, the Shot line and Generator 2 s
   runHour(st, bot, 10 * 60);
   const f = st.flow!, m = bot.log.marks;
   assert.equal(f.machines.filter(x => x.kind === 'excavator').length, 3, `excavators (refused: ${bot.log.refused.map(r => r.what + ': ' + r.reason).join('; ')})`);
-  assert.equal(f.machines.filter(x => x.kind === 'assembler').length, 2, 'the start Assembler and the Shot line\'s');
+  assert.equal(f.machines.filter(x => x.kind === 'assembler').length, 1, 'the Shot line\'s Assembler (the Depot is the start Assembler, D-P4-5)');
   assert.equal(f.machines.filter(x => x.kind === 'generator').length, 2);
   assert.ok(m['line-excavators'] !== undefined && m['line-assembler'] !== undefined);
   for (const r of bot.log.refused) assert.ok(r.reason.length > 0);

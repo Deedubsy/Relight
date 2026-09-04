@@ -25,7 +25,10 @@ test('light map: the HQ face\'s street is lit by its kerb streetlights, its lot 
   const hq = hqIndex(st), G = ground(st), mask = lightMask(st);
   assert.ok(subPowered(st, st.blocks[hq]), 'the HQ powers its streetlights');
   const c = litCount(st, hq, mask);
-  assert.ok(c.streetOf > 0 && c.street / c.streetOf > 0.5, `most of the HQ's kerb is lit (${c.street}/${c.streetOf}; 3 in 8 lamps are broken)`);
+  // the kerb row (the strip the streetlights stand on); the half-street to the midline is 6–7 tiles deep and a radius-4
+  // light cannot reach its far side, so it lights ≈ 40 % — reported in SLICE_REPORT "M5 disagrees" (verification pass)
+  assert.ok(c.kerbOf > 0 && c.kerb / c.kerbOf > 0.5, `most of the HQ's kerb row is lit (${c.kerb}/${c.kerbOf}; 3 in 8 lamps are broken)`);
+  assert.ok(c.streetOf > 0 && c.street / c.streetOf > 0.25, `the half-street is lit in part (${c.street}/${c.streetOf})`);
   assert.ok(c.lot < c.lotOf, `the lot is not lit end to end (${c.lot}/${c.lotOf})`);
   const bg = G.blocks[hq];
   assert.equal(mask[bg.pole[1] * G.tw + bg.pole[0]], 0, 'the lot\'s pole of inaccessibility (farthest from any street) is unlit');
@@ -78,8 +81,8 @@ test('burn-off: the claimed block\'s streetlights come on from the substation ou
   const sub = ground(st).blocks[nb].sub!, cx = sub.x + sub.size / 2, cy = sub.y + sub.size / 2;
   const on = lights().filter(l => l.lit).map(l => Math.hypot(l.tx + 0.5 - cx, l.ty + 0.5 - cy)), off = lights().filter(l => !l.lit && !l.broken).map(l => Math.hypot(l.tx + 0.5 - cx, l.ty + 0.5 - cy));
   if (on.length && off.length) assert.ok(Math.max(...on) <= Math.min(...off) + 1e-9, 'the sequence runs outward from the substation');
-  st.t += sound / LIGHT_SEQ_PER_S + 1;
-  assert.equal(lights().filter(l => l.lit).length, sound, 'all sound streetlights on within count / 3 s');
+  st.t += lights().length / LIGHT_SEQ_PER_S + 1;   // a broken light keeps its slot in the sequence: the last one is on by N / 3 s
+  assert.equal(lights().filter(l => l.lit).length, sound, 'all sound streetlights on within N / 3 s');
   const p = contestProgress(st, nb);
   assert.ok(p > 0 && p < 1, `progress mid-way (${p.toFixed(2)})`);
   st.t = b.contestUntil - 0.5;
@@ -108,7 +111,7 @@ test('repair: E on a broken streetlight costs one copper and lights it; an eaten
   assert.equal(lightMask(st)[broken!.ty * G.tw + broken!.tx], 1);
   // a lamp a crawler ate
   const [lx, ly] = hqLot(st, 6, 6);
-  const lamp = place(st, 'lamp', lx + 3, ly + 3, 0)!;
+  const lamp = place(st, 'lamp', lx - 2, ly - 2, 0)!;   // (lx + 3, ly + 3) is the Depot's tile
   runS(st, 1);
   const T = threatOf(st.flow!);
   T.broken.push(lamp.y * G.tw + lamp.x);

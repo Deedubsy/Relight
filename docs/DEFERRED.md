@@ -220,7 +220,7 @@ Every item above keeps its phase unless listed here.
 - **Shades on lit tiles in play**, **the first pip**, **a tile-level brownout soak**, **the stand-in edge's bodies**, **a player's walking share** → **M6** as at M4.
 - **The verification pass for M5** (checks, experiments, calibration, the soak with the light map, Playwright) → when the human schedules it; until then every M5 number is *unverified*.
 
-## Re-read at prompt B M6 (2026-09-04, unverified)
+## Re-read at prompt B M6 (2026-09-04, then verified the same day — see the next section)
 
 Every item above keeps its phase unless listed here.
 
@@ -234,3 +234,17 @@ Every item above keeps its phase unless listed here.
 - **The frame time under the hour bot at 4×** → the verification pass's soak.
 - **The verification pass for M5 and M6** (checks, experiments with `E-hour`, calibration, the soak, Playwright) → when the human schedules it; until then every M5 and M6 number is *unverified*.
 
+## Re-read at the verification pass (2026-09-04, M5 and M6 verified)
+
+Every item above keeps its phase unless listed here.
+
+- **The verification pass for M5 and M6** — done (`PROGRAMME_STATE.md` B.15); the M5 and M6 numbers are measured.
+- **The bot's timeline against §11 and the calibration** — done; the findings are in `SLICE_REPORT.md` M6 "disagree". What they open: **the steel budget of hour one** (§11's machine list is unaffordable by minute 45 on either chest; the browser's §11 chest could not claim west or north) → **D-P4-4 / D-B1-1** at Gate B; **north falls at 45–58 min on every seed** → **D-P4-9** (a claimed block has no turrets of its own) and **D-P4-7** (the unfed second Generator); **the calibration's pip bands (16–31 min) are the lattice's** → the human says whether the tile-level hour is recalibrated after Gate B or the bands are retired with the appendix.
+- **A frame-time cost of the light map** → measured: no cost in the quiet minutes; **five bursts over 50 ms on the bot's walks and claims** (61 frames of 36,947) → **the reference-machine soak** (the human's) says whether it is the rig; if not, the pathfinder's cost on a long walk is the item, at Gate B's follow-up.
+- **Shades on lit tiles in play** — E-hour saw 0–5 shades an hour (first at 40–42 min on two seeds, none on seed 5); whether one stood on a lit tile and took rounds was not instrumented → **Gate B's follow-up** (a mark in the hour log) if the played hour meets one.
+- **The first pip** — measured (amber ≈ 3 min, red ≈ 6 on every seed): the item is closed as a measurement and reopened as a design question under D-P4-8 (the start turrets' hoppers hold the chest's magazines, so the first red comes from the first bloom, not from the calibration's minute 16–31).
+- **A player's walking share** — the bot's is 4.6–5.2 %; the player's is Gate B's.
+- **A tile-level brownout soak** — measured: 166–170 s in the harness's hour, 567 s in the browser's (the coal runs out at 74 min) → **D-P4-7** carries it; no further soak owed.
+- **The Playwright check of M5's repair by E and `?handlamp=1`** → **Gate B**: the soak script exercised neither; the played hour does.
+- **The kerb reads lit, the road does not** (M5 measured: the kerb row 50–68 %, the half-street 26–41 %) → **Gate B** says whether a street should read lit; the options are in `SLICE_REPORT.md` M5 "disagree".
+- **The game's chest against the harness's** (D-B1-1: the same bot held 2 in the browser and 3 in the harness) → **D-P4-4 / D-B1-1 at Gate B**; until then the harness's numbers are the ones this report quotes and the browser's are marked as the browser's.
