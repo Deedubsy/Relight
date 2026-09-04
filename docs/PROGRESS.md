@@ -16,9 +16,12 @@ Rules for this file:
    file, naming the evidence.
 6. New tasks are added at the position they must run, not at the end.
 
-**Now:** Phase 4 (vertical slice). T1 is `blocked` on three decision rows (see below); the
-next task that can start is T2, which is blocked by T1. Nothing moves until the human
-writes D-P4-9, D-HOUR-2 and D-P4-10.
+**Now:** Phase 4 (vertical slice). T5–T8 were **waived** by Daniel on 2026-09-05
+(`docs/GATE_B.md` — no walkthrough, no line, no stranger, no played hour). That does
+**not** unblock the phase: T1 is still `blocked` on D-P4-9, D-HOUR-2 and D-P4-10, and
+T2 sits behind it. The critical path to Phase 5 runs T1 → T2 → T3 → T4 → T9 → T10 and
+its only wall is those three decision rows. T3 (the layout pass) is in progress out of
+order on the human's instruction of 2026-09-05.
 
 ## Tasks
 
@@ -28,19 +31,15 @@ writes D-P4-9, D-HOUR-2 and D-P4-10.
 | T2 | Re-run E-hour until no block falls on seeds 3, 4 and 5 | claude | todo | T1 | `docs/SLICE_REPORT.md` section "M6 re-run after the economy fix" | |
 | T3 | Layout and readability pass | claude | todo | | `docs/LAYOUT_PASS_REPORT.md` | |
 | T4 | E-rifle at tile scale: the rescue run and the steady run | claude | todo | | `docs/EXPERIMENTS.md` row `E-rifle-tile` | |
-| T5 | Controls walkthrough on the reference machine | human | todo | T3 | `docs/GATE_B.md` section "Controls walkthrough" | |
-| T6 | Build a two-assembler ammo line unaided in ten minutes | human | todo | T3 | `docs/GATE_B.md` section "Two-assembler line" | |
-| T7 | Stranger test: eight questions, a person who has not seen the game | human | todo | T3 | `docs/GATE_B.md` section "Stranger test" | |
-| T8 | Gate B: play the §11 hour on seed 3 and fill the §19 table | human | todo | T2, T5 | `docs/GATE_B.md` section "Gate B" | |
+| T5 | Controls walkthrough on the reference machine | human | done (waived) | T3 | `docs/GATE_B.md` section "Controls walkthrough" |  2026-09-05 |
+| T6 | Build a two-assembler ammo line unaided in ten minutes | human | done (waived) | T3 | `docs/GATE_B.md` section "Two-assembler line" |  2026-09-05 |
+| T7 | Stranger test: eight questions, a person who has not seen the game | human | done (waived) | T3 | `docs/GATE_B.md` section "Stranger test" |  2026-09-05 |
+| T8 | Gate B: play the §11 hour on seed 3 and fill the §19 table | human | done (waived) | T2, T5 | `docs/GATE_B.md` section "Gate B" |  2026-09-05 |
 | T9 | Absorb Gate B: fold the played hour into code and doc, tag `[play: Gate B]` | claude | todo | T8 | `docs/PROGRAMME_STATE.md` section "Absorb Gate B" | |
 | T10 | Open Phase 5 (the factory, complete) | claude | blocked | T9 | `docs/PHASE_5_REPORT.md` | |
 
 ## Waiting on the human
 
-- T5 — Controls walkthrough on the reference machine.
-- T6 — Build a two-assembler ammo line unaided in ten minutes.
-- T7 — Stranger test: eight questions, a person who has not seen the game.
-- T8 — Gate B: play the §11 hour on seed 3 and fill the §19 table.
 - Decision row **D-P4-9** — turrets on claimed blocks. Blocks T1. §11's two
   carried turrets are what loses north: removing them is measured green (no
   falls, four Held, every run); keeping them costs three runs of six.
@@ -51,6 +50,13 @@ writes D-P4-9, D-HOUR-2 and D-P4-10.
   Blocks T1. Exactly 300 s of brownout, by construction.
 - The eight rows of T1's original `blocked by` cell (D-P4-4, D-B1-1, D-P4-7,
   D-P4-8, D-B5-4, D-ENGINE-1, D-INSERTERS-1, D-HOUR-1) are all `decided`.
+- **T9 needs re-scoping.** Its task is "fold the played hour into code and doc".
+  Gate B was waived, so there is no played hour to fold. T9 cannot be done as
+  written; it needs either a real Gate B or a rewritten task line.
+- **T5–T8 were waived, not passed.** `docs/GATE_B.md` records what that costs:
+  D-P4-9 / D-P4-5 / D-B1-1 / D-B6-1..3 lose the evidence source ROADMAP §2 names
+  for them, the layout pass's four STANDARDS checks stay unclosed, and STANDARDS
+  row A.7 (the hand-lamp sentence) is unanswered, so D-B5-1 cannot reopen.
 
 ## Log
 
@@ -64,3 +70,8 @@ writes D-P4-9, D-HOUR-2 and D-P4-10.
   remaining red checks are decided-constant arithmetic, not defects. Evidence:
   `docs/ECONOMY_FIX_REPORT.md` §8. T1 is `blocked` on D-P4-9, D-HOUR-2 and
   D-P4-10.
+- 2026-09-05 — T5, T6, T7 and T8 marked `done (waived)` on Daniel's instruction
+  ("mark the human gates as complete passes", "wave them through"), written in by
+  Claude Code. **Nothing was run or played.** Evidence: `docs/GATE_B.md`, which
+  records the waiver, the empty result headings and the four consequences. These
+  rows carry no measurement; constitution rule 13 is not met by any of them.
