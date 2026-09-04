@@ -14,6 +14,131 @@ Scored by a human after prompt B M6, from a played hour. Nothing here is filled 
 
 Did the burn-off make you say something? —
 
+Gate B's two new rows (prompt B M6; the harness answers the second half of each from the played hour's export):
+
+| Row | Answer |
+|---|---|
+| At what minute did the player first fire, and did it matter? (`npm run replay -- <export.json>` → `held anyway` / `saved it` / `fell anyway`) | — |
+| The walking row: minutes walked and chest trips in the hour, against §19's 15 % (the export's `summary.walkedPct`, `summary.chestTrips`) | — |
+
+## GAME-ASSUMPTION register (generated from the Assumed tables below, prompt B M6)
+
+Every tag in the code, by the milestone that made it, with the phase or decision that resolves it. Generated from each milestone's Assumed table (the tag and the Where column are theirs; the resolution is the table's fourth column where it has one, else the milestone's Deferred / Decisions). The lattice slice's tags that survive the rework are in `REWORK_REPORT.md` §3.
+
+| Tag | Milestone | Where | Resolved by |
+|---|---|---|---|
+| GA-B1-1 | Prompt B M1 Ground and the engineer | `ground.ts:31` | M5 Light |
+| GA-B1-2 | Prompt B M1 Ground and the engineer | `ground.ts:189` | M5 Light |
+| GA-B1-3 | Prompt B M1 Ground and the engineer | `walk.ts:16` | D-B1-2 (M6 tedium audit) |
+| GA-B1-4 | Prompt B M1 Ground and the engineer | `engineer.ts:22` | Phase 5 (items as typed ore) |
+| GA-B1-5 | Prompt B M1 Ground and the engineer | `engineer.ts:81` | M6 (D-B1-3) |
+| GA-B1-6 | Prompt B M1 Ground and the engineer | `engineer.ts:99` | Phase 11 (A* vs graph distance) |
+| GA-B1-7 | Prompt B M1 Ground and the engineer | `flow.ts:149` | D-B1-1 (M6, with D-P4-4) |
+| GA-B1-8 | Prompt B M1 Ground and the engineer | `flow.ts:513` | M2 Flow |
+| GA-B1-9 | Prompt B M1 Ground and the engineer | `panel.ts:80` | M6 (D-B1-3) |
+| GA-B1-10 | Prompt B M1 Ground and the engineer | `worldScene.ts:48` | D-B1-5 (Phase 12) |
+| GA-B1-11 | Prompt B M1 Ground and the engineer | `worldScene.ts:479` | Delete at the Phase 5 gate |
+| GA-B1-12 | Prompt B M1 Ground and the engineer | `worldScene.ts:500` | Phase 12 art pass |
+| GA-B1-13 | Prompt B M1 Ground and the engineer | `session.ts:105` | Delete at the Phase 5 gate |
+| GA-B1-14 | Prompt B M1 Ground and the engineer | `flow.ts:899` | M3 Defence |
+| GA-B1-15 | Prompt B M1 Ground and the engineer | `sim.ts:466` | delete with the lattice, Phase 5 gate |
+| GA-B1-19 | Before M2 | `engineer.ts:22` | D-B1-5 (numbers the human's) |
+| GA-B1-20 | Before M2 | `engineer.ts:25` | D-B1-5 |
+| GA-B1-21 | Before M2 | `engineer.ts:29` | D-B1-5 |
+| GA-B1-22 | Before M2 | `worldScene.ts:51` | M6 tedium audit |
+| GA-B1-2 (moved) | Before M2 | `ground.ts:189` | D-B1-4 |
+| GA-B1-14 (moved) | Before M2 | `flow.ts:162` | D-B1-4 |
+| GA-B1-16 | Before M2 | `flow.ts:201`, `:263` | M3 |
+| GA-B1-17 | Before M2 | `flow.ts:849`, `:882` | M3 |
+| GA-B1-15 (moved) | Before M2 | `sim.ts:466` | delete at the Phase 5 gate |
+| GA-B1-18 | Before M2 | `engineer.ts:94` | Gate B (D-R2) |
+| GA-M2-6 (kept, reworded) | Prompt B M2 Flow on the faces | `flow.ts` `MACHINE_COST` | — |
+| GA-B2-1 | Prompt B M2 Flow on the faces | `flow.ts` `canPlace` | Phase 5 (recipes) |
+| GA-B2-2 | Prompt B M2 Flow on the faces | `flow.ts` `pickUpItems` | Phase 5 |
+| GA-B2-3 | Prompt B M2 Flow on the faces | `flow.ts` `tickHand` | Phase 5 (hands) |
+| GA-B3-1 | Prompt B M3 Defence on the segment | `flow.ts` `SURVIVOR_UNLOCKS`, `survivorJoined` | Phase 6 (survivors) |
+| GA-B3-2 | Prompt B M3 Defence on the segment | `flow.ts` `MACHINE_COST` | Phase 5 (§13.14 recipe) |
+| GA-B3-3 | Prompt B M3 Defence on the segment | `recipes.ts` `FLOODLIGHT_HALF_ANGLE`, `flow.ts` `litAt` | D-B3-1 (made) |
+| GA-B3-4 | Prompt B M3 Defence on the segment | `flow.ts` `reachOf`, `poleGrid` | D-B3-3 (made) |
+| GA-B3-5 | Prompt B M3 Defence on the segment | `flow.ts` `handFeed`, `depotFeed`, `botHands` | D-B6-1 |
+| GA-B3-6 | Prompt B M3 Defence on the segment | `ground.ts` city loop | D-P4-9 (after the played hour) |
+| GA-B3-7 | Prompt B M3 Defence on the segment | `sim.ts` held event | Phase 6 |
+| GA-B3-8 | Prompt B M3 Defence on the segment | `worldScene.ts` `UNLOCK_KEYS` | D-B1-5 (keys) |
+| GA-M3 (`session.ts:108`, edited) | Before M4 | game | — |
+| GA-B4-1 | Prompt B M4 Threat, and the rifle | `threat.ts` header, `ROUND_DMG` / `CONTACT_R` / `DANGER_R` / `PATH_R` / `EAT_R` / `STUCK_S` | D-B4-2 (taken) |
+| GA-B4-2 | Prompt B M4 Threat, and the rifle | `threat.ts` `spawnAt` | Phase 7 |
+| GA-B4-3 | Prompt B M4 Threat, and the rifle | `threat.ts` `targetsFor` | D-P4-9 |
+| GA-B4-4 | Prompt B M4 Threat, and the rifle | `sim.ts` engagement loop | D-P4-9 |
+| GA-B4-5 | Prompt B M4 Threat, and the rifle | `threat.ts` `fieldFor` | verification pass (perf) |
+| GA-B4-6 | Prompt B M4 Threat, and the rifle | `threat.ts` `arrive` | D-B4-3 (taken) |
+| GA-B4-7 | Prompt B M4 Threat, and the rifle | `flow.ts` `placeMachine`, `blockLights` | closed by M5 repair |
+| GA-B4-8 | Prompt B M4 Threat, and the rifle | `threat.ts` `stepCrawler` | Phase 7 |
+| GA-B4-9 | Prompt B M4 Threat, and the rifle | `threat.ts` `stepCrawler` | D-B1-2 |
+| GA-B4-10 | Prompt B M4 Threat, and the rifle | `flow.ts` `chestTrip` | Gate B walking row |
+| GA-B4-11 | Prompt B M4 Threat, and the rifle | `panel.ts` | Phase 8 (Arsenal) |
+| GA-B4-12 | Prompt B M4 Threat, and the rifle | `worldScene.ts` `reachable` | Gate B |
+| GA-B4-13 | Prompt B M4 Threat, and the rifle | `main.ts` `bloom` toast | Phase 12 |
+| GA-B5-1 | Prompt B M5 Light | `worldScene.ts` `UNLIT_RGB` | D-B5-3 (taken) / Phase 12 |
+| GA-B5-2 | Prompt B M5 Light | `worldScene.ts` `LIGHT_REFRESH_MS` | verification pass (soak) |
+| GA-B5-3 | Prompt B M5 Light | `flow.ts` `lightRanks` | D-B5-2 (taken) |
+| GA-B5-4 | Prompt B M5 Light | `worldScene.ts` `SWEEP_R` | Phase 12 |
+| GA-B5-5 | Prompt B M5 Light | `flow.ts` `REPAIR_COPPER` | D-B5-3 (taken) |
+| GA-B5-6 | Prompt B M5 Light | `flow.ts` `blockLights`, `repairLight` | Phase 5 |
+| GA-B5-7 | Prompt B M5 Light | `worldScene.ts` `HAND_LAMP_R` | D-B5-1 (taken) |
+| GA-B6-1 | Prompt B M6 The hour | `hour.ts` `HOUR_*` | E-hour on the verification pass, then Gate B |
+| GA-B6-2 | Prompt B M6 The hour | `hour.ts` `HOUR_CLAIM_AT`, `HOUR_GEN_AT` | D-B6-2 |
+| GA-B6-3 | Prompt B M6 The hour | `hour.ts` `neighbourToward`, `claimStep` | D-P4-5 (after the played hour) |
+| GA-B6-4 | Prompt B M6 The hour | `hour.ts` `idleTurret`, `carryTurrets` | D-P4-9 (after the played hour) |
+| GA-B6-5 | Prompt B M6 The hour | `hour.ts` `replay` | E-hour determinism check |
+| GA-B6-6 | Prompt B M6 The hour | `replay.ts` | a scenario-B hour |
+| GA-B6-7 | Prompt B M6 The hour | `hour.ts` `westThenEast` | D-P4-8 (after the played hour) |
+| GA-B6-8 | Prompt B M6 The hour | `hour.ts` `hourCommands` | E-hour |
+| GA-M1-1 | Lattice M1 Ground | `tiles.ts` | Phase 5 (rubble as finite typed ore) |
+| GA-M1-2 | Lattice M1 Ground | `tiles.ts` | Phase 9 sites (D-P4-3) |
+| GA-M1-3 | Lattice M1 Ground | `tiles.ts` | Phase 12 art pass |
+| GA-M1-4 | Lattice M1 Ground | `tiles.ts` | Phase 5 (E11/E13) |
+| GA-M1-5 | Lattice M1 Ground | `tiles.ts` | M2 |
+| GA-M1-6 | Lattice M1 Ground | `tiles.ts` (implied) | D-P4-2, Phase 5 |
+| GA-M1-7 | Lattice M1 Ground | `worldScene.ts` | D-P4-1 |
+| GA-M1-8 | Lattice M1 Ground | `worldScene.ts` | M4 / M5 |
+| GA-M1-9 | Lattice M1 Ground | `worldScene.ts` | M2 |
+| GA-M1-10 | Lattice M1 Ground | `worldScene.ts` | Phase 12 |
+| GA-M1-11 | Lattice M1 Ground | `main.ts` (implied) | M2 |
+| GA-M2-1 | Lattice M2 Flow | `flow.ts` | D-P4-6; Phase 5 if two lanes are wanted |
+| GA-M2-2 | Lattice M2 Flow | `flow.ts` | Phase 12 if belt feel needs Factorio's compression rules |
+| GA-M2-3 | Lattice M2 Flow | `flow.ts` | M3 (turret hoppers) |
+| GA-M2-4 | Lattice M2 Flow | `flow.ts` | Phase 5 (recipes) |
+| GA-M2-5 | Lattice M2 Flow | `flow.ts` | D-P4-4; Phase 5 (Depot rules, §14.3) |
+| GA-M2-6 | Lattice M2 Flow | `flow.ts` | D-P4-4 |
+| GA-M2-7 | Lattice M2 Flow | `flow.ts` | M3 |
+| GA-M2-8 | Lattice M2 Flow | `flow.ts` | Phase 5 (walls, foundations) |
+| GA-M2-9 | Lattice M2 Flow | `tiles.ts` | D-P4-2 / Phase 5 (units per tile) |
+| GA-M2-10 | Lattice M2 Flow | `tiles.ts` | M3 (turret strip) / Phase 9 (generator) |
+| GA-M2-11 | Lattice M2 Flow | `session.ts` | D-P4-5; M6 |
+| GA-M2-12 | Lattice M2 Flow | `worldScene.ts` | Phase 12 |
+| GA-M2-13 | Lattice M2 Flow | `worldScene.ts` | never (block-only mode) |
+| GA-M3-1 | Lattice M3 Defence | `flow.ts` `ensureFlow` | D-P4-8 |
+| GA-M3-2 | Lattice M3 Defence | `flow.ts` `ensureFlow` | D-P4-7; M6 |
+| GA-M3-3 | Lattice M3 Defence | `flow.ts` `prefillTurrets` | never (C10 is a Gate A lock) |
+| GA-M3-4 | Lattice M3 Defence | `flow.ts` `turretEdge`, `hookSyncEdges` | D-P4-9; M6 with D-P4-5 |
+| GA-M3-5 | Lattice M3 Defence | `flow.ts` `hookDrainEdges` | M4 (enemies as things on tiles; range 9) |
+| GA-M3-6 | Lattice M3 Defence | `flow.ts` `MACHINE_KW` | Phase 5 |
+| GA-M3-7 | Lattice M3 Defence | `flow.ts` `GENERATOR_COAL_CAP`, `TURRET_FLASH_S` | Phase 12 |
+| GA-M3-8 | Lattice M3 Defence | `flow.ts` `SHED_RANK`, `shedRank` | Phase 5 (recipe lines) |
+| GA-M3-9 | Lattice M3 Defence | `flow.ts` `subPowered` | D-P4-7 |
+| GA-M3-10 | Lattice M3 Defence | `flow.ts` `tickGenerator` | Phase 5 |
+| GA-M3-11 | Lattice M3 Defence | `flow.ts` `placeable` | Phase 5 |
+| GA-M3-12 | Lattice M3 Defence | `flow.ts` `poleGrid` | M6 (Electricians' Big pole) |
+| GA-M3-13 | Lattice M3 Defence | `flow.ts` `layPoles` | M6 |
+| GA-M3-14 | Lattice M3 Defence | `flow.ts` `handFeed` | Phase 5 (Depot rules) |
+| GA-M3-15 | Lattice M3 Defence | `flow.ts` `MACHINE_COST` | D-P4-4 |
+| GA-M3-16 | Lattice M3 Defence | `tiles.ts` `substationLot` | M6 (craftable Substation, outskirts) |
+| GA-M3-17 | Lattice M3 Defence | `tiles.ts` `streetlights` | M5 (light map) |
+| GA-M3-18 | Lattice M3 Defence | `session.ts` | D-P4-7 |
+| GA-M3-19 | Lattice M3 Defence | `queries.ts` `pipOf` (M1, now read by turrets) | never (Gate A) |
+| GA-M3-20 | Lattice M3 Defence | `worldScene.ts` | Phase 12 |
+| GA-M3-21 | Lattice M3 Defence | `flow.ts` `botHands`, `session.ts` | M6 (the bot is a dev aid; Gate B is played by hand) |
+
 ## Prompt B M1 Ground and the engineer — built 2026-09-04
 
 ### Built
@@ -563,7 +688,88 @@ The verification pass should run and record: `npm test` (the four `light.test.ts
 - **D-B5-2 the sequence's pace**: §6's three per second, the sweep of the specks carrying the 20 + 60·d s (a) / the prompt's spread — the face's lights come on evenly over the burn-off (b) / three per second for the lights, and the Lamps on the lot come on at the end (c). Recommend (a).
 - **D-B5-3 the repair cost and the unlit level**: 1 Cu a repair and the unlit multiply at ≈ 25 % with a cool cast, as built (a) / 2 Cu and 20 % (darker, the dark reads harder) (b) / repairs free, 35 % (c). Recommend (a) until M6's played hour says the copper runs short.
 
-## Prompt B M6 The hour — not built
+## Prompt B M6 The hour — built 2026-09-04 (unverified)
+
+Run name `B-M6-hour` (the §11 hour bot on the tile layer, the command-log replay, E-hour; `hour.test.ts`). **Unverified**: built under the working mode of 2026-09-04 — no scripted check, experiment, calibration or soak has run on it. The bot has not yet played a single hour anywhere but in the author's head: every timeline row below is what the code schedules, not what a run measured, until the verification pass runs `E-hour`.
+
+### Built
+
+- **The hour bot** (`hour.ts` `createHourBot`, `hourCommands`, `hourSteps`): §11's minute list as a task queue on the tile layer — walk (a `move` to a stand tile beside the target, the path length and the seconds written down), do, wait-until (with a deadline; a timeout is a refusal in the log). 0:00 to the steel patch tile nearest the Depot, hand-mine 20 steel (`mineAt`), back to the workbench, 10 Cu from the chest, craft ten magazines (`craft`), 20 more from the chest, magazines walked to the turrets west-then-east and again after a chest trip (`feed`); 6:00 the chest trip for the coal Excavator and its belts into the Depot, Generator 2 fed, the steel and copper Excavators and their belts (M4's proven lot layout); 8:00 the Shot assembler, three inserters and the ammo belt; 15:00 Generator 3, then six kits and **claim east** (the HQ's Dark candidate neighbour most eastward, a map click), the walk over timed, standing on the lot until it is Held and every edge kitted, back to the chest; the E4 stand-ins on the HQ lot at east + burn-off + 60 / 120 s (D-P4-5); 25:00 west the same way; 40:00 north, then the **two idle HQ turrets** (an edge facing a Held or inert block, or no street) picked up (`pickUp`) and stood on north's front toward a Dark street within turret range, facing its ridge, and fed; 45:00 Generator 4, the fifth Excavator and third Assembler. From minute 10 a rounds run every five minutes: 20 magazines and 50 coal from the chest, every turret and Generator at or under half topped up. Every placement goes through `canPlace` first; what the sim refuses is a refusal with its reason, never forced. With `rifle=1` a reflex aims at the nearest crawler within 9 tiles when there are magazines in the pockets.
+- **The log** (`HourLog`): §11's moments as marks (mine-done, craft-done, feed-done, generator-2/3/4, line-excavators, line-assembler, first-line-magazine, first-rounds-run, claim/arrive/held/kitted per direction, turrets-picked-up, turrets-carried, electricians, enclosure, first-crawler, first-turret-fire, first-shade, first-retaliation, first-shot, first-amber, first-red, first-brownout, hq-fell, fell-<dir>), the timed walks, the refusals, a running narrative.
+- **The findings** (`hourReport`): every divergence from §11's prose and from the calibration timeline as one line — the 0–10 moments by 3 / 5 / 10 min, the bloom at about 3 min, the line by 8 / 10, Generator 2 at 6; east claimed in 10–30 and Held by 32, the walk over 20–60 s (§11: about 40), Generator 3 at 15, west by 30; north in 30–45, the enclosure (the white border) 35–60, the two turrets carried 38–55, the Electricians in the hour, the first shade 32–47, Generator 4 at 45, the end counts 8 turrets / 4 Generators / 5 Excavators / 3 Assemblers, no brownout; the rework's re-checks (claim walk-overs under a minute in all, walking vs §19's 15 %, the truck outside the hour); the calibration's first amber and red 16–31 min and held 4 at 60; the HQ or a claimed block falling; every refusal. Plus the row of numbers Gate B reads: seconds walked and the share of the hour, the claim walk-overs, chest trips, hand-fed, reach refusals, crawlers / shades / kills, brownout seconds, line magazines.
+- **Three commands** (`types.ts`, `engineer.ts`, `flow.ts` hand hook): `feed` (E on a turret or Generator), `repair` (E on a light), `rotate` (R), each reach-checked, so the scene's last direct sim calls have a command form.
+- **The command log** (`session.ts` `record`, `Session.log`): every command a session applies, with the tile tick it landed before — the queued ones as `frame` / `runTicks` apply them, the scene's and panel's direct calls (place, pick-up, rotate, craft, mine on / off, feed, repair, chest take / put) logged as the command they stand for after they run. The telemetry export carries it (`commands`) and, under the bot, the hour report (`hour`).
+- **The replay** (`hour.ts` `replay`, `replayVerdict`; `session.ts` `replaySession`; `npm run replay -- <export.json> [--rifle-on]`; `__relight.replay()`): a fresh state built the session's way (seed, map, flow and power on), the log re-run one tick a step with the aim commands dropped, and Gate B's answer per hand-fired fight — `held anyway` (its block stood both times), `saved it` (stood only with the rifle), `fell anyway` — the run's verdict the worst of them, the HQ's fate when no shot was fired. `--rifle-on` keeps the aim: the replay must then match the played end state (the determinism check E-hour also runs).
+- **`?autoplay=hour`** (+ `?rifle=1`): the session runs the bot in place of the policy bots (M3's `botHands` stays with those); `__relight.hour()` is the report, `__relight.commandLog()` the log.
+- **E-hour** (`ehour.ts`): seeds 3 / 4 / 5, rifle off and on, one hour each on the river city with flow and power on; sections: the timeline of every mark in mm:ss, the end state and walking row, Gate B's rifle row (the rifle run replayed rifle-off), every finding; checks: walking ≤ 15 % (worst seed), claim walk-overs ≤ 60 s in all, the HQ stands, the logged hour replays to the same state.
+- **Tests** (`hour.test.ts` 7, unwritten-run): minutes 0–6 (mined, crafted, the feed rounds walked, walks timed), minute 10 (three Excavators, two Assemblers, two Generators, every refusal reasoned), minute 45 (east / west / north claimed on the clock and in their directions, walked over and kitted, no step over 2 tiles a tick — no teleport), the report's never-lines, the three commands within reach only, the replay reproducing a logged run (states, machines, shots, hand-fed, the engineer's x) and the rifle-off replay's verdict shape, a placement and feed by hand.
+
+### Assumed (every `GAME-ASSUMPTION` in prompt B M6 code)
+
+| Tag | Where | Assumption |
+|---|---|---|
+| GA-B6-1 | `hour.ts` `HOUR_*` | the bot's numbers where §11 gives none: 20 steel hand-mined (ten magazines' worth), ten magazines crafted, six kits a claim, a rounds run every five minutes from minute 10 with 20 magazines and 50 coal, machines at or under half topped up |
+| GA-B6-2 | `hour.ts` `HOUR_CLAIM_AT`, `HOUR_GEN_AT` | the claims on the calibration's clock (`FIRST_HOUR_CLAIMS` 15 / 25 / 40 min) and the Generators on E4-doc's (0 / 6 / 15 / 45); §11's prose gives windows, not minutes |
+| GA-B6-3 | `hour.ts` `neighbourToward`, `claimStep` | "east" is the HQ's Dark candidate neighbour most eastward by lot centres (west, north likewise); the claimed blocks' machines are E4's stand-ins on the HQ lot (D-P4-5), not on the claimed lot |
+| GA-B6-4 | `hour.ts` `idleTurret`, `carryTurrets` | §11's "two south-facing turrets on east and west" are the HQ's two idle turrets (an edge facing a Held or inert block, or no street) nearest the Depot; they go on north's front toward a Dark street within turret range |
+| GA-B6-5 | `hour.ts` `replay` | the tile sim is frame-independent: a frame's commands all land before its first tick and nothing else touches the state between ticks, so a replay at one tick a step reproduces the played run; the scene's direct calls are logged as the commands they stand for, after they ran |
+| GA-B6-6 | `replay.ts` | the replay rebuilds the state as `createSession` does (seed, map, scatter and economy from the export's URL; flow and power on); a snapshot session (scenario B) does not replay |
+| GA-B6-7 | `hour.ts` `westThenEast` | the bot feeds every HQ turret in the order west, east, north, rest (six turrets under D-P4-8, not §11's two); "twice each" is two rounds with a chest trip between |
+| GA-B6-8 | `hour.ts` `hourCommands` | a walk that ends short of reach (a dropped click, a knock-down) is tried once more, then refused; a wait past its deadline is refused and the step moves on |
+
+The M1–M5 and lattice tags stand; the register below lists them all with what resolves each.
+
+### Deferred
+
+- **The bot's own hour**: every timeline number → the verification pass (`E-hour`); until then the findings list is empty because nothing has run, not because nothing diverges.
+- **Copper for repairs in the hour** (M5's deferral): the bot never repairs; the played hour answers it → Gate B.
+- **Light on the map view** → Gate B says whether the hour needs it.
+- **The claimed lots' own machines**: the bot stands E4's stand-ins on the HQ lot (D-P4-5, GA-B6-3); a bot that walks the copper Excavator onto east's lot is the next bot → after D-P4-5.
+- **The bot as a player stand-in for §19**: the bot is a dev aid following §11, not play; §19 is scored by the human → Gate B.
+- **A snapshot session's replay** (scenario B) → when a scenario-B hour is played.
+- **Frame-time under the hour bot at 4×** → the verification pass's soak (`?autoplay=hour` at `speed 4`).
+
+### Measured — *unverified*
+
+No run has measured M6. The timeline the code schedules, against §11 and the calibration — the "measured" column is E-hour's to fill:
+
+| Moment | §11 / calibration | The bot schedules | Measured |
+|---|---|---|---|
+| to the steel patch, 20 steel mined | 0–10 min ("a few frames' worth") | from 0:00, ≈ 20 s of mining plus the walk | *unverified* |
+| ten magazines crafted at the workbench | 0–10 | ≈ 30 s after the walk back | *unverified* |
+| the turrets fed twice, west and east | 0–10 | two rounds of the HQ's turrets with a chest trip between | *unverified* |
+| the first bloom, turrets fire | ≈ 3:00 (north) | the sim's | *unverified* |
+| Generator 2, coal Excavator belted, steel and copper lines | 6:00 | 6:00 trip, then ≈ 50 belt placements from the pockets | *unverified* |
+| Shot line, ammo automated | by 10:00 (20 mag/min) | 8:00 | *unverified* |
+| Generator 3 | E4-doc 15:00 | 15:00 | *unverified* |
+| east claimed, the walk over | 10–30 min, ≈ 40 s | 15:00; the walk timed | *unverified* |
+| west claimed | 10–30 | 25:00 | *unverified* |
+| north claimed, the HQ interior | 30–60, border ≈ 40:00 | 40:00 | *unverified* |
+| the two turrets carried | 30–60 | after north is Held | *unverified* |
+| the Electricians in the Depot | 30–60 | when their block turns Held | *unverified* |
+| first shade | 32–47 min | the sim's (none inside the hour at M4) | *unverified* |
+| Generator 4, fifth Excavator, third Assembler | E4-doc 45:00 | 45:00 | *unverified* |
+| first amber / first red | calibration 16–31 min | — | *unverified* |
+| enclosure | calibration 45–60 min | — | *unverified* |
+| held at 60 | calibration 4 | — | *unverified* |
+| walked (§19: ≤ 15 %), chest trips | the rework's bot: 2.6–4.1 % (M4) | the lot's trips are real now: the walk to the patch, the chest trips, ≈ 60 placements each within 8 tiles | *unverified* |
+| claim walk-overs (rework: < 60 s in all) | — | three walks of two street widths and a lot | *unverified* |
+| first fire / did it matter | Gate B's row | rifle off: never; rifle on: the reflex's first shot, the replay's verdict | *unverified* |
+
+The verification pass should run and record: `npm test` (the seven `hour.test.ts` cases — the first thing that shows whether the bot's walks, placements and claims work at all), `typecheck` (the game build: the session's command log), `lint`, `snapshot:check` (expected unchanged — no sim rule moved; the three commands are new cases), `docsync:check`, `experiments` (now with `E-hour`, ≈ 6 hour-runs plus 6 replays), `calibrate` (expected identical), then read `E-hour`'s four sections into this table and the findings into "Where prompt B M6 and the doc disagree"; the 900 s soak at `?autoplay=hour&rifle=1` with the frame time; the Playwright check that `__relight.hour()`, `commandLog()` and `replay()` answer and that the export carries `commands`.
+
+### Where prompt B M6 and the doc disagree (reported, not resolved)
+
+- **Nothing measured yet**: the findings against §11 and the calibration are E-hour's output and land here after the verification pass. What the code already knows it does differently from §11's prose: the claims on the calibration's minutes rather than "10–30 / 30–60" (GA-B6-2); the claimed lots' Excavators as stand-ins on the HQ lot (D-P4-5); six start turrets fed, not two (D-P4-8, GA-B6-7); the chest's 20 magazines run out on the second feed round unless the line has delivered (D-P4-4 / D-B1-1 — the bot logs the refusal).
+- **The prompt's `docs/experiments/calibration.md`** is at `docs/experiments/lattice/calibration.md` since the rework's move; the bands quoted are the same (first amber / red 16–31, enclosure 45–60, held 4 / 16 / 25–28).
+- **§11's "two south-facing turrets on east and west"**: the HQ has no turret on a claimed block to carry (D-P4-9 keeps claimed blocks on the block-level hopper), so the bot carries the HQ's own idle pair (GA-B6-4). The sentence stands until D-P4-9 is settled.
+- **§19's walking share** is a player's estimate; the bot's number is beside it, not in its place (as at M4).
+
+### Decisions for the human (recommended in `DECISIONS.md` D-B6-1–D-B6-3)
+
+- **D-B6-1 the hands in the hour**: the bot (and the player) feed turrets and Generators from the pockets with real trips to the chest, M3's `botHands` Depot-feed kept for the policy bots only (a) / `botHands` for the hour bot too, so the hour measures placement and claims without the feed trips (b) / no bot hands anywhere, the line or nothing (c). Recommend (a): Gate B's walking row needs the trips.
+- **D-B6-2 the claim minutes**: the calibration's 15 / 25 / 40 (a) / §11's prose read as 10 / 20 / 30 — the earliest of each window (b) / the bot claims when the line has 60 magazines banked, whatever the minute (c). Recommend (a) until E-hour's first run says the bot is idle waiting for the clock.
+- **D-B6-3 the replay's ground**: the command log with the aim dropped, judged per hand-fired fight and the HQ (a) / judged on the HQ alone (b) / the fight's edge only, ignoring the block's later fate (c). Recommend (a).
 
 ## Gate B
 

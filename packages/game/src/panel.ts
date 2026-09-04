@@ -1,8 +1,14 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
   CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined } from '@relight/sim';
-import { Session, setSpeed, queue, shareUrl } from './session';
+import { Session, setSpeed, queue, shareUrl, record } from './session';
 import { summarise, exportJson } from './telemetry';
+import { hourReport } from '@relight/sim';
+
+/** M6: what the export carries beside the telemetry — the command log (the replay's input) and, under the hour bot, its log and report. */
+export function exportExtra(session: Session): Record<string, unknown> {
+  return { commands: session.log, hour: session.hour ? hourReport(session.state, session.hour) : null };
+}
 
 export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void }
 /** D-B1-5: the build menu (key B) picks a building into the hand; the world scene installs the pick. */
@@ -97,8 +103,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const row = el('div', 'row');
     const n = item === 'kit' ? 1 : item === 'magazine' ? 5 : stackSize(item);
     const take = el('button', undefined, `Take ${n}`), put = el('button', undefined, 'Put all');
-    take.onclick = () => { const r = chestTake(session.state, item, n); if (r.moved) toast(`${r.moved} ${item} into the pockets`, 'good'); else toast(r.reason, 'bad'); };
-    put.onclick = () => { const r = chestPut(session.state, item, 1e9); if (r.moved) toast(`${r.moved} ${item} into the Depot`, 'good'); else toast(r.reason, 'bad'); };
+    take.onclick = () => { const r = chestTake(session.state, item, n); record(session, { type: 'chestTake', item, n }); if (r.moved) toast(`${r.moved} ${item} into the pockets`, 'good'); else toast(r.reason, 'bad'); };
+    put.onclick = () => { const r = chestPut(session.state, item, 1e9); record(session, { type: 'chestPut', item, n: 1e9 }); if (r.moved) toast(`${r.moved} ${item} into the Depot`, 'good'); else toast(r.reason, 'bad'); };
     row.append(take, put);
     l.append(a, v); pocketList.append(l); pocketList.append(row);
     return { item: item as ChestItem, v, take, put };
@@ -190,7 +196,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const craftRow = el('div', 'row');
     btnCraft = el('button', undefined, `Craft a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s)`);
     btnCraft.title = 'E on the workbench in the world view. A hand craft takes its steel and copper from the pockets and puts the magazine in the pockets; the engineer stays within reach of the Depot while it runs.';
-    btnCraft.onclick = () => { const why = queueCraft(session.state, 1); if (why) toast(why, 'bad'); };
+    btnCraft.onclick = () => { const why = queueCraft(session.state, 1); record(session, { type: 'craft', item: 'magazine', count: 1 }); if (why) toast(why, 'bad'); };
     craftRow.append(btnCraft);
     lineSec.append(craftRow);
     const mc = MACHINE_COST;
@@ -229,7 +235,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const sumRow = el('div', 'row');
   const btnExport = el('button', undefined, 'Export telemetry JSON');
   btnExport.onclick = () => {
-    const json = exportJson(session.telemetry, session.state);
+    const json = exportJson(session.telemetry, session.state, exportExtra(session));
     const blob = new Blob([json], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);

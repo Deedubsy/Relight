@@ -30,7 +30,7 @@ import {
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
   lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
 } from '@relight/sim';
-import { Session, queue } from './session';
+import { Session, queue, record } from './session';
 import { View } from './view';
 
 /** GAME-ASSUMPTION: the constitution's 0.5–3× zoom, not §4's 1.0–0.2×; the doc is edited to this range (D-P4-1). */
@@ -311,7 +311,7 @@ export class WorldScene extends Phaser.Scene {
     }
     if (lower === 'r') {
       const h = this.hoverTile, m = h && this.tool === 'hand' ? machineAt(st, h.tx, h.ty) : undefined;
-      if (m && m.kind !== 'depot') { if (this.reachable(m.x, m.y, m.size, true)) rotate(st, m.x, m.y); } else this.dir = ((this.dir + 1) % 4) as Dir;
+      if (m && m.kind !== 'depot') { if (this.reachable(m.x, m.y, m.size, true)) { rotate(st, m.x, m.y); record(this.session, { type: 'rotate', x: m.x, y: m.y }); } } else this.dir = ((this.dir + 1) % 4) as Dir;
       return true;
     }
     if (lower === 'e') { this.interact(); return true; }
@@ -336,6 +336,7 @@ export class WorldScene extends Phaser.Scene {
     if (h && h.tx >= wb[0] && h.tx < wb[0] + 2 && h.ty >= wb[1] && h.ty < wb[1] + 2) {
       if (!this.reachable(wb[0], wb[1], 2, true)) return;
       const why = queueCraft(st, 1);   // M2: from the pockets, into the pockets
+      record(this.session, { type: 'craft', item: 'magazine', count: 1 });
       if (why) this.hooks.onToast(`Workbench: ${why}`, 'bad');
       else this.hooks.onToast(`Workbench: crafting a magazine by hand from the pockets (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s) — ${st.flow.hand.crafts} queued`);
       return;
@@ -345,6 +346,7 @@ export class WorldScene extends Phaser.Scene {
     if (light && light.l.why) {
       if (!this.reachable(h!.tx, h!.ty, 1, true)) return;
       const r = repairLight(st, h!.tx, h!.ty);
+      record(this.session, { type: 'repair', x: h!.tx, y: h!.ty });
       if (!r.ok) { this.hooks.onToast(`No repair: ${r.reason}`, 'bad'); return; }
       const bi = light.bi, b = st.blocks[bi];
       this.hooks.onToast(`${light.l.kind === 'lamp' ? 'Lamp' : 'Streetlight'} repaired (${REPAIR_COPPER} Cu from the pockets) — ${b.state === HELD || b.state === CONTESTED ? 'it lights while the substation powers it' : 'it lights when its block is claimed'}`, 'good');
@@ -389,6 +391,7 @@ export class WorldScene extends Phaser.Scene {
     const c = canPlace(st, kind, ox, oy);
     if (!c.ok) { if (loud) this.hooks.onToast(`No ${kind} here: ${c.reason}`, 'bad'); return; }
     place(st, kind, ox, oy, this.dir);
+    record(this.session, { type: 'place', item: kind, x: ox, y: oy, dir: this.dir });
   }
 
   private sendWalk(dx: number, dy: number): void {
@@ -431,6 +434,7 @@ export class WorldScene extends Phaser.Scene {
       const pk = canPickUp(st, tx, ty);
       if (!pk.ok) { this.hooks.onToast(`No pick-up: ${pk.reason}`, 'bad'); return; }
       remove(st, tx, ty);
+      record(this.session, { type: 'pickUp', x: tx, y: ty });
       const held = Object.keys(pk.items).filter(k => k !== m.kind).map(k => `${pk.items[k]} ${k === 'magazine' && pk.items[k] !== 1 ? 'magazines' : k}`).join(', ');
       this.hooks.onToast(`${m.kind} picked up into the pockets (${pk.stacks} stack${pk.stacks === 1 ? '' : 's'}${held ? `: ${held}` : ''}) — ${invStacks(st.engineer.inv)}/${INV_STACKS} stacks`);
       return;
@@ -448,6 +452,7 @@ export class WorldScene extends Phaser.Scene {
       if (m && (m.kind === 'turret' || m.kind === 'generator')) {
         if (!this.reachable(m.x, m.y, m.size, true)) return;
         const fed = handFeed(st, tx, ty);
+        record(this.session, { type: 'feed', x: tx, y: ty });
         if (fed) {
           if (fed.moved > 0) this.hooks.onToast(fed.kind === 'turret' ? `Hand-fed ${fed.moved} magazine${fed.moved === 1 ? '' : 's'} from the pockets into the turret` : `Hand-fed ${fed.moved} coal from the pockets into the Generator`, 'good');
           else this.hooks.onToast(fed.reason, 'bad');
@@ -456,7 +461,7 @@ export class WorldScene extends Phaser.Scene {
       }
       if (rubbleAt(st, tx, ty)) {
         if (!this.reachable(tx, ty, 1, true)) return;
-        this.mining = true; setHandMine(st, [tx, ty]); return;
+        this.mining = true; setHandMine(st, [tx, ty]); record(this.session, { type: 'mineAt', x: tx, y: ty }); return;
       }
       if (this.onFoot) return;   // no click-to-walk in the world view (D-B1-5): WASD, or the map view's walk-here
     }
@@ -465,7 +470,7 @@ export class WorldScene extends Phaser.Scene {
 
   private onUp(): void {
     this.dragging = false; this.placing = false;
-    if (this.mining) { this.mining = false; if (this.st.flow) setHandMine(this.st, null); }
+    if (this.mining) { this.mining = false; if (this.st.flow) { setHandMine(this.st, null); record(this.session, { type: 'mineAt', x: -1, y: -1 }); } }   // M6: (-1,-1) = the hands off (no rubble there)
     if (this.firing) { this.firing = false; this.sendAim(null); }
   }
 
@@ -481,7 +486,7 @@ export class WorldScene extends Phaser.Scene {
     this.hoverTile = { tx, ty };
     const st = this.st, G = ground(st);
     if (this.placing && p.isDown) this.tryPlace(tx, ty, false);
-    if (this.mining && p.isDown && st.flow) setHandMine(st, [tx, ty]);
+    if (this.mining && p.isDown && st.flow) { const was = st.flow.hand.mine; if (!was || was[0] !== tx || was[1] !== ty) { setHandMine(st, [tx, ty]); record(this.session, { type: 'mineAt', x: tx, y: ty }); } }
     if (this.firing && p.isDown) this.sendAim(this.aimAt(p));
     if (tx < 0 || ty < 0 || tx >= G.tw || ty >= G.th) { this.hooks.onHoverText(null, 0, 0); return; }
     const rect = this.game.canvas.getBoundingClientRect();

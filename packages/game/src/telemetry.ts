@@ -169,6 +169,7 @@ export function summarise(tel: Telemetry, st: SimState): Summary {
   };
 }
 
-export function exportJson(tel: Telemetry, st: SimState): string {
-  return JSON.stringify({ ...tel, summary: summarise(tel, st), finalState: st }, null, 1);
+/** `extra` (M6): the hour bot's log and report and the session's command log, when the caller has them. */
+export function exportJson(tel: Telemetry, st: SimState, extra: Record<string, unknown> = {}): string {
+  return JSON.stringify({ ...tel, summary: summarise(tel, st), ...extra, finalState: st }, null, 1);
 }

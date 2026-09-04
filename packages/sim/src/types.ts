@@ -181,7 +181,11 @@ export type Command =
   | { type: 'fire'; edge: number }                    // -1 = cease fire
   | { type: 'enterTruck' }
   | { type: 'chestTake'; item: string; n: number }
-  | { type: 'chestPut'; item: string; n: number };
+  | { type: 'chestPut'; item: string; n: number }
+  // M6: the scene's remaining direct calls as commands, so a played session's log replays whole (hour.ts `replay`)
+  | { type: 'feed'; x: number; y: number }          // E on a turret / Generator: magazines / coal from the pockets
+  | { type: 'repair'; x: number; y: number }        // E on an eaten lamp: 1 Cu from the pockets
+  | { type: 'rotate'; x: number; y: number };       // R on a machine
 
 export type SimEvent =
   | { type: 'claim'; t: number; x: number; y: number; district: District; well: boolean; d: number;

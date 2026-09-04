@@ -699,3 +699,5 @@ Each edit as `§N — what changed — why — run name`. Run names before Phase
 - §4 — the light map tagged `[sim: B-M5-light]`: one texel per tile multiplied over the world layer, lit full colour, unlit ≈ 25 %; "desaturated" reported as beyond a multiply (GA-B5-1, D-B5-3), text unchanged — prompt B M5 built the texture from `lightMask` — B-M5-light
 - §5 — step 3's streetlights coming on and the rot burning off from the lamps outward tagged; the 20 + 60·d s of step 4 is now `burnOffS` and read back as `contestProgress` — prompt B M5 — B-M5-light
 - §6 — "three per second" tagged (`LIGHT_SEQ_PER_S`, from the substation outward, GA-B5-3); the prompt's spread of the lights over the burn-off reported, not resolved (D-B5-2) — prompt B M5 — B-M5-light
+- §11, §19 — no tag placed at prompt B M6: the tile-level §11 hour bot (`hour.ts`) and `E-hour` measure the three windows, the walk-over, the two turrets carried and §19's walking share on the verification pass; `[sim: B-M6-hour]` lands on the numbers that run confirms, and a number it contradicts is edited then — prompt B M6 built unverified — B-M6-hour
+

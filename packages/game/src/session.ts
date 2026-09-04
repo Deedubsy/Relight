@@ -3,6 +3,7 @@
 import {
   SimState, SimEvent, Command, SimConfig, DEFAULT_CONFIG, generateMap, createState, advance, takeEvents,
   Bot, createBot, botCommands, Policy, POLICIES, protoCalibrated, ensureFlow, advanceFlow, botHands, citySpec, CityPreset, CITY_PRESETS,
+  HourBot, createHourBot, hourCommands, LoggedCommand, replay, replayVerdict, ReplayVerdict,
 } from '@relight/sim';
 import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } from './telemetry';
 
@@ -10,7 +11,10 @@ import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } fro
  *  is fetched as is. A snapshot is a raw SimState, or a telemetry export (whose `finalState` is taken). */
 /** `map`: a D6 city preset (default river) or `lattice` for the Phase 1–4 grid. (M1: the `walk` flag is gone — the
  *  engineer always walks, on foot in the world view, block-level under a bot.) */
-export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean; map: 'lattice' | CityPreset }
+/** M6: `autoplay=hour` runs §11's hour bot on the tile layer (hour.ts; a dev aid, never a player control); `rifle=1`
+ *  gives it the rifle reflex. Every command of a session is logged (`Session.log`) so a played hour replays without
+ *  the rifle for Gate B's "did it matter?" row (`replaySession`). */
+export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | 'hour' | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean; map: 'lattice' | CityPreset; rifle: boolean }
 
 export function parseUrl(search: string): UrlParams {
   const q = new URLSearchParams(search);
@@ -20,12 +24,13 @@ export function parseUrl(search: string): UrlParams {
     seed: Number.isFinite(seed) ? seed : 3,
     economy: q.get('economy') !== '0',
     scatter: q.get('scatter') !== '0',
-    autoplay: auto && (POLICIES as string[]).includes(auto) ? (auto as Policy) : null,
+    autoplay: auto === 'hour' ? 'hour' : auto && (POLICIES as string[]).includes(auto) ? (auto as Policy) : null,
     player: q.get('player') ?? '',
     state: q.get('state') || null,
     view: q.get('view') === 'world' ? 'world' : 'map',
     flow: q.get('flow') !== '0',
     map: mapParam(q.get('map')),
+    rifle: q.get('rifle') === '1',
   };
 }
 
@@ -44,6 +49,8 @@ export function shareUrl(p: UrlParams): string {
   }
   if (!p.flow) q.set('flow', '0');
   if (p.map !== 'river') q.set('map', p.map);
+  if (p.autoplay) q.set('autoplay', p.autoplay);
+  if (p.rifle) q.set('rifle', '1');
   const u = new URL(location.href);
   u.search = q.toString();
   return u.toString();
@@ -68,8 +75,12 @@ export interface Session {
   params: UrlParams;
   state: SimState;
   bot: Bot | null;
+  /** M6: §11's hour bot (`?autoplay=hour`). */
+  hour: HourBot | null;
   telemetry: Telemetry;
   pending: Command[];
+  /** M6: every command applied to the state, with the tile tick it landed before (the replay's input). */
+  log: LoggedCommand[];
   lastMinute: number;
   realElapsed: number;
   /** A = fresh start; B = a loaded snapshot (the test plan's scenarios). */
@@ -115,11 +126,19 @@ export function createSession(params: UrlParams, snapshot: SimState | null = nul
   const tel = createTelemetry(state, location.href, params.player, scenario, snapshot ? params.state : null);
   tel.speeds.push({ t: state.t, realTime: 0, speed: state.speed });
   // the proto's bots build assemblers (calibration step 4); the regression's bots do not
-  return { params, state, bot: params.autoplay ? createBot(params.autoplay, null, true) : null, telemetry: tel, pending: [],
+  const hour = params.autoplay === 'hour' && state.flow ? createHourBot(params.rifle) : null;
+  return { params, state, bot: params.autoplay && params.autoplay !== 'hour' ? createBot(params.autoplay, null, true) : null, hour, telemetry: tel, pending: [], log: [],
            lastMinute: Math.floor(state.t / 60) * 60, realElapsed: 0, scenario, startT: state.t };
 }
 
 export function queue(s: Session, c: Command): void { s.pending.push(c); }
+
+/** M6: write a command to the session's log at the current tile tick. `frame`/`runTicks` log what they apply; the
+ *  scene's direct calls (E, R, the chest panel, the workbench) log the command they stand for after they run. */
+export function record(s: Session, c: Command): void {
+  if (c.type === 'setSpeed') return;
+  s.log.push({ tick: s.state.flow?.tick ?? -1, c });
+}
 
 export function setSpeed(s: Session, mult: number): void {
   if (s.state.speed === mult) return;
@@ -136,6 +155,8 @@ export function frame(s: Session, realDt: number): SimEvent[] {
   let playerBuilds = cmds.filter(c => c.type === 'addAssembler').length;   // player commands are applied first, in order
   if (s.bot) botCommands(s.state, s.bot, cmds);   // player commands first, then the bot's (dev aid only)
   if (s.bot && s.state.flow) botHands(s.state);   // M3: the bot hand-feeds turrets and Generators from the Depot
+  if (s.hour) hourCommands(s.state, s.hour, cmds);   // M6: §11's hour from the pockets, through the same commands a player sends
+  for (const c of cmds) record(s, c);
   if (s.state.flow) advanceFlow(s.state, realDt, cmds); else advance(s.state, realDt, cmds);
   const events = takeEvents(s.state);
   for (const ev of events) {
@@ -157,10 +178,28 @@ export function runTicks(s: Session, ticks: number): SimEvent[] {
     cmds.length = 0;
     if (s.pending.length) { cmds.push(...s.pending); s.pending = []; }
     if (s.bot) botCommands(s.state, s.bot, cmds);
+    if (s.hour) hourCommands(s.state, s.hour, cmds);
+    for (const c of cmds) record(s, c);
     if (s.state.flow) advanceFlow(s.state, 1 / Math.max(1, s.state.speed), cmds); else advance(s.state, 1 / Math.max(1, s.state.speed), cmds);
     for (const ev of takeEvents(s.state)) { recordEvent(s.telemetry, ev, s.bot ? 'bot' : 'player'); all.push(ev); }
     recordPips(s.telemetry, s.state);
     while (s.state.t >= s.lastMinute + 60) { s.lastMinute += 60; recordMinute(s.telemetry, s.state); }
   }
   return all;
+}
+
+/** M6 / Gate B: re-run this session's command log from a fresh state built the same way, with the rifle's aim
+ *  commands dropped (`rifleOff`, the default) or kept (a determinism check: the replayed state should match), and
+ *  judge every hand-fired engagement. Only a fresh-start session (scenario A) with the flow layer replays; a
+ *  snapshot session's base state is not rebuilt here. GAME-ASSUMPTION (M6): see hour.ts `replay`. */
+export function replaySession(s: Session, opts: { rifleOff?: boolean } = {}): { verdict: ReplayVerdict; state: SimState } | { error: string } {
+  if (s.scenario !== 'A') return { error: 'a snapshot session does not replay (scenario B)' };
+  if (!s.state.flow) return { error: 'no flow layer (flow=0): nothing to replay' };
+  const config = protoConfig(s.params);
+  const spec = s.params.map === 'lattice' ? generateMap(s.params.seed, config) : citySpec(s.params.seed, s.params.map, config);
+  const st = createState(spec, config, s.params.seed);
+  Object.assign(st.config, { power: true, supply: 'generators', draw: 'half' });
+  ensureFlow(st);
+  replay(st, s.log, s.state.flow.tick, { dropAim: opts.rifleOff ?? true });
+  return { verdict: replayVerdict(s.state, st), state: st };
 }

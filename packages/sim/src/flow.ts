@@ -1493,6 +1493,10 @@ handHook.current = (st, c) => {
     // M2: the command form of the scene's placement — within reach (8 tiles) or nothing, never moved
     case 'place': if (isKind(c.item) && inReach(st, c.x, c.y, MACHINE_SIZE[c.item])) place(st, c.item, c.x, c.y, ((c.dir ?? 0) % 4) as Dir); break;
     case 'pickUp': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) remove(st, c.x, c.y); break; }
+    // M6: the scene's E / R as commands (the scene checks reach before it calls; the command form checks it here)
+    case 'feed': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) handFeed(st, c.x, c.y); break; }
+    case 'repair': if (inReach(st, c.x, c.y, 1)) repairLight(st, c.x, c.y); break;   // a street light is a tile, not a machine
+    case 'rotate': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) rotate(st, c.x, c.y); break; }
     default: break;
   }
 };

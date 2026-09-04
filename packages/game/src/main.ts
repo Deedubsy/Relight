@@ -1,14 +1,14 @@
 import Phaser from 'phaser';
 import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
   hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
-  idxOf, LIGHT_SEQ_PER_S, REPAIR_COPPER,
+  idxOf, LIGHT_SEQ_PER_S, REPAIR_COPPER, hourReport,
 } from '@relight/sim';
-import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue } from './session';
+import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue, record, replaySession } from './session';
 import { MapScene, MapView, SceneHooks, MAP_W, MAP_H } from './mapScene';
 import { CityMapScene } from './cityMapScene';
 import { WorldScene, Tool } from './worldScene';
 import { View } from './view';
-import { createPanel } from './panel';
+import { createPanel, exportExtra } from './panel';
 import { exportJson, summarise } from './telemetry';
 
 const params = parseUrl(location.search);
@@ -168,7 +168,12 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   session, view,
   run: (ticks: number) => { runTicks(session, ticks); panel.update(performance.now()); return summarise(session.telemetry, session.state); },
   summary: () => summarise(session.telemetry, session.state),
-  exportJson: () => exportJson(session.telemetry, session.state),
+  exportJson: () => exportJson(session.telemetry, session.state, exportExtra(session)),
+  /** M6: the hour bot's log and findings (`?autoplay=hour`), the session's command log, and the Gate B replay
+   *  (rifle off unless `rifleOff: false`): every hand-fired fight judged `held anyway` / `saved it` / `fell anyway`. */
+  hour: () => session.hour ? hourReport(session.state, session.hour) : null,
+  commandLog: () => session.log,
+  replay: (opts: { rifleOff?: boolean } = {}) => { const r = replaySession(session, opts); return 'error' in r ? r : r.verdict; },
   stateJson: () => JSON.stringify(session.state),
   configHash: session.telemetry.meta.configHash,
   toggleView,
@@ -199,8 +204,8 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   describe: (tx: number, ty: number) => describeGround(session.state, tx, ty),
   chest: {
     count: (item: ChestItem) => chestCount(session.state, item),
-    take: (item: ChestItem, n: number) => chestTake(session.state, item, n),
-    put: (item: ChestItem, n: number) => chestPut(session.state, item, n),
+    take: (item: ChestItem, n: number) => { const r = chestTake(session.state, item, n); record(session, { type: 'chestTake', item, n }); return r; },
+    put: (item: ChestItem, n: number) => { const r = chestPut(session.state, item, n); record(session, { type: 'chestPut', item, n }); return r; },
   },
   togglePockets: () => panel.togglePockets(),
   world: { get zoom() { return worldScene.zoom; }, drawMs: () => { const r = { ema: +worldScene.drawMs.toFixed(2), worst: +worldScene.drawWorstMs.toFixed(1) }; worldScene.drawWorstMs = 0; return r; }, setZoom: (z: number) => worldScene.setZoom(z), centreOn: (x: number, y: number) => worldScene.centreOn(x, y), focus: () => worldScene.focusBlock(), get drawn() { return worldScene.drawn; },
@@ -209,15 +214,15 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   flow: {
     summary: () => flowSummary(session.state),
     canPlace: (kind: Kind, tx: number, ty: number) => canPlace(session.state, kind, tx, ty),
-    place: (kind: Kind, tx: number, ty: number, dir: Dir = 0) => place(session.state, kind, tx, ty, dir),
-    remove: (tx: number, ty: number) => remove(session.state, tx, ty),
+    place: (kind: Kind, tx: number, ty: number, dir: Dir = 0) => { const m = place(session.state, kind, tx, ty, dir); record(session, { type: 'place', item: kind, x: tx, y: ty, dir }); return m; },
+    remove: (tx: number, ty: number) => { const m = remove(session.state, tx, ty); record(session, { type: 'pickUp', x: tx, y: ty }); return m; },
     canPickUp: (tx: number, ty: number) => canPickUp(session.state, tx, ty),   // M2: the pick-up check the right-click makes
-    rotate: (tx: number, ty: number) => rotate(session.state, tx, ty),
-    craft: (n = 1) => queueCraft(session.state, n),
-    mine: (at: [number, number] | null) => setHandMine(session.state, at),
+    rotate: (tx: number, ty: number) => { const m = rotate(session.state, tx, ty); record(session, { type: 'rotate', x: tx, y: ty }); return m; },
+    craft: (n = 1) => { const r = queueCraft(session.state, n); record(session, { type: 'craft', item: 'magazine', count: n }); return r; },
+    mine: (at: [number, number] | null) => { setHandMine(session.state, at); record(session, { type: 'mineAt', x: at ? at[0] : -1, y: at ? at[1] : -1 }); },
     hq: (lx: number, ly: number): [number, number] => hqLot(session.state, lx, ly),
     // M3: hand-feed a turret or Generator, and the light/substation/pole/power queries the world view draws from
-    feed: (tx: number, ty: number) => handFeed(session.state, tx, ty),
+    feed: (tx: number, ty: number) => { const r = handFeed(session.state, tx, ty); record(session, { type: 'feed', x: tx, y: ty }); return r; },
     lights: (bx: number, by: number) => cellLights(session.state, bx, by),
     blockLights: (i: number) => blockLights(session.state, i),
     substation: (bx: number, by: number) => substationAt(session.state, bx, by),

@@ -23,7 +23,8 @@
     "dev": "npm run dev -w packages/game",
     "calibrate": "npm run calibrate -w packages/harness --",
     "snapshot": "npm run snapshot -w packages/harness --",
-    "snapshot:check": "npm run snapshot -w packages/harness -- --check"
+    "snapshot:check": "npm run snapshot -w packages/harness -- --check",
+    "replay": "tsx packages/harness/src/replay.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

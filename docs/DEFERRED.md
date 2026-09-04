@@ -219,3 +219,18 @@ Every item above keeps its phase unless listed here.
 - **Light on the map view**: the map's squares do not read the mask → **M6** if the hour needs it.
 - **Shades on lit tiles in play**, **the first pip**, **a tile-level brownout soak**, **the stand-in edge's bodies**, **a player's walking share** → **M6** as at M4.
 - **The verification pass for M5** (checks, experiments, calibration, the soak with the light map, Playwright) → when the human schedules it; until then every M5 number is *unverified*.
+
+## Re-read at prompt B M6 (2026-09-04, unverified)
+
+Every item above keeps its phase unless listed here.
+
+- **Copper for repairs in the hour** → **Gate B**: the bot never repairs; the played hour answers it.
+- **Light on the map view** → **Gate B** says whether the hour needs it; not built at M6.
+- **Shades on lit tiles in play**, **the first pip**, **a tile-level brownout soak**, **a player's walking share** → **E-hour** on the verification pass (the bot's numbers), then **Gate B** (the player's).
+- **The stand-in edge's bodies** (a claimed block's edge with no turret) → **D-P4-9** after the played hour; the bot carries the HQ's idle turrets to north because a claimed block has none to carry (GA-B6-4).
+- **The claimed lots' own machines** (the bot stands E4's stand-ins on the HQ lot) → **D-P4-5** after the played hour.
+- **The bot's timeline against §11 and the calibration** → **the verification pass** (`E-hour`); the findings list is empty until then.
+- **A scenario-B replay** (a snapshot session's command log) → when a scenario-B hour is played.
+- **The frame time under the hour bot at 4×** → the verification pass's soak.
+- **The verification pass for M5 and M6** (checks, experiments with `E-hour`, calibration, the soak, Playwright) → when the human schedules it; until then every M5 and M6 number is *unverified*.
+
