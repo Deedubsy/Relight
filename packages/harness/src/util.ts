@@ -22,7 +22,7 @@ export interface ExperimentResult {
   id: string; title: string; pyNames: string[]; docRefs: string[]; setup: string;
   sections: Section[]; checks: Check[]; data: Record<string, unknown>;
 }
-export interface Ctx { seeds: number[]; hours: number; log: (s: string) => void; nightly: boolean }
+export interface Ctx { seeds: number[]; hours: number; log: (s: string) => void; nightly: boolean; map: string; big: boolean }
 export interface Experiment { id: string; title: string; run(ctx: Ctx): ExperimentResult }
 
 /** A check: `pass` iff `value` lies in [lo, hi]. */

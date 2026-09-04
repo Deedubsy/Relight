@@ -5,7 +5,7 @@ control_hash: 825d2d09    # economy=0 control
 test_plan_version: 52c4ca3 (PROTOTYPE_TEST_PLAN.md at the Phase 2 commit)
 seed: 3
 scenario_a: fresh start, ?seed=3, 2.5 h sim at 4× — not run by testers
-scenario_b: ?state=b-compact-seed3 (compact bot at 3:00:00, packages/proto/public/snapshots/b-compact-seed3.json), 1.5 h sim at 4× — not run by testers
+scenario_b: ?state=b-compact-seed3 (compact bot at 3:00:00, packages/game/public/snapshots/b-compact-seed3.json), 1.5 h sim at 4× — not run by testers
 testers: 0 (owner verdict on the bot calibration and the smoke test)
 dates: 2026-09-03
 observer: owner

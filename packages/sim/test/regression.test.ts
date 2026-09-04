@@ -25,7 +25,7 @@ interface Fixture {
 }
 
 function loadFixture(seed: number): Fixture {
-  return JSON.parse(readFileSync(join(here, '..', 'fixtures', `seed${seed}.json`), 'utf8'));
+  return JSON.parse(readFileSync(join(here, '..', 'fixtures', 'lattice', `seed${seed}.json`), 'utf8'));
 }
 
 function specOf(fx: Fixture): MapSpec {

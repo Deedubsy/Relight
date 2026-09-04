@@ -1,5 +1,10 @@
 /** Power-model parity with frontsim.py (export_power_fixtures.py): seeds 3, 4, 5, scattered map, compact policy,
- *  five variants (draw × shed × supply). Per-minute demand and supply, shed log, lost log, hourly rows: exact. */
+ *  five variants (draw × shed order × supply). D-B3-4 (2026-09-04) replaced the shed order with the proportional
+ *  brownout: nothing is switched off by power, so the Python runs, which shed a substation 20 s into every
+ *  shortfall, diverge from the sim at their first shed. What still pins bit for bit: the per-minute demand and supply
+ *  up to the minute of the fixture's first shed (the draw model, the track supply, the shortfall window) and the tick
+ *  of the first brownout. After it the sim must lose no block to power at all (the only fall reasons left are
+ *  unfed, shade and starved, and these runs have the unfed rule off), and never more than the Python run did. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -24,7 +29,7 @@ interface SeedFixture {
   cells: MapSpec['cells']; scattered_inert: [number, number][];
 }
 
-const load = <T>(name: string): T => JSON.parse(readFileSync(join(here, '..', 'fixtures', name), 'utf8'));
+const load = <T>(name: string): T => JSON.parse(readFileSync(join(here, '..', 'fixtures', 'lattice', name), 'utf8'));
 
 for (const seed of SEEDS) {
   const fx = load<PowerFixture>(`power${seed}.json`);
@@ -42,22 +47,21 @@ for (const seed of SEEDS) {
       const cmds: Command[] = [];
       const ticks = fx.hours * 3600;
       for (let k = 0; k < ticks; k++) { cmds.length = 0; botCommands(st, bot, cmds); step(st, cmds); st.events.length = 0; }
-      assert.deepEqual(st.power.demandKw, py.demand_kw, 'demand per minute');
-      assert.deepEqual(st.power.supplyKw, py.supply_kw, 'supply per minute');
-      assert.deepEqual(st.stats.shedLog, py.shed_log, 'shed log');
-      assert.equal(st.stats.shedEvents, py.shed_events, 'shed events');
+      // parity holds until the Python run sheds its first substation (D-B3-4 sheds nothing)
+      assert.ok(py.shed_log.length > 0, 'every fixture run sheds under the Python rule');
+      const upto = Math.floor(py.shed_log[0] / 60);
+      assert.ok(upto >= 10, `at least ten minutes of parity (${upto})`);
+      assert.deepEqual(st.power.demandKw.slice(0, upto), py.demand_kw.slice(0, upto), 'demand per minute to the first Python shed');
+      assert.deepEqual(st.power.supplyKw.slice(0, upto), py.supply_kw.slice(0, upto), 'supply per minute to the first Python shed');
       assert.equal(st.stats.firstBrownout, py.first_brownout === null ? -1 : py.first_brownout, 'first brownout');
-      assert.deepEqual(st.stats.lostLog, py.lost_log, 'lost log');
-      assert.equal(st.stats.lost, py.lost, 'lost');
-      assert.equal(st.stats.lostInWindow, py.lost_in_window, 'lost in window');
-      assert.equal(st.stats.lostAfterWindow, py.lost_after_window, 'lost after window');
-      for (let h = 0; h < py.hourly.length; h++) {
-        const a = st.hourly[h], b = py.hourly[h];
-        assert.equal(a.held, b.held, `h${b.h} held`); assert.equal(a.front, b.front, `h${b.h} front`);
-        assert.equal(a.interior, b.interior, `h${b.h} interior`); assert.equal(a.mags, b.mags, `h${b.h} mags`);
-        assert.equal(a.shells, b.shells, `h${b.h} shells`); assert.equal(a.lost, b.lost, `h${b.h} lost`);
-      }
-      assert.equal(st.totalRounds / 10, py.total_mags, 'total magazines');
+      assert.equal(st.power.demandKw.length, py.demand_kw.length, 'minutes sampled');
+      // proportional: the brownout is counted and throttled, no block falls to power, never worse than the Python run
+      assert.ok(st.stats.brownoutS >= 20, 'brownout seconds counted');
+      assert.ok(st.stats.throttleMin > 0 && st.stats.throttleMin < 1, `throttle recorded (${st.stats.throttleMin})`);
+      if (py.config.supply !== 'schedule') assert.equal(st.power.throttle, 1, 'full speed again by 5 h');   // the §15 schedule stays short at 5 h
+      assert.ok(st.stats.lostLog.every(l => l.reason !== 'unfed'), 'unfed rule off: no unfed falls');
+      assert.ok(st.stats.lost <= py.lost, `lost ${st.stats.lost} ≤ Python ${py.lost}`);
+      assert.equal(st.stats.lostInWindow, 0, 'nothing falls in the window');
     });
   }
 }

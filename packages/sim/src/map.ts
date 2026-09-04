@@ -93,6 +93,7 @@ export function placeFacilities(seed: number, inert: Set<number>): Facility[] {
   place('Turbine hall', (x, y) => x >= 16 && y >= 12 + DH && dist(x, y) >= 5 && dist(x, y) <= 9);
   place('Refinery', (x, y) => y <= 13 + DH && Math.abs(x - START[0]) >= 3 && dist(x, y) >= 8 && dist(x, y) <= 12);
   place('Power station', (x, y) => y <= 4 && dist(x, y) >= 15);
+  place('Tram depot', (x, y) => dist(x, y) >= 3 && dist(x, y) <= 5);   // D5: where the truck is found; 3–5 blocks (GAME-ASSUMPTION, was §8's 5–10: an hour-3 find, see city/generate.ts TRAM_HOPS)
   return out;
 }
 
@@ -108,6 +109,10 @@ export const SURVIVOR_BANDS: { name: string; tag: string; min: number; max: numb
   { name: 'Rail crew', tag: 'K', min: 5, max: 10 },
   { name: 'Foreman', tag: 'M', min: 6, max: 10 },
 ];
+/** §8's unlock column for the groups the slice builds (prompt B M3): the Electricians' three land on the toolbar
+ *  when their block turns Held; the flow layer's `SURVIVOR_UNLOCKS` holds the kinds. M4: the Arsenal's Rifle Mk2 is
+ *  named here (the build menu lists it locked) but is a toolbar entry only — the upgrade is outside the hour. */
+export const SURVIVOR_UNLOCK_NAMES: Record<string, readonly string[]> = { Electricians: ['Floodlight', 'Big pole', 'Substation'], Arsenal: ['Rifle Mk2'] };
 export function placeSurvivors(seed: number, inert: Set<number>, facilities: Facility[]): Survivor[] {
   const rng = { rng: seedRng(Math.imul(seed, 48611) + 11) };
   const taken = new Set<number>([START[0] * H + START[1]]);

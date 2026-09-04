@@ -1,3 +1,7 @@
+export {
+  SHOT_MAGAZINE, ASSEMBLER_TIERS, ASSEMBLER_MAG_PER_MIN, FAST_BELT_PER_S, TURRET, LAMP_STEP_TILES, SUBSTATION_KW, BROWNOUT_RULE,
+  HOUR_GENERATOR_MIN, HOUR_CLAIM_MIN, HOUR_EXCAVATORS_MIN, HOUR_SHOT_LINE_MIN, HOUR_MINUTES,
+} from './constants';   // the names flow.ts and recipes.ts re-export come through them
 export * from './types';
 export * from './prng';
 export * from './map';
@@ -5,6 +9,16 @@ export * from './districts';
 export * from './recipes';
 export * from './enemies';
 export * from './firsthour';
+export * from './graph';
+export * from './engineer';
 export * from './sim';
 export * from './bots';
 export * from './queries';
+export * from './tiles';
+export * from './flow';
+export * from './city';
+export * from './ground';
+export * from './walk';
+export * from './threat';
+export * from './light';
+export * from './hour';

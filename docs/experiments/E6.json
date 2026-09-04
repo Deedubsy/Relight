@@ -1,4 +1,9 @@
 {
+ "source_commit": "4c066b28fd50117b2f61aa85e3dc016c9698b5bd",
+ "config_hash": "b95922d2",
+ "config_ref": {
+  "kind": "experiments"
+ },
  "id": "E6",
  "title": "Inert walls",
  "pyNames": [
@@ -11,85 +16,51 @@
   "§7",
   "§9"
  ],
- "setup": "compact, spike, cheapest, river; open and scattered maps; production on",
+ "setup": "compact, spike, cheapest, river; plazas buildable and plazas inert maps; production on",
  "sections": [
   {
-   "title": "E6-validators: scattered inert cells at 9 % of the grid",
+   "title": "E6-plazas: the generator's inert faces (D6: plazas and parks, 8–10 % of faces, none stranding a neighbour)",
    "header": [
     "seed",
-    "validator",
-    "cells",
-    "2×2 inert squares (incl. river)",
-    "straight runs of 3+"
+    "faces",
+    "plazas",
+    "share",
+    "plazas touching another plaza",
+    "plaza area (tiles)",
+    "lot edges that face a plaza"
    ],
    "rows": [
     [
      3,
-     "none",
-     50,
-     0,
-     1
-    ],
-    [
-     3,
-     "no2x2",
-     50,
-     0,
-     1
-    ],
-    [
-     3,
-     "maxrun2",
-     50,
-     0,
-     0
+     382,
+     35,
+     "9.2 %",
+     15,
+     "881 [262–1883]",
+     175
     ],
     [
      4,
-     "none",
-     50,
-     1,
-     0
-    ],
-    [
-     4,
-     "no2x2",
-     50,
-     0,
-     0
-    ],
-    [
-     4,
-     "maxrun2",
-     50,
-     1,
-     0
+     373,
+     36,
+     "9.7 %",
+     13,
+     "746 [243–1566]",
+     170
     ],
     [
      5,
-     "none",
-     50,
-     0,
-     0
-    ],
-    [
-     5,
-     "no2x2",
-     50,
-     0,
-     0
-    ],
-    [
-     5,
-     "maxrun2",
-     50,
-     0,
-     0
+     349,
+     34,
+     "9.7 %",
+     10,
+     "842 [249–1894]",
+     168
     ]
    ]
   },
   {
-   "title": "E6-shape: spread on the open and the scattered map (5 h total magazines)",
+   "title": "E6-shape: spread on the plazas buildable and the plazas inert map (5 h total magazines)",
    "header": [
     "map",
     "policy",
@@ -97,54 +68,54 @@
    ],
    "rows": [
     [
-     "open",
+     "plazas buildable",
      "compact",
-     "13541 [13508–13559]"
+     "7302 [6566–8310]"
     ],
     [
-     "open",
+     "plazas buildable",
      "spike",
-     "17375 [17365–17390]"
+     "17836 [17046–18331]"
     ],
     [
-     "open",
+     "plazas buildable",
      "cheapest",
-     "7692 [7628–7730]"
+     "10226 [9228–11311]"
     ],
     [
-     "open",
+     "plazas buildable",
      "spike/compact",
-     "1.28×"
+     "2.44×"
     ],
     [
-     "open",
+     "plazas buildable",
      "compact/cheapest",
-     "1.76×"
+     "0.71×"
     ],
     [
-     "scattered",
+     "plazas inert",
      "compact",
-     "6458 [5999–7006]"
+     "7119 [6329–7866]"
     ],
     [
-     "scattered",
+     "plazas inert",
      "spike",
-     "16768 [16210–17183]"
+     "17142 [16153–17863]"
     ],
     [
-     "scattered",
+     "plazas inert",
      "cheapest",
-     "6887 [6563–7436]"
+     "9029 [8346–9878]"
     ],
     [
-     "scattered",
+     "plazas inert",
      "spike/compact",
-     "2.60×"
+     "2.41×"
     ],
     [
-     "scattered",
+     "plazas inert",
      "compact/cheapest",
-     "0.94×"
+     "0.79×"
     ]
    ]
   },
@@ -162,27 +133,27 @@
    ],
    "rows": [
     [
-     "open",
+     "plazas buildable",
      "none",
      "compact",
-     "50 [50–50]",
-     "0.50 [0.50–0.50]",
-     "26 [26–26]",
-     "13541 [13508–13559]",
+     "52 [52–52]",
+     "0.63 [0.62–0.65]",
+     "35 [35–36]",
+     "7302 [6566–8310]",
      "0 [0–0]"
     ],
     [
-     "open",
+     "plazas buildable",
      "none",
      "river",
-     "50 [50–50]",
-     "0.50 [0.50–0.50]",
-     "26 [26–26]",
-     "13541 [13508–13559]",
+     "52 [52–52]",
+     "0.63 [0.62–0.65]",
+     "35 [35–36]",
+     "7302 [6566–8310]",
      "0 [0–0]"
     ],
     [
-     "open",
+     "plazas buildable",
      "none",
      "river vs compact ammo",
      "",
@@ -192,123 +163,63 @@
      ""
     ],
     [
-     "scattered",
+     "plazas inert",
      "none",
      "compact",
      "52 [52–52]",
-     "0.37 [0.35–0.38]",
-     "36 [35–37]",
-     "6458 [5999–7006]",
-     "50 [50–50]"
+     "0.51 [0.40–0.62]",
+     "39 [37–41]",
+     "7119 [6329–7866]",
+     "35 [34–36]"
     ],
     [
-     "scattered",
+     "plazas inert",
      "none",
      "river",
-     "52 [52–52]",
-     "0.40 [0.38–0.42]",
-     "35 [33–36]",
-     "8117 [6387–9976]",
-     "50 [50–50]"
+     "38 [28–52]",
+     "1.55 [0.62–2.14]",
+     "13 [2–34]",
+     "14195 [11806–15514]",
+     "35 [34–36]"
     ],
     [
-     "scattered",
+     "plazas inert",
      "none",
      "river vs compact ammo",
      "",
      "",
      "",
-     "26 %",
+     "99 %",
      ""
     ],
     [
-     "scattered",
-     "no2x2",
-     "compact",
-     "52 [52–52]",
-     "0.37 [0.35–0.38]",
-     "36 [35–37]",
-     "6458 [5999–7006]",
-     "50 [50–50]"
-    ],
-    [
-     "scattered",
-     "no2x2",
-     "river",
-     "52 [52–52]",
-     "0.40 [0.38–0.42]",
-     "35 [33–36]",
-     "8117 [6387–9976]",
-     "50 [50–50]"
-    ],
-    [
-     "scattered",
-     "no2x2",
-     "river vs compact ammo",
-     "",
-     "",
-     "",
-     "26 %",
-     ""
-    ],
-    [
-     "scattered",
-     "maxrun2",
-     "compact",
-     "52 [52–52]",
-     "0.37 [0.35–0.38]",
-     "36 [35–37]",
-     "6458 [5999–7006]",
-     "50 [50–50]"
-    ],
-    [
-     "scattered",
-     "maxrun2",
-     "river",
-     "52 [52–52]",
-     "0.40 [0.38–0.42]",
-     "35 [33–36]",
-     "8117 [6387–9976]",
-     "50 [50–50]"
-    ],
-    [
-     "scattered",
-     "maxrun2",
-     "river vs compact ammo",
-     "",
-     "",
-     "",
-     "26 %",
-     ""
-    ],
-    [
-     "scattered",
+     "plazas inert",
      "inert-dark",
      "compact",
      "52 [52–52]",
-     "0.37 [0.35–0.38]",
-     "26 [24–29]",
-     "6458 [5999–7006]",
-     "50 [50–50]"
+     "0.51 [0.40–0.62]",
+     "39 [37–41]",
+     "7119 [6329–7866]",
+     "35 [34–36]"
     ],
     [
-     "scattered",
+     "plazas inert",
      "inert-dark",
      "river",
-     "52 [52–52]",
-     "0.37 [0.35–0.38]",
-     "26 [24–28]",
-     "8263 [6078–10108]",
-     "50 [50–50]"
+     "38 [28–52]",
+     "1.55 [0.62–2.14]",
+     "13 [2–34]",
+     "14195 [11806–15514]",
+     "35 [34–36]"
     ],
     [
-     "scattered",
+     "plazas inert",
      "inert-dark",
      "river vs compact ammo",
      "",
      "",
      "",
-     "28 %",
+     "99 %",
      ""
     ]
    ]
@@ -316,42 +227,40 @@
  ],
  "checks": [
   {
-   "name": "§7 headline spike/compact on the scattered (canonical) map",
+   "name": "§7 headline spike/compact on the plazas inert (canonical) map",
    "pass": true,
-   "detail": "2.60× (expected 1.2–4×)"
+   "detail": "2.41× (expected 1.2–4×)"
   },
   {
-   "name": "§9/§17 inert walls pay: compact on the scattered map uses less ammo than on open ground (ratio)",
+   "name": "§9/§17 inert walls on the graph: compact with the plazas inert vs every plaza buildable (ratio; the lattice's 9 % scatter gave 0.3–0.8, the city's 8–10 % plazas are measured here)",
    "pass": true,
-   "detail": "0.48× (expected 0.3–0.8×)"
+   "detail": "0.97× (expected 0.5–1.1×)"
   },
   {
-   "name": "§25 item 2: inert-hugging (the sim's river policy) is no cheaper than compact on the scattered map",
+   "name": "§25 item 2: inert-hugging (the sim's river policy) is no cheaper than compact on the plazas inert map",
    "pass": true,
-   "detail": "0.26 (fraction more) (expected 0–1 (fraction more))"
+   "detail": "0.99 (fraction more) (expected 0–1 (fraction more))"
   }
  ],
  "data": {
   "ratios": {
    "open": {
-    "spikeCompact": 1.2830926698142466,
-    "compactCheapest": 1.7604732291824665,
-    "compactTotal": 13541.266666666668
+    "spikeCompact": 2.4426305842395024,
+    "compactCheapest": 0.7140077250281134,
+    "compactTotal": 7301.8
    },
    "scattered": {
-    "spikeCompact": 2.596498291471812,
-    "compactCheapest": 0.9377114562712061,
-    "compactTotal": 6457.8
+    "spikeCompact": 2.407919503310328,
+    "compactCheapest": 0.7884625323951359,
+    "compactTotal": 7119.133333333334
    }
   },
   "riverGap": {
    "open-none": 0,
-   "scattered-none": 0.25696057480875845,
-   "scattered-no2x2": 0.25696057480875845,
-   "scattered-maxrun2": 0.25696057480875845,
-   "scattered-inert-dark": 0.2796101871638432
+   "scattered-none": 0.9938897056757845,
+   "scattered-inert-dark": 0.9938897056757845
   },
-  "wallRatio": 0.476897779134399
+  "wallRatio": 0.9749833374419093
  },
  "meta": {
   "seeds": [
@@ -359,6 +268,7 @@
    4,
    5
   ],
-  "hours": 5
+  "hours": 5,
+  "map": "river"
  }
 }

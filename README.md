@@ -9,7 +9,7 @@ A 2D city-reclamation factory game. The design doc is the spec, the headless sim
 - `docs/PHASE_N_REPORT.md` — one per phase.
 - `packages/sim` — the game, pure TypeScript, `step(state, commands) → state'`.
 - `packages/harness` — node runners: experiments, calibration, bots.
-- `packages/proto` — Phaser map-view prototype (Phase 2).
+- `packages/game` — Phaser renderer: the map view (Phase 2 prototype) and, from Phase 4, the world view.
 
 ```
 npm install
