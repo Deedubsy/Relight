@@ -14,7 +14,7 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 ## Prompt B — the slice rebuilt on the city (Phase 4 reopened, opened 2026-09-04)
 
-**Status: M1 Ground and the engineer built 2026-09-04; the four pre-M2 items ("Four small things before Prompt B M2": D-B1-5 direct control, D-B1-4 placement by face geometry, C1/C2 birth artefact, reference machine) done 2026-09-04; M2 Flow on the faces built 2026-09-04; M3 Defence on the segment built 2026-09-04; M3–M6 not started.** Branch `phase-4`, PR #4. Report `SLICE_REPORT.md` (rewritten from the top; the lattice slice is its appendix; the four items are its "Before M2" section). Decisions D-B1-1 … D-B1-3 taken by recommendation on the human's `go` for M1, **D-B1-4 and D-B1-5 made by the human 2026-09-04** (`DECISIONS.md`); D-P4-8 superseded by D-B1-4; D-P4-7 and D-P4-9 open.
+**Status: M1 Ground and the engineer built 2026-09-04; the four pre-M2 items ("Four small things before Prompt B M2": D-B1-5 direct control, D-B1-4 placement by face geometry, C1/C2 birth artefact, reference machine) done 2026-09-04; M2 Flow on the faces built 2026-09-04; M3 Defence on the segment built 2026-09-04; M4–M6 not started.** Branch `phase-4`, PR #4. Report `SLICE_REPORT.md` (rewritten from the top; the lattice slice is its appendix; the four items are its "Before M2" section). Decisions D-B1-1 … D-B1-3 taken by recommendation on the human's `go` for M1, **D-B1-4 and D-B1-5 made by the human 2026-09-04** (`DECISIONS.md`); D-P4-8 superseded by D-B1-4; D-P4-7 and D-P4-9 open.
 
 ```yaml
 reference_machine:            # the only host whose fps is reported against the 60 fps DoD (item 4, 2026-09-04)
