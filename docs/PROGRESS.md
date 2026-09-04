@@ -29,7 +29,7 @@ order on the human's instruction of 2026-09-05.
 |---|---|---|---|---|---|---|
 | T1 | Resolve the eight constant disagreements, rebuild the economy fix, make main green | claude | blocked | the eight rows of the original cell (D-P4-4, D-B1-1, D-P4-7, D-P4-8, D-B5-4, D-ENGINE-1, D-INSERTERS-1, D-HOUR-1) are `decided` and clauses 1 and 2 are done; "make main green" now waits on decision rows **D-P4-9**, **D-HOUR-2** and **D-P4-10** | `docs/ECONOMY_FIX_REPORT.md` | |
 | T2 | Re-run E-hour until no block falls on seeds 3, 4 and 5 | claude | todo | T1 | `docs/SLICE_REPORT.md` section "M6 re-run after the economy fix" | |
-| T3 | Layout and readability pass | claude | todo | | `docs/LAYOUT_PASS_REPORT.md` | |
+| T3 | Layout and readability pass | claude | doing | | `docs/LAYOUT_PASS_REPORT.md` | |
 | T4 | E-rifle at tile scale: the rescue run and the steady run | claude | todo | | `docs/EXPERIMENTS.md` row `E-rifle-tile` | |
 | T5 | Controls walkthrough on the reference machine | human | done (waived) | T3 | `docs/GATE_B.md` section "Controls walkthrough" |  2026-09-05 |
 | T6 | Build a two-assembler ammo line unaided in ten minutes | human | done (waived) | T3 | `docs/GATE_B.md` section "Two-assembler line" |  2026-09-05 |
