@@ -18,7 +18,10 @@
     "docsync": "tsx packages/tools/src/docsync.ts",
     "docsync:check": "tsx packages/tools/src/docsync.ts --check",
     "build": "npm run typecheck && npm run build -w packages/proto",
-    "dev": "npm run dev -w packages/proto"
+    "dev": "npm run dev -w packages/proto",
+    "calibrate": "npm run calibrate -w packages/harness --",
+    "snapshot": "npm run snapshot -w packages/harness --",
+    "snapshot:check": "npm run snapshot -w packages/harness -- --check"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

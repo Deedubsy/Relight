@@ -30,7 +30,7 @@ function loadFixture(seed: number): Fixture {
 
 function specOf(fx: Fixture): MapSpec {
   return { w: fx.w, h: fx.h, start: fx.start, target: fx.target, wells: fx.wells, cells: fx.cells,
-           scatteredInert: fx.scattered_inert, facilities: [] };
+           scatteredInert: fx.scattered_inert, facilities: [], survivors: [] };
 }
 
 test('hash01 matches frontsim.hash01', () => {

@@ -1,8 +1,9 @@
-/** Calibration harness (CALIBRATION_REPORT.md). Runs the proto's config with the three bots on the scattered map,
- *  seeds 3/4/5, economy on, 3 h sim, and scores targets T1–T7 from the sim's own state (not the Python sim).
+/** Calibration harness (constitution Phase 2, rule 5). Runs the proto's config with the three bots on the scattered
+ *  map, seeds 3/4/5, economy on, 3 h sim, and scores the constitution's seven targets C1–C7 from the sim's own state.
+ *  Reported in PHASE_2_REPORT.md; the JSON goes to docs/experiments/calibration.json.
  *
- *    npx tsx packages/sim/test/calibrate.ts '{"startAsmRate":10,"eco":{"yieldPerMin":4}}' [--hours 3] [--seeds 3,4,5]
- *                                            [--bots compact,spike,cheapest] [--economy 0] [--build 0] [--react 1] [--out file.json]
+ *    npm run calibrate -- '{"startAsmRate":10,"eco":{"yieldPerMin":4}}' [--hours 3] [--seeds 3,4,5]
+ *                        [--bots compact,spike,cheapest] [--economy 0] [--build 0] [--react 1] [--out file.json] [--md file.md]
  *
  *  --build 0  the bots never build an assembler (a tester who ignores the HUD).
  *  --react 1  harness-only stand-in for a tester who builds when a pip first leaves green: implies --build 0; adds an
@@ -10,6 +11,7 @@
  *
  *  Overrides are applied on top of protoCalibrated(DEFAULT_CONFIG) so a lever can be tried without editing types.ts. */
 import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   DEFAULT_CONFIG, SimConfig, protoCalibrated, configHash, generateMap, createState, step, takeEvents,
   createBot, botCommands, Command, Policy, heldCount, frontage, interior, ammoStatus, pipOf, slotInfo, asmCount,
@@ -24,7 +26,9 @@ const BOTS = flag('--bots', 'compact,spike,cheapest').split(',') as Policy[];
 const ECONOMY = flag('--economy', '1') !== '0';
 const REACT = flag('--react', '0') !== '0';
 const BUILD = !REACT && flag('--build', '1') !== '0';
-const OUT = flag('--out', '');
+// paths are taken relative to where npm was invoked (INIT_CWD), so `npm run calibrate -- --out docs/x.json` works from the root
+const CWD = process.env.INIT_CWD ?? process.cwd();
+const OUT = flag('--out', '') && resolve(CWD, flag('--out', ''));
 
 function merge(base: Record<string, unknown>, over: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = { ...base };
@@ -134,19 +138,30 @@ const all = (rs: Run[], f: (r: Run) => boolean) => rs.length > 0 && rs.every(f);
 const fmt = (rs: Run[], f: (r: Run) => string) => rs.map(r => `s${r.seed}:${f(r)}`).join(' ');
 const compact = by('compact'), spike = by('spike'), cheapest = by('cheapest');
 const compactOf = (seed: number) => compact.find(r => r.seed === seed);
+// The constitution's seven Phase 2 targets (C1–C7), every seed; then two informational rows the earlier reports tracked.
 const targets: [string, string, boolean, string][] = [
-  ['T1', 'compact: first amber 60–120 min', all(compact, r => min(r.firstAmber) >= 60 && min(r.firstAmber) <= 120), fmt(compact, r => m(r.firstAmber))],
-  ['T2', 'compact: no red before 120 min', all(compact, r => min(r.firstRed) >= 120), fmt(compact, r => m(r.firstRed))],
-  ['T3', 'compact: 0 lost, 0 stalls to 180', all(compact, r => r.lost === 0 && r.stalls === 0), fmt(compact, r => `lost ${r.lost} stalls ${r.stalls}`)],
-  ['T4', 'spike: red by 90 min', all(spike, r => min(r.firstRed) <= 90), fmt(spike, r => m(r.firstRed))],
-  ['T5', 'spike: 1–4 lost by 180', all(spike, r => r.lost >= 1 && r.lost <= 4), fmt(spike, r => `${r.lost} (${r.distinctLost} distinct)`)],
-  ['T6', 'cheapest: no stalls; mags/held 0.7–1.3× compact', all(cheapest, r => { const c = compactOf(r.seed); return r.stalls === 0 && !!c && c.magsPerHeld > 0 && r.magsPerHeld / c.magsPerHeld >= 0.7 && r.magsPerHeld / c.magsPerHeld <= 1.3; }),
+  ['C1', 'compact: first enclosure before first amber', all(compact, r => min(r.firstEnclosure) < min(r.firstAmber)), fmt(compact, r => `encl ${m(r.firstEnclosure)} amber ${m(r.firstAmber)}`)],
+  ['C2', 'compact: no red before 120 min', all(compact, r => min(r.firstRed) >= 120), fmt(compact, r => m(r.firstRed))],
+  ['C3', 'compact: 0 lost and no stall to 180', all(compact, r => r.lost === 0 && r.stalls === 0), fmt(compact, r => `lost ${r.lost} stalls ${r.stalls}`)],
+  ['C4', 'spike: red by 90 min', all(spike, r => min(r.firstRed) <= 90), fmt(spike, r => m(r.firstRed))],
+  ['C5', 'spike: 1–4 distinct blocks lost by 180', all(spike, r => r.distinctLost >= 1 && r.distinctLost <= 4), fmt(spike, r => `${r.distinctLost} distinct (${r.lost} falls)`)],
+  ['C6', 'spike: never more than 2 assemblers before 120 min', all(spike, r => r.maxAsmBefore120 <= 2), fmt(spike, r => `max ${r.maxAsmBefore120}`)],
+  ['C7', 'cheapest: no stall; ammo per held block 0.7–1.3× compact', all(cheapest, r => { const c = compactOf(r.seed); return r.stalls === 0 && !!c && c.magsPerHeld > 0 && r.magsPerHeld / c.magsPerHeld >= 0.7 && r.magsPerHeld / c.magsPerHeld <= 1.3; }),
     fmt(cheapest, r => { const c = compactOf(r.seed); return `stalls ${r.stalls} ratio ${c && c.magsPerHeld ? (r.magsPerHeld / c.magsPerHeld).toFixed(2) : '?'}`; })],
-  ['T7', 'all: held at 120 min in 20–30', all(runs, r => (r.held[120] ?? 0) >= 20 && (r.held[120] ?? 0) <= 30), runs.map(r => `${r.bot[0]}${r.seed}:${r.held[120] ?? 0}`).join(' ')],
-  ['T8', 'compact: first enclosure before first amber, ≥ 2 of 3 seeds', compact.length > 0 && compact.filter(r => min(r.firstEnclosure) < min(r.firstAmber)).length >= Math.min(2, compact.length),
-    fmt(compact, r => `encl ${m(r.firstEnclosure)} amber ${m(r.firstAmber)}`)],
-  ['T9', 'spike: never more than 2 assemblers before 120 min', all(spike, r => r.maxAsmBefore120 <= 2), fmt(spike, r => `max ${r.maxAsmBefore120}`)],
+  ['i1', 'info — compact: first amber 60–120 min (CALIBRATION_REPORT T1)', all(compact, r => min(r.firstAmber) >= 60 && min(r.firstAmber) <= 120), fmt(compact, r => m(r.firstAmber))],
+  ['i2', 'info — all: held at 120 min in 20–30 (CALIBRATION_REPORT T7)', all(runs, r => (r.held[120] ?? 0) >= 20 && (r.held[120] ?? 0) <= 30), runs.map(r => `${r.bot[0]}${r.seed}:${r.held[120] ?? 0}`).join(' ')],
 ];
 console.log('');
-for (const [id, what, ok, val] of targets) console.log(`${id} ${ok ? 'MET   ' : 'MISSED'} ${what.padEnd(48)} ${val}`);
-if (OUT) writeFileSync(OUT, JSON.stringify({ hash: HASH, overrides: JSON.parse(overridesArg), economy: ECONOMY, build: BUILD, react: REACT, hours: HOURS, config, runs, targets: targets.map(([id, what, ok, val]) => ({ id, what, ok, val })) }, null, 1));
+for (const [id, what, ok, val] of targets) console.log(`${id} ${ok ? 'MET   ' : 'MISSED'} ${what.padEnd(58)} ${val}`);
+const payload = { hash: HASH, overrides: JSON.parse(overridesArg), economy: ECONOMY, build: BUILD, react: REACT, hours: HOURS, config, runs, targets: targets.map(([id, what, ok, val]) => ({ id, what, ok, val })) };
+if (OUT) writeFileSync(OUT, JSON.stringify(payload, null, 1));
+const MD = flag('--md', '') && resolve(CWD, flag('--md', ''));
+if (MD) {
+  const lines: string[] = [];
+  lines.push(`<!-- generated by packages/harness/src/calibrate.ts; config ${HASH}; economy=${ECONOMY ? 1 : 0} build=${BUILD ? 1 : 0} react=${REACT ? 1 : 0} hours=${HOURS}; overrides ${overridesArg} -->`, '');
+  lines.push('| bot | seed | enclosure | amber | amber after 10 min | red | red after 10 min | first loss | lost (distinct) | stalls | held 60/120/180 | front 180 | assemblers built at | max asm < 120 | mags | mags/held | steel min (at) | patch out | dry 180 |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  for (const r of runs) lines.push(`| ${r.bot} | ${r.seed} | ${m(r.firstEnclosure)} | ${m(r.firstAmber)} | ${m(r.firstAmberAfter10)} | ${m(r.firstRed)} | ${m(r.firstRedAfter10)} | ${m(r.firstLoss)} | ${r.lost} (${r.distinctLost}) | ${r.stalls} | ${r.held[60] ?? 0}/${r.held[120] ?? 0}/${r.held[180] ?? 0} | ${r.front180} | ${r.assemblers.length ? r.assemblers.map(t => m(t)).join(', ') : '–'} | ${r.maxAsmBefore120} | ${r.mags.toFixed(0)} | ${r.magsPerHeld.toFixed(0)} | ${r.minSteel.toFixed(0)} (${m(r.minSteelAt)}) | ${m(r.patchOutAt)} | ${r.slots[180]?.dry ?? '–'} |`);
+  lines.push('', '| target | result | per seed |', '|---|---|---|');
+  for (const [id, what, ok, val] of targets) lines.push(`| ${id} ${what} | ${ok ? 'MET' : 'MISSED'} | ${val} |`);
+  writeFileSync(MD, lines.join('\n') + '\n');
+}

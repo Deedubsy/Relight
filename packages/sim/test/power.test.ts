@@ -30,7 +30,7 @@ for (const seed of SEEDS) {
   const fx = load<PowerFixture>(`power${seed}.json`);
   const sf = load<SeedFixture>(`seed${seed}.json`);
   const spec: MapSpec = { w: sf.w, h: sf.h, start: sf.start, target: sf.target, wells: sf.wells, cells: sf.cells,
-                          scatteredInert: sf.scattered_inert, facilities: [] };
+                          scatteredInert: sf.scattered_inert, facilities: [], survivors: [] };
   for (const name of Object.keys(fx.runs)) {
     test(`seed ${seed} power ${name}: 5-hour compact run matches the Python fixture`, () => {
       const py = fx.runs[name];

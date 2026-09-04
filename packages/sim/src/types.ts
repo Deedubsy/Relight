@@ -40,13 +40,13 @@ export interface Relight { hour: number; minutes: number; mult: number }
 export interface Shortfall { pct: number; hour: number; minutes: number }
 
 export interface EconomyConfig {
-  yieldPerMin: number;                       // PROTO-ASSUMPTION: rubble per Held block per minute, flat
-  claimCost: { copper: number; steel: number };      // PROTO-ASSUMPTION: 10 wire (= 5 Cu) + 5 frames (= 10 steel); the doc names wire and frames, no recipe
-  assemblerCost: { copper: number; steel: number };  // PROTO-ASSUMPTION
-  startStock: { stone: number; copper: number; steel: number };  // PROTO-ASSUMPTION
-  startPatch: { steel: number; perMin: number };  // PROTO-ASSUMPTION: §19's "start block's steel runs out in ~2 hours"
+  yieldPerMin: number;                       // GAME-ASSUMPTION: rubble per Held block per minute, flat
+  claimCost: { copper: number; steel: number };      // GAME-ASSUMPTION: 10 wire (= 5 Cu) + 5 frames (= 10 steel); the doc names wire and frames, no recipe
+  assemblerCost: { copper: number; steel: number };  // GAME-ASSUMPTION
+  startStock: { stone: number; copper: number; steel: number };  // GAME-ASSUMPTION
+  startPatch: { steel: number; perMin: number };  // GAME-ASSUMPTION: §19's "start block's steel runs out in ~2 hours"
   magazineCost: { steel: number; copper: number }; // doc-derived (§12): 2 steel + 1 Cu per magazine of 10 rounds; paid only for magazines actually made
-  pool: { civ: number; res: number; ind: number };   // §12 rubble is finite; PROTO-ASSUMPTION for the size: rubble units per block by district
+  pool: { civ: number; res: number; ind: number };   // §12 rubble is finite; GAME-ASSUMPTION for the size: rubble units per block by district
 }
 
 export interface SimConfig {
@@ -84,12 +84,15 @@ export interface SimConfig {
 
 export interface CellSpec { x: number; y: number; name: District; well: boolean; dmax: number; g: number; d0: number }
 export interface Facility { name: string; x: number; y: number }
+/** A survivor group (§8) on a block; `tag` is the §18 map letter (E, N, G, K, M). */
+export interface Survivor { name: string; tag: string; x: number; y: number }
 export interface MapSpec {
   w: number; h: number;
   start: [number, number]; target: [number, number]; wells: [number, number][];
   cells: CellSpec[];
   scatteredInert: [number, number][];
   facilities: Facility[];
+  survivors: Survivor[];
 }
 
 export interface HourRow {
@@ -142,7 +145,7 @@ export type SimEvent =
       fBefore: number; fAfter: number; iBefore: number; iAfter: number; retake: boolean;
       cr: number; sh: number; hu: number }
   | { type: 'claim-rejected'; t: number; x: number; y: number; reason: string }
-  | { type: 'held'; t: number; x: number; y: number; facility: string | null }
+  | { type: 'held'; t: number; x: number; y: number; facility: string | null; survivor: string | null }
   | { type: 'bloom'; t: number; x: number; y: number; cr: number; sh: number; hu: number; wake: boolean }
   | { type: 'fall'; t: number; x: number; y: number; reason: string; delay: number; starved: string }   // delay: s from first unfed arrival (-1 none); starved: district of the empty edge's dark block ('-' none)
   | { type: 'sub-off'; t: number; x: number; y: number }
@@ -168,6 +171,7 @@ export interface SimState {
   w: number; h: number;
   start: [number, number]; target: [number, number]; wells: [number, number][];
   facilities: Facility[];
+  survivors: Survivor[];
   config: SimConfig;
   blocks: Block[];      // index = x*h + y (the Python grid order; ties in the bots break in this order)
   ring: Edge[];         // frontage edges in ring order
@@ -193,7 +197,7 @@ export interface SimState {
 
 // ------------------------------------------------------------------ proto section
 /** The prototype's config numbers. Every number that moved in the calibration is tagged PROTO-CALIBRATED with the
- *  target it was set to hit (CALIBRATION_REPORT.md); the rest are the PROTO-ASSUMPTION values of the build report.
+ *  target it was set to hit (CALIBRATION_REPORT.md); the rest are the GAME-ASSUMPTION values of the build report.
  *  The regression fixtures never read this block: they run with the economy off and `startAsmRate` null. */
 export const PROTO_CALIBRATED = {
   startAssemblers: 1,          // one assembler at the start (build report, assumption 3)
@@ -215,7 +219,7 @@ export const PROTO_CALIBRATED = {
     // steel = 120 × perMin so the patch still runs out at ~2 h (§19). Was 240 at 2/min.
     startPatch: { steel: 7680, perMin: 64 },
     magazineCost: { steel: 2, copper: 1 },   // §12 recipe, doc-derived, not a lever
-    // §12: rubble is finite (doc rule). PROTO-ASSUMPTION for the size: 120 min × yieldPerMin, so a block lasts about as
+    // §12: rubble is finite (doc rule). GAME-ASSUMPTION for the size: 120 min × yieldPerMin, so a block lasts about as
     // long as the doc's "start block's steel runs out in ~2 hours" at the current draw; the three districts are equal.
     pool: { civ: 3840, res: 3840, ind: 3840 },
   },

@@ -1,7 +1,7 @@
 /** Map generator: the fixture generator (frontsim.py / export_fixtures.py) ported to TS.
  *  District, cap and growth are bit-identical to Python. Jitter and scatter use the TS PRNG,
  *  so a TS seed is a different map from the same Python seed; parity is tested from fixtures. */
-import { District, MapSpec, CellSpec, Facility, SimConfig } from './types';
+import { District, MapSpec, CellSpec, Facility, Survivor, SimConfig } from './types';
 import { rngInt, rngUniform, seedRng, pyRound } from './prng';
 import { districtBase, wellInfluence } from './districts';
 
@@ -72,7 +72,7 @@ export function makeScatter(seed: number, frac: number, validator: SimConfig['va
   return out;
 }
 
-/** PROTO-ASSUMPTION: facility placement. The doc (§8, §17) gives Foundry 5–9 blocks out, Arsenal in a
+/** GAME-ASSUMPTION: facility placement. The doc (§8, §17) gives Foundry 5–9 blocks out, Arsenal in a
  *  different octant, Power station ≥ 15 opposite; the sim only has TARGET. The proto shows the four
  *  nearest silhouettes and toasts when one is Held, so positions only need to be plausible and seeded. */
 export function placeFacilities(seed: number, inert: Set<number>): Facility[] {
@@ -96,6 +96,38 @@ export function placeFacilities(seed: number, inert: Set<number>): Facility[] {
   return out;
 }
 
+/** GAME-ASSUMPTION: survivor placement. §8 gives each group a distance band from the HQ (Electricians ≤ 3, Concrete
+ *  crew ≤ 4, Gunsmith 4–8, Rail crew 5–10, Foreman 6–10) and says a block's contents show once a 4-neighbour is Held.
+ *  The optional groups (Chemist near oil, Lamplighters, Surveyors) need the world view's oil and dead-end pockets and
+ *  are left out. Question for the human: does a group's block have to be Held, or only reached, for "we're in"?
+ *  The proto marks the block, reveals it per §8 and toasts on Held; no unlock effect exists yet (§8 is world view). */
+export const SURVIVOR_BANDS: { name: string; tag: string; min: number; max: number }[] = [
+  { name: 'Electricians', tag: 'E', min: 1, max: 3 },
+  { name: 'Concrete crew', tag: 'N', min: 2, max: 4 },
+  { name: 'Gunsmith', tag: 'G', min: 4, max: 8 },
+  { name: 'Rail crew', tag: 'K', min: 5, max: 10 },
+  { name: 'Foreman', tag: 'M', min: 6, max: 10 },
+];
+export function placeSurvivors(seed: number, inert: Set<number>, facilities: Facility[]): Survivor[] {
+  const rng = { rng: seedRng(Math.imul(seed, 48611) + 11) };
+  const taken = new Set<number>([START[0] * H + START[1]]);
+  for (const f of facilities) taken.add(f.x * H + f.y);
+  for (const [wx, wy] of WELLS) taken.add(wx * H + wy);
+  const dist = (x: number, y: number) => Math.abs(x - START[0]) + Math.abs(y - START[1]);
+  const out: Survivor[] = [];
+  for (const band of SURVIVOR_BANDS) {
+    for (let tries = 0; tries < 2000; tries++) {
+      const x = rngInt(rng, W), y = rngInt(rng, H - 1);
+      const k = x * H + y;
+      if (inert.has(k) || taken.has(k)) continue;
+      const d = dist(x, y);
+      if (d < band.min || d > band.max) continue;
+      taken.add(k); out.push({ name: band.name, tag: band.tag, x, y }); break;
+    }
+  }
+  return out;
+}
+
 export function generateMap(seed: number, cfg: Pick<SimConfig, 'jitter' | 'scatter' | 'scatterFrac' | 'validator'>): MapSpec {
   const jr = { rng: seedRng(Math.imul(seed, 104729) + 7) };
   const cells: CellSpec[] = [];
@@ -106,6 +138,7 @@ export function generateMap(seed: number, cfg: Pick<SimConfig, 'jitter' | 'scatt
   }
   const scatteredInert = cfg.scatter ? makeScatter(seed, cfg.scatterFrac, cfg.validator) : [];
   const inertSet = new Set<number>(scatteredInert.map(([x, y]) => x * H + y));
+  const facilities = placeFacilities(seed, inertSet);
   return { w: W, h: H, start: START, target: TARGET, wells: WELLS, cells, scatteredInert,
-           facilities: placeFacilities(seed, inertSet) };
+           facilities, survivors: placeSurvivors(seed, inertSet, facilities) };
 }

@@ -22,6 +22,10 @@ jobs:
         run: npm run experiments
       - name: Docs sync (§7 and §12 tables match packages/sim)
         run: npm run docsync:check
+      - name: Scenario B snapshot is reproducible (packages/proto/public/snapshots)
+        run: npm run snapshot:check
+      - name: Calibration (constitution Phase 2 targets C1–C7; reported, not gated)
+        run: npm run calibrate -- --out docs/experiments/calibration.json --md docs/experiments/calibration.md
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -29,4 +33,5 @@ jobs:
           path: |
             docs/EXPERIMENTS.md
             docs/experiments/*.json
+            docs/experiments/calibration.md
           retention-days: 30

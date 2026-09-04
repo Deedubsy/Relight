@@ -1,5 +1,5 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
-import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, shapeMetrics, clockOf, slotInfo } from '@relight/sim';
+import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE } from '@relight/sim';
 import { Session, setSpeed, queue, shareUrl } from './session';
 import { summarise, exportJson } from './telemetry';
 
@@ -19,6 +19,8 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 }
 const pct = (v: number) => `${Math.round(v * 100)} %`;
+/** Pips are shape-coded as well as coloured (constitution, Phase 2): ● green, ▲ amber, ✕ red. Same shapes on the map. */
+const PIP_GLYPH: Record<string, string> = { green: '●', amber: '▲', red: '✕' };
 const f1 = (v: number) => (Math.round(v * 10) / 10).toFixed(1);
 const f2 = (v: number) => (Math.round(v * 100) / 100).toFixed(2);
 
@@ -31,6 +33,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const header = el('section');
   const head = el('header');
   head.append(el('h1', undefined, `Relight · map view · seed ${st.seed}`));
+  if (session.scenario === 'B') head.append(el('span', 'badge', `Scenario B · from ${clockOf(session.startT)}`));
   const btnLink = el('button', undefined, 'Copy link');
   btnLink.title = 'Share this seed and settings';
   btnLink.onclick = () => {
@@ -83,15 +86,19 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   ringSec.append(el('h2', undefined, 'Ammo ring order — drag to reorder'));
   const ring = el('ol', 'ring');
   ringSec.append(ring);
-  const ringHint = el('p', 'hint', 'Edges fill from the top. The last edges starve first when production falls short.');
+  const ringHint = el('p', 'hint', 'Edges fill from the top. The last edges starve first when production falls short. Pips: ● hopper at least half full · ▲ running low · ✕ empty, blinking.');
   ringSec.append(ringHint);
   root.append(ringSec);
 
-  // facilities
+  // facilities (§8: silhouettes within SKYLINE_RANGE blocks of a Held block) and survivors (§8: a block's contents
+  // show once a neighbour is Held)
   const facSec = el('section');
-  facSec.append(el('h2', undefined, 'Nearest facilities'));
+  facSec.append(el('h2', undefined, 'Skyline'));
   const facList = el('ul', 'plain');
   facSec.append(facList);
+  facSec.append(el('p', 'hint', `A facility shows once it is within ${SKYLINE_RANGE} blocks of a Held block; survivors show once a block next to them is Held, and join when their block is.`));
+  const survList = el('ul', 'plain');
+  facSec.append(el('h2', undefined, 'Survivors'), survList);
   root.append(facSec);
 
   // summary
@@ -99,7 +106,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   sumSec.append(el('h2', undefined, 'Session summary'));
   const dl = el('dl');
   const dd = (label: string) => { dl.append(el('dt', undefined, label)); const d = el('dd', undefined, '–'); dl.append(d); return d; };
-  const dTime = dd('Sim time'), dClaims = dd('Claims (per hour)'), dShape = dd('Bounding box'), dRatio = dd('Perimeter / area'),
+  const dTime = dd(session.scenario === 'B' ? 'Sim time (session from ' + clockOf(session.startT) + ')' : 'Sim time'), dClaims = dd('Claims this session (per hour)'), dShape = dd('Bounding box'), dRatio = dd('Perimeter / area'),
         dAmmo = dd('Ammo spent'), dLost = dd('Blocks lost'), dReorder = dd('Ring reorders'), dEncl = dd('First enclosure');
   sumSec.append(dl);
   const sumRow = el('div', 'row');
@@ -115,6 +122,18 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     toast('Telemetry exported', 'good');
   };
   sumRow.append(btnExport);
+  const btnState = el('button', undefined, 'Save snapshot');
+  btnState.title = 'Download the raw sim state; load it later with ?state=<file url>';
+  btnState.onclick = () => {
+    const blob = new Blob([JSON.stringify(session.state)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `relight-state-seed${st.seed}-${clockOf(session.state.t).replace(/:/g, '')}.json`;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    toast('Snapshot saved', 'good');
+  };
+  sumRow.append(btnState);
   sumSec.append(sumRow);
   root.append(sumSec);
 
@@ -142,7 +161,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       l.draggable = true;
       l.dataset.id = String(e.id);
       if (e.id === selected) l.classList.add('selected');
-      l.append(el('span', 'pos', String(e.ringPos + 1)), el('span', `pip ${e.pip}`), el('span', 'mono', `(${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})  ${e.darkDistrict}`), el('span', 'lvl', pct(e.level)));
+      l.append(el('span', 'pos', String(e.ringPos + 1)), el('span', `pip ${e.pip}`, PIP_GLYPH[e.pip]), el('span', 'mono', `(${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})  ${e.darkDistrict}`), el('span', 'lvl', pct(e.level)));
       l.title = `Dark side rot ${pct(e.darkRot)}${e.darkWell ? ' · well' : ''}`;
       l.onclick = () => { hooks.onSelectEdge(selected === e.id ? null : e.id); };
       l.ondragstart = ev => { dragging = e.id; ev.dataTransfer?.setData('text/plain', String(e.id)); };
@@ -194,11 +213,15 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     btnAsm.title = si.free === 0 ? 'No free machine slot: an assembler needs an Interior block (every neighbour Held or inert). Enclose a block to get one.'
       : broke ? 'Not enough rubble' : `Goes on block (${si.next!.x},${si.next!.y}); makes ${s.config.asmRate} magazines per minute`;
     renderRing(frontList(s));
-    const facs = facilityList(s).slice(0, 4);
-    const fk = facs.map(f => `${f.name}${f.held ? 1 : 0}`).join();
+    const facs = facilityList(s).filter(f => f.visible);
+    const survs = survivorList(s).filter(f => f.revealed);
+    const fk = facs.map(f => `${f.name}${f.held ? 1 : 0}`).join() + '|' + survs.map(f => `${f.tag}${f.held ? 1 : 0}`).join();
     if (fk !== lastFacKey) {
-      lastFacKey = fk; facList.innerHTML = '';
-      for (const f of facs) { const l = el('li'); l.append(el('span', undefined, `${f.name} (${f.x},${f.y})`), el('span', f.held ? '' : 'muted', f.held ? 'reached' : `${f.dist} blocks away`)); facList.append(l); }
+      lastFacKey = fk; facList.innerHTML = ''; survList.innerHTML = '';
+      for (const f of facs) { const l = el('li'); l.append(el('span', undefined, `${f.name} (${f.x},${f.y})`), el('span', f.held ? '' : 'muted', f.held ? 'reached' : `${f.dist} blocks from HQ`)); facList.append(l); }
+      if (!facs.length) facList.append(el('li', 'muted', 'nothing on the skyline yet'));
+      for (const f of survs) { const l = el('li'); l.append(el('span', undefined, `${f.tag} · ${f.name} (${f.x},${f.y})`), el('span', f.held ? '' : 'muted', f.held ? 'with us' : 'seen')); survList.append(l); }
+      if (!survs.length) survList.append(el('li', 'muted', 'none found yet'));
     }
     const sum = summarise(session.telemetry, s);
     dTime.textContent = sum.simTime;

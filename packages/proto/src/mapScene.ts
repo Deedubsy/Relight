@@ -2,7 +2,7 @@
 import Phaser from 'phaser';
 import {
   SimState, SimEvent, DARK, CONTESTED, HELD, INERT, VOID, idxOf, inBounds, isSolid, isCandidate, rotOf, rotTier,
-  frontList, FrontEdgeView, claimInfo, heldInfo, HeldInfo, nearestHeld, facilityList, isInterior, poolMax,
+  frontList, FrontEdgeView, claimInfo, heldInfo, HeldInfo, nearestHeld, facilityList, survivorList, isInterior, poolMax,
 } from '@relight/sim';
 import { Session, frame, queue } from './session';
 
@@ -19,7 +19,7 @@ const C = {
   inert: 0x3f4553, inertLine: 0x2a2f3b, river: 0x2f3a4f, void: 0x1a1e2a,
   edge: 0xe0442a, green: 0x3ddc84, amber: 0xf2b632, red: 0xff3b30,
   pole: 0xb7c0d3, crawler: 0xff6a3d, shade: 0xb06cff, hulk: 0xffffff,
-  facility: 0x9aa5b8, facilityHeld: 0xf5c24f, hover: 0xffffff, bad: 0xff3b30,
+  facility: 0x9aa5b8, facilityHeld: 0xf5c24f, hover: 0xffffff, bad: 0xff3b30, survivor: 0x7fd0ff,
   machine: 0x1a1e2a, rubble: { civ: 0xc9d1de, res: 0xd2691e, ind: 0x4f6fa8, out: 0x000000 } as Record<string, number>,
 };
 
@@ -49,6 +49,8 @@ export class MapScene extends Phaser.Scene {
   private edgesCache: FrontEdgeView[] = [];
   private edgesCacheT = -1;
   private facilityLabelsFor = '';
+  private survivorLabels: Phaser.GameObjects.Text[] = [];
+  private survivorLabelsFor = '';
 
   constructor() { super('map'); }
 
@@ -234,8 +236,8 @@ export class MapScene extends Phaser.Scene {
     const [sx, sy] = st.start;
     g.lineStyle(1, 0x000000, 0.5); g.strokeRect(PAD + sx * CELL + 6, PAD + sy * CELL + 6, CELL - 12, CELL - 12);
 
-    // facilities: silhouettes for the four nearest
-    const facs = facilityList(st).slice(0, 4);
+    // facilities: §8 skyline, silhouettes within SKYLINE_RANGE blocks of a Held block
+    const facs = facilityList(st).filter(f => f.visible);
     const key = facs.map(f => `${f.name}${f.held ? 1 : 0}`).join('|');
     for (const f of facs) this.drawFacility(g, f);
     if (key !== this.facilityLabelsFor) {
@@ -243,6 +245,25 @@ export class MapScene extends Phaser.Scene {
       for (const l of this.labels) l.destroy();
       this.labels = facs.map(f => this.add.text(PAD + f.x * CELL + CELL / 2, PAD + f.y * CELL + CELL + 1, f.name,
         { fontSize: '9px', color: f.held ? '#f5c24f' : '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 2, y: 1 } }).setOrigin(0.5, 0).setDepth(5));
+    }
+
+    // survivors: §8, a block's contents show once a 4-neighbour is Held; the §18 letter in a badge, name below
+    const survs = survivorList(st).filter(f => f.revealed);
+    const skey = survs.map(f => `${f.tag}${f.held ? 1 : 0}`).join('|');
+    for (const f of survs) {
+      const px = PAD + f.x * CELL, py = PAD + f.y * CELL, col = f.held ? C.facilityHeld : C.survivor;
+      g.fillStyle(col, 1); g.fillCircle(px + 8, py + 8, 3);                       // head
+      g.fillRoundedRect(px + 4, py + 11, 8, 8, 2);                               // body
+      g.fillStyle(0x000000, 0.55); g.fillRoundedRect(px + 13, py + 3, 9, 10, 2);  // letter badge ground
+    }
+    if (skey !== this.survivorLabelsFor) {
+      this.survivorLabelsFor = skey;
+      for (const l of this.survivorLabels) l.destroy();
+      this.survivorLabels = survs.flatMap(f => [
+        this.add.text(PAD + f.x * CELL + 17.5, PAD + f.y * CELL + 8, f.tag, { fontSize: '9px', fontStyle: 'bold', color: f.held ? '#f5c24f' : '#7fd0ff' }).setOrigin(0.5).setDepth(5),
+        this.add.text(PAD + f.x * CELL + CELL / 2, PAD + f.y * CELL + CELL + 1, f.name,
+          { fontSize: '9px', color: f.held ? '#f5c24f' : '#7fd0ff', backgroundColor: '#0b0e1acc', padding: { x: 2, y: 1 } }).setOrigin(0.5, 0).setDepth(5),
+      ]);
     }
 
     // hover
@@ -265,9 +286,16 @@ export class MapScene extends Phaser.Scene {
       const p = this.edgePos(e);
       ge.fillStyle(C.edge, 0.95);
       if (p.vertical) ge.fillRect(p.x - 2, p.y - CELL / 2 + 2, 4, CELL - 4); else ge.fillRect(p.x - CELL / 2 + 2, p.y - 2, CELL - 4, 4);
-      const col = e.pip === 'green' ? C.green : e.pip === 'amber' ? C.amber : C.red;
-      if (e.pip !== 'red' || blink) { ge.fillStyle(col, 1); ge.fillCircle(p.x, p.y, 3.5); }
-      ge.lineStyle(1, 0x000000, 0.6); ge.strokeCircle(p.x, p.y, 3.5);
+      // shape-coded pips (colour-blind safe): ● green disc, ▲ amber triangle, ✕ red cross that blinks
+      if (e.pip === 'green') {
+        ge.fillStyle(C.green, 1); ge.fillCircle(p.x, p.y, 3.5);
+        ge.lineStyle(1, 0x000000, 0.6); ge.strokeCircle(p.x, p.y, 3.5);
+      } else if (e.pip === 'amber') {
+        ge.fillStyle(C.amber, 1); ge.fillTriangle(p.x, p.y - 4.5, p.x + 4.5, p.y + 3.5, p.x - 4.5, p.y + 3.5);
+        ge.lineStyle(1, 0x000000, 0.6); ge.strokeTriangle(p.x, p.y - 4.5, p.x + 4.5, p.y + 3.5, p.x - 4.5, p.y + 3.5);
+      } else if (blink) {
+        ge.lineStyle(2.5, C.red, 1); ge.lineBetween(p.x - 4, p.y - 4, p.x + 4, p.y + 4); ge.lineBetween(p.x - 4, p.y + 4, p.x + 4, p.y - 4);
+      }
       if (this.selectedEdge === e.id) {
         ge.lineStyle(2, C.white, 1); ge.strokeCircle(p.x, p.y, 6.5);
         ge.lineStyle(2, C.white, 0.8);

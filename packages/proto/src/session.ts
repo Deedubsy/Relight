@@ -6,7 +6,9 @@ import {
 } from '@relight/sim';
 import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } from './telemetry';
 
-export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | null; player: string }
+/** `state` names a snapshot: a bare name resolves to /snapshots/<name>.json (shipped with the proto), a path or URL
+ *  is fetched as is. A snapshot is a raw SimState, or a telemetry export (whose `finalState` is taken). */
+export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | null; player: string; state: string | null }
 
 export function parseUrl(search: string): UrlParams {
   const q = new URLSearchParams(search);
@@ -18,17 +20,36 @@ export function parseUrl(search: string): UrlParams {
     scatter: q.get('scatter') !== '0',
     autoplay: auto && (POLICIES as string[]).includes(auto) ? (auto as Policy) : null,
     player: q.get('player') ?? '',
+    state: q.get('state') || null,
   };
 }
 
 export function shareUrl(p: UrlParams): string {
   const q = new URLSearchParams();
-  q.set('seed', String(p.seed));
-  if (!p.economy) q.set('economy', '0');
-  if (!p.scatter) q.set('scatter', '0');
+  if (p.state) q.set('state', p.state);
+  else {
+    q.set('seed', String(p.seed));
+    if (!p.economy) q.set('economy', '0');
+    if (!p.scatter) q.set('scatter', '0');
+  }
   const u = new URL(location.href);
   u.search = q.toString();
   return u.toString();
+}
+
+export function snapshotUrl(ref: string): string {
+  return /^(https?:)?\//.test(ref) || ref.includes('/') || ref.endsWith('.json') ? ref : `/snapshots/${ref}.json`;
+}
+
+/** Fetch and validate a snapshot. Throws with a readable message; the caller decides whether to fall back. */
+export async function loadSnapshot(ref: string): Promise<SimState> {
+  const url = snapshotUrl(ref);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`snapshot ${url}: HTTP ${res.status}`);
+  const json = await res.json() as { finalState?: SimState } & Partial<SimState>;
+  const st = (json.finalState ?? json) as SimState;
+  if (st.version !== 1 || !Array.isArray(st.blocks) || !st.config || !Array.isArray(st.ring)) throw new Error(`snapshot ${url}: not a Relight state`);
+  return st;
 }
 
 export interface Session {
@@ -39,23 +60,38 @@ export interface Session {
   pending: Command[];
   lastMinute: number;
   realElapsed: number;
+  /** A = fresh start; B = a loaded snapshot (the test plan's scenarios). */
+  scenario: 'A' | 'B';
+  startT: number;   // sim tick the session started at (0 for A)
 }
 
-/** PROTO-ASSUMPTION: the prototype's config. Production on with the doc's ring and unfed rule; the assembler
+/** GAME-ASSUMPTION: the prototype's config. Production on with the doc's ring and unfed rule; the assembler
  *  schedule is replaced by one assembler at the start plus whatever the player builds. The numbers come from
  *  PROTO_CALIBRATED (types.ts, proto section), the same block the calibration harness runs. */
 export function protoConfig(p: UrlParams): SimConfig {
   return protoCalibrated({ ...DEFAULT_CONFIG, scatter: p.scatter, economy: p.economy });
 }
 
-export function createSession(params: UrlParams): Session {
-  const config = protoConfig(params);
-  const spec = generateMap(params.seed, config);
-  const state = createState(spec, config, params.seed);
-  const tel = createTelemetry(state, location.href, params.player);
-  tel.speeds.push({ t: 0, realTime: 0, speed: state.speed });
+/** A fresh session (scenario A) or one continuing from `snapshot` (scenario B). A snapshot starts paused so the
+ *  tester can read the map; its seed, economy and scatter come from the snapshot, not the URL. */
+export function createSession(params: UrlParams, snapshot: SimState | null = null): Session {
+  let state: SimState;
+  if (snapshot) {
+    state = JSON.parse(JSON.stringify(snapshot)) as SimState;
+    state.events = []; state.acc = 0; state.speed = 0;
+    state.survivors ??= [];
+    params = { ...params, seed: state.seed, economy: state.config.economy, scatter: state.config.scatter };
+  } else {
+    const config = protoConfig(params);
+    const spec = generateMap(params.seed, config);
+    state = createState(spec, config, params.seed);
+  }
+  const scenario = snapshot ? 'B' : 'A';
+  const tel = createTelemetry(state, location.href, params.player, scenario, snapshot ? params.state : null);
+  tel.speeds.push({ t: state.t, realTime: 0, speed: state.speed });
   // the proto's bots build assemblers (calibration step 4); the regression's bots do not
-  return { params, state, bot: params.autoplay ? createBot(params.autoplay, null, true) : null, telemetry: tel, pending: [], lastMinute: 0, realElapsed: 0 };
+  return { params, state, bot: params.autoplay ? createBot(params.autoplay, null, true) : null, telemetry: tel, pending: [],
+           lastMinute: Math.floor(state.t / 60) * 60, realElapsed: 0, scenario, startT: state.t };
 }
 
 export function queue(s: Session, c: Command): void { s.pending.push(c); }
