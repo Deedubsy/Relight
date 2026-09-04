@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { SimEvent, flowSummary, canPlace, place, remove, rotate, queueCraft, setHandMine, Kind, Dir, CELL_TILES, MARGIN_TILES, handFeed, cellLights, substationAt, poleGrid,
+import { SimEvent, flowSummary, canPlace, place, remove, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
+  hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround,
 } from '@relight/sim';
-import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session } from './session';
+import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue } from './session';
 import { MapScene, MapView, SceneHooks, MAP_W, MAP_H } from './mapScene';
 import { CityMapScene } from './cityMapScene';
 import { WorldScene } from './worldScene';
@@ -18,8 +19,9 @@ try {
   loadError = (e as Error).message;
   session = createSession({ ...params, state: null });
 }
-/** Both views share one block: the map hands the block under the cursor to the world camera, the world hands the
- *  block under its camera centre back to the map (constitution Phase 4 M1: "E toggles map ↔ world at the same block"). */
+/** Both views share one block. M1 (D5): on foot the block is the engineer's — map → world lands the camera on the
+ *  engineer, world → map marks the block they stand in. Without the flow layer (?flow=0) the old hand-off stays: the
+ *  block under the map cursor, the block under the world camera's centre. */
 const view: View = { mode: params.view, focus: [session.state.start[0], session.state.start[1]], switchedAt: 0 };
 
 const panel = createPanel(session, document.getElementById('panel')!, {
@@ -51,7 +53,14 @@ function describe(events: SimEvent[]): void {
       case 'brownout': panel.toast(`Brownout: demand ${Math.round(ev.demandKw)} kW over ${Math.round(ev.supplyKw)} kW supply — machines shed first (§14), then assemblers, then substations`, 'bad'); break;
       case 'shed': panel.toast(ev.machine ? `Brownout: a ${ev.machine} switched off` : ev.x < 0 ? 'Brownout: an assembler switched off' : `Brownout: substation (${ev.x},${ev.y}) switched off — its streetlights are out`, 'bad'); break;
       case 'restore': panel.toast(ev.machine ? `Power back: ${ev.machine} running again` : ev.x < 0 ? 'Power back: assembler running again' : `Power back: substation (${ev.x},${ev.y}) on`, 'good'); break;
-      case 'claim': if (session.state.flow) panel.toast(`Poles strung to (${ev.x},${ev.y}) — its streetlights come on when it is held`); break;
+      case 'claim': {
+        if (!session.state.flow) break;
+        const kits = session.state.engineer.inv.kit ?? 0;
+        panel.toast(`Poles strung to (${ev.x},${ev.y}) — its streetlights come on when it is held${kits ? '' : '. Its edges wait for a kit: take kits from the Depot chest (I) and walk there'}`);
+        break;
+      }
+      case 'kitted': panel.toast(`Kits laid on block (${ev.x},${ev.y}) — ${ev.edges} edge${ev.edges === 1 ? '' : 's'} armed`, 'good'); break;
+      case 'engineer-down': panel.toast('The engineer is down — back at the HQ workbench in 10 s', 'bad'); break;
     }
   }
 }
@@ -84,11 +93,17 @@ game.events.on(Phaser.Core.Events.STEP, (time: number, delta: number) => {
   panel.update(performance.now());
 });
 
+/** The block the engineer stands in (or last stood in), for the map's marker. */
+function engineerBlock(): [number, number] {
+  const st = session.state, e = st.engineer;
+  const i = e.block >= 0 ? e.block : blockOfTile(st, Math.floor(e.x), Math.floor(e.y));
+  const b = st.blocks[i] ?? st.blocks[0];
+  return [b.x, b.y];
+}
+
 function toggleView(): void {
-  // GAME-ASSUMPTION (rework D6): the world view is lattice-bound until slice M1 ports the tile layer to irregular lots
-  if (session.state.city) { panel.toast('The world view (on foot, on the tiles) comes with slice M1 on the city; ?map=lattice still has the old one', 'info'); return; }
   if (view.mode === 'map') {
-    view.focus = mapScene.hoverBlock() ?? view.focus;
+    view.focus = session.state.flow ? engineerBlock() : (mapScene.hoverBlock() ?? view.focus);
     view.mode = 'world';
     panel.tooltip(null, 0, 0);
     game.scene.sleep('map');
@@ -113,6 +128,7 @@ window.addEventListener('keydown', ev => {
   else if (ev.key === '2') setSpeed(session, 4);
   else if (ev.key === '3') setSpeed(session, 16);
   else if (ev.key === 'm' || ev.key === 'M') toggleView();   // D5: M = map view
+  else if (ev.key === 'i' || ev.key === 'I') panel.togglePockets();   // M1: the pockets and the Depot chest
   else if (ev.key === '`') panel.toggleDebug();
   else if (view.mode === 'world' && worldScene.key(ev.key)) ev.preventDefault();
 });
@@ -128,7 +144,22 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   stateJson: () => JSON.stringify(session.state),
   configHash: session.telemetry.meta.configHash,
   toggleView,
-  world: { get zoom() { return worldScene.zoom; }, setZoom: (z: number) => worldScene.setZoom(z), centreOn: (x: number, y: number) => worldScene.centreOn(x, y), focus: () => worldScene.focusBlock(), get drawn() { return worldScene.drawn; },
+  /** M1 (prompt B): the bots' hooks. `walkTo(x, y)` sets a click-to-walk target on a tile; `engineer()` reads the
+   *  engineer (tile position, block, pockets, HP, path length left). */
+  walkTo: (x: number, y: number) => queue(session, { type: 'move', x: x + 0.5, y: y + 0.5 }),
+  engineer: () => {
+    const e = session.state.engineer, p = currentPath(session.state);
+    return { x: e.x, y: e.y, block: e.block, dest: e.dest, target: e.target, hp: e.hp, down: e.down, inv: { ...e.inv }, stacks: invStacks(e.inv), walked: e.walked, pathLeft: p ? p.path.length - p.at : 0 };
+  },
+  ground: () => { const G = ground(session.state); return { tw: G.tw, th: G.th, blocks: G.blocks.length }; },
+  describe: (tx: number, ty: number) => describeGround(session.state, tx, ty),
+  chest: {
+    count: (item: ChestItem) => chestCount(session.state, item),
+    take: (item: ChestItem, n: number) => chestTake(session.state, item, n),
+    put: (item: ChestItem, n: number) => chestPut(session.state, item, n),
+  },
+  togglePockets: () => panel.togglePockets(),
+  world: { get zoom() { return worldScene.zoom; }, drawMs: () => { const r = { ema: +worldScene.drawMs.toFixed(2), worst: +worldScene.drawWorstMs.toFixed(1) }; worldScene.drawWorstMs = 0; return r; }, setZoom: (z: number) => worldScene.setZoom(z), centreOn: (x: number, y: number) => worldScene.centreOn(x, y), focus: () => worldScene.focusBlock(), get drawn() { return worldScene.drawn; },
            get tool() { return worldScene.tool; }, key: (k: string) => worldScene.key(k) },
   /** M2 flow layer: place/remove/rotate by city tile, `hq(lx, ly)` = city tile of a lot tile on the HQ lot. */
   flow: {
@@ -139,10 +170,11 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
     rotate: (tx: number, ty: number) => rotate(session.state, tx, ty),
     craft: (n = 1) => queueCraft(session.state, n),
     mine: (at: [number, number] | null) => setHandMine(session.state, at),
-    hq: (lx: number, ly: number): [number, number] => [session.state.start[0] * CELL_TILES + MARGIN_TILES + lx, session.state.start[1] * CELL_TILES + MARGIN_TILES + ly],
+    hq: (lx: number, ly: number): [number, number] => hqLot(session.state, lx, ly),
     // M3: hand-feed a turret or Generator, and the light/substation/pole/power queries the world view draws from
     feed: (tx: number, ty: number) => handFeed(session.state, tx, ty),
     lights: (bx: number, by: number) => cellLights(session.state, bx, by),
+    blockLights: (i: number) => blockLights(session.state, i),
     substation: (bx: number, by: number) => substationAt(session.state, bx, by),
     poles: () => { const g = poleGrid(session.state); return { connected: g.connected.size, links: g.links.length, reached: g.reached.slice() }; },
     power: () => session.state.flow?.power ?? null,

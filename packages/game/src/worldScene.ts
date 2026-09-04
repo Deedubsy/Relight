@@ -1,29 +1,33 @@
-/** World view (Phase 4 M1 + M2): the city at tile level. Every tile is drawn from `cellTiles` in @relight/sim, which
- *  derives it from the authoritative block map; the machines are drawn from `state.flow` (flow.ts). This scene holds
- *  only camera and tool state and a tile cache keyed by `cellKey`. Camera: drag or WASD/arrows to pan, wheel to zoom
- *  0.5–3×, E back to the map at the same block. Tools (M2): X Excavator, B belt, I inserter, M Shot assembler,
- *  R rotate, Q/Esc hand, C craft a magazine by hand; left click/drag places, right click removes; with the hand,
- *  holding the left button on rubble mines it, anywhere else drags the camera. M3: T turret, L lamp, P pole,
- *  G Generator; a hand click on a turret or Generator feeds it from the Depot (§11's hand-feed); substations,
- *  streetlights, light discs and pole wires are drawn from the flow layer's M3 queries. */
+/** World view (Phase 4 M1 + M2, prompt B M1): the city at tile level, on foot. Every tile is drawn from the ground
+ *  layer in @relight/sim (ground.ts: block faces rasterised to tiles, streets on the ridges, the river), cached per
+ *  32×32 chunk on `chunkKey`; the machines are drawn from `state.flow` (flow.ts). This scene holds only camera,
+ *  tool and input state. On foot (the flow layer is up): the camera follows the engineer, WASD walks, a click walks
+ *  there, the wheel zooms 0.5–3× about the engineer, M goes back to the map at the engineer's block; hand actions
+ *  (mine, feed, place, remove) reach 8 tiles — outside that the cursor says "walk closer". Without the flow layer
+ *  (?flow=0, the block-only bot comparisons) the old camera stays: drag or WASD pan, M at the block under the centre.
+ *  Tools (M2/M3): X Excavator, B belt, N inserter, F Shot assembler, T turret, L lamp, P pole, G Generator, R rotate,
+ *  Q/Esc hand, C craft a magazine by hand; left click/drag places, right click removes; with the hand, holding the
+ *  left button on rubble mines it, a click on a turret or Generator feeds it from the Depot (§11's hand-feed). */
 import Phaser from 'phaser';
 import {
   SimState, idxOf, DARK, CONTESTED, HELD, INERT, VOID, isInterior,
-  CELL_TILES, TILE_PX, RUBBLE_VARIANTS, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
-  cellTiles, cellKey, CellTiles, describeTile,
+  TILE_PX, RUBBLE_VARIANTS, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
+  ground, chunkTiles, chunkKey, CHUNK, describeGround, blockOfTile, inReach, depotRect, REACH, INV_STACKS, invStacks, currentPath,
   Kind, Dir, DX, DY, DIR_NAMES, Machine, MACHINE_SIZE, MACHINE_COST, SHOT, EXCAVATOR_PER_S,
   machineAt, rubbleAt, canPlace, place, remove, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
-  handFeed, cellLights, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
-  SUBSTATION_TILES, POLE_REACH,
+  handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
+  POLE_REACH,
 } from '@relight/sim';
-import { Session } from './session';
+import { Session, queue } from './session';
 import { View } from './view';
 
 /** GAME-ASSUMPTION: the constitution's 0.5–3× zoom, not §4's 1.0–0.2×; the doc is edited to this range (D-P4-1). */
 export const ZOOM_MIN = 0.5, ZOOM_MAX = 3, ZOOM_STEP = 1.15;
 const PAN_PX_PER_S = 900;
-const CELL_PX = CELL_TILES * TILE_PX;   // 1024 px
+const CHUNK_PX = CHUNK * TILE_PX;   // 1024 px
 const HALF = TILE_PX / 2;
+/** Camera follow: the fraction of the gap to the engineer closed per second (the sim moves them 20× a second). */
+const FOLLOW_PER_S = 14;
 
 // tileset frames: street, ground, inert, river, then rubble (stone/copper/steel × 5 variants), then deposits (iron/coal × 5),
 // then the HQ patches (steel, copper, coal)
@@ -40,34 +44,48 @@ const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36,
 const LIGHT_COL = 0xffe9a0;
 
 export type Tool = 'hand' | 'excavator' | 'belt' | 'inserter' | 'assembler' | 'turret' | 'lamp' | 'pole' | 'generator';
-const TOOL_KEYS: Record<string, Tool> = { x: 'excavator', b: 'belt', i: 'inserter', m: 'assembler', t: 'turret', l: 'lamp', p: 'pole', g: 'generator', q: 'hand', escape: 'hand' };
+/** M1: W A S D walk, M is the map and I the pockets, so the inserter moved to N and the assembler to F. */
+/** GAME-ASSUMPTION (M1): inserter on N and assembler on F — I is the pockets and M the map since D5 (the lattice slice had I/M). */
+const TOOL_KEYS: Record<string, Tool> = { x: 'excavator', b: 'belt', n: 'inserter', f: 'assembler', t: 'turret', l: 'lamp', p: 'pole', g: 'generator', q: 'hand', escape: 'hand' };
+export const TOOL_KEY_LINE = 'X Excavator · B belt · N inserter · F Shot assembler · T turret · L lamp · P pole · G Generator · R rotate · Q hand · C craft a magazine · right-click removes';
 
 export interface WorldHooks { onHoverText(text: string | null, px: number, py: number): void; onToast(msg: string, kind?: 'info' | 'bad' | 'good'): void }
+
+interface Chunk { key: string; frames: Uint8Array }
 
 export class WorldScene extends Phaser.Scene {
   private blitter!: Phaser.GameObjects.Blitter;
   private bobs: Phaser.GameObjects.Bob[] = [];
   private gOver!: Phaser.GameObjects.Graphics;
   private gMach!: Phaser.GameObjects.Graphics;
+  private gEng!: Phaser.GameObjects.Graphics;
   private hudText!: Phaser.GameObjects.Text;
   private depotText!: Phaser.GameObjects.Text;
   private labels: Phaser.GameObjects.Text[] = [];
-  private cells = new Map<number, { key: string; tiles: CellTiles }>();
+  private chunks = new Map<number, Chunk>();
   private keys!: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'LEFT' | 'DOWN' | 'RIGHT', Phaser.Input.Keyboard.Key>;
   private hoverTile: { tx: number; ty: number } | null = null;
   private dragging = false;
   private placing = false;
   private mining = false;
   private pending: [number, number] | null = null;
+  private lastWalk = '0,0';
+  private walkCloserToasted = false;
+  private cursor = 'default';
+  private snapped = false;
   /** Current tool and the direction the next machine faces. */
   tool: Tool = 'hand';
   dir: Dir = 1;
   /** Tiles drawn last frame; a dev/test number. */
   drawn = 0;
+  /** Draw cost, ms: an EMA over frames and the worst since last read (the soak's `world.drawMs`). */
+  drawMs = 0; drawWorstMs = 0;
 
   constructor(private session: Session, private view: View, private hooks: WorldHooks) { super('world'); }
 
   private get st(): SimState { return this.session.state; }
+  /** On foot: the flow layer ticks the engineer on the tiles (walk.ts). Without it the old free camera stays. */
+  private get onFoot(): boolean { return !!this.st.flow; }
 
   create(): void {
     this.cameras.main.setBackgroundColor(0x05070f);
@@ -75,10 +93,11 @@ export class WorldScene extends Phaser.Scene {
     this.blitter = this.add.blitter(0, 0, 'ground');
     this.gMach = this.add.graphics().setDepth(1);
     this.gOver = this.add.graphics().setDepth(2);
+    this.gEng = this.add.graphics().setDepth(3);
     this.depotText = this.add.text(0, 0, 'Depot', { fontSize: '20px', color: '#e8ecf4', fontStyle: 'bold' }).setDepth(3).setOrigin(0.5).setVisible(false);
     this.hudText = this.add.text(8, 8, '', { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } }).setScrollFactor(0).setDepth(10);
-    const cam = this.cameras.main;
-    cam.setBounds(0, 0, this.st.w * CELL_PX, this.st.h * CELL_PX);
+    const cam = this.cameras.main, G = ground(this.st);
+    cam.setBounds(0, 0, G.tw * TILE_PX, G.th * TILE_PX);
     cam.setZoom(1);
     cam.setRoundPixels(true);
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT') as WorldScene['keys'];
@@ -86,14 +105,19 @@ export class WorldScene extends Phaser.Scene {
     this.input.on('pointerup', () => this.onUp());
     this.input.on('gameout', () => { this.onUp(); this.hoverTile = null; this.hooks.onHoverText(null, 0, 0); });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
-    this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => this.zoomAt(p.x, p.y, dy > 0 ? 1 / ZOOM_STEP : ZOOM_STEP));
+    this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
+      const f = dy > 0 ? 1 / ZOOM_STEP : ZOOM_STEP;
+      if (this.onFoot) this.zoomAt(...this.engineerScreen(), f); else this.zoomAt(p.x, p.y, f);
+    });
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.onWake());
-    this.events.on(Phaser.Scenes.Events.SLEEP, () => this.onUp());
+    this.events.on(Phaser.Scenes.Events.SLEEP, () => { this.onUp(); this.sendWalk(0, 0); });
     this.onWake();
   }
 
   private onWake(): void {
     this.hoverTile = null;
+    this.lastWalk = '0,0';
+    if (this.onFoot) { this.snapped = false; return; }   // the camera lands on the engineer in the first update
     if (this.pending) { this.centreOn(this.pending[0], this.pending[1]); this.pending = null; }
   }
 
@@ -135,26 +159,29 @@ export class WorldScene extends Phaser.Scene {
     for (let f = 0; f < F_COUNT; f++) tex.add(f, 0, f * TILE_PX, 0, TILE_PX, TILE_PX);
   }
 
-  private frameOf(c: CellTiles, i: number): number {
-    switch (c.kind[i]) {
-      case T_STREET: return F_STREET;
-      case T_GROUND: return F_GROUND;
-      case T_INERT: return F_INERT;
-      case T_RIVER: return F_RIVER;
-      case T_RUBBLE: return F_RUBBLE + RUBBLE_IDX[c.rubble ?? 'stone'] * RUBBLE_VARIANTS + (c.variant[i] - 1);
-      case T_DEPOSIT: return F_DEPOSIT + DEPOSIT_IDX[c.deposit ?? 'iron'] * RUBBLE_VARIANTS + (c.variant[i] - 1);
-      case T_PATCH: return F_PATCH + Math.max(0, c.patch[i] - 1);
-      default: return F_GROUND;
+  /** The frames of one 32×32 chunk, rebuilt when its `chunkKey` (the state of every block with tiles in it) changes. */
+  private chunk(cx: number, cy: number): Uint8Array {
+    const st = this.st, G = ground(st), id = cy * G.cw + cx, key = chunkKey(st, cx, cy);
+    const hit = this.chunks.get(id);
+    if (hit && hit.key === key) return hit.frames;
+    const c = chunkTiles(st, cx, cy), frames = new Uint8Array(CHUNK * CHUNK);
+    const x0 = cx * CHUNK, y0 = cy * CHUNK;
+    for (let i = 0; i < frames.length; i++) {
+      const k = c.kind[i];
+      let f = F_GROUND;
+      if (k === T_STREET) f = F_STREET;
+      else if (k === T_INERT) f = F_INERT;
+      else if (k === T_RIVER) f = F_RIVER;
+      else if (k === T_PATCH) f = F_PATCH + Math.max(0, c.patch[i] - 1);
+      else if (k === T_RUBBLE || k === T_DEPOSIT) {
+        const lx = i % CHUNK, ly = (i - lx) / CHUNK, o = G.owner[(y0 + ly) * G.tw + x0 + lx], bg = o >= 0 ? G.blocks[o] : null;
+        f = k === T_RUBBLE ? F_RUBBLE + RUBBLE_IDX[bg?.rubble ?? 'stone'] * RUBBLE_VARIANTS + Math.max(0, c.variant[i] - 1)
+          : F_DEPOSIT + DEPOSIT_IDX[bg?.deposit ?? 'iron'] * RUBBLE_VARIANTS + Math.max(0, c.variant[i] - 1);
+      } else if (k === T_GROUND) f = F_GROUND;
+      frames[i] = f;
     }
-  }
-
-  private cell(x: number, y: number): CellTiles {
-    const st = this.st, i = idxOf(st, x, y), key = cellKey(st, x, y);
-    const hit = this.cells.get(i);
-    if (hit && hit.key === key) return hit.tiles;
-    const tiles = cellTiles(st, x, y);
-    this.cells.set(i, { key, tiles });
-    return tiles;
+    this.chunks.set(id, { key, frames });
+    return frames;
   }
 
   // ------------------------------------------------------------------ camera
@@ -163,6 +190,12 @@ export class WorldScene extends Phaser.Scene {
   private worldAt(sx: number, sy: number, zoom = this.cameras.main.zoom): { x: number; y: number } {
     const cam = this.cameras.main;
     return { x: cam.scrollX + cam.width / 2 + (sx - cam.width / 2) / zoom, y: cam.scrollY + cam.height / 2 + (sy - cam.height / 2) / zoom };
+  }
+
+  /** The engineer's screen point (the zoom pivot on foot). */
+  private engineerScreen(): [number, number] {
+    const cam = this.cameras.main, e = this.st.engineer;
+    return [cam.width / 2 + (e.x * TILE_PX - cam.scrollX - cam.width / 2) * cam.zoom, cam.height / 2 + (e.y * TILE_PX - cam.scrollY - cam.height / 2) * cam.zoom];
   }
 
   zoomAt(sx: number, sy: number, factor: number): void {
@@ -174,20 +207,29 @@ export class WorldScene extends Phaser.Scene {
     cam.setScroll(w.x - cam.width / 2 - (sx - cam.width / 2) / z1, w.y - cam.height / 2 - (sy - cam.height / 2) / z1);
   }
 
-  setZoom(z: number): void { this.zoomAt(this.cameras.main.width / 2, this.cameras.main.height / 2, z / this.cameras.main.zoom); }
+  setZoom(z: number): void {
+    const [sx, sy] = this.onFoot ? this.engineerScreen() : [this.cameras.main.width / 2, this.cameras.main.height / 2];
+    this.zoomAt(sx, sy, z / this.cameras.main.zoom);
+  }
   get zoom(): number { return this.cameras.main.zoom; }
 
-  /** Centre the camera on a block's lot. Safe before create(): the request is kept for the first wake. */
+  /** Centre the camera on a block (its pole tile). Safe before create(): the request is kept for the first wake.
+   *  On foot the camera follows the engineer, so this only holds until the next frame. */
   centreOn(x: number, y: number): void {
     if (!this.cameras?.main) { this.pending = [x, y]; return; }
-    this.cameras.main.centerOn((x + 0.5) * CELL_PX, (y + 0.5) * CELL_PX);
+    const st = this.st, i = idxOf(st, x, y), G = ground(st);
+    const p = i >= 0 ? G.blocks[i].pole : [G.tw / 2, G.th / 2];
+    this.cameras.main.centerOn((p[0] + 0.5) * TILE_PX, (p[1] + 0.5) * TILE_PX);
   }
 
-  /** The block under the camera's centre: what the map view gets on E. */
+  /** The block the map view gets on M: the engineer's on foot, else the one under the camera's centre. */
   focusBlock(): [number, number] {
-    const cam = this.cameras.main;
-    const m = this.worldAt(cam.width / 2, cam.height / 2);
-    return [Math.max(0, Math.min(this.st.w - 1, Math.floor(m.x / CELL_PX))), Math.max(0, Math.min(this.st.h - 1, Math.floor(m.y / CELL_PX)))];
+    const st = this.st;
+    let i = -1;
+    if (this.onFoot) { const e = st.engineer; i = e.block >= 0 ? e.block : blockOfTile(st, Math.floor(e.x), Math.floor(e.y)); }
+    else { const cam = this.cameras.main, m = this.worldAt(cam.width / 2, cam.height / 2); i = blockOfTile(st, Math.floor(m.x / TILE_PX), Math.floor(m.y / TILE_PX)); }
+    const b = st.blocks[i] ?? st.blocks[idxOf(st, st.start[0], st.start[1])];
+    return [b.x, b.y];
   }
 
   // ------------------------------------------------------------------ tools
@@ -200,10 +242,12 @@ export class WorldScene extends Phaser.Scene {
     if (lower in TOOL_KEYS) { this.tool = TOOL_KEYS[lower]; return true; }
     if (lower === 'r') {
       const h = this.hoverTile, m = h && this.tool === 'hand' ? machineAt(st, h.tx, h.ty) : undefined;
-      if (m && m.kind !== 'depot') rotate(st, m.x, m.y); else this.dir = ((this.dir + 1) % 4) as Dir;
+      if (m && m.kind !== 'depot') { if (this.reachable(m.x, m.y, m.size, true)) rotate(st, m.x, m.y); } else this.dir = ((this.dir + 1) % 4) as Dir;
       return true;
     }
     if (lower === 'c') {
+      const wb = workbenchTile(st);
+      if (!this.reachable(wb[0], wb[1], 2, true)) return true;
       queueCraft(st, 1);
       this.hooks.onToast(`Crafting a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s) — ${st.flow.hand.crafts} queued`);
       return true;
@@ -218,14 +262,38 @@ export class WorldScene extends Phaser.Scene {
     return [tx - off, ty - off];
   }
 
+  /** D5 reach: hand actions land within 8 tiles of the engineer. Outside, the first refusal is a toast, every one
+   *  the "walk closer" cursor and the ghost's reason. Without the flow layer there is no engineer on the tiles. */
+  private reachable(tx: number, ty: number, size: number, loud: boolean): boolean {
+    if (!this.onFoot || inReach(this.st, tx, ty, size)) return true;
+    if (loud && !this.walkCloserToasted) { this.walkCloserToasted = true; this.hooks.onToast(`Walk closer — the engineer reaches ${REACH} tiles (WASD or click the ground)`, 'bad'); }
+    return false;
+  }
+
   private tryPlace(tx: number, ty: number, loud: boolean): void {
     const st = this.st;
     if (this.tool === 'hand' || !st.flow) return;
     const kind = this.tool as Kind;
     const [ox, oy] = this.footprint(kind, tx, ty);
+    if (!this.reachable(ox, oy, MACHINE_SIZE[kind], loud)) return;
     const c = canPlace(st, kind, ox, oy);
     if (!c.ok) { if (loud) this.hooks.onToast(`No ${kind} here: ${c.reason}`, 'bad'); return; }
     place(st, kind, ox, oy, this.dir);
+  }
+
+  /** Click-to-walk (D5): a walk target on any non-water tile; harmless anywhere. */
+  private walkTo(tx: number, ty: number): void {
+    const st = this.st, G = ground(st);
+    if (!this.onFoot || tx < 0 || ty < 0 || tx >= G.tw || ty >= G.th) return;
+    if (G.owner[ty * G.tw + tx] === -2) { this.hooks.onToast('Not into the river', 'bad'); return; }
+    queue(this.session, { type: 'move', x: tx + 0.5, y: ty + 0.5 });
+  }
+
+  private sendWalk(dx: number, dy: number): void {
+    const k = `${dx},${dy}`;
+    if (k === this.lastWalk || !this.onFoot) return;
+    this.lastWalk = k;
+    queue(this.session, { type: 'walk', dx, dy });
   }
 
   private onDown(p: Phaser.Input.Pointer): void {
@@ -237,6 +305,7 @@ export class WorldScene extends Phaser.Scene {
       const m = machineAt(st, tx, ty);
       if (!m) return;
       if (m.kind === 'depot') { this.hooks.onToast('The Depot stays', 'bad'); return; }
+      if (!this.reachable(m.x, m.y, m.size, true)) return;
       const cost = MACHINE_COST[m.kind];
       const held = m.kind === 'turret' ? `, ${m.inv.rounds ?? 0} rounds to the line buffer` : m.kind === 'generator' ? `, ${Math.floor(m.inv.coal ?? 0)} coal to the Depot` : '';
       remove(st, tx, ty);
@@ -247,14 +316,22 @@ export class WorldScene extends Phaser.Scene {
     if (this.tool !== 'hand' && st.flow) { this.placing = true; this.tryPlace(tx, ty, true); return; }
     if (this.tool === 'hand' && st.flow) {
       // §11: the tester hand-feeds turrets and the Generator; a click on one moves what the Depot has
-      const fed = handFeed(st, tx, ty);
-      if (fed) {
-        if (fed.moved > 0) this.hooks.onToast(fed.kind === 'turret' ? `Hand-fed ${fed.moved} magazines into the turret` : `Hand-fed ${fed.moved} coal into the Generator`, 'good');
-        else this.hooks.onToast(fed.reason, 'bad');
-        return;
+      const m = machineAt(st, tx, ty);
+      if (m && (m.kind === 'turret' || m.kind === 'generator')) {
+        if (!this.reachable(m.x, m.y, m.size, true)) { this.walkTo(tx, ty); return; }
+        const fed = handFeed(st, tx, ty);
+        if (fed) {
+          if (fed.moved > 0) this.hooks.onToast(fed.kind === 'turret' ? `Hand-fed ${fed.moved} magazines into the turret` : `Hand-fed ${fed.moved} coal into the Generator`, 'good');
+          else this.hooks.onToast(fed.reason, 'bad');
+          return;
+        }
       }
+      if (rubbleAt(st, tx, ty)) {
+        if (!this.reachable(tx, ty, 1, true)) { this.walkTo(tx, ty); return; }
+        this.mining = true; setHandMine(st, [tx, ty]); return;
+      }
+      if (this.onFoot) { this.walkTo(tx, ty); return; }
     }
-    if (st.flow && rubbleAt(st, tx, ty)) { this.mining = true; setHandMine(st, [tx, ty]); return; }
     this.dragging = true;
   }
 
@@ -265,7 +342,7 @@ export class WorldScene extends Phaser.Scene {
 
   private onMove(p: Phaser.Input.Pointer): void {
     const cam = this.cameras.main;
-    if (this.dragging && p.isDown) {
+    if (this.dragging && p.isDown && !this.onFoot) {
       cam.scrollX -= (p.position.x - p.prevPosition.x) / cam.zoom;
       cam.scrollY -= (p.position.y - p.prevPosition.y) / cam.zoom;
     }
@@ -273,54 +350,75 @@ export class WorldScene extends Phaser.Scene {
     const tx = Math.floor(w.x / TILE_PX), ty = Math.floor(w.y / TILE_PX);
     if (this.hoverTile && this.hoverTile.tx === tx && this.hoverTile.ty === ty) return;
     this.hoverTile = { tx, ty };
-    const st = this.st;
+    const st = this.st, G = ground(st);
     if (this.placing && p.isDown) this.tryPlace(tx, ty, false);
     if (this.mining && p.isDown && st.flow) setHandMine(st, [tx, ty]);
-    const bx = Math.floor(tx / CELL_TILES), by = Math.floor(ty / CELL_TILES);
-    if (bx < 0 || by < 0 || bx >= st.w || by >= st.h) { this.hooks.onHoverText(null, 0, 0); return; }
+    if (tx < 0 || ty < 0 || tx >= G.tw || ty >= G.th) { this.hooks.onHoverText(null, 0, 0); return; }
     const rect = this.game.canvas.getBoundingClientRect();
     const m = st.flow ? machineAt(st, tx, ty) : undefined;
-    const lines = [describeTile(st, tx, ty), this.blockLine(bx, by)];
+    const bi = blockOfTile(st, tx, ty);
+    const lines = [describeGround(st, tx, ty)];
+    if (bi >= 0) lines.push(this.blockLine(bi));
     if (m) lines.unshift(describeMachine(st, m));
     else if (st.flow && isSubstationTile(st, tx, ty)) {
-      const sub = substationAt(st, bx, by);
+      const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
       if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (brownout or the block is unfed)'}`);
     }
+    // the "walk closer" cursor: something to do here, out of reach
+    const actionable = this.onFoot && (this.tool !== 'hand' || !!m || !!rubbleAt(st, tx, ty));
+    const far = actionable && !inReach(st, tx, ty, 1);
+    if (far) lines.unshift(`Walk closer (reach ${REACH} tiles)`);
     this.hooks.onHoverText(lines.join('\n'), rect.left + p.x, rect.top + p.y);
+    const cur = far ? 'not-allowed' : 'default';
+    if (cur !== this.cursor) { this.cursor = cur; this.input.setDefaultCursor(cur); }
   }
 
-  private blockLine(x: number, y: number): string {
-    const st = this.st, b = st.blocks[idxOf(st, x, y)];
+  private blockLine(i: number): string {
+    const st = this.st, b = st.blocks[i];
     const name = b.name === 'civ' ? 'civic' : b.name === 'res' ? 'residential' : b.name === 'ind' ? 'industrial' : 'outskirts';
-    const state = y === st.h - 1 ? 'river' : b.state === DARK ? `Dark · rot ${Math.round(b.d * 100)} %` : b.state === CONTESTED ? 'Contested' : b.state === HELD ? (isInterior(st, idxOf(st, x, y)) ? 'Held · interior' : 'Held · front') : b.state === INERT || b.state === VOID ? 'inert' : '?';
-    const hq = x === st.start[0] && y === st.start[1] ? ' · HQ' : '';
-    return `block (${x},${y}) · ${name} · ${state}${hq}`;
+    const river = st.lattice ? b.y === st.h - 1 : false;
+    const state = river ? 'river' : b.state === DARK ? `Dark · rot ${Math.round(b.d * 100)} %` : b.state === CONTESTED ? 'Contested' : b.state === HELD ? (isInterior(st, i) ? 'Held · interior' : 'Held · front') : b.state === INERT || b.state === VOID ? 'inert' : '?';
+    const hq = b.x === st.start[0] && b.y === st.start[1] ? ' · HQ' : '';
+    return `block (${b.x},${b.y}) · ${name} · ${state}${hq}`;
   }
 
   // ------------------------------------------------------------------ frame
 
   update(_time: number, delta: number): void {
     const cam = this.cameras.main, dt = Math.min(0.1, delta / 1000);
-    const pan = PAN_PX_PER_S * dt / cam.zoom;
-    if (this.keys.A.isDown || this.keys.LEFT.isDown) cam.scrollX -= pan;
-    if (this.keys.D.isDown || this.keys.RIGHT.isDown) cam.scrollX += pan;
-    if (this.keys.W.isDown || this.keys.UP.isDown) cam.scrollY -= pan;
-    if (this.keys.S.isDown || this.keys.DOWN.isDown) cam.scrollY += pan;
+    const right = this.keys.D.isDown || this.keys.RIGHT.isDown, left = this.keys.A.isDown || this.keys.LEFT.isDown;
+    const down = this.keys.S.isDown || this.keys.DOWN.isDown, up = this.keys.W.isDown || this.keys.UP.isDown;
+    if (this.onFoot) {
+      // WASD walks the engineer (a sim command; walk.ts moves them with collision); the camera follows
+      this.sendWalk((right ? 1 : 0) - (left ? 1 : 0), (down ? 1 : 0) - (up ? 1 : 0));
+      const e = this.st.engineer, gx = e.x * TILE_PX - cam.width / 2, gy = e.y * TILE_PX - cam.height / 2;
+      if (!this.snapped) { cam.setScroll(gx, gy); this.snapped = true; }
+      else { const k = Math.min(1, FOLLOW_PER_S * dt); cam.setScroll(cam.scrollX + (gx - cam.scrollX) * k, cam.scrollY + (gy - cam.scrollY) * k); }
+    } else {
+      const pan = PAN_PX_PER_S * dt / cam.zoom;
+      if (left) cam.scrollX -= pan;
+      if (right) cam.scrollX += pan;
+      if (up) cam.scrollY -= pan;
+      if (down) cam.scrollY += pan;
+    }
+    const t0 = performance.now();
     this.draw();
+    const ms = performance.now() - t0;
+    this.drawMs += (ms - this.drawMs) * 0.05; if (ms > this.drawWorstMs) this.drawWorstMs = ms;
   }
 
   private draw(): void {
-    const st = this.st, cam = this.cameras.main;
+    const st = this.st, cam = this.cameras.main, G = ground(st);
     const tl = this.worldAt(0, 0), br = this.worldAt(cam.width, cam.height);
     const tx0 = Math.max(0, Math.floor(tl.x / TILE_PX)), ty0 = Math.max(0, Math.floor(tl.y / TILE_PX));
-    const tx1 = Math.min(st.w * CELL_TILES - 1, Math.ceil(br.x / TILE_PX)), ty1 = Math.min(st.h * CELL_TILES - 1, Math.ceil(br.y / TILE_PX));
+    const tx1 = Math.min(G.tw - 1, Math.ceil(br.x / TILE_PX)), ty1 = Math.min(G.th - 1, Math.ceil(br.y / TILE_PX));
     let n = 0;
-    for (let ty = ty0; ty <= ty1; ty++) {
-      const cy = Math.floor(ty / CELL_TILES), ly = ty - cy * CELL_TILES;
-      for (let tx = tx0; tx <= tx1; tx++) {
-        const cx = Math.floor(tx / CELL_TILES), lx = tx - cx * CELL_TILES;
-        const c = this.cell(cx, cy);
-        const frame = this.frameOf(c, ly * CELL_TILES + lx);
+    const cx0 = tx0 >> 5, cy0 = ty0 >> 5, cx1 = tx1 >> 5, cy1 = ty1 >> 5;
+    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+      const frames = this.chunk(cx, cy);
+      const ax = Math.max(tx0, cx * CHUNK), ay = Math.max(ty0, cy * CHUNK), bx = Math.min(tx1, cx * CHUNK + CHUNK - 1), by = Math.min(ty1, cy * CHUNK + CHUNK - 1);
+      for (let ty = ay; ty <= by; ty++) for (let tx = ax; tx <= bx; tx++) {
+        const frame = frames[(ty - cy * CHUNK) * CHUNK + (tx - cx * CHUNK)];
         let bob = this.bobs[n];
         if (!bob) { bob = this.blitter.create(tx * TILE_PX, ty * TILE_PX, frame); this.bobs.push(bob); }
         else { bob.setPosition(tx * TILE_PX, ty * TILE_PX); bob.setFrame(frame); bob.setVisible(true); }
@@ -330,50 +428,95 @@ export class WorldScene extends Phaser.Scene {
     for (let k = n; k < this.bobs.length; k++) if (this.bobs[k].visible) this.bobs[k].setVisible(false);
     this.drawn = n;
 
-    this.drawMachines(tx0, ty0, tx1, ty1);
+    // the blocks with tiles in view (their bounding boxes meet the window)
+    const vis: number[] = [];
+    for (let i = 0; i < G.blocks.length; i++) { const b = G.blocks[i]; if (b.tiles.length && b.x1 >= tx0 && b.x0 <= tx1 && b.y1 >= ty0 && b.y0 <= ty1) vis.push(i); }
+
+    this.drawMachines(tx0, ty0, tx1, ty1, vis);
 
     // GAME-ASSUMPTION: a flat block-state overlay on each lot (Dark navy, Contested amber, Held outline) stands in for
-    // rot presence (M4) and the light texture (M5); it is the block map's word on the lot, drawn, not simulated
+    // rot presence (M4) and the light texture (M5); it is the block map's word on the lot, drawn, not simulated.
+    // M1: lots are faces, so the tint runs along each row of the lot's tiles and the Held rim follows its boundary.
     const g = this.gOver;
     g.clear();
-    const cx0 = Math.floor(tx0 / CELL_TILES), cy0 = Math.floor(ty0 / CELL_TILES), cx1 = Math.floor(tx1 / CELL_TILES), cy1 = Math.floor(ty1 / CELL_TILES);
     const flicker = Math.sin(performance.now() / 45) > 0 ? 0.3 : 0.15;
-    let li = 0;
-    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
-      const i = idxOf(st, cx, cy), b = st.blocks[i];
-      const px = cx * CELL_PX + 4 * TILE_PX, py = cy * CELL_PX + 4 * TILE_PX, lot = 24 * TILE_PX;
-      if (cy !== st.h - 1) {
-        if (b.state === DARK) { g.fillStyle(0x0b1030, 0.45); g.fillRect(px, py, lot, lot); }
-        else if (b.state === CONTESTED) { g.fillStyle(0xd99a2b, flicker); g.fillRect(px, py, lot, lot); }
-        else if (b.state === HELD) {
-          g.lineStyle(4 / cam.zoom, isInterior(st, i) ? 0xffffff : 0xe8a93a, 0.6); g.strokeRect(px, py, lot, lot);
+    const cls = new Uint8Array(st.blocks.length);   // 1 Dark, 2 Contested, 3 Held front, 4 Held interior
+    for (const i of vis) { const s = st.blocks[i].state; cls[i] = s === DARK ? 1 : s === CONTESTED ? 2 : s === HELD ? (isInterior(st, i) ? 4 : 3) : 0; }
+    const own = G.owner, tw = G.tw;
+    for (let ty = ty0; ty <= ty1; ty++) {
+      let run = -1, runX = 0;
+      for (let tx = tx0; tx <= tx1 + 1; tx++) {
+        const o = tx <= tx1 ? own[ty * tw + tx] : -1, c = o >= 0 ? cls[o] : 0, key = c === 1 || c === 2 ? o : -1;
+        if (key !== run) {
+          if (run >= 0) { const rc = cls[run]; if (rc === 1) g.fillStyle(0x0b1030, 0.45); else g.fillStyle(0xd99a2b, flicker); g.fillRect(runX * TILE_PX, ty * TILE_PX, (tx - runX) * TILE_PX, TILE_PX); }
+          run = key; runX = tx;
         }
       }
-      // faint cell grid on the street centre lines
-      g.lineStyle(1 / cam.zoom, 0xffffff, 0.07);
-      g.strokeRect(cx * CELL_PX, cy * CELL_PX, CELL_PX, CELL_PX);
-      // one label per visible cell, kept small on screen
+    }
+    // Held rims: the lot's boundary edges, white for interior, amber for the front
+    for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+      const o = own[ty * tw + tx];
+      if (o < 0 || cls[o] < 3) continue;
+      const px = tx * TILE_PX, py = ty * TILE_PX;
+      g.lineStyle(4 / cam.zoom, cls[o] === 4 ? 0xffffff : 0xe8a93a, 0.6);
+      if (ty === 0 || own[(ty - 1) * tw + tx] !== o) g.lineBetween(px, py, px + TILE_PX, py);
+      if (ty === G.th - 1 || own[(ty + 1) * tw + tx] !== o) g.lineBetween(px, py + TILE_PX, px + TILE_PX, py + TILE_PX);
+      if (tx === 0 || own[ty * tw + tx - 1] !== o) g.lineBetween(px, py, px, py + TILE_PX);
+      if (tx === tw - 1 || own[ty * tw + tx + 1] !== o) g.lineBetween(px + TILE_PX, py, px + TILE_PX, py + TILE_PX);
+    }
+    // one label per block whose pole tile is in view, kept small on screen
+    let li = 0;
+    for (const i of vis) {
+      const p = G.blocks[i].pole;
+      if (p[0] < tx0 || p[0] > tx1 || p[1] < ty0 || p[1] > ty1) continue;
       let t = this.labels[li];
       if (!t) { t = this.add.text(0, 0, '', { fontSize: '12px', color: '#c7cfe0', backgroundColor: '#0b0e1aaa', padding: { x: 4, y: 2 } }).setDepth(5); this.labels.push(t); }
-      t.setText(this.blockLine(cx, cy)).setPosition(cx * CELL_PX + 4 * TILE_PX + 6, cy * CELL_PX + 4 * TILE_PX + 6).setScale(1 / cam.zoom).setVisible(true);
+      t.setText(this.blockLine(i)).setPosition(p[0] * TILE_PX + 6, p[1] * TILE_PX + 6).setScale(1 / cam.zoom).setVisible(true);
       li++;
     }
     for (let k = li; k < this.labels.length; k++) this.labels[k].setVisible(false);
     if (!st.flow) {
-      // GAME-ASSUMPTION: without the flow layer (?flow=0) the HQ is a 6×6-tile slab at the start lot's centre
-      const [sx, sy] = st.start;
-      g.fillStyle(0x0b0e1a, 0.85); g.fillRect(sx * CELL_PX + 13 * TILE_PX, sy * CELL_PX + 13 * TILE_PX, 6 * TILE_PX, 6 * TILE_PX);
-      g.lineStyle(2 / cam.zoom, 0xffffff, 0.8); g.strokeRect(sx * CELL_PX + 13 * TILE_PX, sy * CELL_PX + 13 * TILE_PX, 6 * TILE_PX, 6 * TILE_PX);
+      // GAME-ASSUMPTION: without the flow layer (?flow=0) the HQ is a 6×6-tile slab where the Depot would be
+      const d = depotRect(st);
+      g.fillStyle(0x0b0e1a, 0.85); g.fillRect(d.x * TILE_PX, d.y * TILE_PX, d.size * TILE_PX, d.size * TILE_PX);
+      g.lineStyle(2 / cam.zoom, 0xffffff, 0.8); g.strokeRect(d.x * TILE_PX, d.y * TILE_PX, d.size * TILE_PX, d.size * TILE_PX);
     }
     this.drawGhost(g);
+    this.drawEngineer();
 
     // HUD: scrollFactor 0 still zooms about the camera centre, so pin it to the top-left at screen scale
-    const f = this.focusBlock();
+    const f = this.focusBlock(), fi = idxOf(st, f[0], f[1]);
     this.hudText.setScale(1 / cam.zoom).setPosition(cam.width / 2 + (8 - cam.width / 2) / cam.zoom, cam.height / 2 + (8 - cam.height / 2) / cam.zoom);
+    const e = st.engineer;
+    const pockets = this.onFoot ? ` · pockets ${invStacks(e.inv)}/${INV_STACKS} stacks${e.inv.kit ? ` · ${e.inv.kit} kit${e.inv.kit === 1 ? '' : 's'}` : ''} · HP ${Math.round(e.hp)}` : '';
     const toolLine = st.flow
-      ? `\nTool: ${this.tool === 'hand' ? 'hand (hold on rubble to mine it; click a turret or Generator to feed it; drag to pan)' : `${this.tool} → ${DIR_NAMES[this.dir]}`}${this.ghostReason ? ` · ${this.ghostReason}` : ''}\nX Excavator · B belt · I inserter · M assembler · T turret · L lamp · P pole · G Generator · R rotate · Q hand · C craft a magazine · right-click removes${this.powerLine()}`
+      ? `\nTool: ${this.tool === 'hand' ? 'hand (hold on rubble to mine it; click a turret or Generator to feed it; click the ground to walk)' : `${this.tool} → ${DIR_NAMES[this.dir]}`}${this.ghostReason ? ` · ${this.ghostReason}` : ''}\n${TOOL_KEY_LINE}${this.powerLine()}`
       : '';
-    this.hudText.setText(`World view · ${this.blockLine(f[0], f[1])} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles\nE map view · drag / WASD pan · wheel zoom (${ZOOM_MIN}–${ZOOM_MAX}×) · space pause · 1 2 3 speed${toolLine}`);
+    const moveLine = this.onFoot ? 'M map view · WASD / click walk · I pockets · wheel zoom' : 'M map view · drag / WASD pan · wheel zoom';
+    this.hudText.setText(`World view · ${fi >= 0 ? this.blockLine(fi) : ''} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles${pockets}\n${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · space pause · 1 2 3 speed${toolLine}`);
+  }
+
+  /** D5 on foot: the engineer (a disc, red while down), their path, and the reach ring — faint, brighter while the
+   *  cursor is inside it. GAME-ASSUMPTION: a code-drawn disc stands in for the engineer sprite until the art pass. */
+  private drawEngineer(): void {
+    const g = this.gEng, st = this.st;
+    g.clear();
+    if (!this.onFoot) return;
+    const e = st.engineer, zoom = this.cameras.main.zoom, ex = e.x * TILE_PX, ey = e.y * TILE_PX;
+    const path = currentPath(st);
+    if (path) {
+      g.lineStyle(2 / zoom, 0xffffff, 0.25);
+      let lx = ex, ly = ey;
+      const G = ground(st);
+      for (let k = path.at; k < path.path.length; k++) { const t = path.path[k], tx = t % G.tw, ty = (t - tx) / G.tw, px = (tx + 0.5) * TILE_PX, py = (ty + 0.5) * TILE_PX; g.lineBetween(lx, ly, px, py); lx = px; ly = py; }
+    }
+    const h = this.hoverTile, inside = !!h && inReach(st, h.tx, h.ty, 1);
+    g.lineStyle(2 / zoom, 0xffffff, inside ? 0.35 : 0.1); g.strokeCircle(ex, ey, REACH * TILE_PX);
+    if (e.down >= 0) { g.fillStyle(0xe05a5a, 0.9); g.fillCircle(ex, ey, 11); return; }
+    g.fillStyle(0x0b0e1a, 0.6); g.fillCircle(ex + 2, ey + 3, 11);
+    g.fillStyle(0xf5f0e0, 1); g.fillCircle(ex, ey, 10);
+    g.fillStyle(0xe8a93a, 1); g.fillCircle(ex, ey - 2, 5);
+    if (e.hp < 100) { g.fillStyle(0x1a1d26, 1); g.fillRect(ex - 12, ey + 13, 24, 4); g.fillStyle(0x6fe08a, 1); g.fillRect(ex - 12, ey + 13, 24 * e.hp / 100, 4); }
   }
 
   private ghostReason = '';
@@ -396,9 +539,10 @@ export class WorldScene extends Phaser.Scene {
     if (!st.flow || !h || this.tool === 'hand') return;
     const kind = this.tool as Kind, size = MACHINE_SIZE[kind];
     const [ox, oy] = this.footprint(kind, h.tx, h.ty);
+    const far = this.onFoot && !inReach(st, ox, oy, size);
     const c = canPlace(st, kind, ox, oy);
-    this.ghostReason = c.ok ? `${c.cost.steel} steel${c.cost.copper ? ` + ${c.cost.copper} Cu` : ''}` : c.reason;
-    const col = c.ok ? 0x6fe08a : 0xe05a5a;
+    this.ghostReason = far ? 'walk closer' : c.ok ? `${c.cost.steel} steel${c.cost.copper ? ` + ${c.cost.copper} Cu` : ''}` : c.reason;
+    const col = c.ok && !far ? 0x6fe08a : 0xe05a5a;
     g.fillStyle(col, 0.25); g.fillRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
     g.lineStyle(2 / this.cameras.main.zoom, col, 0.9); g.strokeRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
     if (kind === 'pole') { g.lineStyle(1 / this.cameras.main.zoom, col, 0.6); g.strokeCircle((ox + 0.5) * TILE_PX, (oy + 0.5) * TILE_PX, POLE_REACH * TILE_PX); }
@@ -416,19 +560,18 @@ export class WorldScene extends Phaser.Scene {
   /** Machines from `state.flow`, drawn every frame for the tiles in view: belts with their items, inserters with
    *  their arm, Excavators and assemblers with progress, the Depot. GAME-ASSUMPTION: flat code-drawn shapes stand
    *  in for machine sprites until the art pass; sizes and facings are the flow layer's. */
-  private drawMachines(tx0: number, ty0: number, tx1: number, ty1: number): void {
+  private drawMachines(tx0: number, ty0: number, tx1: number, ty1: number, vis: readonly number[]): void {
     const st = this.st, g = this.gMach, f = st.flow;
     g.clear();
     this.depotText.setVisible(false);
     if (!f) return;
     const zoom = this.cameras.main.zoom;
     const now = performance.now(), blink = Math.floor(now / 260) % 2 === 0;
-    // M3 light pass under the machines: streetlights and Lamps as warm discs (§13's radius), then each cell's
+    // M3 light pass under the machines: streetlights and Lamps as warm discs (§13's radius), then each block's
     // substation slab, then the pole wires
     const lit = new Set<number>();
-    const cx0 = Math.floor(tx0 / CELL_TILES), cy0 = Math.floor(ty0 / CELL_TILES), cx1 = Math.floor(tx1 / CELL_TILES), cy1 = Math.floor(ty1 / CELL_TILES);
-    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
-      for (const l of cellLights(st, cx, cy)) {
+    for (const bi of vis) {
+      for (const l of blockLights(st, bi)) {
         const lx = (l.tx + 0.5) * TILE_PX, ly = (l.ty + 0.5) * TILE_PX;
         if (l.lit) { g.fillStyle(LIGHT_COL, 0.11); g.fillCircle(lx, ly, l.r * TILE_PX); }
         if (l.kind === 'lamp') { if (l.lit) lit.add(l.tx * 4096 + l.ty); continue; }
@@ -436,11 +579,11 @@ export class WorldScene extends Phaser.Scene {
         g.fillStyle(l.broken ? 0x2a2d36 : l.lit ? 0xfff3b0 : 0x8a8f9a, 1); g.fillCircle(lx, ly, 4);
         if (l.broken) { g.lineStyle(1.5, 0xe05a5a, 0.8); g.lineBetween(lx - 4, ly - 4, lx + 4, ly + 4); g.lineBetween(lx - 4, ly + 4, lx + 4, ly - 4); }
       }
-      const sub = substationAt(st, cx, cy);
+      const b = st.blocks[bi], sub = substationAt(st, b.x, b.y);
       if (sub) {
-        const sx = sub.tx * TILE_PX, sy = sub.ty * TILE_PX, ss = SUBSTATION_TILES * TILE_PX;
+        const sx = sub.tx * TILE_PX, sy = sub.ty * TILE_PX, ss = sub.size * TILE_PX;
         g.fillStyle(0x2b2f3a, 0.95); g.fillRect(sx + 2, sy + 2, ss - 4, ss - 4);
-        g.lineStyle(2, 0x4a5060, 1); for (let k = 0; k < 3; k++) g.strokeCircle(sx + ss / 2, sy + 22 + k * 22, 9);
+        if (sub.size >= 3) { g.lineStyle(2, 0x4a5060, 1); for (let k = 0; k < 3; k++) g.strokeCircle(sx + ss / 2, sy + 22 + k * 22, 9); }
         g.lineStyle(3 / zoom, sub.on ? 0xb6e36a : sub.kw === 0 ? 0x3a4060 : 0xe05a5a, sub.on ? 0.9 : 0.8); g.strokeRect(sx + 1, sy + 1, ss - 2, ss - 2);
         if (sub.on) { g.fillStyle(0xb6e36a, 0.6 + 0.4 * Math.sin(now / 300)); g.fillCircle(sx + ss - 10, sy + 10, 4); }
       }

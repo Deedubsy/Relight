@@ -1,12 +1,10 @@
-# Relight — Phase 4 slice report (§11, minutes 0–60)
+# Relight — Phase 4 slice report (prompt B, §11 minutes 0–60)
 
-Living document: one section per milestone, appended as each is built. Gate B is the last line of this file.
+Living document, rewritten from the top at each prompt B milestone (D5/D6 rework, 2026-09-04): the current milestones first, the §19 first-hour test at the top, Gate B before the appendix. The lattice slice's M1–M3 (2026-09-03) stay at the end as the record of what was built and measured before the rework; Gate B is not scored on them.
 
-## §19 first-hour test (human play) — not scored on this slice
+## §19 first-hour test (human play) — not scored yet
 
-**Rework note (2026-09-04):** D5 (the engineer on foot) and D6 (the street-first city) invalidate M1–M3 below as a test of the game being made: Gate B is not scored here. The slice is rebuilt from `docs/relight-prompt-B-vertical-slice.md` and this file is rewritten from the top when that starts (`REWORK_REPORT.md`). M1–M3 stay as the record of what the lattice slice built and measured.
-
-Scored by a human after M6, from a played hour. Nothing here is filled in by the bot.
+Scored by a human after prompt B M6, from a played hour. Nothing here is filled in by the bot.
 
 | Window | New unlock | Current problem | Memorable moment |
 |---|---|---|---|
@@ -16,7 +14,102 @@ Scored by a human after M6, from a played hour. Nothing here is filled in by the
 
 Did the burn-off make you say something? —
 
-## M1 Ground — built 2026-09-03
+## Prompt B M1 Ground and the engineer — built 2026-09-04
+
+### Built
+
+- **Tiles on faces** (`packages/sim/src/ground.ts`, run name `B-M1-ground`, tests in `tiles.test.ts`): the tile layer is a pure derivation of the city's `CityGeom`: a lot is a rasterised face (`owner`), streets are the 6–12-wide ridges between faces, the river is water, plazas and parks are inert faces. 800×800 tiles in 32×32 chunks (625 a city), a per-block key (`blockKey`: state, pool, dug count) and a per-chunk key (`chunkKey`) so the renderer redraws only what changed. Rubble typed by district in three clusters inside the polygon, 250–350 tiles scaled by area, densest on the deepest faces (hops from the HQ, `city/spec.ts`); outskirt deposits kept. Each lot has its pre-existing substation (3×3, a 1×1 stand-in on a face too thin for one — none on seeds 3/4/5) and streetlights on the street tiles that border it, one every ≥ 3 tiles, 3 in 8 broken. `walkable`, `blockOfTile`, `hqLot`, `blocksNear`, `inReach`, `describeGround` are the queries the game and the walk use. The lattice tile layer (`tiles.ts`) is still the source of the HQ lot layout (patches, Depot, turrets, Generator) and is reused for `?map=lattice`.
+- **The engineer on the tiles** (`packages/sim/src/walk.ts`, run name `B-M1-walk`, six tests in `walk.test.ts`): a tile-level A* (`findPath`, 4-connected, limit 250k nodes) over `passable` (any walkable tile, dark blocks and rot included, never water; belts and poles are walked through, other machines never), `tickEngineerTiles` at 6 tiles/s with the block sim's `engineer.block` kept in step so the D5 block-level rules (kits on arrival, restock at the HQ, the rifle) fire unchanged. `walkTo(block)` from the map walks to the block's pole; `move(x, y)` from the world walks to a tile; a redirected walk restarts from where the engineer stands. The start is the HQ lot's workbench (`workbenchTile`).
+- **Pockets and the chest** (`engineer.ts` stack sizes, `flow.ts` `chestTake` / `chestPut` / `chestCount` / `nearDepot`, `panel.ts`): 40 stacks (rubble 50 a stack, magazines 20, machines and kits one), the Depot is the 6×6 chest and workbench. Hand-mining within reach 8 puts units in the pockets (the lattice M2 sent them to the Depot); taking from and putting into the chest needs the engineer within reach of the Depot's edge, refused with a toast beyond it. The chest starts with §11's 200 steel, 100 copper, 50 stone and 20 magazines. Kits are taken from the chest by hand, one a claim; a claim made with none in the pockets toasts that its edges wait.
+- **World view on foot** (`worldScene.ts`, `main.ts`, `cityMapScene.ts`, `view.ts`): a chunked Blitter over the ground (only chunks whose key changed are re-blitted), the engineer sprite with a reach ring (radius 8) and a walk-path line, WASD and click-to-walk, the camera following from minute 0 (free camera only under `?flow=0`), wheel zoom 0.5–3× about the engineer; a tool that needs reach (dig, place, remove, rotate, hand-feed, craft at the workbench) refuses out of reach with "walk closer". **M** toggles map ↔ world: the map opens with the engineer's block marked and a throbbing ring while a walk is under way; a click on a block claims it if it can be claimed and walks the engineer to its pole either way; back to the world lands on the engineer. **I** opens the pockets panel (take n / put all per chest item, disabled beyond reach). **E** does nothing. `?walk=1` is gone (walking is the only way to move); the three rework stubs (walk under a flag, the city stub in `toggleView`, the engineer dot only under `config.walk`) are gone.
+- **The harness bot keeps walking** (`bots.ts` `walkingBot`) at block level; the game drives the same `walkTo`. `__relight` gains `walkTo(x, y)`, `engineer()`, `ground()`, `describe(tx, ty)`, `chest.{count, take, put}`, `togglePockets()`, `world.drawMs()`.
+- **Two sim fixes found by the first city soak** (both in the block sim, both tagged, both surfaced by the test `defence.test.ts` "city HQ (prompt B M1)"): (1) `flow.ts` `hookSyncEdges` made every HQ edge a turret edge, as the lattice M3 could (its three streets each had a start pair); a city HQ has 4–7 segments and the six start turrets cover three of seed 3's, so the fourth had `turrets = 0`, a hopper the ring never filled and `empty` from tick one — the HQ was lost at sim minute 20 with the §11 line making magazines beside it. An edge with no physical turret now keeps the block-level stand-in hopper, ring-fed from the buffer. (2) `sim.ts` `rebuildRing` gave the HQ's own edges `kit = false` at t = 0 with `walk` on (firing budget 0) — the harness bot restocks and lays four kits on the HQ in its first second, which hid it; a human with no bot fired nothing until they took kits from the chest. The HQ's edges start kitted (the start turrets are the kit); every later edge still waits for a kit the engineer carries. Fix (2) moves the D6 regression fixtures `city4.json` and `city5.json` (a rules change under constitution rule 1, `_exportCity.ts` header): seed 4's compact-walk five hours go held 50 → 52, front 19 → 21, lost 2 → 0, retakes 2 → 0, total magazines 7,835.8 → 7,859.3, shells 1,690 → 1,490; seed 5 moves only its walking minutes (6.5 / 3.92 / 1.97 / 1.75 → 6.53 / 4.1 / 1.98 / 1.62 an hour); seed 3 and the snapshot `5f3417b9` do not move. `E-walk`'s hour-3 walking minutes drop (2.2 min mean, check 0–10), `E-variance` and the calibration (`calibration.md`, config `5eae8618`, re-run) are unchanged.
+- **Checks:** `npm test` 95/95 (one added: `defence.test.ts` city HQ), typecheck (with the game build), lint, `snapshot:check` (config `5f3417b9`, unchanged: the block sim's numbers do not move), `docsync:check`, `experiments` — all green (see Measured).
+
+### Assumed (every `GAME-ASSUMPTION` added or moved by M1; the rework's and the lattice slice's stay listed in `REWORK_REPORT.md` §3 and the appendix)
+
+| # | Where | Assumption | Resolves at |
+|---|---|---|---|
+| GA-B1-1 | `ground.ts:31` | A face too thin for a 3×3 substation gets a 1×1 stand-in on its pole tile (none on seeds 3/4/5). | M5 Light (D-B1-4) |
+| GA-B1-2 | `ground.ts:192` | A face's streetlights stand on the street tiles that border it, one every ≥ 3 tiles round the boundary in tile order, 3 in 8 broken as on the lattice. | M5 Light (D-B1-4) |
+| GA-B1-3 | `walk.ts:16` | The engineer walks through belts and poles (thin), never through other machines or water. | D-B1-2 (M6 tedium audit) |
+| GA-B1-4 | `engineer.ts:22` | Stack sizes: rubble and coal 50, magazines 20, machines and kits one each. | Phase 5 (items as typed ore) |
+| GA-B1-5 | `engineer.ts:81` | Kits are free to draw from the chest; the claim paid for them (10 wire, 5 frames). | M6 (D-B1-3) |
+| GA-B1-6 | `engineer.ts:99` | A block-level redirected walk restarts from its old destination's distance; on the tiles it restarts from where the engineer stands. | Phase 11 (A* vs graph distance) |
+| GA-B1-7 | `flow.ts:149` | The game's chest starts with §11's 200 steel / 100 copper / 50 stone / 20 magazines; the harness keeps the calibrated 80/40/0 so `5f3417b9` stands. | D-B1-1 (M6, with D-P4-4) |
+| GA-B1-8 | `flow.ts:513` | Hand-crafting still draws the chest and delivers to it; the scene asks for reach of the workbench. §14 has it from the pockets. | M2 Flow |
+| GA-B1-9 | `panel.ts:80` | A human is not auto-restocked the way the bot is: kits are taken from the chest by hand, one a claim; a claim with none in the pockets toasts that its edges wait. | M6 (D-B1-3) |
+| GA-B1-10 | `worldScene.ts:48` | Inserter on **N** and assembler on **F**; **I** is the pockets and **M** the map since D5. | D-B1-5 (Phase 12) |
+| GA-B1-11 | `worldScene.ts:479` | Under `?flow=0` (no flow layer) the HQ is a 6×6 slab and the camera is free. | Delete at the Phase 5 gate |
+| GA-B1-12 | `worldScene.ts:500` | A code-drawn disc with a reach ring stands in for the engineer sprite. | Phase 12 art pass |
+| GA-B1-13 | `session.ts:105` | The flow layer (and so the tiles and the engineer) is on for every session unless `?flow=0`. | Delete at the Phase 5 gate |
+| GA-B1-14 | `flow.ts:792` | An edge with physical turrets fires only through them; an edge with none keeps the block-level stand-in hopper, ring-fed. A city HQ's segment the six start turrets do not cover keeps the stand-in. | M3 Defence (start turrets on segments, D-P4-8) |
+| GA-B1-15 | `sim.ts:464` | §11's HQ ring is built at minute 0, so with `walk` on the HQ's own edges start kitted at t = 0; every later edge waits for a carried kit. | M6 (D-B1-3) |
+
+### Deferred
+
+Re-read in `DEFERRED.md` ("Re-read at prompt B M1"): the lattice tile layer stays as the HQ layout's source and `?map=lattice` → delete at the Phase 5 gate; the engineer sprite and tileset art → Phase 12; hand-crafting from the pockets at the workbench → M2; kits by hand and the walk-back tedium → M6; the truck as a driveable vehicle → Phase 5 (the Tram depot is a 20 s walk on seed 3); the walk path outside `SimState` (derived each tick from the block sim's position) → Phase 12; fixed "take n" buttons → Phase 12; A* tile distance vs the block sim's graph distance for the D5 walk time → Phase 11.
+
+### Measured
+
+- **Ground derivation** (`ground(st)` per city, cold, tileset built once; cached re-derivation against unchanged keys 0 ms):
+
+  | Seed | Blocks | Cold ms | Street tiles | Lot tiles | River | Rubble tiles | Substations (1×1) | Streetlights (broken) | Chunks |
+  |---|---|---|---|---|---|---|---|---|---|
+  | 3 | 382 | 68–115 | 238,690 | 310,782 | 90,528 | 91,255 | 347 (0) | 13,024 (4,778) | 625 |
+  | 4 | 373 | 63–98 | 240,847 | 307,221 | 91,932 | 92,897 | 337 (0) | 12,864 (4,780) | 625 |
+  | 5 | 349 | 42–117 | 229,796 | 299,372 | 110,832 | 88,868 | 315 (0) | 12,172 (4,683) | 625 |
+
+  Cold ms is the range over three runs each on this host (WSL2, `/mnt/e`); the lattice's 576 cells took 51–66 ms. ≈ 90k rubble tiles a city against the lattice's ≈ 102k (fewer, larger faces; the count scales with area).
+- **Walk check (headless Chromium, 1×, `walk.cjs`):** HQ → Tram depot (seed 3, 3 hops) 20 s sim walked in 24 s real, back 20 s, engineer at the depot's pole on arrival, no page errors, no frame over 50 ms on either leg.
+- **1 h at 4× soak** (seed 3, `?view=world`, camera following the bot-driven engineer, the §11 line placed through the hooks at minute 0 so the HQ holds — without it the start 200 rounds run out at sim minute 16 as the lattice M3 record says — `soak.cjs`, 1280×800):
+
+  | Real | Sim | Frames | fps | Worst frame | Frames > 50 ms | At sim 1 h | At sim 1:30 | Magazines made | Hand-fed | Brownout |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | 901.6 s | 1:30:05 | 39,378 | 43.7 mean, 35–57 by minute | 48.3 ms | 0 | held 4 (HQ + 3 claims), lost 0 | held 3, lost 1 at 1:29:42 | 572 (all delivered; capped by `bufferCap` 4000 from sim minute 36) | 839 | 265 s |
+
+  The fixed build holds the hour (`soak900d.log`): the HQ's four segments are fed from tick one, the buffer is full from minute 36 and the bot claims three neighbours by minute 45, restocking kits at the HQ between claims. The one loss, at 1:29:42, comes after the DoD's hour with the chest's coal at 0 and both Generators dark (the brownout seconds are 5 at minute 36, 125 at minute 48, 265 at the end); the coal supply is prompt B M3's. The summary's first amber/red read 0:00:00: the stand-in segment's hopper is 0 until the first ring tick fills it (not chased, M3). `configHash` `b6060069` (the game's §11 chest, not the harness's).
+
+  **What the soak found.** The first clean 900 s run (pre-fix build, `soak900c.log`) went 901.6 s real / sim 1:30:05, 30,393 frames, 33.7 fps, worst 65 ms, 65 frames over 50 ms in three bursts (real 180–220 s, 400–410 s, 780 s) with draw ≤ 3.7 ms and sim ≤ 0.09 ms a tick inside them — the renderer or the host, not M1's code — and lost the HQ between sim minutes 19 and 21 with the line making 305 magazines (first loss 0:17:04 was the claimed block). A node trace of the same setup showed the HQ's four segments as one with no turret, hopper 0, `empty` from tick one, and three with 3 / 2 / 1 turrets, the buffer always 0 and 170 magazines hand-fed: the two sim fixes above. After them the same trace holds the hour (held 4, lost 0, buffer 1,610 at 10 min → 3,993 at 30 min, 572 magazines made then capped by `bufferCap` 4000).
+
+- **Frame-rate attribution** (`prof.cjs`, CDP profiler, 10 s at 4×): 91.7 % of samples in `(program)` — the headless swiftshader renderer — JS ≈ 1.6 ms a frame, draw EMA 0.1–0.27 ms, sim 0.14–0.23 ms a tick. Identical code ran at 27–57 fps across runs today; the map view and `?flow=0` (neither touched by M1) ran under 60 fps on the same host. The DoD's 60 fps is not met in this environment and the number is reported as measured; the M3 record's 60 fps flat (2026-09-03, same machine) is the baseline the next soak on a GPU host has to match. Nothing over 50 ms except the screenshot frame.
+
+### Where M1 and the doc disagree (reported, not resolved)
+
+- **§11's chest vs the calibration's start stock** (GA-B1-7): two starts. Decision D-B1-1.
+- **§14 "walks through nothing built"** was not a doc rule: belts and poles are passable in the sim and §14 now says so (`B-M1-walk` changelog). Decision D-B1-2.
+- **§14 kits from the pockets** are free of charge in the sim (the claim paid); the doc names wire and frames without a recipe. Decision D-B1-3.
+- **§5/§14 substations and streetlights** are placed by the face geometry, not the doc's per-lot rule from the lattice (GA-B1-1/2). Decision D-B1-4.
+- **§4's key bindings** (I inserter, M map on the lattice) moved. Decision D-B1-5.
+- **§25's C1/C2 after D-R2** still read MISSED in `calibration.md` (first amber on a kitted edge at the claim minute, 16–31 min, although §25's D-R2 line has an edge kitted this second filled this second; first enclosure 45–60 min). Not chased in M1, not moved by its fixes. Reported for Gate B (D-R2 reopenable); M3 decides the claim's first fill.
+
+### Three decisions (rows in `DECISIONS.md`, D-B1-1 … D-B1-5; the three that matter)
+
+1. **D-B1-1 — the chest's start stock.** Keep both starts (game §11's 200/100/50/20, harness 80/40/0) until D-P4-4 at M6 re-calibrates with the line in the loop. Recommended (a).
+2. **D-B1-2 — passable belts and poles.** Keep; M6's tedium audit measures the walk-around cost if they were solid. Recommended (a).
+3. **D-B1-3 — kits by hand.** Keep kits free and taken by hand one a claim; M6 counts the HQ walk-backs per hour. Recommended (a).
+
+## Prompt B M2 Flow on the faces — not built
+
+## Prompt B M3 Defence — not built
+
+## Prompt B M4 Threat — not built
+
+## Prompt B M5 Light — not built
+
+## Prompt B M6 The hour — not built
+
+## Gate B
+
+verdict:
+
+---
+
+# Appendix — the lattice slice (superseded by the D5/D6 rework, 2026-09-04)
+
+Not scored at Gate B. Kept as the record of what the lattice slice built and measured; its GAME-ASSUMPTIONs that survive the rework are still in the code and listed in `REWORK_REPORT.md` §3.
+
+## Lattice M1 Ground — built 2026-09-03
 
 ### Built
 
@@ -72,7 +165,7 @@ Excavators and footprints → M2; slot count as lot geometry → M2 / Phase 5; t
 - Rubble units: §12 says 300 units per tile; the sim's calibrated pool is 3,840 per block, which would be 11–15 units per tile. **D-P4-2.**
 - Deposits: §7/§12 name placed mines and seams on the outskirts; M1 hashes a patch onto a quarter of outskirt cells. **D-P4-3.**
 
-## M2 Flow — built 2026-09-03
+## Lattice M2 Flow — built 2026-09-03
 
 ### Built
 
@@ -137,7 +230,7 @@ Turret hoppers as inserter and belt targets → M3; power draw on machines → M
 - Start stock: §11 says 200 steel, 100 copper, 50 stone; the calibrated sim starts at 80 steel / 40 Cu / 0 stone (`PROTO_CALIBRATED`, Gate A). At M2's costs a §11 line is 81 steel + 23 Cu, so the player hand-mines for a second or belts the first Excavator's steel to the Depot before the last piece goes down. §13 prices no machine. **D-P4-4.**
 - Two stand-ins for one thing: the flow layer makes hour one's magazines on the HQ lot, while claimed interior blocks still get the block-level "Build assembler" at 20/min with no footprint. **D-P4-5.**
 
-## M3 Defence — built 2026-09-03
+## Lattice M3 Defence — built 2026-09-03
 
 ### Built
 
@@ -212,13 +305,3 @@ Enemies as things on tiles, turret range 9 as geometry, the hulk and the Barrica
 - **Hour-one power:** §11's opening line draws 420 kW against one 300 kW Generator from the first tick (the doc's "browns out at minute 8" came from the block model's ramp), and the second Generator §11 places at minute 6 is the fix; at the sim's 80 / 40 start the line plus that Generator (156 steel) is out of reach. **D-P4-7**, with D-P4-4.
 - **Turrets everywhere or on the HQ:** the doc's ring is physical turrets on every front edge; M3 builds them on the HQ lot and keeps the block-level 100-round hopper elsewhere, as M2 kept the block-level assembler. **D-P4-9.**
 - **The shed order's Generator feed:** §14 names "Excavators feeding Generators last"; the inserter on that line has to shed with them or the Generator starves (the §18 run found it). §14 edited with the tag; a rule, not a constant. The soak then showed that "last" is still too soon: once a brownout reaches the feed, the Generators dry and everything is lost; the feed should be exempt, like belts and turrets. **D-P4-7.**
-
-## M4 Threat — not built
-
-## M5 Light — not built
-
-## M6 The hour — not built
-
-## Gate B
-
-verdict:

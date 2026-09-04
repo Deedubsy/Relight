@@ -10,6 +10,7 @@ import {
   flowSummary, describeMachine, outputTile, entryDir,
   TILE_TPS, TILE_DT, BELT_PER_S, BELT_SPACING, EXCAVATOR_PER_S, INSERTER_PER_S, SHOT, MACHINE_COST, ASM_INPUT_MULT,
   Machine, SimState,
+  inReach, chestPut, chestTake,
 } from '../src/index';
 
 function fresh(seed = 3): SimState {
@@ -78,7 +79,8 @@ test('Excavator: 0.5 units/s onto the belt it faces, one tile at a time; the ste
   const dug = f.dug[idxOf(st, st.start[0], st.start[1])];
   assert.equal(dug.length, 2, 'two patch tiles dug out');
   const c = cellTiles(st, st.start[0], st.start[1]);
-  for (const li of dug) { const lx = li % 24, ly = (li - lx) / 24; assert.equal(c.kind[(ly + MARGIN_TILES) * CELL_TILES + lx + MARGIN_TILES], T_GROUND, 'a dug patch tile is ground'); }
+  const tw = st.w * CELL_TILES;
+  for (const t of dug) { const gx = t % tw, gy = (t - gx) / tw, lx = gx - st.start[0] * CELL_TILES, ly = gy - st.start[1] * CELL_TILES; assert.equal(c.kind[ly * CELL_TILES + lx], T_GROUND, 'a dug patch tile is ground'); }
   assert.notEqual(cellKey(st, st.start[0], st.start[1]).split(':')[2], '0', 'the cell key counts dug tiles');
   // a blocked output stops the drill with one unit waiting
   const st2 = rich(fresh());
@@ -256,17 +258,32 @@ test('the block map stays the judge: a machine on a block that stops being Held 
   assert.equal(belt.items[0].p, p1, 'no movement on a Dark block');
 });
 
-test('hands: mining a unit a second into the Depot; crafting a magazine in 3 s from the stock', () => {
+test('hands: mining a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in 3 s from the stock', () => {
   const st = fresh();
   ensureFlow(st);
   const [px, py] = hq(st, 1, 7);
   const steel0 = st.stock.steel, patch0 = st.patch.steel;
+  // the engineer starts at the workbench, 11+ tiles from the patch: out of reach (D5), the hands refuse
+  assert.deepEqual([st.engineer.x, st.engineer.y], [hq(st, 12, 15)[0] + 0.5, hq(st, 12, 15)[1] + 0.5], 'starts at the workbench');
+  assert.equal(inReach(st, px, py), false);
+  setHandMine(st, [px, py]);
+  assert.equal(st.flow!.hand.mine, null, 'out of reach: no mining');
+  assert.equal(chestPut(st, 'steel', 1).moved, 0, 'nothing in the pockets');
+  st.engineer.x = px - 1.5; st.engineer.y = py + 0.5;   // walk over (on the street west of the patch, 9+ tiles from the Depot) (M1's walk is exercised in walk.test.ts)
   setHandMine(st, [px, py]);
   run(st, 10);
-  assert.equal(st.stock.steel, steel0 + 10); assert.equal(st.patch.steel, patch0 - 10);
+  assert.equal(st.engineer.inv.steel, 10, 'ten units in the pockets'); assert.equal(st.stock.steel, steel0, 'none in the Depot');
+  assert.equal(st.patch.steel, patch0 - 10);
+  assert.equal(chestPut(st, 'steel', 10).moved, 0, 'the chest needs the engineer within reach of the Depot');
   setHandMine(st, null);
   run(st, 5);
-  assert.equal(st.stock.steel, steel0 + 10);
+  assert.equal(st.engineer.inv.steel, 10);
+  const [dx, dy] = hq(st, 9, 9);
+  st.engineer.x = dx - 1.5; st.engineer.y = dy + 0.5;
+  assert.equal(chestPut(st, 'steel', 10).moved, 10);
+  assert.equal(st.stock.steel, steel0 + 10); assert.equal(st.engineer.inv.steel ?? 0, 0);
+  assert.equal(chestTake(st, 'steel', 3).moved, 3); assert.equal(st.stock.steel, steel0 + 7); assert.equal(st.engineer.inv.steel, 3);
+  assert.equal(chestPut(st, 'steel', 3).moved, 3);
   const cu0 = st.stock.copper, buf0 = st.buffer, made0 = st.stats.magsMade;
   queueCraft(st, 2);
   run(st, 6);

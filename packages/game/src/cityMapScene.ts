@@ -136,9 +136,13 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     const i = this.blockAtPixel(p.x, p.y);
     if (i < 0) return;
     const st = this.session.state, b = st.blocks[i];
-    const info = claimInfo(st, b.x, b.y);
-    if (!info.ok) return;
-    queue(this.session, { type: 'claim', x: b.x, y: b.y });
+    if (b.state === DARK) {
+      const info = claimInfo(st, b.x, b.y);
+      if (info.ok) queue(this.session, { type: 'claim', x: b.x, y: b.y });
+    }
+    // M1 (D5): a click on any block sets a walk target on its pole tile — a claim included, so the engineer carries
+    // its kit there. Walking anywhere is harmless.
+    if (st.flow) queue(this.session, { type: 'walkTo', block: i });
   }
 
   selectEdge(id: number | null): void { this.selectedEdge = id; this.lastPaint = -1e9; }
@@ -319,10 +323,11 @@ export class CityMapScene extends Phaser.Scene implements MapView {
       const cx = this.px(h.i), cy = this.py(h.i), a = 1 - (now - h.born) / 1600;
       g.fillStyle(C.hulk, a); g.fillPoints([{ x: cx, y: cy - 6 }, { x: cx + 6, y: cy }, { x: cx, y: cy + 6 }, { x: cx - 6, y: cy }], true);
     }
-    // D5: the engineer, when the session walks — a white dot (red while knocked down) at its tile
-    if (st.config.walk && st.engineer) {
+    // D5: the engineer — a white dot (red while knocked down) at its tile, with a ring while walking
+    if (st.engineer) {
       const e = st.engineer, ex = PAD + e.x * this.ppt, ey = PAD + e.y * this.ppt;
       g.fillStyle(e.down >= 0 ? C.red : C.white, 1); g.fillCircle(ex, ey, 3); g.lineStyle(1, 0x000000, 0.8); g.strokeCircle(ex, ey, 3);
+      if (e.dest >= 0 || e.target) { g.lineStyle(1, C.white, 0.4 + 0.4 * throb); g.strokeCircle(ex, ey, 6); }
     }
   }
 

@@ -460,8 +460,12 @@ export function syncEdges(st: SimState): void {
     ring[w++] = e;
   }
   ring.length = w;
-  // D5: with `walk` on, a new edge starts unkitted unless the engineer stands on the block with a kit in their pockets
-  const eng = st.engineer, walk = st.config.walk;
+  // D5: with `walk` on, a new edge starts unkitted unless the engineer stands on the block with a kit in their pockets.
+  // GAME-ASSUMPTION (prompt B M1): §11's HQ ring is built at minute 0 — the start turrets are its kit — so the HQ's own
+  // edges start kitted at t = 0; every later edge (a claim's, or an HQ edge reopened by a lost neighbour) waits for a
+  // kit the engineer carries. The harness bots restocked and laid four kits on the HQ in the first second, which hid
+  // this; a human with no bot fired nothing until they took kits from the chest (found by the first city soak).
+  const eng = st.engineer, walk = st.config.walk, startIdx = idxOf(st, st.start[0], st.start[1]);
   for (let i = 0; i < B.length; i++) {
     if (B[i].state !== HELD) continue;
     const ns = st.nb[i];
@@ -470,7 +474,8 @@ export function syncEdges(st: SimState): void {
       if (mark[id] !== stamp || st.edgeAt[id] !== -1) continue;
       const e: Edge = { id, a: i, b: ns[k], hopper: 0, empty: 0 };
       if (walk) {
-        if (eng.block === i && (eng.inv.kit ?? 0) >= 1) { eng.inv.kit -= 1; if (eng.inv.kit <= 0) delete eng.inv.kit; e.kit = true; }
+        if (i === startIdx && st.t === 0) e.kit = true;
+        else if (eng.block === i && (eng.inv.kit ?? 0) >= 1) { eng.inv.kit -= 1; if (eng.inv.kit <= 0) delete eng.inv.kit; e.kit = true; }
         else e.kit = false;
       }
       ring.push(e);
@@ -783,6 +788,11 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
   }
   if (cfg.wellDeath) wellDeaths(st);
 
+  // D5: the engineer walks (and lays kits) before the ring fills, so an edge kitted this second is filled this second
+  // and never reads red for the one tick between the kit landing and the fill (D-R2). The tile layer ticks the
+  // engineer 20× a second ahead of this step when it is present (flow.ts).
+  if (!st.flow) tickEngineer(st, 1);
+
   // ---- ammo production and the ring ----
   if (prod) {
     let made = productionMagPerMin(st, t) / 6.0;   // rounds per second
@@ -1015,8 +1025,6 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       }
     }
   }
-
-  if (!st.flow) tickEngineer(st, 1);   // D5 (the tile layer ticks the engineer 20× a second when it is present)
 
   st.t = t + 1;
   const t1 = st.t;

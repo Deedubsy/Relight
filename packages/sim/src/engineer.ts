@@ -187,7 +187,7 @@ export function engineerCommand(st: SimState, c: Command): void {
     case 'walkTo': walkTo(st, c.block); break;
     case 'fire': e.firing = c.edge; break;
     case 'enterTruck': if (e.truckFound && e.down < 0) e.truck = !e.truck; break;
-    case 'mineAt': case 'craft': case 'place': case 'pickUp': handHook.current?.(st, c); break;
+    case 'mineAt': case 'craft': case 'place': case 'pickUp': case 'chestTake': case 'chestPut': handHook.current?.(st, c); break;
   }
 }
 

@@ -13,3 +13,5 @@ export * from './queries';
 export * from './tiles';
 export * from './flow';
 export * from './city';
+export * from './ground';
+export * from './walk';

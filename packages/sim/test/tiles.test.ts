@@ -1,149 +1,186 @@
-/** §4 tile ground (Phase 4 M1): geometry, streets, river, inert cells, rubble counts and types, the pool-driven
- *  dig-out, determinism, and the cost of a whole city. The block map stays authoritative: every check derives
- *  tiles from a SimState and never writes one. */
+/** §4 tile ground on faces (prompt B M1): geometry, the river and inert faces, rubble counts and types scaled by
+ *  area, the depth gradient, the block map's authority over the tiles, determinism and the cost of a whole city.
+ *  Every check derives tiles from a SimState and never writes one. The lattice ground (the M1–M3 fixtures, docsync)
+ *  keeps its own checks in flow.test.ts and defence.test.ts. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFAULT_CONFIG, protoCalibrated, generateMap, createState, claim, step, idxOf, INERT, HELD,
-  CELL_TILES, LOT_TILES, MARGIN_TILES, STREET_TILES, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT,
-  RUBBLE_TILES_MIN, RUBBLE_TILES_MAX, RUBBLE_VARIANTS, cellTiles, cityTiles, lotLayout, rubbleLeft, cellKey, tileCell, describeTile,
-  rubbleOf, poolMax, HQ_RUBBLE_TILES,
+  DEFAULT_CONFIG, createState, citySpec, generateCity, claim, step, INERT, VOID, HELD, SimState,
+  STREET, WATER, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
+  RUBBLE_TILES_MIN, RUBBLE_TILES_MAX, RUBBLE_VARIANTS, HQ_RUBBLE_TILES, HQ_PATCHES, LATTICE_AREA, DEPOSIT_TILES,
+  rubbleOf, ground, groundTiles, tileAt, chunkTiles, chunkKey, blockKey, standing, poolCap, describeGround, hqLot, CHUNK,
 } from '../src/index';
 
-function fresh(seed = 3) {
-  const cfg = protoCalibrated({ ...DEFAULT_CONFIG, scatter: true, economy: true });
-  const spec = generateMap(seed, cfg);
-  return createState(spec, cfg, seed);
+function fresh(seed = 3, economy = false): SimState {
+  const cfg = { ...DEFAULT_CONFIG, eco: { ...DEFAULT_CONFIG.eco }, economy };
+  return createState(citySpec(seed, 'river', cfg), cfg, seed);
 }
 
-test('geometry: 32-tile cells, 24-tile lots, 4-tile margins, 8-wide shared streets, 768×768 city', () => {
-  assert.equal(CELL_TILES, LOT_TILES + 2 * MARGIN_TILES);
-  assert.equal(STREET_TILES, 2 * MARGIN_TILES);
+test('geometry: a lot is a rasterised face, streets are the ridges between faces, the river is water; 800×800', () => {
   const st = fresh();
-  const city = cityTiles(st);
-  assert.equal(city.w, 768); assert.equal(city.h, 768);
-  assert.equal(city.kind.length, 768 * 768);
-  // the street between cells (5, 5) and (6, 5): tile columns 6·32−4 .. 6·32+3 are street on every lot row
-  for (let ty = 5 * 32 + 4; ty < 5 * 32 + 28; ty++) {
-    for (let tx = 6 * 32 - 4; tx < 6 * 32 + 4; tx++) assert.equal(city.kind[ty * 768 + tx], T_STREET, `street at ${tx},${ty}`);
-    assert.notEqual(city.kind[ty * 768 + 6 * 32 - 5], T_STREET, 'lot tile left of the street');
-    assert.notEqual(city.kind[ty * 768 + 6 * 32 + 4], T_STREET, 'lot tile right of the street');
+  const cg = generateCity(3, 'river'), G = ground(st);
+  assert.equal(G.lattice, false);
+  assert.equal(G.tw, cg.tw); assert.equal(G.th, cg.th); assert.equal(G.tw, 800);
+  assert.equal(G.blocks.length, st.blocks.length); assert.equal(st.blocks.length, cg.blocks.length);
+  let street = 0, water = 0, lot = 0;
+  for (let t = 0; t < G.tw * G.th; t++) {
+    const k = cg.kind[t];
+    if (k === STREET) { street++; assert.equal(G.base[t], T_STREET); assert.equal(G.owner[t], -1); assert.equal(G.near[t], cg.near[t]); }
+    else if (k === WATER) { water++; assert.equal(G.base[t], T_RIVER); assert.equal(G.owner[t], -2); }
+    else { lot++; assert.equal(G.base[t], T_GROUND); assert.equal(G.owner[t], cg.owner[t]); assert.equal(G.owner[t] >= 0, true); }
   }
-  // a cell's lot is exactly the 24×24 interior
-  const c = cellTiles(st, 5, 5);
-  let lot = 0, street = 0;
-  for (let i = 0; i < c.kind.length; i++) (c.kind[i] === T_STREET ? street++ : lot++);
-  assert.equal(street, 32 * 32 - 24 * 24); assert.equal(lot, 24 * 24);
-  assert.deepEqual(tileCell(6 * 32 + 5, 5 * 32 + 9), { x: 6, y: 5, lx: 5, ly: 9 });
+  assert.ok(street > 0 && water > 0 && lot > street, `${lot} lot, ${street} street, ${water} water tiles`);
+  // every block's tiles are its face's tiles, and its pole is inside it
+  for (const bg of G.blocks) {
+    const cb = cg.blocks[bg.i];
+    assert.equal(bg.tiles, cb.tiles);
+    assert.deepEqual(bg.pole, [cb.cx, cb.cy]);
+    assert.equal(G.owner[cb.cy * G.tw + cb.cx], bg.i, 'the pole is on the face');
+  }
+  // the HQ lot's 24×24 frame holds the §11 patches, on HQ tiles
+  const hq = G.blocks[st.blocks.findIndex(b => b.x === st.start[0] && b.y === st.start[1])];
+  assert.ok(hq.hq);
+  for (const p of HQ_PATCHES) {
+    const [tx, ty] = hqLot(st, p.lx, p.ly);
+    assert.equal(tileAt(st, tx, ty).kind, T_PATCH); assert.equal(tileAt(st, tx, ty).patch, p.type); assert.equal(G.owner[ty * G.tw + tx], hq.i);
+  }
+  assert.ok(hq.sub && hq.sub.size === 3, 'the HQ has its 3×3 substation');
 });
 
-test('the river row is river tiles under a 4-tile embankment street; inert cells are inert lots ringed by street', () => {
+test('the river is river tiles and no block; plazas and parks are inert faces with no rubble, no substation, no lights', () => {
   const st = fresh();
-  const r = cellTiles(st, 12, st.h - 1);
-  for (let ty = 0; ty < 32; ty++) for (let tx = 0; tx < 32; tx++) assert.equal(r.kind[ty * 32 + tx], ty < MARGIN_TILES ? T_STREET : T_RIVER);
-  assert.equal(r.rubbleTiles, 0);
-  const inertCells = st.blocks.filter(b => b.state === INERT && b.y !== st.h - 1);
-  assert.ok(inertCells.length > 0, 'the scattered map has inert cells');
-  const c = cellTiles(st, inertCells[0].x, inertCells[0].y);
-  for (let ty = 0; ty < 32; ty++) for (let tx = 0; tx < 32; tx++) {
-    const onLot = tx >= 4 && tx < 28 && ty >= 4 && ty < 28;
-    assert.equal(c.kind[ty * 32 + tx], onLot ? T_INERT : T_STREET);
+  const G = ground(st), cg = generateCity(3, 'river');
+  let river = 0;
+  for (let t = 0; t < G.tw * G.th; t++) if (G.base[t] === T_RIVER) { river++; const v = tileAt(st, t % G.tw, Math.floor(t / G.tw)); assert.equal(v.kind, T_RIVER); assert.equal(v.block, -1); }
+  assert.ok(river > 5000, `${river} river tiles`);
+  const inert = G.blocks.filter(bg => cg.blocks[bg.i].inert);
+  assert.ok(inert.length > 0, 'the city has plazas or parks');
+  for (const bg of inert) {
+    assert.ok(st.blocks[bg.i].state === INERT || st.blocks[bg.i].state === VOID);
+    assert.equal(bg.count, 0); assert.equal(bg.rubble, null); assert.equal(bg.sub, null); assert.equal(bg.lights.length, 0);
+    for (const t of bg.tiles) assert.equal(tileAt(st, t % G.tw, Math.floor(t / G.tw)).kind, T_INERT);
   }
-  assert.equal(c.rubbleTiles, 0); assert.equal(c.rubble, null);
+  // a live face has a substation on its own tiles and lights on its streets
+  const live = G.blocks.filter(bg => !cg.blocks[bg.i].inert && st.blocks[bg.i].state !== INERT);
+  let threeByThree = 0, lit = 0;
+  for (const bg of live) {
+    assert.ok(bg.sub);
+    if (bg.sub!.size === 3) threeByThree++;
+    for (let dy = 0; dy < bg.sub!.size; dy++) for (let dx = 0; dx < bg.sub!.size; dx++) assert.equal(G.owner[(bg.sub!.y + dy) * G.tw + bg.sub!.x + dx], bg.i);
+    for (const l of bg.lights) { assert.equal(G.base[l.ty * G.tw + l.tx], T_STREET); assert.equal(G.near[l.ty * G.tw + l.tx], bg.i); }
+    if (bg.lights.length > 0) lit++;
+  }
+  assert.ok(threeByThree >= live.length * 0.9, `${threeByThree}/${live.length} faces fit a 3×3 substation`);
+  assert.ok(lit === live.length, `${lit}/${live.length} faces have streetlights`);
 });
 
-test('rubble: 250–350 tiles per lot, typed by district, five density variants; outskirts carry deposits or nothing', () => {
+test('rubble: 250–350 tiles scaled by area, typed by district, in clusters, five variants; outskirts carry deposits or nothing', () => {
   const st = fresh();
+  const G = ground(st), cg = generateCity(3, 'river'), tiles = groundTiles(st);
   const seen = { stone: 0, copper: 0, steel: 0 };
-  let deposits = 0, outskirts = 0, minCount = 1e9, maxCount = 0;
+  let deposits = 0, outskirts = 0, big = 0, small = 0, bigCount = 0, smallCount = 0;
   const variants = new Set<number>();
-  for (const b of st.blocks) {
-    if (b.y === st.h - 1 || b.state === INERT) continue;
-    const c = cellTiles(st, b.x, b.y);
-    const kinds = new Set<number>();
-    for (let i = 0; i < c.kind.length; i++) if (c.kind[i] !== T_STREET) kinds.add(c.kind[i]);
+  for (const bg of G.blocks) {
+    const b = st.blocks[bg.i];
+    if (cg.blocks[bg.i].inert || b.state === INERT) continue;
+    const scale = bg.tiles.length / LATTICE_AREA;
     if (b.name === 'out') {
       outskirts++;
-      assert.equal(c.rubble, null);
-      assert.ok(!kinds.has(T_RUBBLE));
-      if (c.deposit) { deposits++; assert.ok(kinds.has(T_DEPOSIT)); assert.ok(c.rubbleTiles > 0); }
-      else assert.deepEqual([...kinds], [T_GROUND]);
+      assert.equal(bg.rubble, null);
+      if (bg.deposit) { deposits++; assert.equal(bg.count, Math.min(Math.round(scale * DEPOSIT_TILES), bg.count)); assert.ok(bg.count > 0); }
+      else assert.equal(bg.count, 0);
       continue;
     }
-    assert.equal(c.rubble, rubbleOf(b.name));
-    assert.equal(c.rubble, b.name === 'civ' ? 'stone' : b.name === 'res' ? 'copper' : 'steel');
-    seen[c.rubble!]++;
-    if (b.x === st.start[0] && b.y === st.start[1]) assert.equal(c.rubbleTiles, HQ_RUBBLE_TILES, 'the start lot is cleared for the HQ (M2)');
-    else assert.ok(c.rubbleTiles >= RUBBLE_TILES_MIN && c.rubbleTiles <= RUBBLE_TILES_MAX, `${c.rubbleTiles} rubble tiles on (${b.x},${b.y})`);
-    minCount = Math.min(minCount, c.rubbleTiles); maxCount = Math.max(maxCount, c.rubbleTiles);
+    assert.equal(bg.rubble, rubbleOf(b.name));
+    seen[bg.rubble!]++;
+    if (bg.hq) assert.equal(bg.count, HQ_RUBBLE_TILES, 'the HQ face is cleared (M2)');
+    else {
+      assert.ok(bg.count >= Math.round(scale * RUBBLE_TILES_MIN) - 1 && bg.count <= Math.round(scale * RUBBLE_TILES_MAX) + 1, `${bg.count} rubble tiles on face ${bg.i} of ${bg.tiles.length} tiles`);
+      if (bg.tiles.length >= 2 * LATTICE_AREA) { big++; bigCount += bg.count; }
+      if (bg.tiles.length <= LATTICE_AREA / 2 && bg.tiles.length > 0) { small++; smallCount += bg.count; }
+    }
     let n = 0;
-    for (let i = 0; i < c.kind.length; i++) if (c.kind[i] === T_RUBBLE) { n++; assert.ok(c.variant[i] >= 1 && c.variant[i] <= RUBBLE_VARIANTS); variants.add(c.variant[i]); }
-    else assert.equal(c.variant[i] === 0 || c.kind[i] === T_DEPOSIT, true);
-    assert.equal(n, c.rubbleLeft, 'standing rubble equals the tile count');
-    assert.equal(n, c.rubbleTiles, 'a fresh block has all its rubble');
+    for (const t of bg.tiles) {
+      const k = tiles.kind[t];
+      if (k === T_RUBBLE) { n++; assert.ok(tiles.variant[t] >= 1 && tiles.variant[t] <= RUBBLE_VARIANTS); variants.add(tiles.variant[t]); }
+      else assert.equal(tiles.variant[t], 0);
+      assert.notEqual(k, T_STREET); assert.notEqual(k, T_RIVER);
+    }
+    assert.equal(n, bg.count, 'a fresh block has all its rubble standing');
+    assert.equal(standing(st, bg.i), bg.count);
+    // clusters: the densest tile's 13×13 neighbourhood holds far more rubble than the face's average density
+    if (!bg.hq && bg.count > 50 && bg.count / bg.tiles.length < 0.45) {
+      const t0 = bg.order[bg.count - 1], x0 = t0 % G.tw, y0 = Math.floor(t0 / G.tw);
+      let near = 0, nearAll = 0;
+      for (const t of bg.tiles) { const x = t % G.tw, y = Math.floor(t / G.tw); if (Math.abs(x - x0) <= 6 && Math.abs(y - y0) <= 6) { nearAll++; if (tiles.kind[t] === T_RUBBLE) near++; } }
+      const dens = bg.count / bg.tiles.length;
+      assert.ok(near / nearAll > Math.min(1.5 * dens, dens + 0.2), `face ${bg.i}: ${(near / nearAll).toFixed(2)} near the densest heap vs ${(bg.count / bg.tiles.length).toFixed(2)} overall`);
+    }
   }
-  assert.ok(seen.stone > 0 && seen.copper > 0 && seen.steel > 0);
-  assert.ok(outskirts > 0 && deposits > 0 && deposits < outskirts);
-  assert.ok(maxCount - minCount > 30, `counts vary across the range (${minCount}–${maxCount})`);
+  assert.ok(seen.stone > 0 && seen.copper > 0 && seen.steel > 0, JSON.stringify(seen));
+  assert.ok(outskirts > 0 && deposits > 0 && deposits < outskirts, `${deposits} deposits on ${outskirts} outskirts faces`);
+  assert.ok(big > 0 && small > 0 && bigCount / big > 2 * smallCount / small, `a big face carries more: ${(bigCount / big).toFixed(0)} vs ${(smallCount / small).toFixed(0)} (${big} big, ${small} small)`);
   assert.equal(variants.size, RUBBLE_VARIANTS, 'all five variants appear');
 });
 
-test('the density gradient: deeper blocks show heavier rubble on average', () => {
+test('the density gradient: deeper faces (hops from the HQ) show heavier rubble on average', () => {
   const st = fresh();
-  const mean = (x: number, y: number) => { const c = cellTiles(st, x, y); let s = 0, n = 0; for (let i = 0; i < c.kind.length; i++) if (c.kind[i] === T_RUBBLE) { s += c.variant[i]; n++; } return s / n; };
-  // a residential lot beside the HQ against one at the far west of the same band
-  const near = st.blocks.find(b => b.name === 'res' && b.state !== INERT && Math.abs(b.x - st.start[0]) + Math.abs(b.y - st.start[1]) === 1)!;
-  const far = st.blocks.filter(b => b.name === 'res' && b.state !== INERT && b.y !== st.h - 1).sort((a, b) => (Math.abs(b.x - st.start[0]) + Math.abs(b.y - st.start[1])) - (Math.abs(a.x - st.start[0]) + Math.abs(a.y - st.start[1])))[0];
-  assert.ok(mean(far.x, far.y) > mean(near.x, near.y), `far ${mean(far.x, far.y).toFixed(2)} > near ${mean(near.x, near.y).toFixed(2)}`);
+  const G = ground(st), cg = generateCity(3, 'river'), tiles = groundTiles(st);
+  const mean = (bg: (typeof G.blocks)[number]) => { let s = 0, n = 0; for (const t of bg.tiles) if (tiles.kind[t] === T_RUBBLE) { s += tiles.variant[t]; n++; } return n ? s / n : 0; };
+  const res = G.blocks.filter(bg => st.blocks[bg.i].name === 'res' && !bg.hq && bg.count > 0);
+  const shallow = res.filter(bg => cg.hops[bg.i] <= 2), deep = res.filter(bg => cg.hops[bg.i] >= 4);
+  assert.ok(shallow.length > 0 && deep.length > 0, `${shallow.length} shallow, ${deep.length} deep residential faces`);
+  const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const ms = avg(shallow.map(mean)), md = avg(deep.map(mean));
+  assert.ok(md > ms, `deep ${md.toFixed(2)} > shallow ${ms.toFixed(2)}`);
 });
 
-test('block state is authoritative: the pool drains and rubble tiles become ground; the key tracks both', () => {
-  const st = fresh();
-  const [sx, sy] = st.start;
-  const hq = st.blocks[idxOf(st, sx, sy)];
+test('block state is authoritative: the pool drains and rubble becomes ground in the layout order; a claim digs; the keys track it', () => {
+  const st = fresh(3, true);   // the economy on: a Held block draws its pool down
+  const G = ground(st);
+  const hqi = st.blocks.findIndex(b => b.x === st.start[0] && b.y === st.start[1]), hq = st.blocks[hqi], bg = G.blocks[hqi];
   assert.equal(hq.state, HELD);
-  const lay = lotLayout(st.seed, hq, true);
-  const key0 = cellKey(st, sx, sy);
-  assert.equal(rubbleLeft(st, hq), lay.tiles);
-  // half the pool → half the tiles, dug in the layout's order
-  hq.pool = poolMax(st, hq.name) / 2;
-  const half = cellTiles(st, sx, sy);
-  assert.equal(half.rubbleLeft, Math.round(lay.tiles / 2));
-  assert.notEqual(cellKey(st, sx, sy), key0);
-  const dugFirst = lay.order[0], lx = dugFirst % LOT_TILES, ly = (dugFirst - lx) / LOT_TILES;
-  assert.equal(half.kind[(ly + MARGIN_TILES) * CELL_TILES + lx + MARGIN_TILES], T_GROUND, 'the first tile in the order is dug');
-  const dugLast = lay.order[lay.tiles - 1], lx2 = dugLast % LOT_TILES, ly2 = (dugLast - lx2) / LOT_TILES;
-  assert.equal(half.kind[(ly2 + MARGIN_TILES) * CELL_TILES + lx2 + MARGIN_TILES], T_RUBBLE, 'the last tile in the order still stands');
+  const key0 = blockKey(st, hqi), ck0 = chunkKey(st, bg.pole[0] >> 5, bg.pole[1] >> 5);
+  assert.equal(standing(st, hqi), bg.count);
+  assert.ok(Math.abs(poolCap(st, hq) - hq.pool) < 1e-6, 'the HQ starts with a full pool scaled to its face');
+  hq.pool = poolCap(st, hq) / 2;
+  assert.equal(standing(st, hqi), Math.round(bg.count / 2));
+  assert.notEqual(blockKey(st, hqi), key0); assert.notEqual(chunkKey(st, bg.pole[0] >> 5, bg.pole[1] >> 5), ck0);
+  const first = bg.order[0], last = bg.order[bg.count - 1];
+  assert.equal(tileAt(st, first % G.tw, Math.floor(first / G.tw)).kind, T_GROUND, 'the first tile in the order is dug');
+  assert.equal(tileAt(st, last % G.tw, Math.floor(last / G.tw)).kind, T_RUBBLE, 'the last tile in the order still stands');
   hq.pool = 0;
-  const dry = cellTiles(st, sx, sy);
-  assert.equal(dry.rubbleLeft, 0);
-  for (let i = 0; i < dry.kind.length; i++) assert.notEqual(dry.kind[i], T_RUBBLE);
-  // claiming a block does not move its rubble: a Held block yields, so its heaps only shrink, in the layout's order
-  const nb = st.blocks.find(b => Math.abs(b.x - sx) + Math.abs(b.y - sy) === 1 && b.state !== INERT)!;
-  const before = cellTiles(st, nb.x, nb.y);
+  for (const t of bg.tiles) assert.notEqual(tileAt(st, t % G.tw, Math.floor(t / G.tw)).kind, T_RUBBLE);
+  // claiming a neighbour: a Held face yields, so its heaps only shrink, in the layout's order
+  const ni = st.nb[hqi].find(j => st.blocks[j].state !== INERT && G.blocks[j].count > 0)!;
+  const nb = st.blocks[ni], nbg = G.blocks[ni];
+  const before = chunkTiles(st, nbg.pole[0] >> 5, nbg.pole[1] >> 5), s0 = standing(st, ni);
   assert.ok(claim(st, nb.x, nb.y));
-  for (let k = 0; k < 600; k++) step(st);
+  for (let k = 0; k < 300; k++) step(st);   // Held by then; the default config loses it to a bloom around t = 450
   assert.equal(nb.state, HELD);
-  const after = cellTiles(st, nb.x, nb.y);
-  assert.ok(after.rubbleLeft < before.rubbleLeft, `a Held block digs its rubble (${before.rubbleLeft} → ${after.rubbleLeft})`);
+  const after = chunkTiles(st, nbg.pole[0] >> 5, nbg.pole[1] >> 5);
+  assert.ok(standing(st, ni) < s0, `a Held face digs its rubble (${s0} → ${standing(st, ni)})`);
   for (let i = 0; i < after.kind.length; i++) {
     if (after.kind[i] === T_RUBBLE) assert.equal(before.kind[i], T_RUBBLE);
     else if (before.kind[i] !== T_RUBBLE) assert.equal(after.kind[i], before.kind[i]);
     else assert.equal(after.kind[i], T_GROUND);
   }
+  assert.equal(after.kind.length, CHUNK * CHUNK);
 });
 
-test('deterministic per seed; a different seed lays the rubble differently; a whole city is cheap', () => {
-  const a = cellTiles(fresh(3), 10, 10), b = cellTiles(fresh(3), 10, 10), c = cellTiles(fresh(4), 10, 10);
+test('deterministic per seed; a different seed lays the rubble differently; a whole city derives under 100 ms cold', () => {
+  const a = groundTiles(fresh(3)), b = groundTiles(fresh(3)), c = groundTiles(fresh(4));
   assert.deepEqual(a.kind, b.kind); assert.deepEqual(a.variant, b.variant);
   assert.notDeepEqual(a.kind, c.kind);
   const st = fresh(5);
   const t0 = performance.now();
-  const city = cityTiles(st);
+  const G = ground(st);
+  const tiles = groundTiles(st);
   const ms = performance.now() - t0;
-  assert.ok(ms < 1500, `cityTiles took ${ms.toFixed(0)} ms`);
-  let rubble = 0;
-  for (let i = 0; i < city.kind.length; i++) if (city.kind[i] === T_RUBBLE) rubble++;
-  assert.ok(rubble > 80_000, `${rubble} rubble tiles in the city`);
-  assert.match(describeTile(st, 12 * 32 + 10, 22 * 32 + 10), /^tile \(394,714\) · /);
+  assert.ok(ms < 100, `ground + groundTiles took ${ms.toFixed(0)} ms cold`);
+  let rubble = 0, deposit = 0;
+  for (let i = 0; i < tiles.kind.length; i++) { if (tiles.kind[i] === T_RUBBLE) rubble++; else if (tiles.kind[i] === T_DEPOSIT) deposit++; }
+  assert.ok(rubble > 20_000, `${rubble} rubble tiles in the city`); assert.ok(deposit > 0);
+  const hqPole = G.blocks[st.blocks.findIndex(x => x.x === st.start[0] && x.y === st.start[1])].pole;
+  assert.match(describeGround(st, hqPole[0], hqPole[1]), /^tile \(\d+,\d+\) · /);
 });

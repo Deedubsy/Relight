@@ -6,7 +6,7 @@ Written 2026-09-04, at the end of the D5/D6 rework. Update it at every phase gat
 
 ## Where we are, in one paragraph
 
-**Phase 4 of 14 — the vertical slice — in progress, and reopened.** Phases 0–3 are complete and Gate A is passed. Phase 4 built three of its six milestones (M1 Ground, M2 Flow, M3 Defence) on the 24×24 lattice; the D5/D6 rework then replaced the player (a cursor with a global stock → an engineer on foot with pockets, a reach and a rifle) and the map (a lattice of squares → a street-first city of irregular blocks), which leaves those milestones' sim and rendering code good and their *slice* no longer the thing Gate B scores. The rework is finished, green and reported (`REWORK_REPORT.md`); the slice is rebuilt from `docs/relight-prompt-B-vertical-slice.md` — six milestones again — on a human's `go`. **Ten and a half phases and two gates remain.** No phase after 4 has been opened, with one exception: the rework pulled most of Phase 9's city generator forward by four phases.
+**Phase 4 of 14 — the vertical slice — in progress, and reopened.** Phases 0–3 are complete and Gate A is passed. Phase 4 built three of its six milestones (M1 Ground, M2 Flow, M3 Defence) on the 24×24 lattice; the D5/D6 rework then replaced the player (a cursor with a global stock → an engineer on foot with pockets, a reach and a rifle) and the map (a lattice of squares → a street-first city of irregular blocks), which leaves those milestones' sim and rendering code good and their *slice* no longer the thing Gate B scores. The rework is finished, green and reported (`REWORK_REPORT.md`); the slice is being rebuilt from `docs/relight-prompt-B-vertical-slice.md` — six milestones again: **M1 Ground and the engineer is built (2026-09-04)**, M2–M6 are not. **Ten and a half phases and two gates remain.** No phase after 4 has been opened, with one exception: the rework pulled most of Phase 9's city generator forward by four phases.
 
 ## 1. The fourteen phases
 
@@ -17,7 +17,7 @@ Written 2026-09-04, at the end of the D5/D6 rework. Update it at every phase gat
 | 2 | Map-view prototype → Gate A | 2 wk | ✅ **done** 2026-09-03 | `PHASE_2_REPORT.md`; `packages/game`, calibration |
 | — | **Gate A** (human) | — | ✅ **passed** 2026-09-03 | `TEST_RESULTS.md` `verdict: go`, owner, no tester sessions |
 | 3 | Absorb Gate A | 3 days | ✅ **done** 2026-09-03 | `PHASE_3_REPORT.md`; 19 `[play: Gate A]` tags |
-| 4 | **Vertical slice: §11, minutes 0–60** | 6 wk | ◐ **in progress** — lattice M1–M3 built, superseded by the rework; prompt B M1–M6 not started | `SLICE_REPORT.md`, `REWORK_REPORT.md`, `docs/relight-prompt-B-vertical-slice.md` |
+| 4 | **Vertical slice: §11, minutes 0–60** | 6 wk | ◐ **in progress** — lattice M1–M3 built, superseded by the rework; prompt B M1 built, M2–M6 not started | `SLICE_REPORT.md`, `REWORK_REPORT.md`, `docs/relight-prompt-B-vertical-slice.md` |
 | — | **Gate B** (human plays the hour) | — | ⬜ not reached | scored in `SLICE_REPORT.md`, `verdict: proceed` |
 | 5 | The factory, complete | 6 wk | ⬜ not started | E10 chain throughput, E11 coal, E12 tram |
 | 6 | Threat, complete | 4 wk | ⬜ not started | E13 enemy purpose, E9-full, E14 hulk niche |
@@ -46,7 +46,7 @@ The nominal column is the constitution's own calendar and nothing has been measu
 
 | M | Milestone | The one-line job |
 |---|---|---|
-| M1 | Ground and the engineer | Port the tile layer onto rasterised faces; the engineer as a sprite that walks, with pockets and the chest; remove the three stubs (walking only under a bot, flow off on a city, world view lattice-only) |
+| M1 | Ground and the engineer | **Built 2026-09-04.** The tile layer on rasterised faces (`ground.ts`); the engineer on the tiles (`walk.ts`: WASD, click-to-walk, the map's click, reach 8, pockets and the Depot chest on I); the three stubs gone; the 1 h at 4× soak held the hour with no frame over 50 ms at 44 fps on the headless host — the DoD's 60 fps is not met there, reported as measured (`SLICE_REPORT.md`); two block-sim fixes from the soak moved the seed 4/5 regression fixtures (a rules change) |
 | M2 | Flow on irregular lots | Place every machine from the pockets, within reach, on a face that is not a rectangle; measure what actually fits against the area-derived slot count |
 | M3 | Defence on the segment | Turrets, lamps, substations, poles and power on street segments; an edge is a segment, and its empty hopper reddens the same pip |
 | M4 | Threat, and the rifle | Rot and blooms at tile level, crawlers on a per-face flow field, retaliation only, the rifle as the minute the belt is late |
@@ -72,7 +72,7 @@ Experiment numbering: the constitution's E10–E23 and the doc's own run tags co
 
 ## 4. The three counters the programme keeps
 
-- **The untagged set** — doc numbers in §5, §7, §12, §13, §14 and §15 with no `[sim]` or `[play]` tag. **44 at Phase 0 → 41 (Phase 3) → 40 (M1) → 37 (M2) → 33 (M3).** 21 tile-scale, 12 design inputs. The rework added `rework-graph`, `E-rifle`, `E-walk` and `E-variance` tags but did not recount; the next recount is due at prompt B M1. Emptying it is the goal of Phases 1–4.
+- **The untagged set** — doc numbers in §5, §7, §12, §13, §14 and §15 with no `[sim]` or `[play]` tag. **44 at Phase 0 → 41 (Phase 3) → 40 (M1) → 37 (M2) → 33 (M3) → 33 (prompt B M1).** 21 tile-scale, 12 design inputs. The rework added `rework-graph`, `E-rifle`, `E-walk` and `E-variance` tags but did not recount; the next recount is due at prompt B M1. Emptying it is the goal of Phases 1–4.
 - **§26 systems** — three (belts/inserters/machines, the front rule, found tech as a map), complexity **5/10**, unchanged at every recount including the rework's. It reaches four if the rifle grows rules of its own or the engineer grows needs; both sit in §22 as not simulated. This is a stop condition and it has never fired.
 - **Gates** — the only places the programme waits. Gate A ✅ passed; **Gate B** ahead at the end of Phase 4; the **engine gate** ahead in Phase 11.
 
@@ -80,7 +80,7 @@ Experiment numbering: the constitution's E10–E23 and the doc's own run tags co
 
 | What | Where | Blocking? |
 |---|---|---|
-| **D-R1** the rifle and the shade, **D-R2** the kit walk and C1/C2, **D-R3** the HQ's copper | `REWORK_REPORT.md` §8, `DECISIONS.md` | Yes — prompt B M1 opens on them (or on a bare `go`, which takes all three by recommendation) |
+| **D-R1** the rifle and the shade, **D-R2** the kit walk and C1/C2, **D-R3** the HQ's copper | `DECISIONS.md` | No — taken 2026-09-04 by recommendation on the human's `go` for prompt B M1; reopenable at Gate B |
 | **D-P4-7** hour-one power, **D-P4-8** six start turrets or two, **D-P4-9** turrets on claimed blocks | `DECISIONS.md` | No — settled at prompt B M6 from the played hour |
 | **D-R4** the generator's attempt budget | `DECISIONS.md` | No — taken 2026-09-04 by recommendation because a red check is a red build; reopenable at Gate B |
 | Gate A tester sessions (**D-P3-9**) | `TEST_RESULTS.md`, `DEFERRED.md` | No — recommended in parallel with the slice; a session that contradicts a `[play: Gate A]` lock moves the lock |

@@ -1,5 +1,6 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
-import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST } from '@relight/sim';
+import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
+  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH } from '@relight/sim';
 import { Session, setSpeed, queue, shareUrl } from './session';
 import { summarise, exportJson } from './telemetry';
 
@@ -14,6 +15,8 @@ export interface Panel {
   setView(mode: 'map' | 'world'): void;
   /** Show/hide the debug sections (stock, line, ring order, skyline, summary); returns the new visibility. */
   toggleDebug(): boolean;
+  /** M1: show/hide the pockets and the Depot chest (key I); returns the new visibility. */
+  togglePockets(): boolean;
   toast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
 }
 
@@ -68,9 +71,34 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const speedRow = el('div', 'row');
   const speeds: [number, string][] = [[0, 'Pause'], [1, '1×'], [4, '4×'], [16, '16×']];
   const speedBtns = speeds.map(([m, label]) => { const b = el('button', undefined, label); b.onclick = () => setSpeed(session, m); speedRow.append(b); return { m, b }; });
-  speedRow.append(el('span', 'hint', 'keys: space, 1, 2, 3 · M map ↔ world · ` debug panel'));
+  speedRow.append(el('span', 'hint', 'keys: space, 1, 2, 3 · M map ↔ world · I pockets · ` debug panel'));
   hudSec.append(speedRow);
   root.append(hudSec);
+
+  // M1 (D5): the pockets (40 stacks) and the Depot chest. Transfers need the engineer within reach of the Depot; the
+  // sim refuses otherwise and the reason is toasted. Kits are free to draw (engineer.ts). Hidden until I.
+  // GAME-ASSUMPTION (M1): a human is not auto-restocked the way the harness bot is (`restock` on standing at the HQ):
+  // kits are taken here, one a claim, and a claim made with no kit in the pockets toasts that its edges wait.
+  const pocketSec = el('section');
+  pocketSec.hidden = true;
+  pocketSec.append(el('h2', undefined, 'Pockets and the Depot chest (I)'));
+  const pocketHead = el('p', 'hint', '');
+  pocketSec.append(pocketHead);
+  const pocketList = el('ul', 'plain');
+  const pocketRows = CHEST_ITEMS.map(item => {
+    const l = el('li'), a = el('span', undefined, item === 'magazine' ? 'magazines' : item === 'kit' ? 'kits (10 stacks each)' : item), v = el('span', 'mono', '');
+    const row = el('div', 'row');
+    const n = item === 'kit' ? 1 : item === 'magazine' ? 5 : stackSize(item);
+    const take = el('button', undefined, `Take ${n}`), put = el('button', undefined, 'Put all');
+    take.onclick = () => { const r = chestTake(session.state, item, n); if (r.moved) toast(`${r.moved} ${item} into the pockets`, 'good'); else toast(r.reason, 'bad'); };
+    put.onclick = () => { const r = chestPut(session.state, item, 1e9); if (r.moved) toast(`${r.moved} ${item} into the Depot`, 'good'); else toast(r.reason, 'bad'); };
+    row.append(take, put);
+    l.append(a, v); pocketList.append(l); pocketList.append(row);
+    return { item: item as ChestItem, v, take, put };
+  });
+  pocketSec.append(pocketList);
+  pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's edges wait for a kit the engineer carries there.`));
+  root.append(pocketSec);
 
   // Rework Step 5: the side panel is held / front / interior / ammo made vs demanded / stock / blocks lost;
   // the rest sits behind the debug key (backquote) so a tester reads the map, not the panel.
@@ -122,7 +150,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     craftRow.append(btnCraft);
     lineSec.append(craftRow);
     const mc = MACHINE_COST;
-    lineSec.append(el('p', 'hint', `World view keys: X Excavator (${mc.excavator.steel} steel, 3×3, ${'0.5'}/s onto the belt it faces), B belt (${mc.belt.steel} steel, 7.5 items/s), I inserter (${mc.inserter.steel} steel + ${mc.inserter.copper} Cu, 1/s), M Shot assembler (${mc.assembler.steel} steel + ${mc.assembler.copper} Cu; ${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu → a magazine in ${SHOT.seconds} s), R rotate, Q hand, right-click removes (full refund). Hold the left button on rubble with the hand to mine it a unit a second. Magazines reach the ring only through the Depot: belt or inserter them into it.`));
+    lineSec.append(el('p', 'hint', `World view keys: X Excavator (${mc.excavator.steel} steel, 3×3, ${'0.5'}/s onto the belt it faces), B belt (${mc.belt.steel} steel, 7.5 items/s), N inserter (${mc.inserter.steel} steel + ${mc.inserter.copper} Cu, 1/s), F Shot assembler (${mc.assembler.steel} steel + ${mc.assembler.copper} Cu; ${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu → a magazine in ${SHOT.seconds} s), R rotate, Q hand, right-click removes (full refund). WASD or a click on the ground walks; hand actions reach ${REACH} tiles. Hold the left button on rubble with the hand to mine it a unit a second into the pockets. Magazines reach the ring only through the Depot: belt or inserter them into it, or carry them (I).`));
     debug.append(lineSec);
   }
 
@@ -251,6 +279,15 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     sEmpty.b.textContent = String(h.ammo.emptyHoppers); sEmpty.s.classList.toggle('warn', h.ammo.emptyHoppers > 0);
     sClock.b.textContent = h.clock;
     for (const { m, b } of speedBtns) b.classList.toggle('active', s.speed === m);
+    if (!pocketSec.hidden) {
+      const e = s.engineer, near = nearDepot(s);
+      pocketHead.textContent = `${invStacks(e.inv)} / ${INV_STACKS} stacks · ${near ? 'at the Depot' : `walk to the Depot to transfer (${REACH} tiles)`} · HP ${Math.round(e.hp)}`;
+      for (const r of pocketRows) {
+        const c = chestCount(s, r.item);
+        r.v.textContent = `pockets ${e.inv[r.item] ?? 0} · chest ${c === Infinity ? '∞' : c}`;
+        r.take.disabled = !near || c <= 0; r.put.disabled = !near || !(e.inv[r.item] > 0);
+      }
+    }
     if (vCu) { vCu.textContent = String(Math.floor(s.stock.copper)); vSteel!.textContent = String(Math.floor(s.stock.steel)); vStone!.textContent = String(Math.floor(s.stock.stone)); vPatch!.textContent = String(Math.floor(s.patch.steel)); }
     vAsm.textContent = String(h.ammo.assemblers);
     const si = slotInfo(s);
@@ -335,6 +372,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   return {
     update, tooltip, tooltipText, toast, setView,
     toggleDebug() { debug.hidden = !debug.hidden; return !debug.hidden; },
+    togglePockets() { pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; return !pocketSec.hidden; },
     setSelectedEdge(e) {
       selected = e ? e.id : null; ringKey = '';
       if (e) toast(`Edge (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y}) is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);

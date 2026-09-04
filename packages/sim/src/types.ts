@@ -177,7 +177,9 @@ export type Command =
   | { type: 'place'; item: string; x: number; y: number; dir?: number }
   | { type: 'pickUp'; x: number; y: number }
   | { type: 'fire'; edge: number }                    // -1 = cease fire
-  | { type: 'enterTruck' };
+  | { type: 'enterTruck' }
+  | { type: 'chestTake'; item: string; n: number }
+  | { type: 'chestPut'; item: string; n: number };
 
 export type SimEvent =
   | { type: 'claim'; t: number; x: number; y: number; district: District; well: boolean; d: number;

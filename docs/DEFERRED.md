@@ -131,3 +131,18 @@ Every item above keeps its phase unless listed here. The lattice M1–M3 items t
 - **D-P4-4/5/7/8/9.** Still settled at **M6**, now prompt B's M6 on the city.
 - **E9's bank evidence on the city.** On the lattice the same assemblers without a bank lost 21–30 blocks in the Relight window; on the city they lose none, so E9 no longer produces evidence for D4 and the check passes trivially. → **Phase 10 E20** needs a harder window (a longer hold, or the surge on a bigger front) before the bank's size can be argued from the sim — E9-hold, this run.
 
+
+## Re-read at prompt B M1 (2026-09-04, Ground and the engineer built)
+
+Every item above keeps its phase unless listed here. Nothing deleted.
+
+- **Tile layer on faces.** Done in M1 (`ground.ts`: one derivation per state, the lattice wrapped into the same shape). The lattice itself still → **delete at the Phase 5 gate**.
+- **The engineer as a sprite, reach ring, pockets panel, walk anywhere.** Done in M1 as a code-drawn disc, a ring, a DOM panel on I. The sprite, the ring's look and the "walk closer" cursor → **Phase 12** art pass.
+- **Hand-mining into the pockets.** Done in M1. **Hand-crafting from the pockets** (§14) is not: the workbench still draws the chest and delivers to it, within reach of the workbench → **Prompt B M2**.
+- **Kits by hand (D-B1-3).** → **Prompt B M6** tedium audit.
+- **The truck driven (Tram depot).** Unchanged, **Phase 5**: on seed 3 the Tram depot is a 20 s walk from the HQ each way, so the hour does not need it.
+- **Camera in the map view.** Unchanged.
+- **The `?flow=0` free camera** (the old world view with no engineer, kept for bot comparisons against the block sim) → **delete with the lattice at the Phase 5 gate**.
+- **Walk paths outside `SimState`.** A snapshot restarts a walk in progress (the path is re-planned from the saved destination, the WASD velocity is dropped) → **Phase 12** save/load, if a saved walk ever matters.
+- **The panel's pockets rows as fixed "take n" buttons.** Take 50 (a stack) of rubble, 5 magazines, 1 kit; no drag, no split → **Phase 12** interface.
+- **A block-level `walkTo` from the map on a city with the flow layer paths by A\* over the tiles, not by the graph's street distance** (the harness bot's walk). The two agree to within the path's diagonal saving; E-walk stays on the graph → **Phase 11** if the graph distance is ever wrong enough to matter.

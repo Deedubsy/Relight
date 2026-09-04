@@ -13,7 +13,12 @@
  *
  *  C1 and C2 are scored from minute 1 (D-P2-1, Gate A 2026-09-03): 200 start rounds fill two of the HQ's three hoppers,
  *  so the third pip shows amber then red for the first 30 s; that flicker teaches the pip ladder and is not a miss.
- *  The `amber`/`red` columns still report the first non-green tick from t = 0 for the record. */
+ *  The `amber`/`red` columns still report the first non-green tick from t = 0 for the record.
+ *
+ *  D-R2 (2026-09-04): with the bots walking (D5), a claim's kit walks out from the chest, so every new edge is red
+ *  until the engineer arrives; that red is the walking cost, not a miss. C1 and C2 are therefore scored on *kitted*
+ *  edges only (`e.kit !== false`): C1 "first enclosure before first amber on a kitted edge", C2 "no red on a kitted
+ *  edge before 120 min". The all-edge columns stay in the table for the record. */
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
@@ -54,6 +59,8 @@ const HASH = configHash(config);
 interface Run {
   bot: Policy; seed: number;
   firstAmber: number | null; firstRed: number | null; firstAmberAfter1: number | null; firstRedAfter1: number | null;
+  /** D-R2: first amber / red on a kitted edge, from minute 1 (the C1/C2 numbers). */
+  firstAmberKitted: number | null; firstRedKitted: number | null;
   firstLoss: number | null; firstEnclosure: number | null;
   lost: number; stalls: number; firstStall: number | null; claims: number;
   held: Record<number, number>; front180: number; interior180: number;
@@ -70,7 +77,7 @@ function run(bot: Policy, seed: number): Run {
   const b = createBot(bot, null, BUILD);
   const cmds: Command[] = [];
   const r: Run = {
-    bot, seed, firstAmber: null, firstRed: null, firstAmberAfter1: null, firstRedAfter1: null, firstLoss: null, firstEnclosure: null,
+    bot, seed, firstAmber: null, firstRed: null, firstAmberAfter1: null, firstRedAfter1: null, firstAmberKitted: null, firstRedKitted: null, firstLoss: null, firstEnclosure: null,
     lost: 0, stalls: 0, firstStall: null, claims: 0, held: {}, front180: 0, interior180: 0, copper180: 0, steel180: 0,
     minSteel: Infinity, minSteelAt: 0, patchOutAt: null, assemblers: [], production180: 0, peakDemand: 0, peakDemandAt: 0,
     mags: 0, magsMade: 0, magsPerHeld: 0, amberTicks: 0, redTicks: 0,
@@ -99,6 +106,12 @@ function run(bot: Policy, seed: number): Run {
     const p = pipOf(worst);
     if (p !== 'green') { r.amberTicks++; if (r.firstAmber === null) r.firstAmber = st.t; if (st.t >= 60 && r.firstAmberAfter1 === null) r.firstAmberAfter1 = st.t; }
     if (p === 'red') { r.redTicks++; if (r.firstRed === null) r.firstRed = st.t; if (st.t >= 60 && r.firstRedAfter1 === null) r.firstRedAfter1 = st.t; }
+    // D-R2: the same ladder over kitted edges only (an unkitted edge is red by construction until the kit walks out)
+    let worstKitted = 1;
+    for (const e of st.ring) { if (e.kit === false) continue; const l = e.hopper / cap; if (l < worstKitted) worstKitted = l; }
+    const pk = pipOf(worstKitted);
+    if (st.t >= 60 && pk !== 'green' && r.firstAmberKitted === null) r.firstAmberKitted = st.t;
+    if (st.t >= 60 && pk === 'red' && r.firstRedKitted === null) r.firstRedKitted = st.t;
     if (st.stock.steel < r.minSteel) { r.minSteel = st.stock.steel; r.minSteelAt = st.t; }
     if (r.patchOutAt === null && st.patch.steel <= 0 && config.economy) r.patchOutAt = st.t;
     if (st.t % 60 === 0) {
@@ -127,11 +140,11 @@ const runs: Run[] = [];
 for (const bot of BOTS) for (const seed of SEEDS) runs.push(run(bot, seed));
 
 console.log(`config ${HASH}  map=${MAP} walk=${WALK ? 1 : 0} economy=${ECONOMY ? 1 : 0} build=${BUILD ? 1 : 0} react=${REACT ? 1 : 0} hours=${HOURS}  overrides ${overridesArg}`);
-console.log('bot      seed amber  amber1  red    red1   loss   encl   lost stalls(first) held60/120/180  front Cu180 steel180 minSteel(at) patchOut asm(built at)          prod180 peakDem(at)   mags  mags/held pressure% slots used/free@60,120,180  dry@60/120/180 mLost');
+console.log('bot      seed amber  amber1  red    red1   amberK redK   loss   encl   lost stalls(first) held60/120/180  front Cu180 steel180 minSteel(at) patchOut asm(built at)          prod180 peakDem(at)   mags  mags/held pressure% slots used/free@60,120,180  dry@60/120/180 mLost');
 for (const r of runs) {
   const asm = r.assemblers.length ? r.assemblers.map(t => m(t)).join(',') : '-';
   console.log(
-    `${r.bot.padEnd(8)} ${String(r.seed).padEnd(4)} ${m(r.firstAmber).padEnd(6)} ${m(r.firstAmberAfter1).padEnd(7)} ${m(r.firstRed).padEnd(6)} ${m(r.firstRedAfter1).padEnd(6)} ${m(r.firstLoss).padEnd(6)} ${m(r.firstEnclosure).padEnd(6)} ` +
+    `${r.bot.padEnd(8)} ${String(r.seed).padEnd(4)} ${m(r.firstAmber).padEnd(6)} ${m(r.firstAmberAfter1).padEnd(7)} ${m(r.firstRed).padEnd(6)} ${m(r.firstRedAfter1).padEnd(6)} ${m(r.firstAmberKitted).padEnd(6)} ${m(r.firstRedKitted).padEnd(6)} ${m(r.firstLoss).padEnd(6)} ${m(r.firstEnclosure).padEnd(6)} ` +
     `${String(r.lost).padEnd(4)} ${(r.stalls + (r.firstStall !== null ? '(' + m(r.firstStall) + ')' : '')).padEnd(13)} ` +
     `${String(r.held[60] ?? 0)}/${String(r.held[120] ?? 0)}/${String(r.held[180] ?? 0)}`.padEnd(15) +
     ` ${String(r.front180).padEnd(5)} ${r.copper180.toFixed(0).padEnd(5)} ${r.steel180.toFixed(0).padEnd(8)} ${(r.minSteel.toFixed(0) + '(' + m(r.minSteelAt) + ')').padEnd(12)} ${m(r.patchOutAt).padEnd(8)} ` +
@@ -148,15 +161,15 @@ const compact = by('compact'), spike = by('spike'), cheapest = by('cheapest');
 const compactOf = (seed: number) => compact.find(r => r.seed === seed);
 // The constitution's seven Phase 2 targets (C1–C7), every seed; then two informational rows the earlier reports tracked.
 const targets: [string, string, boolean, string][] = [
-  ['C1', 'compact: first enclosure before first amber (from minute 1)', all(compact, r => min(r.firstEnclosure) < min(r.firstAmberAfter1)), fmt(compact, r => `encl ${m(r.firstEnclosure)} amber ${m(r.firstAmberAfter1)}`)],
-  ['C2', 'compact: no red before 120 min (from minute 1)', all(compact, r => min(r.firstRedAfter1) >= 120), fmt(compact, r => m(r.firstRedAfter1))],
+  ['C1', 'compact: first enclosure before first amber on a kitted edge (from minute 1, D-R2)', all(compact, r => min(r.firstEnclosure) < min(r.firstAmberKitted)), fmt(compact, r => `encl ${m(r.firstEnclosure)} amber ${m(r.firstAmberKitted)}`)],
+  ['C2', 'compact: no red on a kitted edge before 120 min (from minute 1, D-R2)', all(compact, r => min(r.firstRedKitted) >= 120), fmt(compact, r => m(r.firstRedKitted))],
   ['C3', 'compact: 0 lost and no stall to 180', all(compact, r => r.lost === 0 && r.stalls === 0), fmt(compact, r => `lost ${r.lost} stalls ${r.stalls}`)],
   ['C4', 'spike: red by 90 min', all(spike, r => min(r.firstRed) <= 90), fmt(spike, r => m(r.firstRed))],
   ['C5', 'spike: 1–4 distinct blocks lost by 180', all(spike, r => r.distinctLost >= 1 && r.distinctLost <= 4), fmt(spike, r => `${r.distinctLost} distinct (${r.lost} falls)`)],
   ['C6', 'spike: never more than 2 assemblers before 120 min', all(spike, r => r.maxAsmBefore120 <= 2), fmt(spike, r => `max ${r.maxAsmBefore120}`)],
   ['C7', 'cheapest: no stall; ammo per held block 0.7–1.3× compact', all(cheapest, r => { const c = compactOf(r.seed); return r.stalls === 0 && !!c && c.magsPerHeld > 0 && r.magsPerHeld / c.magsPerHeld >= 0.7 && r.magsPerHeld / c.magsPerHeld <= 1.3; }),
     fmt(cheapest, r => { const c = compactOf(r.seed); return `stalls ${r.stalls} ratio ${c && c.magsPerHeld ? (r.magsPerHeld / c.magsPerHeld).toFixed(2) : '?'}`; })],
-  ['i1', 'info — compact: first amber 60–120 min (CALIBRATION_REPORT T1)', all(compact, r => min(r.firstAmberAfter1) >= 60 && min(r.firstAmberAfter1) <= 120), fmt(compact, r => m(r.firstAmberAfter1))],
+  ['i1', 'info — compact: first amber on a kitted edge 60–120 min (CALIBRATION_REPORT T1)', all(compact, r => min(r.firstAmberKitted) >= 60 && min(r.firstAmberKitted) <= 120), fmt(compact, r => m(r.firstAmberKitted))],
   ['i2', 'info — all: held at 120 min in 20–30 (CALIBRATION_REPORT T7)', all(runs, r => (r.held[120] ?? 0) >= 20 && (r.held[120] ?? 0) <= 30), runs.map(r => `${r.bot[0]}${r.seed}:${r.held[120] ?? 0}`).join(' ')],
 ];
 console.log('');
@@ -167,8 +180,8 @@ const MD = flag('--md', '') && resolve(CWD, flag('--md', ''));
 if (MD) {
   const lines: string[] = [];
   lines.push(`<!-- generated by packages/harness/src/calibrate.ts; config ${HASH}; map=${MAP} walk=${WALK ? 1 : 0} economy=${ECONOMY ? 1 : 0} build=${BUILD ? 1 : 0} react=${REACT ? 1 : 0} hours=${HOURS}; overrides ${overridesArg} -->`, '');
-  lines.push('| bot | seed | enclosure | amber | amber after 1 min | red | red after 1 min | first loss | lost (distinct) | stalls | held 60/120/180 | front 180 | assemblers built at | max asm < 120 | mags | mags/held | steel min (at) | patch out | dry 180 |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
-  for (const r of runs) lines.push(`| ${r.bot} | ${r.seed} | ${m(r.firstEnclosure)} | ${m(r.firstAmber)} | ${m(r.firstAmberAfter1)} | ${m(r.firstRed)} | ${m(r.firstRedAfter1)} | ${m(r.firstLoss)} | ${r.lost} (${r.distinctLost}) | ${r.stalls} | ${r.held[60] ?? 0}/${r.held[120] ?? 0}/${r.held[180] ?? 0} | ${r.front180} | ${r.assemblers.length ? r.assemblers.map(t => m(t)).join(', ') : '–'} | ${r.maxAsmBefore120} | ${r.mags.toFixed(0)} | ${r.magsPerHeld.toFixed(0)} | ${r.minSteel.toFixed(0)} (${m(r.minSteelAt)}) | ${m(r.patchOutAt)} | ${r.slots[180]?.dry ?? '–'} |`);
+  lines.push('| bot | seed | enclosure | amber | amber after 1 min | red | red after 1 min | amber kitted | red kitted | first loss | lost (distinct) | stalls | held 60/120/180 | front 180 | assemblers built at | max asm < 120 | mags | mags/held | steel min (at) | patch out | dry 180 |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  for (const r of runs) lines.push(`| ${r.bot} | ${r.seed} | ${m(r.firstEnclosure)} | ${m(r.firstAmber)} | ${m(r.firstAmberAfter1)} | ${m(r.firstRed)} | ${m(r.firstRedAfter1)} | ${m(r.firstAmberKitted)} | ${m(r.firstRedKitted)} | ${m(r.firstLoss)} | ${r.lost} (${r.distinctLost}) | ${r.stalls} | ${r.held[60] ?? 0}/${r.held[120] ?? 0}/${r.held[180] ?? 0} | ${r.front180} | ${r.assemblers.length ? r.assemblers.map(t => m(t)).join(', ') : '–'} | ${r.maxAsmBefore120} | ${r.mags.toFixed(0)} | ${r.magsPerHeld.toFixed(0)} | ${r.minSteel.toFixed(0)} (${m(r.minSteelAt)}) | ${m(r.patchOutAt)} | ${r.slots[180]?.dry ?? '–'} |`);
   lines.push('', '| target | result | per seed |', '|---|---|---|');
   for (const [id, what, ok, val] of targets) lines.push(`| ${id} ${what} | ${ok ? 'MET' : 'MISSED'} | ${val} |`);
   writeFileSync(MD, lines.join('\n') + '\n');

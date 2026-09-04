@@ -100,7 +100,7 @@ export const RUBBLE_VARIANTS = 5;
 export const DEPOSIT_CELL_FRACTION = 0.25, DEPOSIT_TILES = 160, DEPOSIT_IRON_FRACTION = 0.6;
 /** GAME-ASSUMPTION: rubble sits in clusters (three blob centres per lot, σ = 6 tiles) so a lot reads as heaps with
  *  clear ground between them, as in the §18 sketch, rather than as a uniform speckle. */
-const CLUSTERS = 3, SIGMA = 6;
+export const CLUSTERS = 3, SIGMA = 6;
 
 export function rubbleOf(name: District): RubbleType | null {
   return name === 'civ' ? 'stone' : name === 'res' ? 'copper' : name === 'ind' ? 'steel' : null;
@@ -202,7 +202,7 @@ export function rubbleLeft(st: SimState, b: Block): number {
 
 export function isStart(st: SimState, b: Pick<Block, 'x' | 'y'>): boolean { return b.x === st.start[0] && b.y === st.start[1]; }
 
-/** Lot tiles a block's machines (or the player's hands) have dug out, from the M2 flow state; empty without it. */
+/** Tiles (global index) a block's machines or the engineer's hands have dug out, from the flow state; empty without it. */
 export function dugTiles(st: SimState, b: Block): readonly number[] {
   return st.flow?.dug[b.x * st.h + b.y] ?? NONE;
 }
@@ -270,8 +270,10 @@ export function cellTiles(st: SimState, x: number, y: number): CellTiles {
       kind[ti] = T_PATCH; patch[ti] = p.type;
     }
   }
-  for (const li of dug) {
-    const lx = li % LOT_TILES, ly = (li - lx) / LOT_TILES, ti = (ly + MARGIN_TILES) * CELL_TILES + lx + MARGIN_TILES;
+  const tw = st.w * CELL_TILES, ox = x * CELL_TILES, oy = y * CELL_TILES;
+  for (const t of dug) {   // global tile indices (ground.ts) since prompt B M1
+    const gx = t % tw, gy = (t - gx) / tw, ti = (gy - oy) * CELL_TILES + (gx - ox);
+    if (ti < 0 || ti >= CELL_TILES * CELL_TILES) continue;
     if (kind[ti] === T_RUBBLE || kind[ti] === T_PATCH || kind[ti] === T_DEPOSIT) { kind[ti] = T_GROUND; variant[ti] = 0; patch[ti] = 0; }
   }
   return { x, y, kind, variant, patch, rubble: inert ? null : lay.rubble, deposit: inert ? null : lay.deposit, rubbleTiles: inert ? 0 : lay.tiles, rubbleLeft: left };

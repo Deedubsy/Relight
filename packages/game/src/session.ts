@@ -8,8 +8,9 @@ import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } fro
 
 /** `state` names a snapshot: a bare name resolves to /snapshots/<name>.json (shipped with the proto), a path or URL
  *  is fetched as is. A snapshot is a raw SimState, or a telemetry export (whose `finalState` is taken). */
-/** `map`: a D6 city preset (default river) or `lattice` for the Phase 1–4 grid; `walk`: D5's engineer on foot (?walk=1). */
-export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean; map: 'lattice' | CityPreset; walk: boolean }
+/** `map`: a D6 city preset (default river) or `lattice` for the Phase 1–4 grid. (M1: the `walk` flag is gone — the
+ *  engineer always walks, on foot in the world view, block-level under a bot.) */
+export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean; map: 'lattice' | CityPreset }
 
 export function parseUrl(search: string): UrlParams {
   const q = new URLSearchParams(search);
@@ -25,7 +26,6 @@ export function parseUrl(search: string): UrlParams {
     view: q.get('view') === 'world' ? 'world' : 'map',
     flow: q.get('flow') !== '0',
     map: mapParam(q.get('map')),
-    walk: q.get('walk') === '1',
   };
 }
 
@@ -44,7 +44,6 @@ export function shareUrl(p: UrlParams): string {
   }
   if (!p.flow) q.set('flow', '0');
   if (p.map !== 'river') q.set('map', p.map);
-  if (p.walk) q.set('walk', '1');
   const u = new URL(location.href);
   u.search = q.toString();
   return u.toString();
@@ -82,10 +81,10 @@ export interface Session {
  *  schedule is replaced by one assembler at the start plus whatever the player builds. The numbers come from
  *  PROTO_CALIBRATED (types.ts, proto section), the same block the calibration harness runs. */
 export function protoConfig(p: UrlParams): SimConfig {
-  // GAME-ASSUMPTION (rework D5): the engineer walks only when a bot plays (?walk=1&autoplay=…). A human clicking
-  // claims on the map has no way to walk yet — the on-foot controls come with slice M1 — so walk on with a human
-  // would leave every edge waiting for a kit that never arrives.
-  return protoCalibrated({ ...DEFAULT_CONFIG, scatter: p.scatter, economy: p.economy, walk: p.walk && !!p.autoplay });
+  // M1 (D5): the engineer always walks. On foot in the world view (walk.ts: WASD, click-to-walk, the map's click on a
+  // block), block-level under a harness bot (engineer.ts). A claim's edges wait for a kit the engineer carries there;
+  // the pockets panel (I) draws kits from the Depot chest.
+  return protoCalibrated({ ...DEFAULT_CONFIG, scatter: p.scatter, economy: p.economy, walk: true });
 }
 
 /** A fresh session (scenario A) or one continuing from `snapshot` (scenario B). A snapshot starts paused so the
@@ -96,16 +95,13 @@ export function createSession(params: UrlParams, snapshot: SimState | null = nul
     state = JSON.parse(JSON.stringify(snapshot)) as SimState;
     state.events = []; state.acc = 0; state.speed = 0;
     state.survivors ??= [];
-    params = { ...params, seed: state.seed, economy: state.config.economy, scatter: state.config.scatter, map: state.city ? (state.city.preset as CityPreset) : 'lattice', walk: !!state.config.walk };
+    params = { ...params, seed: state.seed, economy: state.config.economy, scatter: state.config.scatter, map: state.city ? (state.city.preset as CityPreset) : 'lattice' };
   } else {
-    // GAME-ASSUMPTION (rework D6): the map is the street-first city unless ?map=lattice; its tile flow layer is off
-    // (the world view's tile port to irregular lots is slice M1), so flow is forced off on a city.
-    if (params.map !== 'lattice') params = { ...params, flow: false };
+    // D6: the map is the street-first city unless ?map=lattice; M1 put the tile layer on its faces, so flow is on there too
     const config = protoConfig(params);
     const spec = params.map === 'lattice' ? generateMap(params.seed, config) : citySpec(params.seed, params.map, config);
     state = createState(spec, config, params.seed);
   }
-  if (state.city) params = { ...params, flow: false };
   // GAME-ASSUMPTION (M2): the tile flow layer is on for every session unless ?flow=0 (bot comparisons against the
   // block-only calibration runs). Turning it on retires the HQ's Mk1 stand-in: hour one's magazines come from the
   // line the player builds on the HQ lot, or from hand-crafting (D-P4-5). A block-only snapshot gets its flow here.
