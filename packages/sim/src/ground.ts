@@ -8,13 +8,13 @@
 import { SimState, Block, INERT, VOID } from './types';
 import { hash01 } from './prng';
 import { LATTICE_AREA } from './graph';
-import { generateCity, CityGeom, CityPreset, STREET, WATER, segBetween } from './city';
+import { generateCity, CityGeom, CityPreset, CitySeg, STREET, WATER, segBetween, frontTiles } from './city';
 import { poolMax } from './queries';
 import { blockAtHook, REACH } from './engineer';
 import {
   CELL_TILES, LOT_TILES, MARGIN_TILES, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
   HQ_PATCHES, hqReserved, HQ_RUBBLE_TILES, HQ_CLEAR_ROWS, SUBSTATION_TILES, HQ_SUBSTATION, substationLot,
-  STREETLIGHT_STEP, STREETLIGHT_BROKEN, Streetlight, streetlights, RUBBLE_TILES_MIN, RUBBLE_TILES_MAX, RUBBLE_VARIANTS,
+  STREETLIGHT_BROKEN, Streetlight, streetlights, RUBBLE_TILES_MIN, RUBBLE_TILES_MAX, RUBBLE_VARIANTS,
   DEPOSIT_CELL_FRACTION, DEPOSIT_TILES, DEPOSIT_IRON_FRACTION, CLUSTERS, SIGMA, RubbleType, DepositType, rubbleOf,
   depthFrac, lotLayout, isMargin, TILE_NAMES, PATCH_NAMES,
 } from './tiles';
@@ -165,16 +165,13 @@ function cityGround(st: SimState): Ground {
   return G;
 }
 
-/** The face's substation: the 3×3 fully inside the face nearest the midpoint of its longest street (M3: "a
- *  street-side spot on the face's longest ridge"); a face with no room for one gets a 1×1 on its pole tile. */
+/** D-B1-4: the face's substation is the 3×3 fully inside the face nearest the lot's centroid (the mean of its tiles);
+ *  a face with no room for one gets a 1×1 on its pole tile (GA-B1-1). */
 function faceSubstation(G: Ground, cg: CityGeom, i: number): Substation {
-  const cb = cg.blocks[i];
-  let mx = cb.cx, my = cb.cy, best = -1;
-  for (const j of cb.nb) {
-    const s = segBetween(cg, i, j);
-    if (s && s.len > best) { best = s.len; mx = s.mx; my = s.my; }
-  }
-  const tw = G.tw;
+  const cb = cg.blocks[i], tw = G.tw;
+  let mx = 0, my = 0;
+  for (let k = 0; k < cb.tiles.length; k++) { const t = cb.tiles[k], tx = t % tw; mx += tx + 0.5; my += (t - tx) / tw + 0.5; }
+  mx /= cb.tiles.length; my /= cb.tiles.length;
   let bestT = -1, bestD = Infinity;
   for (let k = 0; k < cb.tiles.length; k++) {
     const t = cb.tiles[k], tx = t % tw, ty = (t - tx) / tw;
@@ -189,26 +186,64 @@ function faceSubstation(G: Ground, cg: CityGeom, i: number): Substation {
   return { x: bestT % tw, y: (bestT - bestT % tw) / tw, size: SUBSTATION_TILES };
 }
 
-/** GAME-ASSUMPTION: a face's streetlights stand on the street tiles that border it (its side of the watershed),
- *  one every ≥ 3 tiles round the boundary in tile order, 3 in 8 broken as on the lattice (§13). */
+/** GAME-ASSUMPTION (D-B1-4): a face's streetlights stand along each street segment's kerb (the street tiles on the
+ *  face's side of the watershed that border its lot), one every FACE_LIGHT_STEP tiles along the segment, so a
+ *  segment's count comes from its length (a 32-tile segment gets 8, the lattice's count); 3 in 8 broken as on the
+ *  lattice (§13). This replaces the lattice's "8 per side". */
+export const FACE_LIGHT_STEP = 4;
+
+/** The ridge's unit direction (from its midpoint to its farthest tile), for ordering tiles along a segment. */
+export function segAxis(sg: CitySeg, tw: number): [number, number] {
+  let ax = 1, ay = 0, bd = -1;
+  for (let k = 0; k < sg.ridge.length; k++) {
+    const t = sg.ridge[k], tx = t % tw, ty = (t - tx) / tw, d = Math.hypot(tx - sg.mx, ty - sg.my);
+    if (d > bd) { bd = d; ax = tx - sg.mx; ay = ty - sg.my; }
+  }
+  const L = Math.hypot(ax, ay) || 1;
+  return [ax / L, ay / L];
+}
+
+/** D-B1-4: a segment's length in tiles along its axis (the extent of its ridge's projection on `segAxis`). `CitySeg.len`
+ *  counts ridge tiles, which is about twice this on a two-wide ridge; the per-length rules (§5, §13) use this. */
+export function segLength(sg: CitySeg, tw: number): number {
+  const [ux, uy] = segAxis(sg, tw);
+  let lo = Infinity, hi = -Infinity;
+  for (let k = 0; k < sg.ridge.length; k++) {
+    const t = sg.ridge[k], tx = t % tw, ty = (t - tx) / tw, s = (tx - sg.mx) * ux + (ty - sg.my) * uy;
+    if (s < lo) lo = s; if (s > hi) hi = s;
+  }
+  return sg.ridge.length ? hi - lo + 1 : 0;
+}
+
+/** D-B1-4: a face's streetlights stand on the kerb — the street tiles that border its front ring on its side of the
+ *  watershed — one every FACE_LIGHT_STEP tiles along each segment (GAME-ASSUMPTION: 4), so the count per segment is
+ *  its length over the step; 3 in 8 broken as on the lattice (§13). Corners: two segments never share a kerb tile. */
 function faceLights(G: Ground, cg: CityGeom, seed: number, i: number): Streetlight[] {
   const cb = cg.blocks[i], tw = G.tw, th = G.th;
-  const cand = new Map<number, number>();   // street tile → side it faces from the lot
-  for (let k = 0; k < cb.tiles.length; k++) {
-    const t = cb.tiles[k], tx = t % tw, ty = (t - tx) / tw;
-    if (ty > 0 && cg.kind[t - tw] === STREET && cg.near[t - tw] === i) cand.set(t - tw, 0);
-    if (tx < tw - 1 && cg.kind[t + 1] === STREET && cg.near[t + 1] === i) cand.set(t + 1, 1);
-    if (ty < th - 1 && cg.kind[t + tw] === STREET && cg.near[t + tw] === i) cand.set(t + tw, 2);
-    if (tx > 0 && cg.kind[t - 1] === STREET && cg.near[t - 1] === i) cand.set(t - 1, 3);
-  }
-  const keys = [...cand.keys()].sort((a, b) => a - b);
   const out: Streetlight[] = [];
-  for (const t of keys) {
-    const tx = t % tw, ty = (t - tx) / tw;
-    let ok = true;
-    for (const l of out) if (Math.max(Math.abs(l.tx - tx), Math.abs(l.ty - ty)) < STREETLIGHT_STEP) { ok = false; break; }
-    if (!ok) continue;
-    out.push({ tx, ty, side: cand.get(t)!, broken: hash01(seed, 40, tx, ty) < STREETLIGHT_BROKEN });
+  for (const j of cb.nb) {
+    const sg = segBetween(cg, i, j);
+    if (!sg) continue;
+    const front = frontTiles(cg, i, j);
+    const cand = new Map<number, number>();   // kerb street tile → the side it faces from the lot
+    for (let k = 0; k < front.length; k++) {
+      const t = front[k], tx = t % tw, ty = (t - tx) / tw;
+      if (ty > 0 && cg.kind[t - tw] === STREET && cg.near[t - tw] === i) cand.set(t - tw, 0);
+      if (tx < tw - 1 && cg.kind[t + 1] === STREET && cg.near[t + 1] === i) cand.set(t + 1, 1);
+      if (ty < th - 1 && cg.kind[t + tw] === STREET && cg.near[t + tw] === i) cand.set(t + tw, 2);
+      if (tx > 0 && cg.kind[t - 1] === STREET && cg.near[t - 1] === i) cand.set(t - 1, 3);
+    }
+    const [ux, uy] = segAxis(sg, tw);
+    const along = [...cand.keys()].map(t => { const tx = t % tw, ty = (t - tx) / tw; return { t, tx, ty, s: (tx - sg.mx) * ux + (ty - sg.my) * uy }; }).sort((a, b) => a.s - b.s || a.t - b.t);
+    let last = -Infinity;
+    for (const c of along) {
+      if (c.s < last + FACE_LIGHT_STEP) continue;
+      let ok = true;
+      for (const l of out) if (Math.max(Math.abs(l.tx - c.tx), Math.abs(l.ty - c.ty)) < 2) { ok = false; break; }   // corners: two segments share a kerb tile
+      if (!ok) continue;
+      last = c.s;
+      out.push({ tx: c.tx, ty: c.ty, side: cand.get(c.t)!, broken: hash01(seed, 40, c.tx, c.ty) < STREETLIGHT_BROKEN });
+    }
   }
   return out;
 }

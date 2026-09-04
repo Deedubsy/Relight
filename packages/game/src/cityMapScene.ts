@@ -133,16 +133,23 @@ export class CityMapScene extends Phaser.Scene implements MapView {
       this.lastPaint = -1e9;
       return;
     }
+    const st = this.session.state, g = this.geom;
+    const tx = Math.floor((p.x - PAD) / this.ppt), ty = Math.floor((p.y - PAD) / this.ppt);
+    const onMap = tx >= 0 && ty >= 0 && tx < g.tw && ty < g.th;
+    const owner = onMap ? g.owner[ty * g.tw + tx] : -2;
+    // D-B1-5: a click on a street tile or a Held block's tile sets a walk-here target (the A* in walk.ts) — the only
+    // auto-walk the player has; any WASD input cancels it. A Dark block claims (and nothing walks).
+    if (st.flow && onMap && (owner === -1 || (owner >= 0 && st.blocks[owner].state === HELD))) {
+      queue(this.session, { type: 'move', x: tx + 0.5, y: ty + 0.5 });
+      return;
+    }
     const i = this.blockAtPixel(p.x, p.y);
     if (i < 0) return;
-    const st = this.session.state, b = st.blocks[i];
+    const b = st.blocks[i];
     if (b.state === DARK) {
       const info = claimInfo(st, b.x, b.y);
       if (info.ok) queue(this.session, { type: 'claim', x: b.x, y: b.y });
     }
-    // M1 (D5): a click on any block sets a walk target on its pole tile — a claim included, so the engineer carries
-    // its kit there. Walking anywhere is harmless.
-    if (st.flow) queue(this.session, { type: 'walkTo', block: i });
   }
 
   selectEdge(id: number | null): void { this.selectedEdge = id; this.lastPaint = -1e9; }

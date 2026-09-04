@@ -8,7 +8,7 @@ import {
 import { hash01, rngNext, seedRng, pyRound } from './prng';
 import { districtBase } from './districts';
 import { latticeGraph, bfsHops, edgeId, LATTICE_AREA } from './graph';
-import { createEngineer, tickEngineer, rifle, engineerCommand } from './engineer';
+import { createEngineer, tickEngineer, rifle, rifleHits, engineerCommand, bornFed } from './engineer';
 
 // ------------------------------------------------------------------ config
 
@@ -97,6 +97,8 @@ export const isSolid = (s: number) => s === HELD || s === INERT;
  *  shedOne / restoreOne: the §14 order among tile machines; a shed machine is stack entry -(id + 2). */
 export interface TileHooks {
   syncEdges(st: SimState): void;
+  /** D-B1-4: whether physical turrets already cover this edge (a new edge born covered is born kitted). */
+  covered(st: SimState, edgeId: number): boolean;
   drainEdges(st: SimState, fired: Float64Array): void;
   supplyKw(st: SimState): number;
   demandKw(st: SimState, unshed: boolean): number;
@@ -460,24 +462,26 @@ export function syncEdges(st: SimState): void {
     ring[w++] = e;
   }
   ring.length = w;
-  // D5: with `walk` on, a new edge starts unkitted unless the engineer stands on the block with a kit in their pockets.
-  // GAME-ASSUMPTION (prompt B M1): §11's HQ ring is built at minute 0 — the start turrets are its kit — so the HQ's own
-  // edges start kitted at t = 0; every later edge (a claim's, or an HQ edge reopened by a lost neighbour) waits for a
-  // kit the engineer carries. The harness bots restocked and laid four kits on the HQ in the first second, which hid
-  // this; a human with no bot fired nothing until they took kits from the chest (found by the first city soak).
-  const eng = st.engineer, walk = st.config.walk, startIdx = idxOf(st, st.start[0], st.start[1]);
+  // D5: with `walk` on, a new edge starts unkitted unless the engineer stands on the block with a kit in their pockets
+  // or (D-B1-4) physical turrets already cover it: the turrets are the kit, so an edge born covered is born kitted,
+  // whichever block it is on and whenever it is born. (M1 had an HQ-at-t=0 special case here instead; D-B1-4 replaced
+  // it with the rule, since every HQ segment now gets its turrets from its length.) A block-only state (the harness's
+  // block sim, no tile layer) has no turrets to ask: there the §11 start ring is abstract (GAME-ASSUMPTION), so its HQ
+  // edges at t = 0 are born kitted as the block-level stand-in for `startTurrets` and every later edge waits for the bots' kits.
+  const eng = st.engineer, walk = st.config.walk, th = tiles(st), startIdx = idxOf(st, st.start[0], st.start[1]);
   for (let i = 0; i < B.length; i++) {
     if (B[i].state !== HELD) continue;
     const ns = st.nb[i];
     for (let k = 0; k < ns.length; k++) {
       const id = i * deg + k;
       if (mark[id] !== stamp || st.edgeAt[id] !== -1) continue;
-      const e: Edge = { id, a: i, b: ns[k], hopper: 0, empty: 0 };
+      const e: Edge = { id, a: i, b: ns[k], hopper: 0, empty: 0, born: st.t };
       if (walk) {
-        if (i === startIdx && st.t === 0) e.kit = true;
+        if (th ? th.covered(st, id) : (i === startIdx && st.t === 0)) e.kit = true;
         else if (eng.block === i && (eng.inv.kit ?? 0) >= 1) { eng.inv.kit -= 1; if (eng.inv.kit <= 0) delete eng.inv.kit; e.kit = true; }
         else e.kit = false;
       }
+      if (e.kit !== false) bornFed(st, e);
       ring.push(e);
       st.edgeAt[id] = -2;   // placeholder, fixed below
     }
@@ -835,6 +839,10 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     // M3: an edge with physical turrets fires at most what they can this second (5 rounds/s each, §13); the rounds
     // come out of the turrets' hoppers below. A stand-in edge has no rate limit, as before.
     const fired = th ? new Float64Array(ring.length) : null;
+    // D-B1-5 telemetry (§19): a second is "danger" when a crawler is on the player — retaliation from a rifle kill,
+    // or crawlers past the turrets on the block the engineer stands on. dangerShot: of those, seconds the rifle fired.
+    const player = st.engineer;
+    let dangerNow = false, shotNow = false;
     for (let q = 0; q < eng.length; q++) {
       const en = eng[q];
       const ri = st.edgeAt[en.id];
@@ -844,7 +852,12 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       let budget = e.kit === false ? 0 : e.turrets && fired ? Math.min(e.hopper, (e.fire ?? 0) - fired[ri]) : e.hopper;   // D5: an unkitted edge fires nothing
       const fed = Math.min(a, budget / 3.0); e.hopper -= fed * 3.0; budget -= fed * 3.0;
       let un = a - fed;
-      if (un > 1e-9 && st.engineer.firing === en.id) un -= rifle(st, en.id, un, 1);   // D5: the rifle takes what the turrets missed
+      if (un > 1e-9) {   // D5: the rifle takes what the turrets missed — the bots' targeted rifle, or the aimed rounds walk.ts put on this edge
+        const k = player.firing === en.id ? rifle(st, en.id, un, 1) : rifleHits(st, en.id, un);
+        if (k > 1e-9) { dangerNow = true; shotNow = true; }
+        un -= k;
+      }
+      if (un > 1e-9 && e.a === player.block && player.down < 0) dangerNow = true;
       const s_ = Math.min(en.sh, en.rsh); en.sh -= s_;
       const fedS = Math.min(s_, budget / 10.0); e.hopper -= fedS * 10.0;
       if (fired) fired[ri] += fed * 3.0 + fedS * 10.0;
@@ -861,6 +874,8 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       if (en.cr > 1e-9 || en.sh > 1e-9) eng[w++] = en;
     }
     eng.length = w;
+    if (dangerNow) { player.danger++; const h = Math.floor(t / 3600); player.dangerHour[h] = (player.dangerHour[h] ?? 0) + 1; if (shotNow) player.dangerShot++; }
+    player.shots = {}; player.iframes = 0;   // rounds that found no crawler this second are gone; the dodge's cover is spent
     if (th && fired) th.drainEdges(st, fired);
     for (let r = 0; r < ring.length; r++) {
       const e = ring[r];

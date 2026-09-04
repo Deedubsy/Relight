@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
 import { SimEvent, flowSummary, canPlace, place, remove, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
-  hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround,
+  hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
 } from '@relight/sim';
 import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue } from './session';
 import { MapScene, MapView, SceneHooks, MAP_W, MAP_H } from './mapScene';
 import { CityMapScene } from './cityMapScene';
-import { WorldScene } from './worldScene';
+import { WorldScene, Tool } from './worldScene';
 import { View } from './view';
 import { createPanel } from './panel';
 import { exportJson, summarise } from './telemetry';
@@ -80,7 +80,8 @@ const hooks: SceneHooks = {
 };
 // D6: the city map draws polygons; the lattice MapScene stays for ?map=lattice and the lattice-era snapshots
 const mapScene: MapView = session.state.city ? new CityMapScene(session, hooks) : new MapScene(session, hooks);
-const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind) });
+const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind), onChest: () => panel.togglePockets() });
+panel.onPick = kind => { worldScene.setTool(kind); panel.toast(`${kind} in hand — left-click places it, R rotates, right-click clears the hand`); };
 game.scene.add('map', mapScene, view.mode === 'map');
 game.scene.add('world', worldScene, view.mode === 'world');
 if (view.mode === 'world') worldScene.centreOn(view.focus[0], view.focus[1]);
@@ -121,16 +122,25 @@ function toggleView(): void {
   panel.setView(view.mode);
 }
 
+/** D-B1-5 keys: P pause, - / = speed (1×, 4×, 16×), M map ↔ world, Tab or I the pockets, B the build menu, Esc closes
+ *  anything and clears the hand, ` the debug panel; Space is the dodge and the digits the hotbar, both the world
+ *  scene's (Shift sprints there too). */
+const SPEEDS = [1, 4, 16];
 window.addEventListener('keydown', ev => {
   if ((ev.target as HTMLElement)?.tagName === 'INPUT') return;
-  if (ev.key === ' ') { ev.preventDefault(); setSpeed(session, session.state.speed === 0 ? 1 : 0); }
-  else if (ev.key === '1') setSpeed(session, 1);
-  else if (ev.key === '2') setSpeed(session, 4);
-  else if (ev.key === '3') setSpeed(session, 16);
-  else if (ev.key === 'm' || ev.key === 'M') toggleView();   // D5: M = map view
-  else if (ev.key === 'i' || ev.key === 'I') panel.togglePockets();   // M1: the pockets and the Depot chest
-  else if (ev.key === '`') panel.toggleDebug();
-  else if (view.mode === 'world' && worldScene.key(ev.key)) ev.preventDefault();
+  const k = ev.key;
+  if (k === 'p' || k === 'P') setSpeed(session, session.state.speed === 0 ? 1 : 0);
+  else if (k === '-' || k === '_' || k === '=' || k === '+') {
+    const cur = SPEEDS.indexOf(session.state.speed), next = k === '-' || k === '_' ? Math.max(0, cur - 1) : Math.min(SPEEDS.length - 1, cur + 1);
+    setSpeed(session, SPEEDS[cur < 0 ? 0 : next]);
+  }
+  else if (k === 'm' || k === 'M') toggleView();   // D5: M = map view
+  else if (k === 'i' || k === 'I' || k === 'Tab') { ev.preventDefault(); panel.togglePockets(); }   // M1: the pockets and the Depot chest
+  else if (k === 'b' || k === 'B') panel.toggleBuild();
+  else if (k === '`') panel.toggleDebug();
+  else if (k === 'Escape') { panel.closeAll(); if (view.mode === 'world') worldScene.key(k); }
+  else if (k === ' ') { if (view.mode === 'world') ev.preventDefault(); }   // the dodge (worldScene reads the key itself)
+  else if (view.mode === 'world' && worldScene.key(k)) ev.preventDefault();
 });
 
 // dev/test hooks (not player controls)
@@ -144,14 +154,28 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   stateJson: () => JSON.stringify(session.state),
   configHash: session.telemetry.meta.configHash,
   toggleView,
-  /** M1 (prompt B): the bots' hooks. `walkTo(x, y)` sets a click-to-walk target on a tile; `engineer()` reads the
-   *  engineer (tile position, block, pockets, HP, path length left). */
+  /** M1 (prompt B): the bots' and dev hooks — not player controls (D-B1-5). `walkTo(x, y)` sets a walk-here target on
+   *  a tile (the map view's click does the same for the player); `engineer()` reads the engineer (tile position,
+   *  block, pockets, HP, stamina, path length left); `sprint`, `dodge` and `aim` drive the body the way the keys do. */
   walkTo: (x: number, y: number) => queue(session, { type: 'move', x: x + 0.5, y: y + 0.5 }),
+  sprint: (on: boolean) => queue(session, { type: 'sprint', on }),
+  dodge: () => queue(session, { type: 'dodge' }),
+  aim: (at: [number, number] | null) => queue(session, { type: 'aim', at }),
+  setTool: (t: Tool) => worldScene.setTool(t),
   engineer: () => {
     const e = session.state.engineer, p = currentPath(session.state);
-    return { x: e.x, y: e.y, block: e.block, dest: e.dest, target: e.target, hp: e.hp, down: e.down, inv: { ...e.inv }, stacks: invStacks(e.inv), walked: e.walked, pathLeft: p ? p.path.length - p.at : 0 };
+    return { x: e.x, y: e.y, block: e.block, dest: e.dest, target: e.target, hp: e.hp, down: e.down, inv: { ...e.inv }, stacks: invStacks(e.inv), walked: e.walked, pathLeft: p ? p.path.length - p.at : 0,
+             stamina: e.stamina, dash: e.dash, fired: e.fired, kills: e.kills, hurt: e.hurt, shootS: e.shootS, danger: e.danger, dangerShot: e.dangerShot };
   },
   ground: () => { const G = ground(session.state); return { tw: G.tw, th: G.th, blocks: G.blocks.length }; },
+  /** Dev hook (D-B1-5 check): a street segment's ridge midpoint and the lot tile of block `a` nearest it. */
+  edgeGeom: (a: number, b: number) => {
+    const st = session.state, cg = cityGeomOf(st), G = ground(st), sg = segBetween(cg, a, b);
+    if (!sg) return null;
+    let best = -1, bd = Infinity;
+    for (const t of cg.blocks[a].tiles) { const tx = t % G.tw, ty = Math.floor(t / G.tw), d = Math.hypot(tx - sg.mx, ty - sg.my); if (d < bd && !st.flow?.occ[t]) { bd = d; best = t; } }
+    return { mx: sg.mx, my: sg.my, len: sg.len, standX: best % G.tw + 0.5, standY: Math.floor(best / G.tw) + 0.5, dist: bd };
+  },
   describe: (tx: number, ty: number) => describeGround(session.state, tx, ty),
   chest: {
     count: (item: ChestItem) => chestCount(session.state, item),
@@ -160,7 +184,7 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   },
   togglePockets: () => panel.togglePockets(),
   world: { get zoom() { return worldScene.zoom; }, drawMs: () => { const r = { ema: +worldScene.drawMs.toFixed(2), worst: +worldScene.drawWorstMs.toFixed(1) }; worldScene.drawWorstMs = 0; return r; }, setZoom: (z: number) => worldScene.setZoom(z), centreOn: (x: number, y: number) => worldScene.centreOn(x, y), focus: () => worldScene.focusBlock(), get drawn() { return worldScene.drawn; },
-           get tool() { return worldScene.tool; }, key: (k: string) => worldScene.key(k) },
+           get tool() { return worldScene.tool; }, key: (k: string) => worldScene.key(k), screenOf: (x: number, y: number) => worldScene.screenOf(x, y) },
   /** M2 flow layer: place/remove/rotate by city tile, `hq(lx, ly)` = city tile of a lot tile on the HQ lot. */
   flow: {
     summary: () => flowSummary(session.state),

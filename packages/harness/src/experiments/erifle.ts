@@ -62,20 +62,27 @@ export const ERIFLE: Experiment = {
 
     // E-rifle-steady: compact, walking, rifle on vs off
     const rows: (string | number)[][] = [];
-    const diffs: number[] = [], lostR: number[] = [], shots: number[] = [];
+    const diffs: number[] = [], lostR: number[] = [], shots: number[] = [], shootPct: number[] = [], dangerPct: number[] = [], dangerShotShare: number[] = [];
     for (const seed of seeds) {
       const off = runSim({ seed, policy: 'compact', hours, walk: true, rifle: false });
       const on = runSim({ seed, policy: 'compact', hours, walk: true, rifle: true });
       const diff = (on.totalMags - off.totalMags) / off.totalMags * 100;
-      diffs.push(diff); lostR.push(on.lost); shots.push(on.engineer.firstShot);
+      const secs = hours * 3600, sp = 100 * on.engineer.shootS / secs, dp = 100 * on.engineer.danger / secs, ds = on.engineer.danger > 0 ? on.engineer.dangerShot / on.engineer.danger : 0;
+      diffs.push(diff); lostR.push(on.lost); shots.push(on.engineer.firstShot); shootPct.push(sp); dangerPct.push(dp); dangerShotShare.push(ds);
       rows.push([seed, off.totalMags.toFixed(0), on.totalMags.toFixed(0), diff.toFixed(2) + ' %', off.lost, on.lost, on.engineer.fired.toFixed(0), on.engineer.kills.toFixed(1),
-                 min(on.engineer.firstShot), on.engineer.hurt.toFixed(0), on.engineer.downs]);
+                 min(on.engineer.firstShot), on.engineer.hurt.toFixed(0), on.engineer.downs, sp.toFixed(2) + ' %', dp.toFixed(2) + ' %', (100 * ds).toFixed(0) + ' %']);
     }
     sections.push({ title: 'E-rifle-steady: compact, engineer walking, 5 h; the bot fires at a red engaged edge of the block it stands on',
-      header: ['seed', 'magazines (no rifle)', 'magazines (rifle)', 'diff', 'lost (no rifle)', 'lost (rifle)', 'rifle rounds', 'kills', 'first shot (min)', 'HP lost', 'downs'], rows });
-    data.steady = { diffs, lost: lostR, firstShot: shots };
+      note: 'D-B1-5 (§19): shooting = seconds the rifle fired, as a share of the run; danger = seconds with a crawler on the player (retaliation from a rifle kill, or crawlers past the turrets on the block the engineer stands on); "from the rifle" = the share of danger seconds in which the rifle fired.',
+      header: ['seed', 'magazines (no rifle)', 'magazines (rifle)', 'diff', 'lost (no rifle)', 'lost (rifle)', 'rifle rounds', 'kills', 'first shot (min)', 'HP lost', 'downs', 'shooting', 'danger', 'from the rifle'], rows });
+    data.steady = { diffs, lost: lostR, firstShot: shots, shootPct, dangerPct, dangerShotShare };
     checks.push(within('rework: the rifle changes the 5 h ammo bill by < 5 % (mean |diff|)', mean(diffs.map(Math.abs)), 0, 5, ' %'));
     checks.push(isTrue('rework: nothing lost with the rifle in steady play', lostR.every(l => l === 0), `lost per seed ${lostR.join('/')}`));
+    checks.push(within('§19: shooting time ≤ 10 % of an hour (max over seeds)', Math.max(...shootPct), 0, 10, ' %'));
+    const worstDanger = Math.max(...dangerPct), worstIdx = dangerPct.indexOf(worstDanger);
+    const why = worstDanger > 5 ? (dangerShotShare[worstIdx] >= 0.5 ? 'the rifle is too tempting (most danger seconds are the rifle firing)' : 'retaliation is too eager (most danger seconds come without the rifle firing)') : 'within the guard';
+    checks.push(within(`§19 (D-B1-5): time in danger ≤ 5 % of an hour (max over seeds) — ${why}`, worstDanger, 0, 5, ' %'));
+    data.dangerVerdict = why;
 
     // E-rifle-rescue
     const rrows: (string | number)[][] = [];

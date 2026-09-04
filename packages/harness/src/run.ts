@@ -43,7 +43,8 @@ export interface RunSummary {
   wellHeldAt: number[];   // seconds at which a well block itself became Held (the bot took the well head-on)
   bufferAt: Record<number, number>;                     // rounds in the buffer at each hour mark
   ticks: number;
-  engineer: { walkedHour: number[]; fired: number; firstShot: number; hurt: number; downs: number; kills: number; truckAt: number };
+  engineer: { walkedHour: number[]; fired: number; firstShot: number; hurt: number; downs: number; kills: number; truckAt: number;
+              shootS: number; danger: number; dangerShot: number };   // D-B1-5 (§19): seconds shooting, seconds in danger, of those seconds the rifle fired
   walks: { t: number; reason: string; tiles: number }[];
 }
 
@@ -135,7 +136,7 @@ export function runSim(o: RunOpts): RunSummary {
              firstBrownout: st.stats.firstBrownout, lostInWindow: st.stats.lostInWindow, lostAfterWindow: st.stats.lostAfterWindow },
     wellsDead: st.stats.wellsDead,
     engineer: { walkedHour: st.engineer.walkedHour.slice(), fired: st.engineer.fired, firstShot: st.engineer.firstShot, hurt: st.engineer.hurt,
-                downs: st.engineer.downs, kills: st.engineer.kills, truckAt },
+                downs: st.engineer.downs, kills: st.engineer.kills, truckAt, shootS: st.engineer.shootS, danger: st.engineer.danger, dangerShot: st.engineer.dangerShot },
     walks: bot.walks.map(w => ({ ...w })),
     firstShade, firstHulk, hqFell, wellDeadAt, wellHeldAt, bufferAt,
     ticks,

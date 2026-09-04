@@ -30,8 +30,8 @@ Did the burn-off make you say something? —
 
 | # | Where | Assumption | Resolves at |
 |---|---|---|---|
-| GA-B1-1 | `ground.ts:31` | A face too thin for a 3×3 substation gets a 1×1 stand-in on its pole tile (none on seeds 3/4/5). | M5 Light (D-B1-4) |
-| GA-B1-2 | `ground.ts:192` | A face's streetlights stand on the street tiles that border it, one every ≥ 3 tiles round the boundary in tile order, 3 in 8 broken as on the lattice. | M5 Light (D-B1-4) |
+| GA-B1-1 | `ground.ts:31` | A face too thin for a 3×3 substation gets a 1×1 stand-in on its pole tile (none on seeds 3/4/5). The 3×3 stands on the buildable tile nearest the lot's centroid (D-B1-4, decided). | M5 Light |
+| GA-B1-2 | `ground.ts:189` | A face's streetlights stand on each street segment's kerb, one every `FACE_LIGHT_STEP` = 4 tiles along the segment (D-B1-4: the count follows the segment's length; a 32-tile segment gets the lattice's 8), 3 in 8 broken as on the lattice. | M5 Light |
 | GA-B1-3 | `walk.ts:16` | The engineer walks through belts and poles (thin), never through other machines or water. | D-B1-2 (M6 tedium audit) |
 | GA-B1-4 | `engineer.ts:22` | Stack sizes: rubble and coal 50, magazines 20, machines and kits one each. | Phase 5 (items as typed ore) |
 | GA-B1-5 | `engineer.ts:81` | Kits are free to draw from the chest; the claim paid for them (10 wire, 5 frames). | M6 (D-B1-3) |
@@ -43,8 +43,8 @@ Did the burn-off make you say something? —
 | GA-B1-11 | `worldScene.ts:479` | Under `?flow=0` (no flow layer) the HQ is a 6×6 slab and the camera is free. | Delete at the Phase 5 gate |
 | GA-B1-12 | `worldScene.ts:500` | A code-drawn disc with a reach ring stands in for the engineer sprite. | Phase 12 art pass |
 | GA-B1-13 | `session.ts:105` | The flow layer (and so the tiles and the engineer) is on for every session unless `?flow=0`. | Delete at the Phase 5 gate |
-| GA-B1-14 | `flow.ts:792` | An edge with physical turrets fires only through them; an edge with none keeps the block-level stand-in hopper, ring-fed. A city HQ's segment the six start turrets do not cover keeps the stand-in. | M3 Defence (start turrets on segments, D-P4-8) |
-| GA-B1-15 | `sim.ts:464` | §11's HQ ring is built at minute 0, so with `walk` on the HQ's own edges start kitted at t = 0; every later edge waits for a carried kit. | M6 (D-B1-3) |
+| GA-B1-14 | `flow.ts:899` | An edge with physical turrets fires only through them; an edge with none keeps the block-level stand-in hopper, ring-fed. (The M1 clause "a city HQ's segment the six start turrets do not cover keeps the stand-in" is gone: under D-B1-4 every live HQ segment is covered.) | M3 Defence |
+| GA-B1-15 | `sim.ts:466` | An edge covered by physical turrets is born kitted, whichever block, whenever born (D-B1-4). Only a block-only state (no tile layer: the harness's block sim) keeps §11's HQ ring as an abstract ring — its HQ edges at t = 0 born kitted; every later edge waits for a carried kit. | delete with the lattice, Phase 5 gate |
 
 ### Deferred
 
@@ -81,13 +81,99 @@ Re-read in `DEFERRED.md` ("Re-read at prompt B M1"): the lattice tile layer stay
 - **§14 kits from the pockets** are free of charge in the sim (the claim paid); the doc names wire and frames without a recipe. Decision D-B1-3.
 - **§5/§14 substations and streetlights** are placed by the face geometry, not the doc's per-lot rule from the lattice (GA-B1-1/2). Decision D-B1-4.
 - **§4's key bindings** (I inserter, M map on the lattice) moved. Decision D-B1-5.
-- **§25's C1/C2 after D-R2** still read MISSED in `calibration.md` (first amber on a kitted edge at the claim minute, 16–31 min, although §25's D-R2 line has an edge kitted this second filled this second; first enclosure 45–60 min). Not chased in M1, not moved by its fixes. Reported for Gate B (D-R2 reopenable); M3 decides the claim's first fill.
+- **§25's C1/C2 after D-R2** — this M1 line said they still read MISSED at the claim minute (16–31 min). That was read from a stale `calibration.md` written before the D-R2 ordering fix; M1's code already gave MET. Corrected in "Before M2" item 3 below with the clean numbers.
 
 ### Three decisions (rows in `DECISIONS.md`, D-B1-1 … D-B1-5; the three that matter)
 
 1. **D-B1-1 — the chest's start stock.** Keep both starts (game §11's 200/100/50/20, harness 80/40/0) until D-P4-4 at M6 re-calibrates with the line in the loop. Recommended (a).
 2. **D-B1-2 — passable belts and poles.** Keep; M6's tedium audit measures the walk-around cost if they were solid. Recommended (a).
 3. **D-B1-3 — kits by hand.** Keep kits free and taken by hand one a claim; M6 counts the HQ walk-backs per hour. Recommended (a).
+
+## Before M2 — the four small things (done 2026-09-04)
+
+The human's "Four small things before Prompt B M2", in order, each with its check. No milestone: M1 stays built, M2 not started. Run names `B-M1-body` (item 1), `B-M1-start` (item 2), `B-M1-born` (item 3), `B-M1-ref` (item 4).
+
+### 1. D-B1-5 — Direct control (decided by the human)
+
+- **Built** (`engineer.ts` `SPRINT_MULT` / `SPRINT_S` / `STAMINA_REFILL_S` / `DODGE_*` / `RIFLE_RANGE` / `RIFLE_HIT_RADIUS`, `walk.ts`, `worldScene.ts`, `panel.ts`, `telemetry.ts`; `body.test.ts`, four tests): WASD moves; **Shift** sprints at 1.6× walk for ~4 s on a full bar, the bar refills in ~6 s, and sprint never drains it below one dodge; **Space** dodges 3 tiles in 0.25 s with i-frames against crawlers, a 1 s cooldown and a fixed quarter-bar cost; **left-click** does what the hand holds (place, dig, feed, or fire the rifle at the cursor: hitscan to 9 tiles, 1.5-tile hit radius, no auto-target); **E** interacts only; **Tab** / **I** the inventory; **B** the build menu and the hotbar 1–9; **R** rotates, **Q** pipettes, scroll zooms, **M** the map, **Esc** closes. Click-to-walk is gone from the world view; the map view's walk-here is the only auto-walk; `walkTo` stays for the bots and the `__relight` hook. Any WASD input cancels a walk-here; so does a dodge. Telemetry carries §19's guards: shooting ≤ 10 % and **time in danger ≤ 5 %** of session time, with the share of danger the rifle drew.
+- **Doc**: §4 (the bindings, the stamina bar, no click-to-walk), §11 (the rifle as a hotbar item), §19 (the danger guard), §22, §23 — changelog line `B-M1-body`. `DECISIONS.md` D-B1-5 made by the human.
+- **Check**: the human walkthrough (the list in the prompt) is the human's at the next play session; by proxy the four `body.test.ts` tests pass and the headless soak drives the same engineer for 33 sim minutes with no error. Not claimed: feel.
+
+### 2. D-B1-4 — Placement by face geometry (decided by the human)
+
+- **Built**: `ground.ts` `faceSubstation` — the buildable tile nearest the lot's centroid (a face too thin for 3×3 gets a 1×1, GA-B1-1); `faceLights` — one lamp every `FACE_LIGHT_STEP` = 4 tiles along each segment's kerb, count from length (GA-B1-2; replaces "8 per edge"); `segLength` — a segment's length as its ridge's extent along its axis (the ridge is two tiles wide, so `CitySeg.len` is ~2× the geometric length). `flow.ts` `startTurrets` — per live HQ segment `max(1, floor(segLength / TURRET_PER_TILES))` turrets at even spacing along the front ring, each facing the nearest ridge tile, on clear ground or a rubble pad; a segment no turret then reaches (a corner sliver whose two-tile front holds no 2×2) is served by the neighbouring segment's turrets that reach it (`edgeTurrets`, GA-B1-17). `sim.ts` `syncEdges` — an edge covered by turrets is born kitted, whichever block, whenever born; **the HQ special case M1 added (GA-B1-15's "HQ edges at t = 0") is removed** from every state with a tile layer. The lattice keeps its six fixed turrets (`?map=lattice`, Phase 5 gate).
+- **Doc**: §5 step 1 and step 3, the §5 machine table's turret row, §13's Gun turret row and the "Pre-existing fixtures (D-B1-4)" paragraph — changelog line `B-M1-start`. `DECISIONS.md` D-B1-4 made by the human; D-P4-8 (six start turrets) superseded.
+- **Check — every segment covered, seeds 3/4/5** (`defence.test.ts` "city HQ (D-B1-4)…", 45 tiles → 2 due means `floor(45/16)`):
+
+  | Seed | Segment → neighbour | Length (tiles) | Due | Reach | Start hopper |
+  |---|---|---|---|---|---|
+  | 3 | → 332 (corner sliver) | 5.0 | 1 | 1 | 50 |
+  | 3 | → 334 | 31.4 | 1 | 2 | 100 |
+  | 3 | → 353 | 41.3 | 2 | 2 | 100 |
+  | 3 | → 355 | 41.0 | 2 | 2 | 100 |
+  | 4 | → 348 | 11.0 | 1 | 1 | 50 |
+  | 4 | → 361 | 52.0 | 3 | 3 | 100 |
+  | 4 | → 364 | 50.8 | 3 | 3 | 100 |
+  | 5 | → 324 (corner sliver) | 7.4 | 1 | 1 | 33 |
+  | 5 | → 325 | 37.0 | 2 | 3 | 100 |
+  | 5 | → 348 | 33.3 | 2 | 2 | 100 |
+
+  Turrets on the HQ: seed 3 six, seed 4 seven, seed 5 five (M1 had six fixed). "Reach" counts the turrets whose range covers the segment's ridge; a sliver's one turret is the neighbouring segment's. Seed 4's fourth segment faces an inert neighbour and gets none by design. The 33-round hopper on seed 5's sliver is the §11 start buffer running out after the first two segments' turrets took 100 each (per-edge prefill, GA-B1-16: `min(hopper, buffer)` a turret edge in ring order).
+- **Check — the minute-20 soak, no HQ branch**: `grep` finds no `hq`/`startIdx` test in `hookSyncEdges`, `hookDrainEdges` or `hookCovered`; the only `startIdx` left in `syncEdges` is the block-only fallback (GA-B1-15). Headless seed 3, 4×, the §11 line (`soak20b.log`):
+
+  | Real | Sim | Frames | fps (headless, regressions only) | Worst frame | > 50 ms | Held / lost at the end | Claims | Errors |
+  |---|---|---|---|---|---|---|---|---|
+  | 330.6 s | 33:03 | 17,055 | 51.6 | 51.7 ms | 1 | 3 / 0 | 2 | none |
+
+  The HQ that fell at minute 20 in M1's first soak holds through minute 33 with the derived turrets, and the bot has claimed two neighbours by minute 30. A control run of the same build **without** the line lost the HQ between sim 12 and 18 min: with no magazines made, five turrets a block outlast the 200-round start by ~12 minutes — the §11 line is what holds the HQ, not the turret count, which is the doc's intent.
+
+### 3. C1/C2 — the pip-birth artefact
+
+- **What was found**: the M1 report's "first amber at the claim minute (31 / 16 / 16 min)" was read from a stale `calibration.md` committed before the D-R2 ordering fix; M1's HEAD code already gave C1/C2 MET. So the artefact in the *code* — a newly kitted edge visible to the pip before its hopper is filled — was already closed for the D-R2 case. What remained: an edge created by `syncEdges` (a claim) is on the ring for the rest of that tick with `hopper: 0` before the ring fill runs, and a bot's `kitBlock` set `kit = true` a tick before the fill.
+- **Built by the rule**: `engineer.ts` `bornFed` — a kitted edge is born fed: its hopper takes `min(cap − hopper, buffer)` from the ring's buffer in the tick it is created or kitted (D5 kits on a `walk` state; the Gate A lattice fixtures keep their ring-order fill, which is why the 13 lattice fixtures do not move); `kitBlock` calls it the second it kits. `Edge.born` records the tick, and `calibrate.ts` never reads a pip on an edge's birth tick (both pip loops). GA-B1-18.
+- **Numbers** (`npm run calibrate`, config `5eae8618`, three seeds; "stale" = the committed file the M1 report quoted, "clean" = this build; HEAD's own re-run matches "clean" on every target):
+
+  | Target | Stale (committed before D-R2's fix) | Clean (this build) |
+  |---|---|---|
+  | C1 first enclosure before first amber on a kitted edge | MISSED — amber 31m / 16m / 16m | **MET** — enclosure 60m / 46m / 45m, amber never / 178m / never |
+  | C2 no red on a kitted edge before 120 min | MISSED | **MET** — never / 178m / never |
+  | i1 first amber on a kitted edge in 60–120 min (info) | — | MISSED: never / 178m / never (later than the window, not earlier) |
+
+  The only row the born-fed rule moves against HEAD is seed 3's spike scenario: 2,316 → 2,291 magazines made, 579 → 573 delivered (the first fill is a tick earlier, so a few rounds land before the assembler's). C7 (stalls) and i2 are unchanged and still MISSED as before, outside this item.
+- **Check**: first amber is strictly later than the claim minute on all three seeds (never / 178 min / never against claims from minute 1); D-R2 stays closed. `snapshot:check` still matches `5f3417b9`; `city{3,4,5}.json` unchanged.
+
+### 4. Reference machine
+
+- `PROGRAMME_STATE.md` gains `reference_machine:` (Windows 11 Home 10.0.26200, i7-11700K, 64 GB, RTX 3070 driver 32.0.15.9186, 2560×1440 @ 59 Hz, Chrome 153 GPU-accelerated over CDP; WSL2 runs the repo). `soak.cjs` takes `SOAK_CDP` to attach to it (the game served by `vite preview` on 4173 from WSL2, reached over mirrored networking). **Headless swiftshader fps is reported as "headless, for regressions only" from here on; only this host is measured against the 60 fps DoD.**
+- **Measured once, the M1 soak on the reference machine** — seed 3, 4×, world view, the §11 line, camera following the engineer (`gpu900.log`; renderer `ANGLE (NVIDIA GeForce RTX 3070, Direct3D11)`, viewport 1584×905 @ 1×):
+
+  | Host | Real | Sim | Frames | fps | Mean frame | Worst frame | > 50 ms | Held / lost at 1:30 | Claims | Magazines made | Errors |
+  |---|---|---|---|---|---|---|---|---|---|---|---|
+  | **Reference machine** (RTX 3070, Chrome 153, GPU) | 900.8 s | 1:30:03 | 53,921 | **59.9** | 16.7 ms | 26.7 ms | **0** | 3 / 1 | 3 | 561 | none |
+  | Headless swiftshader, M1's run (regressions only) | 901.6 s | 1:30:05 | 39,378 | 43.7 | 22.9 ms | 48.3 ms | 0 | 4 / 0 | — | — | none |
+
+  The reference machine holds the 60 fps DoD: every 10 s window read 59.9 fps at a 16.7 ms mean (the 59 Hz display's vsync), and the one slower frame (26.7 ms) is well under the 50 ms line. The game state is the same build as the headless minute-20 soak above, so the sim numbers are the sim's, not the renderer's: the bot claims three neighbours and loses one of them (not the HQ) between minute 33 and 1:30, and magazine production stops at 561 around sim minute 33 when the §11 line's Generator runs out of coal (`genCoal` 0, `brownout` count rising from minute 30) — D-P4-7 hour-one power, open, unchanged by these four items. The headless M1 row is kept for the regression comparison only.
+
+### GAME-ASSUMPTIONs added by the four items
+
+| Tag | Where | Assumption | Decided by |
+|---|---|---|---|
+| GA-B1-19 | `engineer.ts:22` | Sprint 1.6× walk, ~4 s a full bar, ~6 s to refill; sprint cannot drain the bar below one dodge. | D-B1-5 (numbers the human's) |
+| GA-B1-20 | `engineer.ts:25` | Dodge 3 tiles in 0.25 s, i-frames against crawlers for its duration, 1 s cooldown, a quarter bar. | D-B1-5 |
+| GA-B1-21 | `engineer.ts:29` | The rifle reaches the turret's 9 tiles (no range advantage) and hits within 1.5 tiles of the cursor; no auto-target. | D-B1-5 |
+| GA-B1-22 | `worldScene.ts:51` | The hotbar order: 1 belt, 2 inserter, 3 Excavator, 4 Shot assembler, 5 turret, 6 lamp, 7 pole, 8 Generator, 9 the rifle; with the rifle in hand nothing is mined or placed until it is cleared. | M6 tedium audit |
+| GA-B1-2 (moved) | `ground.ts:189` | Lamps every `FACE_LIGHT_STEP` = 4 tiles along the kerb. | D-B1-4 |
+| GA-B1-14 (moved) | `flow.ts:162` | `TURRET_PER_TILES` = 16 of `segLength`, at least one a segment. | D-B1-4 |
+| GA-B1-16 | `flow.ts:201`, `:263` | The HQ's turret pads were laid before the rubble (a pad is dug free at start); the start buffer prefills turret edges in ring order, `min(hopper, buffer)` each. | M3 |
+| GA-B1-17 | `flow.ts:849`, `:882` | A turret serves one street, the nearest; a corner sliver is covered by the neighbouring segment's turrets that reach it (two streets). | M3 |
+| GA-B1-15 (moved) | `sim.ts:466` | A block-only state keeps §11's HQ ring as an abstract ring kitted at t = 0. | delete at the Phase 5 gate |
+| GA-B1-18 | `engineer.ts:94` | A kitted edge is born fed from the ring's buffer; telemetry never reads a birth-tick pip. | Gate B (D-R2) |
+
+### Checks, fixtures, decisions
+
+- `npm test` 99/99 (95 + `body.test.ts`'s four), `typecheck` (incl. the game build), `lint`, `snapshot:check` (`5f3417b9`; the snapshot regenerated twice for new fields only — the engineer's stamina/dodge/aim state and `Edge.born` — no number moved), `docsync:check`, `experiments` 12 / 105 s / 0 failing checks — green.
+- The D6 regression fixtures `city{3,4,5}.json` do not move (`_exportCity.ts` re-run); the calibration moves only on the spike row above. No rules change beyond the two the human decided.
+- Decisions: D-B1-4 and D-B1-5 made by the human; D-P4-8 superseded. Nothing new for the human from these four items. `DEFERRED.md` "Re-read before prompt B M2" (click-to-walk deleted; start turrets on segments done; the block-only start ring to delete at the Phase 5 gate). §26 recount unchanged at 33.
 
 ## Prompt B M2 Flow on the faces — not built
 

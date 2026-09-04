@@ -81,9 +81,9 @@ export interface Session {
  *  schedule is replaced by one assembler at the start plus whatever the player builds. The numbers come from
  *  PROTO_CALIBRATED (types.ts, proto section), the same block the calibration harness runs. */
 export function protoConfig(p: UrlParams): SimConfig {
-  // M1 (D5): the engineer always walks. On foot in the world view (walk.ts: WASD, click-to-walk, the map's click on a
-  // block), block-level under a harness bot (engineer.ts). A claim's edges wait for a kit the engineer carries there;
-  // the pockets panel (I) draws kits from the Depot chest.
+  // M1 (D5): the engineer always walks. On foot in the world view (walk.ts: WASD with sprint and the dodge, the map's
+  // walk-here click on a Held or street tile — D-B1-5), block-level under a harness bot (engineer.ts). A claim's edges
+  // wait for a kit the engineer carries there; the pockets panel (Tab / I) draws kits from the Depot chest.
   return protoCalibrated({ ...DEFAULT_CONFIG, scatter: p.scatter, economy: p.economy, walk: true });
 }
 

@@ -7,10 +7,10 @@
  *   contact, RESPAWN 10 s · rifle 3 rounds a crawler at 1.5 rounds/s (≈2 s a crawler; the Arsenal's second barrel
  *   1.4 s) · a shot crawler lands 5 HP/s until it dies (10 HP a kill, 7 with the second barrel) · a claim's kit is
  *   KIT_STACKS = 10 stacks. */
-import { SimState, Engineer, Command, HELD, SimEvent } from './types';
+import { SimState, Engineer, Command, HELD, SimEvent, Edge } from './types';
 import { blockCentre, walkLen, edgeFrom, LATTICE_PITCH } from './graph';
 import { ROUNDS_PER_CRAWLER } from './enemies';
-import { ROUNDS_PER_MAG } from './recipes';
+import { ROUNDS_PER_MAG, TURRET_RANGE } from './recipes';
 
 export const REACH = 8;
 export const INV_STACKS = 40, TRUCK_STACKS = 200;
@@ -19,6 +19,16 @@ export const ENGINEER_HP = 100, REGEN_HP_PER_S = 5, REGEN_AFTER_S = 5, RESPAWN_S
 export const RIFLE_ROUNDS_PER_S = 1.5, RIFLE2_ROUNDS_PER_S = 3 / 1.4;
 export const RETALIATE_HP_PER_S = 5;
 export const KIT_STACKS = 10;
+/** GAME-ASSUMPTION (D-B1-5): sprint at 1.6× walk, ~4 s from a full bar, ~6 s to refill from empty. Stamina is a
+ *  movement resource only — never tied to hunger, cold, dark or anything survival-shaped. */
+export const SPRINT_MULT = 1.6, SPRINT_S = 4, STAMINA_REFILL_S = 6;
+/** GAME-ASSUMPTION (D-B1-5): a dodge is 3 tiles in 0.25 s with invulnerability to crawlers for its duration, a 1 s
+ *  cooldown and a fixed quarter of the bar; sprint never drains the bar below one dodge's worth, so one dodge is
+ *  always there after a sprint into trouble. */
+export const DODGE_TILES = 3, DODGE_S = 0.25, DODGE_COOLDOWN_S = 1, DODGE_COST = 0.25;
+/** GAME-ASSUMPTION (D-B1-5): the rifle reaches the turret's range (9 tiles — no range advantage) and hits anything
+ *  within 1.5 tiles of the line to the cursor, so it is aim, not twitch. */
+export const RIFLE_RANGE = TURRET_RANGE, RIFLE_HIT_RADIUS = 1.5;
 /** Stack sizes for the pocket count (GAME-ASSUMPTION: rubble 50 a stack, magazines 20, machines one each). */
 export const STACK: Record<string, number> = { stone: 50, copper: 50, steel: 50, coal: 50, iron: 50, magazine: 20 };
 export const stackSize = (item: string) => STACK[item] ?? 1;
@@ -29,7 +39,25 @@ export function createEngineer(st: SimState, startIdx: number): Engineer {
     x, y, block: startIdx, hp: ENGINEER_HP, lastHit: -999, down: -1, inv: {}, reach: REACH,
     truck: false, truckFound: false, dest: -1, remaining: 0, vel: [0, 0], target: null,
     firing: -1, barrels: 1, cooldown: 0, walked: 0, walkedHour: [], fired: 0, firstShot: -1, hurt: 0, downs: 0, kills: 0,
+    stamina: 1, sprint: false, dash: 0, dashDir: [1, 0], dashCooldown: 0, face: [1, 0], aim: null, shots: {}, iframes: 0,
+    shootS: 0, shootHour: [], shotAt: -1, danger: 0, dangerHour: [], dangerShot: 0,
   };
+}
+
+/** A snapshot from before D-B1-5 lacks the body fields; give it the defaults. */
+export function upgradeEngineer(e: Engineer): Engineer {
+  e.stamina ??= 1; e.sprint ??= false; e.dash ??= 0; e.dashDir ??= [1, 0]; e.dashCooldown ??= 0; e.face ??= [1, 0];
+  e.aim ??= null; e.shots ??= {}; e.iframes ??= 0; e.shootS ??= 0; e.shootHour ??= []; e.shotAt ??= -1;
+  e.danger ??= 0; e.dangerHour ??= []; e.dangerShot ??= 0;
+  return e;
+}
+
+/** §19's telemetry: the second `st.t` counts as shooting time (once, however many rounds). */
+export function markShot(st: SimState): void {
+  const e = st.engineer;
+  if (e.shotAt === st.t) return;
+  e.shotAt = st.t; e.shootS++;
+  const h = Math.floor(st.t / 3600); e.shootHour[h] = (e.shootHour[h] ?? 0) + 1;
 }
 
 export const invStacks = (inv: Record<string, number>): number => {
@@ -63,6 +91,15 @@ export function drop(e: Engineer, item: string, n: number): number {
   return d;
 }
 
+/** GAME-ASSUMPTION (C1/C2 birth artefact, 2026-09-04): a kitted edge is born fed — its hopper is filled from the ring's buffer in the tick it is created or kitted, subject to
+ *  the rounds the buffer holds (the ring fill later in the same tick tops it up from production). A stand-in edge only —
+ *  a turret edge reads its turrets. Telemetry never reads a pip on an edge's birth tick (`Edge.born`). */
+export function bornFed(st: SimState, e: Edge): void {
+  if (!st.config.production || !st.config.walk || e.kit !== true || e.turrets) return;   // D5 kits only: the Gate A lattice fixtures fill in ring order
+  const give = Math.min(st.config.hopper - e.hopper, st.buffer);
+  if (give > 0) { e.hopper += give; st.buffer -= give; }
+}
+
 /** Lay kits on the block's unkitted edges from the pockets. Called on arrival and each tick while standing there. */
 export function kitBlock(st: SimState, i: number): number {
   const e = st.engineer;
@@ -71,7 +108,7 @@ export function kitBlock(st: SimState, i: number): number {
   for (const ed of st.ring) {
     if (ed.a !== i || ed.kit !== false) continue;
     if ((e.inv.kit ?? 0) < 1) break;
-    drop(e, 'kit', 1); ed.kit = true; n++;
+    drop(e, 'kit', 1); ed.kit = true; bornFed(st, ed); n++;   // kitted this second, fed this second
   }
   if (n) st.events.push({ type: 'kitted', t: st.t, x: st.blocks[i].x, y: st.blocks[i].y, edges: n });
   return n;
@@ -92,6 +129,8 @@ export function restock(st: SimState, mags = 0): void {
 }
 export const hqIdx = (st: SimState) => (st.lattice ? st.start[0] * st.h + st.start[1] : st.blocks.findIndex(b => b.x === st.start[0] && b.y === st.start[1]));
 
+/** Block-level walk to block `i` — the bots' and the dev hooks' walk only (D-B1-5): the player moves with WASD and
+ *  the map view's walk-here; no click walks the engineer in the world view. */
 export function walkTo(st: SimState, i: number): void {
   const e = st.engineer;
   if (e.down >= 0 || i < 0 || i >= st.blocks.length) return;
@@ -108,6 +147,7 @@ export function hurt(st: SimState, hp: number): void {
   e.hp -= hp; e.hurt += hp; e.lastHit = st.t;
   if (e.hp <= 0) {
     e.hp = 0; e.down = st.t + RESPAWN_S; e.downs++; e.firing = -1; e.dest = -1; e.remaining = 0;
+    e.aim = null; e.sprint = false; e.dash = 0; e.target = null; e.vel = [0, 0];
     st.events.push({ type: 'engineer-down', t: st.t, x: e.x, y: e.y });
   }
 }
@@ -172,7 +212,21 @@ export function rifle(st: SimState, edgeId: number, un: number, dt: number): num
   e.inv.magazine = Math.max(0, (e.inv.magazine ?? 0) - spent / ROUNDS_PER_MAG);
   e.fired += spent; e.kills += kills;
   if (e.firstShot < 0) { e.firstShot = st.t; st.events.push({ type: 'rifle', t: st.t, x: e.x, y: e.y }); }
+  markShot(st);
   hurt(st, kills * hpPerKill(e));
+  return kills;
+}
+
+/** D-B1-5: the rounds the aimed rifle put on an engaged edge this second (walk.ts `fireRound`) become kills here,
+ *  up to the crawlers the turrets missed. Rounds that flew past are gone. The dodge's invulnerability takes its
+ *  share of the second's retaliation. Returns the crawlers killed. */
+export function rifleHits(st: SimState, edgeId: number, un: number): number {
+  const e = st.engineer, p = e.shots[edgeId] ?? 0;
+  if (p <= 0 || un <= 1e-9 || e.down >= 0) return 0;
+  e.shots[edgeId] = 0;
+  const kills = Math.min(un, p / ROUNDS_PER_CRAWLER);
+  e.kills += kills;
+  hurt(st, kills * hpPerKill(e) * Math.max(0, 1 - e.iframes));
   return kills;
 }
 
@@ -183,9 +237,18 @@ export function engineerCommand(st: SimState, c: Command): void {
   const e = st.engineer;
   switch (c.type) {
     case 'move': if (e.down < 0) { e.target = [c.x, c.y]; e.vel = [0, 0]; e.dest = -1; } break;
-    case 'walk': if (e.down < 0) { e.vel = [c.dx, c.dy]; e.target = null; e.dest = -1; } break;
-    case 'walkTo': walkTo(st, c.block); break;
+    case 'walk': if (e.down < 0) { e.vel = [c.dx, c.dy]; if (c.dx || c.dy) e.target = null; e.dest = -1; } break;
+    case 'walkTo': walkTo(st, c.block); break;   // bots and dev hooks only (D-B1-5): the player has no click-to-walk in the world
     case 'fire': e.firing = c.edge; break;
+    case 'sprint': e.sprint = c.on && e.down < 0; break;
+    case 'dodge':
+      if (e.down < 0 && e.dash <= 0 && e.dashCooldown <= 0 && e.stamina >= DODGE_COST - 1e-9) {
+        const L = Math.hypot(e.vel[0], e.vel[1]);
+        e.dashDir = L > 0 ? [e.vel[0] / L, e.vel[1] / L] : [e.face[0], e.face[1]];
+        e.dash = DODGE_S; e.dashCooldown = DODGE_COOLDOWN_S; e.stamina -= DODGE_COST; e.target = null; e.dest = -1;
+      }
+      break;
+    case 'aim': e.aim = e.down < 0 ? c.at : null; break;
     case 'enterTruck': if (e.truckFound && e.down < 0) e.truck = !e.truck; break;
     case 'mineAt': case 'craft': case 'place': case 'pickUp': case 'chestTake': case 'chestPut': handHook.current?.(st, c); break;
   }

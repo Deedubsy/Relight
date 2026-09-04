@@ -1,13 +1,19 @@
 /** Prompt B M1 — the engineer on the tile grid. The block sim keeps its block-level engineer (engineer.ts: a walk is
  *  a distance along the streets, the harness bot's model); with the flow layer present the engineer is a sprite on
- *  the ground instead, ticked 20× a second by `stepFlow`: WASD velocity with collision, click-to-walk and the bots'
- *  block walks as A* paths over the walkable grid (any tile that is not water and holds no machine but a belt).
- *  Walking anywhere is harmless (D5). Paths live outside SimState (a snapshot restarts them). */
+ *  the ground instead, ticked 20× a second by `stepFlow`: WASD velocity with collision (D-B1-5: plus sprint, the
+ *  dodge and the rifle aimed at the cursor), the map view's walk-here and the bots' block walks as A* paths over the
+ *  walkable grid (any tile that is not water and holds no machine but a belt). Walking anywhere is harmless (D5).
+ *  Paths live outside SimState (a snapshot restarts them). */
 import { SimState, Engineer } from './types';
 import type { FlowState } from './flow';
-import { Ground, ground, walkable, inGround, hqLot } from './ground';
-import { speedOf, kitBlock, hqIdx, ENGINEER_HP, REGEN_AFTER_S, REGEN_HP_PER_S } from './engineer';
+import { Ground, ground, walkable, inGround, hqLot, cityGeomOf } from './ground';
+import { segBetween } from './city';
+import {
+  speedOf, kitBlock, hqIdx, markShot, rifleRate, ENGINEER_HP, REGEN_AFTER_S, REGEN_HP_PER_S,
+  SPRINT_MULT, SPRINT_S, STAMINA_REFILL_S, DODGE_TILES, DODGE_S, DODGE_COST, RIFLE_RANGE, RIFLE_HIT_RADIUS,
+} from './engineer';
 import { DEPOT_LOT, DEPOT_TILES } from './tiles';
+import { ROUNDS_PER_MAG } from './recipes';
 
 /** HQ lot tile the engineer starts on: just south of the Depot's middle, the workbench side (§18). */
 export const WORKBENCH_LOT: readonly [number, number] = [DEPOT_LOT + 3, DEPOT_LOT + DEPOT_TILES];
@@ -158,7 +164,22 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
   }
   let v = speedOf(e) * dt, moved = false;
   const rev = f ? f.rev : 0;
-  // a goal: the bots' block walk (dest) or a click (target)
+  // D-B1-5: the dodge, then sprint and the stamina bar. Keys held (not a walk-here, not a bot walk) are what sprints.
+  if (e.dashCooldown > 0) e.dashCooldown = Math.max(0, e.dashCooldown - dt);
+  const keys = e.dest < 0 && !e.target && (e.vel[0] !== 0 || e.vel[1] !== 0);
+  if (keys) { const L = Math.hypot(e.vel[0], e.vel[1]); e.face = [e.vel[0] / L, e.vel[1] / L]; }
+  if (e.dash > 0) {
+    const s = Math.min(dt, e.dash), d = DODGE_TILES / DODGE_S * s;
+    e.dash -= s; e.iframes += s;
+    const nx = e.x + e.dashDir[0] * d, ny = e.y + e.dashDir[1] * d;
+    if (passable(st, Math.floor(nx), Math.floor(e.y))) e.x = nx;
+    if (passable(st, Math.floor(e.x), Math.floor(ny))) e.y = ny;
+    moved = true; v = 0;   // the dash is the whole of this tick's movement
+  } else if (e.sprint && keys && !e.truck) {
+    // sprint never takes the bar below one dodge; at the floor Shift just walks (release it to refill)
+    if (e.stamina > DODGE_COST + 1e-9) { e.stamina = Math.max(DODGE_COST, e.stamina - dt / SPRINT_S); v *= SPRINT_MULT; }
+  } else e.stamina = Math.min(1, e.stamina + dt / STAMINA_REFILL_S);
+  // a goal: the bots' block walk (dest) or the map view's walk-here (target)
   let gx = -1, gy = -1;
   if (e.dest >= 0) { const p = G.blocks[e.dest].pole; gx = p[0]; gy = p[1]; }
   else if (e.target) { gx = Math.floor(e.target[0]); gy = Math.floor(e.target[1]); }
@@ -210,5 +231,36 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
     if (o >= 0) { e.block = o; kitBlock(st, o); }
   }
   if (e.hp < ENGINEER_HP && st.t - e.lastHit >= REGEN_AFTER_S) e.hp = Math.min(ENGINEER_HP, e.hp + REGEN_HP_PER_S * dt);
+  // D-B1-5: the rifle in hand — a round toward the cursor every 1/rate s while the mouse is held (not mid-dodge)
+  if (e.aim && e.dash <= 0 && e.cooldown <= 0 && fireRound(st, e)) e.cooldown = 1 / rifleRate(e);
   if (e.cooldown > 0) e.cooldown = Math.max(0, e.cooldown - dt);
+}
+
+/** D-B1-5: one round from the rifle in hand, toward `aim`. Hitscan along the line from the engineer to the cursor,
+ *  out to RIFLE_RANGE: the nearest engaged ring edge whose street comes within RIFLE_HIT_RADIUS of the line takes the
+ *  round, and the block step turns those rounds into kills (`rifleHits`). No auto-target, no lock-on: a shot at empty
+ *  street hits nothing and still costs a round. Returns false when the pockets hold no round. */
+function fireRound(st: SimState, e: Engineer): boolean {
+  const mags = e.inv.magazine ?? 0;
+  if (mags * ROUNDS_PER_MAG < 1 - 1e-9) return false;
+  e.inv.magazine = Math.max(0, mags - 1 / ROUNDS_PER_MAG);
+  e.fired += 1;
+  if (e.firstShot < 0) { e.firstShot = st.t; st.events.push({ type: 'rifle', t: st.t, x: e.x, y: e.y }); }
+  markShot(st);
+  const dx = e.aim![0] - e.x, dy = e.aim![1] - e.y, L = Math.hypot(dx, dy);
+  if (L < 1e-6) return true;
+  const ux = dx / L, uy = dy / L, cg = cityGeomOf(st), tw = cg.tw;
+  let bestId = -1, bestAlong = Infinity;
+  for (const en of st.engagements) {
+    if (en.cr <= 1e-9 || en.id === bestId) continue;
+    const ri = st.edgeAt[en.id]; if (ri < 0) continue;
+    const ed = st.ring[ri], sg = segBetween(cg, ed.a, ed.b); if (!sg) continue;
+    for (const t of sg.ridge) {
+      const px = t % tw + 0.5 - e.x, py = Math.floor(t / tw) + 0.5 - e.y, along = px * ux + py * uy;
+      if (along < 0 || along > RIFLE_RANGE || along >= bestAlong) continue;
+      if (Math.abs(px * uy - py * ux) <= RIFLE_HIT_RADIUS) { bestAlong = along; bestId = en.id; }
+    }
+  }
+  if (bestId >= 0) e.shots[bestId] = (e.shots[bestId] ?? 0) + 1;
+  return true;
 }

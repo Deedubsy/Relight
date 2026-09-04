@@ -24,7 +24,8 @@ export interface MinuteRecord {
 }
 export interface Telemetry {
   meta: { seed: number; url: string; startedAt: string; config: unknown; configHash: string; player: string;
-          scenario: 'A' | 'B'; snapshot: string | null; startT: number };   // startT: sim tick the session began at
+          scenario: 'A' | 'B'; snapshot: string | null; startT: number;   // startT: sim tick the session began at
+          startShootS: number; startDanger: number; startDangerShot: number };   // D-B1-5: the body counters at the session's start
   claims: ClaimRecord[];
   rejected: { t: number; x: number; y: number; reason: string }[];
   losses: { t: number; x: number; y: number; reason: string }[];
@@ -44,7 +45,7 @@ export interface Telemetry {
 export function createTelemetry(st: SimState, url: string, player = '', scenario: 'A' | 'B' = 'A', snapshot: string | null = null): Telemetry {
   return {
     meta: { seed: st.seed, url, startedAt: new Date().toISOString(), config: st.config, configHash: configHash(st.config), player,
-            scenario, snapshot, startT: st.t },
+            scenario, snapshot, startT: st.t, startShootS: st.engineer.shootS ?? 0, startDanger: st.engineer.danger ?? 0, startDangerShot: st.engineer.dangerShot ?? 0 },
     claims: [], rejected: [], losses: [], reorders: [], assemblers: [], assemblersRejected: [], machinesLost: [], dry: [], speeds: [], minutes: [], firstEnclosure: null,
     firstAmber: null, firstRed: null, hours: [],
   };
@@ -67,10 +68,12 @@ export function recordEvent(tel: Telemetry, ev: SimEvent, source: 'player' | 'bo
   }
 }
 
-/** Pip watch: the first sim time a front pip is amber or red. Called after every advance. */
+/** Pip watch: the first sim time a front pip is amber or red. Called after every advance. Never reads a pip on its
+ *  birth tick (a kitted edge is born fed; an unkitted one has no supply to be low on). */
 export function recordPips(tel: Telemetry, st: SimState): void {
   if (tel.firstAmber !== null && tel.firstRed !== null) return;
   for (const e of st.ring) {
+    if (e.born === st.t || e.kit === false) continue;
     const p = pipOf(e.hopper / edgeCap(st, e));
     if (p !== 'green' && tel.firstAmber === null) tel.firstAmber = st.t;
     if (p === 'red' && tel.firstRed === null) tel.firstRed = st.t;
@@ -114,11 +117,16 @@ export interface Summary {
   flow: FlowSummary; magsConsumed: number; handMined: number; handCrafted: number;
   /** M3 (zeros without the flow layer): brownout seconds, rounds the turrets fired, coal burned, hand-feeds. */
   brownoutSeconds: number; fired: number; coalBurned: number; handFed: number;
+  /** D-B1-5 (§19 guards): the session's shooting time and time in danger as a share of its sim time — shooting is
+   *  capped at 10 %, danger at 5 %; `dangerShotShare` says whether danger came from the rifle (retaliation) or from
+   *  crawlers loose on the player's block. */
+  shootPct: number; dangerPct: number; dangerShotShare: number; rifleRounds: number; rifleKills: number;
 }
 
 export function summarise(tel: Telemetry, st: SimState): Summary {
   const startT = tel.meta.startT;
-  const hours = (st.t - startT) / 3600;
+  const hours = (st.t - startT) / 3600, elapsed = st.t - startT;
+  const shootS = (st.engineer.shootS ?? 0) - tel.meta.startShootS, danger = (st.engineer.danger ?? 0) - tel.meta.startDanger, dangerShot = (st.engineer.dangerShot ?? 0) - tel.meta.startDangerShot;
   const sm = shapeMetrics(st);
   return {
     simTime: clockOf(st.t), hours, startTime: clockOf(startT), scenario: tel.meta.scenario,
@@ -138,6 +146,8 @@ export function summarise(tel: Telemetry, st: SimState): Summary {
     slotsUsed: slotInfo(st).used, slotsFree: slotInfo(st).free, machinesLost: st.stats.machinesLost, ranDry: st.stats.ranDry,
     flow: flowSummary(st), magsConsumed: st.totalRounds / 10, handMined: st.flow?.stats.handMined ?? 0, handCrafted: st.flow?.stats.handCrafted ?? 0,
     brownoutSeconds: st.flow?.power.overS ?? 0, fired: st.flow?.stats.fired ?? 0, coalBurned: st.flow?.stats.coalBurned ?? 0, handFed: st.flow?.stats.handFed ?? 0,
+    shootPct: elapsed > 0 ? 100 * shootS / elapsed : 0, dangerPct: elapsed > 0 ? 100 * danger / elapsed : 0,
+    dangerShotShare: danger > 0 ? dangerShot / danger : 0, rifleRounds: st.engineer.fired, rifleKills: st.engineer.kills,
   };
 }
 

@@ -102,13 +102,13 @@ function run(bot: Policy, seed: number): Run {
     }
     // pips
     let worst = 1;
-    for (const e of st.ring) { const l = e.hopper / cap; if (l < worst) worst = l; }
+    for (const e of st.ring) { if (e.born === st.t) continue; const l = e.hopper / cap; if (l < worst) worst = l; }   // never a pip on its birth tick
     const p = pipOf(worst);
     if (p !== 'green') { r.amberTicks++; if (r.firstAmber === null) r.firstAmber = st.t; if (st.t >= 60 && r.firstAmberAfter1 === null) r.firstAmberAfter1 = st.t; }
     if (p === 'red') { r.redTicks++; if (r.firstRed === null) r.firstRed = st.t; if (st.t >= 60 && r.firstRedAfter1 === null) r.firstRedAfter1 = st.t; }
     // D-R2: the same ladder over kitted edges only (an unkitted edge is red by construction until the kit walks out)
     let worstKitted = 1;
-    for (const e of st.ring) { if (e.kit === false) continue; const l = e.hopper / cap; if (l < worstKitted) worstKitted = l; }
+    for (const e of st.ring) { if (e.kit === false || e.born === st.t) continue; const l = e.hopper / cap; if (l < worstKitted) worstKitted = l; }
     const pk = pipOf(worstKitted);
     if (st.t >= 60 && pk !== 'green' && r.firstAmberKitted === null) r.firstAmberKitted = st.t;
     if (st.t >= 60 && pk === 'red' && r.firstRedKitted === null) r.firstRedKitted = st.t;

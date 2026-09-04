@@ -1,10 +1,12 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
-  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH } from '@relight/sim';
+  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind } from '@relight/sim';
 import { Session, setSpeed, queue, shareUrl } from './session';
 import { summarise, exportJson } from './telemetry';
 
 export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void }
+/** D-B1-5: the build menu (key B) picks a building into the hand; the world scene installs the pick. */
+export type BuildKind = Exclude<Kind, 'depot'>;
 
 export interface Panel {
   update(nowMs: number): void;
@@ -15,8 +17,13 @@ export interface Panel {
   setView(mode: 'map' | 'world'): void;
   /** Show/hide the debug sections (stock, line, ring order, skyline, summary); returns the new visibility. */
   toggleDebug(): boolean;
-  /** M1: show/hide the pockets and the Depot chest (key I); returns the new visibility. */
+  /** M1: show/hide the pockets and the Depot chest (Tab or I, or E on the Depot); returns the new visibility. */
   togglePockets(): boolean;
+  /** D-B1-5: show/hide the build menu (B); a click on a row puts that building in the hand. */
+  toggleBuild(): boolean;
+  /** Esc: close the pockets and the build menu. */
+  closeAll(): void;
+  onPick: ((kind: BuildKind) => void) | null;
   toast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
 }
 
@@ -71,7 +78,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const speedRow = el('div', 'row');
   const speeds: [number, string][] = [[0, 'Pause'], [1, '1×'], [4, '4×'], [16, '16×']];
   const speedBtns = speeds.map(([m, label]) => { const b = el('button', undefined, label); b.onclick = () => setSpeed(session, m); speedRow.append(b); return { m, b }; });
-  speedRow.append(el('span', 'hint', 'keys: space, 1, 2, 3 · M map ↔ world · I pockets · ` debug panel'));
+  speedRow.append(el('span', 'hint', 'keys: P pause · - / = speed · M map ↔ world · Tab/I pockets · B build menu · Esc closes · ` debug panel'));
   hudSec.append(speedRow);
   root.append(hudSec);
 
@@ -81,7 +88,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   // kits are taken here, one a claim, and a claim made with no kit in the pockets toasts that its edges wait.
   const pocketSec = el('section');
   pocketSec.hidden = true;
-  pocketSec.append(el('h2', undefined, 'Pockets and the Depot chest (I)'));
+  pocketSec.append(el('h2', undefined, 'Pockets and the Depot chest (Tab / I, or E on the Depot)'));
   const pocketHead = el('p', 'hint', '');
   pocketSec.append(pocketHead);
   const pocketList = el('ul', 'plain');
@@ -99,6 +106,29 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   pocketSec.append(pocketList);
   pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's edges wait for a kit the engineer carries there.`));
   root.append(pocketSec);
+
+  // D-B1-5: the build menu (B). The hotbar (1–8) is its shortcut; 9 is the rifle.
+  const buildSec = el('section');
+  buildSec.hidden = true;
+  buildSec.append(el('h2', undefined, 'Build menu (B)'));
+  const buildList = el('ul', 'plain');
+  const BUILD: { kind: BuildKind; key: string; what: string }[] = [
+    { kind: 'belt', key: '1', what: '7.5 items/s' }, { kind: 'inserter', key: '2', what: 'one item a second across a tile' },
+    { kind: 'excavator', key: '3', what: '3×3, 0.5/s onto the belt it faces' }, { kind: 'assembler', key: '4', what: `Shot assembler, ${SHOT.seconds} s a magazine` },
+    { kind: 'turret', key: '5', what: '2×2, range 9, 50-round hopper' }, { kind: 'lamp', key: '6', what: 'lights 8 tiles' },
+    { kind: 'pole', key: '7', what: 'carries power, claims across the street' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
+  ];
+  for (const b of BUILD) {
+    const li = el('li'), btn = el('button', undefined, `${b.key} · ${b.kind}`);
+    const c = MACHINE_COST[b.kind];
+    btn.title = `Put a ${b.kind} in the hand (hotbar ${b.key})`;
+    btn.onclick = () => panelRef.onPick?.(b.kind);
+    li.append(btn, el('span', 'hint', ` ${c.steel} steel${c.copper ? ` + ${c.copper} Cu` : ''} · ${b.what}`));
+    buildList.append(li);
+  }
+  buildSec.append(buildList);
+  buildSec.append(el('p', 'hint', 'In the world view: left-click places what the hand holds, R rotates, Q pipettes the machine under the cursor or clears the hand, right-click with an empty hand removes with a full refund. 9 is the rifle: while it is in hand, holding left-click fires toward the cursor and nothing else happens until you clear it.'));
+  root.append(buildSec);
 
   // Rework Step 5: the side panel is held / front / interior / ammo made vs demanded / stock / blocks lost;
   // the rest sits behind the debug key (backquote) so a tester reads the map, not the panel.
@@ -145,12 +175,12 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     lineSec.append(lineList);
     const craftRow = el('div', 'row');
     btnCraft = el('button', undefined, `Craft a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s)`);
-    btnCraft.title = 'Key C in the world view. Hand crafts take their steel and copper from the Depot stock and put the magazine in the line buffer.';
+    btnCraft.title = 'E on the workbench in the world view. Hand crafts take their steel and copper from the Depot stock and put the magazine in the line buffer.';
     btnCraft.onclick = () => queueCraft(session.state, 1);
     craftRow.append(btnCraft);
     lineSec.append(craftRow);
     const mc = MACHINE_COST;
-    lineSec.append(el('p', 'hint', `World view keys: X Excavator (${mc.excavator.steel} steel, 3×3, ${'0.5'}/s onto the belt it faces), B belt (${mc.belt.steel} steel, 7.5 items/s), N inserter (${mc.inserter.steel} steel + ${mc.inserter.copper} Cu, 1/s), F Shot assembler (${mc.assembler.steel} steel + ${mc.assembler.copper} Cu; ${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu → a magazine in ${SHOT.seconds} s), R rotate, Q hand, right-click removes (full refund). WASD or a click on the ground walks; hand actions reach ${REACH} tiles. Hold the left button on rubble with the hand to mine it a unit a second into the pockets. Magazines reach the ring only through the Depot: belt or inserter them into it, or carry them (I).`));
+    lineSec.append(el('p', 'hint', `World view: the hotbar 1–8 is the build menu's shortcut (B lists the buildings and their costs), 9 the rifle. R rotate, Q pipette / clear the hand, right-click removes (full refund) with an empty hand. WASD moves (Shift sprints, Space dodges); hand actions reach ${REACH} tiles. Hold the left button on rubble with an empty hand to mine it a unit a second into the pockets; E on the workbench crafts a magazine (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s). Magazines reach the ring only through the Depot: belt or inserter them into it, or carry them (Tab / I).`));
     debug.append(lineSec);
   }
 
@@ -369,13 +399,16 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     tip.style.top = `${Math.min(py + 14, window.innerHeight - hgt - 8)}px`;
   }
 
-  return {
-    update, tooltip, tooltipText, toast, setView,
+  const panelRef: Panel = {
+    update, tooltip, tooltipText, toast, setView, onPick: null,
     toggleDebug() { debug.hidden = !debug.hidden; return !debug.hidden; },
     togglePockets() { pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; return !pocketSec.hidden; },
+    toggleBuild() { buildSec.hidden = !buildSec.hidden; return !buildSec.hidden; },
+    closeAll() { pocketSec.hidden = true; buildSec.hidden = true; },
     setSelectedEdge(e) {
       selected = e ? e.id : null; ringKey = '';
       if (e) toast(`Edge (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y}) is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);
     },
   };
+  return panelRef;
 }

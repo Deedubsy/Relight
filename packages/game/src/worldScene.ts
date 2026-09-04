@@ -1,13 +1,17 @@
 /** World view (Phase 4 M1 + M2, prompt B M1): the city at tile level, on foot. Every tile is drawn from the ground
  *  layer in @relight/sim (ground.ts: block faces rasterised to tiles, streets on the ridges, the river), cached per
  *  32×32 chunk on `chunkKey`; the machines are drawn from `state.flow` (flow.ts). This scene holds only camera,
- *  tool and input state. On foot (the flow layer is up): the camera follows the engineer, WASD walks, a click walks
- *  there, the wheel zooms 0.5–3× about the engineer, M goes back to the map at the engineer's block; hand actions
- *  (mine, feed, place, remove) reach 8 tiles — outside that the cursor says "walk closer". Without the flow layer
- *  (?flow=0, the block-only bot comparisons) the old camera stays: drag or WASD pan, M at the block under the centre.
- *  Tools (M2/M3): X Excavator, B belt, N inserter, F Shot assembler, T turret, L lamp, P pole, G Generator, R rotate,
- *  Q/Esc hand, C craft a magazine by hand; left click/drag places, right click removes; with the hand, holding the
- *  left button on rubble mines it, a click on a turret or Generator feeds it from the Depot (§11's hand-feed). */
+ *  tool and input state. On foot (the flow layer is up): the camera follows the engineer, the wheel zooms 0.5–3×
+ *  about the engineer, M goes back to the map at the engineer's block; hand actions (mine, feed, place, remove)
+ *  reach 8 tiles — outside that the cursor says "walk closer". Without the flow layer (?flow=0, the block-only bot
+ *  comparisons) the old camera stays: drag or WASD pan, M at the block under the centre.
+ *  D-B1-5 direct control: WASD moves the engineer (Shift sprints, Space dodges); there is no click-to-walk here —
+ *  the map view's click on a Held or street tile is the only auto-walk. Left-click does what the hand holds: empty
+ *  hand → hold on rubble to mine it, click a turret or Generator to feed it; a building in hand → place; the rifle
+ *  in hand → hold to fire toward the cursor. Right-click with an empty hand removes with a full refund, with
+ *  something in hand clears it. E interacts (the Depot chest, the workbench, a machine, the truck, survivors) and
+ *  never mines, places or fires. The hotbar is 1–8 for the buildings and 9 the rifle; B is the build menu, R
+ *  rotates, Q pipettes the machine under the cursor (or clears the hand), Esc closes anything. */
 import Phaser from 'phaser';
 import {
   SimState, idxOf, DARK, CONTESTED, HELD, INERT, VOID, isInterior,
@@ -16,7 +20,7 @@ import {
   Kind, Dir, DX, DY, DIR_NAMES, Machine, MACHINE_SIZE, MACHINE_COST, SHOT, EXCAVATOR_PER_S,
   machineAt, rubbleAt, canPlace, place, remove, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
   handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
-  POLE_REACH,
+  POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST,
 } from '@relight/sim';
 import { Session, queue } from './session';
 import { View } from './view';
@@ -43,13 +47,19 @@ const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36,
   turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e };
 const LIGHT_COL = 0xffe9a0;
 
-export type Tool = 'hand' | 'excavator' | 'belt' | 'inserter' | 'assembler' | 'turret' | 'lamp' | 'pole' | 'generator';
-/** M1: W A S D walk, M is the map and I the pockets, so the inserter moved to N and the assembler to F. */
-/** GAME-ASSUMPTION (M1): inserter on N and assembler on F — I is the pockets and M the map since D5 (the lattice slice had I/M). */
-const TOOL_KEYS: Record<string, Tool> = { x: 'excavator', b: 'belt', n: 'inserter', f: 'assembler', t: 'turret', l: 'lamp', p: 'pole', g: 'generator', q: 'hand', escape: 'hand' };
-export const TOOL_KEY_LINE = 'X Excavator · B belt · N inserter · F Shot assembler · T turret · L lamp · P pole · G Generator · R rotate · Q hand · C craft a magazine · right-click removes';
+export type Tool = 'hand' | 'rifle' | Exclude<Kind, 'depot'>;
+/** D-B1-5: the hotbar. GAME-ASSUMPTION: 1 belt, 2 inserter, 3 Excavator, 4 Shot assembler, 5 turret, 6 lamp, 7 pole,
+ *  8 Generator, 9 the rifle — the rifle is a hotbar item like any building, and while it is in hand you cannot mine
+ *  or place until you clear it (Q, or pick something else). */
+export const HOTBAR: readonly Tool[] = ['belt', 'inserter', 'excavator', 'assembler', 'turret', 'lamp', 'pole', 'generator', 'rifle'];
+export const TOOL_KEY_LINE = '1 belt · 2 inserter · 3 Excavator · 4 Shot assembler · 5 turret · 6 lamp · 7 pole · 8 Generator · 9 rifle · B build menu · R rotate · Q pipette / clear hand · E interact · right-click removes (empty hand) or clears the hand';
 
-export interface WorldHooks { onHoverText(text: string | null, px: number, py: number): void; onToast(msg: string, kind?: 'info' | 'bad' | 'good'): void }
+export interface WorldHooks {
+  onHoverText(text: string | null, px: number, py: number): void;
+  onToast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
+  /** E on the Depot: open the chest (the pockets panel). */
+  onChest(): void;
+}
 
 interface Chunk { key: string; frames: Uint8Array }
 
@@ -63,7 +73,10 @@ export class WorldScene extends Phaser.Scene {
   private depotText!: Phaser.GameObjects.Text;
   private labels: Phaser.GameObjects.Text[] = [];
   private chunks = new Map<number, Chunk>();
-  private keys!: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'LEFT' | 'DOWN' | 'RIGHT', Phaser.Input.Keyboard.Key>;
+  private keys!: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'LEFT' | 'DOWN' | 'RIGHT' | 'SHIFT' | 'SPACE', Phaser.Input.Keyboard.Key>;
+  private firing = false;      // the rifle in hand and the left button held
+  private lastAim = '';
+  private sprinting = false;
   private hoverTile: { tx: number; ty: number } | null = null;
   private dragging = false;
   private placing = false;
@@ -100,7 +113,7 @@ export class WorldScene extends Phaser.Scene {
     cam.setBounds(0, 0, G.tw * TILE_PX, G.th * TILE_PX);
     cam.setZoom(1);
     cam.setRoundPixels(true);
-    this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT') as WorldScene['keys'];
+    this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT,SHIFT,SPACE') as WorldScene['keys'];
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
     this.input.on('pointerup', () => this.onUp());
     this.input.on('gameout', () => { this.onUp(); this.hoverTile = null; this.hooks.onHoverText(null, 0, 0); });
@@ -110,7 +123,7 @@ export class WorldScene extends Phaser.Scene {
       if (this.onFoot) this.zoomAt(...this.engineerScreen(), f); else this.zoomAt(p.x, p.y, f);
     });
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.onWake());
-    this.events.on(Phaser.Scenes.Events.SLEEP, () => { this.onUp(); this.sendWalk(0, 0); });
+    this.events.on(Phaser.Scenes.Events.SLEEP, () => { this.onUp(); this.sendWalk(0, 0); this.sendSprint(false); });
     this.onWake();
   }
 
@@ -192,6 +205,12 @@ export class WorldScene extends Phaser.Scene {
     return { x: cam.scrollX + cam.width / 2 + (sx - cam.width / 2) / zoom, y: cam.scrollY + cam.height / 2 + (sy - cam.height / 2) / zoom };
   }
 
+  /** Screen point of a tile-space point (dev hook: the scripted checks aim the mouse with it). */
+  screenOf(x: number, y: number): [number, number] {
+    const cam = this.cameras.main;
+    return [cam.width / 2 + (x * TILE_PX - cam.scrollX - cam.width / 2) * cam.zoom, cam.height / 2 + (y * TILE_PX - cam.scrollY - cam.height / 2) * cam.zoom];
+  }
+
   /** The engineer's screen point (the zoom pivot on foot). */
   private engineerScreen(): [number, number] {
     const cam = this.cameras.main, e = this.st.engineer;
@@ -234,25 +253,63 @@ export class WorldScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ tools
 
-  /** A key from the page's keydown handler (only while this view is up). Returns true when it was a tool key. */
+  /** A key from the page's keydown handler (only while this view is up). Returns true when the scene took it. */
   key(k: string): boolean {
     const st = this.st;
     const lower = k.toLowerCase();
     if (!st.flow) return false;
-    if (lower in TOOL_KEYS) { this.tool = TOOL_KEYS[lower]; return true; }
+    const slot = '123456789'.indexOf(k);
+    if (slot >= 0) { this.setTool(HOTBAR[slot]); return true; }
+    if (lower === 'escape') { this.setTool('hand'); return true; }
+    if (lower === 'q') {
+      // pipette: the machine under the cursor into the hand; nothing there (or the Depot) clears the hand
+      const h = this.hoverTile, m = h ? machineAt(st, h.tx, h.ty) : undefined;
+      this.setTool(m && m.kind !== 'depot' ? m.kind : 'hand');
+      if (m && m.kind !== 'depot') this.dir = m.dir;
+      return true;
+    }
     if (lower === 'r') {
       const h = this.hoverTile, m = h && this.tool === 'hand' ? machineAt(st, h.tx, h.ty) : undefined;
       if (m && m.kind !== 'depot') { if (this.reachable(m.x, m.y, m.size, true)) rotate(st, m.x, m.y); } else this.dir = ((this.dir + 1) % 4) as Dir;
       return true;
     }
-    if (lower === 'c') {
-      const wb = workbenchTile(st);
-      if (!this.reachable(wb[0], wb[1], 2, true)) return true;
-      queueCraft(st, 1);
-      this.hooks.onToast(`Crafting a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s) — ${st.flow.hand.crafts} queued`);
-      return true;
-    }
+    if (lower === 'e') { this.interact(); return true; }
     return false;
+  }
+
+  /** Put a tool (a building, the rifle, or nothing) in the hand. The build menu's picks land here too. */
+  setTool(t: Tool): void {
+    if (t === this.tool) return;
+    if (this.firing) { this.firing = false; this.sendAim(null); }
+    this.tool = t;
+  }
+
+  /** E interacts (D-B1-5): the Depot opens the chest, the workbench crafts a magazine, a machine reports itself, the
+   *  truck is entered or left where it was found, a survivor group on the block answers. E never mines, places or
+   *  fires. Everything but the truck needs the thing within reach. */
+  private interact(): void {
+    const st = this.st, h = this.hoverTile;
+    if (!st.flow || !this.onFoot) return;
+    const e = st.engineer;
+    const wb = workbenchTile(st);
+    if (h && h.tx >= wb[0] && h.tx < wb[0] + 2 && h.ty >= wb[1] && h.ty < wb[1] + 2) {
+      if (!this.reachable(wb[0], wb[1], 2, true)) return;
+      queueCraft(st, 1);
+      this.hooks.onToast(`Workbench: crafting a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s) — ${st.flow.hand.crafts} queued`);
+      return;
+    }
+    const m = h ? machineAt(st, h.tx, h.ty) : undefined;
+    if (m) {
+      if (!this.reachable(m.x, m.y, m.size, true)) return;
+      if (m.kind === 'depot') { this.hooks.onChest(); return; }
+      this.hooks.onToast(describeMachine(st, m));
+      return;
+    }
+    if (e.truckFound) { queue(this.session, { type: 'enterTruck' }); this.hooks.onToast(e.truck ? 'Out of the truck' : 'In the truck — 3× walk speed, 200 stacks'); return; }
+    const b = e.block >= 0 ? st.blocks[e.block] : null;
+    const sv = b ? st.survivors.find(v => v.x === b.x && v.y === b.y) : undefined;
+    if (sv) { this.hooks.onToast(`${sv.name} (${sv.tag}): "${b!.state === HELD ? "We're in." : 'Light the street and we talk.'}"`); return; }
+    this.hooks.onToast('Nothing here to interact with — E opens the Depot chest, the workbench, a machine, the truck, a survivor group');
   }
 
   /** Top-left tile of the tool's footprint when the pointer is on (tx, ty): 3×3 machines centre on the pointer,
@@ -281,19 +338,30 @@ export class WorldScene extends Phaser.Scene {
     place(st, kind, ox, oy, this.dir);
   }
 
-  /** Click-to-walk (D5): a walk target on any non-water tile; harmless anywhere. */
-  private walkTo(tx: number, ty: number): void {
-    const st = this.st, G = ground(st);
-    if (!this.onFoot || tx < 0 || ty < 0 || tx >= G.tw || ty >= G.th) return;
-    if (G.owner[ty * G.tw + tx] === -2) { this.hooks.onToast('Not into the river', 'bad'); return; }
-    queue(this.session, { type: 'move', x: tx + 0.5, y: ty + 0.5 });
-  }
-
   private sendWalk(dx: number, dy: number): void {
     const k = `${dx},${dy}`;
     if (k === this.lastWalk || !this.onFoot) return;
     this.lastWalk = k;
     queue(this.session, { type: 'walk', dx, dy });
+  }
+
+  private sendSprint(on: boolean): void {
+    if (on === this.sprinting || !this.onFoot) return;
+    this.sprinting = on;
+    queue(this.session, { type: 'sprint', on });
+  }
+
+  /** The rifle's aim: the cursor's world position in tiles (fractional), or null on release. */
+  private sendAim(at: [number, number] | null): void {
+    const k = at ? `${at[0].toFixed(2)},${at[1].toFixed(2)}` : '';
+    if (k === this.lastAim) return;
+    this.lastAim = k;
+    queue(this.session, { type: 'aim', at });
+  }
+
+  private aimAt(p: Phaser.Input.Pointer): [number, number] {
+    const w = this.worldAt(p.x, p.y);
+    return [w.x / TILE_PX, w.y / TILE_PX];
   }
 
   private onDown(p: Phaser.Input.Pointer): void {
@@ -302,6 +370,7 @@ export class WorldScene extends Phaser.Scene {
     const tx = Math.floor(w.x / TILE_PX), ty = Math.floor(w.y / TILE_PX);
     if (p.rightButtonDown()) {
       if (!st.flow) return;
+      if (this.tool !== 'hand') { this.setTool('hand'); return; }   // something in hand: right-click clears it
       const m = machineAt(st, tx, ty);
       if (!m) return;
       if (m.kind === 'depot') { this.hooks.onToast('The Depot stays', 'bad'); return; }
@@ -313,12 +382,17 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     if (!p.leftButtonDown()) return;
+    // D-B1-5: left-click does what the hand holds
+    if (this.tool === 'rifle' && st.flow) {
+      if (this.onFoot) { this.firing = true; this.sendAim(this.aimAt(p)); }
+      return;
+    }
     if (this.tool !== 'hand' && st.flow) { this.placing = true; this.tryPlace(tx, ty, true); return; }
     if (this.tool === 'hand' && st.flow) {
       // §11: the tester hand-feeds turrets and the Generator; a click on one moves what the Depot has
       const m = machineAt(st, tx, ty);
       if (m && (m.kind === 'turret' || m.kind === 'generator')) {
-        if (!this.reachable(m.x, m.y, m.size, true)) { this.walkTo(tx, ty); return; }
+        if (!this.reachable(m.x, m.y, m.size, true)) return;
         const fed = handFeed(st, tx, ty);
         if (fed) {
           if (fed.moved > 0) this.hooks.onToast(fed.kind === 'turret' ? `Hand-fed ${fed.moved} magazines into the turret` : `Hand-fed ${fed.moved} coal into the Generator`, 'good');
@@ -327,10 +401,10 @@ export class WorldScene extends Phaser.Scene {
         }
       }
       if (rubbleAt(st, tx, ty)) {
-        if (!this.reachable(tx, ty, 1, true)) { this.walkTo(tx, ty); return; }
+        if (!this.reachable(tx, ty, 1, true)) return;
         this.mining = true; setHandMine(st, [tx, ty]); return;
       }
-      if (this.onFoot) { this.walkTo(tx, ty); return; }
+      if (this.onFoot) return;   // no click-to-walk in the world view (D-B1-5): WASD, or the map view's walk-here
     }
     this.dragging = true;
   }
@@ -338,6 +412,7 @@ export class WorldScene extends Phaser.Scene {
   private onUp(): void {
     this.dragging = false; this.placing = false;
     if (this.mining) { this.mining = false; if (this.st.flow) setHandMine(this.st, null); }
+    if (this.firing) { this.firing = false; this.sendAim(null); }
   }
 
   private onMove(p: Phaser.Input.Pointer): void {
@@ -353,6 +428,7 @@ export class WorldScene extends Phaser.Scene {
     const st = this.st, G = ground(st);
     if (this.placing && p.isDown) this.tryPlace(tx, ty, false);
     if (this.mining && p.isDown && st.flow) setHandMine(st, [tx, ty]);
+    if (this.firing && p.isDown) this.sendAim(this.aimAt(p));
     if (tx < 0 || ty < 0 || tx >= G.tw || ty >= G.th) { this.hooks.onHoverText(null, 0, 0); return; }
     const rect = this.game.canvas.getBoundingClientRect();
     const m = st.flow ? machineAt(st, tx, ty) : undefined;
@@ -389,8 +465,12 @@ export class WorldScene extends Phaser.Scene {
     const right = this.keys.D.isDown || this.keys.RIGHT.isDown, left = this.keys.A.isDown || this.keys.LEFT.isDown;
     const down = this.keys.S.isDown || this.keys.DOWN.isDown, up = this.keys.W.isDown || this.keys.UP.isDown;
     if (this.onFoot) {
-      // WASD walks the engineer (a sim command; walk.ts moves them with collision); the camera follows
+      // WASD walks the engineer (a sim command; walk.ts moves them with collision); the camera follows.
+      // D-B1-5: Shift sprints, Space dodges; the rifle's aim follows the cursor while the button is held.
       this.sendWalk((right ? 1 : 0) - (left ? 1 : 0), (down ? 1 : 0) - (up ? 1 : 0));
+      this.sendSprint(this.keys.SHIFT.isDown);
+      if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) queue(this.session, { type: 'dodge' });
+      if (this.firing) this.sendAim(this.aimAt(this.input.activePointer));
       const e = this.st.engineer, gx = e.x * TILE_PX - cam.width / 2, gy = e.y * TILE_PX - cam.height / 2;
       if (!this.snapped) { cam.setScroll(gx, gy); this.snapped = true; }
       else { const k = Math.min(1, FOLLOW_PER_S * dt); cam.setScroll(cam.scrollX + (gx - cam.scrollX) * k, cam.scrollY + (gy - cam.scrollY) * k); }
@@ -489,15 +569,19 @@ export class WorldScene extends Phaser.Scene {
     this.hudText.setScale(1 / cam.zoom).setPosition(cam.width / 2 + (8 - cam.width / 2) / cam.zoom, cam.height / 2 + (8 - cam.height / 2) / cam.zoom);
     const e = st.engineer;
     const pockets = this.onFoot ? ` · pockets ${invStacks(e.inv)}/${INV_STACKS} stacks${e.inv.kit ? ` · ${e.inv.kit} kit${e.inv.kit === 1 ? '' : 's'}` : ''} · HP ${Math.round(e.hp)}` : '';
-    const toolLine = st.flow
-      ? `\nTool: ${this.tool === 'hand' ? 'hand (hold on rubble to mine it; click a turret or Generator to feed it; click the ground to walk)' : `${this.tool} → ${DIR_NAMES[this.dir]}`}${this.ghostReason ? ` · ${this.ghostReason}` : ''}\n${TOOL_KEY_LINE}${this.powerLine()}`
-      : '';
-    const moveLine = this.onFoot ? 'M map view · WASD / click walk · I pockets · wheel zoom' : 'M map view · drag / WASD pan · wheel zoom';
-    this.hudText.setText(`World view · ${fi >= 0 ? this.blockLine(fi) : ''} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles${pockets}\n${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · space pause · 1 2 3 speed${toolLine}`);
+    const rounds = Math.floor((e.inv.magazine ?? 0) * ROUNDS_PER_MAG);
+    const inHand = this.tool === 'hand' ? 'empty hand (hold left-click on rubble to mine it; click a turret or Generator to feed it; E interacts)'
+      : this.tool === 'rifle' ? `rifle (hold left-click to fire toward the cursor, ${RIFLE_RANGE} tiles; Q puts it away) · ${rounds} round${rounds === 1 ? '' : 's'} in the pockets${rounds ? '' : ' — take magazines from the chest (E on the Depot)'}`
+      : `${this.tool} → ${DIR_NAMES[this.dir]}`;
+    const toolLine = st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}\n${TOOL_KEY_LINE}${this.powerLine()}` : '';
+    const moveLine = this.onFoot ? 'M map view (click a Held or street tile there to walk) · WASD move · Shift sprint · Space dodge · Tab/I pockets · wheel zoom' : 'M map view · drag / WASD pan · wheel zoom';
+    this.hudText.setText(`World view · ${fi >= 0 ? this.blockLine(fi) : ''} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles${pockets}\n${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${toolLine}`);
   }
 
   /** D5 on foot: the engineer (a disc, red while down), their path, and the reach ring — faint, brighter while the
-   *  cursor is inside it. GAME-ASSUMPTION: a code-drawn disc stands in for the engineer sprite until the art pass. */
+   *  cursor is inside it; D-B1-5: the stamina bar under the HP bar (a tick at the one-dodge floor) and, with the
+   *  rifle in hand, the aim line to the cursor out to the rifle's range. GAME-ASSUMPTION: a code-drawn disc stands
+   *  in for the engineer sprite until the art pass. */
   private drawEngineer(): void {
     const g = this.gEng, st = this.st;
     g.clear();
@@ -512,11 +596,25 @@ export class WorldScene extends Phaser.Scene {
     }
     const h = this.hoverTile, inside = !!h && inReach(st, h.tx, h.ty, 1);
     g.lineStyle(2 / zoom, 0xffffff, inside ? 0.35 : 0.1); g.strokeCircle(ex, ey, REACH * TILE_PX);
+    if (this.tool === 'rifle' && e.down < 0) {
+      const p = this.input.activePointer, w = this.worldAt(p.x, p.y);
+      const dx = w.x - ex, dy = w.y - ey, L = Math.hypot(dx, dy), R = RIFLE_RANGE * TILE_PX;
+      if (L > 1e-6) {
+        const k = Math.min(1, R / L);
+        g.lineStyle(2 / zoom, 0xffd070, this.firing ? 0.8 : 0.3); g.lineBetween(ex, ey, ex + dx * k, ey + dy * k);
+        g.lineStyle(1 / zoom, 0xffd070, 0.15); g.strokeCircle(ex, ey, R);
+      }
+    }
     if (e.down >= 0) { g.fillStyle(0xe05a5a, 0.9); g.fillCircle(ex, ey, 11); return; }
     g.fillStyle(0x0b0e1a, 0.6); g.fillCircle(ex + 2, ey + 3, 11);
-    g.fillStyle(0xf5f0e0, 1); g.fillCircle(ex, ey, 10);
+    g.fillStyle(e.dash > 0 ? 0xbfe8ff : 0xf5f0e0, 1); g.fillCircle(ex, ey, 10);
     g.fillStyle(0xe8a93a, 1); g.fillCircle(ex, ey - 2, 5);
     if (e.hp < 100) { g.fillStyle(0x1a1d26, 1); g.fillRect(ex - 12, ey + 13, 24, 4); g.fillStyle(0x6fe08a, 1); g.fillRect(ex - 12, ey + 13, 24 * e.hp / 100, 4); }
+    if (e.stamina < 1 || e.sprint) {
+      g.fillStyle(0x1a1d26, 1); g.fillRect(ex - 12, ey + 18, 24, 3);
+      g.fillStyle(e.stamina <= DODGE_COST + 1e-6 ? 0xe0a050 : 0xf0d060, 1); g.fillRect(ex - 12, ey + 18, 24 * e.stamina, 3);
+      g.fillStyle(0xffffff, 0.8); g.fillRect(ex - 12 + 24 * DODGE_COST - 0.5, ey + 17, 1, 5);   // one dodge's worth
+    }
   }
 
   private ghostReason = '';
@@ -536,7 +634,7 @@ export class WorldScene extends Phaser.Scene {
   private drawGhost(g: Phaser.GameObjects.Graphics): void {
     const st = this.st, h = this.hoverTile;
     this.ghostReason = '';
-    if (!st.flow || !h || this.tool === 'hand') return;
+    if (!st.flow || !h || this.tool === 'hand' || this.tool === 'rifle') return;   // the rifle draws its aim line, not a footprint
     const kind = this.tool as Kind, size = MACHINE_SIZE[kind];
     const [ox, oy] = this.footprint(kind, h.tx, h.ty);
     const far = this.onFoot && !inReach(st, ox, oy, size);

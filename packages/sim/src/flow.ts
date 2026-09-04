@@ -9,19 +9,19 @@
  *
  *  Rates (all measured by test/flow.test.ts, run name M2-rates): Excavator 0.5 items/s onto the tile it faces,
  *  belt 7.5 items/s (4 items a tile at 1.875 tiles/s), inserter 1 item/s, Shot assembler 3 s a magazine (20/min). */
-import { SimState, Block, HELD, CONTESTED, DARK, Command } from './types';
+import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command } from './types';
 import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing } from './sim';
-import { edgeId, edgeTo } from './graph';
+import { edgeId, edgeFrom, edgeTo } from './graph';
 import { RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH } from './recipes';
 import {
   CELL_TILES, P_STEEL, P_COPPER, P_COAL, HQ_PATCHES, DEPOT_LOT, DEPOT_TILES, SUBSTATION_TILES,
   T_STREET, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
   cellTiles,
 } from './tiles';
-import { ground, inGround, hqLot, blockOfTile, goneOf, poolCap, substationOwner, blocksNear, inReach, cityGeomOf } from './ground';
+import { ground, inGround, hqLot, blockOfTile, goneOf, poolCap, substationOwner, blocksNear, inReach, cityGeomOf, segAxis, segLength } from './ground';
 import { tickEngineerTiles, workbenchTile } from './walk';
-import { take as pocketTake, drop as pocketDrop, handHook, hqIdx as hqIndex } from './engineer';
-import { segBetween } from './city';
+import { take as pocketTake, drop as pocketDrop, handHook, hqIdx as hqIndex, upgradeEngineer } from './engineer';
+import { segBetween, frontTiles, CitySeg } from './city';
 
 export const TILE_TPS = 20;                    // constitution: fixed 20 ticks/s at tile level
 export const TILE_DT = 1 / TILE_TPS;
@@ -118,6 +118,7 @@ export interface FlowState {
 /** The flow layer, created on first use: the Depot goes on the start lot, the block-level Mk1 stand-in retires
  *  (§12 C9: Phase 4 places the real machine), and from here the HQ patch is dug by machines and hands, not drained. */
 export function ensureFlow(st: SimState): FlowState {
+  upgradeEngineer(st.engineer);   // D-B1-5: a snapshot from before the body fields
   if (st.flow) return upgrade(st.flow);
   const f: FlowState = {
     version: 1, tick: 0, next: 1, rev: 0, tw: ground(st).tw, machines: [], occ: {}, dug: {}, units: {},
@@ -135,11 +136,14 @@ export function ensureFlow(st: SimState): FlowState {
   if (hq.machines > 0) { hq.machines = 0; st.asmManual = Math.max(0, st.asmManual - st.config.startAssemblers); }
   const lot = (lx: number, ly: number): [number, number] => hqLot(st, lx, ly);   // the HQ lot's 24×24 frame (ground.ts)
   addMachine(st, 'depot', ...lot(DEPOT_LOT, DEPOT_LOT), 0);
-  // §11: "two Gun turrets on the north edge with 20 magazines in stock", and later "you have hand-fed the west and east
-  // turrets twice each". GAME-ASSUMPTION (M3): the HQ starts with two turrets on each of its three street sides (§5
-  // prices two a side; the block sim's 100-round edge hopper is two turrets' worth), the north pair where the §18
-  // sketch draws them (lot columns 3 and 16), each facing its street.
-  for (const [lx, ly, d] of [[3, 0, 0], [16, 0, 0], [0, 3, 3], [0, 16, 3], [22, 3, 1], [22, 16, 1]] as [number, number, Dir][]) addMachine(st, 'turret', ...lot(lx, ly), d);
+  // D-B1-4: on a city the start turrets are placed by the HQ's face geometry — per street segment, one per 16 tiles
+  // of its length, at least one (§5), on the buildable lot tiles nearest evenly spaced points along the segment's
+  // ridge, each within the turret's range of its point and facing its street. Every live segment is covered, so no
+  // edge of the HQ is a stand-in and the HQ holds without a special case (M3's six fixed lot spots left seed 3's
+  // fourth segment uncovered and the HQ fell at minute 20). The lattice keeps M3's six (two a side on its three
+  // street sides, the north pair at the §18 sketch's lot columns 3 and 16) — the lattice fixtures are its record.
+  if (st.lattice) for (const [lx, ly, d] of [[3, 0, 0], [16, 0, 0], [0, 3, 3], [0, 16, 3], [22, 3, 1], [22, 16, 1]] as [number, number, Dir][]) addMachine(st, 'turret', ...lot(lx, ly), d);
+  else startTurrets(st);
   // §11: one Generator (300 kW) with 40 coal. GAME-ASSUMPTION: the 40 coal is in the Generator's hopper, not the
   // Depot (§18: "coal by hand, 40 left"); it stands at lot (19,8), where the §18 sketch draws it.
   const g = addMachine(st, 'generator', ...lot(19, 8), 0);
@@ -153,6 +157,95 @@ export function ensureFlow(st: SimState): FlowState {
   const [wx, wy] = workbenchTile(st);
   st.engineer.x = wx + 0.5; st.engineer.y = wy + 0.5; st.engineer.block = hqIndex(st); st.engineer.dest = -1; st.engineer.remaining = 0;
   return f;
+}
+
+/** GAME-ASSUMPTION (D-B1-4): one start turret per 16 tiles of HQ segment length (`segLength`), at least one a segment. */
+export const TURRET_PER_TILES = 16;
+
+/** D-B1-4: which of a face's street segments a 2×2 at (x, y) serves — the segment whose front ring (`frontTiles`,
+ *  the lot tiles that border that street) holds most of the footprint; ties and footprints off every ring go to the
+ *  segment with the nearest ridge tile within TURRET_RANGE of the centre. Returns the neighbour index or -1.
+ *  The ring rule is what lets a corner sliver (a 7-tile segment with a 2-tile front) be covered at all. */
+export function faceSegOf(st: SimState, bi: number, x: number, y: number, size: number): number {
+  const cg = cityGeomOf(st), tw = cg.tw, cx = x + size / 2, cy = y + size / 2;
+  let best = -1, bestN = 0, bestD = TURRET_RANGE;
+  for (const j of st.nb[bi]) {
+    const sg = segBetween(cg, bi, j);
+    if (!sg) continue;
+    const front = frontTiles(cg, bi, j);
+    let n = 0;
+    for (let dy = 0; dy < size; dy++) for (let dx = 0; dx < size; dx++) { const t = (y + dy) * tw + x + dx; for (let k = 0; k < front.length; k++) if (front[k] === t) { n++; break; } }
+    let d = Infinity;
+    for (let k = 0; k < sg.ridge.length; k++) { const t = sg.ridge[k], tx = t % tw, ty = (t - tx) / tw, dd = Math.hypot(tx + 0.5 - cx, ty + 0.5 - cy); if (dd < d) d = dd; }
+    if (n > bestN || (n === bestN && d < bestD)) { best = j; bestN = n; bestD = d; }
+  }
+  return best;
+}
+
+/** D-B1-4: the HQ's start turrets by its segments' lengths. For each segment to a live neighbour, `n` target points
+ *  are spread evenly along its front ring (`frontTiles`, ordered along the segment's axis) and each turret goes on
+ *  the placeable 2×2 nearest its point that serves this segment (`faceSegOf`) and has the segment's ridge in range,
+ *  facing the ridge. A segment no turret reaches afterwards (a corner sliver whose front cannot hold a 2×2) gets one
+ *  more on the placeable 2×2 nearest its front that reaches its ridge — "at least one a segment" by reach.
+ *  Returns the turrets serving each HQ edge id. */
+export function startTurrets(st: SimState): Map<number, number> {
+  const cg = cityGeomOf(st), tw = cg.tw, hq = cg.hq, out = new Map<number, number>();
+  const lotTiles = cg.blocks[hq].tiles;
+  const segs = st.nb[hq].map(j => ({ j, sg: segBetween(cg, hq, j)! })).filter(x => x.sg && st.blocks[x.j].state !== INERT);
+  const ridgeDist = (sg: CitySeg, cx: number, cy: number): number => {
+    let d = Infinity;
+    for (let k = 0; k < sg.ridge.length; k++) { const t = sg.ridge[k], tx = t % tw, ty = (t - tx) / tw, dd = Math.hypot(tx + 0.5 - cx, ty + 0.5 - cy); if (dd < d) d = dd; }
+    return d;
+  };
+  const placeOne = (sg: CitySeg, j: number, px: number, py: number, mustServe: boolean): boolean => {
+    // clear ground first; failing that, a rubble pad (GAME-ASSUMPTION: the HQ's turret pads were laid before the
+    // rubble fell, so a start turret with no clear tile for its point stands on rubble it clears)
+    let best: [number, number] | null = null;
+    for (const onRubble of [false, true]) {
+      let bd = Infinity;
+      for (let q = 0; q < lotTiles.length; q++) {
+        const t = lotTiles[q], tx = t % tw, ty = (t - tx) / tw, cx = tx + 1, cy = ty + 1, d = Math.hypot(cx - px, cy - py);
+        if (d >= bd || ridgeDist(sg, cx, cy) >= TURRET_RANGE || (mustServe && faceSegOf(st, hq, tx, ty, MACHINE_SIZE.turret) !== j)) continue;
+        const why = placeable(st, 'turret', tx, ty);
+        if (why && !(onRubble && why === 'rubble in the way')) continue;
+        bd = d; best = [tx, ty];
+      }
+      if (best) break;
+    }
+    if (!best) return false;
+    for (let y = best[1]; y < best[1] + MACHINE_SIZE.turret; y++) for (let x = best[0]; x < best[0] + MACHINE_SIZE.turret; x++) if (rubbleAt(st, x, y)) (st.flow!.dug[hq] ??= []).push(y * tw + x);
+    const cx = best[0] + 1, cy = best[1] + 1;
+    let nx = sg.mx, ny = sg.my, nd = Infinity;   // face the nearest ridge tile
+    for (let k = 0; k < sg.ridge.length; k++) { const t = sg.ridge[k], tx = t % tw, ty = (t - tx) / tw, d = Math.hypot(tx + 0.5 - cx, ty + 0.5 - cy); if (d < nd) { nd = d; nx = tx + 0.5; ny = ty + 0.5; } }
+    const dx = nx - cx, dy = ny - cy;
+    const dir: Dir = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
+    addMachine(st, 'turret', best[0], best[1], dir);
+    return true;
+  };
+  for (const { j, sg } of segs) {
+    const [ux, uy] = segAxis(sg, tw);
+    const front = Array.from(frontTiles(cg, hq, j)).map(t => { const tx = t % tw, ty = (t - tx) / tw; return { tx, ty, s: (tx - sg.mx) * ux + (ty - sg.my) * uy }; }).sort((a, b) => a.s - b.s);
+    if (!front.length) continue;
+    const lo = front[0].s, hi = front[front.length - 1].s, n = Math.max(1, Math.floor(segLength(sg, tw) / TURRET_PER_TILES));
+    for (let k = 0; k < n; k++) {
+      const want = lo + (k + 0.5) / n * (hi - lo);
+      let p = front[0];
+      for (const f of front) if (Math.abs(f.s - want) < Math.abs(p.s - want)) p = f;
+      placeOne(sg, j, p.tx + 0.5, p.ty + 0.5, true);
+    }
+  }
+  const f = st.flow!;
+  for (const { j, sg } of segs) {
+    const reach = f.machines.filter(m => m.kind === 'turret' && ridgeDist(sg, m.x + m.size / 2, m.y + m.size / 2) < TURRET_RANGE).length;
+    if (reach === 0) {
+      const fr = frontTiles(cg, hq, j);
+      let px = 0, py = 0;
+      for (let k = 0; k < fr.length; k++) { const t = fr[k]; px += t % tw + 0.5; py += Math.floor(t / tw) + 0.5; }
+      if (fr.length) placeOne(sg, j, px / fr.length, py / fr.length, false);
+    }
+    out.set(edgeId(st, hq, j), f.machines.filter(m => m.kind === 'turret' && ridgeDist(sg, m.x + m.size / 2, m.y + m.size / 2) < TURRET_RANGE).length);
+  }
+  return out;
 }
 
 /** §11: what the chest holds at the start. */
@@ -176,12 +269,17 @@ function prefillTurrets(st: SimState): void {
   const hqIdx = idxOf(st, st.start[0], st.start[1]);
   for (const e of st.ring) if (e.a === hqIdx) { st.buffer = Math.min(st.config.bufferCap, st.buffer + e.hopper); e.hopper = 0; }
   hookSyncEdges(st);
+  // D-B1-4: each HQ edge gets the block sim's one hopper (config.hopper, 100) from the start buffer, spread evenly
+  // over its turrets, so the tile layer's start matches the block-only start the calibration runs on (every HQ
+  // hopper full); with the D6 start buffer that is every edge fed. A lattice or block-only snapshot's HQ pours the
+  // same way.
   for (const e of st.ring) {
     if (!e.turrets) continue;
-    for (const m of f.machines) {
-      if (m.kind !== 'turret' || turretEdge(st, m) !== e.id) continue;
-      const give = Math.min(TURRET_HOPPER - (m.inv.rounds ?? 0), st.buffer);
-      if (give > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + give; st.buffer -= give; }
+    const ts = f.machines.filter(m => m.kind === 'turret' && turretEdge(st, m) === e.id);
+    let share = Math.min(st.config.hopper, st.buffer);
+    for (let i = 0; i < ts.length; i++) {
+      const m = ts[i], give = Math.min(TURRET_HOPPER - (m.inv.rounds ?? 0), Math.ceil(share / (ts.length - i)), st.buffer);
+      if (give > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + give; st.buffer -= give; share -= give; }
     }
   }
   hookSyncEdges(st);
@@ -771,59 +869,61 @@ export function turretEdge(st: SimState, m: Machine): number {
   return edgeId(st, idxOf(st, bx, by), idxOf(st, bx + dx, by + dy));
 }
 
-/** On a face: the nearest ridge tile of any street the turret's block shares with a neighbour, within range 9 of the
- *  turret's centre (the same one-street-a-turret rule as the lattice). */
+/** On a face: the segment the turret serves (`faceSegOf` — front ring first, then the nearest ridge tile within
+ *  range 9 of the turret's centre, the same one-street-a-turret rule as the lattice). */
 function faceTurretEdge(st: SimState, m: Machine): number {
   const bi = blockIdxOf(st, m);
   if (bi < 0) return -1;
-  const cg = cityGeomOf(st), tw = cg.tw, cx = m.x + m.size / 2, cy = m.y + m.size / 2;
-  let best = -1, bestD = TURRET_RANGE;
-  for (const j of st.nb[bi]) {
-    const sg = segBetween(cg, bi, j);
-    if (!sg) continue;
-    for (let k = 0; k < sg.ridge.length; k++) {
-      const t = sg.ridge[k], tx = t % tw, ty = (t - tx) / tw, d = Math.hypot(tx + 0.5 - cx, ty + 0.5 - cy);
-      if (d < bestD) { bestD = d; best = j; }
-    }
-  }
-  return best < 0 ? -1 : edgeId(st, bi, best);
+  const j = faceSegOf(st, bi, m.x, m.y, m.size);
+  return j < 0 ? -1 : edgeId(st, bi, j);
+}
+
+/** D-B1-4: the turrets that serve an edge — those whose `turretEdge` it is; or, when it has none of its own, every
+ *  running turret on the block with a ridge tile of that street in range. GAME-ASSUMPTION: a corner sliver (a
+ *  segment whose front ring cannot hold a 2×2 — seed 3 has a 7-tile one, seed 5 a 12-tile one) is covered by the
+ *  neighbouring segment's turrets that reach it, which then serve two streets at once. */
+export function edgeTurrets(st: SimState, id: number, busyOnly = false): Machine[] {
+  const f = st.flow!;
+  const own = f.machines.filter(m => m.kind === 'turret' && running(st, m) && (!busyOnly || m.busy) && turretEdge(st, m) === id);
+  if (own.length || st.lattice) return own;
+  const bi = edgeFrom(st, id), j = edgeTo(st, id), cg = cityGeomOf(st), tw = cg.tw, sg = segBetween(cg, bi, j);
+  if (!sg) return own;
+  return f.machines.filter(m => {
+    if (m.kind !== 'turret' || !running(st, m) || (busyOnly && !m.busy) || blockIdxOf(st, m) !== bi) return false;
+    const cx = m.x + m.size / 2, cy = m.y + m.size / 2;
+    for (let k = 0; k < sg.ridge.length; k++) { const t = sg.ridge[k], tx = t % tw, ty = (t - tx) / tw; if (Math.hypot(tx + 0.5 - cx, ty + 0.5 - cy) < TURRET_RANGE) return true; }
+    return false;
+  });
 }
 
 /** GAME-ASSUMPTION: an edge with physical turrets fires only through them; an edge with none keeps the block-level
- *  stand-in hopper until M6 decides (D-P4-5). The lattice M3 made every HQ edge a turret edge (its three streets each
- *  had a start pair). GAME-ASSUMPTION (prompt B M1): a city HQ has 4–7 street segments and the six start turrets sit
- *  on the lattice lot's three sides, so a segment they do not cover keeps the stand-in — the first city soak found
- *  the uncovered fourth segment of seed 3's HQ unfed from tick one and the HQ lost at minute 20 (sim.ts's D6 start
- *  fill undone). Prompt B M3 puts the start turrets on segments (D-P4-8). */
+ *  stand-in hopper until M6 decides (D-P4-5). D-B1-4: the HQ's start turrets are derived from its segments
+ *  (`startTurrets`), so every live HQ segment is a turret edge from tick one — the first city soak's bare fourth
+ *  segment (unfed, HQ lost at minute 20) is gone by rule, with no HQ branch here. */
 function hookSyncEdges(st: SimState): void {
   const f = st.flow!, ring = st.ring;
   for (const e of ring) if (e.turrets !== undefined) { e.turrets = 0; e.fire = 0; e.hopper = 0; }
-  for (const m of f.machines) {
-    if (m.kind !== 'turret') continue;
-    m.busy = false; m.out = 0;
-    if (!running(st, m)) continue;
-    const id = turretEdge(st, m);
-    if (id < 0) continue;
-    const ri = st.edgeAt[id];
-    if (ri < 0) continue;
-    const e = ring[ri];
+  for (const m of f.machines) if (m.kind === 'turret') { m.busy = false; m.out = 0; }
+  for (const e of ring) {
+    const ts = edgeTurrets(st, e.id);
+    if (!ts.length) continue;
     if (e.turrets === undefined) { e.turrets = 0; e.fire = 0; e.hopper = 0; }
-    const rounds = m.inv.rounds ?? 0;
-    e.turrets!++; e.fire! += Math.min(rounds, TURRET_ROUNDS_PER_S); e.hopper += rounds;
-    m.busy = true;
+    for (const m of ts) {
+      const rounds = m.inv.rounds ?? 0;
+      e.turrets!++; e.fire! += Math.min(rounds, TURRET_ROUNDS_PER_S); e.hopper += rounds;
+      m.busy = true;
+    }
+    if (e.kit === false) e.kit = true;   // D-B1-4: physical turrets are the kit
   }
   for (const e of ring) if (e.turrets === 0) { delete e.turrets; delete e.fire; }   // no turret left: back to the stand-in, ring-fed
 }
-
-/** This second's fired rounds come out of the edge's turrets in equal shares, at most 5 each; a turret with less than
- *  its share gives what it has and the others cover it. */
 function hookDrainEdges(st: SimState, fired: Float64Array): void {
   const f = st.flow!;
   for (let r = 0; r < st.ring.length; r++) {
     let left = fired[r];
     const e = st.ring[r];
     if (left <= 1e-9 || !e.turrets) continue;
-    const ts = f.machines.filter(m => m.kind === 'turret' && m.busy && turretEdge(st, m) === e.id).sort((a, b) => (a.inv.rounds ?? 0) - (b.inv.rounds ?? 0));
+    const ts = edgeTurrets(st, e.id, true).sort((a, b) => (a.inv.rounds ?? 0) - (b.inv.rounds ?? 0));
     for (let i = 0; i < ts.length; i++) {
       const m = ts[i];
       const take = Math.min(left / (ts.length - i), TURRET_ROUNDS_PER_S, m.inv.rounds ?? 0);
@@ -883,7 +983,12 @@ function hookSetLoad(st: SimState, supply: number, demand: number, load: number,
   f.power.supply = supply; f.power.demand = demand; f.power.load = load;
   if (over) f.power.overS++;
 }
-tileHooks.current = { syncEdges: hookSyncEdges, drainEdges: hookDrainEdges, supplyKw: hookSupplyKw, demandKw: hookDemandKw, shedOne: hookShedOne, restoreOne: hookRestoreOne, setLoad: hookSetLoad };
+/** D-B1-4: an edge is covered when a running turret serves it (`edgeTurrets`). */
+function hookCovered(st: SimState, id: number): boolean {
+  return edgeTurrets(st, id).length > 0;
+}
+
+tileHooks.current = { syncEdges: hookSyncEdges, covered: hookCovered, drainEdges: hookDrainEdges, supplyKw: hookSupplyKw, demandKw: hookDemandKw, shedOne: hookShedOne, restoreOne: hookRestoreOne, setLoad: hookSetLoad };
 
 // ------------------------------------------------------------------ M3: substations, streetlights, light
 

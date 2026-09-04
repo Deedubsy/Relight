@@ -40,7 +40,7 @@ export interface Block {
  *  and hands, not by the ring. Absent on a state without a flow layer. */
 /** `cut`: the ring skips this edge until that tick (scenario hook: "the belt is 90 s away"; the slice's belts make it
  *  physical). */
-export interface Edge { id: number; a: number; b: number; hopper: number; empty: number; turrets?: number; fire?: number; kit?: boolean; cut?: number }
+export interface Edge { id: number; a: number; b: number; hopper: number; empty: number; turrets?: number; fire?: number; kit?: boolean; cut?: number; born?: number }   // born: the second the edge was created (a kitted edge is born fed; telemetry never reads its pip that second)
 
 /** Crawlers from one bloom arriving at one edge over 15 s. */
 export interface Engagement { id: number; cr: number; sh: number; rcr: number; rsh: number }
@@ -169,9 +169,12 @@ export type Command =
   | { type: 'addAssembler' }
   | { type: 'setSpeed'; mult: number }
   // D5: the engineer (engineer.ts). Tile coordinates; `walkTo` is the block-level form the bots use.
-  | { type: 'move'; x: number; y: number }            // walk toward a tile (straight line; the world view's click-to-move)
-  | { type: 'walk'; dx: number; dy: number }          // held keys: a direction, (0,0) stops
-  | { type: 'walkTo'; block: number }                 // bots: walk along the streets to a block's centre
+  | { type: 'move'; x: number; y: number }            // walk here (the map view's click on a Held or street tile; the A* in walk.ts)
+  | { type: 'walk'; dx: number; dy: number }          // held keys: a direction, (0,0) stops; any direction cancels a walk-here
+  | { type: 'walkTo'; block: number }                 // bots and dev hooks only: walk along the streets to a block's centre
+  | { type: 'sprint'; on: boolean }                   // D-B1-5: Shift
+  | { type: 'dodge' }                                 // D-B1-5: Space — a short dash in the movement direction
+  | { type: 'aim'; at: [number, number] | null }      // D-B1-5: the rifle in hand, mouse held toward a tile; null releases
   | { type: 'mineAt'; x: number; y: number }
   | { type: 'craft'; item: string; count?: number }
   | { type: 'place'; item: string; x: number; y: number; dir?: number }
@@ -221,8 +224,19 @@ export interface Engineer {
   dest: number;                // block it is walking to (-1 none)
   remaining: number;           // tiles left on that walk
   vel: [number, number];       // held-key direction (world view)
-  target: [number, number] | null;   // click-to-move tile (world view)
-  firing: number;              // edge id being fired at, -1 none
+  target: [number, number] | null;   // walk-here tile (the map view's click; cancelled by any WASD input)
+  firing: number;              // edge id being fired at, -1 none (the bots' block-level rifle)
+  // D-B1-5 direct control: the engineer's body — stamina is a movement resource only, never hunger, cold or dark
+  stamina: number;             // 0..1; sprint drains it, rest refills it, a dodge costs a fixed chunk
+  sprint: boolean;             // Shift held
+  dash: number;                // seconds left in the current dodge (0 = none); invulnerable to crawlers meanwhile
+  dashDir: [number, number]; dashCooldown: number;
+  face: [number, number];      // last movement direction (a dodge with no keys held goes this way)
+  aim: [number, number] | null;   // the cursor tile while the rifle is in hand and the mouse is held; null = not firing
+  shots: Record<number, number>;  // rounds that hit an engaged edge this second, resolved to kills by the block step
+  iframes: number;             // seconds of this block second spent dodging (scales that second's retaliation)
+  shootS: number; shootHour: number[]; shotAt: number;   // seconds in which the rifle fired (§19: ≤ 10 % of an hour)
+  danger: number; dangerHour: number[]; dangerShot: number;   // seconds with a crawler on the player (§19: ≤ 5 %); dangerShot: of those, seconds the rifle fired
   barrels: 1 | 2;              // the Arsenal upgrade
   cooldown: number;            // seconds until the next round
   walked: number;              // seconds spent walking (E-walk)

@@ -14,7 +14,18 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 ## Prompt B — the slice rebuilt on the city (Phase 4 reopened, opened 2026-09-04)
 
-**Status: M1 Ground and the engineer built 2026-09-04; M2–M6 not started.** Branch `phase-4`, PR #4. Report `SLICE_REPORT.md` (rewritten from the top; the lattice slice is its appendix). Decisions D-B1-1 … D-B1-5 taken by recommendation on the human's `go` for M1 (`DECISIONS.md`); D-P4-7/8/9 and D-B1-4/5 open.
+**Status: M1 Ground and the engineer built 2026-09-04; the four pre-M2 items ("Four small things before Prompt B M2": D-B1-5 direct control, D-B1-4 placement by face geometry, C1/C2 birth artefact, reference machine) done 2026-09-04; M2–M6 not started.** Branch `phase-4`, PR #4. Report `SLICE_REPORT.md` (rewritten from the top; the lattice slice is its appendix; the four items are its "Before M2" section). Decisions D-B1-1 … D-B1-3 taken by recommendation on the human's `go` for M1, **D-B1-4 and D-B1-5 made by the human 2026-09-04** (`DECISIONS.md`); D-P4-8 superseded by D-B1-4; D-P4-7 and D-P4-9 open.
+
+```yaml
+reference_machine:            # the only host whose fps is reported against the 60 fps DoD (item 4, 2026-09-04)
+  host: the owner's desktop, Windows 11 Home 10.0.26200; the repo and the toolchain run in WSL2 (Linux 6.18), the browser on Windows
+  cpu: Intel Core i7-11700K, 8c/16t
+  ram: 64 GB
+  gpu: NVIDIA GeForce RTX 3070 (driver 32.0.15.9186); Intel UHD Graphics 750 present, unused
+  display: 2560x1440 @ 59 Hz
+  browser: Google Chrome (Windows), GPU-accelerated; the soak attaches over CDP (`soak.cjs` with `SOAK_CDP`)
+  headless: Chromium + swiftshader in WSL2 is reported as "headless, for regressions only", never against the DoD
+```
 
 ### B.1 M1 Ground and the engineer — what changed
 
@@ -26,11 +37,19 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 - **Measured** — HQ → Tram depot → HQ on foot (20 s sim a leg, no stutter, no frame over 50 ms); the 1 h at 4× soak on seed 3 with the §11 line (`soak.cjs`, headless Chromium, swiftshader): 901.6 s real, sim 1:30:05, 39,378 frames, 43.7 fps, worst 48.3 ms, 0 frames over 50 ms, held 4 / lost 0 at the hour, one claim lost at 1:29:42 with the coal at 0. The DoD's 60 fps is not met on this host: 91.7 % of profiler samples are the software renderer, JS ≈ 1.6 ms a frame; the lattice M3's 60 fps flat (2026-09-03) is the baseline a GPU host has to match. Reported as measured, not waived.
 - **Doc**: §14 passable belts and poles and §4 the key bindings, changelog lines `B-M1-walk`; the five disagreements in `SLICE_REPORT.md` (chest vs calibration start, passability, kits' price, substations by geometry, bindings).
 - **Checks**: `npm test` 95/95, typecheck (incl. the game build), lint, `snapshot:check` (`5f3417b9`), `docsync:check`, `experiments` 12 / 0 failing — green.
-- **Deferred** re-read (`DEFERRED.md` "Re-read at prompt B M1"): the lattice tile layer and `?map=lattice` → Phase 5 gate; sprite and tileset art → Phase 12; hand-crafting from the pockets → M2; kits by hand and the walk-back tedium → M6; the truck as a vehicle → Phase 5; start turrets on segments → M3 (D-P4-8); A* vs graph distance → Phase 11.
+- **Deferred** re-read (`DEFERRED.md` "Re-read at prompt B M1"): the lattice tile layer and `?map=lattice` → Phase 5 gate; sprite and tileset art → Phase 12; hand-crafting from the pockets → M2; kits by hand and the walk-back tedium → M6; the truck as a vehicle → Phase 5; start turrets on segments → M3 (D-P4-8; since decided by D-B1-4 before M2); A* vs graph distance → Phase 11.
+
+### B.1a Before M2 — the four small things (2026-09-04, `SLICE_REPORT.md` "Before M2")
+
+- **D-B1-5 direct control** (the human's decision, run `B-M1-body`): `engineer.ts` sprint/stamina/dodge/rifle constants (GA-B1-19/20/21), `walk.ts`, `worldScene.ts` hotbar 1–9 with the rifle at 9 (GA-B1-22), `panel.ts`, `telemetry.ts` shooting ≤ 10 % and danger ≤ 5 % guards; click-to-walk removed from the world view; `body.test.ts` four tests. Doc §4/§11/§19/§22/§23.
+- **D-B1-4 placement by face geometry** (the human's decision, run `B-M1-start`): `ground.ts` substation nearest the centroid, lamps every 4 tiles along each kerb (`FACE_LIGHT_STEP`, GA-B1-2), `segLength`; `flow.ts` `startTurrets` one per 16 tiles of segment (`TURRET_PER_TILES`, GA-B1-14), at least one a segment, a corner sliver served by the turrets that reach it (`edgeTurrets`, GA-B1-17), pads and per-edge prefill (GA-B1-16); `sim.ts` a covered edge is born kitted, the M1 HQ-at-t=0 branch removed from every tiled state (GA-B1-15 is now the block-only fallback). Seeds 3/4/5: every live HQ segment covered (6 / 7 / 5 turrets); the minute-20 soak holds through sim minute 33 with the §11 line, no HQ branch. Doc §5/§13; D-P4-8 superseded.
+- **C1/C2 birth artefact** (run `B-M1-born`): the M1 report quoted a stale `calibration.md`; HEAD already read MET. Built by the rule anyway: `engineer.ts` `bornFed` (a kitted edge is born fed, GA-B1-18), `Edge.born`, `calibrate.ts` never reads a birth-tick pip. Clean numbers: C1 MET (enclosure 60 / 46 / 45 min, first amber never / 178 / never), C2 MET; only seed 3's spike row moves (2,316 → 2,291 magazines). D-R2 stays closed.
+- **Reference machine** (run `B-M1-ref`): the `reference_machine:` block above; `soak.cjs` attaches over CDP (`SOAK_CDP`) to the Windows Chrome; the M1 soak measured there once (900.8 s real / sim 1:30:03, 53,921 frames, **59.9 fps**, worst frame 26.7 ms, 0 over 50 ms — the 60 fps DoD holds; the headless M1 row was 43.7 fps / worst 48.3 ms). Headless swiftshader fps is "for regressions only" from here on.
+- Checks: `npm test` 99/99 (95 + `body.test.ts`'s four), `typecheck` (incl. the game build), `lint`, `snapshot:check` (`5f3417b9`; the snapshot regenerated twice for new fields only — the engineer's stamina/dodge/aim state and `Edge.born` — no number moved), `docsync:check`, `experiments` 12 / 105 s / 0 failing checks — green. Fixtures `city{3,4,5}.json` unchanged; the snapshot `5f3417b9` unchanged.
 
 ### B.2 Untagged recount at prompt B M1
 
-33 → **33**. M1 added no `[sim]` tag to an untagged number: the ground and the walk are tagged where the rework already tagged them (`rework-graph`, `E-walk`); §14's passability line is new text, not one of the 33. §26 status unchanged: three systems, 5 of 10 gate criteria measurable. C1/C2 still read **MISSED** in `calibration.md` after D-R2's rewrite to kitted edges (first amber on a kitted edge 31 / 16 / 16 min on seeds 3/4/5, first enclosure 60 / 46 / 45 min): the first amber still lands at the claim minute although §25's D-R2 line has an edge kitted this second filled this second, so the cause is not the kit walk alone. Not chased in M1 and unchanged by its fixes; reported, not resolved — D-R2 is reopenable at Gate B and prompt B M3 (turrets on segments) is where the claim's first fill is decided.
+33 → **33**. M1 added no `[sim]` tag to an untagged number: the ground and the walk are tagged where the rework already tagged them (`rework-graph`, `E-walk`); §14's passability line is new text, not one of the 33. §26 status unchanged: three systems, 5 of 10 gate criteria measurable. C1/C2: the M1 text here said they still read **MISSED** at the claim minute; that was a stale `calibration.md` — the clean re-run (B.1a item 3) reads **MET** on all three seeds with first amber never / 178 min / never, and D-R2 stays closed. §26 recount after the four items: still **33**.
 
 ## Rework — the engineer and the street-first city (D5, D6; applied 2026-09-03 → 2026-09-04)
 
@@ -114,7 +133,7 @@ Three systems: the front, found tech, automated combat. M2 added the Factorio la
 - **`packages/game`** — tools T/L/P/G, hand-feeding by click, turrets with flash, hopper bar and empty blink, Generators with chimney and coal, poles with wires, light discs, the substation slab, shed crosses; HUD power line; panel Power / Generators / Turret rounds / Lamps / Brownout rows; toasts for hopper-empty (with the side), gen-dry, brownout, shed, restore and pole claims; the map pip pulses red on `hopper-empty`; the session turns the §14 power model on with the flow layer (`supply 'generators'`, half draw, machines-first); per-minute telemetry for hoppers, belt ammo, lamps, poles, brownout seconds, Generators and coal, kW, shed machines, rounds fired.
 - **`packages/tools/src/docsync.ts`** — generator `section18lot`: the §18 10-minute lot sketch from the world view (seed 3, the game's M3 config, §11's line placed by hand at the doc's stock), CI-checked; the hand sketch is gone.
 - Doc: §13 Generator, Gun turret (rate and hopper), Lamp and Pole rows, §14's shed order and §5's fall paragraph tagged `[sim: M3-rates]`; §14 gains the Generator-feed inserter and the dead-grid sentence; §18 caption and sketch generated; three changelog lines.
-- Constitution vs doc, reported not resolved: six start turrets vs §11's two (D-P4-8); §11's own opening line browns out at minute 0 on one 300 kW Generator at the half draw, and at the 80/40 start it cannot be bought (D-P4-7, with D-P4-4); physical turrets on the HQ only (D-P4-9).
+- Constitution vs doc, reported not resolved: six start turrets vs §11's two (D-P4-8, superseded 2026-09-04 by D-B1-4: one per 16 tiles of segment); §11's own opening line browns out at minute 0 on one 300 kW Generator at the half draw, and at the 80/40 start it cannot be bought (D-P4-7, with D-P4-4); physical turrets on the HQ only (D-P4-9).
 
 ### 4.9 Untagged recount at M3
 
@@ -142,7 +161,7 @@ Three systems: the front, found tech, automated combat. M3 makes automated comba
 - "Fixed 20 ticks/s tile tick; a 1 h sim at 4× must not drop the render loop": `SLICE_REPORT.md` M3 measured (roaming camera, the bot claiming).
 - "Map-view fixtures still pass": `snapshot:check` green (`ee23bb1c`), `npm test` green.
 - `DEFERRED.md` re-read at M3: every item has a phase; the substation, hopper, belt-to-hopper, Generator, power-draw and §18 sketch items are closed.
-- Decisions: D-P4-4/5/6 **made** by recommendation on the `Go` that opened M3. Three for the human from M3: **open** — D-P4-7 hour-one power, D-P4-8 six start turrets, D-P4-9 turrets on claimed blocks.
+- Decisions: D-P4-4/5/6 **made** by recommendation on the `Go` that opened M3. Three for the human from M3: **open** — D-P4-7 hour-one power, D-P4-8 six start turrets (superseded by D-B1-4), D-P4-9 turrets on claimed blocks.
 
 ---
 

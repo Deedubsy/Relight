@@ -146,3 +146,13 @@ Every item above keeps its phase unless listed here. Nothing deleted.
 - **Walk paths outside `SimState`.** A snapshot restarts a walk in progress (the path is re-planned from the saved destination, the WASD velocity is dropped) → **Phase 12** save/load, if a saved walk ever matters.
 - **The panel's pockets rows as fixed "take n" buttons.** Take 50 (a stack) of rubble, 5 magazines, 1 kit; no drag, no split → **Phase 12** interface.
 - **A block-level `walkTo` from the map on a city with the flow layer paths by A\* over the tiles, not by the graph's street distance** (the harness bot's walk). The two agree to within the path's diagonal saving; E-walk stays on the graph → **Phase 11** if the graph distance is ever wrong enough to matter.
+
+## Re-read before prompt B M2 (2026-09-04, the four items after M1: D-B1-5, D-B1-4, C1/C2, reference machine)
+
+Every item above keeps its phase unless listed here.
+
+- ~~**Click-to-walk in the world view.**~~ **Deleted (D-B1-5, the human's decision):** the world view is direct control only (WASD, Shift sprint, Space dodge, the hand on left-click); the map view's walk-here is the only auto-walk. `walkTo` stays in `walk.ts` for the harness bots and the `__relight` dev hook, never bound to a click in the world.
+- **Start turrets on segments (D-P4-8, "prompt B M3").** **Done before M2 by D-B1-4** (`flow.ts` `startTurrets`: one per 16 tiles of HQ segment, at least one a segment, a corner sliver served by the turrets that reach it). M3 keeps only the player's turrets on claimed segments (D-P4-9, open).
+- **The stamina bar, the dodge's look and the rifle's aim line** (D-B1-5) are code-drawn like the engineer's disc → **Phase 12** art pass, with the sprite.
+- **The reference-machine measurement** is by hand once a milestone (`soak.cjs` over CDP to the Windows Chrome, `PROGRAMME_STATE.md` `reference_machine:`); the headless swiftshader soak stays the regression check → **not automated**; a CI GPU runner is a Phase 13 question if the DoD is ever gated in CI.
+- **The block-only harness start ring** (`sim.ts` `syncEdges`: with no tile layer the HQ's edges at t = 0 are kitted and fed as an abstract ring, GA-B1-15) → **delete with the lattice at the Phase 5 gate**, when every state has tiles and `startTurrets` is the only source.

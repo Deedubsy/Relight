@@ -11,6 +11,7 @@ import {
   cellLights, litAt, poleGrid, substationAt, subPowered, layPoles, botHands,
   TILE_TPS, TILE_DT, TURRET_HOPPER, TURRET_ROUNDS_PER_S, GENERATOR_KW, COAL_MJ, START_COAL, LAMP_RADIUS, POLE_REACH, MACHINE_KW,
   Machine, SimState, SimEvent, citySpec, hqIdx,
+  cityGeomOf, segBetween, segLength, TURRET_PER_TILES,
 } from '../src/index';
 
 function fresh(seed = 3): SimState {
@@ -322,28 +323,27 @@ test("the bot's hands: every turret at or under half and every Generator at or u
 
 // ------------------------------------------------------------------ prompt B M1: the HQ's turrets on a city
 
-test('city HQ (prompt B M1): the six start turrets cover three of seed 3\'s four segments; the fourth keeps the block-level stand-in hopper, ring-fed from the buffer, so the HQ is not unfed from tick one', () => {
-  const cfg = protoCalibrated({ ...DEFAULT_CONFIG, walk: true });
-  Object.assign(cfg, { power: true, supply: 'generators', draw: 'half', shed: 'machines-first' });
-  const st = createState(citySpec(3, 'river', cfg), cfg, 3);
-  ensureFlow(st);
-  const hqI = hqIdx(st), mine = st.ring.filter(e => e.a === hqI);
-  assert.equal(mine.length, 4, 'seed 3\'s HQ has four street segments');
-  const covered = mine.filter(e => e.turrets), bare = mine.filter(e => !e.turrets);
-  assert.equal(covered.reduce((s, e) => s + e.turrets!, 0), 6, 'all six start turrets cover a segment');
-  assert.equal(bare.length, 1, 'one segment has no turret');
-  assert.equal(bare[0].turrets, undefined, 'it is a stand-in edge, not a turret edge with none');
-  runS(st, 2);
-  const again = st.ring.find(e => e.id === bare[0].id)!;
-  assert.equal(again.hopper, st.config.hopper, 'the ring fills the stand-in from the start buffer (D6: every HQ hopper full)');
-  assert.equal(again.empty, 0);
-  assert.ok(st.buffer >= 0);
-  // three minutes with the bot's hands on the turrets and no line: the covered segments fire through their turrets and
-  // the stand-in through its ring-fed hopper; nothing on the HQ is unfed (the first city soak had the bare segment
-  // empty from tick one and the HQ lost at minute 20 with a line making 305 magazines)
-  const evs: SimEvent[] = [];
-  for (let s = 0; s < 3 * 60; s++) { botHands(st); advanceFlow(st, 1, [], 4); evs.push(...st.events); st.events.length = 0; }
-  assert.equal(st.blocks[hqI].state, HELD);
-  assert.ok(st.ring.find(e => e.id === bare[0].id)!.hopper > 0, 'the stand-in still has rounds');
-  assert.ok(!evs.some(e => e.type === 'hopper-empty' && e.x === st.blocks[hqI].x && e.y === st.blocks[hqI].y), 'no HQ hopper ran empty');
+test('city HQ (D-B1-4): the start turrets are derived from the HQ\'s segments — one per 16 tiles, at least one a segment, a corner sliver served by the turrets that reach it — so every live segment is a covered turret edge on seeds 3, 4 and 5, and the HQ holds three minutes with no hopper empty', () => {
+  for (const seed of [3, 4, 5]) {
+    const cfg = protoCalibrated({ ...DEFAULT_CONFIG, walk: true });
+    Object.assign(cfg, { power: true, supply: 'generators', draw: 'half', shed: 'machines-first' });
+    const st = createState(citySpec(seed, 'river', cfg), cfg, seed);
+    ensureFlow(st);
+    const hqI = hqIdx(st), cg = cityGeomOf(st), mine = st.ring.filter(e => e.a === hqI);
+    assert.ok(mine.length >= 3, `seed ${seed}: the HQ has at least three live segments`);
+    for (const e of mine) {
+      const sg = segBetween(cg, hqI, e.b)!, len = segLength(sg, cg.tw);
+      assert.ok(e.turrets! >= 1, `seed ${seed}: segment to ${e.b} (${len} tiles) has a turret`);
+      assert.ok(e.turrets! >= Math.floor(len / TURRET_PER_TILES), `seed ${seed}: segment to ${e.b} has one turret per ${TURRET_PER_TILES} tiles`);
+      assert.equal(e.kit, true, `seed ${seed}: a covered segment is kitted`);
+      assert.ok(e.hopper > 0, `seed ${seed}: a start turret edge is born fed`);
+    }
+    assert.ok(!st.flow!.machines.some(m => m.kind === 'turret' && turretEdge(st, m) < 0), `seed ${seed}: no start turret maps to no edge`);
+    // three minutes with the bot's hands on the turrets and no line: nothing on the HQ is unfed (the first city soak
+    // had seed 3's fourth segment bare from tick one and the HQ lost at minute 20; the fix is the rule, not an HQ branch)
+    const evs: SimEvent[] = [];
+    for (let s = 0; s < 3 * 60; s++) { botHands(st); advanceFlow(st, 1, [], 4); evs.push(...st.events); st.events.length = 0; }
+    assert.equal(st.blocks[hqI].state, HELD, `seed ${seed}: the HQ holds`);
+    assert.ok(!evs.some(e => e.type === 'hopper-empty' && e.x === st.blocks[hqI].x && e.y === st.blocks[hqI].y), `seed ${seed}: no HQ hopper ran empty`);
+  }
 });
