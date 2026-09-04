@@ -1,25 +1,24 @@
 /** Prompt B M6 "The hour" (run name B-M6-hour): a bot that plays §11's minute list on the tile layer with real
  *  walking and real pockets — to the steel patch and back to the workbench, the turrets hand-fed on the first red pip
  *  (D-P4-8), the line placed from the pockets in trips to the chest, a second steel Excavator into the chest at 15:00
- *  (D-P4-7), east / west / north claimed at constants.HOUR's minutes (D-HOUR-1: 15 / 25 / 40, the same minutes
- *  firsthour.ts reads) with the kit walked over, the two idle turrets carried to
- *  north, the hands running magazines and coal every five minutes — and writes down when each thing happened.
+ *  (D-P4-7), east / west / north claimed at constants.HOUR's minutes (D-HOUR-1, D-P4-10: 15 / 25 / 65, the same
+ *  minutes firsthour.ts reads) with the kit walked over — north's is past the hour, so the scored hour is two claims
+ *  — the hands running magazines and coal every five minutes, and writes down when each thing happened. Through
+ *  Gate B a claim's edges keep the block sim's ring-fed hopper and no turret is carried to them (D-P4-9).
  *  `hourReport` turns the log into findings against §11's prose and the calibration timeline. Every command goes
  *  through `Command` (types.ts), so a session under the bot replays like a played one (`replay`, Gate B's "did the
  *  rifle matter" row). The bot is a dev aid: not a player control, never on by default (`?autoplay=hour`). */
-import { SimState, Command, HELD, DARK, CONTESTED, INERT } from './types';
-import { edgeTo } from './graph';
+import { SimState, Command, HELD, DARK } from './types';
 import { hqIdx, RIFLE_RANGE, INV_STACKS, KIT_STACKS, invStacks, invCap } from './engineer';
-import { ground, hqLot, inReach, cityGeomOf } from './ground';
+import { ground, hqLot, inReach } from './ground';
 import { LOT_TILES } from './tiles';
-import { segBetween, frontTiles } from './city/geom';
 import { findPath, passable } from './walk';
 import { burnOffS, isCandidate } from './sim';
 import { pipOf, edgeCap } from './queries';
-import { TURRET_HOPPER, TURRET_RANGE } from './recipes';
+import { TURRET_HOPPER } from './recipes';
 import { HQ_PATCHES, P_STEEL, DEPOT_LOT, DEPOT_TILES } from './tiles';
 import {
-  Kind, Dir, Machine, depotRect, chestCount, turretEdge, placeable, canPlace, faceSegOf, rubbleAt,
+  Kind, Dir, Machine, depotRect, chestCount, turretEdge, placeable, canPlace, rubbleAt,
   MACHINE_SIZE, MACHINE_COST, GENERATOR_COAL_CAP, survivorJoined, advanceFlow, TILE_DT, TILE_TPS, ensureFlow, SHOT, START_TURRETS,
 } from './flow';
 import { threatActive, threatOf } from './threat';
@@ -67,8 +66,6 @@ export interface HourBot {
   claimed: Partial<Record<HourDir, number>>;
   lastRun: number;
   aiming: boolean;
-  /** Turrets the bot carried to north (M6's "two turrets carried"). */
-  carried: number;
   /** Why a claimed block fell (the sim's fall event: unfed / shade / starved). */
   fellWhy: Partial<Record<HourDir, string>>;
   /** E-rifle's rescue: the script and the hands (feed beat, rounds run) dropped; only the rifle's reflex is left. */
@@ -111,9 +108,10 @@ export const HOUR_RUN_MAGS = 20, HOUR_RUN_COAL = 50, HOUR_FEED_GAP = 60;
  *  chest from minute 12 would mine the 1,200-unit patch out under the ammo line by minute 40. */
 export const HOUR_STEEL2_AT = HOUR_STEEL2_MIN * 60, HOUR_COPPER2_AT = HOUR_COPPER2_MIN * 60, HOUR_ASM3_AT = HOUR_ASM3_MIN * 60;
 /** §11's end state the report checks: four Generators, seven Excavators (steel ×2, copper ×2, coal, two E4 stand-ins),
- *  three Assemblers, the six start turrets (two of them carried to north), four blocks Held (the HQ and the three
- *  claims of constants.HOUR: east 15, west 25, north 40 — D-HOUR-1). */
-export const HOUR_END = { generators: 4, excavators: 7, assemblers: 3, turrets: START_TURRETS, held: 4 } as const;
+ *  three Assemblers, the six start turrets (none carried to a claim — D-P4-9 keeps the block-level hopper through
+ *  Gate B), three blocks Held: the HQ and the two claims constants.HOUR puts inside the hour (east 15, west 25 —
+ *  D-HOUR-1; north's 65 is past it, D-P4-10). */
+export const HOUR_END = { generators: 4, excavators: 7, assemblers: 3, turrets: START_TURRETS, held: 3 } as const;
 /** The claim minutes and the Generator minutes, from constants.HOUR (D-HOUR-1, D-P4-7). */
 export const HOUR_CLAIM_AT: Record<HourDir, number> = { east: HOUR_CLAIM_MIN.east * 60, west: HOUR_CLAIM_MIN.west * 60, north: HOUR_CLAIM_MIN.north * 60 };
 export const HOUR_GEN_AT = HOUR_GENERATOR_MIN.map(m => m * 60);
@@ -197,26 +195,14 @@ function kitted(st: SimState, i: number): boolean {
   return true;
 }
 
-/** Every turret standing on a Held block — the HQ's and the ones carried to a claim. A carried turret takes its
- *  edge off the ring feed (`hookSyncEdges`: an edge with physical turrets fires only through them), so the hands are
- *  the only thing that fills it: a beat that watched the HQ alone left north's carried turrets empty for minutes. */
+/** Every turret standing on a Held block. Through Gate B that is the HQ's six alone (D-P4-9), but the beat watches
+ *  every Held block on purpose: a turret standing on a claim takes its edge off the ring feed (`hookSyncEdges`: an
+ *  edge with physical turrets fires only through them), so the hands become the only thing that fills it — a beat
+ *  that watched the HQ alone left north's carried turrets empty for minutes when §11 still carried them. */
 const heldTurrets = (st: SimState): Machine[] => {
   const G = ground(st);
   return st.flow!.machines.filter(m => m.kind === 'turret' && st.blocks[G.owner[m.y * G.tw + m.x]]?.state === HELD);
 };
-
-const hqTurrets = (st: SimState): Machine[] => {
-  const hq = hqIdx(st), G = ground(st);
-  return st.flow!.machines.filter(m => m.kind === 'turret' && G.owner[m.y * G.tw + m.x] === hq);
-};
-
-/** An HQ turret whose edge faces a Held (or inert) block, or none at all, fires at nothing: idle, worth carrying. */
-function idleTurret(st: SimState, m: Machine): boolean {
-  const id = turretEdge(st, m);
-  if (id < 0) return true;
-  const b = st.blocks[edgeTo(st, id)];
-  return b.state === HELD || b.state === INERT;
-}
 
 // ------------------------------------------------------------------ task builders
 
@@ -417,60 +403,6 @@ function roundsRun(bot: HourBot, st: SimState): Task[] {
   return t;
 }
 
-/** Pick up two idle HQ turrets and stand them on north's lot facing a Dark neighbour's street (§11's "two turrets carried"). */
-function carryTurrets(bot: HourBot): Task[] {
-  return [act('carry two turrets to north', st => {
-    const north = bot.claimed.north;
-    if (north === undefined || st.blocks[north].state !== HELD) { refused(bot, st, 'carry turrets', 'north is not Held'); return; }
-    const idle = hqTurrets(st).filter(m => idleTurret(st, m)).slice(0, 2);
-    if (idle.length < 2) refused(bot, st, 'carry two turrets', `${idle.length} idle HQ turret(s) (the others still face a Dark block)`);
-    if (!idle.length) return;
-    const t: Task[] = [];
-    for (const m of idle) t.push(goto('turret', m.x, m.y, m.size, 'to the idle turret'), act('pick the turret up', (_s, out) => { out.push({ type: 'pickUp', x: m.x, y: m.y }); }));
-    t.push(act('to north with the turrets', st2 => {
-      const carried = st2.engineer.inv.turret ?? 0;
-      if (carried < 1) { refused(bot, st2, 'carry turrets', 'no turret in the pockets'); return; }
-      bot.carried = carried;
-      mark(bot, st2, 'turrets-picked-up');
-      const spots = turretSpots(st2, north, carried);
-      if (spots.length < carried) refused(bot, st2, 'stand the turrets on north', `${spots.length} spot(s) on north's front within range of a Dark street`);
-      const tt: Task[] = [];
-      for (const s of spots) tt.push(goto('north\'s front', s.x, s.y, 2, 'carrying to north'),
-        act('place the turret', (_s, out) => { out.push({ type: 'place', item: 'turret', x: s.x, y: s.y, dir: s.dir }); }), feedTask('turret', s.x, s.y));
-      tt.push(act('turrets carried', st3 => { mark(bot, st3, 'turrets-carried'); note(bot, st3, `${st3.flow!.machines.filter(m => m.kind === 'turret').length} turrets standing`); }));
-      return tt;
-    }));
-    return t;
-  })];
-}
-
-/** Placeable 2×2 spots on block `i`'s front toward its Dark neighbours, within turret range of the shared street's ridge, facing it. */
-function turretSpots(st: SimState, i: number, n: number): { x: number; y: number; dir: Dir }[] {
-  const cg = cityGeomOf(st), tw = cg.tw, out: { x: number; y: number; dir: Dir }[] = [];
-  for (const j of st.nb[i]) {
-    if (out.length >= n) break;
-    const b = st.blocks[j];
-    if (b.state !== DARK && b.state !== CONTESTED) continue;
-    const sg = segBetween(cg, i, j);
-    if (!sg) continue;
-    const front = frontTiles(cg, i, j);
-    let best: { x: number; y: number; dir: Dir; d: number } | null = null;
-    for (let k = 0; k < front.length; k++) {
-      const t = front[k], tx = t % tw, ty = (t - tx) / tw;
-      if (placeable(st, 'turret', tx, ty) || faceSegOf(st, i, tx, ty, 2) !== j) continue;
-      const cx = tx + 1, cy = ty + 1;
-      let nd = Infinity, nx = sg.mx, ny = sg.my;
-      for (let q = 0; q < sg.ridge.length; q++) { const r = sg.ridge[q], rx = r % tw, ry = (r - rx) / tw, d = Math.hypot(rx + 0.5 - cx, ry + 0.5 - cy); if (d < nd) { nd = d; nx = rx + 0.5; ny = ry + 0.5; } }
-      if (nd >= TURRET_RANGE) continue;
-      const dx = nx - cx, dy = ny - cy, dm = Math.hypot(cx - (sg.mx + 0.5), cy - (sg.my + 0.5));
-      const dir: Dir = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
-      if (!best || dm < best.d) best = { x: tx, y: ty, dir, d: dm };
-    }
-    if (best) out.push({ x: best.x, y: best.y, dir: best.dir });
-  }
-  return out;
-}
-
 // ------------------------------------------------------------------ §11's minute list
 
 export function hourSteps(bot: HourBot): HourStep[] {
@@ -535,16 +467,18 @@ export function hourSteps(bot: HourBot): HourStep[] {
     // the third Assembler (E4's stand-in) waits for the second copper Excavator's first units: the chest's copper sits
     // at 27 from the east claim to 46:00 (the line's copper Excavator feeds the Shot assembler, not the chest)
     standIn(HOUR_ASM3_AT, `§11 ${HOUR_ASM3_AT / 60}:00 — the third Assembler (E4 stand-in)`, [['assembler', 15, 0]]),
-    // north's minute is constants.HOUR's (40, D-HOUR-1); E-hour-north runs the two-claim variant with north late
+    // north's minute is constants.HOUR's (65, D-P4-10 (a)): past the hour, so a 3,600 s run never reaches it and
+    // the hour is two claims. No turret is carried over — through Gate B a claim's edges keep the block sim's
+    // ring-fed hopper and nothing physical stands on them (D-P4-9); the carry comes back with "every front edge
+    // physical" after Gate B.
     claimAt('north'),
-    { at: bot.northAt, name: '§11 — the two idle turrets carried to north', tasks: () => carryTurrets(bot) },
   ];
 }
 
 // ------------------------------------------------------------------ the bot
 
 export function createHourBot(rifle = false, coalPlan: 'chest' | 'wait' = 'chest', northAt = HOUR_CLAIM_AT.north): HourBot {
-  const bot: HourBot = { rifle, log: { entries: [], marks: {}, walks: [], refused: [] }, steps: [], next: 0, queue: [], claimed: {}, lastRun: HOUR_RUN_FROM - HOUR_RUN_GAP, aiming: false, carried: 0, fellWhy: {}, handsOff: false, ticks: 0, fedAtFeedDone: -1,
+  const bot: HourBot = { rifle, log: { entries: [], marks: {}, walks: [], refused: [] }, steps: [], next: 0, queue: [], claimed: {}, lastRun: HOUR_RUN_FROM - HOUR_RUN_GAP, aiming: false, fellWhy: {}, handsOff: false, ticks: 0, fedAtFeedDone: -1,
     coalPlan, lastFeed: -Infinity, stock: [], steelMin: Infinity, steelMinAt: -1, copperMin: Infinity, coalMin: Infinity, northAt, atFirstRed: null, coalZeroAt: -1 };
   bot.steps = hourSteps(bot).sort((a, b) => a.at - b.at);
   return bot;
@@ -731,14 +665,14 @@ export function hourReport(st: SimState, bot: HourBot): HourReport {
   if (wo) { const s = wo.t1 - wo.t0; if (s < 2 || s > 8) findings.push(`the walk over to east took ${s.toFixed(0)} s (§11: 2–8 s)`); }
   expect('generator-3', 12 * 60, 20 * 60, 'the third Generator (E4-doc: minute 15)');
   expect('claim-west', 15 * 60, 30 * 60, 'west claimed');
-  // §11 30–60 min
+  // §11 30–60 min. North's claim, the HQ's white border (its third neighbour Held) and the Electricians walking out
+  // of civic north all wait on north (D-P4-10 (a): minute 65), so a 3,600 s run reaches none of them — that is the
+  // shape of the hour, two claims, not a divergence. None is expected until north has been claimed.
   if (st.t >= bot.northAt + 60) {
-    expect('claim-north', bot.northAt, bot.northAt + 5 * 60, `north claimed (${bot.northAt === HOUR_CLAIM_AT.north ? 'constants.HOUR: minute 40, D-HOUR-1' : `the two-claim variant's ${bot.northAt / 60}:00`})`);
-    expect('turrets-carried', bot.northAt, bot.northAt + 10 * 60, 'the two turrets carried to north');
-    if (bot.carried < 2 && m['claim-north'] !== undefined) findings.push(`${bot.carried} turret(s) carried, §11 says two`);
+    expect('claim-north', bot.northAt, bot.northAt + 5 * 60, `north claimed (${bot.northAt === HOUR_CLAIM_AT.north ? `constants.HOUR: minute ${HOUR_CLAIM_AT.north / 60}, D-P4-10` : `the variant's ${bot.northAt / 60}:00`})`);
+    expect('enclosure', bot.northAt, bot.northAt + 10 * 60, 'the HQ interior (§11: the white border when north holds)');
+    expect('electricians', 0, bot.northAt + 10 * 60, 'the Electricians in the Depot');
   }
-  expect('enclosure', 35 * 60, 60 * 60, 'the HQ interior (§11: the white border at about minute 40; calibration: enclosure 45–60)');
-  expect('electricians', 0, 60 * 60, 'the Electricians in the Depot');
   expect('first-shade', 32 * 60, 47 * 60, 'the first shade (§11/E3: minute 32–47)');
   expect('generator-4', 42 * 60, 50 * 60, 'the fourth Generator (E4-doc: minute 45)');
   expect('copper-2', HOUR_COPPER2_AT, HOUR_COPPER2_AT + 3 * 60, 'the second copper Excavator (after Generator 4, so no brownout)');

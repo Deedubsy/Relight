@@ -38,7 +38,8 @@ export interface FirstHourResult {
   demandKw: number[];     // per minute
 }
 
-/** §11 timeline: east claim at 15 min, west at 25, north at 40; burn-off 20 s + 60 s × rot. */
+/** §11 timeline: east claim at 15 min, west at 25, north at 65 (D-P4-10 (a) — past the hour, so the 3,600 s loop
+ *  below never adds north's substation and the HQ never turns interior); burn-off 20 s + 60 s × rot. */
 export const FIRST_HOUR_CLAIMS = { east: HOUR_CLAIM_MIN.east * 60, west: HOUR_CLAIM_MIN.west * 60, north: HOUR_CLAIM_MIN.north * 60 };
 
 export function firstHour(over: Partial<FirstHourOptions> = {}): FirstHourResult {

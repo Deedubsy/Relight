@@ -971,6 +971,87 @@ is **untested**: T7 was waived and `docs/layout-pass/STRANGER_TEST.md` was never
 never reaches a third), D-LP-2 (the key strip's corner), D-LP-3 (the falloff strength — the one
 that touches the identity).
 
+## The blockers — built and **measured** 2026-09-05 (`docs/PROGRESS.md` T1 done)
+
+Full report: **`docs/ECONOMY_FIX_REPORT.md` §9**. On the instruction "Do the blockers" the three
+decision rows that walled T1's third clause were written as `decided` — Daniel, 2026-09-05, that
+message, each taking its own recommendation — and then built. This section carries measured
+numbers rather than the usual *unverified*, because T1's definition of done **is** "make main
+green": the suite is the measurement (constitution rule 13), so `npm run experiments` was run.
+
+### Built
+
+- **D-HOUR-2 (a)** — `constants.HOUR`'s `steel-2` from minute **15 to 12**; §11's generated minute
+  table follows by docsync; GA-EF-1's provisional 12:00 becomes a decided row. The decided 200
+  start steel was the decided minute list's bill to minute 15 exactly, so no bot behaviour could
+  have saved it.
+- **D-P4-10 (a), the north-minute half** — `claim-north` from **40 to 65**, past the hour on
+  purpose, and `HOUR_END` from 4 Held to **3**: hour one is two claims (east 15, west 25). The
+  report expects north's claim, the HQ's white border and the Electricians only from `northAt`;
+  `firsthour.ts` records that the `t < 3600` loop never adds north's substation. The 300 s
+  brownout between two decided minutes is gone by construction.
+- **D-P4-9** — §11's two carried turrets removed, with `carryTurrets`, `turretSpots`, `idleTurret`,
+  `hqTurrets` and `HourBot.carried`; `flow.ts` and `firsthour.ts` lost their references and
+  `hour.test.ts`'s minute-45 test was rewritten for two claims. Through Gate B a claimed block's
+  edges keep the block sim's ring-fed hopper and nothing physical stands on them.
+- **One defect from the light review**: `E-hour-stock`'s header was thirteen hardcoded five-minute
+  labels against twelve columns of data, so every published value read one step late. It is now
+  derived from the report's own sample times.
+
+### Measured
+
+**`npm run experiments`: 13 experiments, 231 s, 0 failing checks.** E-hour **10 / 10** (was 6 / 10),
+E-rifle **12 / 12** (was 10 / 12 — the seed-5 knockdown in the 600 s edge rescue does not recur).
+`snapshot:check` matches at config `0176f61d`; `npm test` 121 / 121; typecheck, lint and
+`docsync:check` green.
+
+| | before (economy-fix task Step 6) | now |
+|---|---|---|
+| chest steel minimum | 0 at 15:02–15:04, every seed | **30 at 12:01–12:02**, every seed |
+| brownout | 262–315 s (exactly 300 s where nothing falls) | **0 s, 0 refusals**, six runs |
+| falls | 3 runs of 6 lose north | **0 falls**, six runs |
+| end state | 4 Held expected, not reached | **3 Held**, HQ held, 6 turrets, 4 Generators, 7 Excavators, 3 Assemblers, 519 magazines, six runs |
+| walking / walk-overs | — | 2.2–3.8 % against §19's 15 %; 9–14 s against the 60 s rule |
+
+**`E-hour-north` (measured, not scored) is the result worth naming.** Carried to 75:00 with north
+claimed at `constants.HOUR`'s 65:00, north is Held at 65:29–65:34 and **never falls on any of the
+three seeds — 0 falls, 4 Held at 75:00** — where the same variant fell at 72:45–74:38 on every seed
+while §11 carried two turrets onto it. Removing them is what saved it: a physical turret on a claim
+takes its edge off the ring feed (`hookSyncEdges`) and swaps a ring-fed 100-round hopper filled from
+a buffer for a hand-fed 50, and one engineer cannot keep three of those fed. On the block-level
+hopper north rides out the 510–557 s brownout that the hand-fed turrets did not. The Generators
+still run dry at 67:51–68:01 and the chest at 75:00 reads 1520–1524 steel / 397 copper / **0 coal**.
+
+### Where it disagrees with the doc
+
+- **§11 said the chest's coal is 2 at minute 60.** It is **0**, spent for good at **56:00**, on
+  every seed. Two sentences corrected.
+- **§11 still described the two south-facing turrets picked up and carried, and "four stacks in
+  your pockets".** Removed through Gate B under D-P4-9; the sentence now says what a claim's edges
+  actually do.
+- **§11 still put the second steel Excavator at minute 15 and north at "60–75 once west's coal is
+  real".** Both are decided numbers now, and the prose says so.
+
+### Deferred
+
+- **Every front edge physical — a claim lays its segment's turrets from stock** (D-P4-9's other
+  half) → after Gate B. The four functions were deleted, not hidden; `DEFERRED.md` names commit
+  `6694b71` as the last one that has them. It cannot be built until the ring feed keeps feeding an
+  edge that has a turret on it.
+- **West's coal made real** (D-P4-10 (a)'s other half) → after Gate B and behind **D-P4-12**.
+  `rubbleOf` has no coal kind at all — stone / copper / steel / null — and west is a rail yard, so
+  a physical Excavator on its lot digs steel. The two constants it needs are the human's.
+
+### Three decisions for the human
+
+1. **D-P4-12** — the rail yard's coal (recommended: a fourth rubble kind, `coal`, at the HQ patch's
+   ~700). Blocks nothing; what it buys back is the Generators running dry at 67:51–68:01.
+2. **`HOUR_END.held` is 3**, so §11's enclosure — the HQ's white border when north holds — and the
+   Electricians walking out of civic north are beats a 3,600 s run never reaches. Is that the shape
+   of hour one, or a hole in it?
+3. **The first shade still never happens** in the bot's hour, six runs, against §11 and E3's minute
+   32–47. It is the only finding E-hour prints, and it has now survived every economy change.
+
 ## Gate B
 
 verdict:

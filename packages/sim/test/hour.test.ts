@@ -40,7 +40,7 @@ test('hour bot, minute 10: the three Excavators, the Shot line and Generator 2 s
   for (const r of bot.log.refused) assert.ok(r.reason.length > 0);
 });
 
-test('hour bot, minute 45: east, west and north claimed at constants.HOUR\'s minutes (15:00, 25:00, 40:00 — D-HOUR-1), east and west walked over and kitted; the bot never teleports', () => {
+test('hour bot, minute 45: east and west claimed at constants.HOUR\'s minutes (15:00, 25:00 — D-HOUR-1), walked over and kitted, north not claimed inside the hour (D-P4-10 (a): 65:00); the bot never teleports', () => {
   const st = city(), bot = createHourBot(false);
   let maxStep = 0, px = st.engineer.x, py = st.engineer.y;
   const f = ensureFlow(st), cmds: Command[] = [];
@@ -51,7 +51,8 @@ test('hour bot, minute 45: east, west and north claimed at constants.HOUR\'s min
     const d = Math.hypot(st.engineer.x - px, st.engineer.y - py); if (d > maxStep) maxStep = d; px = st.engineer.x; py = st.engineer.y;
   }
   const m = bot.log.marks;
-  assert.ok(m['claim-north'] !== undefined && m['claim-north'] >= HOUR_CLAIM_AT.north && m['claim-north'] < HOUR_CLAIM_AT.north + 120, `north claimed near ${HOUR_CLAIM_AT.north / 60}:00 (${m['claim-north']})`);
+  assert.ok(HOUR_CLAIM_AT.north > 3600, `north's claim is past the hour (constants.HOUR: ${HOUR_CLAIM_AT.north / 60}:00, D-P4-10)`);
+  assert.equal(m['claim-north'], undefined, `north not claimed by 45:00 (${m['claim-north']})`);
   for (const dir of ['east', 'west'] as const) {
     assert.ok(m[`claim-${dir}`] !== undefined && m[`claim-${dir}`] >= HOUR_CLAIM_AT[dir] && m[`claim-${dir}`] < HOUR_CLAIM_AT[dir] + 120, `${dir} claimed near ${HOUR_CLAIM_AT[dir] / 60}:00 (${m[`claim-${dir}`]})`);
     assert.ok(bot.claimed[dir] !== undefined && dirOf(st, hqIdx(st), bot.claimed[dir]!) === dir, `${dir} lies ${dir} of the HQ`);

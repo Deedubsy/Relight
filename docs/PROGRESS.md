@@ -17,19 +17,21 @@ Rules for this file:
 6. New tasks are added at the position they must run, not at the end.
 
 **Now:** Phase 4 (vertical slice). T5–T8 were **waived** by Daniel on 2026-09-05
-(`docs/GATE_B.md` — no walkthrough, no line, no stranger, no played hour). That does
-**not** unblock the phase: T1 is still `blocked` on D-P4-9, D-HOUR-2 and D-P4-10, and
-T2 sits behind it. The critical path to Phase 5 runs T1 → T2 → T3 → T4 → T9 → T10 and
-its only wall is those three decision rows. T3 (the layout pass) was **done 2026-09-05**
-out of order on the human's instruction (`docs/LAYOUT_PASS_REPORT.md`). **The next task
-that can actually run is T4** (E-rifle at tile scale): it has no blocker of its own and
-sits below T1 and T2 only by the ordering rule.
+(`docs/GATE_B.md` — no walkthrough, no line, no stranger, no played hour); T3 (the layout
+pass) was done out of order the same day on the human's instruction. **T1 is done
+2026-09-05**: the three rows that walled it — D-P4-9, D-HOUR-2, D-P4-10 — were decided by
+Daniel ("Do the blockers") and built, and `npm run experiments` is **13 experiments, 0
+failing checks**, so "make main green" is met. Nothing on the critical path is blocked any
+more. **The next task is T2** (re-run E-hour until no block falls on seeds 3, 4 and 5),
+which the blockers task has already measured green — it needs its `SLICE_REPORT.md`
+section written. Then T4, then T9 (which still needs re-scoping: Gate B was waived, so
+there is no played hour to fold) and T10.
 
 ## Tasks
 
 | id | task | owner | status | blocked by | evidence | done on |
 |---|---|---|---|---|---|---|
-| T1 | Resolve the eight constant disagreements, rebuild the economy fix, make main green | claude | blocked | the eight rows of the original cell (D-P4-4, D-B1-1, D-P4-7, D-P4-8, D-B5-4, D-ENGINE-1, D-INSERTERS-1, D-HOUR-1) are `decided` and clauses 1 and 2 are done; "make main green" now waits on decision rows **D-P4-9**, **D-HOUR-2** and **D-P4-10** | `docs/ECONOMY_FIX_REPORT.md` | |
+| T1 | Resolve the eight constant disagreements, rebuild the economy fix, make main green | claude | done | | `docs/ECONOMY_FIX_REPORT.md` §9 | 2026-09-05 |
 | T2 | Re-run E-hour until no block falls on seeds 3, 4 and 5 | claude | todo | T1 | `docs/SLICE_REPORT.md` section "M6 re-run after the economy fix" | |
 | T3 | Layout and readability pass | claude | done | | `docs/LAYOUT_PASS_REPORT.md` | 2026-09-05 |
 | T4 | E-rifle at tile scale: the rescue run and the steady run | claude | todo | | `docs/EXPERIMENTS.md` row `E-rifle-tile` | |
@@ -42,16 +44,18 @@ sits below T1 and T2 only by the ordering rule.
 
 ## Waiting on the human
 
-- Decision row **D-P4-9** — turrets on claimed blocks. Blocks T1. §11's two
-  carried turrets are what loses north: removing them is measured green (no
-  falls, four Held, every run); keeping them costs three runs of six.
-- Decision row **D-HOUR-2** — the minute-15 steel cluster. Blocks T1. The
-  decided 200 start steel is the decided minute list's bill to minute 15
-  exactly, so the chest reads zero at 15:02–15:04.
-- Decision row **D-P4-10** — north at 40:00 against Generator 4 at 45:00.
-  Blocks T1. Exactly 300 s of brownout, by construction.
-- The eight rows of T1's original `blocked by` cell (D-P4-4, D-B1-1, D-P4-7,
-  D-P4-8, D-B5-4, D-ENGINE-1, D-INSERTERS-1, D-HOUR-1) are all `decided`.
+- **Nothing blocks a task.** D-P4-9, D-HOUR-2 and D-P4-10 were decided by Daniel
+  on 2026-09-05 ("Do the blockers") and built; with the eight rows of T1's
+  original `blocked by` cell they are all `decided`.
+- Decision row **D-P4-12** — the rail yard's coal. Added 2026-09-05 by the half
+  of D-P4-10 (a) that could not be built: the tile layer has no coal rubble kind
+  and no quantity for west's lot, so a physical Excavator there digs steel.
+  **Blocks nothing** — the hour is green without it. What it buys back is the
+  Generators running dry at 67:51–68:01 in the 75-minute variant.
+- **§11's enclosure and the Electricians are now outside the hour.**
+  `HOUR_END.held` is 3, so the HQ's white border and the Electricians walking out
+  of civic north are beats a 3,600 s run never reaches. Phase 5's opening should
+  say whether that is the shape of hour one or a hole in it.
 - **T9 needs re-scoping.** Its task is "fold the played hour into code and doc".
   Gate B was waived, so there is no played hour to fold. T9 cannot be done as
   written; it needs either a real Gate B or a rewritten task line.
@@ -102,3 +106,21 @@ sits below T1 and T2 only by the ordering rule.
   the next verification pass. Evidence: `docs/LAYOUT_PASS_REPORT.md`; also
   `SLICE_REPORT.md` "Layout and readability pass", `PROGRAMME_STATE.md` B.21 / B.22,
   `DEFERRED.md` re-read, and rows **D-LP-1**, **D-LP-2**, **D-LP-3** in `DECISIONS.md`.
+- 2026-09-05 — T1 **done**. The three rows that blocked "make main green" were
+  written as `decided` (Daniel, 2026-09-05, the message "Do the blockers", each
+  taking its own recommendation) and built: **D-HOUR-2** (a) moved the second
+  steel Excavator to minute 12; **D-P4-10** (a) moved north's claim to 65, past
+  the hour, so hour one is two claims and `HOUR_END.held` is 3; **D-P4-9** kept
+  the block-level hopper through Gate B, so §11's two carried turrets and the
+  four functions behind them are gone. The light review also fixed E-hour's
+  stock-table header, which was one column longer than its data and read every
+  value a step late. **`npm run experiments`: 13 experiments, 231 s, 0 failing
+  checks** — E-hour 10 / 10 (was 6 / 10), E-rifle 12 / 12 (was 10 / 12); steel
+  bottoms at 30 @ 12:01–12:02, 0 brownout seconds, 0 falls in six runs; snapshot,
+  tests (121 / 121), typecheck, lint and docsync green. `E-hour-north`: north
+  claimed at 65:00 now **stands to 75:00 on all three seeds**, where it fell at
+  72:45–74:38 with the carried turrets. **Half of D-P4-10 (a) could not be built**
+  — "west's coal made real" needs a coal rubble kind and a rail-yard quantity that
+  do not exist, deferred and asked as **D-P4-12**. Evidence:
+  `docs/ECONOMY_FIX_REPORT.md` §9; also `DECISIONS.md` (three rows decided, one
+  added), `DEFERRED.md` re-read, and §11's prose in `RELIGHT-design.md`.

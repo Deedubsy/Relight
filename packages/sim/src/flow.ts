@@ -845,8 +845,8 @@ export function place(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir
   return m;
 }
 
-/** What a pick-up puts in the pockets: the machine as one stack (§11's two turrets carried at minute 40 are four
- *  stacks: two turrets and their magazines), plus what it held. GAME-ASSUMPTION (M2): a turret's rounds come back as
+/** What a pick-up puts in the pockets: the machine as one stack (two turrets and their magazines are four stacks),
+ *  plus what it held. GAME-ASSUMPTION (M2): a turret's rounds come back as
  *  whole magazines, the loose remainder (< 10 rounds) to the line buffer; a Generator's coal and an assembler's
  *  inputs and finished magazines come back whole; items on a belt or in an inserter's hand come back too. */
 export function pickUpItems(m: Machine): Record<string, number> {
