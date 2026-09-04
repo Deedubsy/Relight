@@ -6,10 +6,10 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink); height: 100%; }
-#app { display: flex; gap: 12px; padding: 12px; align-items: flex-start; min-height: 100vh; }
-#map { flex: 0 0 auto; border-radius: 6px; overflow: hidden; }
+#app { display: flex; gap: 12px; padding: 12px; align-items: flex-start; height: 100vh; }
+#map { flex: 1 1 auto; min-width: 648px; height: calc(100vh - 24px); border-radius: 6px; overflow: hidden; }
 #map canvas { display: block; }
-#panel { flex: 1 1 360px; max-width: 420px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+#panel { flex: 0 0 420px; max-width: 420px; max-height: calc(100vh - 24px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
 #panel section { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
 #panel h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: 0.02em; }
 #panel h2 { font-size: 11px; margin: 0 0 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }

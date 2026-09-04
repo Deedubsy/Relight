@@ -9,6 +9,60 @@ import {
   createState, citySpec, step, createBot, botCommands, Command, idxOf, DARK, HELD, ENGINEER_HP, RETALIATE_HP_PER_S, RIFLE_ROUNDS_PER_S, CityPreset,
 } from '@relight/sim';
 import { CANON, DEFAULT_MAP } from '../run';
+import { hourCity } from './ehour';
+import { createHourBot, runHour, hourReport, hourCommands, rescueStance, advanceFlow, cityGeomOf, segBetween, turretEdge, TILE_DT, Command as TileCommand, ENGINEER_HP as HP0 } from '@relight/sim';
+
+/** E-rifle at tile scale (ROADMAP §0 line 2). The hour bot plays §11 to `at` on the river city (flow + power on), then
+ *  the most threatened Held block (the most rot on its Dark neighbours) runs dry: 'edge' = the turrets and hopper of
+ *  the edge facing its worst neighbour at 0 rounds, 'ring' = every edge of the block; its belt is 90 s away (the
+ *  block-level hoppers cut, the HQ's line buffer held at 0). The bot drops its script and hands. With `rifle` the
+ *  engineer stands at the dry edge's street midpoint with 20 magazines and the reflex fires at the nearest crawler
+ *  in range; without, they stand there unarmed. Ten more minutes: did the block fall, and what did it cost in HP? */
+interface TileRescue { seed: number; at: number; block: number; blockName: string; scope: 'ring' | 'edge'; belt: number; rifle: boolean; fell: boolean; fellAt: number; reason: string;
+  kills: number; fired: number; hurt: number; hpMin: number; downs: number; crawlers: number }
+/** GAME-ASSUMPTION (GA-EF-4): the dry edge is made by cutting the belt (`e.cut`) and emptying the hoppers of the most
+ *  threatened Held block for 90 s (a late belt) or 600 s (§11's "the belt never comes"), the engineer sent to the
+ *  segment's midpoint with 20 magazines; the block sim has no tile-level belt to cut, so the cut is the stand-in. */
+function tileRescue(seed: number, at: number, rifle: boolean, scope: 'ring' | 'edge', belt: number): TileRescue {
+  const st = hourCity(seed), bot = createHourBot(true);
+  runHour(st, bot, at);
+  const hq = st.blocks.findIndex(b => b.x === st.start[0] && b.y === st.start[1]);
+  let block = -1, best = -1;
+  for (let i = 0; i < st.blocks.length; i++) {
+    if (st.blocks[i].state !== HELD) continue;
+    let sc = 0; for (const j of st.nb[i]) if (st.blocks[j].state === DARK) sc += st.blocks[j].d * (st.blocks[j].well ? 1.5 : 1);
+    if (sc > best) { best = sc; block = i; }
+  }
+  let worst = -1, wd = -1;
+  for (const j of st.nb[block]) if (st.blocks[j].state === DARK && st.blocks[j].d > wd) { wd = st.blocks[j].d; worst = j; }
+  const cutEdge = st.ring.find(e => e.a === block && e.b === worst)?.id ?? -1;
+  const cut = new Set<number>();
+  for (const e of st.ring) if (e.a === block && (scope === 'ring' || e.id === cutEdge)) { e.hopper = 0; e.cut = st.t + belt; cut.add(e.id); }
+  for (const m of st.flow!.machines) if (m.kind === 'turret' && cut.has(turretEdge(st, m))) m.inv.rounds = 0;
+  const eng = st.engineer;
+  eng.inv.magazine = rifle ? 20 : 0;
+  const cg = cityGeomOf(st), sg = segBetween(cg, block, worst);
+  rescueStance(st, bot, Math.floor(sg ? sg.mx : eng.x), Math.floor(sg ? sg.my : eng.y), rifle);
+  const kills0 = eng.kills, fired0 = eng.fired, hurt0 = eng.hurt, downs0 = eng.downs, t0 = st.t;
+  const f = st.flow!, T0 = f.threat ? (f.threat as { stats: { spawned: number } }).stats.spawned : 0;
+  let hpMin = HP0, fellAt = -1, reason = '-';
+  const cmds: TileCommand[] = [], end = f.tick + Math.round(690 / TILE_DT);
+  while (f.tick < end) {
+    cmds.length = 0;
+    hourCommands(st, bot, cmds);
+    st.acc = 0;
+    advanceFlow(st, TILE_DT, cmds, 1);
+    if (block === hq && st.t < t0 + belt) st.buffer = 0;   // the HQ's belt is `belt` seconds away: the line buffer stays empty
+    for (const ev of st.events) if (ev.type === 'fall' && ev.x === st.blocks[block].x && ev.y === st.blocks[block].y && fellAt < 0) { fellAt = ev.t; reason = ev.reason; }
+    st.events.length = 0;
+    if (eng.hp < hpMin) hpMin = eng.hp;
+  }
+  const T1 = f.threat ? (f.threat as { stats: { spawned: number } }).stats.spawned : 0;
+  return { seed, at, block, blockName: block === hq ? 'HQ' : `(${st.blocks[block].x},${st.blocks[block].y})`, scope, belt, rifle, fell: fellAt >= 0, fellAt, reason,
+           kills: eng.kills - kills0, fired: eng.fired - fired0, hurt: eng.hurt - hurt0, hpMin, downs: eng.downs - downs0, crawlers: T1 - T0 };
+}
+
+const mmssOf = (t: number | undefined) => t === undefined ? 'never' : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 
 interface Rescue { seed: number; at: number; block: number; scope: 'ring' | 'edge'; rifle: boolean; fell: boolean; fellAt: number; reason: string; unfed: number; kills: number; fired: number; hurt: number; downs: number; downAt: number; hpMin: number }
 
@@ -111,7 +165,46 @@ export const ERIFLE: Experiment = {
       fellWith.every(r => r.reason === 'shade') && noRifle.filter(r => r.fell && r.reason !== 'shade').every(r => !withRifle.find(w => w.seed === r.seed && w.at === r.at && w.scope === r.scope)!.fell),
       `${savedByRifle.length}/${fellWithout.length} falls saved by the rifle; ${fellWith.length} fall with it, ${fellWith.filter(r => r.reason === 'shade').length} of them to shades`));
     checks.push(within('rework: the damage number exists (mean HP lost per rescue)', damage, 1, 1000, ' HP'));
+
+    // ---- tile scale (ROADMAP §0 line 2): §11's hour on the river city, flow + power on, the hour bot
+    // steady: the hour with the rifle off and on — the magazine bill, falls, rounds fired, HP lost
+    const tsRows: (string | number)[][] = [], tsDiff: number[] = [], tsFell: number[] = [], tsFired: number[] = [];
+    for (const seed of seeds) {
+      const runs = [false, true].map(rifle => { const st = hourCity(seed), bot = createHourBot(rifle); ctx.log(`E-rifle-tile-steady seed ${seed} rifle ${rifle ? 'on' : 'off'}`); runHour(st, bot, 3600); return { st, r: hourReport(st, bot) }; });
+      const [off, on] = runs;
+      const diff = off.r.magsMade > 0 ? 100 * (on.r.magsMade - off.r.magsMade) / off.r.magsMade : 0;
+      tsDiff.push(diff); tsFell.push(off.r.fell + on.r.fell); tsFired.push(on.r.fired);
+      tsRows.push([seed, off.r.magsMade, on.r.magsMade, diff.toFixed(2) + ' %', off.r.handFed, on.r.handFed, off.r.fell, on.r.fell, on.r.fired, on.r.rifleKills, on.r.turretKills, mmssOf(on.r.marks['first-shot']), on.st.engineer.hurt.toFixed(0), on.st.engineer.downs]);
+    }
+    sections.push({ title: 'E-rifle-tile-steady: §11\'s hour on the tile layer (the hour bot), rifle off vs on — the reflex fires at the nearest crawler in range while the bot walks its script',
+      note: 'the tile-scale steady run; the lattice rows above are the 5 h compact bot',
+      header: ['seed', 'line magazines (no rifle)', 'line magazines (rifle)', 'diff', 'hand-fed (no rifle)', 'hand-fed (rifle)', 'falls (no rifle)', 'falls (rifle)', 'rifle rounds', 'rifle kills', 'turret kills', 'first shot', 'HP lost', 'downs'], rows: tsRows });
+    checks.push(within('tile: the rifle changes the hour\'s magazine bill by < 5 % (mean |diff|)', mean(tsDiff.map(Math.abs)), 0, 5, ' %'));
+    checks.push(isTrue('tile: nothing falls in the hour, rifle off or on', tsFell.every(x => x === 0), `falls per seed ${tsFell.join('/')}`));
+    // rescue at tile scale: at 20:00 (HQ + east Held, front 4) and 35:00 (HQ + east + west, front 5)
+    const trRows: (string | number)[][] = [], tr: TileRescue[] = [];
+    for (const belt of [90, 600]) for (const scope of ['edge', 'ring'] as const) for (const seed of seeds) for (const at of [20 * 60, 35 * 60]) {
+      ctx.log(`E-rifle-tile-rescue belt ${belt} s ${scope} seed ${seed} at ${at / 60}:00`);
+      const a = tileRescue(seed, at, false, scope, belt), b = tileRescue(seed, at, true, scope, belt);
+      tr.push(a, b);
+      trRows.push([`${belt} s`, scope, seed, `${at / 60}:00`, a.blockName, a.crawlers, a.fell ? `falls at +${((a.fellAt - at) / 60).toFixed(1)} min (${a.reason})` : 'holds',
+                   b.fell ? `falls at +${((b.fellAt - at) / 60).toFixed(1)} min (${b.reason})` : 'holds', b.kills, b.fired, b.hurt.toFixed(0), b.hpMin.toFixed(0), b.downs ? `down ×${b.downs}` : '-']);
+    }
+    sections.push({ title: 'E-rifle-tile-rescue: the most threatened Held block on the tile layer; "edge" = the turrets and hopper of the edge facing its worst neighbour at 0, "ring" = every edge of the block; the belt 90 s away (§11\'s rescue) or 600 s away (the belt never comes inside the window); then 10 min more; rescue = the engineer at the dry edge\'s street midpoint with 20 magazines, the bot\'s script and hands dropped',
+      note: 'the HQ\'s edges are its physical turrets (their rounds zeroed, the line buffer held at 0 for 90 s); east and west keep the block-level hopper (D-P4-9: cut for 90 s)',
+      header: ['belt', 'scope', 'seed', 'at', 'block', 'crawlers born in the window', 'no rifle', 'rifle', 'kills', 'rounds', 'HP lost', 'HP min', 'knocked down'], rows: trRows });
+    const trNo = tr.filter(r => !r.rifle), trYes = tr.filter(r => r.rifle);
+    const trFellNo = trNo.filter(r => r.fell), trFellYes = trYes.filter(r => r.fell);
+    const pair = (r: TileRescue) => trYes.find(w => w.seed === r.seed && w.at === r.at && w.scope === r.scope && w.belt === r.belt)!;
+    data.tileRescue = { rescues: tr, fellWithout: trFellNo.length, fellWith: trFellYes.length, savedByRifle: trFellNo.filter(r => !pair(r).fell).length, damageHp: mean(trYes.map(r => r.hurt)) };
+    const edgeFalls = trFellNo.filter(r => r.scope === 'edge'), ringFalls = trFellNo.filter(r => r.scope === 'ring');
+    checks.push(isTrue('tile: one dry edge (§11\'s rescue, the belt never comes) — the rifle saves every block that falls without it',
+      edgeFalls.every(r => !pair(r).fell), `${edgeFalls.filter(r => !pair(r).fell).length}/${edgeFalls.length} single-edge falls saved (${trNo.filter(r => r.scope === 'edge').length} edge scenarios)`));
+    checks.push(isTrue('tile: a whole dry ring is beyond one rifle at one edge — but the rifle never loses the block sooner',
+      ringFalls.every(r => !pair(r).fell || pair(r).fellAt >= r.fellAt),
+      `${ringFalls.filter(r => !pair(r).fell).length}/${ringFalls.length} ring falls saved, the rest delayed by ${ringFalls.filter(r => pair(r).fell).map(r => ((pair(r).fellAt - r.fellAt) / 60).toFixed(1)).join('/')} min`));
+    checks.push(isTrue('tile: the engineer is never knocked down in a rescue', trYes.every(r => r.downs === 0), `HP lost ${Math.min(...trYes.map(r => r.hurt)).toFixed(0)}–${Math.max(...trYes.map(r => r.hurt)).toFixed(0)}, HP min ${Math.min(...trYes.map(r => r.hpMin)).toFixed(0)}`));
     return { id: 'E-rifle', title: ERIFLE.title, pyNames: [], docRefs: ['§4', '§11', '§13', 'D5'],
-      setup: `compact; ${DEFAULT_MAP} map; engineer walking with the rifle; rescue at 2 h and 4 h`, sections, checks, data };
+      setup: `compact; ${DEFAULT_MAP} map; engineer walking with the rifle; rescue at 2 h and 4 h; tile scale: the hour bot on the river city, rescue at 20:00 and 35:00`, sections, checks, data };
   },
 };

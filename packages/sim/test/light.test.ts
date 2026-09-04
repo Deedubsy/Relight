@@ -25,11 +25,12 @@ test('light map: the HQ face\'s street is lit by its kerb streetlights, its lot 
   const hq = hqIndex(st), G = ground(st), mask = lightMask(st);
   assert.ok(subPowered(st, st.blocks[hq]), 'the HQ powers its streetlights');
   const c = litCount(st, hq, mask);
-  // the kerb row (the strip the streetlights stand on); the half-street to the midline is 6–7 tiles deep and a radius-4
-  // light cannot reach its far side, so it lights ≈ 40 % — reported in SLICE_REPORT "M5 disagrees" (verification pass)
+  // D-B5-4: streetlight radius 7 reaches the street midline, so a held face lights its half of the shared street where
+  // its lamps stand (3 in 8 are broken at start): measured at radius 7 on seeds 3/4/5 — kerb 65–93 %, half-street
+  // 44–65 %, the lot 44–50 % (the radius reaches 6 rows into the lot from the kerb); run name B-M6-light
   assert.ok(c.kerbOf > 0 && c.kerb / c.kerbOf > 0.5, `most of the HQ's kerb row is lit (${c.kerb}/${c.kerbOf}; 3 in 8 lamps are broken)`);
-  assert.ok(c.streetOf > 0 && c.street / c.streetOf > 0.25, `the half-street is lit in part (${c.street}/${c.streetOf})`);
-  assert.ok(c.lot < c.lotOf, `the lot is not lit end to end (${c.lot}/${c.lotOf})`);
+  assert.ok(c.streetOf > 0 && c.street / c.streetOf > 0.4, `the half-street is lit where the lamps stand (${c.street}/${c.streetOf})`);
+  assert.ok(c.lot < c.lotOf * 0.6, `the lot is not lit end to end (${c.lot}/${c.lotOf})`);
   const bg = G.blocks[hq];
   assert.equal(mask[bg.pole[1] * G.tw + bg.pole[0]], 0, 'the lot\'s pole of inaccessibility (farthest from any street) is unlit');
   for (let k = 0; k < 400; k++) {

@@ -16,17 +16,17 @@ function city(seed = 3): SimState {
   return st;
 }
 
-test('hour bot, minutes 0–6: walks to the steel patch, hand-mines, crafts at the workbench, walks magazines to the turrets', () => {
+test('hour bot, minutes 0–8: walks to the steel patch, hand-mines, crafts at the workbench, walks magazines to the turrets on the ~6-minute red pip (D-P4-8)', () => {
   const st = city(), bot = createHourBot(false);
-  runHour(st, bot, 6 * 60);
+  runHour(st, bot, 8 * 60);
   const m = bot.log.marks, f = st.flow!;
   assert.ok(m['mine-done'] !== undefined && m['mine-done'] < 4 * 60, `mined by 4:00 (${JSON.stringify(bot.log.entries.slice(0, 8))})`);
   assert.ok(f.stats.handMined >= HOUR_MINE_STEEL, `hand-mined ${f.stats.handMined}`);
   assert.ok(m['craft-done'] !== undefined && f.stats.handCrafted > 0, 'crafted at the workbench');
-  assert.ok(m['feed-done'] !== undefined, 'the two feed rounds were walked');
+  assert.ok(m['first-hand-feed'] !== undefined && m['first-hand-feed'] >= 4 * 60, `the hand-feed beat answered the first red pip (${m['first-hand-feed']})`);
   assert.ok(f.stats.handFed >= 0 && bot.fedAtFeedDone >= 0, `hand-fed count recorded (${bot.fedAtFeedDone})`);
   assert.ok(st.engineer.walked > 10, 'the engineer walked');
-  assert.ok(bot.log.walks.length >= 4, `walks timed: ${bot.log.walks.length}`);
+  assert.ok(bot.log.walks.length >= 2, `walks timed: ${bot.log.walks.length} (the steel patch and the workbench; the feed beat's trips are the hands, not steps)`);
 });
 
 test('hour bot, minute 10: the three Excavators, the Shot line and Generator 2 stand on the HQ lot; every refusal is in the log with a reason', () => {
@@ -40,7 +40,7 @@ test('hour bot, minute 10: the three Excavators, the Shot line and Generator 2 s
   for (const r of bot.log.refused) assert.ok(r.reason.length > 0);
 });
 
-test('hour bot, minute 45: east, west and north claimed on the calibration\'s clock, walked over and kitted; the bot never teleports', () => {
+test('hour bot, minute 45: east and west claimed on §11\'s rewritten clock (15:00, 25:00), walked over and kitted; north waits for 65:00; the bot never teleports', () => {
   const st = city(), bot = createHourBot(false);
   let maxStep = 0, px = st.engineer.x, py = st.engineer.y;
   const f = ensureFlow(st), cmds: Command[] = [];
@@ -51,7 +51,8 @@ test('hour bot, minute 45: east, west and north claimed on the calibration\'s cl
     const d = Math.hypot(st.engineer.x - px, st.engineer.y - py); if (d > maxStep) maxStep = d; px = st.engineer.x; py = st.engineer.y;
   }
   const m = bot.log.marks;
-  for (const dir of ['east', 'west', 'north'] as const) {
+  assert.equal(m['claim-north'], undefined, '§11 rewritten: north is not claimed inside the hour');
+  for (const dir of ['east', 'west'] as const) {
     assert.ok(m[`claim-${dir}`] !== undefined && m[`claim-${dir}`] >= HOUR_CLAIM_AT[dir] && m[`claim-${dir}`] < HOUR_CLAIM_AT[dir] + 120, `${dir} claimed near ${HOUR_CLAIM_AT[dir] / 60}:00 (${m[`claim-${dir}`]})`);
     assert.ok(bot.claimed[dir] !== undefined && dirOf(st, hqIdx(st), bot.claimed[dir]!) === dir, `${dir} lies ${dir} of the HQ`);
     assert.ok(bot.log.walks.some(w => w.name === `walk-over ${dir}`), `the walk over to ${dir} was timed`);

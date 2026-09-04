@@ -25,7 +25,7 @@ import {
   Kind, Dir, DX, DY, DIR_NAMES, Machine, MACHINE_SIZE, SHOT, EXCAVATOR_PER_S,
   machineAt, rubbleAt, canPlace, place, remove, canPickUp, costStr, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
   handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
-  POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST,
+  POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST, segBetween, cityGeomOf, CityGeom, pipOf, edgeCap,
   lockReason, KIND_LABEL, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH,
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
   lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
@@ -97,6 +97,14 @@ export class WorldScene extends Phaser.Scene {
   /** D-B5-1 preview: the engineer carries a 2-tile light (off by default; `?handlamp=1` or `__relight.handLamp(true)`). */
   handLamp = false;
   private depotText!: Phaser.GameObjects.Text;
+  private depotLabel = '';
+  /** Layout pass: the key strip pinned to the bottom of the viewport (STANDARDS 4.3) and the Depot beacon at the
+   *  viewport's edge when the Depot is out of view (C.2). */
+  private keyText!: Phaser.GameObjects.Text;
+  private beaconText!: Phaser.GameObjects.Text;
+  private keyWrap = 0;
+  /** The city's geometry (segment midpoints for the kerb pips), generated once — `cityGeomOf` regenerates the city. */
+  private cg: CityGeom | null = null;
   private labels: Phaser.GameObjects.Text[] = [];
   private chunks = new Map<number, Chunk>();
   private keys!: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'LEFT' | 'DOWN' | 'RIGHT' | 'SHIFT' | 'SPACE', Phaser.Input.Keyboard.Key>;
@@ -143,6 +151,9 @@ export class WorldScene extends Phaser.Scene {
     this.gEng = this.add.graphics().setDepth(3);
     this.depotText = this.add.text(0, 0, 'Depot', { fontSize: '20px', color: '#e8ecf4', fontStyle: 'bold' }).setDepth(3).setOrigin(0.5).setVisible(false);
     this.hudText = this.add.text(8, 8, '', { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } }).setScrollFactor(0).setDepth(10);
+    this.keyText = this.add.text(0, 0, '', { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } }).setScrollFactor(0).setDepth(10).setOrigin(0, 1);
+    this.beaconText = this.add.text(0, 0, '', { fontSize: '13px', color: '#ffffff', fontStyle: 'bold', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 3 } }).setScrollFactor(0).setDepth(10).setOrigin(0.5).setVisible(false);
+    this.cg = this.st.city ? cityGeomOf(this.st) : null;
     const cam = this.cameras.main, G = ground(this.st);
     cam.setBounds(0, 0, G.tw * TILE_PX, G.th * TILE_PX);
     cam.setZoom(1);
@@ -662,6 +673,7 @@ export class WorldScene extends Phaser.Scene {
       g.fillStyle(0x0b0e1a, 0.85); g.fillRect(d.x * TILE_PX, d.y * TILE_PX, d.size * TILE_PX, d.size * TILE_PX);
       g.lineStyle(2 / cam.zoom, 0xffffff, 0.8); g.strokeRect(d.x * TILE_PX, d.y * TILE_PX, d.size * TILE_PX, d.size * TILE_PX);
     }
+    this.drawKerbPips(g);
     this.drawGhost(g);
     this.drawThreat();
     this.drawEngineer();
@@ -678,9 +690,47 @@ export class WorldScene extends Phaser.Scene {
     const inHand = this.tool === 'hand' ? 'empty hand (hold left-click on rubble to mine it; click a turret or Generator to feed it; E interacts)'
       : this.tool === 'rifle' ? `rifle (hold left-click to fire toward the cursor, ${RIFLE_RANGE} tiles; Q puts it away) · ${rounds} round${rounds === 1 ? '' : 's'} in the pockets${rounds ? '' : ' — take magazines from the chest (E on the Depot)'}`
       : `${this.tool} → ${DIR_NAMES[this.dir]}`;
-    const toolLine = st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}\n${TOOL_KEY_LINE}${this.powerLine()}` : '';
+    const toolLine = st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}${this.powerLine()}` : '';
     const moveLine = this.onFoot ? 'M map view (click a Held or street tile there to walk) · WASD move · Shift sprint · Space dodge · Tab/I pockets · wheel zoom' : 'M map view · drag / WASD pan · wheel zoom';
-    this.hudText.setText(`World view · ${fi >= 0 ? this.blockLine(fi) : ''} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles${pockets}\n${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${toolLine}`);
+    this.hudText.setText(`World view · ${fi >= 0 ? this.blockLine(fi) : ''} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles${pockets}${toolLine}`);
+    // the key strip (STANDARDS 4.3: the keys visible, not hidden) pinned to the bottom edge, wrapped to the viewport
+    const pin = (sx: number, sy: number): [number, number] => [cam.width / 2 + (sx - cam.width / 2) / cam.zoom, cam.height / 2 + (sy - cam.height / 2) / cam.zoom];
+    if (this.keyWrap !== cam.width - 16) { this.keyWrap = cam.width - 16; this.keyText.setWordWrapWidth(this.keyWrap); }
+    this.keyText.setScale(1 / cam.zoom).setPosition(...pin(8, cam.height - 8))
+      .setText(`${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}`);
+    // the Depot beacon (STANDARDS C.2: the landmark reads from the far edge of the viewport): when the Depot is out
+    // of view, its direction and distance sit on the edge of the screen nearest it
+    if (st.flow) {
+      const d = depotRect(st), dcx = (d.x + d.size / 2) * TILE_PX, dcy = (d.y + d.size / 2) * TILE_PX, wv = cam.worldView;
+      if (wv.width > 0 && !wv.contains(dcx, dcy)) {
+        const dx = dcx - wv.centerX, dy = dcy - wv.centerY, m = 44 / cam.zoom;
+        const k = Math.min((wv.width / 2 - m) / Math.max(1e-6, Math.abs(dx)), (wv.height / 2 - m) / Math.max(1e-6, Math.abs(dy)));
+        const sx = (wv.centerX + dx * k - wv.x) * cam.zoom, sy = (wv.centerY + dy * k - wv.y) * cam.zoom;
+        const glyph = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? '▶' : '◀') : (dy > 0 ? '▼' : '▲');
+        const tiles = Math.round(Math.hypot(dx, dy) / TILE_PX);
+        this.beaconText.setScale(1 / cam.zoom).setPosition(...pin(sx, sy)).setText(`${glyph} Depot · ${tiles} tiles`).setVisible(true);
+      } else this.beaconText.setVisible(false);
+    } else this.beaconText.setVisible(false);
+  }
+
+  /** Layout pass (STANDARDS B.3, B.6): the map's edge pip on the kerb — one per live HQ segment at the street's
+   *  midpoint, at screen scale so it reads at any zoom: ● green at least half full, ▲ amber running low, ✕ red empty,
+   *  blinking. The same `pipOf` the map and the panel use, so the three never disagree. */
+  private drawKerbPips(g: Phaser.GameObjects.Graphics): void {
+    const st = this.st, cg = this.cg;
+    if (!cg || !st.flow) return;
+    const zoom = this.cameras.main.zoom, hq = st.blocks.findIndex(b => b.x === st.start[0] && b.y === st.start[1]);
+    const blink = Math.floor(performance.now() / 260) % 2 === 0, r = 7 / zoom;
+    for (const e of st.ring) {
+      if (e.a !== hq) continue;
+      const sg = segBetween(cg, hq, e.b);
+      if (!sg) continue;
+      const pip = pipOf(e.hopper / edgeCap(st, e)), x = sg.mx * TILE_PX, y = sg.my * TILE_PX;
+      g.fillStyle(0x0b0e1a, 0.8); g.fillCircle(x, y, r * 1.7);
+      if (pip === 'green') { g.fillStyle(0x3ddc84, 1); g.fillCircle(x, y, r); }
+      else if (pip === 'amber') { g.fillStyle(0xf2b632, 1); g.fillTriangle(x, y - r, x - r, y + r * 0.8, x + r, y + r * 0.8); }
+      else if (blink) { g.lineStyle(3 / zoom, 0xff3b30, 1); g.lineBetween(x - r, y - r, x + r, y + r); g.lineBetween(x - r, y + r, x + r, y - r); }
+    }
   }
 
   /** M5: re-read the lit set from the sim (at most eight times a second) and repaint the texture when it changed. */
@@ -961,9 +1011,20 @@ export class WorldScene extends Phaser.Scene {
           break;
         }
         case 'depot': {
+          // the fill indicator (drawing only): the line buffer the HQ's turrets draw from, as magazines, green → amber →
+          // red like a hopper bar; the outline holds 3 screen px so the Depot reads at 0.5× (STANDARDS C.2).
+          // GAME-ASSUMPTION (GA-EF-2): the bar is st.buffer / bufferCap (the block sim's line buffer, not the chest's
+          // magazines), green above half, amber below it, red with a blinking outline at 0; the beacon at the viewport edge is the
+          // Depot's glyph and the tile distance — §19's "visible six blocks out" is Phase 12 art (drawing only).
+          const cap = st.config.bufferCap, frac = Math.min(1, st.buffer / cap), mags = Math.floor(st.buffer / SHOT.count);
           g.fillStyle(MACHINE_COL.depot, 0.9); g.fillRect(px, py, sz, sz);
-          g.lineStyle(2 / zoom, 0xffffff, 0.8); g.strokeRect(px, py, sz, sz);
-          this.depotText.setPosition(cx, cy).setScale(Math.max(1, 1 / zoom)).setVisible(true);
+          g.lineStyle(3 / zoom, 0xffffff, 0.9); g.strokeRect(px, py, sz, sz);
+          g.fillStyle(0x1a1d26, 1); g.fillRect(px + 12, py + sz - 24, sz - 24, 12);
+          g.fillStyle(frac > 0.5 ? 0x6fe08a : frac > 0 ? 0xe8a93a : 0xe05a5a, 1); g.fillRect(px + 12, py + sz - 24, (sz - 24) * frac, 12);
+          if (mags <= 0 && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 3, py + 3, sz - 6, sz - 6); }
+          const label = `Depot\n${mags} / ${Math.floor(cap / SHOT.count)} mag`;
+          if (label !== this.depotLabel) { this.depotLabel = label; this.depotText.setText(label); }
+          this.depotText.setPosition(cx, cy - 6).setScale(Math.max(1, 1 / zoom)).setVisible(true);
           break;
         }
       }

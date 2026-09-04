@@ -1,6 +1,6 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
-  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined } from '@relight/sim';
+  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS } from '@relight/sim';
 import { Session, setSpeed, queue, shareUrl, record } from './session';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
@@ -124,8 +124,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const buildList = el('ul', 'plain');
   const BUILD: { kind: BuildKind; key: string; what: string }[] = [
     { kind: 'belt', key: '1', what: '7.5 items/s' }, { kind: 'inserter', key: '2', what: 'one item a second across a tile' },
-    { kind: 'excavator', key: '3', what: '3×3, 0.5/s onto the belt it faces' }, { kind: 'assembler', key: '4', what: `Shot assembler, ${SHOT.seconds} s a magazine` },
-    { kind: 'turret', key: '5', what: '2×2, range 9, 50-round hopper' }, { kind: 'lamp', key: '6', what: 'lights 8 tiles' },
+    { kind: 'excavator', key: '3', what: '3×3, 0.5/s onto the belt it faces' }, { kind: 'assembler', key: '4', what: `Shot assembler Mk1, ${SHOT.seconds} s a magazine (${Math.round(60 / SHOT.seconds)}/min); the Mk2 (3 s) is the purchase` },
+    { kind: 'turret', key: '5', what: `2×2, range ${TURRET_RANGE}, ${TURRET_HOPPER}-round hopper` }, { kind: 'lamp', key: '6', what: `lights a ${LAMP_RADIUS}-tile radius` },
     { kind: 'pole', key: '7', what: 'carries power, claims across the street' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
     { kind: 'floodlight', key: '0', what: '2×2, 40 kW, a 12-tile cone along its facing (R rotates)' }, { kind: 'bigpole', key: '[', what: '2×2, reach 12' },
     { kind: 'substation', key: ']', what: '3×3, gives a face that has none (the outskirts) its substation' },
@@ -373,8 +373,12 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       lastFacKey = fk; facList.innerHTML = ''; survList.innerHTML = '';
       for (const f of facs) { const l = el('li'); l.append(el('span', undefined, `${f.name} (${f.x},${f.y})`), el('span', f.held ? '' : 'muted', f.held ? 'reached' : `${f.dist} blocks from HQ`)); facList.append(l); }
       if (!facs.length) facList.append(el('li', 'muted', 'nothing on the skyline yet'));
+      // Phase 7 (STANDARDS dealbreaker 1): from minute one the panel says where blueprints and copy-paste will come from.
+      // GAME-ASSUMPTION (GA-EF-3): the row is a fixed line of text ("not yet found"), not a survivor the sim knows; Phase 7
+      // replaces it with the real survivor's row and the §8 gift
+      { const l = el('li'); l.append(el('span', undefined, 'Blueprints and copy-paste · a survivor\'s gift (Phase 7)'), el('span', 'muted', 'not yet found')); survList.append(l); }
       for (const f of survs) { const l = el('li'); l.append(el('span', undefined, `${f.tag} · ${f.name} (${f.x},${f.y})`), el('span', f.held ? '' : 'muted', f.held ? 'with us' : 'seen')); survList.append(l); }
-      if (!survs.length) survList.append(el('li', 'muted', 'none found yet'));
+      if (!survs.length) survList.append(el('li', 'muted', 'no one else found yet'));
     }
     const sum = summarise(session.telemetry, s);
     dTime.textContent = sum.simTime;

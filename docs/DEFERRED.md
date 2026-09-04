@@ -255,3 +255,10 @@ Every item above keeps its phase unless listed here.
 ## Re-read at the standards audit (2026-09-04)
 
 Nothing parked: the audit built nothing. Every gap it found is a `STANDARDS.md` row in a phase (46 rows) or a `## Considered` entry with its §22 / §23 / constitution reason (29 items); none is deferred here. Standing rule from here on: an add-later STANDARDS row that slips its phase gets a line in this file naming the phase it moves to, never a silent drop. The three Step 0 items above (freshness, M6's two checks, E-rifle at tile scale) keep their owners.
+
+## Re-read at the economy fix (2026-09-04, layout pass and E-rifle at tile scale built — unverified)
+
+- **Kept, with a phase**: west's real coal at the claim (D-P4-10, after Gate B); the second Shot line / the Mk2 purchase from the idle steel (D-P4-11, Gate B); a claim that lays its own turrets (D-P4-9, after Gate B); north at 60–75 with real coal, unmeasured until D-P4-10 → Phase 5's power.
+- **Parked here from this milestone**: the Depot beacon's six-block silhouette (Phase 12 art, STANDARDS C.2); the survivor row's face and the §8 gift (Phase 7, GA-EF-3); the hand-lamp preview on the second play (D-B5-1).
+- **Deleted**: nothing.
+- **Still owed by earlier sections**: unchanged — the generated-report freshness rule (next verification pass), the reference-machine soak by hand, the M5 repair-by-E and hand-lamp preview in the played hour.

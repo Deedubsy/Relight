@@ -9,7 +9,7 @@ import {
   CELL_TILES, MARGIN_TILES, substationLot, streetlights, STREETLIGHTS_PER_SIDE, SUBSTATION_TILES,
   ensureFlow, advanceFlow, stepFlow, place, remove, canPlace, giveItem, handFeed, flowSummary, describeMachine, turretEdge,
   cellLights, litAt, poleGrid, substationAt, subPowered, layPoles, botHands,
-  TILE_TPS, TILE_DT, TURRET_HOPPER, TURRET_ROUNDS_PER_S, GENERATOR_KW, COAL_MJ, START_COAL, LAMP_RADIUS, POLE_REACH, MACHINE_KW,
+  TILE_TPS, TILE_DT, TURRET_HOPPER, TURRET_ROUNDS_PER_S, GENERATOR_KW, COAL_MJ, START_COAL, START_CHEST_COAL, START_TURRETS, SHOT, LAMP_RADIUS, POLE_REACH, MACHINE_KW,
   Machine, SimState, SimEvent, citySpec, hqIdx,
   cityGeomOf, segBetween, segLength, TURRET_PER_TILES, canPickUp,
   lockReason, unlockedKinds, survivorJoined, faceSub, blockLights, hqLot, ground, machineAt, step as blockStep,
@@ -48,29 +48,29 @@ function runS(st: SimState, seconds: number): SimEvent[] {
 const turrets = (st: SimState) => st.flow!.machines.filter(m => m.kind === 'turret');
 const generator = (st: SimState) => st.flow!.machines.find(m => m.kind === 'generator')!;
 
-test('HQ start: six turrets and a Generator with the 40 coal; the 20 magazines fill the ring in order — two edges full, the third empty, its pip red from the first tick', () => {
+test('HQ start (D-P4-8): six turrets with full hoppers, a Generator with 40 coal and 40 more in the chest, 20 magazines in the chest; every pip green from the first tick', () => {
   const st = fresh();
   const f = ensureFlow(st);
   const ts = turrets(st);
   assert.equal(ts.length, 6);
-  assert.equal(generator(st).inv.coal, START_COAL); assert.equal(f.store.coal, 0);
-  assert.equal(flowSummary(st).coal, START_COAL, 'the summary counts the Generator hopper');
+  assert.equal(generator(st).inv.coal, START_COAL); assert.equal(f.store.coal, START_CHEST_COAL, 'D-P4-7 (b): 40 coal in the chest');
+  assert.equal(flowSummary(st).coal, START_COAL + START_CHEST_COAL, 'the summary counts the Generator hopper and the chest');
   for (const m of ts) assert.ok(turretEdge(st, m) >= 0, 'every start turret covers its street');
   const edges = new Set(ts.map(m => turretEdge(st, m)));
   assert.equal(edges.size, 3, 'two turrets a street on three streets');
   const rounds = ts.map(m => m.inv.rounds ?? 0).sort((a, b) => b - a);
-  assert.deepEqual(rounds, [50, 50, 50, 50, 0, 0], 'C10: the 200 start rounds go round the ring in order');
-  assert.equal(st.buffer, 0);
+  assert.deepEqual(rounds, [50, 50, 50, 50, 50, 50], 'D-P4-8: every start hopper full');
+  assert.equal(st.buffer, 20 * SHOT.count, 'and 20 magazines in the chest');
   const hqIdx = idxOf(st, st.start[0], st.start[1]);
   const mine = st.ring.filter(e => e.a === hqIdx);
   assert.equal(mine.length, 3);
   for (const e of mine) { assert.equal(e.turrets, 2); assert.equal(edgeCap(st, e), 2 * TURRET_HOPPER); }
-  assert.deepEqual(mine.map(e => e.hopper).sort((a, b) => b - a), [100, 100, 0], 'the edge hopper is the turrets\' hoppers');
+  assert.deepEqual(mine.map(e => e.hopper).sort((a, b) => b - a), [100, 100, 100], 'the edge hopper is the turrets\' hoppers');
   const pips = frontList(st).filter(v => v.from.x === st.start[0] && v.from.y === st.start[1]).map(v => v.pip).sort();
-  assert.deepEqual(pips, ['green', 'green', 'red']);
+  assert.deepEqual(pips, ['green', 'green', 'green']);
   const ev = runS(st, 1);
-  assert.equal(ev.filter(e => e.type === 'hopper-empty').length, 1, 'the empty edge announces itself on the first block tick');
-  assert.equal(ts.reduce((a, m) => a + (m.inv.rounds ?? 0), 0), 200, 'the ring does not refill physical turrets');
+  assert.equal(ev.filter(e => e.type === 'hopper-empty').length, 0, 'no edge is empty at the start; the first red pip is the ~6-minute hand-feed beat (E-hour)');
+  assert.equal(ts.reduce((a, m) => a + (m.inv.rounds ?? 0), 0), START_TURRETS * TURRET_HOPPER, 'the ring does not refill physical turrets');
 });
 
 test('feeding: an inserter fills a turret from a belt of magazines to its 50-round hopper and waits; hand-feeding fills it from the pockets at once (prompt B M3); the pip follows', () => {
@@ -318,6 +318,7 @@ test('a flow layer saved before M3 loads with the M3 fields; placement refuses t
 
 test("the bot's hands: every turret at or under half and every Generator at or under half is hand-fed from the Depot", () => {
   const st = rich(fresh());
+  for (const m of turrets(st).slice(0, 2)) m.inv.rounds = 0;   // D-P4-8 starts every hopper full: two run dry for the test
   const empty = turrets(st).filter(m => (m.inv.rounds ?? 0) === 0), full = turrets(st).filter(m => (m.inv.rounds ?? 0) === TURRET_HOPPER);
   assert.equal(empty.length, 2); assert.equal(full.length, 4);
   st.buffer = 60;                                   // six magazines in the Depot
@@ -348,12 +349,16 @@ test('city HQ (D-B1-4): the start turrets are derived from the HQ\'s segments �
     assert.ok(mine.length >= 3, `seed ${seed}: the HQ has at least three live segments`);
     for (const e of mine) {
       const sg = segBetween(cg, hqI, e.b)!, len = segLength(sg, cg.tw);
-      assert.ok(e.turrets! >= 1, `seed ${seed}: segment to ${e.b} (${len} tiles) has a turret`);
-      assert.ok(e.turrets! >= Math.floor(len / TURRET_PER_TILES), `seed ${seed}: segment to ${e.b} has one turret per ${TURRET_PER_TILES} tiles`);
+      // D-P4-8: START_TURRETS apportioned by segment length (one per TURRET_PER_TILES, min 1); a corner sliver that
+      // cannot hold a 2×2 of its own hands its turret to the longest segment, so a segment may count below its share
+      assert.ok(e.turrets! >= 1 || len < 8, `seed ${seed}: segment to ${e.b} (${len} tiles) has a turret (or is a sliver too short for one)`);
       assert.equal(e.kit, true, `seed ${seed}: a covered segment is kitted`);
       assert.ok(e.hopper > 0, `seed ${seed}: a start turret edge is born fed`);
     }
     assert.ok(!st.flow!.machines.some(m => m.kind === 'turret' && turretEdge(st, m) < 0), `seed ${seed}: no start turret maps to no edge`);
+    assert.equal(st.flow!.machines.filter(m => m.kind === 'turret').length, START_TURRETS, `seed ${seed}: ${START_TURRETS} start turrets (D-P4-8)`);
+    const total = mine.reduce((a, e) => a + e.turrets!, 0), lens = mine.map(e => segLength(segBetween(cg, hqI, e.b)!, cg.tw));
+    assert.ok(total >= Math.min(START_TURRETS, Math.max(mine.length, Math.floor(lens.reduce((a, b) => a + b, 0) / TURRET_PER_TILES))), `seed ${seed}: the segments carry the apportioned count (${total})`);
     // three minutes with the bot's hands on the turrets and no line: nothing on the HQ is unfed (the first city soak
     // had seed 3's fourth segment bare from tick one and the HQ lost at minute 20; the fix is the rule, not an HQ branch)
     const evs: SimEvent[] = [];

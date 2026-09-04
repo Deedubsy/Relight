@@ -177,8 +177,9 @@ test('a whole line: two Excavators → belt → assembler ← copper; magazines 
   const feedCu = () => { while (giveItem(st, asm, 'copper')) { /* stand-in for the copper line */ } };
   // the ring's consumption stands in as a drain: without it the 4,000-round buffer (400 magazines) fills at minute 19
   for (let k = 0; k < 1200 * TILE_TPS; k++) { feedCu(); if (k % (60 * TILE_TPS) === 0) st.buffer = 0; stepFlow(st, TILE_DT); }
-  // two drills give 1 steel/s = 30 magazines a minute of input; the assembler is the 20/min limit
-  assert.ok(f.stats.magsMade >= 20 * 20 - 3 && f.stats.magsMade <= 20 * 20, `${f.stats.magsMade} magazines in 20 min`);
+  // two drills give 1 steel/s = 30 magazines a minute of input; the Mk1 assembler is the 10/min limit (D-P4-4: 6 s a magazine)
+  const perMin = 60 / SHOT.seconds;
+  assert.ok(f.stats.magsMade >= perMin * 20 - 3 && f.stats.magsMade <= perMin * 20, `${f.stats.magsMade} magazines in 20 min`);
   assert.ok(f.stats.magsDelivered >= f.stats.magsMade - 2);
 });
 
@@ -282,7 +283,7 @@ test('the block map stays the judge: a machine on a block that stops being Held 
   assert.equal(belt.items[0].p, p1, 'no movement on a Dark block');
 });
 
-test('hands: mining a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in 3 s from the pockets into the pockets', () => {
+test('hands: mining a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in the recipe\'s time (Mk1, 6 s) from the pockets into the pockets', () => {
   const st = fresh();
   ensureFlow(st);
   const [px, py] = hq(st, 1, 7);
@@ -313,14 +314,14 @@ test('hands: mining a unit a second into the pockets within reach, and only then
   assert.match(queueCraft(st, 1), /not enough in the pockets/, 'empty pockets: the craft is refused up front');
   assert.equal(chestTake(st, 'steel', 4).moved, 4); assert.equal(chestTake(st, 'copper', 2).moved, 2);
   assert.equal(queueCraft(st, 3), '', 'queue three, the pockets pay for two: capped'); assert.equal(st.flow!.hand.crafts, 2);
-  run(st, 3);
-  assert.equal(st.flow!.stats.handCrafted, 1, 'one magazine in the recipe\'s 3 s');
+  run(st, SHOT.seconds);
+  assert.equal(st.flow!.stats.handCrafted, 1, `one magazine in the recipe's ${SHOT.seconds} s`);
   run(st, 1);   // a second into the next craft
   st.engineer.x = px - 1.5; st.engineer.y = py + 0.5;   // walk away mid-craft: it pauses, progress kept
   run(st, 3);
   assert.equal(st.flow!.stats.handCrafted, 1); assert.equal(st.flow!.hand.crafting, true); assert.ok(Math.abs(st.flow!.hand.craftProg - 1) < 1e-6);
   st.engineer.x = dx - 1.5; st.engineer.y = dy + 0.5;
-  run(st, 2.1);
+  run(st, SHOT.seconds - 1 + 0.1);
   assert.equal(st.flow!.stats.handCrafted, 2);
   assert.equal(st.engineer.inv.magazine, 2, 'the magazines are in the pockets'); assert.equal(st.engineer.inv.steel ?? 0, 0); assert.equal(st.engineer.inv.copper ?? 0, 0);
   assert.deepEqual(st.stock, { ...stock1, steel: stock1.steel - 4, copper: stock1.copper - 2 }, 'the Depot only gave what the chest handed over');

@@ -99,7 +99,7 @@ Facilities restored by claim plus a delivery on a belt, unlocking their §8 list
 
 Experiments: **E15 reachability** (10,000 seeds; every facility reachable in its §15 window; failure rate), **E16 survivor pull** (why a player claims toward a survivor with no resource there; if a bot needs a rule, the doc explains the player's reason).
 
-**DoD:** three seeds reach the Turbine hall in window by bot; the survivor panel reads as a tech tree with faces to someone who hasn't seen the doc. **STANDARDS rows:** 3.5 the survivor panel answers what makes this, what uses this, who unlocked it. **STANDARDS:** the `STANDARDS.md` rows for this phase are checked; no new gap was introduced without a row.
+**DoD:** three seeds reach the Turbine hall in window by bot; the survivor panel reads as a tech tree with faces to someone who hasn't seen the doc. **STANDARDS rows:** 3.5 the survivor panel answers what makes this, what uses this, who unlocked it; dealbreaker 1 — the panel's "Blueprints and copy-paste · not yet found" row (placed 2026-09-04 in the layout pass, GA-EF-3) becomes the survivor who brings them, and the gate to blueprints stays visible from minute one. **STANDARDS:** the `STANDARDS.md` rows for this phase are checked; no new gap was introduced without a row.
 
 ## Phase 8 — Territory tools (3 weeks)
 

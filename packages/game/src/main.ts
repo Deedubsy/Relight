@@ -86,6 +86,8 @@ const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'map',
   width: MAP_W, height: MAP_H,
+  // layout pass: the canvas fills the viewport beside the panel (the map view keeps its 648 px square at the top-left)
+  scale: { mode: Phaser.Scale.RESIZE, width: MAP_W, height: MAP_H },
   backgroundColor: '#0b0e1a',
   render: { antialias: true, pixelArt: false },
   disableContextMenu: true,   // right click removes a machine in the world view

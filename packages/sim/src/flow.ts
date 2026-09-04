@@ -8,12 +8,12 @@
  *  state without a flow layer behaves exactly as before M2.
  *
  *  Rates (all measured by test/flow.test.ts, run name M2-rates): Excavator 0.5 items/s onto the tile it faces,
- *  belt 7.5 items/s (4 items a tile at 1.875 tiles/s), inserter 1 item/s, Shot assembler 3 s a magazine (20/min). */
+ *  belt 7.5 items/s (4 items a tile at 1.875 tiles/s), inserter 1 item/s, Mk1 Shot assembler 6 s a magazine (10/min, D-P4-4). */
 import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command, Engineer } from './types';
 import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing, burnOffS } from './sim';
 import { edgeId, edgeFrom, edgeTo } from './graph';
 import { RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH, FLOODLIGHT_KW, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH } from './recipes';
-import { BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, TURRET_PER_TILES, START_CHEST } from './constants';
+import { BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, START_CHEST, START_TURRETS, STREETLIGHT_RADIUS } from './constants';
 import {
   CELL_TILES, P_STEEL, P_COPPER, P_COAL, HQ_PATCHES, DEPOT_LOT, DEPOT_TILES, SUBSTATION_TILES,
   T_STREET, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
@@ -69,7 +69,7 @@ export type Item = 'steel' | 'copper' | 'stone' | 'coal' | 'magazine';
 
 /** Constitution M2: belts carry 7.5 items/s (§13/§14 said 8; D-P4-6). GAME-ASSUMPTION: four items a tile, so the
  *  belt moves 1.875 tiles/s; belts are one lane, a side feed joins at the tile's start like a corner. */
-export { BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, TURRET_PER_TILES, START_CHEST } from './constants';
+export { BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, TURRET_PER_TILES, START_CHEST, START_TURRETS } from './constants';
 export const BELT_SPACING = 0.25, BELT_SPEED = BELT_PER_S * BELT_SPACING;
 /** §13: Excavator 3×3, mines the 5×5 under and around it at 0.5/s. */
 /** §13: inserter 1 item/s. GAME-ASSUMPTION: half a second each way; it waits with the item if the target is full. */
@@ -192,15 +192,28 @@ export function ensureFlow(st: SimState): FlowState {
   prefillTurrets(st);
   // Prompt B M1: the chest (the Depot) holds §11's start stock once the start turrets are stocked, and the engineer
   // starts at the workbench. GAME-ASSUMPTION: the block sim keeps its calibrated start (80/40/0, config 5f3417b9)
-  // for the harness; the game's chest is §11's 200 steel, 100 copper, 50 stone and 20 magazines until D-P4-4 (M6).
-  // (the 20 magazines are the block sim's start buffer, already on the ring after `prefillTurrets`)
+  // for the harness; the game's chest is §11's 200 steel, 100 copper, 50 stone, 40 coal and 20 magazines (D-P4-4/7/8).
+  // (the 20 magazines are the line buffer `prefillTurrets` leaves after the six hoppers are filled)
   st.stock.steel = START_CHEST.steel; st.stock.copper = START_CHEST.copper; st.stock.stone = START_CHEST.stone;
+  f.store.coal = START_CHEST.coal;
   const [wx, wy] = workbenchTile(st);
   st.engineer.x = wx + 0.5; st.engineer.y = wy + 0.5; st.engineer.block = hqIndex(st); st.engineer.dest = -1; st.engineer.remaining = 0;
   return f;
 }
 
-/** GAME-ASSUMPTION (D-B1-4): one start turret per TURRET_PER_TILES (constants.ts, 16) of HQ segment length (`segLength`), at least one a segment. */
+/** D-P4-8: six start turrets, spread over the HQ's live street segments in proportion to their lengths (`segLength`,
+ *  largest remainder), at least one a segment — the same count on every seed, so §11's 0–10 is one script.
+ *  (D-B1-4's one per 16 tiles gave 5–7 by seed; `TURRET_PER_TILES` stays as the doc's rule of thumb for the count.)
+ *  START_TURRETS and TURRET_PER_TILES live in constants.ts. */
+/** Share `total` among weights by largest remainder, at least `min` each. */
+export function apportion(weights: number[], total: number, min = 1): number[] {
+  const sum = weights.reduce((a, b) => a + b, 0) || 1;
+  const exact = weights.map(w => w / sum * total), out = exact.map(x => Math.max(min, Math.floor(x)));
+  let left = total - out.reduce((a, b) => a + b, 0);
+  const order = exact.map((x, i) => [x - Math.floor(x), i] as [number, number]).sort((a, b) => b[0] - a[0]);
+  for (const [, i] of order) { if (left <= 0) break; out[i]++; left--; }
+  return out;
+}
 
 /** D-B1-4: which of a face's street segments a 2×2 at (x, y) serves — the segment whose front ring (`frontTiles`,
  *  the lot tiles that border that street) holds most of the footprint; ties and footprints off every ring go to the
@@ -262,11 +275,12 @@ export function startTurrets(st: SimState): Map<number, number> {
     addMachine(st, 'turret', best[0], best[1], dir);
     return true;
   };
-  for (const { j, sg } of segs) {
+  const counts = apportion(segs.map(x => segLength(x.sg, tw)), START_TURRETS);
+  for (const [k, { j, sg }] of segs.entries()) {
     const [ux, uy] = segAxis(sg, tw);
     const front = Array.from(frontTiles(cg, hq, j)).map(t => { const tx = t % tw, ty = (t - tx) / tw; return { tx, ty, s: (tx - sg.mx) * ux + (ty - sg.my) * uy }; }).sort((a, b) => a.s - b.s);
     if (!front.length) continue;
-    const lo = front[0].s, hi = front[front.length - 1].s, n = Math.max(1, Math.floor(segLength(sg, tw) / TURRET_PER_TILES));
+    const lo = front[0].s, hi = front[front.length - 1].s, n = counts[k];
     for (let k = 0; k < n; k++) {
       const want = lo + (k + 0.5) / n * (hi - lo);
       let p = front[0];
@@ -283,12 +297,27 @@ export function startTurrets(st: SimState): Map<number, number> {
       for (let k = 0; k < fr.length; k++) { const t = fr[k]; px += t % tw + 0.5; py += Math.floor(t / tw) + 0.5; }
       if (fr.length) placeOne(sg, j, px / fr.length, py / fr.length, false);
     }
-    out.set(edgeId(st, hq, j), f.machines.filter(m => m.kind === 'turret' && ridgeDist(sg, m.x + m.size / 2, m.y + m.size / 2) < TURRET_RANGE).length);
   }
+  // the count is START_TURRETS on every seed (D-P4-8): a turret its segment could not hold (a corner sliver with no
+  // 2×2 of its own, and no turret of its own placed by reach) goes to the longest segment, on the front tile
+  // farthest from the turrets already standing there
+  const short = START_TURRETS - f.machines.filter(m => m.kind === 'turret').length;
+  if (short > 0 && segs.length) {
+    const longest = segs.reduce((a, b) => segLength(b.sg, tw) > segLength(a.sg, tw) ? b : a);
+    const front = Array.from(frontTiles(cg, hq, longest.j)).map(t => { const tx = t % tw, ty = (t - tx) / tw; return { tx, ty }; });
+    for (let k = 0; k < short && front.length; k++) {
+      const tur = f.machines.filter(m => m.kind === 'turret');
+      let p = front[0], pd = -1;
+      for (const q of front) { let d = Infinity; for (const m of tur) d = Math.min(d, Math.hypot(m.x + 1 - q.tx - 0.5, m.y + 1 - q.ty - 0.5)); if (d > pd) { pd = d; p = q; } }
+      if (!placeOne(longest.sg, longest.j, p.tx + 0.5, p.ty + 0.5, true)) break;
+    }
+  }
+  for (const { j, sg } of segs) out.set(edgeId(st, hq, j), f.machines.filter(m => m.kind === 'turret' && ridgeDist(sg, m.x + m.size / 2, m.y + m.size / 2) < TURRET_RANGE).length);
   return out;
 }
 
-/** §11: what the chest holds at the start — START_CHEST in constants.ts. */
+/** §11: what the chest holds at the start — START_CHEST in constants.ts (D-P4-4: 200 steel stays; D-P4-7: 40 coal;
+ *  D-P4-8: 20 magazines on top of six full turret hoppers). */
 
 /** A flow layer saved before M3 gets the M3 fields. */
 function upgrade(f: FlowState): FlowState {
@@ -300,28 +329,19 @@ function upgrade(f: FlowState): FlowState {
   return f;
 }
 
-/** GAME-ASSUMPTION: the HQ's turrets start stocked the way the block sim's first ring fill stocks its edges (C10: the
- *  20 starting magazines go round the ring in order, two edges full and the third empty — the pip ladder's first
- *  lesson); a block-only snapshot's stand-in hoppers on the HQ pour into its turrets the same way. */
+/** D-P4-8: the HQ's start turrets stand with full hoppers (six × 50 rounds) and the chest holds 20 magazines on top —
+ *  the block sim's start buffer (config.startRounds, C10's 20 magazines) becomes the chest's 20 and the hoppers are
+ *  filled outright, so the first red pip is the ~6-minute hand-feed beat §11 is written around, not a 0:00 shortfall.
+ *  (Before: the 20 magazines went round the ring in order, two edges full and the third empty.) A lattice or
+ *  block-only snapshot's stand-in hoppers on the HQ are filled the same way. */
 function prefillTurrets(st: SimState): void {
   const f = st.flow!;
   rebuildRing(st);
   const hqIdx = idxOf(st, st.start[0], st.start[1]);
-  for (const e of st.ring) if (e.a === hqIdx) { st.buffer = Math.min(st.config.bufferCap, st.buffer + e.hopper); e.hopper = 0; }
+  for (const e of st.ring) if (e.a === hqIdx) e.hopper = 0;
   hookSyncEdges(st);
-  // D-B1-4: each HQ edge gets the block sim's one hopper (config.hopper, 100) from the start buffer, spread evenly
-  // over its turrets, so the tile layer's start matches the block-only start the calibration runs on (every HQ
-  // hopper full); with the D6 start buffer that is every edge fed. A lattice or block-only snapshot's HQ pours the
-  // same way.
-  for (const e of st.ring) {
-    if (!e.turrets) continue;
-    const ts = f.machines.filter(m => m.kind === 'turret' && turretEdge(st, m) === e.id);
-    let share = Math.min(st.config.hopper, st.buffer);
-    for (let i = 0; i < ts.length; i++) {
-      const m = ts[i], give = Math.min(TURRET_HOPPER - (m.inv.rounds ?? 0), Math.ceil(share / (ts.length - i)), st.buffer);
-      if (give > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + give; st.buffer -= give; share -= give; }
-    }
-  }
+  for (const m of f.machines) if (m.kind === 'turret') m.inv.rounds = TURRET_HOPPER;
+  st.buffer = Math.min(st.config.bufferCap, START_CHEST.magazines * SHOT.count);
   hookSyncEdges(st);
 }
 
@@ -1154,7 +1174,8 @@ export function contestProgress(st: SimState, bi: number): number {
   return Math.max(0, Math.min(1, (st.t - (b.contestUntil - len)) / len));
 }
 /** Everything that can light a block: its streetlights (lit when the substation powers and they are not broken) and
- *  the Lamps on it (lit while powered). Radii are §13's 4 tiles; M5 draws them as the light texture and, on a
+ *  the Lamps on it (lit while powered). A streetlight reaches the street midline (STREETLIGHT_RADIUS 7, D-B5-4), a
+ *  Lamp §13's 4 tiles; M5 draws them as the light texture and, on a
  *  Contested block, switches the streetlights on in sequence from the substation outward at LIGHT_SEQ_PER_S. */
 export function blockLights(st: SimState, bi: number): Light[] {
   if (bi < 0 || bi >= st.blocks.length) return [];
@@ -1167,7 +1188,7 @@ export function blockLights(st: SimState, bi: number): Light[] {
     const t = l.ty * tw + l.tx;
     const why: Light['why'] = eaten?.has(t) ? 'eaten' : l.broken && !fixed?.has(t) ? 'broken' : '';
     const inSeq = !ranks || st.t >= seqT + ranks[k] / LIGHT_SEQ_PER_S;   // M5 (§6): three a second down the street
-    return { tx: l.tx, ty: l.ty, r: LAMP_RADIUS, lit: on && !why && inSeq, broken: !!why, kind: 'streetlight' as const, why };
+    return { tx: l.tx, ty: l.ty, r: STREETLIGHT_RADIUS, lit: on && !why && inSeq, broken: !!why, kind: 'streetlight' as const, why };
   });
   if (f) for (const m of f.machines) {
     if (blockIdxOf(st, m) !== bi) continue;
