@@ -1,6 +1,6 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
-  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind } from '@relight/sim';
+  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS } from '@relight/sim';
 import { Session, setSpeed, queue, shareUrl } from './session';
 import { summarise, exportJson } from './telemetry';
 
@@ -103,8 +103,11 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     l.append(a, v); pocketList.append(l); pocketList.append(row);
     return { item: item as ChestItem, v, take, put };
   });
+  // M2: machines picked up ride in the pockets as one stack each; they go down again from the hand (hotbar), never through the chest
+  const pocketMach = el('li'); const pocketMachV = el('span', 'mono', 'none');
+  pocketMach.append(el('span', undefined, 'machines carried (one stack each)'), pocketMachV); pocketList.append(pocketMach);
   pocketSec.append(pocketList);
-  pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's edges wait for a kit the engineer carries there.`));
+  pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
   root.append(pocketSec);
 
   // D-B1-5: the build menu (B). The hotbar (1–8) is its shortcut; 9 is the rifle.
@@ -118,16 +121,19 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     { kind: 'turret', key: '5', what: '2×2, range 9, 50-round hopper' }, { kind: 'lamp', key: '6', what: 'lights 8 tiles' },
     { kind: 'pole', key: '7', what: 'carries power, claims across the street' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
   ];
+  const buildCarried: { kind: BuildKind; v: HTMLElement }[] = [];
   for (const b of BUILD) {
     const li = el('li'), btn = el('button', undefined, `${b.key} · ${b.kind}`);
     const c = MACHINE_COST[b.kind];
     btn.title = `Put a ${b.kind} in the hand (hotbar ${b.key})`;
     btn.onclick = () => panelRef.onPick?.(b.kind);
-    li.append(btn, el('span', 'hint', ` ${c.steel} steel${c.copper ? ` + ${c.copper} Cu` : ''} · ${b.what}`));
+    const carried = el('span', 'mono', '');
+    li.append(btn, el('span', 'hint', ` ${c.steel} steel${c.copper ? ` + ${c.copper} Cu` : ''} from the pockets · ${b.what} `), carried);
+    buildCarried.push({ kind: b.kind, v: carried });
     buildList.append(li);
   }
   buildSec.append(buildList);
-  buildSec.append(el('p', 'hint', 'In the world view: left-click places what the hand holds, R rotates, Q pipettes the machine under the cursor or clears the hand, right-click with an empty hand removes with a full refund. 9 is the rifle: while it is in hand, holding left-click fires toward the cursor and nothing else happens until you clear it.'));
+  buildSec.append(el('p', 'hint', 'In the world view: left-click places what the hand holds from the pockets (a carried machine first, else its price in carried steel and copper — take them from the chest), R rotates, Q pipettes the machine under the cursor or clears the hand, right-click with an empty hand picks a machine up into the pockets. 9 is the rifle: while it is in hand, holding left-click fires toward the cursor and nothing else happens until you clear it.'));
   root.append(buildSec);
 
   // Rework Step 5: the side panel is held / front / interior / ammo made vs demanded / stock / blocks lost;
@@ -157,7 +163,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   debug.append(stockSec);
 
   // M2: the tile line on the HQ lot (world view). Counts and rates come from flowSummary; the Craft button queues a
-  // hand craft (§11) that takes its inputs from the Depot stock like a tile assembler would from its belt.
+  // hand craft (§11) at the workbench, from the pockets into the pockets (prompt B M2).
   const lineSec = el('section');
   let vMach: HTMLElement | null = null, vBeltItems: HTMLElement | null = null, vLineRate: HTMLElement | null = null, vLineMade: HTMLElement | null = null,
       vHand: HTMLElement | null = null, vBuffer: HTMLElement | null = null, vCoal: HTMLElement | null = null, vCrafts: HTMLElement | null = null,
@@ -175,12 +181,12 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     lineSec.append(lineList);
     const craftRow = el('div', 'row');
     btnCraft = el('button', undefined, `Craft a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s)`);
-    btnCraft.title = 'E on the workbench in the world view. Hand crafts take their steel and copper from the Depot stock and put the magazine in the line buffer.';
-    btnCraft.onclick = () => queueCraft(session.state, 1);
+    btnCraft.title = 'E on the workbench in the world view. A hand craft takes its steel and copper from the pockets and puts the magazine in the pockets; the engineer stays within reach of the Depot while it runs.';
+    btnCraft.onclick = () => { const why = queueCraft(session.state, 1); if (why) toast(why, 'bad'); };
     craftRow.append(btnCraft);
     lineSec.append(craftRow);
     const mc = MACHINE_COST;
-    lineSec.append(el('p', 'hint', `World view: the hotbar 1–8 is the build menu's shortcut (B lists the buildings and their costs), 9 the rifle. R rotate, Q pipette / clear the hand, right-click removes (full refund) with an empty hand. WASD moves (Shift sprints, Space dodges); hand actions reach ${REACH} tiles. Hold the left button on rubble with an empty hand to mine it a unit a second into the pockets; E on the workbench crafts a magazine (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s). Magazines reach the ring only through the Depot: belt or inserter them into it, or carry them (Tab / I).`));
+    lineSec.append(el('p', 'hint', `World view: the hotbar 1–8 is the build menu's shortcut (B lists the buildings and their costs), 9 the rifle. R rotate, Q pipette / clear the hand, right-click picks a machine up into the pockets with an empty hand. WASD moves (Shift sprints, Space dodges); hand actions reach ${REACH} tiles. Hold the left button on rubble with an empty hand to mine it a unit a second into the pockets; E on the workbench crafts a magazine (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s). Magazines reach the ring only through the Depot: belt or inserter them into it, or carry them (Tab / I).`));
     debug.append(lineSec);
   }
 
@@ -317,7 +323,10 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
         r.v.textContent = `pockets ${e.inv[r.item] ?? 0} · chest ${c === Infinity ? '∞' : c}`;
         r.take.disabled = !near || c <= 0; r.put.disabled = !near || !(e.inv[r.item] > 0);
       }
+      const mach = KINDS.filter(k => (e.inv[k] ?? 0) > 0).map(k => `${e.inv[k]} ${k}`);
+      pocketMachV.textContent = mach.length ? mach.join(', ') : 'none';
     }
+    if (!buildSec.hidden) for (const b of buildCarried) { const n = s.engineer.inv[b.kind] ?? 0; b.v.textContent = n > 0 ? `· ${n} carried` : ''; }
     if (vCu) { vCu.textContent = String(Math.floor(s.stock.copper)); vSteel!.textContent = String(Math.floor(s.stock.steel)); vStone!.textContent = String(Math.floor(s.stock.stone)); vPatch!.textContent = String(Math.floor(s.patch.steel)); }
     vAsm.textContent = String(h.ammo.assemblers);
     const si = slotInfo(s);

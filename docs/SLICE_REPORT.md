@@ -175,7 +175,91 @@ The human's "Four small things before Prompt B M2", in order, each with its chec
 - The D6 regression fixtures `city{3,4,5}.json` do not move (`_exportCity.ts` re-run); the calibration moves only on the spike row above. No rules change beyond the two the human decided.
 - Decisions: D-B1-4 and D-B1-5 made by the human; D-P4-8 superseded. Nothing new for the human from these four items. `DEFERRED.md` "Re-read before prompt B M2" (click-to-walk deleted; start turrets on segments done; the block-only start ring to delete at the Phase 5 gate). §26 recount unchanged at 33.
 
-## Prompt B M2 Flow on the faces — not built
+## Prompt B M2 Flow on the faces — built 2026-09-04
+
+Run names `B-M2-pockets` (placement from the pockets, pick-up, hand-crafting) and `B-M2-rates` (the rates and the D-P3-10 footprint on seed 3's HQ face). The lattice M2 machines (`flow.ts`: Excavator, belts, inserters, Shot assembler, the 20 ticks/s tile tick and the derived 1 s block tick) do what they did; what changed is where a machine comes from and where it goes.
+
+### Built
+
+- **From the pockets, within reach** (`flow.ts` `canPlace` / `place`, `engineer.ts` `take` / `drop`; `worldScene.ts`, `panel.ts`): a machine is a pocket item, one stack each. Placing pays its rubble price from the pockets (`MACHINE_COST`, unchanged since the lattice: Excavator 10 steel, belt 1, inserter 1 + 1 Cu, assembler 40 + 20 Cu) or drops a carried machine for nothing; the Depot chest is never drawn on for a machine, so a line costs the walk to the chest first. `canPlace` returns `carried` and a reason the ghost shows ("not enough in the pockets (10 steel)"). The `place` command in the hand hook is reach-checked against the machine's footprint and does nothing beyond it; the world view's cursor says "Walk closer — the engineer reaches 8 tiles" and nothing moves, never a silent relocation. Direct `place()` calls keep reach the caller's (tests, `__relight.flow.place`).
+- **Pick-up into the pockets** (`canPickUp` / `remove` / `pickUpItems`): right-click with an empty hand returns the machine and what it held — belt items, an inserter's hand, the assembler's inputs and output, a Generator's coal, a turret's rounds as whole magazines — all or nothing; a full pocket refuses with a toast ("No pick-up: the pockets are full (2 stacks to carry, 0 free)"). No rubble refund. §11's two turrets carried at minute 40 are four stacks (a turret and its magazines each).
+- **Hand-crafting from the pockets into the pockets** (`queueCraft`, `tickHand`): 2 steel + 1 Cu a magazine in 3 s, at the workbench within reach of the Depot; the queue is capped at what the pockets can pay and refused with a reason ("walk closer to the workbench", "not enough in the pockets (2 steel + 1 Cu a magazine)"); the craft keeps its progress and pauses out of reach or with full pockets. The M1 stand-in (crafting drew the chest and delivered to it) is gone.
+- **In the game**: the ghost reads "10 steel from the pockets" / "from the pockets (1 carried)" / the refusal; the pockets panel lists the machines carried; the build menu shows the count carried beside each price; the workbench button and E both queue from the pockets and toast a refusal; right-click's toast names the stacks and the pocket count. Dev hook `__relight.flow.canPickUp`.
+- **Tests** (`flow.test.ts`, `defence.test.ts`, `walk.test.ts`): placement pays from the pockets and the Depot stock is untouched even at 10,000 steel; a carried machine is free to put down; pick-up stacks and contents; the full-pocket refusal; a turret with 50 rounds comes back as 1 turret + 5 magazines with 10 rounds to the line buffer; the hands test rewritten (refusal on empty pockets, the cap, the pause out of reach and the resume, the magazine in the pockets and the chest only down by what the pockets took).
+
+### Assumed (every `GAME-ASSUMPTION` in M2 code)
+
+| Tag | Where | Assumption |
+|---|---|---|
+| GA-M2-6 (kept, reworded) | `flow.ts` `MACHINE_COST` | machine prices in rubble (§13 gives none); pick-up returns the machine, never a refund |
+| GA-B2-1 | `flow.ts` `canPlace` | paying rubble at placement stands in for crafting the machine — §13 prices none and §14 says "placed from their pockets"; Phase 5 recipes decide whether a machine is made at the workbench first (D-B2-1) |
+| GA-B2-2 | `flow.ts` `pickUpItems` | a picked-up turret's rounds come back as whole magazines, the loose remainder (< 10) to the line buffer; a machine and each item it held are their own stacks (D-B2-3) |
+| GA-B2-3 | `flow.ts` `tickHand` | the hand-craft pauses with its progress kept out of reach of the Depot or with full pockets; an unaffordable queue is dropped up front rather than left waiting |
+
+The M1 tag "hand-crafting still draws the chest" is removed; the lattice M2 tags (GA-M2-1…5, the tick, the belt model, the inserter swing) stand. A machine stacks to 1 by `engineer.ts` `stackSize`'s default, untagged: §14's "into a stack" is the text.
+
+### Deferred
+
+- **Machines in the Depot chest and the truck bringing them** (§19): the chest holds rubble, magazines and kits only; a machine lives in the pockets or on the ground → Phase 5 with the truck.
+- **Workbench recipes for machines** (a machine as an item crafted before it is placed) → Phase 5 recipes, D-B2-1.
+- **Ground items** (a pick-up that spills, an inventory that overflows): nothing in the slice drops an item on a tile; the full pocket refuses instead → not in the slice.
+- **The harness bots never use the tile machines**; the block sim stays the judge and the tile layer feeds it the same numbers (the C1/C2 calibration is unchanged, below) → the Phase 5 gate decides which sim rates the economy (D-P4-5, M6).
+- **Belt-to-belt side-loading and splitters**: the lattice belt model (a straight run and corners) is what M2 has; a belt that meets another belt's side drops nothing and takes nothing → Phase 5.
+
+### Measured
+
+Seed 3's HQ face 356 (30×30 bbox, 780 tiles, `slotsOf` 1; the lot is not a rectangle: 73 tiles under the Depot, the substation, the Generator and the start turrets, 100 rubble, 46 patch). Script `m2measure.ts` (scratch), the tile tick at 20/s, the block tick at 1 s.
+
+| What | Measured | Doc |
+|---|---|---|
+| chest → pockets | 200 steel + 100 Cu in 6 stacks; the Depot at 0 / 0 after | §11 |
+| an Excavator ordered from 12 tiles away (command hook) | refused, nothing placed, 8 machines on the face before and after | §14 reach 8 |
+| §11's line placed within reach from the pockets | 2 Excavators, 51 belts, 3 inserters, 1 assembler: 114 steel + 23 Cu paid from the pockets (86 / 77 left); the Depot untouched at 0 / 0 | §11's 200 steel covers it |
+| belt run steel patch → assembler, 23 tiles (20 east, a corner, 3 south) + an inserter | first unit on the belt at 2.05 s (the Excavator's first 2 s), in the assembler at 14.30 s: 12.25 s in transit | 23 / 1.875 = 12.27 s, + 0.5 s inserter swing = 12.77 s |
+| line rate, 10 min after a 2 min warm-up | 150 magazines made and 150 delivered (15.0 / min); steel mined 300 (0.500 / s) | 15 mag / min from one steel Excavator; 0.5 / s |
+| copper in the same window | 0 mined: the copper belt backed up (98 items on belts at the end) and its Excavator stopped — one Cu Excavator (0.5 / s) over-supplies one assembler (0.333 / s) three to one | §11 has no copper rate to disagree with |
+| saturated belt, 12 tiles with a corner into the Depot | 7.50 items / s over 60 s | 7.5 / s |
+| pick-up of the assembler mid-craft | 1 stack more, pockets 5 / 40 (87 steel, 81 Cu, 1 assembler: its held 1 steel / 4 Cu came back too); put down again free, steel unchanged | §14 "into a stack" |
+| hand-craft in the browser (preview build, seed 3) | with no copper refused with its reason; with 1 Cu queued and made in 3 s: 1 magazine in the pockets, steel 190 → 188 | §13 Workbench 3 s, §12 2 steel + 1 Cu |
+
+Browser check (`m2game.cjs`, headless swiftshader against the preview build): the cursor places from the pockets within reach, refuses at 12+ tiles with the "Walk closer" toast and nothing placed, right-click picks the Excavator up into the pockets (5 / 40 stacks) and it goes down again free; 0 page errors. The reference-machine soak was not re-run for M2: the render loop is untouched and the M1 measurement stands (59.9 fps).
+
+**For D-P3-10 — what fits on the HQ face and its four neighbours.** Free tiles are ground + rubble + deposit + patch not under a machine; "3×3 machines", "8×3 arms" (an Excavator, 3 belts, an inserter, 3 belts) and "11×7 §11 lines" (steel arm, assembler, copper arm, an inserter into the Depot) are greedy top-left packings of the free tiles, so a floor for what a player can lay out.
+
+| seed | face | bbox | area (slots) | free tiles | 3×3 | 8×3 arms | 11×7 lines |
+|---|---|---|---|---|---|---|---|
+| 3 | HQ 356 | 30×30 | 780 (1) | 707 | 62 | 23 | 5 |
+| 3 | 332 | 28×28 | 711 (1) | 702 | 71 | 24 | 6 |
+| 3 | 334 | 23×30 | 640 (1) | 631 | 62 | 22 | 6 |
+| 3 | 353 | 26×35 | 753 (1) | 744 | 73 | 26 | 6 |
+| 3 | 355 | 43×36 | 1,116 (1) | 1,107 | 110 | 38 | 9 |
+| 4 | HQ 360 | 31×46 | 1,197 (1) | 1,121 | 107 | 38 | 8 |
+| 4 | 341 (Inert plaza) | 31×27 | 630 (1) | 0 | 0 | 0 | 0 |
+| 4 | 348 | 20×27 | 497 (1) | 488 | 46 | 18 | 4 |
+| 4 | 361 | 16×40 | 567 (1) | 558 | 53 | 19 | 4 |
+| 4 | 364 | 24×38 | 711 (1) | 702 | 70 | 22 | 7 |
+| 5 | HQ 346 | 37×29 | 891 (1) | 822 | 76 | 26 | 7 |
+| 5 | 324 | 24×36 | 680 (1) | 671 | 65 | 24 | 6 |
+| 5 | 325 | 35×27 | 754 (1) | 745 | 73 | 26 | 6 |
+| 5 | 339 (Inert plaza) | 39×44 | 1,390 (2) | 0 | 0 | 0 | 0 |
+| 5 | 348 | 22×21 | 391 (1) | 382 | 33 | 12 | 4 |
+
+Every non-Inert face near the HQ gets one slot from area while its footprint holds 4–9 §11-scale lines and 33–110 3×3 machines; an Inert plaza gets 1–2 slots and holds nothing. The slot count from area does not match what a player can lay out in either direction: it is the economic cap C3 locked (one line per block), not a footprint limit.
+
+Checks: `npm test` 99 / 99, `typecheck` (incl. the game build), `lint`, `snapshot:check` (`5f3417b9`, unchanged — the block sim is untouched), `docsync:check`, `experiments` 12 / 107 s / 0 failing checks, `calibrate` (C1 / C2 unchanged, MET). Fixtures `city{3,4,5}.json` unchanged: no rules change in the block sim.
+
+### Where M2 and the doc disagree (reported, not resolved)
+
+- **§14 slots vs footprint (D-P3-10)**: `slotsOf` = floor(area / 600) gives 1 on every HQ-neighbour face and 2 on an Inert plaza that holds nothing; the tile layer would let a player lay 4–9 lines. The tile layer does not enforce the slot and the block economy does not see the tiles, so the two do not collide in the slice — but they will when tile lines replace the stand-in (M6). Decision D-B2-2.
+- **§13 / §14 machine prices**: the doc prices no machine and never says whether a machine is crafted first; M2 pays rubble at placement (GA-B2-1). Decision D-B2-1.
+- **§14 "into a stack"**: the doc's one stack is the machine; its contents are extra stacks (a turret with its magazines is two), and a turret's loose rounds go to the line buffer rather than into the pockets. §11's "four stacks for two turrets" still holds. Decision D-B2-3.
+- **§11 copper**: one copper Excavator over-supplies one Shot assembler three to one, so §11's line as drawn stalls its copper arm within the first minutes; not wrong, but the doc's picture of "an Excavator on each patch" is a steel-limited line with an idle copper drill. Reported; a smaller copper source is a Phase 5 recipe question.
+
+### Decisions for the human (recommended in `DECISIONS.md` D-B2-1–D-B2-3)
+
+- **D-B2-1 machine crafting**: rubble at placement as built (a) / a workbench recipe with a craft time (b) / machines stocked in the chest and brought by the truck (c). Recommend (a) for the slice and (b) with the Phase 5 recipes.
+- **D-B2-2 slot count vs footprint**: keep `floor(area / 600)` as the economic cap (a) / derive slots from free footprint (~1 per 150 free tiles) (b) / drop slots when tile lines replace the stand-in at M6 (c). Recommend (a) now, (c) at M6.
+- **D-B2-3 pick-up contents**: into the pockets as their own stacks, turret rounds as whole magazines and the remainder to the buffer, a full pocket refuses (a) / spill onto the ground (b) / lost (c). Recommend (a).
 
 ## Prompt B M3 Defence — not built
 

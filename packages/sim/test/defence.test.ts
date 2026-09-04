@@ -11,7 +11,7 @@ import {
   cellLights, litAt, poleGrid, substationAt, subPowered, layPoles, botHands,
   TILE_TPS, TILE_DT, TURRET_HOPPER, TURRET_ROUNDS_PER_S, GENERATOR_KW, COAL_MJ, START_COAL, LAMP_RADIUS, POLE_REACH, MACHINE_KW,
   Machine, SimState, SimEvent, citySpec, hqIdx,
-  cityGeomOf, segBetween, segLength, TURRET_PER_TILES,
+  cityGeomOf, segBetween, segLength, TURRET_PER_TILES, canPickUp,
 } from '../src/index';
 
 function fresh(seed = 3): SimState {
@@ -22,7 +22,7 @@ function fresh(seed = 3): SimState {
 function hq(st: SimState, lx: number, ly: number): [number, number] {
   return [st.start[0] * CELL_TILES + MARGIN_TILES + lx, st.start[1] * CELL_TILES + MARGIN_TILES + ly];
 }
-function rich(st: SimState): SimState { ensureFlow(st); st.stock.steel = 10000; st.stock.copper = 10000; return st; }
+function rich(st: SimState): SimState { ensureFlow(st); st.engineer.inv.steel = 1000; st.engineer.inv.copper = 500; return st; }   // M2: paid from the pockets
 function powered(st: SimState): SimState {
   rich(st);
   st.config.power = true; st.config.supply = 'generators'; st.config.draw = 'half'; st.config.shed = 'machines-first';
@@ -104,9 +104,11 @@ test('feeding: an inserter fills a turret from a belt of magazines to its 50-rou
   assert.equal(st.buffer, 10);
   step(st);
   assert.equal(frontList(st).find(v => v.id === e.id)!.pip, 'green');
-  // a removed turret hands its rounds back to the line buffer
+  // M2: a picked-up turret goes to the pockets with its rounds as whole magazines (§11's four stacks for two turrets); the line buffer keeps what it had
+  assert.equal(pair[1].inv.rounds, 50);
+  assert.equal(canPickUp(st, pair[1].x, pair[1].y).stacks, 2, 'a turret and its magazines: two stacks');
   remove(st, pair[1].x, pair[1].y);
-  assert.equal(st.buffer, 60);
+  assert.equal(st.buffer, 10); assert.equal(st.engineer.inv.turret, 1); assert.equal(st.engineer.inv.magazine, 5);
 });
 
 test('engagement: crawlers drain the turrets fullest-first at 5 rounds/s each; a rush past the rate goes unfed; the hopper-empty event fires on the same tick the pip turns red', () => {

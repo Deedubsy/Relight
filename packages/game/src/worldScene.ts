@@ -17,8 +17,8 @@ import {
   SimState, idxOf, DARK, CONTESTED, HELD, INERT, VOID, isInterior,
   TILE_PX, RUBBLE_VARIANTS, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
   ground, chunkTiles, chunkKey, CHUNK, describeGround, blockOfTile, inReach, depotRect, REACH, INV_STACKS, invStacks, currentPath,
-  Kind, Dir, DX, DY, DIR_NAMES, Machine, MACHINE_SIZE, MACHINE_COST, SHOT, EXCAVATOR_PER_S,
-  machineAt, rubbleAt, canPlace, place, remove, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
+  Kind, Dir, DX, DY, DIR_NAMES, Machine, MACHINE_SIZE, SHOT, EXCAVATOR_PER_S,
+  machineAt, rubbleAt, canPlace, place, remove, canPickUp, costStr, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
   handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
   POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST,
 } from '@relight/sim';
@@ -294,8 +294,9 @@ export class WorldScene extends Phaser.Scene {
     const wb = workbenchTile(st);
     if (h && h.tx >= wb[0] && h.tx < wb[0] + 2 && h.ty >= wb[1] && h.ty < wb[1] + 2) {
       if (!this.reachable(wb[0], wb[1], 2, true)) return;
-      queueCraft(st, 1);
-      this.hooks.onToast(`Workbench: crafting a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s) — ${st.flow.hand.crafts} queued`);
+      const why = queueCraft(st, 1);   // M2: from the pockets, into the pockets
+      if (why) this.hooks.onToast(`Workbench: ${why}`, 'bad');
+      else this.hooks.onToast(`Workbench: crafting a magazine by hand from the pockets (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s) — ${st.flow.hand.crafts} queued`);
       return;
     }
     const m = h ? machineAt(st, h.tx, h.ty) : undefined;
@@ -373,12 +374,13 @@ export class WorldScene extends Phaser.Scene {
       if (this.tool !== 'hand') { this.setTool('hand'); return; }   // something in hand: right-click clears it
       const m = machineAt(st, tx, ty);
       if (!m) return;
-      if (m.kind === 'depot') { this.hooks.onToast('The Depot stays', 'bad'); return; }
       if (!this.reachable(m.x, m.y, m.size, true)) return;
-      const cost = MACHINE_COST[m.kind];
-      const held = m.kind === 'turret' ? `, ${m.inv.rounds ?? 0} rounds to the line buffer` : m.kind === 'generator' ? `, ${Math.floor(m.inv.coal ?? 0)} coal to the Depot` : '';
+      // M2: a pick-up goes to the pockets with what the machine held; a full pocket refuses with the reason
+      const pk = canPickUp(st, tx, ty);
+      if (!pk.ok) { this.hooks.onToast(`No pick-up: ${pk.reason}`, 'bad'); return; }
       remove(st, tx, ty);
-      this.hooks.onToast(`${m.kind} removed — ${cost.steel} steel${cost.copper ? ` + ${cost.copper} Cu` : ''} back in the Depot${held}`);
+      const held = Object.keys(pk.items).filter(k => k !== m.kind).map(k => `${pk.items[k]} ${k === 'magazine' && pk.items[k] !== 1 ? 'magazines' : k}`).join(', ');
+      this.hooks.onToast(`${m.kind} picked up into the pockets (${pk.stacks} stack${pk.stacks === 1 ? '' : 's'}${held ? `: ${held}` : ''}) — ${invStacks(st.engineer.inv)}/${INV_STACKS} stacks`);
       return;
     }
     if (!p.leftButtonDown()) return;
@@ -639,7 +641,8 @@ export class WorldScene extends Phaser.Scene {
     const [ox, oy] = this.footprint(kind, h.tx, h.ty);
     const far = this.onFoot && !inReach(st, ox, oy, size);
     const c = canPlace(st, kind, ox, oy);
-    this.ghostReason = far ? 'walk closer' : c.ok ? `${c.cost.steel} steel${c.cost.copper ? ` + ${c.cost.copper} Cu` : ''}` : c.reason;
+    // M2: the price is read from the pockets — a carried machine goes down as it is
+    this.ghostReason = far ? 'walk closer' : c.ok ? (c.carried ? `from the pockets (${st.engineer.inv[kind]} carried)` : `${costStr(c.cost)} from the pockets`) : c.reason;
     const col = c.ok && !far ? 0x6fe08a : 0xe05a5a;
     g.fillStyle(col, 0.25); g.fillRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
     g.lineStyle(2 / this.cameras.main.zoom, col, 0.9); g.strokeRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);

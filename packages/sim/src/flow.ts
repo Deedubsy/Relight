@@ -9,7 +9,7 @@
  *
  *  Rates (all measured by test/flow.test.ts, run name M2-rates): Excavator 0.5 items/s onto the tile it faces,
  *  belt 7.5 items/s (4 items a tile at 1.875 tiles/s), inserter 1 item/s, Shot assembler 3 s a magazine (20/min). */
-import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command } from './types';
+import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command, Engineer } from './types';
 import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing } from './sim';
 import { edgeId, edgeFrom, edgeTo } from './graph';
 import { RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH } from './recipes';
@@ -20,7 +20,7 @@ import {
 } from './tiles';
 import { ground, inGround, hqLot, blockOfTile, goneOf, poolCap, substationOwner, blocksNear, inReach, cityGeomOf, segAxis, segLength } from './ground';
 import { tickEngineerTiles, workbenchTile } from './walk';
-import { take as pocketTake, drop as pocketDrop, handHook, hqIdx as hqIndex, upgradeEngineer } from './engineer';
+import { take as pocketTake, drop as pocketDrop, invStacks, invCap, handHook, hqIdx as hqIndex, upgradeEngineer } from './engineer';
 import { segBetween, frontTiles, CitySeg } from './city';
 
 export const TILE_TPS = 20;                    // constitution: fixed 20 ticks/s at tile level
@@ -32,6 +32,7 @@ export const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 export const DIR_NAMES = ['north', 'east', 'south', 'west'];
 export type Kind = 'excavator' | 'belt' | 'inserter' | 'assembler' | 'depot' | 'turret' | 'lamp' | 'pole' | 'generator';
 export const KINDS: readonly Kind[] = ['excavator', 'belt', 'inserter', 'assembler', 'depot', 'turret', 'lamp', 'pole', 'generator'];
+export function isKind(s: string): s is Kind { return (KINDS as readonly string[]).includes(s); }
 /** Flow directions (N E S W) to the block sim's edge directions (+x −x +y −y) and back. */
 export const SIM_DIR: readonly number[] = [3, 0, 2, 1], FLOW_DIR: readonly Dir[] = [1, 3, 2, 0];
 export const SIM_DIR_NAMES = ['east', 'west', 'south', 'north'];
@@ -53,7 +54,8 @@ export const HAND_MINE_PER_S = 1;
 export const MACHINE_SIZE: Record<Kind, number> = { excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2 };
 /** GAME-ASSUMPTION: machine costs in rubble (§13 gives none). The assembler costs what the block-level one does
  *  (§12: 20 Cu + 40 steel); the Excavator 10 steel; a belt tile 1 steel; an inserter 1 steel + 1 Cu; (M3) a Gun
- *  turret 15 steel + 5 Cu, a Lamp and a pole 1 steel + 1 Cu each, a Generator 30 steel + 10 Cu. Removal refunds. */
+ *  turret 15 steel + 5 Cu, a Lamp and a pole 1 steel + 1 Cu each, a Generator 30 steel + 10 Cu. Pick-up returns the machine itself
+ *  to the pockets (prompt B M2), never a rubble refund. */
 export const MACHINE_COST: Record<Kind, { steel: number; copper: number }> = {
   excavator: { steel: 10, copper: 0 }, belt: { steel: 1, copper: 0 }, inserter: { steel: 1, copper: 1 },
   assembler: { steel: 40, copper: 20 }, depot: { steel: 0, copper: 0 },
@@ -608,18 +610,22 @@ function tickHand(st: SimState, f: FlowState, dt: number): void {
       }
     }
   }
-  // GAME-ASSUMPTION (M1): hand-crafting still draws the chest and delivers to it (§14 has it from the pockets at the
-  // workbench); the scene asks for reach of the workbench, M2 moves the inputs and the magazine to the pockets.
+  // Prompt B M2: hand-crafting at the workbench, from the pockets, into the pockets (§14, §13's Workbench row).
+  // GAME-ASSUMPTION: the craft pauses with its progress kept while the engineer is out of reach of the Depot (the
+  // workbench is on its lot) or while the pockets cannot take the magazine; a queue the pockets cannot pay for is
+  // dropped (`queueCraft` refuses it up front) rather than left waiting.
   if (h.crafts > 0) {
+    if (!nearDepot(st)) return;
+    const e = st.engineer;
     if (!h.crafting) {
-      if (st.stock.steel >= SHOT.inputs.steel && st.stock.copper >= SHOT.inputs.copper) {
-        st.stock.steel -= SHOT.inputs.steel; st.stock.copper -= SHOT.inputs.copper; h.crafting = true; h.craftProg = 0;
-      } else return;
+      if ((e.inv.steel ?? 0) >= SHOT.inputs.steel && (e.inv.copper ?? 0) >= SHOT.inputs.copper) {
+        pocketDrop(e, 'steel', SHOT.inputs.steel); pocketDrop(e, 'copper', SHOT.inputs.copper); h.crafting = true; h.craftProg = 0;
+      } else { h.crafts = 0; return; }
     }
     h.craftProg += dt;
-    if (h.craftProg >= SHOT.seconds - EPS && deliver(st, 'magazine')) {
+    if (h.craftProg >= SHOT.seconds - EPS && pocketTake(e, 'magazine', 1) === 1) {
       h.crafting = false; h.crafts--; h.craftProg = 0; f.stats.handCrafted++; st.stats.magsMade++;
-    }
+    } else if (h.craftProg >= SHOT.seconds - EPS) h.full = true;
   }
 }
 
@@ -689,7 +695,14 @@ function stringClaims(st: SimState, from: number): void {
 
 // ------------------------------------------------------------------ placement
 
-export interface PlaceCheck { ok: boolean; reason: string; cost: { steel: number; copper: number } }
+export interface PlaceCheck {
+  ok: boolean; reason: string;
+  /** What the placement takes from the pockets: the rubble price, or nothing when a carried machine goes down. */
+  cost: { steel: number; copper: number };
+  /** M2: a carried machine (picked up earlier) is placed as it is; `cost` is then zero. */
+  carried: boolean;
+}
+export const costStr = (c: { steel: number; copper: number }): string => c.steel || c.copper ? `${c.steel} steel${c.copper ? ` + ${c.copper} Cu` : ''}` : 'nothing';
 
 /** GAME-ASSUMPTION: a machine goes on any tile of a Held block's cell (lot or its street margin: §14 lets belts run
  *  on streets; an inserter is belt furniture and may too; excavators, assemblers and Generators stay on the lot;
@@ -717,12 +730,22 @@ export function placeable(st: SimState, kind: Kind, tx: number, ty: number): str
   }
   return '';
 }
+/** Prompt B M2 (run name B-M2-pockets): a machine is placed from the engineer's pockets (§14). A carried machine (one
+ *  stack each, engineer.ts `stackSize`) goes down as it is; otherwise its rubble price (`MACHINE_COST`) is paid from
+ *  the steel and copper the engineer carries — never from the Depot: the chest is reached through the pockets
+ *  (`chestTake`). GAME-ASSUMPTION: paying rubble at placement stands in for crafting the machine (§13 prices none;
+ *  Phase 5 recipes decide whether a machine is a workbench craft with its own time — D-B2-1). Reach is the caller's:
+ *  the scene's cursor and the command hook refuse outside 8 tiles; `place` itself lands anywhere, as the tests and
+ *  the dev hooks do. */
 export function canPlace(st: SimState, kind: Kind, tx: number, ty: number): PlaceCheck {
   const cost = MACHINE_COST[kind];
   const reason = placeable(st, kind, tx, ty);
-  if (reason) return { ok: false, reason, cost };
-  if (kind !== 'depot' && (st.stock.steel < cost.steel || st.stock.copper < cost.copper)) return { ok: false, reason: `not enough in the Depot (${cost.steel} steel${cost.copper ? ` + ${cost.copper} Cu` : ''})`, cost };
-  return { ok: true, reason: '', cost };
+  if (reason) return { ok: false, reason, cost, carried: false };
+  if (kind === 'depot') return { ok: true, reason: '', cost, carried: false };
+  const inv = st.engineer.inv;
+  if ((inv[kind] ?? 0) >= 1) return { ok: true, reason: '', cost: { steel: 0, copper: 0 }, carried: true };
+  if ((inv.steel ?? 0) < cost.steel || (inv.copper ?? 0) < cost.copper) return { ok: false, reason: `not enough in the pockets (${costStr(cost)})`, cost, carried: false };
+  return { ok: true, reason: '', cost, carried: false };
 }
 
 function addMachine(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir): Machine {
@@ -734,31 +757,60 @@ function addMachine(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir):
   return m;
 }
 
-/** Place a machine, paying its cost from the Depot. Returns the machine, or null with the reason in `canPlace`. */
+/** Place a machine from the pockets (a carried one, else its price in carried rubble). Returns the machine, or null
+ *  with the reason in `canPlace`. */
 export function place(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir = 0): Machine | null {
   tx = Math.floor(tx); ty = Math.floor(ty);
   const chk = canPlace(st, kind, tx, ty);
   if (!chk.ok) return null;
-  st.stock.steel -= chk.cost.steel; st.stock.copper -= chk.cost.copper;
+  if (chk.carried) pocketDrop(st.engineer, kind, 1);
+  else { pocketDrop(st.engineer, 'steel', chk.cost.steel); pocketDrop(st.engineer, 'copper', chk.cost.copper); }
   const m = addMachine(st, kind, tx, ty, dir);
   if (kind === 'pole') poleClaims(st, m);
   return m;
 }
 
-/** Remove the machine on a tile (never the Depot): the cost comes back, and whatever it held goes to the Depot. */
-export function remove(st: SimState, tx: number, ty: number): Machine | null {
-  const f = st.flow, m = machineAt(st, tx, ty);
-  if (!f || !m || m.kind === 'depot') return null;
-  const cost = MACHINE_COST[m.kind];
-  st.stock.steel += cost.steel; st.stock.copper += cost.copper;
-  for (const it of m.items) deliver(st, it.k);
-  if (m.hold) deliver(st, m.hold);
-  if (m.kind === 'turret') st.buffer = Math.min(st.config.bufferCap, st.buffer + (m.inv.rounds ?? 0));   // rounds back to the line buffer
-  else if (m.kind === 'generator') f.store.coal += m.inv.coal ?? 0;
-  else {
-    for (const k in m.inv) for (let i = 0; i < m.inv[k]; i++) deliver(st, k as Item);
-    for (let i = 0; i < m.out; i++) deliver(st, 'magazine');
+/** What a pick-up puts in the pockets: the machine as one stack (§11's two turrets carried at minute 40 are four
+ *  stacks: two turrets and their magazines), plus what it held. GAME-ASSUMPTION (M2): a turret's rounds come back as
+ *  whole magazines, the loose remainder (< 10 rounds) to the line buffer; a Generator's coal and an assembler's
+ *  inputs and finished magazines come back whole; items on a belt or in an inserter's hand come back too. */
+export function pickUpItems(m: Machine): Record<string, number> {
+  const out: Record<string, number> = { [m.kind]: 1 };
+  const add = (k: string, n: number) => { if (n > 0) out[k] = (out[k] ?? 0) + n; };
+  for (const it of m.items) add(it.k, 1);
+  if (m.hold) add(m.hold, 1);
+  if (m.kind === 'turret') add('magazine', Math.floor((m.inv.rounds ?? 0) / SHOT.count));
+  else if (m.kind === 'generator') add('coal', Math.floor(m.inv.coal ?? 0));
+  else { for (const k in m.inv) add(k, Math.floor(m.inv[k])); add('magazine', m.out); }
+  return out;
+}
+export interface PickUpCheck { ok: boolean; reason: string; m: Machine | null; stacks: number; items: Record<string, number> }
+/** Can the machine on this tile be picked up into the pockets? All of it or none: a full pocket refuses. */
+export function canPickUp(st: SimState, tx: number, ty: number): PickUpCheck {
+  const m = st.flow ? machineAt(st, tx, ty) : null;
+  if (!m) return { ok: false, reason: 'nothing there', m: null, stacks: 0, items: {} };
+  if (m.kind === 'depot') return { ok: false, reason: 'the Depot stays', m, stacks: 0, items: {} };
+  const items = pickUpItems(m), e = st.engineer;
+  const trial: Engineer = { ...e, inv: { ...e.inv } };
+  const before = invStacks(trial.inv);
+  let need = 0;
+  for (const k in items) {
+    const one: Record<string, number> = { [k]: items[k] };
+    need += invStacks(one);
+    if (pocketTake(trial, k, items[k]) < items[k]) {
+      return { ok: false, reason: `the pockets are full (${need} stack${need === 1 ? '' : 's'} to carry, ${Math.max(0, invCap(e) - before)} free)`, m, stacks: 0, items };
+    }
   }
+  return { ok: true, reason: '', m, stacks: invStacks(trial.inv) - before, items };
+}
+
+/** Pick up the machine on a tile into the pockets (never the Depot; a full pocket refuses — `canPickUp` says why).
+ *  Returns the machine, or null. The remove of the lattice slice: the refund is the machine itself now (M2). */
+export function remove(st: SimState, tx: number, ty: number): Machine | null {
+  const f = st.flow, chk = canPickUp(st, tx, ty), m = chk.m;
+  if (!f || !m || !chk.ok) return null;
+  for (const k in chk.items) pocketTake(st.engineer, k, chk.items[k]);
+  if (m.kind === 'turret') st.buffer = Math.min(st.config.bufferCap, st.buffer + (m.inv.rounds ?? 0) % SHOT.count);   // the loose rounds back to the line buffer
   for (let y = m.y; y < m.y + m.size; y++) for (let x = m.x; x < m.x + m.size; x++) delete f.occ[y * f.tw + x];
   f.machines.splice(f.machines.indexOf(m), 1);
   f.rev++;
@@ -779,7 +831,20 @@ export function setHandMine(st: SimState, at: [number, number] | null): void {
   if (at && rubbleAt(st, at[0], at[1]) && inReach(st, at[0], at[1])) f.hand.mine = at; else f.hand.mine = null;
   f.hand.prog = 0;
 }
-export function queueCraft(st: SimState, n = 1): void { ensureFlow(st).hand.crafts = Math.max(0, ensureFlow(st).hand.crafts + n); }
+/** Queue `n` hand crafts at the workbench. Returns '' or the refusal: out of reach of the Depot, or the pockets
+ *  cannot pay for the first one (the queue is capped at what they can pay for). */
+export function queueCraft(st: SimState, n = 1): string {
+  const f = ensureFlow(st), e = st.engineer;
+  if (n > 0) {
+    if (!nearDepot(st)) return 'walk closer to the workbench';
+    const afford = Math.min(Math.floor((e.inv.steel ?? 0) / SHOT.inputs.steel), Math.floor((e.inv.copper ?? 0) / SHOT.inputs.copper));
+    const room = afford - (f.hand.crafts - (f.hand.crafting ? 1 : 0));
+    if (room <= 0) return `not enough in the pockets (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu a magazine)`;
+    n = Math.min(n, room);
+  }
+  f.hand.crafts = Math.max(0, f.hand.crafts + n);
+  return '';
+}
 
 // ------------------------------------------------------------------ queries
 
@@ -1254,6 +1319,9 @@ handHook.current = (st, c) => {
     case 'craft': queueCraft(st, c.count ?? 1); break;
     case 'chestTake': if (isChestItem(c.item)) chestTake(st, c.item, c.n); break;
     case 'chestPut': if (isChestItem(c.item)) chestPut(st, c.item, c.n); break;
+    // M2: the command form of the scene's placement — within reach (8 tiles) or nothing, never moved
+    case 'place': if (isKind(c.item) && inReach(st, c.x, c.y, MACHINE_SIZE[c.item])) place(st, c.item, c.x, c.y, ((c.dir ?? 0) % 4) as Dir); break;
+    case 'pickUp': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) remove(st, c.x, c.y); break; }
     default: break;
   }
 };

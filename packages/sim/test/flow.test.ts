@@ -10,7 +10,7 @@ import {
   flowSummary, describeMachine, outputTile, entryDir,
   TILE_TPS, TILE_DT, BELT_PER_S, BELT_SPACING, EXCAVATOR_PER_S, INSERTER_PER_S, SHOT, MACHINE_COST, ASM_INPUT_MULT,
   Machine, SimState,
-  inReach, chestPut, chestTake,
+  inReach, chestPut, chestTake, canPickUp, invStacks, INV_STACKS,
 } from '../src/index';
 
 function fresh(seed = 3): SimState {
@@ -23,7 +23,8 @@ function hq(st: SimState, lx: number, ly: number): [number, number] {
   return [st.start[0] * CELL_TILES + MARGIN_TILES + lx, st.start[1] * CELL_TILES + MARGIN_TILES + ly];
 }
 function run(st: SimState, seconds: number): void { for (let k = 0; k < seconds * TILE_TPS; k++) stepFlow(st, TILE_DT); }
-function rich(st: SimState): SimState { ensureFlow(st); st.stock.steel = 10000; st.stock.copper = 10000; return st; }
+/** M2: machines are paid from the pockets — 20 stacks of steel and 10 of copper, ten stacks free for pick-ups. */
+function rich(st: SimState): SimState { ensureFlow(st); st.engineer.inv.steel = 1000; st.engineer.inv.copper = 500; return st; }
 function mustPlace(st: SimState, kind: Parameters<typeof place>[1], lx: number, ly: number, dir: Parameters<typeof place>[4] = 0): Machine {
   const [tx, ty] = hq(st, lx, ly);
   const m = place(st, kind, tx, ty, dir);
@@ -209,10 +210,9 @@ test('time: 20 tile ticks a block tick; 1 h at 4× is 72,000 tile ticks; determi
 });
 
 test('placement: Held cells only, streets for belts and inserters, no rubble under anything but an Excavator, costs and refunds', () => {
-  const st = fresh();
-  ensureFlow(st);
+  const st = rich(fresh());
   const [sx, sy] = st.start;
-  const steel0 = st.stock.steel, cu0 = st.stock.copper;
+  const steel0 = st.engineer.inv.steel, cu0 = st.engineer.inv.copper, stock0 = { ...st.stock };
   // a Dark neighbour
   const dark = st.blocks.find(b => b.state === DARK && b.y < st.h - 1)!;
   assert.equal(canPlace(st, 'belt', dark.x * CELL_TILES + 10, dark.y * CELL_TILES + 10).reason, 'the block is not Held');
@@ -227,19 +227,43 @@ test('placement: Held cells only, streets for belts and inserters, no rubble und
   assert.equal(canPlace(st, 'excavator', px, py).ok, true);
   // overlap with the Depot
   assert.equal(canPlace(st, 'belt', ...hq(st, 10, 10)).reason, 'another machine is there');
-  // cost and refund
+  // M2 (B-M2-pockets): the price comes out of the pockets, never the Depot; a pick-up puts the machine itself back as a stack
   const ex = mustPlace(st, 'excavator', 1, 7, 0);
-  assert.equal(st.stock.steel, steel0 - MACHINE_COST.excavator.steel);
+  assert.equal(st.engineer.inv.steel, steel0 - MACHINE_COST.excavator.steel);
   const ins = mustPlace(st, 'inserter', 8, 10, 1);
-  assert.equal(st.stock.copper, cu0 - MACHINE_COST.inserter.copper);
+  assert.equal(st.engineer.inv.copper, cu0 - MACHINE_COST.inserter.copper);
+  assert.deepEqual(st.stock, stock0, 'the Depot stock is untouched by placement');
   assert.ok(rotate(st, ins.x, ins.y)); assert.equal(ins.dir, 2);
+  const stacks0 = invStacks(st.engineer.inv);
+  assert.equal(canPickUp(st, ex.x + 1, ex.y + 1).stacks, 1, 'an empty Excavator is one stack');
   assert.equal(remove(st, ex.x + 1, ex.y + 1)?.id, ex.id);
   assert.equal(remove(st, ins.x, ins.y)?.id, ins.id);
-  assert.equal(st.stock.steel, steel0); assert.equal(st.stock.copper, cu0);
+  assert.equal(st.engineer.inv.excavator, 1); assert.equal(st.engineer.inv.inserter, 1);
+  assert.equal(invStacks(st.engineer.inv), stacks0 + 2, 'two machines, two stacks');
+  assert.equal(st.engineer.inv.steel, steel0 - MACHINE_COST.excavator.steel - MACHINE_COST.inserter.steel, 'no rubble refund: the machine is the refund');
   assert.equal(remove(st, ...hq(st, 10, 10)), null, 'the Depot cannot be removed');
-  // too poor
-  st.stock.steel = 0;
-  assert.equal(canPlace(st, 'excavator', px, py).reason, 'not enough in the Depot (10 steel)');
+  // a carried machine goes down free
+  const chk = canPlace(st, 'excavator', px, py);
+  assert.equal(chk.carried, true); assert.deepEqual(chk.cost, { steel: 0, copper: 0 });
+  const steel1 = st.engineer.inv.steel;
+  const ex2 = mustPlace(st, 'excavator', 1, 7, 0);
+  assert.equal(st.engineer.inv.excavator ?? 0, 0); assert.equal(st.engineer.inv.steel, steel1);
+  assert.equal(remove(st, ex2.x, ex2.y)?.id, ex2.id);
+  // too poor: the Depot's stock does not count
+  st.engineer.inv.steel = 0; delete st.engineer.inv.excavator; st.stock.steel = 10000;
+  assert.equal(canPlace(st, 'excavator', px, py).reason, 'not enough in the pockets (10 steel)');
+  // a full pocket refuses the pick-up, all or nothing
+  st.engineer.inv.steel = 1000;
+  const belt = mustPlace(st, 'belt', 8, 12, 1);
+  giveItem(st, belt, 'stone', 0);
+  st.engineer.inv.stone = 50 * (INV_STACKS - invStacks(st.engineer.inv)) + 1;   // every free stack filled, one unit over
+  const full = canPickUp(st, belt.x, belt.y);
+  assert.equal(full.ok, false); assert.match(full.reason, /pockets are full/);
+  assert.equal(remove(st, belt.x, belt.y), null, 'refused: the belt stays');
+  assert.ok(machineAt(st, belt.x, belt.y));
+  delete st.engineer.inv.stone;
+  assert.deepEqual(canPickUp(st, belt.x, belt.y).items, { belt: 1, stone: 1 });
+  assert.ok(remove(st, belt.x, belt.y)); assert.equal(st.engineer.inv.stone, 1);
 });
 
 test('the block map stays the judge: a machine on a block that stops being Held stands still', () => {
@@ -258,7 +282,7 @@ test('the block map stays the judge: a machine on a block that stops being Held 
   assert.equal(belt.items[0].p, p1, 'no movement on a Dark block');
 });
 
-test('hands: mining a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in 3 s from the stock', () => {
+test('hands: mining a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in 3 s from the pockets into the pockets', () => {
   const st = fresh();
   ensureFlow(st);
   const [px, py] = hq(st, 1, 7);
@@ -284,11 +308,23 @@ test('hands: mining a unit a second into the pockets within reach, and only then
   assert.equal(st.stock.steel, steel0 + 10); assert.equal(st.engineer.inv.steel ?? 0, 0);
   assert.equal(chestTake(st, 'steel', 3).moved, 3); assert.equal(st.stock.steel, steel0 + 7); assert.equal(st.engineer.inv.steel, 3);
   assert.equal(chestPut(st, 'steel', 3).moved, 3);
-  const cu0 = st.stock.copper, buf0 = st.buffer, made0 = st.stats.magsMade;
-  queueCraft(st, 2);
-  run(st, 6);
+  // M2 (B-M2-pockets): the workbench crafts from what the engineer carries and hands the magazine back
+  const buf0 = st.buffer, made0 = st.stats.magsMade, stock1 = { ...st.stock };
+  assert.match(queueCraft(st, 1), /not enough in the pockets/, 'empty pockets: the craft is refused up front');
+  assert.equal(chestTake(st, 'steel', 4).moved, 4); assert.equal(chestTake(st, 'copper', 2).moved, 2);
+  assert.equal(queueCraft(st, 3), '', 'queue three, the pockets pay for two: capped'); assert.equal(st.flow!.hand.crafts, 2);
+  run(st, 3);
+  assert.equal(st.flow!.stats.handCrafted, 1, 'one magazine in the recipe\'s 3 s');
+  run(st, 1);   // a second into the next craft
+  st.engineer.x = px - 1.5; st.engineer.y = py + 0.5;   // walk away mid-craft: it pauses, progress kept
+  run(st, 3);
+  assert.equal(st.flow!.stats.handCrafted, 1); assert.equal(st.flow!.hand.crafting, true); assert.ok(Math.abs(st.flow!.hand.craftProg - 1) < 1e-6);
+  st.engineer.x = dx - 1.5; st.engineer.y = dy + 0.5;
+  run(st, 2.1);
   assert.equal(st.flow!.stats.handCrafted, 2);
-  assert.equal(st.stock.steel, steel0 + 10 - 2 * SHOT.inputs.steel); assert.equal(st.stock.copper, cu0 - 2 * SHOT.inputs.copper);
-  assert.equal(st.buffer, buf0 + 2 * SHOT.count); assert.equal(st.stats.magsMade, made0 + 2);
+  assert.equal(st.engineer.inv.magazine, 2, 'the magazines are in the pockets'); assert.equal(st.engineer.inv.steel ?? 0, 0); assert.equal(st.engineer.inv.copper ?? 0, 0);
+  assert.deepEqual(st.stock, { ...stock1, steel: stock1.steel - 4, copper: stock1.copper - 2 }, 'the Depot only gave what the chest handed over');
+  assert.equal(st.buffer, buf0, 'nothing went to the line buffer'); assert.equal(st.stats.magsMade, made0 + 2);
+  assert.equal(chestPut(st, 'magazine', 2).moved, 2); assert.equal(st.buffer, buf0 + 2 * SHOT.count);
   assert.equal(P_STEEL, 1);
 });

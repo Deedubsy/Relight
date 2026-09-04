@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SimEvent, flowSummary, canPlace, place, remove, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
+import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
   hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
 } from '@relight/sim';
 import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue } from './session';
@@ -191,6 +191,7 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
     canPlace: (kind: Kind, tx: number, ty: number) => canPlace(session.state, kind, tx, ty),
     place: (kind: Kind, tx: number, ty: number, dir: Dir = 0) => place(session.state, kind, tx, ty, dir),
     remove: (tx: number, ty: number) => remove(session.state, tx, ty),
+    canPickUp: (tx: number, ty: number) => canPickUp(session.state, tx, ty),   // M2: the pick-up check the right-click makes
     rotate: (tx: number, ty: number) => rotate(session.state, tx, ty),
     craft: (n = 1) => queueCraft(session.state, n),
     mine: (at: [number, number] | null) => setHandMine(session.state, at),

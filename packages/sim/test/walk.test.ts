@@ -49,7 +49,7 @@ test('walks 6 tiles/s to a clicked tile along a path that avoids water and machi
   assert.ok(intoRiver === null, 'no path into the river');
   // a wall of lamps across the lot is walked round; belts and poles are walked through (GAME-ASSUMPTION: thin)
   const x0 = Math.floor(e.x), y0 = Math.floor(e.y);
-  st.stock.steel = 10000; st.stock.copper = 10000;
+  st.engineer.inv.steel = 1000; st.engineer.inv.copper = 500;   // M2: machines are paid from the pockets
   let laid = 0;
   for (let dy = -6; dy <= 6; dy++) if (place(st, 'lamp', x0 - 3, y0 + dy, 0)) laid++;
   assert.ok(laid >= 10, `${laid} lamps laid`);

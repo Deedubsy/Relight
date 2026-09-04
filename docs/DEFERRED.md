@@ -156,3 +156,15 @@ Every item above keeps its phase unless listed here.
 - **The stamina bar, the dodge's look and the rifle's aim line** (D-B1-5) are code-drawn like the engineer's disc → **Phase 12** art pass, with the sprite.
 - **The reference-machine measurement** is by hand once a milestone (`soak.cjs` over CDP to the Windows Chrome, `PROGRAMME_STATE.md` `reference_machine:`); the headless swiftshader soak stays the regression check → **not automated**; a CI GPU runner is a Phase 13 question if the DoD is ever gated in CI.
 - **The block-only harness start ring** (`sim.ts` `syncEdges`: with no tile layer the HQ's edges at t = 0 are kitted and fed as an abstract ring, GA-B1-15) → **delete with the lattice at the Phase 5 gate**, when every state has tiles and `startTurrets` is the only source.
+
+## Re-read at prompt B M2 (2026-09-04, Flow on the faces built)
+
+Every item above keeps its phase unless listed here.
+
+- **Machines in the Depot chest, and the truck bringing them** (§19): the chest holds rubble, magazines and kits; a machine is in the pockets or on the ground. → **Phase 5** with the truck; the chest's item list (`CHEST_ITEMS`) grows then.
+- **A machine as a crafted item** (workbench recipe with a time, Factorio's way): M2 pays rubble at placement (GA-B2-1). → **Phase 5 recipes**, D-B2-1.
+- **Ground items**: nothing in the slice drops an item on a tile — a full pocket refuses the pick-up, a full chest refuses the put. → **not in the slice**; revisit with the truck (a load dropped at the kerb).
+- **The bots on the tile machines**: `bots.ts` still plays the block economy; the tile layer feeds the block sim the same numbers (M2 measured them equal on seed 3's HQ face). → **the Phase 5 gate** decides which sim rates the economy (D-P4-5, M6).
+- **Slots from area vs footprint** (D-P3-10 measured, D-B2-2): `slotsOf` stays C3's cap for the slice; the tile layer does not enforce it. → **M6** when tile lines replace the block stand-in; if the human takes option (b), C3/C4 and the calibration move.
+- **Belt side-loading and splitters**: a belt that meets another belt's side neither gives nor takes. → **Phase 5**.
+- **The copper arm's 3:1 over-supply** of one assembler (one Excavator at 0.5/s against 0.333/s): the belt backs up and the drill stops, as a belt should; a smaller copper source or a second consumer is a **Phase 5** recipe question.

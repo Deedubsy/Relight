@@ -14,7 +14,7 @@ Housekeeping the constitution assumes and the repo does not have (a human decide
 
 ## Prompt B — the slice rebuilt on the city (Phase 4 reopened, opened 2026-09-04)
 
-**Status: M1 Ground and the engineer built 2026-09-04; the four pre-M2 items ("Four small things before Prompt B M2": D-B1-5 direct control, D-B1-4 placement by face geometry, C1/C2 birth artefact, reference machine) done 2026-09-04; M2–M6 not started.** Branch `phase-4`, PR #4. Report `SLICE_REPORT.md` (rewritten from the top; the lattice slice is its appendix; the four items are its "Before M2" section). Decisions D-B1-1 … D-B1-3 taken by recommendation on the human's `go` for M1, **D-B1-4 and D-B1-5 made by the human 2026-09-04** (`DECISIONS.md`); D-P4-8 superseded by D-B1-4; D-P4-7 and D-P4-9 open.
+**Status: M1 Ground and the engineer built 2026-09-04; the four pre-M2 items ("Four small things before Prompt B M2": D-B1-5 direct control, D-B1-4 placement by face geometry, C1/C2 birth artefact, reference machine) done 2026-09-04; M2 Flow on the faces built 2026-09-04; M3–M6 not started.** Branch `phase-4`, PR #4. Report `SLICE_REPORT.md` (rewritten from the top; the lattice slice is its appendix; the four items are its "Before M2" section). Decisions D-B1-1 … D-B1-3 taken by recommendation on the human's `go` for M1, **D-B1-4 and D-B1-5 made by the human 2026-09-04** (`DECISIONS.md`); D-P4-8 superseded by D-B1-4; D-P4-7 and D-P4-9 open.
 
 ```yaml
 reference_machine:            # the only host whose fps is reported against the 60 fps DoD (item 4, 2026-09-04)
@@ -50,6 +50,18 @@ reference_machine:            # the only host whose fps is reported against the 
 ### B.2 Untagged recount at prompt B M1
 
 33 → **33**. M1 added no `[sim]` tag to an untagged number: the ground and the walk are tagged where the rework already tagged them (`rework-graph`, `E-walk`); §14's passability line is new text, not one of the 33. §26 status unchanged: three systems, 5 of 10 gate criteria measurable. C1/C2: the M1 text here said they still read **MISSED** at the claim minute; that was a stale `calibration.md` — the clean re-run (B.1a item 3) reads **MET** on all three seeds with first amber never / 178 min / never, and D-R2 stays closed. §26 recount after the four items: still **33**.
+
+### B.3 M2 Flow on the faces (2026-09-04, `SLICE_REPORT.md` "Prompt B M2")
+
+- **From the pockets, within reach** (run `B-M2-pockets`): `flow.ts` `canPlace` / `place` pay a machine's rubble price from the pockets or drop a carried one free (`carried`), never the Depot chest; the hand hook's `place` is reach-checked and refuses with the cursor ("Walk closer"), nothing moved; `canPickUp` / `remove` return a machine and what it held into the pockets, all or nothing, a full pocket refuses with a toast (GA-B2-1/2); `queueCraft` / `tickHand` hand-craft from the pockets into the pockets, paused out of reach or with full pockets (GA-B2-3). `worldScene.ts` ghost reasons and toasts, `panel.ts` machines carried and the build menu's carried count, `__relight.flow.canPickUp`. Tests in `flow.test.ts`, `defence.test.ts`, `walk.test.ts`. Doc §13, §14 tagged `B-M2-pockets`.
+- **Rates on a face that is not a rectangle** (run `B-M2-rates`, seed 3's HQ face): the 23-tile steel run's first unit in transit 12.25 s (doc 12.27 s), 15.0 mag/min from one steel Excavator over 10 min (doc 15), 7.50 items/s on a saturated belt (doc 7.5), §11's line 114 steel + 23 Cu of the 200 steel; the copper arm over-supplies one assembler 3:1 and stalls (reported).
+- **D-P3-10 measured**: every non-Inert HQ-neighbour face on seeds 3/4/5 gets 1 slot from area (391–1,197 tiles) and holds 4–9 §11-scale lines / 33–110 3×3 machines; an Inert plaza gets 1–2 slots and holds nothing. The slot is C3's economic cap, not a footprint limit — D-B2-2.
+- Decisions for the human: D-B2-1 machine crafting, D-B2-2 slots vs footprint, D-B2-3 pick-up contents. Deferred: machines in the chest / the truck, workbench machine recipes, ground items, the bots on tile machines, side-loading → `DEFERRED.md` "Re-read at prompt B M2".
+- Checks: `npm test` 99/99, `typecheck` (incl. the game build), `lint`, `snapshot:check` (`5f3417b9`), `docsync:check`, `experiments` 12 / 107 s / 0 failing, `calibrate` unchanged (C1/C2 MET) — green. Fixtures `city{3,4,5}.json` and the snapshot unchanged: the block sim is untouched. Browser check of the cursor path in the preview build, 0 errors; the reference-machine soak not re-run (render loop untouched, the M1 59.9 fps stands).
+
+### B.4 Untagged recount at prompt B M2
+
+33 → **33**. M2's `[sim: B-M2-pockets]` tags land on §13's Workbench row and §14's pocket paragraph, whose numbers were already tagged (3 s and 2 steel + 1 Cu under `M2-rates`; reach 8 and 40 stacks under GA §25 items 15/16); the Workbench's 2×2 is the M1 lot mark, untouched. No number moved from untagged to tagged. §26 status unchanged: three systems, 5 of 10 gate criteria measurable.
 
 ## Rework — the engineer and the street-first city (D5, D6; applied 2026-09-03 → 2026-09-04)
 
