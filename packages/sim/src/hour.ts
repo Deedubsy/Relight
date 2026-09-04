@@ -483,8 +483,7 @@ export function hourSteps(bot: HourBot): HourStep[] {
     // the third Assembler (E4's stand-in) waits for the second copper Excavator's first units: the chest's copper sits
     // at 27 from the east claim to 46:00 (the line's copper Excavator feeds the Shot assembler, not the chest)
     standIn(HOUR_ASM3_AT, `§11 ${HOUR_ASM3_AT / 60}:00 — the third Assembler (E4 stand-in)`, [['assembler', 15, 0]]),
-    // §11 rewritten (E-hour, D-P4-4): two claims in the hour; north is claimed at 60–75 once the second Shot line is
-    // affordable — the hour's one Mk1 line (10 magazines/min) feeds HQ, east and west and no more
+    // north's minute is constants.HOUR's (40, D-HOUR-1); E-hour-north runs the two-claim variant with north late
     claimAt('north'),
     { at: HOUR_CLAIM_AT.north, name: '§11 — the two idle turrets carried to north', tasks: () => carryTurrets(bot) },
   ];
