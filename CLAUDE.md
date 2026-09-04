@@ -1,12 +1,26 @@
 # Programme Relight — working rules for Claude
 
-Read first, in this order: `docs/ROADMAP.md`, `docs/PROGRAMME_STATE.md`, `docs/SLICE_REPORT.md`, `docs/DECISIONS.md`, `docs/DEFERRED.md`. The design is `docs/RELIGHT-design.md`; the current slice prompt is `docs/relight-prompt-B-vertical-slice.md`.
+**At the start of every session, read these files in this order:**
+1. `docs/CONSTITUTION.md` — the rules.
+2. `docs/ROADMAP.md`, section 0 "Next actions" — the ordered list of what to do next.
+3. `docs/PROGRAMME_STATE.md` — the true current state. If it disagrees with the roadmap, PROGRAMME_STATE is right.
+4. The phase prompt named in ROADMAP section 0.
+5. `docs/DECISIONS.md` — only the rows whose status is not `decided`.
+6. `docs/DEFERRED.md`.
+
+**Then do the top line of ROADMAP section 0 that is not ticked.** If that line's owner is "human", stop, tell the user what the line is, and do nothing else. If the line is owned by Claude Code, do it.
+
+**Before starting any milestone:** compare the milestone's prompt with the design doc and with the decided rows of `DECISIONS.md`. If the prompt contains a number or a rule that is not in either, list every one, say what it conflicts with, and stop (Constitution rule 12).
+
+The design is `docs/RELIGHT-design.md`; the current slice prompt is `docs/relight-prompt-B-vertical-slice.md`.
 
 ## Layout
 
 npm-workspaces monorepo. `packages/sim` (block sim, city, tiles, flow, engineer, walk), `packages/game` (Phaser + Vite world and map views; dev hooks on `window.__relight`), `packages/harness` (experiments E1–E9, E-rifle, E-walk, E-variance, calibration), `packages/tools` (section 18, docsync).
 
 ## Verification pass (only when the user asks for it — never on a bare "go")
+
+The user says 'verify' to run this. A bare 'go' runs only the cheap checks at the end of the milestone.
 
 The scripted checks, experiments, calibration and the headless soak are **not** part of a milestone. They run as a separate verification pass when the user says so, and then all of them, from the repo root:
 
