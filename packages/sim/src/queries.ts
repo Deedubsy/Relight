@@ -227,3 +227,29 @@ export function nearestHeld(st: SimState, x: number, y: number): { x: number; y:
 export function rotTier(d: number): 0 | 1 | 2 | 3 { return d < 0.15 ? 0 : d < 0.3 ? 1 : d < 0.5 ? 2 : 3; }
 
 export { INERT };
+
+/** §18 map-view drawing: one character per block cell, the doc's legend. `H` held (front), `I` interior, `C` contested,
+ *  `.` dark, `~` river / inert, `Q` HQ, `W` live well, `w` neutralised well (Held or dead), facilities `F` Foundry,
+ *  `A` Arsenal, `U` Turbine hall, `R` Refinery, `P` Power station and survivors `E`/`N`/`G`/`K`/`M` — uppercase when
+ *  their block is Held, lowercase while it is dark. Rows are y (0 north, river last), columns x. */
+export function renderMap(st: SimState): string {
+  const FAC: Record<string, string> = { Foundry: 'F', Arsenal: 'A', 'Turbine hall': 'U', Refinery: 'R', 'Power station': 'P' };
+  const mark = new Map<number, string>();
+  st.wells.forEach(([x, y], k) => { const b = st.blocks[idxOf(st, x, y)]; mark.set(x * st.h + y, b.state === HELD || st.wellDead[k] ? 'w' : 'W'); });
+  for (const f of st.facilities) { const c = FAC[f.name] ?? '?'; mark.set(f.x * st.h + f.y, st.blocks[idxOf(st, f.x, f.y)].state === HELD ? c : c.toLowerCase()); }
+  for (const s of st.survivors) mark.set(s.x * st.h + s.y, st.blocks[idxOf(st, s.x, s.y)].state === HELD ? s.tag : s.tag.toLowerCase());
+  mark.set(st.start[0] * st.h + st.start[1], 'Q');
+  const lines: string[] = [' col: ' + Array.from({ length: st.w }, (_, x) => x % 10).join(' ')];
+  for (let y = 0; y < st.h; y++) {
+    const row: string[] = [];
+    for (let x = 0; x < st.w; x++) {
+      const i = idxOf(st, x, y), b = st.blocks[i];
+      if (b.state === INERT || b.state === VOID) { row.push('~'); continue; }
+      const m = mark.get(x * st.h + y);
+      if (m) { row.push(m); continue; }
+      row.push(b.state === HELD ? (isInterior(st, i) ? 'I' : 'H') : b.state === CONTESTED ? 'C' : '.');
+    }
+    lines.push(String(y).padStart(3) + '   ' + row.join(' '));
+  }
+  return lines.join('\n');
+}

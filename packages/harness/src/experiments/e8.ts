@@ -1,4 +1,7 @@
-/** E8 — cadence: which claim cadence produces §18's drawings (held/front/interior at 5 h and 25 h). */
+/** E8 — cadence: territory by hour per claim cadence, and the check that the locked cadence (C2, D-P3-6: one claim per
+ *  5 min after hour one) still reproduces §18's counts. Until Phase 3 the target was the hand-drawn 24×22 sketches
+ *  (52/24/36 and 313/67/270); since Phase 3 §18 is generated from the sim at the locked cadence (seed 3, `npm run
+ *  docsync`) and the target is the three-seed mean the doc's §18 caption states, so this check pins the doc, not a sketch. */
 import { runSim } from '../run';
 import { mr, mean, within, Experiment, ExperimentResult, Section, Check } from '../util';
 
@@ -7,7 +10,7 @@ export const E8: Experiment = {
   run(ctx): ExperimentResult {
     const { seeds } = ctx;
     const sections: Section[] = [], checks: Check[] = [], data: Record<string, unknown> = {};
-    const target = { h5: [52, 24, 36], h25: [313, 67, 270] };
+    const target = { h5: [52, 19, 36], h25: [292, 43, 253] };   // §18 caption, three-seed means at gap 5 min (C2 locked, D-P3-6)
     const rows: (string | number)[][] = [];
     const errs: Record<number, number> = {}, errsHI: Record<number, number> = {};
     const hourly: Record<number, Record<number, number[]>> = {};
@@ -22,7 +25,7 @@ export const E8: Experiment = {
       data[`gap${gapAfter}`] = { h5: m5, h25: m25, maxErr: err, claims: rs.map(r => r.claims) };
       rows.push([gapAfter / 60, mr(at(5, 'held'), 0), mr(at(5, 'front'), 0), mr(at(5, 'interior'), 0), mr(at(25, 'held'), 0), mr(at(25, 'front'), 0), mr(at(25, 'interior'), 0), (100 * err).toFixed(0) + ' %']);
     }
-    rows.push(['§18 drawing', ...target.h5, ...target.h25, '']);
+    rows.push(['§18 caption (gap 5, locked)', ...target.h5, ...target.h25, '']);
     data.hourly = hourly;
     const hRows: (string | number)[][] = [];
     for (const h of [1, 2, 3, 5, 8, 10, 12, 15, 20, 25]) hRows.push([h, ...[240, 300, 360, 480].map(g => hourly[g][h].map(v => v.toFixed(0)).join(' / '))]);
@@ -39,9 +42,10 @@ export const E8: Experiment = {
       header: ['gap after h1 (min)', 'held 5 h', 'front 5 h', 'interior 5 h', 'held 25 h', 'front 25 h', 'interior 25 h', 'worst deviation from §18'], rows });
     const best = Object.entries(errs).sort((a, b) => a[1] - b[1])[0];
     data.best = { gapAfter: +best[0], maxErr: best[1], heldInteriorErr: errsHI[+best[0]] };
-    checks.push(within(`§18 held and interior counts reproduced at the ${+best[0] / 60}-min cadence within 10 % (frontage is the drawing's, see §18)`, errsHI[+best[0]], 0, 0.10));
+    checks.push(within(`§18 held and interior counts reproduced at the ${+best[0] / 60}-min cadence within 10 %`, errsHI[+best[0]], 0, 0.10));
+    checks.push(within('the locked cadence (5 min, C2) is the one that best matches §18', +best[0], 300, 300, ' s'));
     checks.push(within('first well neutralised (claimed or dead) at the §18 cadence, mean of seeds; §15 said hours 6–9, the sim says 13–24 h', mean(firstWell.filter(x => isFinite(x))), 10, 25, ' h'));
-    return { id: 'E8', title: E8.title, pyNames: ['E9 claim cadence (phase5.py)'], docRefs: ['§18'],
+    return { id: 'E8', title: E8.title, pyNames: ['E9 claim cadence (phase5.py, retired Phase 3)'], docRefs: ['§18'],
       setup: 'compact, canonical map, production off, 25 h', sections, checks, data };
   },
 };

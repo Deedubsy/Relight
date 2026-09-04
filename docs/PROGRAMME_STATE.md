@@ -2,19 +2,68 @@
 
 Living file. One entry per phase, newest first; the current phase is the top one. Rules are in the programme constitution (the prompt that started Phase 0); the spec is `RELIGHT-design.md`; the sim is the judge.
 
-**Current phase: 2 (built 2026-09-03; waiting on Gate A — a human runs `PROTOTYPE_TEST_PLAN.md` and writes `TEST_RESULTS.md` `verdict: go`; `PHASE_2_REPORT.md`). Next: Phase 3 — absorb Gate A (lock constants as `[play]`, re-run E1–E9, redraw §18).** Phase 1's own gate still carries the human five-minute smoke test, and PR #1 (`phase-1` → `main`) is open, unmerged; Phase 2 is PR #2 (`phase-2` → `phase-1`).
+**Current phase: 3 (built 2026-09-03; `PHASE_3_REPORT.md`; three decisions open for the human, D-P3-9/10/11). Next: Phase 4 — the vertical slice, M1 first (world view, excavator on a lot), after a `go` on this report.** PR #1 (`phase-1` → `main`) and PR #2 (`phase-2` → `phase-1`) are open, unmerged; Phase 3 is PR #3 (`phase-3` → `phase-2`). Phase 1's human five-minute smoke test is still the user's.
 
-Gates passed: none. Gate A has not been run; `TEST_RESULTS.md` is a template with `verdict: pending`, hashes `ee23bb1c` / `825d2d09`.
+Gates passed: **Gate A, 2026-09-03, `verdict: go` by the owner on the bot calibration and the smoke test, with no tester sessions** (`TEST_RESULTS.md` §1). Every constant locked on it is tagged `[play: Gate A]`, a lock rather than a measurement; the sessions can still run (D-P3-9).
 
 Housekeeping the constitution assumes and the repo does not have (a human decides how, not whether):
 
-- ~~`/mnt/e/Factorio2` is not a git repository and has no CI.~~ Done in Phase 1: `github.com/Deedubsy/Relight` (private), branch `phase-1` → PR #1 to `main` (CI green), `.github/workflows/ci.yml` and `nightly.yml`; `main` protection is refused on a free-plan private repo (D-CI, human choice). **Decided (D-CI, 2026-09-03):** GitHub private repo, GitHub Actions, npm workspaces; push CI = lint + `tsc --strict` + fixtures + E1–E9 at three seeds; nightly = 10,000-seed and 25 h runs to `docs/experiments/`; Python sim stays as fixture exporter for one phase, then retired. Linear for tasks. Phase 1's first task is to set this up.
+- ~~`/mnt/e/Factorio2` is not a git repository and has no CI.~~ Done in Phase 1: `github.com/Deedubsy/Relight` (private), branch `phase-1` → PR #1 to `main` (CI green), `.github/workflows/ci.yml` and `nightly.yml`; `main` protection is refused on a free-plan private repo (D-CI, human choice). **Decided (D-CI, 2026-09-03):** GitHub private repo, GitHub Actions, npm workspaces; push CI = lint + `tsc --strict` + fixtures + E1–E9 at three seeds; nightly = 10,000-seed and 25 h runs to `docs/experiments/`; Python sim stays as fixture exporter for one phase, then retired (**done in Phase 3**, D-P3-8). Linear for tasks. Phase 1's first task is to set this up.
 - Reports live at the repo root, not in `docs/`. Left where they are (Phase 0 changes nothing else); Phase 1 may move them under `docs/` and leave root stubs.
 - `packages/harness` and `packages/tools` exist since Phase 1; `packages/game`, `apps/steam` do not. `packages/proto` is the Phase 2 artefact (not in the constitution's layout; it becomes the game's map view in Phase 4).
 
+## Phase 3 — absorb Gate A (2026-09-03)
+
+**Status: built; Gate A passed on the owner's `go` without sessions; every constant the slice would otherwise encode by accident is locked and tagged `[play: Gate A]`; three decisions open for the human.** Canonical config unchanged (hash `01dc5d02`); proto hashes unchanged (`ee23bb1c` / `825d2d09`). Checks green locally (typecheck, `npm test`, lint, E1–E9, docsync, `snapshot:check`, calibration C1–C7 all met); PR #3's CI run is the proof. Report: `PHASE_3_REPORT.md`.
+
+### 3.1 What changed
+
+- **Gate A** — `TEST_RESULTS.md` `verdict: go` (2026-09-03, owner; §8 Decision column filled; §10 = D-P2-1/2/3 by recommendation). `DECISIONS.md` Gate A row made; C1, C2, C4, C8, C9 made, C3 and C5-steel routed; new Phase 3 table D-P3-1…D-P3-11.
+- **Locks in the doc** (`[play: Gate A]`, 18 tags): C1 edges per assembler (§12: ~7 of the mid-game front, 15 civic / 11 residential), C2 cadence 15 min then 5 (§18, §25 item 10), C8 bloom timer and drop (§5, §25 item 1), C9 no Mk1/Mk2 ladder (§12), C10 20 magazines and the opening flicker (§11), the steel wall as intended (§19), survivors on Held (unchanged).
+- **The four pre-slice decisions** — D-P3-1 draw 100/20 kW, hour-one lesson is ammo (§11, §25 item 14); D-P3-2 fall 90 s kept, the rescue is the minutes of red pip and the 30 s is the second chance (§5, §25 item 12); D-P3-3 the unfed rule as shipped, per block, 40 arrivals, 60 s all-fed clears and restarts (§5); D-P3-4 the Relight survivable by banking, the bank a ~20,000-magazine object (§16, §25 item 5).
+- **§18 redrawn from the sim** — `renderMap` in `packages/sim/src/queries.ts`; `docsync.ts` generator `section18` (compact bot, seed 3, gap 300 s, production off, 0:10 / 5 h / 25 h) between `<!-- docsync:section18 -->` markers, CI-checked. Legend rewritten (facilities `F A U R P`, survivors `E N G K M`, upper/lower case by Held). Finding: **5 h is a river strip 14 × 4, not a blob**; the compact bot has no facility pull and reaches the Foundry at hour 14 on seed 3; at 25 h a fat blob with the whole west and far north never held (the §19 ignore test).
+- **E8 retargeted** to the locked cadence's three-seed means (52/19/36 at 5 h, 292/43/253 at 25 h; new check that gap 5 is the best match); E1–E9 re-run, 45/45 checks, no canonical number moved.
+- **Calibration scores C1/C2 from minute 1** (D-P2-1): columns `amber after 1 min` / `red after 1 min`; all seven targets met on three seeds.
+- **Python retired** (D-P3-8): seven files and `__pycache__` deleted; `packages/sim/fixtures/README.md` freezes the fixtures at `52c4ca3`.
+- Doc changelog: 11 lines, every one with a run name or `[play: Gate A]`.
+
+### 3.2 Untagged recount
+
+44 → **41** (three design inputs now carry `[play: Gate A]`: 5.2 bloom timer, 5.3 bloom drop, 12.6 assembler rate and edges). 29 tile-scale (Phases 4–9, unchanged) + 12 design inputs. Of the 12, C1/C2/C8/C9/C10 are locked in prose sentences whose table rows keep the old count discipline; the rest (claim cost, burn-off, district dmax/g, recipes, hopper, wells per map, Relight 40 MW, endgame hours) wait on a run that varies them or Phase 4's human hour.
+
+| § | Phase 1 | Now untagged | Tagged in Phase 3 |
+|---|---|---|---|
+| §5 | 14 | 12 | 5.2, 5.3 (`[play: Gate A]`, lock) |
+| §7 | 3 | 3 | — |
+| §12 | 8 | 7 | 12.6 (`[play: Gate A]`, lock) |
+| §13 | 16 | 16 | — |
+| §14 | 4 | 4 | — |
+| §15 | 1 | 1 | — |
+
+### 3.3 Open constants after Phase 3
+
+None the slice would encode by accident (the DoD). C1, C2, C4, C8, C9, C10 made; C3 routed (one line per block for the slice; footprint budget Phase 4 M1 / Phase 5); C5 steel routed to Phase 5; C6, C7 made in Phase 1. What remains open is the three human decisions: whether Gate A's sessions run in parallel with Phase 4 M1 (D-P3-9), C3/C4 for the slice (D-P3-10), and whether to port E10 before the slice encodes C8 (D-P3-11).
+
+### 3.4 §26 recount at Phase 3
+
+Three systems: the front, found tech, automated combat. Phase 3 added no system, no content, no mechanic; it locked numbers and generated drawings. Complexity **5/10**, unchanged. §27 stays at 7 with a note that the shape evidence Gate A was to supply is still outstanding.
+
+### 3.5 Gate status
+
+- Experiments green in CI: green locally (45/45); PR #3's run is the proof.
+- No open constant the slice would encode by accident: **met** (3.3).
+- Four pre-slice decisions as `DECISIONS.md` lines and §5/§11/§16 sentences: **done** (D-P3-1…D-P3-4).
+- §18 redrawn from the compact bot at the locked cadence: **done**, generated and CI-checked.
+- E1–E9 re-run at the locked values, retagged: **done**; nothing in the canonical config moved, so no `[sim]` tag changed its number.
+- `DEFERRED.md` re-read: every item has a phase; Python bullet and §18 bullet closed; one item added (facility pull in the bots).
+- Three decisions for the human: **open** — D-P3-9 sessions, D-P3-10 C3/C4, D-P3-11 E10 port.
+- **Phase 4 begins only after a `go` on `PHASE_3_REPORT.md`.**
+
+---
+
 ## Phase 2 — map-view prototype → Gate A (2026-09-03)
 
-**Status: built; calibrated; three decisions open for the human at the gate; Gate A pending.** The proto runs on the TS sim at config hash `ee23bb1c` (`PROTO_CALIBRATED` over the canonical `01dc5d02`: economy on, scattered map; `825d2d09` with `economy=0`). Checks green locally (typecheck, `npm test`, lint, E1–E9, docsync, `snapshot:check`); the PR's CI run is the proof. Report: `PHASE_2_REPORT.md`.
+**Status: built; calibrated; Gate A passed 2026-09-03 on the owner's `go` without sessions (Phase 3); D-P2-1/2/3 made by recommendation.** The proto runs on the TS sim at config hash `ee23bb1c` (`PROTO_CALIBRATED` over the canonical `01dc5d02`: economy on, scattered map; `825d2d09` with `economy=0`). Checks green locally (typecheck, `npm test`, lint, E1–E9, docsync, `snapshot:check`); the PR's CI run is the proof. Report: `PHASE_2_REPORT.md`.
 
 ### 2.1 What exists
 
@@ -107,10 +156,10 @@ Three systems: the front, found tech, automated combat. Phase 1 added tooling an
 | Artefact | What it is | Verified today | Matches the doc today | Programme phase it belongs to |
 |---|---|---|---|---|
 | `RELIGHT-design.md` (608 lines, §1–§27 + appendix + changelog) | The spec | read in full | is the doc; internal contradictions listed in 0.2 | all |
-| `frontsim.py` (Python, ~1,000 lines) | Reference block sim: front rules, ammo ring, **power model with shedding**, five claim policies, `--experiments` (E1–E8, E4h, E2-demand-half), `first_hour()` | runs: one sim-hour, seed 3, compact, in 0.23 s; `--experiments` suite **not** re-run | yes for §5/§7 rules it models (see gaps below); every `[sim: E*]` tag in the doc traces to a run of this file or `phase5*.py` | Phase 1 reference; the TS sim is the judge from Phase 1 on |
-| `frontsim_legacy_backup.py` | Pre-`FRONT_FIX_REPORT` copy | no | no (pre-fix rules) | delete or archive in Phase 1 (`DEFERRED.md` D-13) |
-| `phase5.py`, `phase5_results.json`, `phase5b.py`, `phase5b_results.json` | Doc runs E9–E13 (claim cadence, bloom cadence, Relight hold, spike-scattered, inert-as-solid) and calibration-2 reruns | no | tags in §16, §18, §25 trace to these | Phase 1 (E8, E9 of the programme reproduce E9/E11) |
-| `export_fixtures.py` → `packages/sim/fixtures/seed{3,4,5}.json` | Python → TS parity fixtures (mags, hourly rows, first interior, losses, shells) | via `npm test` | n/a | Phase 1 |
+| ~~`frontsim.py`~~ **retired Phase 3** (Python, ~1,000 lines) | Reference block sim: front rules, ammo ring, **power model with shedding**, five claim policies, `--experiments` (E1–E8, E4h, E2-demand-half), `first_hour()` | runs: one sim-hour, seed 3, compact, in 0.23 s; `--experiments` suite **not** re-run | yes for §5/§7 rules it models (see gaps below); every `[sim: E*]` tag in the doc traces to a run of this file or `phase5*.py` | Phase 1 reference; the TS sim is the judge from Phase 1 on |
+| ~~`frontsim_legacy_backup.py`~~ deleted Phase 1 | Pre-`FRONT_FIX_REPORT` copy | no | no (pre-fix rules) | delete or archive in Phase 1 (`DEFERRED.md` D-13) |
+| ~~`phase5.py`, `phase5_results.json`, `phase5b.py`, `phase5b_results.json`~~ **retired Phase 3** | Doc runs E9–E13 (claim cadence, bloom cadence, Relight hold, spike-scattered, inert-as-solid) and calibration-2 reruns | no | tags in §16, §18, §25 trace to these | Phase 1 (E8, E9 of the programme reproduce E9/E11) |
+| ~~`export_fixtures.py`~~ **retired Phase 3** → `packages/sim/fixtures/seed{3,4,5}.json` (frozen at `52c4ca3`) | Python → TS parity fixtures (mags, hourly rows, first interior, losses, shells) | via `npm test` | n/a | Phase 1 |
 | `packages/sim` (TS, 1,423 lines: `types.ts`, `sim.ts`, `bots.ts`, `map.ts`, `queries.ts`, `index.ts`) | Pure `step(state, commands) → state'`, 1 s tick, JSON state `version: 1`, `configHash()`; six bots (compact, spike, balanced, cheapest, river, turtle); economy (slots 1/block, finite rubble 3,840/block, claim 5 Cu + 10 steel, assembler 20 Cu + 40 steel, magazine 2 steel + 1 Cu) | **`npm test` 28/28 green** (24 fixture comparisons + 4 unit tests); `tsc --strict` clean | partial — see "TS sim gaps" | Phase 1 (the headless sim) — exists, needs the gaps closed |
 | `packages/sim/test/calibrate.ts`, `bench.ts`, `regression.test.ts` | Calibration harness CLI (`--hours --seeds --bots --economy --build --react --out` + JSON overrides), benchmark, fixture regression | regression yes; calibrate/bench not run | n/a | Phase 1 → becomes `packages/harness` |
 | `packages/proto` (Phaser 3.90 + Vite 6.4, 7 files) | Map-view prototype: 24 px block map, claim tooltip `front +N · closes N`, ring order list, pips, build button with reason, slots, rubble strip, telemetry export with config hash, seed and `economy=0` in URL, speed keys, facility silhouettes, `autoplay` bots | **`npm run build` clean**, 1.53 MB bundle (chunk-size warning only); not played | Phase 2 spec: has everything except `?state=` snapshot loading (Scenario B), survivor markers and a state export button; verified against the sim only, never against a human | Phase 2 — built, **not gated** |
