@@ -497,7 +497,71 @@ Checks: `npm test` 110 / 110 (103 + the seven M4 tests), `typecheck` (incl. the 
 - **D-B4-3 the turret in the chain**: a waypoint the crawlers pass unharmed, as built (a) / a turret takes contact damage (a new HP number for a machine) and the chain is lamp → turret → substation as §7 reads (b) / drop the turret from the chain, lamps then the substation (c). Recommend (a); §7 edited to say "then past the turret" only if (a) is chosen.
 
 
-## Prompt B M5 Light — not built
+## Prompt B M5 Light — built 2026-09-04 (unverified)
+
+Run name `B-M5-light` (the light map as data, the streetlight sequence, the burn-off, repair; `light.test.ts`). **Unverified**: built under the working mode of 2026-09-04 — no scripted check, experiment, calibration or soak has run on it. The numbers below are what the code says, not what a run measured, until the verification pass.
+
+### Built
+
+- **The light map as data** (`light.ts` `lightMask`, `stampLight`, `litCount`): one byte per tile, 1 where a lit light covers it under the same `lightCovers` rule `litAt` uses for the shade, so the picture and the threat never disagree. Streets are lit by their kerb streetlights (one every 4 tiles, radius 4: a powered face's street is lit end to end but for the 3-in-8 broken gaps); lots only within a Lamp's radius 4 or a Floodlight's 12-tile cone (M4's deferral: the cone is now light in the texture, not only the shade test).
+- **The light texture** (`worldScene.ts` `refreshLight` / `paintLight`): a Phaser canvas texture the city's size, one texel per tile, scaled to the tile and multiplied over the ground and the machines at depth 1.5; lit texels white, unlit `[62, 66, 98]` (≈ 25 % with a cool cast, GA-B5-1); re-read from the sim eight times a second (GA-B5-2) and re-uploaded only when a texel changed.
+- **Rot cannot exist on a lit tile** (`draw`): the Dark navy tint, the Contested amber and the rot specks are skipped on every lit tile of the mask.
+- **The burn-off** (`sim.ts` `burnOffS` = 20 + 60·d, `claim`; `flow.ts` `contestProgress`): the claim's `contestUntil = t + burnOffS(d)` is the same number the block sim always used, now named and read back as a 0 → 1 progress. On a Contested lot the specks within `SWEEP_R` 16 · progress tiles of every lit lamp are gone (GA-B5-4), so the rot fades outward from the lamps and the far corners clear last; Held ends it.
+- **The streetlight sequence** (`flow.ts` `LIGHT_SEQ_PER_S` 3, `lightRanks`, `blockLights`): on a claim the face's sound streetlights come on one every ⅓ s from the substation outward (§6's "three per second"; the order is straight-line distance, GA-B5-3); broken ones stay dark; the block sim's power gate still holds (no power, no light). A `Light` now carries `why` ('' / 'broken' / 'eaten').
+- **Repair** (`flow.ts` `lightAt` / `canRepair` / `repairLight`; `worldScene.ts` `interact`): E on a broken (§13's 3-in-8) or eaten (M4) streetlight or Lamp within reach spends `REPAIR_COPPER` 1 Cu from the pockets (GA-B5-5); a §13-broken streetlight joins `flow.repaired` for good (GA-B5-6), an eaten light leaves `threat.broken`; `flow.repairs` counts both. A refusal is a toast with its reason ("No repair: no copper in the pockets (1 Cu)").
+- **The engineer carries no light** (D-B5-1); `?handlamp=1` or `__relight.handLamp(true)` previews a 2-tile disc on the sprite in the light map only (GA-B5-7).
+- **In-game** (`main.ts`, `worldScene.ts`): the `claim` toast says the lights come on now, 3 a second from the substation out, and in how many seconds the rot burns off; the `held` toast says the burn-off is done and the streets lit, the lot dark until Lamps; the `lamp-eaten` toast ends "E on the lamp repairs it (1 Cu)"; the hover line marks an unlit tile ("rot can sit here; a shade here cannot be hit") and names a light's state (lit · radius 4 / coming on (burn-off n %) / off · no power / off · its block is Dark / broken or put out by a crawler — E repairs it); the "Nothing here" toast lists the repair; streetlight posts draw a glow when lit and a cross (red broken, violet eaten) when not, the light itself being the texture.
+- **Tests** (`light.test.ts` 4, unwritten-run): the HQ kerb mostly lit and its lot not, the pole of inaccessibility unlit, the mask agreeing with `litAt` on 400 lot tiles, Dark lots ≤ 25 % lit; a Lamp's disc at radius 4; the sequence at 3/s nearest the substation first, `contestUntil` = 20 + 60·d, progress mid-way, Held at its end; repair of a broken streetlight and an eaten Lamp, refused without copper and on a bare tile.
+
+### Assumed (every `GAME-ASSUMPTION` in prompt B M5 code)
+
+| Tag | Where | Assumption |
+|---|---|---|
+| GA-B5-1 | `worldScene.ts` `UNLIT_RGB` | the unlit texel is a multiply of ≈ 25 % with a cool cast; a multiply cannot desaturate (§4 says "desaturated and darkened"), so the cast stands in until Phase 12's art pass |
+| GA-B5-2 | `worldScene.ts` `LIGHT_REFRESH_MS` | the light map is re-read eight times a second, so a light shows at most 125 ms after the sim lit it (the sequence is 3 a second) |
+| GA-B5-3 | `flow.ts` `lightRanks` | the sequence's order is straight-line distance from the substation's centre (the pole on an outskirts block), not the walk along the kerb |
+| GA-B5-4 | `worldScene.ts` `SWEEP_R` | the burn-off's sweep clears specks within 16 · progress tiles of every lit lamp; a drawing rule — the rot itself is still the block's `d` |
+| GA-B5-5 | `flow.ts` `REPAIR_COPPER` | a repair is 1 Cu (wire) from the pockets; §13 prices no repair |
+| GA-B5-6 | `flow.ts` `blockLights`, `repairLight` | a repaired §13-broken streetlight is sound for good; an eaten light can be eaten again |
+| GA-B5-7 | `worldScene.ts` `HAND_LAMP_R` | the hand-lamp preview is drawing only: it lights no tile for the shade rule or the rot |
+
+GA-B4-7 ("a light a crawler ate stays dark until M5 repairs it") is closed by the repair. The M1–M4 and lattice tags stand.
+
+### Deferred
+
+- **Copper for repairs in the hour**: a face's 3-in-8 broken streetlights leave unlit street tiles until repaired or a Lamp fills them; whether the hour's copper stretches to it is a played question → **M6**.
+- **The unlit look** (§4's desaturation): a multiply cannot desaturate; a shader or a second layer → **Phase 12**.
+- **The hand lamp** (D-B5-1) → the human; the preview is in, off by default.
+- **The sequence's pace against the burn-off's length**: §6's three per second lights a 12-light face in 4 s; the prompt's "sweeps light along the ridges over 20 + 60·d s" would spread it over 38–80 s → D-B5-2.
+- **Light on the map view**: the map's squares do not read the mask (Contested is the amber flicker there) → **M6** if the hour needs it.
+- **Shades on lit tiles in play** → **M6** (no shade inside the hour on seeds 3 / 4 / 5 at M4).
+- **A frame-time cost**: a city-sized texture upload on every change during a sequence (8 a second at most) → the verification pass's soak.
+
+### Measured — *unverified*
+
+No run has measured M5. What the code says, to be confirmed by the verification pass:
+
+| What | From the code | Doc |
+|---|---|---|
+| the lit kerb of a powered face | every 4th kerb tile carries a radius-4 light, so a face's street tiles are lit end to end but for the 3-in-8 broken gaps; the lot is lit only under Lamps and the Floodlight's cone | §4, §5 "streetlights come on" |
+| a claimed block's lights | sound streetlights on at 3/s from the substation out; a 12-light face is fully lit after 4 s | §6 three per second |
+| the burn-off | 20 + 60·d s: 38 s at d 0.3, 80 s at d 1.0; the specks clear within 16·p tiles of each lit lamp | §5 step 4 |
+| a repair | 1 Cu; the light is lit again at once (a streetlight while its face is powered, a Lamp while its block is claimed and powered) | — |
+
+The verification pass should run and record: `npm test` (the four `light.test.ts` cases), `typecheck` (the game build: the canvas texture, `MULTIPLY`), `lint`, `snapshot:check` (expected unchanged — `repaired` / `repairs` are optional and created on first repair; `burnOffS` is the number the claim already used), `docsync:check`, `experiments` and `calibrate` (expected identical for the same reason), then measure: the lit kerb and lot fractions per face on seeds 3 / 4 / 5 (`litCount`), the sequence and sweep timings at d 0.3 / 1.0, a shade on a lit tile taking rounds, the 900 s soak's frame time with the light map, and the Playwright check at `?view=world&seed=3` (the multiply visible, lit streets, dark lots, a repair by E, `?handlamp=1`).
+
+### Where prompt B M5 and the doc disagree (reported, not resolved)
+
+- **The prompt's "burn-off sweeps light along the claimed face's ridges over 20 + 60·d s"** vs §6's "streetlights come on in sequence down the street at three per second": built to §6 (the lights are on in 4 s; the rot's specks sweep over the 20 + 60·d s). Decision D-B5-2.
+- **§4 "desaturated and darkened to ~25 %"**: a multiply darkens and tints but cannot desaturate; the cool cast stands in (GA-B5-1). Decision D-B5-3 carries the unlit level.
+- **The prompt's "streets and lamp radii lit, lots unlit"**: read as the kerb streetlights' radii covering the street; a face's broken 3-in-8 leaves gaps on the street until repaired. Not a disagreement, a reading — stated so the human can say otherwise.
+- **§5 step 3 "the rot begins burning off from the lamps outward"**: built as drawing (the specks), the rot number itself is still the block's `d` falling by the block sim's rule; the doc's sentence is about the picture and stands.
+
+### Decisions for the human (recommended in `DECISIONS.md` D-B5-1–D-B5-3)
+
+- **D-B5-1 the hand lamp**: none — the engineer carries no light, the dark is the dark (a) / a 2-tile lamp on the sprite, drawing only (b) / a 2-tile lamp that counts as light for the shade rule and the rot (c). Recommend (a); the preview (b) is built behind `?handlamp=1`.
+- **D-B5-2 the sequence's pace**: §6's three per second, the sweep of the specks carrying the 20 + 60·d s (a) / the prompt's spread — the face's lights come on evenly over the burn-off (b) / three per second for the lights, and the Lamps on the lot come on at the end (c). Recommend (a).
+- **D-B5-3 the repair cost and the unlit level**: 1 Cu a repair and the unlit multiply at ≈ 25 % with a cool cast, as built (a) / 2 Cu and 20 % (darker, the dark reads harder) (b) / repairs free, 35 % (c). Recommend (a) until M6's played hour says the copper runs short.
 
 ## Prompt B M6 The hour — not built
 

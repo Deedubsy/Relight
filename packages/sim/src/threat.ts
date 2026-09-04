@@ -55,7 +55,7 @@ export interface ThreatState {
   crawlers: Crawler[];
   /** Fractional arrivals per edge id waiting to become whole crawlers / shades. */
   acc: Record<number, [number, number]>;
-  /** Tiles whose light a crawler ate (streetlight tile, or a Lamp's tile). Repair is M5. */
+  /** Tiles whose light a crawler ate (streetlight tile, or a Lamp's tile). M5: `repairLight` (E on it) takes a tile back out. */
   broken: number[];
   fights: Fight[];
   dangerS: number; shotAt: number;
@@ -413,7 +413,7 @@ export function describeCrawler(st: SimState, c: Crawler): string {
   const goal = c.onPlayer ? 'turned on you' : c.cls === 0 ? 'toward the nearest lit lamp' : c.cls === 1 ? 'toward a turret' : 'toward the substation';
   return `${c.kind === 'shade' ? 'Shade' : 'Crawler'} · ${Math.max(0, c.hp)}/${HP[c.kind]} HP · ${goal} on (${b.x},${b.y})`;
 }
-/** A light eaten by a crawler at this tile (M5 repairs it). */
+/** A light eaten by a crawler at this tile (`repairLight` in flow.ts, E on it, repairs it). */
 export function lightEaten(st: SimState, tx: number, ty: number): boolean {
   const T = st.flow?.threat; if (!T) return false;
   return T.broken.includes(ty * ground(st).tw + tx);

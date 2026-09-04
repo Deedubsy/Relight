@@ -88,6 +88,10 @@ export function idxOf(st: SimState, x: number, y: number): number {
 }
 export const inBounds = (st: SimState, x: number, y: number) => (st.lattice ? x >= 0 && x < st.w && y >= 0 && y < st.h : idxOf(st, x, y) >= 0);
 export const isHostile = (s: number) => s === DARK || s === CONTESTED;
+/** §5 step 4: a claimed block is Contested for 20 + 60·d seconds (d = its rot at the claim, after the wake bloom's
+ *  drop); prompt B M5 sweeps the light along its ridges over the same time. [sim: B-M5-light] */
+export const BURN_OFF_BASE_S = 20, BURN_OFF_PER_D_S = 60;
+export const burnOffS = (d: number): number => BURN_OFF_BASE_S + BURN_OFF_PER_D_S * d;
 export const isSolid = (s: number) => s === HELD || s === INERT;
 
 /** M3 tile-layer hooks. flow.ts registers them at load (it imports this module, so this module cannot import it);
@@ -671,7 +675,7 @@ export function claim(st: SimState, x: number, y: number): boolean {
   const [cr, sh, hu] = wakeBloom(st, b.d, x, y);
   const dBefore = b.d;
   recordBloom(st, i, cr, sh, hu, true);
-  b.state = CONTESTED; b.contestUntil = t + 20 + 60 * b.d;
+  b.state = CONTESTED; b.contestUntil = t + burnOffS(b.d);   // §5 step 4: 20 + 60·d s of burn-off [sim: B-M5-light]
   b.awake = false;
   const retake = st.fallen[i];
   if (retake) st.stats.retakes++;

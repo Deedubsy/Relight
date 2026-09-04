@@ -206,3 +206,16 @@ Every item above keeps its phase unless listed here.
 - **Crawlers and the player's own machines**: bodies walk around belts, inserters and assemblers and never harm them; §7 has no rule for it. → **Phase 5** with the barricade.
 - **A player's walking share** (§19's 15 %): the bot's 2.6–4.1 % is a bot's. → **M6** playtest.
 
+## Re-read at prompt B M5 (2026-09-04, Light built — unverified)
+
+Every item above keeps its phase unless listed here.
+
+- **Lights a crawler ate** stay dark with no way to relight them → **closed**: E on the light repairs it for 1 Cu (`repairLight`, GA-B4-7 retired, GA-B5-5).
+- **The Floodlight's cone as light** (the M3/M4 texture deferral) → **closed**: the cone is stamped into the light map like every other light.
+- **Copper for repairs in the hour**: a face's 3-in-8 broken streetlights leave gaps on the street until repaired or a Lamp fills them; whether the hour's copper stretches to it → **M6** playtest.
+- **The unlit look** (§4 "desaturated"): a multiply cannot desaturate; the cool cast stands in → **Phase 12** art pass.
+- **The hand lamp** (D-B5-1): none built; `?handlamp=1` previews a drawing-only disc → the human.
+- **The sequence's pace against the burn-off** (the prompt's spread over 20 + 60·d s vs §6's three per second) → D-B5-2.
+- **Light on the map view**: the map's squares do not read the mask → **M6** if the hour needs it.
+- **Shades on lit tiles in play**, **the first pip**, **a tile-level brownout soak**, **the stand-in edge's bodies**, **a player's walking share** → **M6** as at M4.
+- **The verification pass for M5** (checks, experiments, calibration, the soak with the light map, Playwright) → when the human schedules it; until then every M5 number is *unverified*.

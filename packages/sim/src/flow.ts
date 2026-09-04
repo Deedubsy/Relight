@@ -10,7 +10,7 @@
  *  Rates (all measured by test/flow.test.ts, run name M2-rates): Excavator 0.5 items/s onto the tile it faces,
  *  belt 7.5 items/s (4 items a tile at 1.875 tiles/s), inserter 1 item/s, Shot assembler 3 s a magazine (20/min). */
 import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command, Engineer } from './types';
-import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing } from './sim';
+import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing, burnOffS } from './sim';
 import { edgeId, edgeFrom, edgeTo } from './graph';
 import { RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH, FLOODLIGHT_KW, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH } from './recipes';
 import {
@@ -148,6 +148,11 @@ export interface FlowState {
   power: { supply: number; demand: number; load: number; overS: number; throttle: number };
   /** M4: the tile threat (threat.ts): crawlers, eaten lights, hand-fired engagements. Created on first use. */
   threat?: ThreatState;
+  /** M5: streetlights the engineer repaired (global tile index) — the §13 3-in-8 broken ones, once E has been on them
+   *  with copper in the pockets. Eaten lights (`threat.broken`) are repaired by leaving that list. Created on first use. */
+  repaired?: number[];
+  /** M5 telemetry: lights repaired by hand (both kinds). */
+  repairs?: number;
 }
 
 /** The flow layer, created on first use: the Depot goes on the start lot, the block-level Mk1 stand-in retires
@@ -1118,24 +1123,58 @@ export function isSubstationTile(st: SimState, tx: number, ty: number): boolean 
   return substationOwner(st, tx, ty) >= 0 || machineAt(st, tx, ty)?.kind === 'substation';
 }
 
-export interface Light { tx: number; ty: number; r: number; lit: boolean; broken: boolean; kind: 'streetlight' | 'lamp' | 'floodlight'; dir?: Dir }
+export interface Light { tx: number; ty: number; r: number; lit: boolean; broken: boolean; kind: 'streetlight' | 'lamp' | 'floodlight'; dir?: Dir;
+  /** M5: 'broken' is §13's 3-in-8 (E repairs it), 'eaten' a crawler's (M4; E repairs it), '' otherwise. */
+  why?: 'broken' | 'eaten' | '' }
+/** M5 (§6): a claimed block's streetlights come on in sequence from the substation outward, this many a second
+ *  (GAME-ASSUMPTION: the order is straight-line distance from the substation, not the walk along the kerb). */
+export const LIGHT_SEQ_PER_S = 3;
+/** M5: a repair costs this much copper from the pockets (GAME-ASSUMPTION: one Cu — wire — per light; §13 prices no repair). */
+export const REPAIR_COPPER = 1;
+const rankCache = new WeakMap<object, Int32Array>();
+/** The order a face's streetlights come on in (0 first): by distance from the substation's centre, ties by index. */
+function lightRanks(st: SimState, bi: number): Int32Array {
+  const bg = ground(st).blocks[bi];
+  const hit = rankCache.get(bg);
+  if (hit) return hit;
+  const c = bg.sub ? [bg.sub.x + bg.sub.size / 2, bg.sub.y + bg.sub.size / 2] : [bg.pole[0] + 0.5, bg.pole[1] + 0.5];
+  const idx = bg.lights.map((l, k) => k).sort((a, b) => Math.hypot(bg.lights[a].tx + 0.5 - c[0], bg.lights[a].ty + 0.5 - c[1]) - Math.hypot(bg.lights[b].tx + 0.5 - c[0], bg.lights[b].ty + 0.5 - c[1]) || a - b);
+  const ranks = new Int32Array(bg.lights.length);
+  idx.forEach((k, r) => { ranks[k] = r; });
+  rankCache.set(bg, ranks);
+  return ranks;
+}
+/** M5: how far a block's burn-off has run — 0 at the claim, 1 when it turns Held (and for every Held block); -1 for a
+ *  block that is neither Contested nor Held. The claim time is read back from `contestUntil` (§5 step 4's 20 + 60·d). */
+export function contestProgress(st: SimState, bi: number): number {
+  if (bi < 0 || bi >= st.blocks.length) return -1;
+  const b = st.blocks[bi];
+  if (b.state === HELD) return 1;
+  if (b.state !== CONTESTED) return -1;
+  const len = burnOffS(b.d);
+  return Math.max(0, Math.min(1, (st.t - (b.contestUntil - len)) / len));
+}
 /** Everything that can light a block: its streetlights (lit when the substation powers and they are not broken) and
- *  the Lamps on it (lit while powered). Radii are §13's 4 tiles; the light texture itself is M5. */
+ *  the Lamps on it (lit while powered). Radii are §13's 4 tiles; M5 draws them as the light texture and, on a
+ *  Contested block, switches the streetlights on in sequence from the substation outward at LIGHT_SEQ_PER_S. */
 export function blockLights(st: SimState, bi: number): Light[] {
   if (bi < 0 || bi >= st.blocks.length) return [];
   const b = st.blocks[bi];
   if (b.state !== HELD && b.state !== CONTESTED && b.state !== DARK) return [];
   const on = subPowered(st, b);
-  const f = st.flow, tw = ground(st).tw, eaten = f ? brokenSet(f) : null;   // GAME-ASSUMPTION (M4): lights a crawler ate stay dark until M5 repairs them
-  const out: Light[] = ground(st).blocks[bi].lights.map(l => {
-    const broken = l.broken || (eaten?.has(l.ty * tw + l.tx) ?? false);
-    return { tx: l.tx, ty: l.ty, r: LAMP_RADIUS, lit: on && !broken, broken, kind: 'streetlight' as const };
+  const f = st.flow, tw = ground(st).tw, eaten = f ? brokenSet(f) : null, fixed = f ? repairedSet(f) : null;   // M4/M5: eaten lights stay dark until E repairs them
+  const seqT = b.state === CONTESTED ? b.contestUntil - burnOffS(b.d) : -Infinity, ranks = b.state === CONTESTED ? lightRanks(st, bi) : null;
+  const out: Light[] = ground(st).blocks[bi].lights.map((l, k) => {
+    const t = l.ty * tw + l.tx;
+    const why: Light['why'] = eaten?.has(t) ? 'eaten' : l.broken && !fixed?.has(t) ? 'broken' : '';
+    const inSeq = !ranks || st.t >= seqT + ranks[k] / LIGHT_SEQ_PER_S;   // M5 (§6): three a second down the street
+    return { tx: l.tx, ty: l.ty, r: LAMP_RADIUS, lit: on && !why && inSeq, broken: !!why, kind: 'streetlight' as const, why };
   });
   if (f) for (const m of f.machines) {
     if (blockIdxOf(st, m) !== bi) continue;
-    if (m.kind === 'lamp') { const broken = eaten!.has(m.y * tw + m.x); out.push({ tx: m.x, ty: m.y, r: LAMP_RADIUS, lit: running(st, m) && !broken, broken, kind: 'lamp' }); }
+    if (m.kind === 'lamp') { const broken = eaten!.has(m.y * tw + m.x); out.push({ tx: m.x, ty: m.y, r: LAMP_RADIUS, lit: running(st, m) && !broken, broken, kind: 'lamp', why: broken ? 'eaten' : '' }); }
     // prompt B M3: a Floodlight throws a 12-tile cone from its centre along its facing (60° wide, GAME-ASSUMPTION)
-    else if (m.kind === 'floodlight') out.push({ tx: m.x + 0.5, ty: m.y + 0.5, r: FLOODLIGHT_RANGE, lit: running(st, m), broken: false, kind: 'floodlight', dir: m.dir });
+    else if (m.kind === 'floodlight') out.push({ tx: m.x + 0.5, ty: m.y + 0.5, r: FLOODLIGHT_RANGE, lit: running(st, m), broken: false, kind: 'floodlight', dir: m.dir, why: '' });
   }
   return out;
 }
@@ -1149,21 +1188,61 @@ function brokenSet(f: FlowState): Set<number> {
   brokenSets.set(f, { n: arr.length, set });
   return set;
 }
+const repairedSets = new WeakMap<FlowState, { n: number; set: Set<number> }>();
+function repairedSet(f: FlowState): Set<number> {
+  const arr = f.repaired ?? [];
+  const c = repairedSets.get(f);
+  if (c && c.n === arr.length) return c.set;
+  const set = new Set(arr);
+  repairedSets.set(f, { n: arr.length, set });
+  return set;
+}
+/** Does a lit light reach tile (tx, ty)? Discs for streetlights and Lamps; the Floodlight's tiles under the fixture
+ *  count, beyond them only the cone. One rule for the shade test (`litAt`) and the light texture (`lightMask`). */
+export function lightCovers(l: Light, tx: number, ty: number): boolean {
+  const ex = tx - l.tx, ey = ty - l.ty, d2 = ex * ex + ey * ey;
+  if (d2 > l.r * l.r + 1e-9) return false;
+  if (l.kind === 'floodlight' && d2 > 2) {
+    const cos = (ex * DX[l.dir!] + ey * DY[l.dir!]) / Math.sqrt(d2);
+    if (Math.acos(Math.max(-1, Math.min(1, cos))) > FLOODLIGHT_HALF_ANGLE + 1e-9) return false;
+  }
+  return true;
+}
 /** Is a tile lit by any light within its radius (its block's or a neighbour's)? */
 export function litAt(st: SimState, tx: number, ty: number): boolean {
   for (const bi of blocksNear(st, tx, ty)) {
-    for (const l of blockLights(st, bi)) {
-      if (!l.lit) continue;
-      const ex = tx - l.tx, ey = ty - l.ty, d2 = ex * ex + ey * ey;
-      if (d2 > l.r * l.r + 1e-9) continue;
-      if (l.kind === 'floodlight' && d2 > 2) {   // the tiles under the fixture count as lit; beyond, only inside the cone
-        const cos = (ex * DX[l.dir!] + ey * DY[l.dir!]) / Math.sqrt(d2);
-        if (Math.acos(Math.max(-1, Math.min(1, cos))) > FLOODLIGHT_HALF_ANGLE + 1e-9) continue;
-      }
-      return true;
-    }
+    for (const l of blockLights(st, bi)) if (l.lit && lightCovers(l, tx, ty)) return true;
   }
   return false;
+}
+/** M5: the light standing on a tile (a streetlight on the kerb, a Lamp), with its block; null when there is none. */
+export function lightAt(st: SimState, tx: number, ty: number): { l: Light; bi: number } | null {
+  for (const bi of blocksNear(st, tx, ty)) {
+    for (const l of blockLights(st, bi)) if (l.kind !== 'floodlight' && l.tx === tx && l.ty === ty) return { l, bi };
+  }
+  return null;
+}
+export interface RepairCheck { ok: boolean; reason: string; l: Light | null }
+/** M5: can E repair the light on this tile? Reach is the caller's (the scene's cursor). */
+export function canRepair(st: SimState, tx: number, ty: number): RepairCheck {
+  const hit = lightAt(st, tx, ty);
+  if (!hit) return { ok: false, reason: 'no light here', l: null };
+  if (!hit.l.why) return { ok: false, reason: 'this light is not broken', l: hit.l };
+  if (!st.flow) return { ok: false, reason: 'no engineer on the tiles', l: hit.l };
+  if ((st.engineer.inv.copper ?? 0) < REPAIR_COPPER) return { ok: false, reason: `no copper in the pockets (a repair is ${REPAIR_COPPER} Cu — take it from the Depot chest with I, or dig copper rubble)`, l: hit.l };
+  return { ok: true, reason: '', l: hit.l };
+}
+/** M5: repair the light on a tile from the pockets. A §13-broken streetlight joins `flow.repaired`; an eaten light
+ *  (M4) leaves `threat.broken`. It lights on the next read when its block powers it. Returns the check. */
+export function repairLight(st: SimState, tx: number, ty: number): RepairCheck {
+  const c = canRepair(st, tx, ty);
+  if (!c.ok) return c;
+  const f = st.flow!, t = ty * f.tw + tx;
+  pocketDrop(st.engineer, 'copper', REPAIR_COPPER);
+  if (c.l!.why === 'eaten' && f.threat) f.threat.broken = f.threat.broken.filter(v => v !== t);
+  else (f.repaired ??= []).push(t);
+  f.repairs = (f.repairs ?? 0) + 1;
+  return c;
 }
 
 // ------------------------------------------------------------------ M3: poles

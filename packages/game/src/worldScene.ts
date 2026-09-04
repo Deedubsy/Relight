@@ -11,7 +11,12 @@
  *  in hand → hold to fire toward the cursor. Right-click with an empty hand removes with a full refund, with
  *  something in hand clears it. E interacts (the Depot chest, the workbench, a machine, the truck, survivors) and
  *  never mines, places or fires. The hotbar is 1–8 for the buildings and 9 the rifle; B is the build menu, R
- *  rotates, Q pipettes the machine under the cursor (or clears the hand), Esc closes anything. */
+ *  rotates, Q pipettes the machine under the cursor (or clears the hand), Esc closes anything.
+ *  Prompt B M5 Light: a one-texel-per-tile light map (`lightMask`, the shade rule's own lit set) on a canvas
+ *  texture the city's size, multiplied over the ground and the machines; lit tiles full colour, unlit ones darkened
+ *  to ~25 % with a cool cast. Rot (the navy tint and the specks) never sits on a lit tile; on a Contested block the
+ *  streetlights come on in sequence from the substation out and the specks burn off outward from every lit lamp over
+ *  the block's 20 + 60·d s. E on a broken or eaten light repairs it from the pockets. */
 import Phaser from 'phaser';
 import {
   SimState, idxOf, DARK, CONTESTED, HELD, INERT, VOID, isInterior,
@@ -21,8 +26,9 @@ import {
   machineAt, rubbleAt, canPlace, place, remove, canPickUp, costStr, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
   handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
   POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST,
-  lockReason, KIND_LABEL, FLOODLIGHT_HALF_ANGLE, FLOODLIGHT_RANGE, BIG_POLE_REACH,
+  lockReason, KIND_LABEL, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH,
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
+  lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
 } from '@relight/sim';
 import { Session, queue } from './session';
 import { View } from './view';
@@ -48,6 +54,14 @@ const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, st
 const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a,
   turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a };
 const LIGHT_COL = 0xffe9a0;
+/** M5 light map. GAME-ASSUMPTION: the unlit texel is a multiply of ~25 % with a cool cast (§4's "desaturated and
+ *  darkened to ~25 %" — a multiply cannot desaturate, so the cast stands in for it until the Phase 12 art pass);
+ *  the map is re-read from the sim eight times a second (the §6 sequence is three lights a second) and re-uploaded
+ *  only when a texel changed; a Contested lot's specks burn off within `SWEEP_R` tiles of every lit lamp as the
+ *  burn-off runs, so the far corners clear last. */
+const UNLIT_RGB = [62, 66, 98], LIGHT_REFRESH_MS = 125, SWEEP_R = 16;
+/** D-B5-1's hand lamp, drawing only: a 2-tile disc on the engineer in the light map when the human takes it (`?handlamp=1`). */
+const HAND_LAMP_R = 2;
 
 export type Tool = 'hand' | 'rifle' | Exclude<Kind, 'depot'>;
 /** D-B1-5: the hotbar. GAME-ASSUMPTION: 1 belt, 2 inserter, 3 Excavator, 4 Shot assembler, 5 turret, 6 lamp, 7 pole,
@@ -76,6 +90,12 @@ export class WorldScene extends Phaser.Scene {
   private gThreat!: Phaser.GameObjects.Graphics;
   private gEng!: Phaser.GameObjects.Graphics;
   private hudText!: Phaser.GameObjects.Text;
+  private lightTex!: Phaser.Textures.CanvasTexture;
+  private lightPix!: Uint8Array;        // the lit mask the texture shows (1 lit)
+  private lightScratch!: Uint8Array;
+  private lightAtMs = -Infinity;
+  /** D-B5-1 preview: the engineer carries a 2-tile light (off by default; `?handlamp=1` or `__relight.handLamp(true)`). */
+  handLamp = false;
   private depotText!: Phaser.GameObjects.Text;
   private labels: Phaser.GameObjects.Text[] = [];
   private chunks = new Map<number, Chunk>();
@@ -111,6 +131,13 @@ export class WorldScene extends Phaser.Scene {
     this.makeTileset();
     this.blitter = this.add.blitter(0, 0, 'ground');
     this.gMach = this.add.graphics().setDepth(1);
+    // M5: the light map — one texel per tile, scaled to the tile size and multiplied over the ground and machines
+    const G0 = ground(this.st);
+    this.lightTex = (this.textures.exists('light') ? this.textures.get('light') : this.textures.createCanvas('light', G0.tw, G0.th)) as Phaser.Textures.CanvasTexture;
+    this.lightPix = new Uint8Array(G0.tw * G0.th); this.lightScratch = new Uint8Array(G0.tw * G0.th);
+    this.lightAtMs = -Infinity;
+    this.paintLight(this.lightPix);   // all unlit until the first read
+    this.add.image(0, 0, 'light').setOrigin(0).setScale(TILE_PX).setDepth(1.5).setBlendMode(Phaser.BlendModes.MULTIPLY);
     this.gOver = this.add.graphics().setDepth(2);
     this.gThreat = this.add.graphics().setDepth(3);
     this.gEng = this.add.graphics().setDepth(3);
@@ -313,6 +340,16 @@ export class WorldScene extends Phaser.Scene {
       else this.hooks.onToast(`Workbench: crafting a magazine by hand from the pockets (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s) — ${st.flow.hand.crafts} queued`);
       return;
     }
+    // M5: E on a broken (§13) or eaten (M4) light repairs it from the pockets
+    const light = h ? lightAt(st, h.tx, h.ty) : null;
+    if (light && light.l.why) {
+      if (!this.reachable(h!.tx, h!.ty, 1, true)) return;
+      const r = repairLight(st, h!.tx, h!.ty);
+      if (!r.ok) { this.hooks.onToast(`No repair: ${r.reason}`, 'bad'); return; }
+      const bi = light.bi, b = st.blocks[bi];
+      this.hooks.onToast(`${light.l.kind === 'lamp' ? 'Lamp' : 'Streetlight'} repaired (${REPAIR_COPPER} Cu from the pockets) — ${b.state === HELD || b.state === CONTESTED ? 'it lights while the substation powers it' : 'it lights when its block is claimed'}`, 'good');
+      return;
+    }
     const m = h ? machineAt(st, h.tx, h.ty) : undefined;
     if (m) {
       if (!this.reachable(m.x, m.y, m.size, true)) return;
@@ -324,7 +361,7 @@ export class WorldScene extends Phaser.Scene {
     const b = e.block >= 0 ? st.blocks[e.block] : null;
     const sv = b ? st.survivors.find(v => v.x === b.x && v.y === b.y) : undefined;
     if (sv) { this.hooks.onToast(`${sv.name} (${sv.tag}): "${b!.state === HELD ? "We're in." : 'Light the street and we talk.'}"`); return; }
-    this.hooks.onToast('Nothing here to interact with — E opens the Depot chest, the workbench, a machine, the truck, a survivor group');
+    this.hooks.onToast('Nothing here to interact with — E opens the Depot chest, the workbench, a machine, the truck, a survivor group, or repairs a broken light');
   }
 
   /** Top-left tile of the tool's footprint when the pointer is on (tx, ty): 3×3 machines centre on the pointer,
@@ -450,17 +487,29 @@ export class WorldScene extends Phaser.Scene {
     const rect = this.game.canvas.getBoundingClientRect();
     const m = st.flow ? machineAt(st, tx, ty) : undefined;
     const bi = blockOfTile(st, tx, ty);
-    const lines = [describeGround(st, tx, ty)];
+    // M5: an unlit tile says what that means (rule 8: the lit/unlit rule is on the tooltip, not only in the texture)
+    const unlit = st.flow && !this.lightPix[ty * G.tw + tx] ? ' · unlit (rot can sit here; a shade here cannot be hit)' : '';
+    const lines = [describeGround(st, tx, ty) + unlit];
     if (bi >= 0) lines.push(this.blockLine(bi));
     if (m) lines.unshift(describeMachine(st, m));
     else if (st.flow && isSubstationTile(st, tx, ty)) {
       const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
       if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (the block is unfed, or the grid is dead)'}`);
     }
+    // M5: a light under the cursor — its state, and the repair rule when it is broken or eaten
+    const light = lightAt(st, tx, ty);
+    if (light && (light.l.kind === 'streetlight' || light.l.why)) {
+      const name = light.l.kind === 'lamp' ? 'Lamp' : 'Streetlight';
+      const b = st.blocks[light.bi];
+      lines.unshift(light.l.why === 'eaten' ? `${name} · put out by a crawler — E repairs it (${REPAIR_COPPER} Cu from the pockets)`
+        : light.l.why === 'broken' ? `${name} · broken — E repairs it (${REPAIR_COPPER} Cu from the pockets)`
+        : light.l.lit ? `${name} · lit · radius ${light.l.r}` : b.state === CONTESTED ? `${name} · coming on (burn-off ${Math.round(100 * contestProgress(st, light.bi))} %)`
+        : b.state === HELD ? `${name} · off · no power` : `${name} · off · its block is Dark`);
+    }
     const cw = st.flow ? crawlerAt(st, tx + 0.5, ty + 0.5) : null;   // M4: a crawler under the cursor (shades only on lit tiles)
     if (cw) lines.unshift(describeCrawler(st, cw));
     // the "walk closer" cursor: something to do here, out of reach
-    const actionable = this.onFoot && (this.tool !== 'hand' || !!m || !!rubbleAt(st, tx, ty));
+    const actionable = this.onFoot && (this.tool !== 'hand' || !!m || !!rubbleAt(st, tx, ty) || !!(light && light.l.why));
     const far = actionable && !inReach(st, tx, ty, 1);
     if (far) lines.unshift(`Walk closer (reach ${REACH} tiles)`);
     this.hooks.onHoverText(lines.join('\n'), rect.left + p.x, rect.top + p.y);
@@ -532,11 +581,14 @@ export class WorldScene extends Phaser.Scene {
     for (let i = 0; i < G.blocks.length; i++) { const b = G.blocks[i]; if (b.tiles.length && b.x1 >= tx0 && b.x0 <= tx1 && b.y1 >= ty0 && b.y0 <= ty1) vis.push(i); }
 
     this.drawMachines(tx0, ty0, tx1, ty1, vis);
+    this.refreshLight();
+    const lit = this.lightPix;
 
-    // GAME-ASSUMPTION: a flat block-state overlay on each lot (Dark navy, Contested amber, Held outline) stands in for
-    // the light texture (M5); it is the block map's word on the lot, drawn, not simulated. M4: rot is tile presence in
-    // a Dark face — the navy deepens with the block's rot and specks of it sit on a share of the lot's tiles equal to
-    // the rot (a hash per tile, so the specks hold still); the specks are a reading of `b.d`, not a second rot model.
+    // The block-state overlay on each lot: Dark navy that deepens with the rot, Contested amber flicker, Held rims.
+    // M4: rot is tile presence in a Dark face — specks of it sit on a share of the lot's tiles equal to the rot (a hash
+    // per tile, so the specks hold still); the specks are a reading of `b.d`, not a second rot model. M5: rot cannot
+    // exist on a lit tile — neither the tint nor a speck is drawn where the light map is lit — and on a Contested lot
+    // the specks burn off outward from every lit lamp as `contestProgress` runs (the light itself is the texture).
     // M1: lots are faces, so the tint runs along each row of the lot's tiles and the Held rim follows its boundary.
     const g = this.gOver;
     g.clear();
@@ -547,7 +599,7 @@ export class WorldScene extends Phaser.Scene {
     for (let ty = ty0; ty <= ty1; ty++) {
       let run = -1, runX = 0;
       for (let tx = tx0; tx <= tx1 + 1; tx++) {
-        const o = tx <= tx1 ? own[ty * tw + tx] : -1, c = o >= 0 ? cls[o] : 0, key = c === 1 || c === 2 ? o : -1;
+        const o = tx <= tx1 ? own[ty * tw + tx] : -1, c = o >= 0 && !lit[ty * tw + tx] ? cls[o] : 0, key = c === 1 || c === 2 ? o : -1;
         if (key !== run) {
           if (run >= 0) { const rc = cls[run]; if (rc === 1) g.fillStyle(0x0b1030, 0.25 + 0.35 * st.blocks[run].d); else g.fillStyle(0xd99a2b, flicker); g.fillRect(runX * TILE_PX, ty * TILE_PX, (tx - runX) * TILE_PX, TILE_PX); }
           run = key; runX = tx;
@@ -557,12 +609,22 @@ export class WorldScene extends Phaser.Scene {
     // M4 rot specks on Dark lots (skipped zoomed far out, where the tint carries it). Rects, not circles, and at most
     // a third of the lot's tiles: the first soak drew a circle a tile as the rot deepened and halved the frame rate.
     if (cam.zoom >= 0.6) {
+      // M5: a Contested lot's lit lamps and its burn-off progress, for the sweep (specks within p·SWEEP_R of a lit lamp are gone)
+      const sweep = new Map<number, { p: number; lamps: [number, number][] }>();
+      for (const i of vis) if (cls[i] === 2) sweep.set(i, { p: contestProgress(st, i), lamps: blockLights(st, i).filter(l => l.lit).map(l => [l.tx, l.ty]) });
       g.fillStyle(0x2a1a4a, 0.75);
       for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
         const o = own[ty * tw + tx];
-        if (o < 0 || cls[o] !== 1) continue;
+        if (o < 0 || (cls[o] !== 1 && cls[o] !== 2) || lit[ty * tw + tx]) continue;
         const h = (Math.imul(tx, 73856093) ^ Math.imul(ty, 19349663)) >>> 0;
         if ((h % 1000) / 1000 >= Math.min(0.34, st.blocks[o].d)) continue;
+        const sw = sweep.get(o);
+        if (sw) {
+          const reach = sw.p * SWEEP_R;
+          let gone = false;
+          for (const [lx, ly] of sw.lamps) if ((tx - lx) * (tx - lx) + (ty - ly) * (ty - ly) <= reach * reach) { gone = true; break; }
+          if (gone) continue;
+        }
         const r = 3 + (h >>> 5) % 3;
         g.fillRect((tx + 0.3 + 0.4 * ((h >>> 10) % 100) / 100) * TILE_PX - r, (ty + 0.3 + 0.4 * ((h >>> 20) % 100) / 100) * TILE_PX - r, 2 * r, 2 * r);
       }
@@ -614,6 +676,35 @@ export class WorldScene extends Phaser.Scene {
     const toolLine = st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}\n${TOOL_KEY_LINE}${this.powerLine()}` : '';
     const moveLine = this.onFoot ? 'M map view (click a Held or street tile there to walk) · WASD move · Shift sprint · Space dodge · Tab/I pockets · wheel zoom' : 'M map view · drag / WASD pan · wheel zoom';
     this.hudText.setText(`World view · ${fi >= 0 ? this.blockLine(fi) : ''} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles${pockets}\n${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${toolLine}`);
+  }
+
+  /** M5: re-read the lit set from the sim (at most eight times a second) and repaint the texture when it changed. */
+  private refreshLight(): void {
+    const now = performance.now();
+    if (now - this.lightAtMs < LIGHT_REFRESH_MS) return;
+    this.lightAtMs = now;
+    const st = this.st, G = ground(st), m = lightMask(st, this.lightScratch);
+    if (this.handLamp && st.flow) {
+      const ex = Math.floor(st.engineer.x), ey = Math.floor(st.engineer.y);
+      for (let dy = -HAND_LAMP_R; dy <= HAND_LAMP_R; dy++) for (let dx = -HAND_LAMP_R; dx <= HAND_LAMP_R; dx++) {
+        const tx = ex + dx, ty = ey + dy;
+        if (dx * dx + dy * dy <= HAND_LAMP_R * HAND_LAMP_R && tx >= 0 && ty >= 0 && tx < G.tw && ty < G.th) m[ty * G.tw + tx] = 1;
+      }
+    }
+    let changed = false;
+    for (let i = 0; i < m.length; i++) if (m[i] !== this.lightPix[i]) { changed = true; break; }
+    if (!changed) return;
+    this.lightPix.set(m);
+    this.paintLight(this.lightPix);
+  }
+  private paintLight(mask: Uint8Array): void {
+    const G = ground(this.st), ctx = this.lightTex.getContext(), img = ctx.createImageData(G.tw, G.th), d = img.data;
+    for (let i = 0, j = 0; i < mask.length; i++, j += 4) {
+      if (mask[i]) { d[j] = 255; d[j + 1] = 255; d[j + 2] = 255; } else { d[j] = UNLIT_RGB[0]; d[j + 1] = UNLIT_RGB[1]; d[j + 2] = UNLIT_RGB[2]; }
+      d[j + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    this.lightTex.refresh();
   }
 
   /** D5 on foot: the engineer (a disc, red while down), their path, and the reach ring — faint, brighter while the
@@ -735,20 +826,17 @@ export class WorldScene extends Phaser.Scene {
     if (!f) return;
     const zoom = this.cameras.main.zoom;
     const now = performance.now(), blink = Math.floor(now / 260) % 2 === 0;
-    // M3 light pass under the machines: streetlights and Lamps as warm discs (§13's radius), then each block's
-    // substation slab, then the pole wires
+    // M3/M5 light pass under the machines: the light itself is the M5 texture; here only the streetlight posts
+    // (warm when lit, dark with a cross when broken or eaten — E repairs those), then each block's substation slab,
+    // then the pole wires
     const lit = new Set<number>();
     for (const bi of vis) {
       for (const l of blockLights(st, bi)) {
         const lx = (l.tx + 0.5) * TILE_PX, ly = (l.ty + 0.5) * TILE_PX;
-        if (l.lit && l.kind === 'floodlight') {   // M3: the Floodlight's cone
-          const a = Math.atan2(DY[l.dir!], DX[l.dir!]);
-          g.fillStyle(LIGHT_COL, 0.11); g.beginPath(); g.slice(lx, ly, l.r * TILE_PX, a - FLOODLIGHT_HALF_ANGLE, a + FLOODLIGHT_HALF_ANGLE, false); g.closePath(); g.fillPath();
-        } else if (l.lit) { g.fillStyle(LIGHT_COL, 0.11); g.fillCircle(lx, ly, l.r * TILE_PX); }
         if (l.kind !== 'streetlight') { if (l.lit) lit.add(Math.floor(l.tx) * 4096 + Math.floor(l.ty)); continue; }
-        // streetlight post: a dot, warm when lit, dark with a cross when broken (§13's 3-in-8)
         g.fillStyle(l.broken ? 0x2a2d36 : l.lit ? 0xfff3b0 : 0x8a8f9a, 1); g.fillCircle(lx, ly, 4);
-        if (l.broken) { g.lineStyle(1.5, 0xe05a5a, 0.8); g.lineBetween(lx - 4, ly - 4, lx + 4, ly + 4); g.lineBetween(lx - 4, ly + 4, lx + 4, ly - 4); }
+        if (l.lit) { g.fillStyle(LIGHT_COL, 0.35); g.fillCircle(lx, ly, 7); }
+        if (l.broken) { g.lineStyle(1.5, l.why === 'eaten' ? 0xc06ae0 : 0xe05a5a, 0.9); g.lineBetween(lx - 4, ly - 4, lx + 4, ly + 4); g.lineBetween(lx - 4, ly + 4, lx + 4, ly - 4); }
       }
       const b = st.blocks[bi], sub = substationAt(st, b.x, b.y);
       if (sub) {

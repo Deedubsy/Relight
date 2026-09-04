@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
   hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
+  idxOf, LIGHT_SEQ_PER_S, REPAIR_COPPER,
 } from '@relight/sim';
 import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue } from './session';
 import { MapScene, MapView, SceneHooks, MAP_W, MAP_H } from './mapScene';
@@ -35,6 +36,8 @@ function describe(events: SimEvent[]): void {
   for (const ev of events) {
     switch (ev.type) {
       case 'held':
+        // M5 (rule 8): the burn-off's end is the payoff — say so
+        if (session.state.flow) panel.toast(`Block (${ev.x},${ev.y}) held — burn-off done, its streets are lit; the lot stays dark until you put Lamps on it`, 'good');
         if (ev.facility) panel.toast(`Reached the ${ev.facility}`, 'good');
         if (ev.survivor) panel.toast(`${ev.survivor}: "We're in."${ev.unlocks.length ? ` — ${ev.unlocks.join(', ')} are on the build menu (B; keys 0, [ and ])` : ''}`, 'good');
         break;
@@ -55,7 +58,8 @@ function describe(events: SimEvent[]): void {
       case 'claim': {
         if (!session.state.flow) break;
         const kits = session.state.engineer.inv.kit ?? 0;
-        panel.toast(`Poles strung to (${ev.x},${ev.y}) — its streetlights come on when it is held${kits ? '' : '. Its edges wait for a kit: take kits from the Depot chest (I) and walk there'}`);
+        // M5 (§5 step 3–4, §6): the streetlights come on now, in sequence; the rot burns off over 20 + 60·d s
+        panel.toast(`Poles strung to (${ev.x},${ev.y}) — its streetlights come on now, ${LIGHT_SEQ_PER_S} a second from the substation out; the rot burns off in ${Math.round(session.state.blocks[idxOf(session.state, ev.x, ev.y)].contestUntil - ev.t)} s${kits ? '' : '. Its edges wait for a kit: take kits from the Depot chest (I) and walk there'}`);
         break;
       }
       case 'kitted': panel.toast(`Kits laid on block (${ev.x},${ev.y}) — ${ev.edges} edge${ev.edges === 1 ? '' : 's'} armed`, 'good'); break;
@@ -63,7 +67,7 @@ function describe(events: SimEvent[]): void {
       // M4 (rule 8): the tile threat's rules surface as toasts — retaliation only (D5), lamps eaten, the 40-arrival count
       case 'engineer-up': panel.toast('Back on your feet at the HQ workbench — pockets intact, no other penalty', 'good'); break;
       case 'retaliate': panel.toast(ev.cause === 'shot' ? 'A crawler turned on you: you shot it. It bites at arm\'s reach (5 HP/s) — finish it (3 rounds) or step back' : 'A crawler turned on you: you are standing in its path. Step aside, or shoot it', 'bad'); break;
-      case 'lamp-eaten': panel.toast(`A crawler put out the lamp on tile (${ev.tx},${ev.ty}) — block (${ev.x},${ev.y}) is darker; the next ones head for its turrets, then the substation`, 'bad'); break;
+      case 'lamp-eaten': panel.toast(`A crawler put out the lamp on tile (${ev.tx},${ev.ty}) — block (${ev.x},${ev.y}) is darker; the next ones head for its turrets, then the substation. E on the lamp repairs it (${REPAIR_COPPER} Cu)`, 'bad'); break;
       case 'arrival': panel.toast(`${ev.shade ? 'A shade' : 'A crawler'} reached the substation on block (${ev.x},${ev.y}) unshot — ${ev.n} of ${ev.of}${ev.shade ? ' (the substation is off 30 s)' : ''}`, 'bad'); break;
       case 'bloom': {
         // GAME-ASSUMPTION: only the blooms on or next to the engineer's block toast; the rest are the map view's pulses
@@ -94,6 +98,7 @@ const hooks: SceneHooks = {
 // D6: the city map draws polygons; the lattice MapScene stays for ?map=lattice and the lattice-era snapshots
 const mapScene: MapView = session.state.city ? new CityMapScene(session, hooks) : new MapScene(session, hooks);
 const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind), onChest: () => panel.togglePockets() });
+worldScene.handLamp = new URLSearchParams(location.search).get('handlamp') === '1';   // D-B5-1 preview only
 panel.onPick = kind => { worldScene.setTool(kind); panel.toast(`${kind} in hand — left-click places it, R rotates, right-click clears the hand`); };
 game.scene.add('map', mapScene, view.mode === 'map');
 game.scene.add('world', worldScene, view.mode === 'world');
@@ -175,6 +180,8 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   dodge: () => queue(session, { type: 'dodge' }),
   aim: (at: [number, number] | null) => queue(session, { type: 'aim', at }),
   setTool: (t: Tool) => worldScene.setTool(t),
+  /** M5: D-B5-1's hand lamp preview (a 2-tile disc on the sprite in the light map; nothing else changes). */
+  handLamp: (on: boolean) => { worldScene.handLamp = on; },
   engineer: () => {
     const e = session.state.engineer, p = currentPath(session.state);
     return { x: e.x, y: e.y, block: e.block, dest: e.dest, target: e.target, hp: e.hp, down: e.down, inv: { ...e.inv }, stacks: invStacks(e.inv), walked: e.walked, pathLeft: p ? p.path.length - p.at : 0,
