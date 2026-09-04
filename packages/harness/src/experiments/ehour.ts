@@ -23,6 +23,9 @@ const MARKS = ['mine-done', 'craft-done', 'first-hand-feed', 'first-crawler', 'f
   'first-rounds-run', 'steel-to-chest', 'generator-3', 'claim-east', 'arrive-east', 'held-east', 'kitted-east', 'claim-west', 'held-west', 'kitted-west', 'claim-north', 'held-north', 'kitted-north',
   'turrets-picked-up', 'turrets-carried', 'enclosure', 'generator-4', 'electricians', 'first-shade', 'first-amber', 'first-red', 'first-shot', 'first-brownout', 'steel-zero', 'copper-2', 'hq-fell'];
 
+/** The two-claim variant's north minute (D-P4-10, recommended: "north at 60–75"; the harness measures 65:00). */
+const NORTH_LATE_AT = 65 * 60;
+
 export const EHOUR: Experiment = {
   id: 'E-hour', title: '§11\'s hour on the tile layer (M6)',
   run(ctx): ExperimentResult {
@@ -89,11 +92,12 @@ export const EHOUR: Experiment = {
     sections.push({ title: 'E-hour-coal: D-P4-7 — Generator 2\'s coal, the first 20 minutes, rifle off',
       note: 'the game ships (b); (a) is measured with the chest\'s coal zeroed so Generator 2 waits for the coal Excavator\'s first 40 units',
       header: ['seed', 'plan', 'Generator 2', 'first brownout', 'brownout (s)', 'coal min', 'coal refusals'], rows: coalRows });
-    // §11 rewritten (D-P4-4): north at 60–75. The hour's script run on to 75:00, rifle off: does north, claimed at
-    // HOUR_CLAIM_AT.north with the two carried turrets, stand to 75:00 on the one Mk1 line?
+    // The two-claim variant (economy-fix task Step 4; D-P4-10 recommended, not decided): east 15, west 25, north
+    // moved to 65:00, the run carried on to 75:00, rifle off. Does north, claimed late with the two carried turrets,
+    // stand to 75:00 on the one Mk1 line? constants.HOUR's 40 (D-HOUR-1) is the rule; this is evidence for the human.
     const northRows: (string | number)[][] = [], northOk: boolean[] = [];
     for (const seed of seeds) {
-      const st = hourCity(seed), bot = createHourBot(false);
+      const st = hourCity(seed), bot = createHourBot(false, 'chest', NORTH_LATE_AT);
       ctx.log(`E-hour-north seed ${seed}`);
       runHour(st, bot, 75 * 60, []);
       const r = hourReport(st, bot), last = r.stock[r.stock.length - 1];
@@ -102,9 +106,26 @@ export const EHOUR: Experiment = {
       northRows.push([seed, mmss(r.marks['claim-north']), mmss(r.marks['held-north']), mmss(r.marks['turrets-carried']), mmss(r.marks['fell-north']), r.fellWhy.north ?? '-', r.fell, r.held,
                       mmss(r.marks['generators-dry']), mmss(r.marks['first-brownout']), r.brownoutS.toFixed(0), `${r.steelMin} @ ${mmss(r.steelMinAt)}`, last ? `${last.steel}/${last.copper}/${last.coal}/${last.magazines}` : '-', r.refused.length, ok ? 'stands' : 'fell or never Held']);
     }
-    sections.push({ title: 'E-hour-north: §11 rewritten — north claimed at 65:00, the run carried on to 75:00 (rifle off)',
+    sections.push({ title: 'E-hour-north: the two-claim variant — east 15, west 25, north claimed at 65:00 (D-P4-10, recommended), the run carried on to 75:00 (rifle off)',
       note: 'the hour affords two claims on one Mk1 Shot line (10 magazines/min); north is the third, at 60–75, with the two idle HQ turrets carried over; the HQ coal patch (~700) is dug out by ~36:00 and the west-coal stand-in makes nothing (GA-B6-3), so the coal column is the Generators\' clock',
       header: ['seed', 'claim north', 'held north', 'turrets carried', 'north fell', 'why', 'falls', 'held at 75', 'Generators dry', 'first brownout', 'brownout (s)', 'steel min', 'chest at 75 (St/Cu/coal/mag)', 'refusals', 'verdict'], rows: northRows });
+    // M6's two unrun checks (economy-fix task Step 4), rifle off: (a) west's coal at the Generators before the chest's
+    // coal runs out — through Gate B the west-coal stand-in makes nothing (GA-B6-3), so the row is when the chest's coal
+    // hits zero and the Generators run dry; (b) the crawlers the HQ had counted at the first red pip (~minute 6).
+    const m6: (string | number)[][] = [];
+    for (const seed of seeds) {
+      const r = reports[`${seed}/no-rifle`], last = r.stock[r.stock.length - 1];
+      const zero = r.coalZeroAt >= 0 ? r.coalZeroAt : undefined, dry = r.marks['generators-dry'];
+      // out for good: the chest's coal read zero from this minute to the end of the run (the first zero is Generator 2's take of the chest's 40 at 6:01)
+      let lastWith = -1; r.stock.forEach((x, i) => { if (x.coal > 0) lastWith = i; });
+      const out = lastWith + 1 < r.stock.length ? r.stock[lastWith + 1].t : undefined;
+      const margin = out === undefined ? `not out in the hour (chest coal ${last?.coal ?? '-'} at 60:00)` : `${((out - 3600) / 60).toFixed(1)} min (out for good at ${mmss(out)})`;
+      m6.push([seed, 'never (GA-B6-3: the west-coal stand-in makes nothing)', mmss(zero), mmss(out), mmss(dry), last?.coal ?? '-', margin,
+               r.atFirstRed ? mmss(r.atFirstRed.t) : '-', r.atFirstRed?.spawned ?? '-', r.atFirstRed?.arrivals ?? '-']);
+    }
+    sections.push({ title: 'E-hour-m6checks: west\'s coal against the chest\'s (a) and the crawlers counted at the first red pip (b) — rifle off',
+      note: '(a) margin = minutes from the hour\'s end to the chest\'s coal running out for good, negative when it runs out inside the hour (west\'s coal never arrives through Gate B, so there is nothing to beat it); (b) spawned and arrived at a Held edge by the first red pip',
+      header: ['seed', 'west coal at a Generator', 'chest coal first zero (Generator 2\'s take)', 'chest coal out for good', 'Generators dry', 'chest coal at 60:00', 'margin', 'first red pip', 'crawlers spawned by then', 'crawler arrivals by then'], rows: m6 });
     data.reports = reports;
     data.passVerdict = { steelNeverZero: Math.min(...steelMin) >= 1, noFall: fell.every(x => x === 0), noBrownout: brownout.every(x => x === 0), endState: endOk.every(Boolean) };
     checks.push(isTrue('D-P4-4: the chest\'s steel never at zero (worst run)', Math.min(...steelMin) >= 1, `minimum ${Math.min(...steelMin)} steel`));
@@ -112,7 +133,7 @@ export const EHOUR: Experiment = {
     checks.push(isTrue('§11: no brownout in the hour (every run)', brownout.every(x => x === 0), `worst ${Math.max(...brownout).toFixed(0)} s`));
     checks.push(isTrue(`§11's end state on every run (${HOUR_END.generators} Generators, ${HOUR_END.excavators} Excavators, ${HOUR_END.assemblers} Assemblers, ${HOUR_END.held} Held — §11 rewritten to two claims)`, endOk.every(Boolean), `${endOk.filter(Boolean).length}/${endOk.length} runs`));
     // north at 60–75 is measured, not scored: the section above is the evidence for D-P4-10 (the coal after the HQ patch)
-    data.northAt65 = { held: northOk.filter(Boolean).length, of: northOk.length };
+    data.northAt65 = { held: northOk.filter(Boolean).length, of: northOk.length, northAt: NORTH_LATE_AT };
     checks.push(within('§19: walking at most 15 % of the hour (worst seed)', Math.max(...walkedPct), 0, 15, ' %'));
     checks.push(within('rework: the claim walk-overs under a minute of hour one (worst seed)', Math.max(...claimWalk), 0, 60, ' s'));
     checks.push(isTrue('the HQ stands at the hour on every seed', hqHeld.every(Boolean), `${hqHeld.filter(Boolean).length}/${hqHeld.length} runs`));

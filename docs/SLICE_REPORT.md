@@ -895,6 +895,49 @@ Never knocked down; mean damage over the lattice rescues 62 HP.
 
 Mk1 6 s = 10 mag/min and Mk2 3 s (were C9's "no ladder"); the second steel Excavator at ~15:00 (placed 12:00, GA-EF-1); 40 coal in the chest (D-P4-7 (b)); six turrets with full hoppers plus 20 magazines (D-P4-8; §11 said two on the north edge); the streetlight radius ~7 (D-B5-4; the code had 4); two claims and north at 60–75 (the fallback pass condition, now §11). ROADMAP §0 line 3 said "HUMAN FIRST (write rows … in DECISIONS.md)": the rows came by chat message and are recorded with that message as `via`.
 
+## M6 re-run after the economy fix — coded (unverified), 2026-09-04 (economy-fix task Step 4; run name `B-M6-hour-2`)
+
+**No-fall hour: no.** North, claimed at constants.HOUR's minute 40 (D-HOUR-1), falls on every seed inside the hour, and the chest's steel reaches zero at 15:02 on every seed. Nothing was changed to make it pass (the task's rule); the human chooses (ROADMAP §0 line 3, D-P4-10). Every number below is `[sim: B-M6-hour-2]` (`docs/experiments/E-hour.json`, stamp `ab8d80b` / `b95922d2`, seeds 3 / 4 / 5, rifle off and on; the rifle changes only the marks given in brackets). E-hour is red: 4 of its 10 checks fail (steel never zero, no fall, no brownout, end state).
+
+| moment | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| mine done · craft done | 0:20 · 1:20 | 0:20 · 1:20 | 0:20 · 1:20 |
+| first crawler (turrets fire) | 2:48 | 2:44 | 3:05 |
+| first empty hopper (first red pip) · hand-feed | 6:09 · 6:11 | 5:33 · 5:36 | 6:18 · 6:21 |
+| Generator 2 built, the chest's coal in it; coal Excavator's line laid | 6:01 · 6:14 | 6:02 · 6:14 | 6:01 · 6:11 |
+| Shot line (Assembler at 8) · first line magazine | 8:01 · 8:08 | 8:01 · 8:07 | 8:03 · 8:10 |
+| second steel Excavator (D-P4-7: 15) · Generator 3 | 15:00 · 15:03 | 15:03 (on: 15:02) · 15:05 (on: 15:03) | 15:01 · 15:02 |
+| east claimed · Held | 15:03 · 15:34 | 15:05 · 15:40 (on: 15:03 · 15:38) | 15:02 · 15:32 |
+| west claimed · Held | 25:00 · 25:35 | 25:00 · 25:30 | 25:00 · 25:30 |
+| north claimed · Held (D-HOUR-1: 40) | 40:00 · 40:29 | 40:01 · 40:34 | 40:00 · 40:30 |
+| the two turrets picked up · carried to north | 43:41 · 43:51 (on: 43:39 · 43:48) | 43:47 · 43:58 | 43:46 · 43:55 |
+| first shade | 44:41 | 44:45 | never |
+| Generator 4 (45) · copper Excavator 2 (46) | 45:00 · 46:01 | 45:00 · 46:01 | 45:00 · 46:02 |
+| first brownout · seconds | 40:01 · 299 | 40:02 · 299 | 40:01 · 300 |
+| **steel zero** | **15:02** | **15:04** (on: 15:03) | **15:02** |
+| **north fell (why)** | **52:43 (shade)** | **48:54 (unfed)** (on: 49:05) | **49:55 (unfed)** (on: 50:02) |
+| chest at the fall (St / Cu / coal / mag) | 962 / 205 / 2 / 19 (53:00) | 888 / 105 / 2 / 79 (49:00) | 918 / 134 / 2 / 36 (50:00) |
+| time walked (off / on) | 5.0 % / 4.8 % | 5.0 % / 4.6 % | 3.9 % / 3.9 % |
+| blocks Held at 60 (HQ, east, west) | 3 | 3 | 3 |
+| lowest chest steel · minute | 0 · 15:02 | 0 · 15:04 | 0 · 15:02 |
+| first shot (rifle on) · Gate B replay verdict | 14:02 · fell anyway (11 fights) | 5:37 · fell anyway (14 fights) | 6:26 · fell anyway (5 fights) |
+
+The steel curve: 200 → 42 at 10:00 and 15:00 → **0 at 15:02** → 29 / 27 / 29 at 16:00 → 1,127–1,151 at 60:00. The three steps constants.HOUR puts at minute 15 (the second steel Excavator and its two belts, Generator 3, east's six kits) draw the chest's 42 steel together; with the Excavator at 12 (the withdrawn GA-EF-1) the minimum was 30 at 12:01. The coal column: 40 → 402 at 30:00 (the HQ patch) → 2 at 50:00 → out for good at 54:00 on every seed; the Generators run on their hoppers to the hour. North at 40 adds a fourth block's draw before Generator 4: the brownout runs 40:01 → 45:00 (299–300 s) on every seed, and north falls at 48:54–52:43 (unfed on seeds 4 / 5, a shade on seed 3) with 2 coal and 19–79 magazines in the chest.
+
+**The two-claim variant (E-hour-north: east 15, west 25, north moved to 65:00, run to 75:00, rifle off).** Inside the 60 minutes no block falls and there is no brownout (the first is 66:16 / 66:20 / 67:06), but the chest's steel still reaches zero at 15:02 / 15:04 / 15:02 (the same minute-15 cluster), so **the two-claim variant is not a no-fall hour by the task's definition either** (no fall, yes; steel never zero, no). After the hour: north Held 65:29 / 65:34 / 65:29, the turrets carried 68:51 / 68:59 / 68:56, the Generators dry 68:02 / 68:06 / 67:57, brownout 525 / 521 / 475 s, north fell 72:47 (shade) / 72:45 (shade) / 74:38 (unfed); chest at 75: 1435–1439 / 397 / 0 / 0–100; 3 Held at 75. The design doc was not edited (the human chooses).
+
+**The two M6 checks never run before (E-hour-m6checks, rifle off):**
+
+| check | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| (a) west's coal at a Generator | never (GA-B6-3: the stand-in makes nothing) | never | never |
+| (a) chest coal out for good · Generators dry · margin | 54:00 · not in the hour · **−6.0 min** | 54:00 · not in the hour · **−6.0 min** | 54:00 · not in the hour · **−6.0 min** |
+| (b) first red pip · crawlers spawned by then · arrivals at a Held edge by then | 6:09 · 60 · 0 | 5:33 · 44 · 0 | 6:18 · 44 · 0 |
+
+(a) The chest's coal runs out 6 minutes before the hour's end on every seed and west's coal never comes (through Gate B the west-coal stand-in makes nothing, GA-B6-3): the margin is negative, and it is a Phase 5 number (west's coal real) rather than a constant's. (b) By the first red pip the threat has spawned 44–60 crawlers and none has arrived at a Held edge (the turrets kill them on the street): the HQ's arrival count at ~6 minutes is 0, far below 40; the spawn count is the number the ~6-minute red is made of.
+
+**Unchanged from the previous run (`B-M6-hour`):** the 0–10 script (mine 0:20, craft 1:20, first crawler 2:44–3:05, first red 5:33–6:18, Generator 2 at 6:01–6:02, first line magazine 8:07–8:10), east and west (15 / 25), Generator 4 at 45, walking under 5 %, the HQ standing at the hour on every seed, the logged hour replaying to the same state. **Changed by the decided minutes:** the second steel Excavator 12 → 15 (steel min 30 → 0) and north 65 → 40 (a fall inside the hour and 299–300 s of brownout).
+
 ## Gate B
 
 verdict:

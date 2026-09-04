@@ -84,6 +84,13 @@ export interface HourBot {
   /** The chest by the minute, for the steel curve (D-P4-4: report its minimum). */
   stock: { t: number; steel: number; copper: number; coal: number; magazines: number }[];
   steelMin: number; steelMinAt: number; copperMin: number; coalMin: number;
+  /** North's claim minute in seconds: constants.HOUR's (40:00, D-HOUR-1) unless the harness's two-claim variant
+   *  (E-hour-north) hands it a later one. */
+  northAt: number;
+  /** M6 check: the threat's counters at the first red HQ pip (spawned so far, arrivals at a Held edge so far). */
+  atFirstRed: { t: number; spawned: number; arrivals: number } | null;
+  /** M6 check: when the chest's coal first read zero (-1: never). */
+  coalZeroAt: number;
 }
 
 /** GAME-ASSUMPTION (M6): the bot's numbers where §11 gives none — 20 steel hand-mined (ten magazines' worth), ten
@@ -434,7 +441,8 @@ export function hourSteps(bot: HourBot): HourStep[] {
     for (const [k, lx, ly] of kinds) t.push(...putNear(bot, k, lx, ly, 0));
     return t;
   } });
-  const claimAt = (dir: HourDir): HourStep => ({ at: HOUR_CLAIM_AT[dir], name: `§11 ${HOUR_CLAIM_AT[dir] / 60}:00 — claim ${dir}`, tasks: st => [
+  const claimMin = (dir: HourDir): number => dir === 'north' ? bot.northAt : HOUR_CLAIM_AT[dir];
+  const claimAt = (dir: HourDir): HourStep => ({ at: claimMin(dir), name: `§11 ${claimMin(dir) / 60}:00 — claim ${dir}`, tasks: st => [
     chest('to the chest for kits', st), takeTask(bot, { kit: HOUR_KITS }), ...claimStep(bot, dir)] });
   const burnE = burnOffS(0.22);
   return [
@@ -485,15 +493,15 @@ export function hourSteps(bot: HourBot): HourStep[] {
     standIn(HOUR_ASM3_AT, `§11 ${HOUR_ASM3_AT / 60}:00 — the third Assembler (E4 stand-in)`, [['assembler', 15, 0]]),
     // north's minute is constants.HOUR's (40, D-HOUR-1); E-hour-north runs the two-claim variant with north late
     claimAt('north'),
-    { at: HOUR_CLAIM_AT.north, name: '§11 — the two idle turrets carried to north', tasks: () => carryTurrets(bot) },
+    { at: bot.northAt, name: '§11 — the two idle turrets carried to north', tasks: () => carryTurrets(bot) },
   ];
 }
 
 // ------------------------------------------------------------------ the bot
 
-export function createHourBot(rifle = false, coalPlan: 'chest' | 'wait' = 'chest'): HourBot {
+export function createHourBot(rifle = false, coalPlan: 'chest' | 'wait' = 'chest', northAt = HOUR_CLAIM_AT.north): HourBot {
   const bot: HourBot = { rifle, log: { entries: [], marks: {}, walks: [], refused: [] }, steps: [], next: 0, queue: [], claimed: {}, lastRun: HOUR_RUN_FROM - HOUR_RUN_GAP, aiming: false, carried: 0, fellWhy: {}, handsOff: false, ticks: 0, fedAtFeedDone: -1,
-    coalPlan, lastFeed: -Infinity, stock: [], steelMin: Infinity, steelMinAt: -1, copperMin: Infinity, coalMin: Infinity };
+    coalPlan, lastFeed: -Infinity, stock: [], steelMin: Infinity, steelMinAt: -1, copperMin: Infinity, coalMin: Infinity, northAt, atFirstRed: null, coalZeroAt: -1 };
   bot.steps = hourSteps(bot).sort((a, b) => a.at - b.at);
   return bot;
 }
@@ -527,12 +535,16 @@ function watch(st: SimState, bot: HourBot): void {
       if (ed.born === st.t || ed.kit === false) continue;
       const p = pipOf(ed.hopper / edgeCap(st, ed));
       if (p !== 'green') mark(bot, st, 'first-amber');
-      if (p === 'red') mark(bot, st, 'first-red');
+      if (p === 'red') {
+        if (bot.atFirstRed === null) { const T = threatOf(st.flow!); bot.atFirstRed = { t: st.t, spawned: T.stats.spawned, arrivals: T.stats.arrivals }; }
+        mark(bot, st, 'first-red');
+      }
     }
     const steel = chestCount(st, 'steel'), copper = chestCount(st, 'copper'), coal = chestCount(st, 'coal');
     if (steel < bot.steelMin) { bot.steelMin = steel; bot.steelMinAt = st.t; }
     if (copper < bot.copperMin) bot.copperMin = copper;
     if (coal < bot.coalMin) bot.coalMin = coal;
+    if (coal <= 0 && bot.coalZeroAt < 0) bot.coalZeroAt = st.t;
     if (steel <= 0) mark(bot, st, 'steel-zero');
     if (copper <= 0) mark(bot, st, 'copper-zero');
     if (f.tick % (60 * TILE_TPS) === 0) bot.stock.push({ t: st.t, steel, copper, coal, magazines: chestCount(st, 'magazine') });
@@ -635,6 +647,7 @@ export interface HourReport {
   brownoutS: number; crawlers: number; shades: number; turretKills: number; rifleKills: number; fired: number; magsMade: number;
   /** D-P4-4: the chest's steel curve by the minute and its minimum; copper and coal minima; whether any block fell. */
   stock: HourBot['stock']; steelMin: number; steelMinAt: number; copperMin: number; coalMin: number; fell: number; fellWhy: Partial<Record<HourDir, string>>;
+  atFirstRed: HourBot['atFirstRed']; coalZeroAt: number;
   /** Findings: every divergence from §11's prose and from the calibration timeline, one line each. */
   findings: string[];
 }
@@ -675,9 +688,9 @@ export function hourReport(st: SimState, bot: HourBot): HourReport {
   expect('generator-3', 12 * 60, 20 * 60, 'the third Generator (E4-doc: minute 15)');
   expect('claim-west', 15 * 60, 30 * 60, 'west claimed');
   // §11 30–60 min
-  if (st.t >= HOUR_CLAIM_AT.north + 60) {
-    expect('claim-north', HOUR_CLAIM_AT.north, HOUR_CLAIM_AT.north + 5 * 60, 'north claimed (constants.HOUR: minute 40, D-HOUR-1)');
-    expect('turrets-carried', HOUR_CLAIM_AT.north, HOUR_CLAIM_AT.north + 10 * 60, 'the two turrets carried to north');
+  if (st.t >= bot.northAt + 60) {
+    expect('claim-north', bot.northAt, bot.northAt + 5 * 60, `north claimed (${bot.northAt === HOUR_CLAIM_AT.north ? 'constants.HOUR: minute 40, D-HOUR-1' : `the two-claim variant's ${bot.northAt / 60}:00`})`);
+    expect('turrets-carried', bot.northAt, bot.northAt + 10 * 60, 'the two turrets carried to north');
     if (bot.carried < 2 && m['claim-north'] !== undefined) findings.push(`${bot.carried} turret(s) carried, §11 says two`);
   }
   expect('enclosure', 35 * 60, 60 * 60, 'the HQ interior (§11: the white border at about minute 40; calibration: enclosure 45–60)');
@@ -715,6 +728,7 @@ export function hourReport(st: SimState, bot: HourBot): HourReport {
     brownoutS: f.power.overS, crawlers: T?.stats.spawned ?? 0, shades: T?.stats.shades ?? 0, turretKills: T?.stats.turretKills ?? 0,
     rifleKills: T?.stats.rifleKills ?? 0, fired: e.fired, magsMade: f.stats.magsMade, findings,
     stock: bot.stock.slice(), steelMin: bot.steelMin, steelMinAt: bot.steelMinAt, copperMin: bot.copperMin, coalMin: bot.coalMin, fell, fellWhy: { ...bot.fellWhy },
+    atFirstRed: bot.atFirstRed, coalZeroAt: bot.coalZeroAt,
   };
 }
 
