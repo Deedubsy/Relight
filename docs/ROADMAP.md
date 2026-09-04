@@ -6,6 +6,30 @@ Written 2026-09-04 at the end of the D5/D6 rework; **rewritten 2026-09-04 (eveni
 
 ---
 
+## 0. Next actions
+
+- [ ] 1. Layout and readability pass — owner: Claude Code — evidence lands in: SLICE_REPORT.md
+- [ ] 2. E-rifle at tile scale (the rescue run and the steady run) — owner: Claude Code — evidence lands in: EXPERIMENTS.md
+- [ ] 3. The economy fix from M6 — owner: HUMAN FIRST (write rows D-P4-4, D-B1-1, D-P4-7, D-P4-8, D-B5-4 in DECISIONS.md), then Claude Code builds — evidence lands in: DECISIONS.md, then SLICE_REPORT.md
+- [ ] 4. Re-run E-hour until the hour has no block falling on seeds 3, 4 and 5 — or rewrite §11 to what the economy can afford — owner: Claude Code — evidence lands in: SLICE_REPORT.md
+- [ ] 5. Controls walkthrough on the reference machine — owner: human
+- [ ] 6. Build a two-assembler line unaided in ten minutes — owner: human
+- [ ] 7. Gate B: play the hour, fill the §19 table, write verdict: proceed — owner: human — evidence lands in: SLICE_REPORT.md
+- [ ] 8. Absorb Gate B — owner: Claude Code — evidence lands in: PROGRAMME_STATE.md
+
+A line is ticked only when the evidence file named on the line contains the result. Saying it is done does not tick it. When a line is ticked, add a changelog entry naming the evidence.
+
+## Risks
+
+- The engine gate in Phase 11 (a port to C#/Godot if the TypeScript performance targets fail).
+- Garbage-collection discipline in TypeScript: any per-tick allocation in the sim will show up in Phase 11.
+- The untagged-number counter has stayed at 33 through six milestones; it is meant to go down.
+- Gate A was passed by the owner alone; no outside tester has played the map view.
+- Until Step 5 of the guardrails task lands, the same constant can exist in the doc, the calibration config and the tile code with different values.
+- PRs #1–#4 are stacked and unmerged; the record is not on main.
+
+---
+
 ## Where we are, in one paragraph
 
 **Phase 4 of 14 — the vertical slice — all six milestones built and verified on the street-first city with the engineer; Gate B is next.** Phases 0–3 are complete and Gate A is passed (owner-only; tester sessions still owed). The D5/D6 rework replaced the cursor-and-global-stock player with an engineer on foot (pockets, reach, rifle, sprint, dodge) and the 24×24 lattice with a street-first city of irregular blocks; the slice was restarted on that base. Since then: **M1 Ground and the engineer, the pre-M2 controls pass (WASD, E interacts, click by hand, Tab/I, B, sprint bar, dodge), M2 Flow on the faces, M3 Defence on the segment, D-B3-4 proportional brownout, M4 Threat and the rifle, M5 Light and M6 The hour are built, and the verification pass of 2026-09-04 (b666c68, `PROGRAMME_STATE.md` B.15) ran every check green.** The bot's §11 hour on the tile layer holds three blocks at minute 60 on seeds 3/4/5; the north claim falls at 45–58 min on every seed and §11's minute-45 machines are refused for steel — Gate B's findings are already on the table (`SLICE_REPORT.md` M6, `E-hour`). **What remains in Phase 4 is human: the controls walkthrough, the two-assembler line, Gate B, then Absorb Gate B.** Two things were added to the programme today that no phase previously owned: a **standards audit** against the modern 2D factory-game baseline, and a **layout-and-readability pass** so the game test happens on a full-viewport world that reads as a place. **The standards audit ran on 2026-09-04 (`STANDARDS.md`, `STANDARDS_REPORT.md`): 52 gaps became 46 one-minute human-check rows in the phases where they are cheapest, 14 of them build-with rows in Phase 5, five decisions went to `DECISIONS.md` as D-SA-1–D-SA-5, and §4 is now the audit's summary.** Ten phases and two gates remain.
@@ -174,6 +198,7 @@ Experiment numbering: the constitution's E10–E23 and the doc's own run tags co
 
 ## Changelog
 
+- 2026-09-04 (guardrails, Step 3) — §0 "Next actions" (eight owned lines, ticked only by evidence) and "Risks" (six lines) inserted above the summary paragraph.
 - 2026-09-04 (audit, Steps 1–3) — §4 rewritten wholesale as the summary of `STANDARDS.md` (run on 2026-09-04): the top-five lists, the injection table as decided, the moved rows, the seven reported disagreements, D-SA-1–D-SA-5 with cost of deciding late; every "hypothesis / unconfirmed / pending / not yet run" marker removed (line 3, the summary paragraph, §1's audit and Phase 5/12 rows, §3's last bullet, §5's Phase 5 line, §7's three rows); the STANDARDS rows written into §1's evidence column, §2's layout-pass and Gate B items and §5's phase lines; §6 gains the `standards` counter.
 - 2026-09-04 (audit, Step 0) — state corrected through b666c68 against `PROGRAMME_STATE.md`, `SLICE_REPORT.md`, `DECISIONS.md`, `DEFERRED.md` and the git log: M5, M6 and the verification pass recorded as built and verified (one-paragraph summary, §1 Phase 4 row, §2 built list); the owed table loses M5 and M6 and gains the Depot fill level (no decision on record), the tile-scale E-rifle (the block-scale one is real and in CI) and M6's three unrun checks; the D-P4-8 citation fixed (superseded by D-B1-4); experiments 12 → 13; the untagged counter carried through B.15; the "generated-report freshness" counter corrected from claimed to partial; §7 rows updated. §4 untouched.
 - 2026-09-04 (evening, rev 2) — §4 marked explicitly as pre-audit hypothesis; Phase 5's DoD marked not final until the audit runs.
