@@ -895,7 +895,85 @@ Never knocked down; mean damage over the lattice rescues 62 HP.
 
 Mk1 6 s = 10 mag/min and Mk2 3 s (were C9's "no ladder"); the second steel Excavator at ~15:00 (placed 12:00, GA-EF-1); 40 coal in the chest (D-P4-7 (b)); six turrets with full hoppers plus 20 magazines (D-P4-8; §11 said two on the north edge); the streetlight radius ~7 (D-B5-4; the code had 4); two claims and north at 60–75 (the fallback pass condition, now §11). ROADMAP §0 line 3 said "HUMAN FIRST (write rows … in DECISIONS.md)": the rows came by chat message and are recorded with that message as `via`.
 
-## M6 re-run after the economy fix — coded (unverified), 2026-09-04 (economy-fix task Step 4; run name `B-M6-hour-2`)
+## M6 re-run after the economy fix — **passes**, measured 2026-09-05 (`docs/PROGRESS.md` T2; run name `B-M6-hour-3`)
+
+**No-fall hour: yes.** On seeds 3, 4 and 5, rifle off and on — six runs — **no block falls, the chest's steel is never zero, and there is not one brownout second**. E-hour is **10 / 10**. Nothing was changed to make it pass here: the hour passes on the three rows the human decided on 2026-09-05 (D-HOUR-2, D-P4-10, D-P4-9 — `ECONOMY_FIX_REPORT.md` §9, the section "The blockers" above), and this task re-ran it and wrote the numbers down. Measured, not unverified: `npm run experiments` is 13 experiments, 231 s, **0 failing checks**, and E-hour alone was re-run on the committed tree to confirm it: **10 / 10 in 43.9 s, and the only byte that moved in `docs/experiments/E-hour.json` was the `source_commit` stamp** — every measured number is identical, which is the determinism the three replay checks assert, shown across two separate invocations.
+
+Every number below is `[sim: B-M6-hour-3]` (`docs/experiments/E-hour.json`, seeds 3 / 4 / 5, rifle off and on; the rifle changes only the marks given in brackets). §11's existing `[sim: B-M6-hour]` tags were not renamed — the tag names the experiment, and these are its current numbers.
+
+### The hour, seeds 3 / 4 / 5
+
+| moment | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| mine done · craft done | 0:20 · 1:20 | 0:20 · 1:20 | 0:20 · 1:20 |
+| first crawler (turrets fire) | 2:48 | 2:44 | 3:05 |
+| first amber pip · first red pip · hand-feed | 3:14 · 6:09 · 6:11 | 2:55 · 5:33 · 5:36 | 3:18 · 6:18 · 6:21 |
+| Generator 2 built · coal Excavator's line laid | 6:01 · 6:14 | 6:02 · 6:14 | 6:01 · 6:11 |
+| Shot line (Assembler at 8) · first line magazine | 8:01 · 8:08 | 8:01 · 8:07 | 8:03 · 8:10 |
+| the chest's start rounds run out | 10:02 | 10:03 (on: 10:04) | 10:04 |
+| **second steel Excavator into the chest (D-HOUR-2: 12)** | **12:01** | **12:02** | **12:01** |
+| Generator 3 (15) | 15:03 | 15:03 (on: 15:01) | 15:01 |
+| east claimed · walked over · Held · kitted | 15:03 · 15:11 · 15:34 · 15:34 | 15:03 · 15:06 · 15:38 (on: 15:01 · 15:04 · 15:36) | 15:01 · 15:07 · 15:31 · 15:31 |
+| west claimed · Held · kitted | 25:00 · 25:35 · 25:35 | 25:00 · 25:30 · 25:30 | 25:00 · 25:30 · 25:30 |
+| Generator 4 (45) · copper Excavator 2 (46) | 45:00 · 46:02 | 45:01 (on: 45:00) · 46:03 | 45:00 · 46:01 |
+| **north claimed (D-P4-10: 65)** | **never — past the hour** | **never** | **never** |
+| **first brownout · seconds** | **never · 0** | **never · 0** | **never · 0** |
+| **steel zero** | **never** | **never** | **never** |
+| **any block fell** | **no** | **no** | **no** |
+| first shade (§11 / E3: 32–47) | never | never | never |
+| first shot (rifle on) | 14:02 | 5:37 | 6:22 |
+| blocks Held at 60 (HQ, east, west) | 3 | 3 | 3 |
+| time walked (off / on) | 3.7 % / 3.8 % | 3.8 % / 3.6 % | 2.2 % / 2.2 % |
+| claim walk-overs (s) | 14 | 9 | 11 |
+| chest trips · magazines hand-fed (off) | 9 · 858 | 14 · 821 | 4 · 792 |
+| crawlers · killed by turrets · by the rifle (on) | 463 · 438 · 1 | 329 · 325 · 3 | 228 · 227 · 1 |
+| reach refusals · claim refusals | 0 · 0 | 0 · 0 | 0 · 0 |
+| Gate B replay verdict (fights) | held anyway (7) | held anyway (7) | held anyway (1) |
+
+End state, all six runs: **3 Held with the HQ standing, 6 turrets, 4 Generators, 7 Excavators, 3 Assemblers, 519 line magazines.** §11's end state is a two-claim hour (`HOUR_END.held` 3, D-P4-10), and every run reaches it.
+
+### The chest
+
+**Steel** 200 → 200 (5:00) → 42 (10:00) → **the minimum, 30 at 12:01–12:02**, when the second steel Excavator is paid for → 118 (15:00) → 338 (25:00) → 778 (40:00) → 1,144 (55:00). The minute-15 cluster that emptied the chest in the 2026-09-04 attempt is gone: with the Excavator at 12 the chest is 76 steel ahead by 15:00 and Generator 3 and east's six kits are paid out of that.
+
+**Copper** 100 → 27 from 20:00 (the minimum is **17**) → 134 at 50:00 → 264 at 55:00, the second copper Excavator at 46 turning it.
+
+**Coal** 40 → 0 at 6:01–6:02 (Generator 2's take — the coal minimum, and the only zero in the hour) → 118 (10:00) → the HQ patch's peak 448–450 at 30:00 → 298 (40:00) → 98 (50:00) → 48 (55:00) → **out for good at 56:00, and 0 at the hour on every seed**. §11 said 2; the doc was corrected.
+
+### After the hour — `E-hour-north` (measured, not scored)
+
+The same hour carried to 75:00 with north claimed at `constants.HOUR`'s 65:00, rifle off:
+
+| | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| north claimed · Held | 65:00 · 65:29 | 65:00 · 65:34 | 65:00 · 65:29 |
+| north fell | **never** | **never** | **never** |
+| falls · Held at 75:00 | 0 · **4** | 0 · **4** | 0 · **4** |
+| Generators dry · first brownout · seconds | 67:59 · 65:44 · 557 | 68:01 · 65:45 · 556 | 67:51 · 66:31 · 510 |
+| chest at 75:00 (St / Cu / coal / mag) | 1520 / 397 / 0 / 69 | 1524 / 397 / 0 / 220 | 1524 / 397 / 0 / 153 |
+| verdict | stands | stands | stands |
+
+In the 2026-09-04 attempt this variant fell at 72:47 / 72:45 / 74:38 on the three seeds. **D-P4-9 is what changed it**: with §11's two carried turrets removed, north's edges keep the block sim's ring-fed 100-round hopper instead of a hand-fed 50, and one engineer no longer has three physical turrets to keep alive across a 510–557 s brownout. North is still a coal problem — the Generators run dry at 67:51–68:01 and the chest's coal is 0 — which is what **D-P4-12** exists to fix.
+
+### The two M6 checks
+
+| check | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| (a) west's coal at a Generator | never (GA-B6-3: the stand-in makes nothing) | never | never |
+| (a) chest coal out for good · Generators dry · margin | 56:00 · never in the hour · **−4.0 min** | 56:00 · never · **−4.0 min** | 56:00 · never · **−4.0 min** |
+| (b) first red pip · crawlers spawned by then · arrivals at a Held edge by then | 6:09 · 60 · 0 | 5:33 · 44 · 0 | 6:18 · 44 · 0 |
+
+(a) is two minutes better than the 2026-09-04 attempt's −6.0 (the coal Excavator's line is unchanged; the hour simply ends with more of the patch behind it), and it is still negative: the chest's coal runs out inside the hour and west's never comes. That is a Phase 5 number behind **D-P4-12**, not a constant to move. (b) is unchanged: by the first red pip 44–60 crawlers have spawned and **none** has reached a Held edge — the turrets kill them on the street, so the ~6-minute red is made of spawns, not arrivals, and the HQ's arrival count is 0 against the 40-arrival rule.
+
+### E-hour's ten checks
+
+All green: three per-seed replay-determinism checks (the logged hour replays to the same Held set, machine count and shots, aim kept), the chest's steel never zero (worst run 30), no block falls (0 across 6 runs), no brownout (worst 0 s), §11's end state on every run (4 Generators, 7 Excavators, 3 Assemblers, 3 Held — 6 / 6), §19's walking at most 15 % (worst 3.79 %), the claim walk-overs under a minute (worst 14.00 s), and the HQ standing at the hour (6 / 6).
+
+### Where it still disagrees with the doc
+
+**One finding, on all six runs, unchanged and already reported: the first shade never happens.** §11 and E3 put it at minute 32–47. It survived the economy fix, the decided minutes and now this hour, and it is the only line E-hour prints. In the two-claim hour the bot never lets a block sleep past d = 0.3 — the shade is a lesson hour one no longer teaches.
+
+### The 2026-09-04 attempt, kept as the record (run name `B-M6-hour-2`)
 
 **No-fall hour: no.** North, claimed at constants.HOUR's minute 40 (D-HOUR-1), falls on every seed inside the hour, and the chest's steel reaches zero at 15:02 on every seed. Nothing was changed to make it pass (the task's rule); the human chooses (ROADMAP §0 line 3, D-P4-10). Every number below is `[sim: B-M6-hour-2]` (`docs/experiments/E-hour.json`, stamp `ab8d80b` / `b95922d2`, seeds 3 / 4 / 5, rifle off and on; the rifle changes only the marks given in brackets). E-hour is red: 4 of its 10 checks fail (steel never zero, no fall, no brownout, end state).
 

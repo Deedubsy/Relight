@@ -22,17 +22,18 @@ pass) was done out of order the same day on the human's instruction. **T1 is don
 2026-09-05**: the three rows that walled it — D-P4-9, D-HOUR-2, D-P4-10 — were decided by
 Daniel ("Do the blockers") and built, and `npm run experiments` is **13 experiments, 0
 failing checks**, so "make main green" is met. Nothing on the critical path is blocked any
-more. **The next task is T2** (re-run E-hour until no block falls on seeds 3, 4 and 5),
-which the blockers task has already measured green — it needs its `SLICE_REPORT.md`
-section written. Then T4, then T9 (which still needs re-scoping: Gate B was waived, so
-there is no played hour to fold) and T10.
+more. **T2 is done 2026-09-05** — E-hour is a
+no-fall hour on seeds 3, 4 and 5, rifle off and on, and the numbers are written into
+`SLICE_REPORT.md`. **The next task is T4** (E-rifle at tile scale: the rescue run and the
+steady run), which has no blocker and whose experiment is already 12 / 12. Then T9, which
+still needs re-scoping — Gate B was waived, so there is no played hour to fold — and T10.
 
 ## Tasks
 
 | id | task | owner | status | blocked by | evidence | done on |
 |---|---|---|---|---|---|---|
 | T1 | Resolve the eight constant disagreements, rebuild the economy fix, make main green | claude | done | | `docs/ECONOMY_FIX_REPORT.md` §9 | 2026-09-05 |
-| T2 | Re-run E-hour until no block falls on seeds 3, 4 and 5 | claude | doing | | `docs/SLICE_REPORT.md` section "M6 re-run after the economy fix" | |
+| T2 | Re-run E-hour until no block falls on seeds 3, 4 and 5 | claude | done | | `docs/SLICE_REPORT.md` section "M6 re-run after the economy fix" | 2026-09-05 |
 | T3 | Layout and readability pass | claude | done | | `docs/LAYOUT_PASS_REPORT.md` | 2026-09-05 |
 | T4 | E-rifle at tile scale: the rescue run and the steady run | claude | todo | | `docs/EXPERIMENTS.md` row `E-rifle-tile` | |
 | T5 | Controls walkthrough on the reference machine | human | done (waived) | T3 | `docs/GATE_B.md` section "Controls walkthrough" |  2026-09-05 |
@@ -56,6 +57,12 @@ there is no played hour to fold) and T10.
   `HOUR_END.held` is 3, so the HQ's white border and the Electricians walking out
   of civic north are beats a 3,600 s run never reaches. Phase 5's opening should
   say whether that is the shape of hour one or a hole in it.
+- **The first shade never happens in the bot's hour.** §11 and E3 put it at
+  minute 32–47; six runs of E-hour print it as the experiment's only finding, and
+  it has now survived the economy fix, the decided minutes and T2's no-fall hour.
+  Either §11's minute is wrong for a two-claim hour, or the bot never lets a block
+  sleep past d = 0.3 and a human would. **A played hour is what tells them apart**,
+  and Gate B was waived.
 - **T9 needs re-scoping.** Its task is "fold the played hour into code and doc".
   Gate B was waived, so there is no played hour to fold. T9 cannot be done as
   written; it needs either a real Gate B or a rewritten task line.
@@ -124,3 +131,18 @@ there is no played hour to fold) and T10.
   do not exist, deferred and asked as **D-P4-12**. Evidence:
   `docs/ECONOMY_FIX_REPORT.md` §9; also `DECISIONS.md` (three rows decided, one
   added), `DEFERRED.md` re-read, and §11's prose in `RELIGHT-design.md`.
+- 2026-09-05 — T2 **done**. E-hour re-run on the committed tree: **10 / 10 checks in
+  43.9 s**, and on seeds 3, 4 and 5 with the rifle off and on — six runs — **no block
+  falls, the chest's steel is never zero (minimum 30 at 12:01–12:02) and there are 0
+  brownout seconds and 0 refusals**. End state every run: 3 Held with the HQ standing, 6
+  turrets, 4 Generators, 7 Excavators, 3 Assemblers, 519 line magazines; walking
+  2.2–3.8 % against §19's 15 %; claim walk-overs 9–14 s; every Gate B replay verdict
+  "held anyway". `E-hour-north` (measured, not scored): north claimed at 65:00 is Held at
+  65:29–65:34 and **stands to 75:00 on all three seeds, 4 Held**, where the 2026-09-04
+  attempt lost it at 72:45–74:38. Determinism confirmed across two invocations — the only
+  byte that moved in `docs/experiments/E-hour.json` was the `source_commit` stamp. Nothing
+  was changed to make it pass: it passes on the three rows decided on 2026-09-05. One
+  finding stands, unchanged and already reported — the first shade never happens against
+  §11 and E3's minute 32–47. Evidence: `docs/SLICE_REPORT.md` section "M6 re-run after the
+  economy fix", which now carries the passing run (`B-M6-hour-3`) with the 2026-09-04
+  attempt kept beneath it as the record.
