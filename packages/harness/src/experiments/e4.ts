@@ -1,6 +1,6 @@
 /** E4 — the first hour under the power model (§11): Generator count and coal to minute 60 without a brownout,
  *  §11 literally (200/40 kW, 40 coal) and under D1 (100/20 kW, HQ 100 kW, ~700-unit coal patch). */
-import { firstHour, FirstHourOptions, FIRST_HOUR_D1 } from '@relight/sim';
+import { firstHour, FirstHourOptions, FIRST_HOUR_D1, FIRST_HOUR_PRE_D1, FIRST_HOUR_DEFAULTS } from '@relight/sim';
 import { min, isTrue, within, Experiment, ExperimentResult, Section, Check } from '../util';
 
 export const E4: Experiment = {
@@ -11,11 +11,11 @@ export const E4: Experiment = {
       const r = firstHour(o); data[label] = r;
       const full = { ...o } as FirstHourOptions;
       return [label, min(r.firstBrownout), min(r.coalOut), (r.brownoutS / 60).toFixed(1), r.throttleMin.toFixed(2), r.peakKw.toFixed(0), r.gensNeeded.join(' '), r.coalBurned.toFixed(0),
-              o.patch != null ? `${min(r.patchOut)} (${r.patchLeft.toFixed(0)} left)` : '-', (full.gens ?? [0, 1800]).map(g => g / 60).join(',')];
+              o.patch != null ? `${min(r.patchOut)} (${r.patchLeft.toFixed(0)} left)` : '-', (full.gens ?? FIRST_HOUR_DEFAULTS.gens).map(g => g / 60).join(',')];
     };
     const header = ['run', 'first brownout (min)', 'coal out (min)', 'brownout minutes', 'worst throttle', 'peak kW', 'Generators needed per 10 min', 'coal burned in h1', 'patch mined out', 'Generators at (min)'];
     const lit: (string | number)[][] = [
-      row('E4-literal', {}), row('E4-hq-draw-40', { hqDraw: 40 }), row('E4-flat-120', { drawFlat: true }),
+      row('E4-literal', {}), row('E4-pre-D1', { ...FIRST_HOUR_PRE_D1 }), row('E4-hq-draw-40', { hqDraw: 40 }), row('E4-flat-120', { drawFlat: true }),
       row('E4-start-coal-rubble', { coalRubble: true }), row('E4-coal-120', { startCoal: 120 }),
       row('E4-rubble+gen@6,15,25,40', { coalRubble: true, gens: [0, 360, 900, 1500, 2400] }),
       row('E4-rubble+gen@6,15,25,40,45', { coalRubble: true, gens: [0, 360, 900, 1500, 2400, 2700] }),

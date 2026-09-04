@@ -208,6 +208,27 @@ The loop never changes verbs. It changes what one edge costs (district, depth, w
 
 ## 11. First hour in three windows
 
+The minute table below is generated from `packages/sim/src/constants.ts` (`HOUR`) and is the rule (D-HOUR-1); the three windows after it are the prose around it, and where a minute in the prose and the table differ the table wins.
+<!-- docsync:hour (generated from packages/sim/src/constants.ts HOUR; edit the .ts, then `npm run docsync`) -->
+| Minute | What | Decided by |
+|---|---|---|
+| 0 | Generator 1 (300 kW) with its hopper coal; the chest's 40 coal beside it | D-P4-7, D-B1-1 |
+| 0 | hand-mine steel at the HQ patch | §11 0–10, D-P4-8 |
+| 0 | craft magazines at the workbench; hand-feed the first empty hopper (~minute 6) with E | §11 0–10, D-P4-8 |
+| 6 | the coal Excavator and its belt, before Generator 2 | D-P4-7 |
+| 6 | Generator 2, on the chest's coal until the belt delivers | D-P4-7, D-HOUR-1 |
+| 6 | the steel and copper Excavators and their belts | §11 "at minute 6" |
+| 8 | the Shot line: one Mk1 Assembler (10 mag/min), three inserters, the ammo belt | D-HOUR-1, D-P4-4 |
+| 15 | Generator 3 | D-P4-7, D-HOUR-1 |
+| 15 | claim east (residential) | D-HOUR-1, D-B6-2 |
+| 15 | the second steel Excavator, belted into the chest | D-P4-7, D-HOUR-1 |
+| 25 | claim west (rail yard) | D-HOUR-1, D-B6-2 |
+| 40 | claim north (civic); the two idle HQ turrets carried to north | D-HOUR-1, D-B6-2 |
+| 45 | Generator 4 | D-P4-7, D-HOUR-1 |
+| 46 | the second copper Excavator, into the chest | §11 "at 46" |
+| 50 | the third Assembler | §11 "at 50" |
+<!-- /docsync:hour -->
+
 **0–10 min.** The engineer stands on the HQ lot: river to the south, a 6×6 Depot with its chest and workbench, one Generator (300 kW) with 40 coal in its hopper and 40 more in the chest (D-P4-7 (b): with the chest's coal the second Generator goes down at 6:01 instead of waiting for the coal Excavator's first delivery at 7:24, and the hour has 0 brownout seconds either way **[sim: B-M6-hour]**), six Gun turrets with full 50-round hoppers — one per 16 tiles of each of the three street segments, at least one a segment, on the segment's front ring (D-B1-4, D-P4-8) — and 20 magazines in the chest (locked at 20 (C10, D-P2-1, D-P4-8): the block sim's two-full-one-empty ring was the lattice's first lesson **[sim: E1-start-min, E1-ring-substation-N10] [play: Gate A]**; on the tiles every pip is green from the first tick and the first lesson is the ~6-minute red below), a small steel-rubble patch, a copper patch and a coal patch of ~700 units on the lot (D1) **[sim: E4h-patch700]**, and 200 steel, 100 copper, 50 stone in the chest (D-P4-4, D-B1-1). The camera follows you; M shows the map. Three dark neighbours across three street segments: rail yard west (coal + steel rubble), residential east (copper), civic north (Electricians, visible as a lit window). Front = 3. You walk to the steel patch (the lot is 30 tiles across; reach is 8) and hand-mine a few frames' worth into your pockets, walk back to the workbench and craft. At about 3 minutes the north block blooms: 9 crawlers, the turrets fire, the first pip leaves green **[sim: B-M6-hour]**; you are on the far side of the lot and do nothing, which is the point. You place an Excavator (3×3) on the coal patch belted to the Depot, 2 Excavators on the steel patch, a belt, an Assembler (3×3) set to Shot magazine — the Mk1, 6 s a magazine, 10 mag/min (D-P4-4; the Mk2's 3 s is the purchase, §12) — a belt to the turret hoppers, and at minute 6 a second Generator fed from the chest's coal: one Generator alone browns out at minute 8 and the 40 coal in hand is gone by minute 11 without the patch **[sim: E4h-literal-1gen, E4-literal]** (a brownout slows the line rather than stopping it, D-B3-4; on the tiles the second Generator at 6:01 keeps the hour at 0 brownout seconds **[sim: B-M4-gate, B-M6-hour]**). At about 6 minutes the first pip goes red (5:33–6:18 on seeds 3 / 4 / 5): that is the hand-feed beat. The line's first magazine is two minutes away (8:07–8:10), so you take magazines from the chest, walk to the red segment's turrets and feed them (E on the turret), and you answer every red pip by hand until the belt reaches the hoppers — and after it too, since the Mk1's 10 mag/min is a little under the hour's draw and the hands carry the rest **[sim: B-M6-hour]**. Every placement is from your pockets, within reach, so the lot is built in three or four trips to the chest. By minute 10 ammo is automated at 10 mag/min; the second steel Excavator at minute 12, belted into the chest and paid from the surplus (D-P4-4), turns the steel curve at its minimum of 30 **[sim: B-M6-hour]**.
 
 **10–30 min.** You claim east (residential, d ≈ 0.22) from the map at about minute 15: 10 wire, 5 frames from the chest, wake bloom of 22 crawlers on the shared segment, a 30–35-second burn-off (20 + 60·d at east's d ≈ 0.2), Held at 15:31–15:38 **[sim: B-M6-hour]**, then a lot with 90k copper rubble. Front goes 3 → 4. You walk over (the one shared street to east's kerb, 2–8 s **[sim: B-M6-hour]**; the earlier "about 40 s" was the lattice's two street widths and a lot), put an Excavator on the copper, the wire recipe on a second Assembler, and a third Generator at minute 15 (hour-one draw peaks at 0.98 MW, two-thirds of it machines, and without it the whole line, HQ included, runs at supply ÷ demand — a brownout slows, it never sheds (D-B3-4) **[sim: E4h-literal-1gen, E4h-gen@0,6,15, B-M4-gate]**). You claim west (rail yard) at about minute 25 (Held 25:30–25:35 **[sim: B-M6-hour]**): front 4 → 5 and coal rubble feeds the Generators by belt. The HQ's ~700-unit patch is dug out at about minute 36 at one Excavator on the tiles **[sim: B-M6-hour]** (the lattice's 29; D1; 450 units mine out at 21 min, 1,000 at 39, 3,000 not in hour one **[sim: E4h-patch700, E4h-patch450, E4h-patch1000, E4h-patch3000]**), so west's coal is wanted by minute 36; through Gate B west's coal is the block-level stand-in and makes nothing (GA-B6-3), so the hour runs on the patch and the chest's 40 and ends with 2 coal in the chest **[sim: B-M6-hour]**. Both times you stood at the substation, watched the ring on the neighbouring polygon fill on the map and the crawlers come down the street at the moment the lamps lit; the first time a crawler walks past you to the lamp it does not look at you.
@@ -246,6 +267,14 @@ Mined-out rubble tiles become plain ground you can build on. Deposits are large 
 <!-- /docsync:recipes -->
 
 Nothing is more than two steps from a raw.
+
+The Assembler ladder (D-P4-4): the start Assembler is the Mk1; the Mk2 is a separate machine, the purchase.
+<!-- docsync:assemblers (generated from packages/sim/src/constants.ts; edit the .ts, then `npm run docsync`) -->
+| Assembler | Magazines a minute | Seconds a magazine | Decision |
+|---|---|---|---|
+| Mk1 | 10 | 6 s | D-P4-4 |
+| Mk2 | 20 | 3 s | D-P4-4 |
+<!-- /docsync:assemblers -->
 
 **Ammo chain.** Steel rubble → Excavator → belt → Assembler (Shot) → belt → turret hopper (50 rounds = 5 magazines). One Mk1 Assembler = 10 magazines/min (6 s a magazine) = 20 steel + 10 Cu per minute = 0.7 Excavators on steel and 0.3 on copper; the Mk2 (3 s, 20 mag/min, the purchase) doubles it (D-P4-4, D-B1-1) **[sim: B-M6-hour]**. That 20 mag/min feeds about seven edges of the mixed mid-game front (52–67 mag/min over 20–21 edges at 5–12 h of compact play, 2.5–3.4 mag/edge-min with wake tails) and fifteen civic or eleven residential edges at steady state; the early front is cheaper still, one 10 mag/min line plus the start stock carrying an 8–11-edge front for two and a half hours without a pip (C1, D-P2-2, locked **[sim: E9-hourly, E3-block, calibration] [play: Gate A]**). The Mk1/Mk2 ladder is back (D-P4-4, D-B1-1, decided 2026-09-04 over C9 / D-P3-7's "no ladder"): the start Assembler is the Mk1 at 6 s / 10 mag/min — the map-view calibration's rate — and the 3 s / 20 mag/min machine is the Mk2, a purchase whose unlock is open; the mid-game figures above are one Mk2 or two Mk1 lines. Shells: steel + coal → Arsenal-recipe Assembler → Cannon hopper (20 shells).
 
@@ -310,7 +339,8 @@ Twenty-eight things with a footprint, twenty-six of them placeable: the workbenc
 | Substation draw | 100 kW front · 20 kW interior | §5 table | D1 |
 | Brownout rule | proportional: every machine runs at supply ÷ demand, nothing sheds | §14 Power | D-B3-4 |
 | Start chest | 200 steel, 100 copper, 50 stone, 40 coal, 20 magazines | §11 0–10 min | C10, D-P2-1, D-B1-1, D-P4-4, D-P4-7, D-P4-8 |
-| §11 minute list (the hour bot) | 0: hand-mine steel, craft ten magazines; hand-feed the turrets on the first red pip (~6 min) and on every red pip after · 6: Generator 2 (on the chest's coal), the coal Excavator, the steel and copper Excavators and their belts · 8: the Shot assembler (Mk1), three inserters, the ammo belt · 12: the second steel Excavator, belted into the chest · 15: claim east · 15: Generator 3 · 25: claim west · 45: Generator 4 · 46: the second copper Excavator, into the chest · 50: the third Assembler · 65: claim north; the two idle turrets carried to north (E-hour-north only) | §11's three windows | D-P3-6, D-P4-4, D-P4-7, D-B6-2, D-P4-10 |
+| Block-sim edge hopper | 2 turrets on the segment × 50 = 100 rounds (computed, not a constant) | §13 Gun turret row | D-B1-4-rider, D-P1-3 rider |
+| §11 minute list | the generated §11 table (constants.ts HOUR, 15 rows) | §11 | D-HOUR-1 |
 <!-- /docsync:constants -->
 
 ## 14. Logistics
@@ -732,3 +762,5 @@ Each edit as `§N — what changed — why — run name`. Run names before Phase
 - §13 — streetlights light a 7-tile radius, to the street midline: the kerb row 65–93 % and the half-street 44–65 % (radius 4 gave 50–68 % and 26–41 %); the light tests' thresholds moved with it — D-B5-4 decided by the human 2026-09-04 — B-M6-light
 - §11 — the rifle at tile scale: a late belt (90 s) holds without it, one dry edge that never gets its belt is saved by it, a whole dry ring is delayed 0.1–2.8 min or saved on one seed in three, the engineer never knocked down, the hour's magazine bill unchanged (519 rifle off or on) — E-rifle-tile
 - §11 — the walk-over 3–7 s → 2–8 s — the re-run's six walks were 8 / 8 / 3 / 2 / 13 / 13 s to the kerb, 2–8 s on the doc's east — B-M6-hour
+- §12 — Mk1 10 mag/min, Mk2 20 mag/min — D-P4-4
+- §11 — minute table generated from constants.HOUR — D-HOUR-1

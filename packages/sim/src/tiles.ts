@@ -10,6 +10,7 @@
  *  ringed by street. */
 import { SimState, Block, District, INERT, VOID } from './types';
 import { hash01 } from './prng';
+import { LAMP_STEP_TILES } from './constants';
 import { districtOf } from './districts';
 import { poolMax } from './queries';
 
@@ -69,11 +70,14 @@ export function substationReserved(seed: number, b: Pick<Block, 'x' | 'y'>, hq: 
   return lx >= sx && lx < sx + SUBSTATION_TILES && ly >= sy && ly < sy + SUBSTATION_TILES;
 }
 
-/** §5/§18 (M3): the cell's pre-existing streetlights, on the margin row next to the lot on each street side.
- *  GAME-ASSUMPTION: eight a side, every three tiles (Lamp radius 4 makes a continuous strip when all work), and each
- *  is broken with probability 3/8, so a side averages the §5 line's "3 Lamps to plug broken streetlights". They draw
- *  nothing of their own (the substation's 100/20 kW covers the cell's fixtures) and light when the substation powers. */
-export const STREETLIGHT_STEP = 3, STREETLIGHTS_PER_SIDE = 8, STREETLIGHT_BROKEN = 3 / 8;
+/** §5/§18 (M3): the lattice cell's pre-existing streetlights, on the margin row next to the lot on each street side.
+ *  The spacing is the doc's one every LAMP_STEP_TILES (4) along the kerb (D-B1-4; economy-fix task Step 2, item 6 —
+ *  it was a live 3 here), and a side takes as many as fit the lot's length at that spacing (24 / 4 = 6; it was eight
+ *  at 3). GAME-ASSUMPTION: each is broken with probability 3/8 (at eight a side that averaged the §5 line's "3 Lamps to
+ *  plug broken streetlights"; at six it averages 2.25 — reported, not re-chosen). They draw nothing of their own (the
+ *  substation's 100/20 kW covers the cell's fixtures) and light when the substation powers. The city's faces use
+ *  ground.ts faceLights (FACE_LIGHT_STEP = LAMP_STEP_TILES); this is the lattice only. */
+export const STREETLIGHT_STEP: number = LAMP_STEP_TILES, STREETLIGHTS_PER_SIDE: number = Math.floor(LOT_TILES / STREETLIGHT_STEP), STREETLIGHT_BROKEN = 3 / 8;
 export interface Streetlight { tx: number; ty: number; side: number; broken: boolean }
 export function streetlights(seed: number, b: Pick<Block, 'x' | 'y'>): Streetlight[] {
   const out: Streetlight[] = [];

@@ -10,7 +10,7 @@ import { districtBase } from './districts';
 import { latticeGraph, bfsHops, edgeId, LATTICE_AREA } from './graph';
 import { createEngineer, tickEngineer, rifle, rifleHits, engineerCommand, bornFed, threatHooks } from './engineer';
 import { SURVIVOR_UNLOCK_NAMES } from './map';
-import { ASSEMBLER_MAG_PER_MIN, SHOT_MAGAZINE, SUBSTATION_KW } from './constants';
+import { ASSEMBLER_MAG_PER_MIN, SHOT_MAGAZINE, SUBSTATION_KW, TURRET, EDGE_TURRETS } from './constants';
 
 // ------------------------------------------------------------------ config
 
@@ -19,7 +19,7 @@ export const DEFAULT_CONFIG: SimConfig = {
   asmSchedule: [[600, 1], [1800, 2], [3000, 3], [10800, 4]],
   startAssemblers: 0,
   asmRate: ASSEMBLER_MAG_PER_MIN, asmEarlyRate: null, startAsmRate: null,
-  hopper: 100, bufferCap: 4000, startRounds: 200,   // C10: 20 magazines (§11; E1-start-min)
+  hopper: EDGE_TURRETS * TURRET.hopper, bufferCap: 4000, startRounds: 200,   // D-B1-4-rider: the edge hopper is turrets on the segment × 50; C10: 20 magazines (§11; E1-start-min)
   unfed: 'substation', unfedN: 40, starveQuiet: false,
   scatter: true, scatterFrac: 0.09, validator: 'none',
   shadeThr: 0.3, hulkThr: 0.5, wakeCap: true, bloomBase: 4.0, jitter: 0.1, fallTiles: 30,

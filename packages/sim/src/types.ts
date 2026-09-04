@@ -301,7 +301,10 @@ export interface SimState {
 // ------------------------------------------------------------------ proto section
 /** The prototype's config numbers. Every number that moved in the calibration is tagged PROTO-CALIBRATED with the
  *  target it was set to hit (CALIBRATION_REPORT.md); the rest are the GAME-ASSUMPTION values of the build report.
- *  The regression fixtures never read this block: they run with the economy off and `startAsmRate` null. */
+ *  The regression fixtures never read this block: they run with the economy off and `startAsmRate` null.
+ *  D-B1-1 (2026-09-04): the start stock and rounds here stay as the calibration froze them (80 steel / 40 copper /
+ *  0 stone / 200 rounds); the tile chest is constants.ts START_CHEST and docsync does not compare the two. */
+// prototype-era, frozen at Gate A; excluded from docsync
 export const PROTO_CALIBRATED = {
   startAssemblers: 1,          // one assembler at the start (build report, assumption 3)
   // PROTO-CALIBRATED (T2): the start assembler is a 10 mag/min "Mk1"; the 20 mag/min assembler is the purchase.
@@ -310,6 +313,9 @@ export const PROTO_CALIBRATED = {
   // PROTO-CALIBRATED: kept at 300. Lever 2 (100) was tried and rejected: 100 rounds fill one of the start block's
   // hoppers, so two pips are red at minute 0 for two minutes, and nothing else in the session changed.
   startRounds: 200,
+  // D1 (economy-fix task Step 2, item 4): the substation draw the block sim states is the doc's 100 / 20 kW, not the
+  // pre-D1 "doc" 200 / 40. Power is off in the calibration, so no calibrated number moves; only the config hash does.
+  draw: 'half' as SimConfig['draw'],
   eco: {
     // PROTO-CALIBRATED (T3): rubble per Held block per minute, civic : residential : industrial fixed 1 : 1 : 1.
     // Lever 3, swept 4/8/12/16/24/26/28/30/32: 32 is the lowest level at which compact and cheapest reach 180 min
@@ -331,7 +337,7 @@ export const PROTO_CALIBRATED = {
 /** Apply the proto numbers to a base config (the proto's session and the calibration harness both go through here). */
 export function protoCalibrated(base: SimConfig): SimConfig {
   const p = PROTO_CALIBRATED;
-  return { ...base, asmSchedule: [], startAssemblers: p.startAssemblers, startAsmRate: p.startAsmRate, startRounds: p.startRounds,
+  return { ...base, asmSchedule: [], startAssemblers: p.startAssemblers, startAsmRate: p.startAsmRate, startRounds: p.startRounds, draw: p.draw,
            eco: { ...base.eco, ...p.eco, claimCost: { ...p.eco.claimCost }, assemblerCost: { ...p.eco.assemblerCost },
                   startStock: { ...p.eco.startStock }, startPatch: { ...p.eco.startPatch }, magazineCost: { ...p.eco.magazineCost }, pool: { ...p.eco.pool } } };
 }

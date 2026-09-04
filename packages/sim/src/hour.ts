@@ -1,8 +1,8 @@
 /** Prompt B M6 "The hour" (run name B-M6-hour): a bot that plays §11's minute list on the tile layer with real
  *  walking and real pockets — to the steel patch and back to the workbench, the turrets hand-fed on the first red pip
- *  (D-P4-8), the line placed from the pockets in trips to the chest, a second steel Excavator into the chest at 12:00
- *  (D-P4-4), east / west / north claimed on the calibration's clock
- *  (firsthour.ts FIRST_HOUR_CLAIMS: 15 / 25 / 40 min) with the kit walked over, the two idle turrets carried to
+ *  (D-P4-8), the line placed from the pockets in trips to the chest, a second steel Excavator into the chest at 15:00
+ *  (D-P4-7), east / west / north claimed at constants.HOUR's minutes (D-HOUR-1: 15 / 25 / 40, the same minutes
+ *  firsthour.ts reads) with the kit walked over, the two idle turrets carried to
  *  north, the hands running magazines and coal every five minutes — and writes down when each thing happened.
  *  `hourReport` turns the log into findings against §11's prose and the calibration timeline. Every command goes
  *  through `Command` (types.ts), so a session under the bot replays like a played one (`replay`, Gate B's "did the
@@ -92,19 +92,17 @@ export interface HourBot {
  *  beat (D-P4-8) fires on a red HQ pip at most once a minute and tops up the turrets at or under half. */
 export const HOUR_MINE_STEEL = 20, HOUR_CRAFT_MAGS = 10, HOUR_KITS = 6, HOUR_RUN_FROM = 10 * 60, HOUR_RUN_GAP = 5 * 60;
 export const HOUR_RUN_MAGS = 20, HOUR_RUN_COAL = 50, HOUR_FEED_GAP = 60;
-/** D-P4-4: the second steel Excavator, belted into the Depot chest, at 12:00 — "~15:00" in the decision, placed
- *  before Generator 3 so the chest never reaches zero (at 15:00 either order does: 200 − 158 spent by 8:00 leaves 42,
- *  Generator 3 is 30, the Excavator and its two belts 12). GAME-ASSUMPTION: a second copper Excavator into the chest
- *  at 38:00 — the chest's 100 copper is 8 short of the hour's machines and claims, and a copper line into the chest
- *  from minute 12 would mine the 1,200-unit patch out under the ammo line by minute 40.
- *  GAME-ASSUMPTION (GA-EF-1): the second steel Excavator goes down at 12:00, not the decision's "~15:00" — the steel
- *  curve's minimum (30) is at 12:01 on every seed and a 15:00 placement crosses the east claim's kit; ~3 minutes early. */
+/** D-P4-7 / D-HOUR-1: the second steel Excavator, belted into the Depot chest, at constants.HOUR's minute (15), placed
+ *  before Generator 3 at the same minute so the chest never reaches zero. (GA-EF-1's 12:00 was withdrawn by the
+ *  economy-fix task, Step 2: the minute is the decided row's.) GAME-ASSUMPTION: a second copper Excavator into the
+ *  chest at 46:00 — the chest's 100 copper is 8 short of the hour's machines and claims, and a copper line into the
+ *  chest from minute 12 would mine the 1,200-unit patch out under the ammo line by minute 40. */
 export const HOUR_STEEL2_AT = HOUR_STEEL2_MIN * 60, HOUR_COPPER2_AT = HOUR_COPPER2_MIN * 60, HOUR_ASM3_AT = HOUR_ASM3_MIN * 60;
-/** §11's end state the report checks (D-P4-4 rewrite): four Generators, seven Excavators (steel ×2, copper ×2, coal,
- *  two E4 stand-ins), three Assemblers, the six start turrets (two of them carried to north), four blocks Held. */
-export const HOUR_END = { generators: 4, excavators: 7, assemblers: 3, turrets: START_TURRETS, held: 3 } as const;
-/** The claim minutes (east 15 / west 25 on the calibration's clock, north 65 — D-P4-10) and E4-doc's Generator minutes
- *  (0 / 6 / 15 / 45), from constants.ts (§11's minute list). */
+/** §11's end state the report checks: four Generators, seven Excavators (steel ×2, copper ×2, coal, two E4 stand-ins),
+ *  three Assemblers, the six start turrets (two of them carried to north), four blocks Held (the HQ and the three
+ *  claims of constants.HOUR: east 15, west 25, north 40 — D-HOUR-1). */
+export const HOUR_END = { generators: 4, excavators: 7, assemblers: 3, turrets: START_TURRETS, held: 4 } as const;
+/** The claim minutes and the Generator minutes, from constants.HOUR (D-HOUR-1, D-P4-7). */
 export const HOUR_CLAIM_AT: Record<HourDir, number> = { east: HOUR_CLAIM_MIN.east * 60, west: HOUR_CLAIM_MIN.west * 60, north: HOUR_CLAIM_MIN.north * 60 };
 export const HOUR_GEN_AT = HOUR_GENERATOR_MIN.map(m => m * 60);
 
@@ -469,7 +467,7 @@ export function hourSteps(bot: HourBot): HourStep[] {
       const steel = MACHINE_COST.assembler.steel + 3 * MACHINE_COST.inserter.steel + 5 * MACHINE_COST.belt.steel, copper = MACHINE_COST.assembler.copper + 3 * MACHINE_COST.inserter.copper;
       return [chest('to the chest', st), takeTask(bot, { steel, copper }), ...assemblerLine(bot)];
     } },
-    { at: HOUR_STEEL2_AT, name: `§11 ${HOUR_STEEL2_AT / 60}:00 — the second steel Excavator, belted into the chest (D-P4-4)`, tasks: st => [
+    { at: HOUR_STEEL2_AT, name: `§11 ${HOUR_STEEL2_AT / 60}:00 — the second steel Excavator, belted into the chest (D-P4-7)`, tasks: st => [
       chest('to the chest', st), takeTask(bot, { steel: MACHINE_COST.excavator.steel + 2 * MACHINE_COST.belt.steel }), ...steelToChest(bot)] },
     gen(3, 22, 3),
     claimAt('east'),
@@ -679,7 +677,7 @@ export function hourReport(st: SimState, bot: HourBot): HourReport {
   expect('claim-west', 15 * 60, 30 * 60, 'west claimed');
   // §11 30–60 min
   if (st.t >= HOUR_CLAIM_AT.north + 60) {
-    expect('claim-north', HOUR_CLAIM_AT.north, HOUR_CLAIM_AT.north + 5 * 60, 'north claimed (§11 rewritten: 60–75)');
+    expect('claim-north', HOUR_CLAIM_AT.north, HOUR_CLAIM_AT.north + 5 * 60, 'north claimed (constants.HOUR: minute 40, D-HOUR-1)');
     expect('turrets-carried', HOUR_CLAIM_AT.north, HOUR_CLAIM_AT.north + 10 * 60, 'the two turrets carried to north');
     if (bot.carried < 2 && m['claim-north'] !== undefined) findings.push(`${bot.carried} turret(s) carried, §11 says two`);
   }
