@@ -10,6 +10,7 @@ import { districtBase } from './districts';
 import { latticeGraph, bfsHops, edgeId, LATTICE_AREA } from './graph';
 import { createEngineer, tickEngineer, rifle, rifleHits, engineerCommand, bornFed, threatHooks } from './engineer';
 import { SURVIVOR_UNLOCK_NAMES } from './map';
+import { ASSEMBLER_MAG_PER_MIN, SHOT_MAGAZINE, SUBSTATION_KW } from './constants';
 
 // ------------------------------------------------------------------ config
 
@@ -17,7 +18,7 @@ export const DEFAULT_CONFIG: SimConfig = {
   production: true,
   asmSchedule: [[600, 1], [1800, 2], [3000, 3], [10800, 4]],
   startAssemblers: 0,
-  asmRate: 20.0, asmEarlyRate: null, startAsmRate: null,
+  asmRate: ASSEMBLER_MAG_PER_MIN, asmEarlyRate: null, startAsmRate: null,
   hopper: 100, bufferCap: 4000, startRounds: 200,   // C10: 20 magazines (§11; E1-start-min)
   unfed: 'substation', unfedN: 40, starveQuiet: false,
   scatter: true, scatterFrac: 0.09, validator: 'none',
@@ -35,7 +36,7 @@ export const DEFAULT_CONFIG: SimConfig = {
     assemblerCost: { copper: 20, steel: 40 },
     startStock: { stone: 0, copper: 40, steel: 80 },
     startPatch: { steel: 240, perMin: 2, copper: 120, copperPerMin: 1 },
-    magazineCost: { steel: 2, copper: 1 },   // §12: "Shot magazine (2 steel + 1 Cu → 1 magazine of 10 rounds)"
+    magazineCost: { steel: SHOT_MAGAZINE.steel, copper: SHOT_MAGAZINE.copper },   // §12 Shot magazine (constants.ts)
     pool: { civ: 120, res: 120, ind: 120 },  // 120 min at yieldPerMin 1; the fixtures never draw on it (economy off)
   },
 };
@@ -502,10 +503,10 @@ export function subDraw(st: SimState, b: Block, unshed = false): number {
   const c = st.config, t = st.t;
   if (!unshed && (!b.subOn || t < b.shadeOff)) return 0;
   if (c.draw === 'flat') return 120;
-  const half = c.draw === 'half';   // D1: 100/20 kW
-  if (!b.exposed) return half ? 20 : 40;
-  if (c.interiorGrace && t - b.exposedAt < c.interiorGrace) return half ? 20 : 40;
-  return half ? 100 : 200;
+  const half = c.draw === 'half';   // D1: 100/20 kW (constants.ts SUBSTATION_KW); 'doc' is the pre-D1 200/40
+  if (!b.exposed) return half ? SUBSTATION_KW.interior : 40;
+  if (c.interiorGrace && t - b.exposedAt < c.interiorGrace) return half ? SUBSTATION_KW.interior : 40;
+  return half ? SUBSTATION_KW.front : 200;
 }
 
 /** Demand with every substation and assembler on (what the supply tracks). */
@@ -514,7 +515,7 @@ export function demandUnshed(st: SimState): number {
   let d = 0;
   for (const b of st.blocks) {
     if (b.state === HELD) d += subDraw(st, b, true);
-    else if (b.state === CONTESTED) d += half ? 100 : 200;
+    else if (b.state === CONTESTED) d += half ? SUBSTATION_KW.front : 200;
   }
   const th = tiles(st);
   return d + asmCount(st, st.t) * 220 + (th ? th.demandKw(st, true) : 0);
@@ -526,7 +527,7 @@ export function demandKw(st: SimState): number {
   let d = 0;
   for (const b of st.blocks) {
     if (b.state === HELD) d += subDraw(st, b);
-    else if (b.state === CONTESTED) d += half ? 100 : 200;
+    else if (b.state === CONTESTED) d += half ? SUBSTATION_KW.front : 200;
   }
   const th = tiles(st);
   return d + st.power.asmActive * 220 + (th ? th.demandKw(st, false) : 0);

@@ -13,6 +13,7 @@ import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command, Engineer } from
 import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing, burnOffS } from './sim';
 import { edgeId, edgeFrom, edgeTo } from './graph';
 import { RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH, FLOODLIGHT_KW, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH } from './recipes';
+import { BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, TURRET_PER_TILES, START_CHEST } from './constants';
 import {
   CELL_TILES, P_STEEL, P_COPPER, P_COAL, HQ_PATCHES, DEPOT_LOT, DEPOT_TILES, SUBSTATION_TILES,
   T_STREET, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
@@ -68,11 +69,11 @@ export type Item = 'steel' | 'copper' | 'stone' | 'coal' | 'magazine';
 
 /** Constitution M2: belts carry 7.5 items/s (§13/§14 said 8; D-P4-6). GAME-ASSUMPTION: four items a tile, so the
  *  belt moves 1.875 tiles/s; belts are one lane, a side feed joins at the tile's start like a corner. */
-export const BELT_PER_S = 7.5, BELT_SPACING = 0.25, BELT_SPEED = BELT_PER_S * BELT_SPACING;
+export { BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, TURRET_PER_TILES, START_CHEST } from './constants';
+export const BELT_SPACING = 0.25, BELT_SPEED = BELT_PER_S * BELT_SPACING;
 /** §13: Excavator 3×3, mines the 5×5 under and around it at 0.5/s. */
-export const EXCAVATOR_PER_S = 0.5;
 /** §13: inserter 1 item/s. GAME-ASSUMPTION: half a second each way; it waits with the item if the target is full. */
-export const INSERTER_PER_S = 1, INSERTER_SWING = 0.5 / INSERTER_PER_S;
+export const INSERTER_SWING = 0.5 / INSERTER_PER_S;
 export const SHOT = RECIPES.find(r => r.name === 'Shot magazine')!;
 /** GAME-ASSUMPTION: an assembler holds four crafts' worth of each input and five finished magazines, then stops. */
 export const ASM_INPUT_MULT = 4, ASM_OUTPUT_CAP = 5;
@@ -199,8 +200,7 @@ export function ensureFlow(st: SimState): FlowState {
   return f;
 }
 
-/** GAME-ASSUMPTION (D-B1-4): one start turret per 16 tiles of HQ segment length (`segLength`), at least one a segment. */
-export const TURRET_PER_TILES = 16;
+/** GAME-ASSUMPTION (D-B1-4): one start turret per TURRET_PER_TILES (constants.ts, 16) of HQ segment length (`segLength`), at least one a segment. */
 
 /** D-B1-4: which of a face's street segments a 2×2 at (x, y) serves — the segment whose front ring (`frontTiles`,
  *  the lot tiles that border that street) holds most of the footprint; ties and footprints off every ring go to the
@@ -288,8 +288,7 @@ export function startTurrets(st: SimState): Map<number, number> {
   return out;
 }
 
-/** §11: what the chest holds at the start. */
-export const START_CHEST = { steel: 200, copper: 100, stone: 50, magazines: 20 } as const;
+/** §11: what the chest holds at the start — START_CHEST in constants.ts. */
 
 /** A flow layer saved before M3 gets the M3 fields. */
 function upgrade(f: FlowState): FlowState {

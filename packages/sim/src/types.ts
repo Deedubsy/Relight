@@ -1,5 +1,6 @@
-import type { FlowState } from './flow';
 /** Plain-data types. The whole sim state is JSON-serialisable: save/load is JSON.stringify/parse. */
+import type { FlowState } from './flow';
+import { SHOT_MAGAZINE } from './constants';
 
 export const DARK = 0, CONTESTED = 1, HELD = 2, INERT = 3, VOID = 4;
 export type CellState = 0 | 1 | 2 | 3 | 4;
@@ -320,7 +321,7 @@ export const PROTO_CALIBRATED = {
     // PROTO-CALIBRATED (T3): perMin = 2 × yieldPerMin (the start patch scales with the residential rate);
     // steel = 120 × perMin so the patch still runs out at ~2 h (§19). Was 240 at 2/min.
     startPatch: { steel: 7680, perMin: 64, copper: 3840, copperPerMin: 32 },   // copper = the lattice HQ's residential yield, 120 min × 32
-    magazineCost: { steel: 2, copper: 1 },   // §12 recipe, doc-derived, not a lever
+    magazineCost: { steel: SHOT_MAGAZINE.steel, copper: SHOT_MAGAZINE.copper },   // §12 recipe (constants.ts), not a lever
     // §12: rubble is finite (doc rule). GAME-ASSUMPTION for the size: 120 min × yieldPerMin, so a block lasts about as
     // long as the doc's "start block's steel runs out in ~2 hours" at the current draw; the three districts are equal.
     pool: { civ: 3840, res: 3840, ind: 3840 },

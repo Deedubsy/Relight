@@ -6,6 +6,7 @@
  *  from the block sim and the flow layer at query time; the derivation itself depends only on the seed and the
  *  geometry, never on time. */
 import { SimState, Block, INERT, VOID } from './types';
+import { LAMP_STEP_TILES } from './constants';
 import { hash01 } from './prng';
 import { LATTICE_AREA } from './graph';
 import { generateCity, CityGeom, CityPreset, CitySeg, STREET, WATER, segBetween, frontTiles } from './city';
@@ -195,7 +196,7 @@ function faceSubstation(G: Ground, cg: CityGeom, i: number): Substation {
  *  face's side of the watershed that border its lot), one every FACE_LIGHT_STEP tiles along the segment, so a
  *  segment's count comes from its length (a 32-tile segment gets 8, the lattice's count); 3 in 8 broken as on the
  *  lattice (§13). This replaces the lattice's "8 per side". */
-export const FACE_LIGHT_STEP = 4;
+export const FACE_LIGHT_STEP = LAMP_STEP_TILES;
 
 /** The ridge's unit direction (from its midpoint to its farthest tile), for ordering tiles along a segment. */
 export function segAxis(sg: CitySeg, tw: number): [number, number] {

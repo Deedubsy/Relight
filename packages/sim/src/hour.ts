@@ -21,6 +21,7 @@ import {
   MACHINE_SIZE, MACHINE_COST, GENERATOR_COAL_CAP, survivorJoined, advanceFlow, TILE_DT, TILE_TPS, ensureFlow,
 } from './flow';
 import { threatActive, threatOf } from './threat';
+import { HOUR_CLAIM_MIN, HOUR_GENERATOR_MIN, HOUR_SHOT_LINE_MIN } from './constants';
 
 // ------------------------------------------------------------------ the log
 
@@ -76,9 +77,9 @@ export interface HourBot {
  *  minute 10 (20 magazines and 50 coal a trip, turrets and Generators at or under half topped up). */
 export const HOUR_MINE_STEEL = 20, HOUR_CRAFT_MAGS = 10, HOUR_KITS = 6, HOUR_RUN_FROM = 10 * 60, HOUR_RUN_GAP = 5 * 60;
 export const HOUR_RUN_MAGS = 20, HOUR_RUN_COAL = 50;
-/** The calibration's claim minutes (firsthour.ts) and E4-doc's Generator minutes (0 / 6 / 15 / 45). */
-export const HOUR_CLAIM_AT: Record<HourDir, number> = { east: 15 * 60, west: 25 * 60, north: 40 * 60 };
-export const HOUR_GEN_AT = [0, 6 * 60, 15 * 60, 45 * 60];
+/** The calibration's claim minutes and E4-doc's Generator minutes (0 / 6 / 15 / 45), from constants.ts (§11's minute list). */
+export const HOUR_CLAIM_AT: Record<HourDir, number> = { east: HOUR_CLAIM_MIN.east * 60, west: HOUR_CLAIM_MIN.west * 60, north: HOUR_CLAIM_MIN.north * 60 };
+export const HOUR_GEN_AT = HOUR_GENERATOR_MIN.map(m => m * 60);
 
 // ------------------------------------------------------------------ helpers
 
@@ -379,7 +380,7 @@ export function hourSteps(bot: HourBot): HourStep[] {
       const steel = 3 * MACHINE_COST.excavator.steel + 50 * MACHINE_COST.belt.steel + MACHINE_COST.generator.steel;
       return [chest('to the chest', st), takeTask(bot, { steel, copper: MACHINE_COST.generator.copper, coal: GENERATOR_COAL_CAP }), ...excavatorLine(bot)];
     } },
-    { at: 8 * 60, name: '§11 8:00 — the Shot assembler, three inserters, the ammo belt', tasks: st => {
+    { at: HOUR_SHOT_LINE_MIN * 60, name: '§11 8:00 — the Shot assembler, three inserters, the ammo belt', tasks: st => {
       const steel = MACHINE_COST.assembler.steel + 3 * MACHINE_COST.inserter.steel + 5 * MACHINE_COST.belt.steel, copper = MACHINE_COST.assembler.copper + 3 * MACHINE_COST.inserter.copper;
       return [chest('to the chest', st), takeTask(bot, { steel, copper }), ...assemblerLine(bot)];
     } },

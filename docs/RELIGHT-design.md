@@ -291,6 +291,24 @@ Nothing is more than two steps from a raw.
 
 Twenty-eight things with a footprint, twenty-six of them placeable: the workbench comes with the HQ and the truck is found. A Factorio player recognises twenty of them on sight.
 
+**The constants the sim is built from.** One file, `packages/sim/src/constants.ts`, holds the tempo numbers this section, §5, §7, §11, §12 and §14 state; the table is generated from it and `npm run docsync:check` fails when this doc, the calibration config, `firsthour.ts` or the hour bot disagree with it (guardrails task, Step 5; constitution rule 11). A number here changes only with a `DECISIONS.md` row.
+<!-- docsync:constants (generated from packages/sim/src/constants.ts; edit the .ts, then `npm run docsync`) -->
+| Constant | Value | Where the doc says it | Decision |
+|---|---|---|---|
+| Assembler rate (Assembler) | 20 mag/min | §12 ammo chain, §13 Assembler row | C9, D-P3-7 |
+| Shot magazine | 2 steel + 1 Cu → 10 rounds in 3 s | §12 recipe table | — |
+| Excavator rate | 0.5/s | §13 Excavator row | [sim: M2-rates] |
+| Belt / fast belt | 7.5/s · 15/s | §13 belt row, §14 | D-P4-6 |
+| Inserter | 1 item/s | §13 Inserter row, §14 | [sim: M2-rates] |
+| Gun turret | range 9, 5 rounds/s, 50-round hopper, 4 HP a round | §13 Gun turret row, §7 | [sim: M3-rates, B-M4-threat] |
+| Turret kits per segment | one per 16 tiles of segment length, at least one | §13 pre-existing fixtures, §14 | D-B1-4 |
+| Streetlight spacing | one every 4 tiles along the kerb | §13 pre-existing fixtures | D-B1-4 |
+| Substation draw | 100 kW front · 20 kW interior | §5 table | D1 |
+| Brownout rule | proportional: every machine runs at supply ÷ demand, nothing sheds | §14 Power | D-B3-4 |
+| Start chest | 200 steel, 100 copper, 50 stone, 20 magazines | §11 0–10 min | C10, D-P2-1, D-B1-1 |
+| §11 minute list (the hour bot) | 0: hand-mine steel, craft ten magazines, walk them to the west and east turrets twice · 6: Generator 2, the coal Excavator, the steel and copper Excavators and their belts · 8: the Shot assembler, three inserters, the ammo belt · 15: claim east · 15: Generator 3 · 25: claim west · 40: claim north; the two idle turrets carried to north · 45: Generator 4, the fifth Excavator and third Assembler | §11's three windows | D-P3-6, D-P4-7, D-B6-2 |
+<!-- /docsync:constants -->
+
 ## 14. Logistics
 
 **Belts.** Standard two-lane belts, 7.5/s and 15/s (four items a tile; 8/16 until Phase 4 M2 fixed the tile tick at 20/s, D-P4-6), inserters at 1/s **[sim: M2-rates]**, splitters with priority, undergrounds of span 4. Belts run on lots and on streets; streets are 8 wide **[sim: M1-tiles]**, which is room for two belts, a track and a lamp line.
@@ -703,3 +721,4 @@ Each edit as `§N — what changed — why — run name`. Run names before Phase
 - §11 — "You walk over (two street widths and a lot, about 40 s)" → the one shared street, 3–7 s `[sim: B-M6-hour]` — E-hour measured the walk-over at 7 / 3 / 4 s on seeds 3 / 4 / 5: a claim candidate is a street neighbour and its kerb is across one street — B-M6-hour (verification pass 2026-09-04)
 - §11 — east's "40-second burn-off" → 30–35 s (20 + 60·d at d ≈ 0.2) `[sim: B-M6-hour]` — E-hour: claim 15:00, Held 15:31 / 15:35 / 15:30; the 20–80 s rule stands — B-M6-hour (verification pass 2026-09-04)
 - §11, §19 — reported, not edited, from E-hour (`SLICE_REPORT.md` M6 "disagree"): §11's minute-45 machines and end counts are unaffordable on either chest (D-P4-4); north falls at 45–58 min on every seed and the enclosure / held 4 are not reached (D-P4-9, D-P4-7); the calibration's first amber / red 16–31 min is ≈ 3 / ≈ 6 min at tile level on every seed; the first shade 32–47 holds on two seeds of three; the chest's 20 magazines are 5–10 at the first take and the start turrets take none (D-P4-8); §19's walking share for the bot is 4.6–5.2 % (the player's is Gate B's) — B-M6-hour (verification pass 2026-09-04)
+- §13 — "The constants the sim is built from" paragraph and the generated `constants` table added (from `packages/sim/src/constants.ts`); no number in the doc changed — guardrails task Step 5 — docsync

@@ -2,6 +2,7 @@
  *  starting coal, the HQ substation, machines placed at the minutes §11 states, three starting neighbours, coal from
  *  the west block's rubble once it is Held. Deterministic, no map. E4. A shortfall throttles (D-B3-4). */
 import { COAL_MJ, GENERATOR_KW } from './recipes';
+import { HOUR_CLAIM_MIN, SUBSTATION_KW } from './constants';
 
 export interface FirstHourOptions {
   startCoal: number;        // units in the HQ's starting stock (§11: 40)
@@ -21,7 +22,7 @@ export const FIRST_HOUR_DEFAULTS: FirstHourOptions = {
 };
 
 /** D1 variant: substations 100/20 kW, HQ 100 kW, coal patch on the HQ lot (D1: ~700 units). */
-export const FIRST_HOUR_D1: Partial<FirstHourOptions> = { subKw: 100, interiorKw: 20, hqDraw: 100, patch: 700 };
+export const FIRST_HOUR_D1: Partial<FirstHourOptions> = { subKw: SUBSTATION_KW.front, interiorKw: SUBSTATION_KW.interior, hqDraw: SUBSTATION_KW.front, patch: 700 };
 
 export interface FirstHourResult {
   firstBrownout: number; coalOut: number; patchOut: number;   // ticks, -1 = never
@@ -32,7 +33,7 @@ export interface FirstHourResult {
 }
 
 /** §11 timeline: east claim at 15 min, west at 25, north at 40; burn-off 20 s + 60 s × rot. */
-export const FIRST_HOUR_CLAIMS = { east: 15 * 60, west: 25 * 60, north: 40 * 60 };
+export const FIRST_HOUR_CLAIMS = { east: HOUR_CLAIM_MIN.east * 60, west: HOUR_CLAIM_MIN.west * 60, north: HOUR_CLAIM_MIN.north * 60 };
 
 export function firstHour(over: Partial<FirstHourOptions> = {}): FirstHourResult {
   const o: FirstHourOptions = { ...FIRST_HOUR_DEFAULTS, ...over };

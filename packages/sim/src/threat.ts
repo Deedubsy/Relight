@@ -16,6 +16,7 @@
  *   PATH_R 0.9 tiles (the engineer "stands in the path") · EAT_R 1.6 (a lamp is eaten from the next tile) ·
  *   STUCK_S 30 (a crawler that cannot move for 30 s is gone) · shades walk straight to the substation. */
 import { SimState, Engineer, HELD } from './types';
+import { TURRET } from './constants';
 import { edgeFrom, edgeTo } from './graph';
 import { ground, inGround, cityGeomOf } from './ground';
 import { segBetween } from './city';
@@ -26,7 +27,7 @@ import { ENEMIES } from './enemies';
 import { TURRET_RANGE, TURRET_ROUNDS_PER_S } from './recipes';
 import { FlowState, Machine, faceSub, blockLights, litAt, TURRET_FLASH_S } from './flow';
 
-export const ROUND_DMG = 4;
+export const ROUND_DMG = TURRET.roundDmg;   // constants.ts (§7: 4 HP a round)
 export const CONTACT_R = 1.2, DANGER_R = 3, PATH_R = 0.9, EAT_R = 1.6, STUCK_S = 30;
 const SPEED: Record<Crawler['kind'], number> = { crawler: ENEMIES[0].tilesPerSec, shade: ENEMIES[1].tilesPerSec };
 const HP: Record<Crawler['kind'], number> = { crawler: ENEMIES[0].hp, shade: ENEMIES[1].hp };
