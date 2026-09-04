@@ -1,4 +1,4 @@
-/** The one screen: a 24×22 grid of city blocks drawn from sim state every frame. Flat colour only. */
+/** The one screen: a 24×24 grid of city blocks drawn from sim state every frame. Flat colour only. */
 import Phaser from 'phaser';
 import {
   SimState, SimEvent, DARK, CONTESTED, HELD, INERT, VOID, idxOf, inBounds, isSolid, isCandidate, rotOf, rotTier,
@@ -9,7 +9,7 @@ import { Session, frame, queue } from './session';
 export const CELL = 24;
 export const PAD = 36;
 export const MAP_W = PAD * 2 + 24 * CELL;
-export const MAP_H = PAD * 2 + 22 * CELL;
+export const MAP_H = PAD * 2 + 24 * CELL;
 
 const C = {
   bg: 0x0b0e1a, grid: 0x0e1326,

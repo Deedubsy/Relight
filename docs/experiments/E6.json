@@ -1,0 +1,364 @@
+{
+ "id": "E6",
+ "title": "Inert walls",
+ "pyNames": [
+  "E6-scatter-*",
+  "E6-noscatter-*",
+  "E13"
+ ],
+ "docRefs": [
+  "§6",
+  "§7",
+  "§9"
+ ],
+ "setup": "compact, spike, cheapest, river; open and scattered maps; production on",
+ "sections": [
+  {
+   "title": "E6-validators: scattered inert cells at 9 % of the grid",
+   "header": [
+    "seed",
+    "validator",
+    "cells",
+    "2×2 inert squares (incl. river)",
+    "straight runs of 3+"
+   ],
+   "rows": [
+    [
+     3,
+     "none",
+     50,
+     0,
+     1
+    ],
+    [
+     3,
+     "no2x2",
+     50,
+     0,
+     1
+    ],
+    [
+     3,
+     "maxrun2",
+     50,
+     0,
+     0
+    ],
+    [
+     4,
+     "none",
+     50,
+     1,
+     0
+    ],
+    [
+     4,
+     "no2x2",
+     50,
+     0,
+     0
+    ],
+    [
+     4,
+     "maxrun2",
+     50,
+     1,
+     0
+    ],
+    [
+     5,
+     "none",
+     50,
+     0,
+     0
+    ],
+    [
+     5,
+     "no2x2",
+     50,
+     0,
+     0
+    ],
+    [
+     5,
+     "maxrun2",
+     50,
+     0,
+     0
+    ]
+   ]
+  },
+  {
+   "title": "E6-shape: spread on the open and the scattered map (5 h total magazines)",
+   "header": [
+    "map",
+    "policy",
+    "total magazines"
+   ],
+   "rows": [
+    [
+     "open",
+     "compact",
+     "13541 [13508–13559]"
+    ],
+    [
+     "open",
+     "spike",
+     "17375 [17365–17390]"
+    ],
+    [
+     "open",
+     "cheapest",
+     "7692 [7628–7730]"
+    ],
+    [
+     "open",
+     "spike/compact",
+     "1.28×"
+    ],
+    [
+     "open",
+     "compact/cheapest",
+     "1.76×"
+    ],
+    [
+     "scattered",
+     "compact",
+     "6458 [5999–7006]"
+    ],
+    [
+     "scattered",
+     "spike",
+     "16768 [16210–17183]"
+    ],
+    [
+     "scattered",
+     "cheapest",
+     "6887 [6563–7436]"
+    ],
+    [
+     "scattered",
+     "spike/compact",
+     "2.60×"
+    ],
+    [
+     "scattered",
+     "compact/cheapest",
+     "0.94×"
+    ]
+   ]
+  },
+  {
+   "title": "E6-river: river-hugging vs compact under each validator",
+   "header": [
+    "map",
+    "validator",
+    "policy",
+    "held",
+    "front/held",
+    "interior",
+    "total magazines",
+    "inert cells"
+   ],
+   "rows": [
+    [
+     "open",
+     "none",
+     "compact",
+     "50 [50–50]",
+     "0.50 [0.50–0.50]",
+     "26 [26–26]",
+     "13541 [13508–13559]",
+     "0 [0–0]"
+    ],
+    [
+     "open",
+     "none",
+     "river",
+     "50 [50–50]",
+     "0.50 [0.50–0.50]",
+     "26 [26–26]",
+     "13541 [13508–13559]",
+     "0 [0–0]"
+    ],
+    [
+     "open",
+     "none",
+     "river vs compact ammo",
+     "",
+     "",
+     "",
+     "0 %",
+     ""
+    ],
+    [
+     "scattered",
+     "none",
+     "compact",
+     "52 [52–52]",
+     "0.37 [0.35–0.38]",
+     "36 [35–37]",
+     "6458 [5999–7006]",
+     "50 [50–50]"
+    ],
+    [
+     "scattered",
+     "none",
+     "river",
+     "52 [52–52]",
+     "0.40 [0.38–0.42]",
+     "35 [33–36]",
+     "8117 [6387–9976]",
+     "50 [50–50]"
+    ],
+    [
+     "scattered",
+     "none",
+     "river vs compact ammo",
+     "",
+     "",
+     "",
+     "26 %",
+     ""
+    ],
+    [
+     "scattered",
+     "no2x2",
+     "compact",
+     "52 [52–52]",
+     "0.37 [0.35–0.38]",
+     "36 [35–37]",
+     "6458 [5999–7006]",
+     "50 [50–50]"
+    ],
+    [
+     "scattered",
+     "no2x2",
+     "river",
+     "52 [52–52]",
+     "0.40 [0.38–0.42]",
+     "35 [33–36]",
+     "8117 [6387–9976]",
+     "50 [50–50]"
+    ],
+    [
+     "scattered",
+     "no2x2",
+     "river vs compact ammo",
+     "",
+     "",
+     "",
+     "26 %",
+     ""
+    ],
+    [
+     "scattered",
+     "maxrun2",
+     "compact",
+     "52 [52–52]",
+     "0.37 [0.35–0.38]",
+     "36 [35–37]",
+     "6458 [5999–7006]",
+     "50 [50–50]"
+    ],
+    [
+     "scattered",
+     "maxrun2",
+     "river",
+     "52 [52–52]",
+     "0.40 [0.38–0.42]",
+     "35 [33–36]",
+     "8117 [6387–9976]",
+     "50 [50–50]"
+    ],
+    [
+     "scattered",
+     "maxrun2",
+     "river vs compact ammo",
+     "",
+     "",
+     "",
+     "26 %",
+     ""
+    ],
+    [
+     "scattered",
+     "inert-dark",
+     "compact",
+     "52 [52–52]",
+     "0.37 [0.35–0.38]",
+     "26 [24–29]",
+     "6458 [5999–7006]",
+     "50 [50–50]"
+    ],
+    [
+     "scattered",
+     "inert-dark",
+     "river",
+     "52 [52–52]",
+     "0.37 [0.35–0.38]",
+     "26 [24–28]",
+     "8263 [6078–10108]",
+     "50 [50–50]"
+    ],
+    [
+     "scattered",
+     "inert-dark",
+     "river vs compact ammo",
+     "",
+     "",
+     "",
+     "28 %",
+     ""
+    ]
+   ]
+  }
+ ],
+ "checks": [
+  {
+   "name": "§7 headline spike/compact on the scattered (canonical) map",
+   "pass": true,
+   "detail": "2.60× (expected 1.2–4×)"
+  },
+  {
+   "name": "§9/§17 inert walls pay: compact on the scattered map uses less ammo than on open ground (ratio)",
+   "pass": true,
+   "detail": "0.48× (expected 0.3–0.8×)"
+  },
+  {
+   "name": "§25 item 2: inert-hugging (the sim's river policy) is no cheaper than compact on the scattered map",
+   "pass": true,
+   "detail": "0.26 (fraction more) (expected 0–1 (fraction more))"
+  }
+ ],
+ "data": {
+  "ratios": {
+   "open": {
+    "spikeCompact": 1.2830926698142466,
+    "compactCheapest": 1.7604732291824665,
+    "compactTotal": 13541.266666666668
+   },
+   "scattered": {
+    "spikeCompact": 2.596498291471812,
+    "compactCheapest": 0.9377114562712061,
+    "compactTotal": 6457.8
+   }
+  },
+  "riverGap": {
+   "open-none": 0,
+   "scattered-none": 0.25696057480875845,
+   "scattered-no2x2": 0.25696057480875845,
+   "scattered-maxrun2": 0.25696057480875845,
+   "scattered-inert-dark": 0.2796101871638432
+  },
+  "wallRatio": 0.476897779134399
+ },
+ "meta": {
+  "seeds": [
+   3,
+   4,
+   5
+  ],
+  "hours": 5
+ }
+}

@@ -1,4 +1,4 @@
-/** The front-rule sim: frontsim.py ported faithfully (minus the power model).
+/** The front-rule sim: frontsim.py ported faithfully, power model included (config.power).
  *  Fixed 1 s tick. `step(state, commands)` is deterministic over its inputs and holds no module state;
  *  it mutates `state` in place (no per-tick allocation) and returns it. Snapshot with `cloneState`. */
 import {
@@ -6,6 +6,7 @@ import {
   DARK, CONTESTED, HELD, INERT, VOID,
 } from './types';
 import { hash01, rngNext, seedRng, pyRound } from './prng';
+import { districtBase } from './districts';
 
 // ------------------------------------------------------------------ config
 
@@ -14,13 +15,15 @@ export const DEFAULT_CONFIG: SimConfig = {
   asmSchedule: [[600, 1], [1800, 2], [3000, 3], [10800, 4]],
   startAssemblers: 0,
   asmRate: 20.0, asmEarlyRate: null, startAsmRate: null,
-  hopper: 100, bufferCap: 4000, startRounds: 300,
+  hopper: 100, bufferCap: 4000, startRounds: 200,   // C10: 20 magazines (§11; E1-start-min)
   unfed: 'substation', unfedN: 40, starveQuiet: false,
   scatter: true, scatterFrac: 0.09, validator: 'none',
   shadeThr: 0.3, hulkThr: 0.5, wakeCap: true, bloomBase: 4.0, jitter: 0.1, fallTiles: 30,
   hulkRoll: 'hash',
   bloomT: 120.0, bloomDrop: 0.9,
   relight: null,
+  power: false, supply: 'track', headroom: 500, shortfall: null, draw: 'doc', shed: 'substations', interiorGrace: 0, asmTrack: 0,
+  wellDeath: false, interleave: false,
   economy: false,
   eco: {
     yieldPerMin: 1,
@@ -42,12 +45,17 @@ export function configFromPython(py: Record<string, unknown>, over: Partial<SimC
     starve_quiet: 'starveQuiet', scatter: 'scatter', scatter_frac: 'scatterFrac', validator: 'validator',
     shade_thr: 'shadeThr', hulk_thr: 'hulkThr', wake_cap: 'wakeCap', bloom_base: 'bloomBase', jitter: 'jitter',
     fall_tiles: 'fallTiles', hulk_roll: 'hulkRoll', bloom_t: 'bloomT', bloom_drop: 'bloomDrop',
+    power: 'power', supply: 'supply', headroom: 'headroom', draw: 'draw', shed: 'shed', interior_grace: 'interiorGrace',
+    asm_track: 'asmTrack',
   };
   for (const k in py) {
     const tk = map[k];
     if (tk !== undefined && py[k] !== null && py[k] !== undefined) (c as unknown as Record<string, unknown>)[tk] = py[k];
     if (k === 'relight' && Array.isArray(py[k])) {
       const r = py[k] as number[]; c.relight = { hour: r[0], minutes: r[1], mult: r[2] };
+    }
+    if (k === 'shortfall' && Array.isArray(py[k])) {
+      const r = py[k] as number[]; c.shortfall = { pct: r[0], hour: r[1], minutes: r[2] };
     }
   }
   return { ...c, ...over };
@@ -97,6 +105,7 @@ export function createState(spec: MapSpec, config: SimConfig, seed: number): Sim
       timer: -1, contestUntil: 0, upto: 0, awake: false,
       subOn: true, creep: 0, unfed: 0, fedTimer: 0, shadeOff: 0, unfedSince: -1, starveSince: -1,
       machine: false, pool: poolOf(config, c.name),
+      exposed: true, exposedAt: 0, shed: false,
     };
   }
   if (config.scatter) {
@@ -123,9 +132,14 @@ export function createState(spec: MapSpec, config: SimConfig, seed: number): Sim
     hourly: [],
     stats: { lost: 0, retakes: 0, claims: 0, firstInterior: -1, firstFall: -1, firstUnfed: -1, unfedTotal: 0,
              lostLog: [], ringReorders: 0, assemblersAdded: 0, claimsRejected: 0, magsMade: 0,
-             machinesLost: 0, ranDry: 0, dryLog: [] },
+             machinesLost: 0, ranDry: 0, dryLog: [],
+             firstBrownout: -1, shedEvents: 0, shedLog: [], lostInWindow: 0, lostAfterWindow: 0, wellsDead: 0 },
     stock: { ...config.eco.startStock },
     patch: { steel: config.eco.startPatch.steel },
+    power: { supply: 300, overTimer: 0, shedStack: [], lastShed: -999, asmShed: 0, asmActive: 0, demandKw: [], supplyKw: [] },
+    asmTrack: { n: 0, at: -1 },
+    wellDead: spec.wells.map(() => false),
+    wellEnclosedSince: spec.wells.map(() => -1),
     events: [],
   };
   stateChange(st, spec.start[0] * h + spec.start[1]);
@@ -347,9 +361,25 @@ function recordBloom(st: SimState, i: number, cr: number, sh: number, hu: number
 // ------------------------------------------------------------------ the ammo ring
 
 export function asmCount(st: SimState, t: number): number {
+  if (st.config.asmTrack > 0) {
+    // frontsim.py asm_track: every 10 min, add an assembler while demand over the last 10 min exceeds the fraction of production
+    const a = st.asmTrack;
+    if (t >= 600 && t % 600 === 0 && a.at !== t) {
+      a.at = t;
+      const recent = st.recentRoundsSum / 100.0;   // mag/min over the last 10 min
+      if (a.n === 0) a.n = 1;
+      else if (recent / (a.n * asmRate(st, t)) > st.config.asmTrack && a.n < 8) a.n++;
+    }
+    return a.n + st.asmManual;
+  }
   let n = 0;
   for (const [at, k] of st.config.asmSchedule) if (t >= at) n = k;
   return n + st.asmManual;
+}
+
+/** Assemblers actually running: the count less any the brownout shedder turned off. */
+export function asmActive(st: SimState, t: number): number {
+  return Math.max(0, asmCount(st, t) - st.power.asmShed);
 }
 
 export function asmRate(st: SimState, t: number): number {
@@ -362,10 +392,11 @@ export function asmRate(st: SimState, t: number): number {
  *  first `startAssemblers` hand-built assemblers run at that rate and every other one at `asmRate`. */
 export function productionMagPerMin(st: SimState, t: number): number {
   const c = st.config;
-  if (c.startAsmRate === null) return asmCount(st, t) * asmRate(st, t);
+  const n = asmActive(st, t);
+  if (c.startAsmRate === null) return n * asmRate(st, t);
   const hq = st.blocks[idxOf(st, st.start[0], st.start[1])];
-  const mk1 = hq.machine ? Math.min(st.asmManual, c.startAssemblers) : 0;   // the Mk1 falls with the HQ
-  return mk1 * c.startAsmRate + (asmCount(st, t) - mk1) * asmRate(st, t);
+  const mk1 = Math.min(hq.machine ? Math.min(st.asmManual, c.startAssemblers) : 0, n);   // the Mk1 falls with the HQ; shed last
+  return mk1 * c.startAsmRate + (n - mk1) * asmRate(st, t);
 }
 
 function rebuildEdgeAt(st: SimState): void {
@@ -407,11 +438,139 @@ function syncEdges(st: SimState): void {
   rebuildEdgeAt(st);
 }
 
+// ------------------------------------------------------------------ power model (frontsim.py, ported line for line)
+
+/** §13/§5 substation draw. `unshed` = what it would draw if it were on. */
+export function subDraw(st: SimState, b: Block, unshed = false): number {
+  const c = st.config, t = st.t;
+  if (!unshed && (!b.subOn || t < b.shadeOff)) return 0;
+  if (c.draw === 'flat') return 120;
+  const half = c.draw === 'half';   // D1: 100/20 kW
+  if (!b.exposed) return half ? 20 : 40;
+  if (c.interiorGrace && t - b.exposedAt < c.interiorGrace) return half ? 20 : 40;
+  return half ? 100 : 200;
+}
+
+/** Demand with every substation and assembler on (what the supply tracks). */
+export function demandUnshed(st: SimState): number {
+  const half = st.config.draw === 'half';
+  let d = 0;
+  for (const b of st.blocks) {
+    if (b.state === HELD) d += subDraw(st, b, true);
+    else if (b.state === CONTESTED) d += half ? 100 : 200;
+  }
+  return d + asmCount(st, st.t) * 220;
+}
+
+/** Demand as drawn now (shed substations and assemblers excluded). */
+export function demandKw(st: SimState): number {
+  const half = st.config.draw === 'half';
+  let d = 0;
+  for (const b of st.blocks) {
+    if (b.state === HELD) d += subDraw(st, b);
+    else if (b.state === CONTESTED) d += half ? 100 : 200;
+  }
+  return d + st.power.asmActive * 220;
+}
+
+/** §15 generator schedule (kW available by tick) for supply = 'schedule'. */
+export const SUPPLY_SCHEDULE: [number, number][] =
+  [[0, 300], [1800, 600], [3600, 900], [7200, 1200], [10800, 1500], [14400, 1800], [18000, 2100], [21600, 7000]];
+
+export function inWindow(st: SimState): boolean {
+  const sf = st.config.shortfall;
+  return sf !== null && sf.hour * 3600 <= st.t && st.t < sf.hour * 3600 + sf.minutes * 60;
+}
+
+export function effectiveSupply(st: SimState): number {
+  let s = st.power.supply;
+  if (st.config.supply === 'schedule') {
+    s = 300;
+    for (const [at, kw] of SUPPLY_SCHEDULE) if (st.t >= at) s = kw;
+  }
+  const sf = st.config.shortfall;
+  if (sf && sf.hour * 3600 <= st.t && st.t < sf.hour * 3600 + sf.minutes * 60) s *= 1 - sf.pct / 100;
+  return s;
+}
+
+// ------------------------------------------------------------------ §5 rules the Python sim never had (config-gated)
+
+/** §5 "timers interleaved so no two adjacent cells bloom within 10 s": push `when` past any awake neighbour's timer. */
+function interleaved(st: SimState, i: number, when: number): number {
+  if (!st.config.interleave) return when;
+  const ns = topo(st.w, st.h).nb[i], B = st.blocks;
+  for (let guard = 0; guard < 8; guard++) {
+    let moved = false;
+    for (let k = 0; k < ns.length; k++) {
+      const n = B[ns[k]];
+      if (n.state !== DARK || !n.awake || n.timer < 0) continue;
+      if (Math.abs(when - n.timer) < 10) { when = n.timer + 10; moved = true; }
+    }
+    if (!moved) break;
+  }
+  return when;
+}
+
+/** §5 well death, part 1 (on a dirty map): note when every in-bounds neighbour of a live well turned solid. */
+function wellEnclosure(st: SimState): void {
+  const tp = topo(st.w, st.h);
+  for (let k = 0; k < st.wells.length; k++) {
+    if (st.wellDead[k]) continue;
+    const [wx, wy] = st.wells[k];
+    const wi = idxOf(st, wx, wy);
+    if (st.blocks[wi].state !== DARK) { st.wellEnclosedSince[k] = -1; continue; }
+    const ns = tp.nb[wi];
+    let enclosed = true;
+    for (let q = 0; q < ns.length; q++) if (!isSolid(st.blocks[ns[q]].state)) { enclosed = false; break; }
+    if (!enclosed) st.wellEnclosedSince[k] = -1;
+    else if (st.wellEnclosedSince[k] < 0) st.wellEnclosedSince[k] = st.t;
+  }
+}
+
+/** §5 well death, part 2: after five minutes enclosed the well dies and its blocks fall back to the district's cap and growth. */
+function wellDeaths(st: SimState): void {
+  for (let k = 0; k < st.wells.length; k++) {
+    if (st.wellDead[k] || st.wellEnclosedSince[k] < 0 || st.t - st.wellEnclosedSince[k] < 300) continue;
+    st.wellDead[k] = true; st.stats.wellsDead++;
+    const [wx, wy] = st.wells[k];
+    st.events.push({ type: 'well-dead', t: st.t, x: wx, y: wy });
+    for (const b of st.blocks) {
+      if (Math.abs(b.x - wx) + Math.abs(b.y - wy) > 3) continue;
+      // GAME-ASSUMPTION: the block keeps the influence of any other live well in range; the doc has no rule for overlap.
+      let infl = 0;
+      for (let j = 0; j < st.wells.length; j++) {
+        if (st.wellDead[j]) continue;
+        const wd = Math.abs(b.x - st.wells[j][0]) + Math.abs(b.y - st.wells[j][1]);
+        if (wd <= 3) infl = Math.max(infl, 1 - wd / 4);
+      }
+      const base = districtBase(b.x, b.y, st.start, st.h);
+      if (b.state === DARK && b.awake) catchUp(st, b, st.t);
+      b.dmax = Math.min(1, base.dmax + 0.3 * infl);
+      b.g = base.g * (1 + 3 * infl);
+      b.well = infl > 0;
+    }
+  }
+}
+
 function fall(st: SimState, i: number, reason: LostEntry['reason']): void {
   const b = st.blocks[i];
+  // diagnostics for the fall event (frontsim.py fall_delays): first-unfed → fall delay and the starved edge's district
+  const delay = b.unfedSince >= 0 ? st.t - b.unfedSince : -1;
+  let starved = '-';
+  for (let k = 0; k < 4; k++) {
+    const ri = st.edgeAt[i * 4 + k];
+    if (ri >= 0 && st.ring[ri].hopper <= 1e-9) { const n = st.blocks[st.ring[ri].b]; starved = n.well ? 'well' : n.name; break; }
+  }
   b.state = DARK; b.d = 0.3; b.upto = st.t + 1; b.timer = -1; b.creep = 0; b.unfed = 0;
-  b.subOn = true; b.shadeOff = 0; b.fedTimer = 0;
+  b.subOn = true; b.shed = false; b.shadeOff = 0; b.fedTimer = 0;
   b.unfedSince = -1; b.starveSince = -1;
+  const si = st.power.shedStack.indexOf(i);
+  if (si >= 0) st.power.shedStack.splice(si, 1);
+  if (st.config.shortfall) {
+    const sf = st.config.shortfall;
+    if (inWindow(st)) st.stats.lostInWindow++;
+    else if (st.t >= sf.hour * 3600 + sf.minutes * 60) st.stats.lostAfterWindow++;
+  }
   if (b.machine) {   // §5: a block that falls loses its machine
     b.machine = false; st.asmManual = Math.max(0, st.asmManual - 1); st.stats.machinesLost++;
     st.events.push({ type: 'machine-lost', t: st.t, x: b.x, y: b.y, count: asmCount(st, st.t) });
@@ -420,7 +579,7 @@ function fall(st: SimState, i: number, reason: LostEntry['reason']): void {
   st.stats.lostLog.push({ t: st.t, reason, x: b.x, y: b.y });
   if (st.stats.firstFall < 0) st.stats.firstFall = st.t;
   st.fallen[i] = true;
-  st.events.push({ type: 'fall', t: st.t, x: b.x, y: b.y, reason });
+  st.events.push({ type: 'fall', t: st.t, x: b.x, y: b.y, reason, delay, starved });
   stateChange(st, i);
   if (st.config.production) syncEdges(st);   // edges change now, not at the next claim
 }
@@ -532,7 +691,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     const b = B[i];
     if (b.state === CONTESTED && t >= b.contestUntil) {
       b.state = HELD; b.d = 0; b.timer = -1; b.subOn = true; b.creep = 0;
-      b.unfed = 0; b.shadeOff = 0; b.unfedSince = -1; b.starveSince = -1;
+      b.unfed = 0; b.shed = false; b.shadeOff = 0; b.unfedSince = -1; b.starveSince = -1;
       st.fallen[i] = false;
       stateChange(st, i);
       // PROTO-ASSUMPTION: a facility is "reached" when its own block turns Held; the proto only toasts it.
@@ -546,16 +705,32 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     const b = B[i];
     if (b.state !== DARK || !b.awake) continue;
     catchUp(st, b, t + 1);
-    if (b.timer < 0) b.timer = t + cfg.bloomT / (0.5 + b.d);
+    if (b.timer < 0) b.timer = interleaved(st, i, t + cfg.bloomT / (0.5 + b.d));
     if (t >= b.timer) {
       const [cr, sh, hu] = relight ? wakeBloom(st, b.d, b.x, b.y) : bloomSize(st, b.d, b.x, b.y);
       recordBloom(st, i, cr, sh, hu, false);
       b.d = Math.max(0.05, b.d * cfg.bloomDrop);
-      b.timer = t + cfg.bloomT / (0.5 + b.d);
+      b.timer = interleaved(st, i, t + cfg.bloomT / (0.5 + b.d));
     }
   }
 
-  if (st.dirty && prod) syncEdges(st);
+  // exposure bookkeeping (power) and edges (production)
+  if (st.dirty) {
+    if (cfg.power) {
+      for (let i = 0; i < B.length; i++) {
+        const b = B[i];
+        if (b.state !== HELD) continue;
+        const ns = tp.nb[i];
+        let ex = false;
+        for (let k = 0; k < ns.length; k++) if (isHostile(B[ns[k]].state)) { ex = true; break; }
+        if (ex && !b.exposed) b.exposedAt = t;
+        b.exposed = ex;
+      }
+    }
+    if (cfg.wellDeath) wellEnclosure(st);
+    if (prod) syncEdges(st);
+  }
+  if (cfg.wellDeath) wellDeaths(st);
 
   // ---- ammo production and the ring ----
   if (prod) {
@@ -632,7 +807,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
           if (b.unfed >= cfg.unfedN) {
             if (b.subOn) st.events.push({ type: 'sub-off', t, x: b.x, y: b.y });
             b.subOn = false;
-          } else if (!b.subOn && b.fedTimer >= 60) {
+          } else if (!b.shed && !b.subOn && b.fedTimer >= 60) {
             b.subOn = true;
             st.events.push({ type: 'sub-on', t, x: b.x, y: b.y });
           }
@@ -652,15 +827,70 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     }
   }
 
+  // ---- power (frontsim.py power=True): demand vs supply, shedding after 20 s over, restore 20 s after the last shed ----
+  if (cfg.power) {
+    const pw = st.power;
+    pw.asmActive = asmActive(st, t);
+    const dem = demandKw(st);
+    if (cfg.supply === 'track' && t % 600 === 0 && !inWindow(st)) pw.supply = Math.max(pw.supply, demandUnshed(st) + cfg.headroom);
+    const eff = effectiveSupply(st);
+    if (t % 60 === 0) { pw.demandKw.push(demandUnshed(st)); pw.supplyKw.push(eff); }
+    if (dem > eff) {
+      pw.overTimer++;
+      if (st.stats.firstBrownout < 0) { st.stats.firstBrownout = t; st.events.push({ type: 'brownout', t, demandKw: dem, supplyKw: eff }); }
+      if (pw.overTimer >= 20) {
+        pw.overTimer = 0; pw.lastShed = t; st.stats.shedEvents++; st.stats.shedLog.push(t);
+        if (cfg.shed === 'machines-first' && pw.asmShed < asmCount(st, t)) {
+          pw.asmShed++; pw.shedStack.push(-1);
+          st.events.push({ type: 'shed', t, x: -1, y: -1 });
+        } else {
+          // the most exposed substation, then the one farthest from the start (Python max(): first of equals)
+          let v = -1, vh = -1, vd = -1;
+          for (let i = 0; i < B.length; i++) {
+            const b = B[i];
+            if (b.state !== HELD || !b.subOn || b.shed) continue;
+            const ns = tp.nb[i];
+            let hc = 0;
+            for (let k = 0; k < ns.length; k++) if (isHostile(B[ns[k]].state)) hc++;
+            const dd = Math.abs(b.x - st.start[0]) + Math.abs(b.y - st.start[1]);
+            if (v < 0 || hc > vh || (hc === vh && dd > vd)) { v = i; vh = hc; vd = dd; }
+          }
+          if (v >= 0) {
+            const b = B[v];
+            b.subOn = false; b.shed = true; pw.shedStack.push(v);
+            st.events.push({ type: 'shed', t, x: b.x, y: b.y });
+          }
+        }
+      }
+    } else {
+      pw.overTimer = 0;
+      if (pw.shedStack.length && t - pw.lastShed >= 20) {
+        const u = pw.shedStack[pw.shedStack.length - 1];
+        if (u === -1) {
+          if (dem + 220 <= eff) { pw.shedStack.pop(); pw.asmShed--; pw.lastShed = t; st.events.push({ type: 'restore', t, x: -1, y: -1 }); }
+        } else {
+          const b = B[u];
+          if (b.state !== HELD) pw.shedStack.pop();
+          else {
+            b.subOn = true; b.shed = false;
+            if (demandKw(st) <= eff) { pw.shedStack.pop(); pw.lastShed = t; st.events.push({ type: 'restore', t, x: b.x, y: b.y }); }
+            else { b.subOn = false; b.shed = true; }
+          }
+        }
+      }
+    }
+    pw.asmActive = asmActive(st, t);
+  }
+
   // ---- creep and fall (substation off for any reason) ----
-  if (prod) {
+  if (prod || cfg.power) {
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (b.state !== HELD) continue;
       const on = b.subOn && t >= b.shadeOff;
       if (!on) {
         b.creep += 1 / 3.0;
-        if (b.creep >= cfg.fallTiles) fall(st, i, t < b.shadeOff ? 'shade' : 'unfed');
+        if (b.creep >= cfg.fallTiles) fall(st, i, b.shed ? 'brownout' : t < b.shadeOff ? 'shade' : 'unfed');
       } else if (b.creep > 0) {
         b.creep = Math.max(0, b.creep - 1 / 20.0);
       }
@@ -723,7 +953,7 @@ function hourRow(st: SimState): HourRow {
   return {
     h: st.t / 3600, held: heldCount(st), front: frontage(st), interior: interior(st),
     mags, shells, meanAwakeRot: n ? sum / n : 0, lost: st.stats.lost,
-    production: st.config.production ? asmCount(st, st.t) * asmRate(st, st.t) : 0,
+    production: st.config.production ? productionMagPerMin(st, st.t) : 0,
   };
 }
 

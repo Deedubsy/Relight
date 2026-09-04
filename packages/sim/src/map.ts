@@ -3,33 +3,23 @@
  *  so a TS seed is a different map from the same Python seed; parity is tested from fixtures. */
 import { District, MapSpec, CellSpec, Facility, SimConfig } from './types';
 import { rngInt, rngUniform, seedRng, pyRound } from './prng';
+import { districtBase, wellInfluence } from './districts';
 
-export const W = 24, H = 22;               // city blocks; row 21 = river (inert)
-export const START: [number, number] = [12, 20];
-export const TARGET: [number, number] = [12, 10];   // "the foundry", 10 blocks north
-export const WELLS: [number, number][] = [[12, 8], [2, 2], [21, 3], [2, 18], [22, 19]];
+/** The canonical city is 24×24 block cells (D-P1-1, 2026-09-03); the last row is the river (inert), so 23 rows
+ *  are claimable. The Python fixtures are the older 24×22 map and carry their own MapSpec, so this only shapes
+ *  generateMap(). Everything below is anchored to the HQ row so the 24×22 zoning shifts south with it. */
+export const W = 24, H = 24;               // city blocks; row H-1 = river (inert)
+const DH = H - 22;                          // rows added since the 24×22 fixture map
+export const START: [number, number] = [12, 20 + DH];
+export const TARGET: [number, number] = [12, 10 + DH];   // "the foundry", 10 blocks north
+/** GAME-ASSUMPTION: the two northern corner wells stay in the corners; the Foundry well and the two southern wells
+ *  move with the HQ row. */
+export const WELLS: [number, number][] = [[12, 8 + DH], [2, 2], [21, 3], [2, 18 + DH], [22, 19 + DH]];
 
 export function district(x: number, y: number): { dmax: number; g: number; name: District } {
-  const d = Math.abs(x - START[0]) + Math.abs(y - START[1]);
-  let base: number, g: number, name: District;
-  if (y < 4 || x < 3 || x > 20) { base = 1.0; g = 0.0008; name = 'out'; }
-  else if (y < 11) { base = 0.6; g = 0.0006; name = 'ind'; }
-  else if (y < 17) {
-    if (x >= 9 && x <= 15) { base = 0.6; g = 0.0006; name = 'ind'; }
-    else { base = 0.45; g = 0.0005; name = 'res'; }
-  } else {
-    if (x % 3 === 0) { base = 0.45; g = 0.0005; name = 'res'; }
-    else { base = 0.3; g = 0.0004; name = 'civ'; }
-  }
-  let dmax = Math.min(1.0, base * (1 + 0.3 * d / 20));
-  let infl = 0.0;
-  for (const [wx, wy] of WELLS) {
-    const wd = Math.abs(x - wx) + Math.abs(y - wy);
-    if (wd <= 3) infl = Math.max(infl, 1 - wd / 4);
-  }
-  dmax = Math.min(1.0, dmax + 0.3 * infl);
-  g *= (1 + 3 * infl);
-  return { dmax, g, name };
+  const { dmax: base, g, name } = districtBase(x, y, START, H);
+  const infl = wellInfluence(x, y, WELLS);
+  return { dmax: Math.min(1.0, base + 0.3 * infl), g: g * (1 + 3 * infl), name };
 }
 
 export function wellName(x: number, y: number): boolean {
@@ -99,9 +89,9 @@ export function placeFacilities(seed: number, inert: Set<number>): Facility[] {
       taken.add(k); out.push({ name, x, y }); return;
     }
   };
-  place('Arsenal', (x, y) => x <= 8 && y >= 12 && dist(x, y) >= 5 && dist(x, y) <= 9);
-  place('Turbine hall', (x, y) => x >= 16 && y >= 12 && dist(x, y) >= 5 && dist(x, y) <= 9);
-  place('Refinery', (x, y) => y <= 13 && Math.abs(x - START[0]) >= 3 && dist(x, y) >= 8 && dist(x, y) <= 12);
+  place('Arsenal', (x, y) => x <= 8 && y >= 12 + DH && dist(x, y) >= 5 && dist(x, y) <= 9);
+  place('Turbine hall', (x, y) => x >= 16 && y >= 12 + DH && dist(x, y) >= 5 && dist(x, y) <= 9);
+  place('Refinery', (x, y) => y <= 13 + DH && Math.abs(x - START[0]) >= 3 && dist(x, y) >= 8 && dist(x, y) <= 12);
   place('Power station', (x, y) => y <= 4 && dist(x, y) >= 15);
   return out;
 }

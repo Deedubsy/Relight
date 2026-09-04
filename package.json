@@ -3,10 +3,26 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "workspaces": ["packages/sim", "packages/proto"],
+  "workspaces": [
+    "packages/sim",
+    "packages/harness",
+    "packages/tools",
+    "packages/proto"
+  ],
   "scripts": {
     "test": "npm test -w packages/sim",
-    "build": "npm run build -w packages/sim && npm run build -w packages/proto",
+    "typecheck": "npm run build -w packages/sim && npm run build -w packages/harness && npm run build -w packages/tools && npm run build -w packages/proto",
+    "lint": "eslint packages/sim/src packages/harness/src packages/tools/src",
+    "experiments": "npm run experiments -w packages/harness --",
+    "nightly": "npm run nightly -w packages/harness --",
+    "docsync": "tsx packages/tools/src/docsync.ts",
+    "docsync:check": "tsx packages/tools/src/docsync.ts --check",
+    "build": "npm run typecheck && npm run build -w packages/proto",
     "dev": "npm run dev -w packages/proto"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.9.1",
+    "typescript-eslint": "^8.69.0"
   }
 }

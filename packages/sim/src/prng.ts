@@ -8,7 +8,7 @@ export function seedRng(seed: number): number {
 
 /** Advance `holder.rng` and return a uniform float in [0, 1). */
 export function rngNext(holder: RngHolder): number {
-  let a = (holder.rng + 0x6D2B79F5) | 0;
+  const a = (holder.rng + 0x6D2B79F5) | 0;
   holder.rng = a;
   let t = Math.imul(a ^ (a >>> 15), 1 | a);
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;

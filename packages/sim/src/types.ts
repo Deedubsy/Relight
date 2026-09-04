@@ -24,6 +24,9 @@ export interface Block {
   starveSince: number;  // -1 = none (diagnostic)
   machine: boolean;     // §5: one machine slot per Held block; true = an assembler stands here (the HQ starts with the Mk1)
   pool: number;         // §12: rubble left in the block (finite); drawn down by the yield, never refilled
+  exposed: boolean;     // power: any hostile neighbour (frontage draw) — recomputed when the map is dirty
+  exposedAt: number;    // tick the block last became exposed (interiorGrace)
+  shed: boolean;        // power: substation turned off by the brownout shedder
 }
 
 /** One frontage edge: held block `a` facing hostile neighbour `b`. id = a*4 + dir, stable across removal and re-creation. */
@@ -33,6 +36,8 @@ export interface Edge { id: number; a: number; b: number; hopper: number; empty:
 export interface Engagement { id: number; cr: number; sh: number; rcr: number; rsh: number }
 
 export interface Relight { hour: number; minutes: number; mult: number }
+/** §15 brownout experiment: supply × (1 − pct/100) from hour·3600 for `minutes`. */
+export interface Shortfall { pct: number; hour: number; minutes: number }
 
 export interface EconomyConfig {
   yieldPerMin: number;                       // PROTO-ASSUMPTION: rubble per Held block per minute, flat
@@ -61,6 +66,18 @@ export interface SimConfig {
   hulkRoll: 'hash' | 'random';
   bloomT: number; bloomDrop: number;
   relight: Relight | null;
+  // ---- power model (frontsim.py `power=True`); off in the regression fixtures, on in the power fixtures ----
+  power: boolean;
+  supply: 'track' | 'schedule';      // track: supply follows unshed demand + headroom every 10 min; schedule: the §15 table
+  headroom: number;                  // kW
+  shortfall: Shortfall | null;
+  draw: 'doc' | 'half' | 'flat';     // doc 200/40 kW, half 100/20 kW (D1), flat 120 kW
+  shed: 'substations' | 'machines-first';
+  interiorGrace: number;             // seconds a newly exposed block keeps the interior draw (0 = off)
+  asmTrack: number;                  // >0: assemblers are added when demand/production exceeds this (E5 track variant)
+  // ---- §5 rules the Python sim never had; off by default so the fixtures stay exact ----
+  wellDeath: boolean;                // a well dies after 5 min with all four neighbours Held
+  interleave: boolean;               // no two adjacent blocks bloom within 10 s of each other
   economy: boolean;
   eco: EconomyConfig;
 }
@@ -81,7 +98,7 @@ export interface HourRow {
   production: number;   // mag/min at the hour mark
 }
 
-export interface LostEntry { t: number; reason: 'unfed' | 'shade' | 'starved'; x: number; y: number }
+export interface LostEntry { t: number; reason: 'unfed' | 'shade' | 'starved' | 'brownout'; x: number; y: number }
 
 export interface SimStats {
   lost: number; retakes: number; claims: number;
@@ -94,6 +111,24 @@ export interface SimStats {
   machinesLost: number;    // assemblers lost with their block (§5: a block that falls loses its machine)
   ranDry: number;          // blocks whose rubble pool reached zero
   dryLog: { t: number; x: number; y: number; district: District }[];
+  // power
+  firstBrownout: number;   // tick demand first exceeded supply, -1 = never
+  shedEvents: number;
+  shedLog: number[];
+  lostInWindow: number; lostAfterWindow: number;   // blocks lost during / after the shortfall window
+  wellsDead: number;
+}
+
+/** Power-model state (frontsim.py). `shedStack` holds block indices; -1 stands for one shed assembler. */
+export interface PowerState {
+  supply: number;        // kW available (track mode)
+  overTimer: number;     // consecutive seconds of demand > supply
+  shedStack: number[];
+  lastShed: number;
+  asmShed: number;       // assemblers turned off by the shedder
+  asmActive: number;     // assemblers running this tick
+  demandKw: number[];    // unshed demand, one sample per minute
+  supplyKw: number[];    // effective supply, one sample per minute
 }
 
 export type Command =
@@ -109,7 +144,7 @@ export type SimEvent =
   | { type: 'claim-rejected'; t: number; x: number; y: number; reason: string }
   | { type: 'held'; t: number; x: number; y: number; facility: string | null }
   | { type: 'bloom'; t: number; x: number; y: number; cr: number; sh: number; hu: number; wake: boolean }
-  | { type: 'fall'; t: number; x: number; y: number; reason: string }
+  | { type: 'fall'; t: number; x: number; y: number; reason: string; delay: number; starved: string }   // delay: s from first unfed arrival (-1 none); starved: district of the empty edge's dark block ('-' none)
   | { type: 'sub-off'; t: number; x: number; y: number }
   | { type: 'sub-on'; t: number; x: number; y: number }
   | { type: 'reorder'; t: number; ids: number[] }
@@ -117,6 +152,10 @@ export type SimEvent =
   | { type: 'assembler-rejected'; t: number; reason: string }
   | { type: 'machine-lost'; t: number; x: number; y: number; count: number }
   | { type: 'run-dry'; t: number; x: number; y: number; district: District }
+  | { type: 'brownout'; t: number; demandKw: number; supplyKw: number }
+  | { type: 'shed'; t: number; x: number; y: number }          // x = y = -1: an assembler
+  | { type: 'restore'; t: number; x: number; y: number }
+  | { type: 'well-dead'; t: number; x: number; y: number }
   | { type: 'hour'; t: number; row: HourRow };
 
 export interface SimState {
@@ -145,6 +184,10 @@ export interface SimState {
   stats: SimStats;
   stock: { stone: number; copper: number; steel: number };
   patch: { steel: number };   // steel left in the start block's patch
+  power: PowerState;
+  asmTrack: { n: number; at: number };   // asmTrack mode: assemblers running, tick last evaluated
+  wellDead: boolean[];        // per well (index into `wells`)
+  wellEnclosedSince: number[]; // per well: tick all four neighbours became Held, -1 = not enclosed
   events: SimEvent[];   // appended by step(); the consumer drains them
 }
 
@@ -159,7 +202,7 @@ export const PROTO_CALIBRATED = {
   startAsmRate: 10 as number | null,
   // PROTO-CALIBRATED: kept at 300. Lever 2 (100) was tried and rejected: 100 rounds fill one of the start block's
   // hoppers, so two pips are red at minute 0 for two minutes, and nothing else in the session changed.
-  startRounds: 300,
+  startRounds: 200,
   eco: {
     // PROTO-CALIBRATED (T3): rubble per Held block per minute, civic : residential : industrial fixed 1 : 1 : 1.
     // Lever 3, swept 4/8/12/16/24/26/28/30/32: 32 is the lowest level at which compact and cheapest reach 180 min
