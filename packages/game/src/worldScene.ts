@@ -23,36 +23,60 @@ import {
   TILE_PX, RUBBLE_VARIANTS, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
   ground, chunkTiles, chunkKey, CHUNK, describeGround, blockOfTile, inReach, depotRect, REACH, INV_STACKS, invStacks, currentPath,
   Kind, Dir, DX, DY, DIR_NAMES, Machine, MACHINE_SIZE, SHOT, EXCAVATOR_PER_S,
-  machineAt, rubbleAt, canPlace, place, remove, canPickUp, costStr, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
+  machineAt, powered, rubbleAt, canPlace, place, remove, canPickUp, costStr, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
   handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
-  POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST,
+  POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST, segBetween, cityGeomOf, CityGeom, pipOf, edgeCap,
   lockReason, KIND_LABEL, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH,
+  setRecipe, RECIPE_IDS, recipeOf, recipeOutput,
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
+  crawlerTarget, shadeTraces, shadeNear, TRACE_S, activeEmergencePoints, stalkersOf, stalkerAt, describeStalker, stalkerHp,
   lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
+  heartOf, heartAt, cabinetAt, describeCabinet, describeHeart, cabinetConnected, cabinetRepairCheck, emergencePoint,   // RI-06
+  blockLabel, machineStatus, MachineState,
+  activationCheck, claimNeed, deliveredTo, deliverTo,
 } from '@relight/sim';
 import { Session, queue, record } from './session';
-import { View } from './view';
+import { View, debugView, hudInset } from './view';
+
+/** RI-02 (§11.2 "machine purpose and working / starved / blocked state", never colour alone): the state word's
+ *  glyph, in the tooltip and the E toast, and drawn as the same shape on the machine (drawStatusMark). */
+const STATUS_GLYPH: Record<MachineState, string> = { running: '▶', starved: '○', blocked: '■', idle: '–', off: '✕' };
+const STATUS_COL: Record<MachineState, number> = { running: 0x6fe08a, starved: 0xe8a93a, blocked: 0xe05a5a, idle: 0x9aa5b8, off: 0x9aa5b8 };
+/** The machines that have a working state (the belts, inserters, posts and the substation slab do not). */
+const STATUS_KIND = new Set<Kind>(['turret', 'generator', 'excavator', 'assembler', 'floodlight']);
 
 /** GAME-ASSUMPTION: the constitution's 0.5–3× zoom, not §4's 1.0–0.2×; the doc is edited to this range (D-P4-1). */
 export const ZOOM_MIN = 0.5, ZOOM_MAX = 3, ZOOM_STEP = 1.15;
 const PAN_PX_PER_S = 900;
+/** Layout pass, drawing only: the share of the viewport's height the HQ lot fills at the opening zoom. */
+const HQ_SCREEN_FRAC = 1 / 3;
+/** Layout pass, drawing only: how much of the viewport's width the top-left key strip may wrap across before it
+ *  would run under the territory block in the opposite corner. */
+const KEY_STRIP_FRAC = 0.56;
+/** The sim clock for the bottom-right corner: m:ss inside the hour, h:mm:ss past it. */
+const clock = (t: number): string => {
+  const s = Math.max(0, Math.floor(t)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, sec = s % 60;
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+};
 const CHUNK_PX = CHUNK * TILE_PX;   // 1024 px
 const HALF = TILE_PX / 2;
 /** Camera follow: the fraction of the gap to the engineer closed per second (the sim moves them 20× a second). */
 const FOLLOW_PER_S = 14;
 
-// tileset frames: street, ground, inert, river, then rubble (stone/copper/steel × 5 variants), then deposits (iron/coal × 5),
-// then the HQ patches (steel, copper, coal)
-const F_STREET = 0, F_GROUND = 1, F_INERT = 2, F_RIVER = 3, F_RUBBLE = 4, F_DEPOSIT = F_RUBBLE + 3 * RUBBLE_VARIANTS, F_PATCH = F_DEPOSIT + 2 * RUBBLE_VARIANTS, F_COUNT = F_PATCH + 3;
-const RUBBLE_IDX: Record<string, number> = { stone: 0, copper: 1, steel: 2 };
+// tileset frames: street, ground, inert, river, then rubble (stone/copper/steel/coal × 5 variants — coal is the rail
+// yard's heap, RI-01), then deposits (iron/coal × 5), then the HQ patches (steel, copper, coal)
+const F_STREET = 0, F_GROUND = 1, F_INERT = 2, F_RIVER = 3, F_RUBBLE = 4, F_DEPOSIT = F_RUBBLE + 4 * RUBBLE_VARIANTS, F_PATCH = F_DEPOSIT + 2 * RUBBLE_VARIANTS, F_COUNT = F_PATCH + 3;
+const RUBBLE_IDX: Record<string, number> = { stone: 0, copper: 1, steel: 2, coal: 3 };
 const DEPOSIT_IDX: Record<string, number> = { iron: 0, coal: 1 };
-const RUBBLE_COL = ['#b9bfc9', '#c0682b', '#5f83bd'];
-const RUBBLE_DARK = ['#7d848f', '#7d4119', '#3a5580'];
+const RUBBLE_COL = ['#b9bfc9', '#c0682b', '#5f83bd', '#2a2b31'];
+const RUBBLE_DARK = ['#7d848f', '#7d4119', '#3a5580', '#141519'];
 const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
-/** GAME-ASSUMPTION: flat item colours (steel blue, copper orange, stone grey, coal black, magazine brass) until the art pass. */
-const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a };
+/** GAME-ASSUMPTION: flat item colours (steel blue, copper orange, stone grey, coal black, magazine brass; RI-01's wire
+ *  a paler copper, frame a paler steel, board green) until the art pass. */
+const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a, wire: 0xf0a86a, frame: 0xb4c6e8, board: 0x5fae6a };
 const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a,
-  turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a };
+  turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a,
+  chest: 0x4a4636, track: 0x3a3c44, tramstop: 0x3f4a5e, tram: 0xb0572a };   // RI-05: the supply chest and the rail kit (flat colours until the art pass)
 const LIGHT_COL = 0xffe9a0;
 /** M5 light map. GAME-ASSUMPTION: the unlit texel is a multiply of ~25 % with a cool cast (§4's "desaturated and
  *  darkened to ~25 %" — a multiply cannot desaturate, so the cast stands in for it until the Phase 12 art pass);
@@ -60,24 +84,33 @@ const LIGHT_COL = 0xffe9a0;
  *  only when a texel changed; a Contested lot's specks burn off within `SWEEP_R` tiles of every lit lamp as the
  *  burn-off runs, so the far corners clear last. */
 const UNLIT_RGB = [62, 66, 98], LIGHT_REFRESH_MS = 125, SWEEP_R = 16;
+/** Layout pass, drawing only: how far towards lit an unlit tile is carried by the blurred light map. Below 1 so the
+ *  falloff softens the edge without lighting the dark: at 0.7 the first unlit ring reads about a third lit. */
+const LIGHT_SOFT = 0.7;
+/** Layout pass, drawing only: the machines whose footprint is a box, so they take the common drop shadow and rim.
+ *  Belts, inserters and the posts are not boxes — a rim per tile would draw a ladder down a belt run. */
+const BOX_MACHINE = new Set(['turret', 'floodlight', 'generator', 'excavator', 'assembler', 'bigpole', 'chest', 'tramstop']);   // RI-05: the chest and the stop are boxes too
 /** D-B5-1's hand lamp, drawing only: a 2-tile disc on the engineer in the light map when the human takes it (`?handlamp=1`). */
 const HAND_LAMP_R = 2;
 
 export type Tool = 'hand' | 'rifle' | Exclude<Kind, 'depot'>;
-/** D-B1-5: the hotbar. GAME-ASSUMPTION: 1 belt, 2 inserter, 3 Excavator, 4 Shot assembler, 5 turret, 6 lamp, 7 pole,
+/** D-B1-5: the hotbar. GAME-ASSUMPTION: 1 belt, 2 inserter, 3 Excavator, 4 Assembler, 5 turret, 6 lamp, 7 pole,
  *  8 Generator, 9 the rifle — the rifle is a hotbar item like any building, and while it is in hand you cannot mine
  *  or place until you clear it (Q, or pick something else). Prompt B M3: the Electricians' unlocks sit after the
  *  digits — 0 Floodlight, [ Big pole, ] Substation — and answer with why they are locked until the group joins. */
 export const HOTBAR: readonly Tool[] = ['belt', 'inserter', 'excavator', 'assembler', 'turret', 'lamp', 'pole', 'generator', 'rifle'];
 /** GAME-ASSUMPTION: the Electricians' unlocks sit on 0, [ and ] (§4 gives the hotbar 1–9; - and = are the speed keys). */
-export const UNLOCK_KEYS: Readonly<Record<string, Tool>> = { '0': 'floodlight', '[': 'bigpole', ']': 'substation' };
-export const TOOL_KEY_LINE = '1 belt · 2 inserter · 3 Excavator · 4 Shot assembler · 5 turret · 6 lamp · 7 pole · 8 Generator · 9 rifle · 0 / [ / ] Floodlight / Big pole / Substation (Electricians) · B build menu · R rotate · Q pipette / clear hand · E interact · right-click removes (empty hand) or clears the hand';
+export const UNLOCK_KEYS: Readonly<Record<string, Tool>> = { '0': 'floodlight', '[': 'bigpole', ']': 'substation',
+  'c': 'chest', 'l': 'track', 'h': 'tramstop', 'v': 'tram' };   // RI-05: the supply chest and the rail kit (the rail yard's restoration unlocks the kit; the chest is in the field kit)
+export const TOOL_KEY_LINE = '1 belt · 2 inserter · 3 Excavator · 4 Assembler · 5 turret · 6 lamp · 7 pole · 8 Generator · 9 rifle · 0 / [ / ] Floodlight / Big pole / Substation (Electricians) · B build menu · R rotate · T recipe (on an Assembler) · Q pipette / clear hand · E interact · right-click removes (empty hand) or clears the hand · C / L / H / V Supply chest / Track / Tram stop / Tram (the rail yard\'s restoration unlocks the kit; RI-05)';
 
 export interface WorldHooks {
   onHoverText(text: string | null, px: number, py: number): void;
   onToast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
   /** E on the Depot: open the chest (the pockets panel). */
   onChest(): void;
+  /** RI-05: E on a Supply chest or a Tram stop within reach — the pockets, targeted at it (chestTake / chestPut at). */
+  onChestAt(x: number, y: number): void;
 }
 
 interface Chunk { key: string; frames: Uint8Array }
@@ -89,14 +122,38 @@ export class WorldScene extends Phaser.Scene {
   private gMach!: Phaser.GameObjects.Graphics;
   private gThreat!: Phaser.GameObjects.Graphics;
   private gEng!: Phaser.GameObjects.Graphics;
-  private hudText!: Phaser.GameObjects.Text;
   private lightTex!: Phaser.Textures.CanvasTexture;
   private lightPix!: Uint8Array;        // the lit mask the texture shows (1 lit)
   private lightScratch!: Uint8Array;
+  /** Layout pass, drawing only: the blurred copy of the lit mask the texture is painted from. `lightPix` stays the
+   *  sim's binary lit set — this is only how it is coloured. */
+  private lightSoft!: Float32Array;
+  private lightBlur!: Float32Array;
   private lightAtMs = -Infinity;
   /** D-B5-1 preview: the engineer carries a 2-tile light (off by default; `?handlamp=1` or `__relight.handLamp(true)`). */
   handLamp = false;
   private depotText!: Phaser.GameObjects.Text;
+  private depotLabel = '';
+  /** Layout pass (ROADMAP §2 "Layout and readability pass"): the HUD is four corner overlays rather than one block
+   *  in the top-left — territory top-right, power and pockets bottom-left, speed and clock bottom-right, toasts
+   *  bottom-centre (the toasts are the panel's, `style.css`). GAME-ASSUMPTION: the ROADMAP names those four corners
+   *  and the key strip (STANDARDS 4.3) is not one of them, so it takes the corner left over — top-left, with the
+   *  in-hand line, the two things that answer "what am I holding and what can I press". The Depot beacon (C.2)
+   *  rides the viewport edge nearest the Depot while it is out of view. */
+  private terrText!: Phaser.GameObjects.Text;
+  private powText!: Phaser.GameObjects.Text;
+  private clockText!: Phaser.GameObjects.Text;
+  private keyText!: Phaser.GameObjects.Text;
+  private beaconText!: Phaser.GameObjects.Text;
+  private keyWrap = 0;
+  private powWrap = 0;
+  /** The engineer's facing as last drawn, so an idle engineer keeps pointing where they last moved (`e.face` is the
+   *  sim's own facing vector, set by walk.ts; this only survives the frames where it reads [0,0]). */
+  private lastFace: [number, number] = [1, 0];
+  /** Set the moment the human turns the wheel: after that the opening `fitZoom` never overrides their choice. */
+  private zoomTouched = false;
+  /** The city's geometry (segment midpoints for the kerb pips), generated once — `cityGeomOf` regenerates the city. */
+  private cg: CityGeom | null = null;
   private labels: Phaser.GameObjects.Text[] = [];
   private chunks = new Map<number, Chunk>();
   private keys!: Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'LEFT' | 'DOWN' | 'RIGHT' | 'SHIFT' | 'SPACE', Phaser.Input.Keyboard.Key>;
@@ -135,6 +192,7 @@ export class WorldScene extends Phaser.Scene {
     const G0 = ground(this.st);
     this.lightTex = (this.textures.exists('light') ? this.textures.get('light') : this.textures.createCanvas('light', G0.tw, G0.th)) as Phaser.Textures.CanvasTexture;
     this.lightPix = new Uint8Array(G0.tw * G0.th); this.lightScratch = new Uint8Array(G0.tw * G0.th);
+    this.lightSoft = new Float32Array(G0.tw * G0.th); this.lightBlur = new Float32Array(G0.tw * G0.th);
     this.lightAtMs = -Infinity;
     this.paintLight(this.lightPix);   // all unlit until the first read
     this.add.image(0, 0, 'light').setOrigin(0).setScale(TILE_PX).setDepth(1.5).setBlendMode(Phaser.BlendModes.MULTIPLY);
@@ -142,10 +200,16 @@ export class WorldScene extends Phaser.Scene {
     this.gThreat = this.add.graphics().setDepth(3);
     this.gEng = this.add.graphics().setDepth(3);
     this.depotText = this.add.text(0, 0, 'Depot', { fontSize: '20px', color: '#e8ecf4', fontStyle: 'bold' }).setDepth(3).setOrigin(0.5).setVisible(false);
-    this.hudText = this.add.text(8, 8, '', { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } }).setScrollFactor(0).setDepth(10);
+    const hud = { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } };
+    this.keyText = this.add.text(0, 0, '', hud).setScrollFactor(0).setDepth(10).setOrigin(0, 0);
+    this.terrText = this.add.text(0, 0, '', { ...hud, align: 'right' }).setScrollFactor(0).setDepth(10).setOrigin(1, 0);
+    this.powText = this.add.text(0, 0, '', hud).setScrollFactor(0).setDepth(10).setOrigin(0, 1);
+    this.clockText = this.add.text(0, 0, '', { ...hud, align: 'right' }).setScrollFactor(0).setDepth(10).setOrigin(1, 1);
+    this.beaconText = this.add.text(0, 0, '', { fontSize: '13px', color: '#ffffff', fontStyle: 'bold', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 3 } }).setScrollFactor(0).setDepth(10).setOrigin(0.5).setVisible(false);
+    this.cg = this.st.city ? cityGeomOf(this.st) : null;
     const cam = this.cameras.main, G = ground(this.st);
     cam.setBounds(0, 0, G.tw * TILE_PX, G.th * TILE_PX);
-    cam.setZoom(1);
+    cam.setZoom(this.fitZoom());
     cam.setRoundPixels(true);
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT,SHIFT,SPACE') as WorldScene['keys'];
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
@@ -156,6 +220,9 @@ export class WorldScene extends Phaser.Scene {
       const f = dy > 0 ? 1 / ZOOM_STEP : ZOOM_STEP;
       if (this.onFoot) this.zoomAt(...this.engineerScreen(), f); else this.zoomAt(p.x, p.y, f);
     });
+    // Layout pass: the canvas fills the window (Scale.RESIZE), so the opening zoom is re-fitted when the window
+    // changes size — until the human turns the wheel, after which their zoom stands.
+    this.scale.on('resize', () => { if (!this.zoomTouched) this.cameras.main.setZoom(this.fitZoom()); });
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.onWake());
     this.events.on(Phaser.Scenes.Events.SLEEP, () => { this.onUp(); this.sendWalk(0, 0); this.sendSprint(false); });
     this.onWake();
@@ -189,7 +256,7 @@ export class WorldScene extends Phaser.Scene {
         ctx.fillStyle = i % 3 === 2 ? dark : col; ctx.fillRect(Math.round(f * TILE_PX + x), Math.round(y), s, s);
       }
     };
-    for (let t = 0; t < 3; t++) for (let v = 0; v < RUBBLE_VARIANTS; v++) {
+    for (let t = 0; t < RUBBLE_COL.length; t++) for (let v = 0; v < RUBBLE_VARIANTS; v++) {
       const f = F_RUBBLE + t * RUBBLE_VARIANTS + v;
       rect(f, '#463d33'); rect(f, '#4c4338', 2, 2, TILE_PX - 4, TILE_PX - 4);
       chunk(f, t * 10 + v, RUBBLE_COL[t], RUBBLE_DARK[t], 3 + v * 3, 3 + v);
@@ -233,6 +300,19 @@ export class WorldScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ camera
 
+  /** Layout pass: the opening zoom puts the HQ lot at about a third of the viewport's height, so the first thing on
+   *  screen is the lot you start on with the streets around it — at the old fixed 1× a 6-tile lot was a fifth of a
+   *  short window and a tenth of a tall one. GAME-ASSUMPTION: the ROADMAP asks for "the HQ lot ≈ one third of screen
+   *  height" and names no tolerance; `HQ_SCREEN_FRAC` is that third, clamped to the constitution's 0.5–3× range
+   *  (D-P4-1), and it is drawing only — no rule reads it. Recomputed on a resize, but never after the human has
+   *  touched the wheel (`zoomTouched`). */
+  private fitZoom(): number {
+    const cam = this.cameras.main, G = ground(this.st), hq = G.blocks.find(b => b.hq);
+    if (!hq || cam.height <= 0) return 1;
+    const lotPx = (hq.y1 - hq.y0 + 1) * TILE_PX;
+    return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, (cam.height * HQ_SCREEN_FRAC) / Math.max(1, lotPx)));
+  }
+
   /** World point under a screen point, for the camera's current scroll and zoom (no rotation). */
   private worldAt(sx: number, sy: number, zoom = this.cameras.main.zoom): { x: number; y: number } {
     const cam = this.cameras.main;
@@ -253,6 +333,7 @@ export class WorldScene extends Phaser.Scene {
 
   zoomAt(sx: number, sy: number, factor: number): void {
     const cam = this.cameras.main;
+    this.zoomTouched = true;
     const z1 = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoom * factor));
     if (z1 === cam.zoom) return;
     const w = this.worldAt(sx, sy);
@@ -294,7 +375,7 @@ export class WorldScene extends Phaser.Scene {
     if (!st.flow) return false;
     const slot = '123456789'.indexOf(k);
     if (slot >= 0) { this.setTool(HOTBAR[slot]); return true; }
-    const unlock = UNLOCK_KEYS[k];
+    const unlock = UNLOCK_KEYS[k] ?? UNLOCK_KEYS[lower];   // RI-05: the letters
     if (unlock) {
       // prompt B M3: a locked unlock says who unlocks it (rule 8) and stays out of the hand
       const lock = lockReason(st, unlock as Kind);
@@ -314,7 +395,25 @@ export class WorldScene extends Phaser.Scene {
       if (m && m.kind !== 'depot') { if (this.reachable(m.x, m.y, m.size, true)) { rotate(st, m.x, m.y); record(this.session, { type: 'rotate', x: m.x, y: m.y }); } } else this.dir = ((this.dir + 1) % 4) as Dir;
       return true;
     }
+    if (lower === 't') {
+      // RI-01: cycle the Assembler under the cursor through the recipes its machine can run (D-B2-1 (b)); the sim's
+      // refusal (out of reach, full pockets) is the toast
+      const h = this.hoverTile, m = h ? machineAt(st, h.tx, h.ty) : undefined;
+      if (!m || m.kind !== 'assembler') { this.hooks.onToast('T sets the recipe of the Assembler under the cursor', 'bad'); return true; }
+      if (!this.reachable(m.x, m.y, m.size, true)) return true;
+      const cur = m.recipe ?? 'shot', next = RECIPE_IDS[(RECIPE_IDS.indexOf(cur) + 1) % RECIPE_IDS.length];
+      const why = setRecipe(st, m.x, m.y, next);
+      if (why) this.hooks.onToast(`Assembler: ${why}`, 'bad');
+      else { record(this.session, { type: 'setRecipe', x: m.x, y: m.y, recipe: next }); this.hooks.onToast(`Assembler → ${recipeOf(m).name}`, 'good'); }
+      return true;
+    }
     if (lower === 'e') { this.interact(); return true; }
+    if (lower === 'x') {
+      // RI-06 (§9.2 default 9): the explicit abort of the Heart's commissioning; nothing else on X
+      const H = heartOf(st);
+      if (H && H.attempt >= 0) queue(this.session, { type: 'abort' }); else if (H && !H.destroyed) this.hooks.onToast('Nothing to abort — the Heart is not being commissioned');
+      return true;
+    }
     return false;
   }
 
@@ -325,9 +424,10 @@ export class WorldScene extends Phaser.Scene {
     this.tool = t;
   }
 
-  /** E interacts (D-B1-5): the Depot opens the chest, the workbench crafts a magazine, a machine reports itself, the
-   *  truck is entered or left where it was found, a survivor group on the block answers. E never mines, places or
-   *  fires. Everything but the truck needs the thing within reach. */
+  /** E interacts (D-B1-5): the Depot opens the chest, the workbench crafts a magazine, a Dark block's substation takes
+   *  the claim's materials from the pockets and Activates (RI-03), a machine reports itself, the truck is entered or
+   *  left where it was found, a survivor group on the block answers. E never mines, places or fires. Everything but
+   *  the truck needs the thing within reach. */
   private interact(): void {
     const st = this.st, h = this.hoverTile;
     if (!st.flow || !this.onFoot) return;
@@ -352,11 +452,63 @@ export class WorldScene extends Phaser.Scene {
       this.hooks.onToast(`${light.l.kind === 'lamp' ? 'Lamp' : 'Streetlight'} repaired (${REPAIR_COPPER} Cu from the pockets) — ${b.state === HELD || b.state === CONTESTED ? 'it lights while the substation powers it' : 'it lights when its block is claimed'}`, 'good');
       return;
     }
+    // RI-03 (plan §4.1, D-RI-2): E on a Dark block's substation — the installation — moves what the claim still needs
+    // from the pockets into it (a legitimate inventory interaction, logged as `deliver`) and, when every prerequisite
+    // holds, sends the explicit Activate; otherwise the toast names the missing prerequisite. A built outskirts
+    // Substation is a machine too, so this comes before the machine report.
+    // RI-06: E on a feeder cabinet — repair it when it is knocked out (REPAIR_COPPER from the pockets), else move what
+    // it still needs from the pockets into it (a `deliver` with `cabinet`); the toast names what it lacks
+    const kc = h && st.flow ? cabinetAt(st, h.tx, h.ty) : -1;
+    if (kc >= 0) {
+      const H = heartOf(st)!, c = H.cabinets[kc], bs = st.blocks[H.site];
+      if (!this.reachable(c.x, c.y, 1, true)) return;
+      if (c.down) {
+        const chk = cabinetRepairCheck(st, kc);
+        if (chk.ok) queue(this.session, { type: 'repairCabinet', cabinet: kc }); else this.hooks.onToast(`Feeder cabinet ${kc + 1} · ${chk.reason}`, 'bad');
+        return;
+      }
+      const moved: string[] = [];
+      for (const item of ['steel', 'copper'] as const) {
+        const short = H.cand.cabinet[item] - c.delivered[item];
+        if (short <= 0 || (e.inv[item] ?? 0) <= 0) continue;
+        const r = deliverTo(st, bs.x, bs.y, item, short, kc);
+        record(this.session, { type: 'deliver', bx: bs.x, by: bs.y, item, n: short, cabinet: kc });
+        if (r.ok) moved.push(`${r.moved} ${item === 'copper' ? 'Cu' : 'steel'}`);
+      }
+      this.hooks.onToast(`${moved.length ? `${moved.join(' + ')} delivered · ` : ''}${describeCabinet(st, kc)}`, moved.length ? 'good' : undefined);
+      return;
+    }
+    if (h && isSubstationTile(st, h.tx, h.ty)) {
+      const bi = blockOfTile(st, h.tx, h.ty), b = bi >= 0 ? st.blocks[bi] : null;
+      if (b && (b.state === DARK || b.state === CONTESTED)) {
+        const sub = substationAt(st, b.x, b.y);
+        if (!sub || !this.reachable(sub.tx, sub.ty, sub.size, true)) return;
+        const name = blockLabel(st, bi, debugView.coords);
+        if (b.state === CONTESTED) { this.hooks.onToast(heartAt(st, bi) ? `${name} · ${describeHeart(st)}` : `${name} · commissioning — burn-off ${Math.round(100 * contestProgress(st, bi))} %`); return; }
+        const need = claimNeed(st), moved: string[] = [];
+        for (const item of ['steel', 'copper'] as const) {
+          const short = need[item] - deliveredTo(st, bi)[item];
+          if (short <= 0 || (e.inv[item] ?? 0) <= 0) continue;
+          const r = deliverTo(st, b.x, b.y, item, short);
+          record(this.session, { type: 'deliver', bx: b.x, by: b.y, item, n: short });
+          if (r.ok) moved.push(`${r.moved} ${item === 'copper' ? 'Cu' : 'steel'}`);
+        }
+        const chk = activationCheck(st, b.x, b.y), got = deliveredTo(st, bi);
+        if (chk.ok) {
+          queue(this.session, { type: 'activate', bx: b.x, by: b.y });   // the claim event's toast says the rest
+          if (moved.length) this.hooks.onToast(`${moved.join(' + ')} delivered to ${name}'s substation — activating`, 'good');
+          return;
+        }
+        this.hooks.onToast(`${name}${moved.length ? ` · ${moved.join(' + ')} delivered` : ''} · ${got.steel}/${need.steel} steel, ${got.copper}/${need.copper} Cu at its substation · not activated: ${chk.reason}`, 'bad');
+        return;
+      }
+    }
     const m = h ? machineAt(st, h.tx, h.ty) : undefined;
     if (m) {
       if (!this.reachable(m.x, m.y, m.size, true)) return;
       if (m.kind === 'depot') { this.hooks.onChest(); return; }
-      this.hooks.onToast(describeMachine(st, m));
+      if (m.kind === 'chest' || m.kind === 'tramstop') { this.hooks.onChestAt(m.x, m.y); return; }   // RI-05: the pockets talk to it
+      this.hooks.onToast(`${this.statusLine(m)} · ${describeMachine(st, m)}`);
       return;
     }
     if (e.truckFound) { queue(this.session, { type: 'enterTruck' }); this.hooks.onToast(e.truck ? 'Out of the truck' : 'In the truck — 3× walk speed, 200 stacks'); return; }
@@ -494,12 +646,21 @@ export class WorldScene extends Phaser.Scene {
     const bi = blockOfTile(st, tx, ty);
     // M5: an unlit tile says what that means (rule 8: the lit/unlit rule is on the tooltip, not only in the texture)
     const unlit = st.flow && !this.lightPix[ty * G.tw + tx] ? ' · unlit (rot can sit here; a shade here cannot be hit)' : '';
-    const lines = [describeGround(st, tx, ty) + unlit];
+    // RI-02: the tile coordinates are debug coordinates — shown only behind the ` toggle
+    const groundLine = describeGround(st, tx, ty), lines = [(debugView.coords ? groundLine : groundLine.replace(/^tile \(-?\d+,-?\d+\) · /, '')) + unlit];
     if (bi >= 0) lines.push(this.blockLine(bi));
-    if (m) lines.unshift(describeMachine(st, m));
+    const kc = st.flow ? cabinetAt(st, tx, ty) : -1;
+    if (kc >= 0) lines.unshift(describeCabinet(st, kc));   // RI-06: a feeder cabinet under the cursor
+    if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
     else if (st.flow && isSubstationTile(st, tx, ty)) {
       const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
-      if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (the block is unfed, or the grid is dead)'}`);
+      if (sub && heartAt(st, bi)) lines.unshift(`The Junction Heart · ${describeHeart(st)}`);   // RI-06: the objective, the active failure condition, the next action
+      if (sub && st.blocks[bi].state === DARK) {
+        // RI-03: the installation UI — what is delivered, and the prerequisite the Activate still lacks
+        const chk = activationCheck(st, st.blocks[bi].x, st.blocks[bi].y), need = claimNeed(st), got = deliveredTo(st, bi);
+        const materials = need.steel + need.copper > 0 ? `${got.steel}/${need.steel} steel, ${got.copper}/${need.copper} Cu delivered · ` : '';
+        lines.unshift(`Substation · Dark · ${materials}${chk.ok ? 'ready — E activates the claim' : `to claim: ${chk.reason}${/more steel|more Cu/.test(chk.reason) ? ' (E delivers from the pockets)' : ''}`}`);
+      } else if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (the block is unfed, or the grid is dead)'}`);
     }
     // M5: a light under the cursor — its state, and the repair rule when it is broken or eaten
     const light = lightAt(st, tx, ty);
@@ -513,8 +674,14 @@ export class WorldScene extends Phaser.Scene {
     }
     const cw = st.flow ? crawlerAt(st, tx + 0.5, ty + 0.5) : null;   // M4: a crawler under the cursor (shades only on lit tiles)
     if (cw) lines.unshift(describeCrawler(st, cw));
+    // RI-04: a Stalker under the cursor; an active emergence point says whose rot comes out of it and where it goes
+    const sk = st.flow ? stalkerAt(st, tx + 0.5, ty + 0.5) : null;
+    if (sk) lines.unshift(describeStalker(st, sk));
+    const ep = st.flow ? activeEmergencePoints(st).find(q => q.tx === tx && q.ty === ty) : undefined;
+    if (ep) lines.unshift(`Emergence point ${ep.id} · rot from ${blockLabel(st, ep.block, debugView.coords)} comes out along this street toward ${blockLabel(st, ep.other, debugView.coords)}`);
     // the "walk closer" cursor: something to do here, out of reach
-    const actionable = this.onFoot && (this.tool !== 'hand' || !!m || !!rubbleAt(st, tx, ty) || !!(light && light.l.why));
+    const actionable = this.onFoot && (this.tool !== 'hand' || !!m || !!rubbleAt(st, tx, ty) || !!(light && light.l.why)
+      || (!!st.flow && bi >= 0 && st.blocks[bi].state === DARK && isSubstationTile(st, tx, ty)));
     const far = actionable && !inReach(st, tx, ty, 1);
     if (far) lines.unshift(`Walk closer (reach ${REACH} tiles)`);
     this.hooks.onHoverText(lines.join('\n'), rect.left + p.x, rect.top + p.y);
@@ -522,13 +689,34 @@ export class WorldScene extends Phaser.Scene {
     if (cur !== this.cursor) { this.cursor = cur; this.input.setDefaultCursor(cur); }
   }
 
+  /** RI-02 (§11.2 "stable named destinations"): the block's name (names.ts — bearing and district, "HQ", the rail
+   *  yard) and its state; the block coordinates only behind the ` toggle. */
   private blockLine(i: number): string {
     const st = this.st, b = st.blocks[i];
-    const name = b.name === 'civ' ? 'civic' : b.name === 'res' ? 'residential' : b.name === 'ind' ? 'industrial' : 'outskirts';
     const river = st.lattice ? b.y === st.h - 1 : false;
     const state = river ? 'river' : b.state === DARK ? `Dark · rot ${Math.round(b.d * 100)} %` : b.state === CONTESTED ? 'Contested' : b.state === HELD ? (isInterior(st, i) ? 'Held · interior' : 'Held · front') : b.state === INERT || b.state === VOID ? 'inert' : '?';
-    const hq = b.x === st.start[0] && b.y === st.start[1] ? ' · HQ' : '';
-    return `block (${b.x},${b.y}) · ${name} · ${state}${hq}`;
+    return `${blockLabel(st, i, debugView.coords)} · ${state}`;
+  }
+
+  /** RI-02: a machine's state word with its reason, glyph first ("▶ running · digging steel"). */
+  private statusLine(m: Machine): string {
+    const s = machineStatus(this.st, m);
+    return `${STATUS_GLYPH[s.state]} ${s.state} · ${s.reason}`;
+  }
+
+  /** RI-02: the state mark on a machine — the tooltip's glyph as a shape at the top-left corner: running a right-pointing
+   *  triangle, starved a ring, blocked a square, idle a bar, off a cross. Shape and colour together, so a state reads
+   *  without colour (constitution, Phase 2). Drawing only. */
+  private drawStatusMark(g: Phaser.GameObjects.Graphics, m: Machine, px: number, py: number, zoom: number): void {
+    const s = machineStatus(this.st, m).state, col = STATUS_COL[s], r = 5 / Math.max(1, zoom * 0.75), x = px + 4 + r, y = py + 4 + r;
+    g.fillStyle(0x05070d, 0.85); g.fillCircle(x, y, r + 3);
+    switch (s) {
+      case 'running': g.fillStyle(col, 1); g.fillTriangle(x - r * 0.7, y - r, x - r * 0.7, y + r, x + r, y); break;
+      case 'starved': g.lineStyle(2 / Math.max(1, zoom * 0.75), col, 1); g.strokeCircle(x, y, r * 0.8); break;
+      case 'blocked': g.fillStyle(col, 1); g.fillRect(x - r * 0.75, y - r * 0.75, r * 1.5, r * 1.5); break;
+      case 'idle': g.fillStyle(col, 1); g.fillRect(x - r * 0.8, y - 1.5, r * 1.6, 3); break;
+      case 'off': g.lineStyle(2 / Math.max(1, zoom * 0.75), col, 1); g.lineBetween(x - r * 0.7, y - r * 0.7, x + r * 0.7, y + r * 0.7); g.lineBetween(x - r * 0.7, y + r * 0.7, x + r * 0.7, y - r * 0.7); break;
+    }
   }
 
   // ------------------------------------------------------------------ frame
@@ -634,6 +822,20 @@ export class WorldScene extends Phaser.Scene {
         g.fillRect((tx + 0.3 + 0.4 * ((h >>> 10) % 100) / 100) * TILE_PX - r, (ty + 0.3 + 0.4 * ((h >>> 20) % 100) / 100) * TILE_PX - r, 2 * r, 2 * r);
       }
     }
+    // Layout pass (ROADMAP §2 "street surface and kerb line"): the street surface is the tileset's own T_STREET;
+    // the kerb is drawn here — a thin pale line on every edge where a lot tile meets a street tile, so the street
+    // reads as a street rather than as a gap between lots. Screen-constant width, and not drawn against the river
+    // (owner -2), which has its own bank. GAME-ASSUMPTION: drawing only; nothing reads it.
+    g.lineStyle(1.5 / cam.zoom, 0x8d95a6, 0.45);
+    for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
+      const o = own[ty * tw + tx];
+      if (o < 0) continue;
+      const px = tx * TILE_PX, py = ty * TILE_PX;
+      if (ty > 0 && own[(ty - 1) * tw + tx] === -1) g.lineBetween(px, py, px + TILE_PX, py);
+      if (ty < G.th - 1 && own[(ty + 1) * tw + tx] === -1) g.lineBetween(px, py + TILE_PX, px + TILE_PX, py + TILE_PX);
+      if (tx > 0 && own[ty * tw + tx - 1] === -1) g.lineBetween(px, py, px, py + TILE_PX);
+      if (tx < tw - 1 && own[ty * tw + tx + 1] === -1) g.lineBetween(px + TILE_PX, py, px + TILE_PX, py + TILE_PX);
+    }
     // Held rims: the lot's boundary edges, white for interior, amber for the front
     for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
       const o = own[ty * tw + tx];
@@ -662,25 +864,81 @@ export class WorldScene extends Phaser.Scene {
       g.fillStyle(0x0b0e1a, 0.85); g.fillRect(d.x * TILE_PX, d.y * TILE_PX, d.size * TILE_PX, d.size * TILE_PX);
       g.lineStyle(2 / cam.zoom, 0xffffff, 0.8); g.strokeRect(d.x * TILE_PX, d.y * TILE_PX, d.size * TILE_PX, d.size * TILE_PX);
     }
+    this.drawKerbPips(g);
     this.drawGhost(g);
     this.drawThreat();
     this.drawEngineer();
 
-    // HUD: scrollFactor 0 still zooms about the camera centre, so pin it to the top-left at screen scale
-    const f = this.focusBlock(), fi = idxOf(st, f[0], f[1]);
-    this.hudText.setScale(1 / cam.zoom).setPosition(cam.width / 2 + (8 - cam.width / 2) / cam.zoom, cam.height / 2 + (8 - cam.height / 2) / cam.zoom);
-    const e = st.engineer;
+    // The HUD is four corner overlays (ROADMAP §2). `setScrollFactor(0)` still zooms about the camera centre, so
+    // every one is pinned at screen scale through `pin`.
+    const pin = (sx: number, sy: number): [number, number] => [cam.width / 2 + (sx - cam.width / 2) / cam.zoom, cam.height / 2 + (sy - cam.height / 2) / cam.zoom];
+    const f = this.focusBlock(), fi = idxOf(st, f[0], f[1]), e = st.engineer;
     // D5: the HP bar and number only when below full; M4: the crawlers on the tile layer and how many have turned on you
     const th = st.flow?.threat, onYou = th ? th.crawlers.filter(c => c.onPlayer).length : 0;
     const threatLine = th && threatActive(st) && th.crawlers.length ? ` · crawlers ${th.crawlers.length}${onYou ? ` (${onYou} on you)` : ''}` : '';
-    const pockets = this.onFoot ? ` · pockets ${invStacks(e.inv)}/${INV_STACKS} stacks${e.inv.kit ? ` · ${e.inv.kit} kit${e.inv.kit === 1 ? '' : 's'}` : ''}${e.hp < ENGINEER_HP ? ` · HP ${Math.round(e.hp)}/${ENGINEER_HP}` : ''}${threatLine}` : threatLine;
     const rounds = Math.floor((e.inv.magazine ?? 0) * ROUNDS_PER_MAG);
     const inHand = this.tool === 'hand' ? 'empty hand (hold left-click on rubble to mine it; click a turret or Generator to feed it; E interacts)'
       : this.tool === 'rifle' ? `rifle (hold left-click to fire toward the cursor, ${RIFLE_RANGE} tiles; Q puts it away) · ${rounds} round${rounds === 1 ? '' : 's'} in the pockets${rounds ? '' : ' — take magazines from the chest (E on the Depot)'}`
       : `${this.tool} → ${DIR_NAMES[this.dir]}`;
-    const toolLine = st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}\n${TOOL_KEY_LINE}${this.powerLine()}` : '';
     const moveLine = this.onFoot ? 'M map view (click a Held or street tile there to walk) · WASD move · Shift sprint · Space dodge · Tab/I pockets · wheel zoom' : 'M map view · drag / WASD pan · wheel zoom';
-    this.hudText.setText(`World view · ${fi >= 0 ? this.blockLine(fi) : ''} · zoom ${cam.zoom.toFixed(2)}× · ${n} tiles${pockets}\n${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${toolLine}`);
+
+    // top-left: the key strip (STANDARDS 4.3, the keys visible rather than in a tooltip) and what is in the hand,
+    // wrapped to a little over half the viewport so it never runs under the territory block opposite it
+    const wrap = Math.round(cam.width * KEY_STRIP_FRAC);
+    if (this.keyWrap !== wrap) { this.keyWrap = wrap; this.keyText.setWordWrapWidth(wrap); }
+    this.keyText.setScale(1 / cam.zoom).setPosition(...pin(8, 8 + hudInset.top))
+      .setText(`${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}${st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}` : ''}`);
+
+    // top-right: territory — the block under the engineer, what the view holds, the zoom
+    this.terrText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8, 8 + hudInset.top))
+      .setText(`World view · ${n} tiles · zoom ${cam.zoom.toFixed(2)}×${fi >= 0 ? `\n${this.blockLine(fi)}` : ''}`);
+
+    // bottom-left: power and pockets (the two stocks that decide the hour)
+    const pockets = this.onFoot ? `Pockets ${invStacks(e.inv)}/${INV_STACKS} stacks${e.inv.kit ? ` · ${e.inv.kit} kit${e.inv.kit === 1 ? '' : 's'}` : ''}${e.hp < ENGINEER_HP ? ` · HP ${Math.round(e.hp)}/${ENGINEER_HP}` : ''}${threatLine}` : threatLine.replace(/^ · /, '');
+    const power = this.powerLine().replace(/^\n/, '');
+    if (this.powWrap !== wrap) { this.powWrap = wrap; this.powText.setWordWrapWidth(wrap); }
+    this.powText.setScale(1 / cam.zoom).setPosition(...pin(8, cam.height - 8))
+      .setText([pockets, power].filter(Boolean).join('\n') || ' ');
+
+    // bottom-right: the clock and the speed the sim is running at (P pauses, - / = change it)
+    this.clockText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8, cam.height - 8))
+      .setText(`${clock(st.t)}\n${st.speed <= 0 ? 'PAUSED (P)' : `${st.speed}× speed`}`);
+    // the Depot beacon (STANDARDS C.2: the landmark reads from the far edge of the viewport): when the Depot is out
+    // of view, its direction and distance sit on the edge of the screen nearest it
+    if (st.flow) {
+      const d = depotRect(st), dcx = (d.x + d.size / 2) * TILE_PX, dcy = (d.y + d.size / 2) * TILE_PX, wv = cam.worldView;
+      if (wv.width > 0 && !wv.contains(dcx, dcy)) {
+        const dx = dcx - wv.centerX, dy = dcy - wv.centerY, m = 44 / cam.zoom;
+        const k = Math.min((wv.width / 2 - m) / Math.max(1e-6, Math.abs(dx)), (wv.height / 2 - m) / Math.max(1e-6, Math.abs(dy)));
+        const sx = (wv.centerX + dx * k - wv.x) * cam.zoom, sy = (wv.centerY + dy * k - wv.y) * cam.zoom;
+        const glyph = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? '▶' : '◀') : (dy > 0 ? '▼' : '▲');
+        const tiles = Math.round(Math.hypot(dx, dy) / TILE_PX);
+        this.beaconText.setScale(1 / cam.zoom).setPosition(...pin(sx, sy)).setText(`${glyph} Depot · ${tiles} tiles`).setVisible(true);
+      } else this.beaconText.setVisible(false);
+    } else this.beaconText.setVisible(false);
+  }
+
+  /** Layout pass (STANDARDS B.3, B.6; ROADMAP §2 "front-segment pip state on the kerb"): the map's edge pip on the
+   *  kerb — one per live segment at the street's midpoint, at screen scale so it reads at any zoom: ● green at least
+   *  half full, ▲ amber running low, ✕ red empty, blinking. The same `pipOf` the map and the panel use, so the three
+   *  never disagree. It was the HQ's segments alone; every Held block's front now carries its own, so a claimed block
+   *  reads the same as the one you started on. */
+  private drawKerbPips(g: Phaser.GameObjects.Graphics): void {
+    const st = this.st, cg = this.cg;
+    if (!cg || !st.flow) return;
+    const cam = this.cameras.main, zoom = cam.zoom, wv = cam.worldView;
+    const blink = Math.floor(performance.now() / 260) % 2 === 0, r = 7 / zoom;
+    for (const e of st.ring) {
+      if (st.blocks[e.a].state !== HELD) continue;
+      const sg = segBetween(cg, e.a, e.b);
+      if (!sg) continue;
+      const pip = pipOf(e.hopper / edgeCap(st, e)), x = sg.mx * TILE_PX, y = sg.my * TILE_PX;
+      if (x < wv.x - 32 || x > wv.right + 32 || y < wv.y - 32 || y > wv.bottom + 32) continue;
+      g.fillStyle(0x0b0e1a, 0.8); g.fillCircle(x, y, r * 1.7);
+      if (pip === 'green') { g.fillStyle(0x3ddc84, 1); g.fillCircle(x, y, r); }
+      else if (pip === 'amber') { g.fillStyle(0xf2b632, 1); g.fillTriangle(x, y - r, x - r, y + r * 0.8, x + r, y + r * 0.8); }
+      else if (blink) { g.lineStyle(3 / zoom, 0xff3b30, 1); g.lineBetween(x - r, y - r, x + r, y + r); g.lineBetween(x - r, y + r, x + r, y - r); }
+    }
   }
 
   /** M5: re-read the lit set from the sim (at most eight times a second) and repaint the texture when it changed. */
@@ -702,10 +960,32 @@ export class WorldScene extends Phaser.Scene {
     this.lightPix.set(m);
     this.paintLight(this.lightPix);
   }
+  /** Layout pass (ROADMAP §2 "soft light falloff"): the lit edge was a hard texel step, so a lamp's reach ended on a
+   *  straight line. The mask is blurred with two passes of [1,2,1]/4 and an unlit texel is lerped that far towards
+   *  white; a lit texel is still full white. GAME-ASSUMPTION: the blur is a render choice — `lightPix` is untouched,
+   *  `lightMask`/`litAt` still decide what is lit, so what a shade may stand on and what burns off is unchanged.
+   *  The texture is one texel per tile drawn at `TILE_PX`, and `antialias` is on, so the card's bilinear filter
+   *  carries the ramp the rest of the way. */
   private paintLight(mask: Uint8Array): void {
-    const G = ground(this.st), ctx = this.lightTex.getContext(), img = ctx.createImageData(G.tw, G.th), d = img.data;
-    for (let i = 0, j = 0; i < mask.length; i++, j += 4) {
-      if (mask[i]) { d[j] = 255; d[j + 1] = 255; d[j + 2] = 255; } else { d[j] = UNLIT_RGB[0]; d[j + 1] = UNLIT_RGB[1]; d[j + 2] = UNLIT_RGB[2]; }
+    const G = ground(this.st), tw = G.tw, th = G.th, n = tw * th;
+    const ctx = this.lightTex.getContext(), img = ctx.createImageData(tw, th), d = img.data;
+    const soft = this.lightSoft, tmp = this.lightBlur;
+    for (let pass = 0; pass < 2; pass++) {
+      const src: ArrayLike<number> = pass === 0 ? mask : soft;
+      for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {   // horizontal
+        const i = y * tw + x;
+        tmp[i] = (src[x > 0 ? i - 1 : i] + 2 * src[i] + src[x < tw - 1 ? i + 1 : i]) / 4;
+      }
+      for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {   // vertical
+        const i = y * tw + x;
+        soft[i] = (tmp[y > 0 ? i - tw : i] + 2 * tmp[i] + tmp[y < th - 1 ? i + tw : i]) / 4;
+      }
+    }
+    for (let i = 0, j = 0; i < n; i++, j += 4) {
+      const v = mask[i] ? 1 : Math.min(1, soft[i] * LIGHT_SOFT);
+      d[j] = UNLIT_RGB[0] + (255 - UNLIT_RGB[0]) * v;
+      d[j + 1] = UNLIT_RGB[1] + (255 - UNLIT_RGB[1]) * v;
+      d[j + 2] = UNLIT_RGB[2] + (255 - UNLIT_RGB[2]) * v;
       d[j + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
@@ -740,9 +1020,19 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     if (e.down >= 0) { g.fillStyle(0xe05a5a, 0.9); g.fillCircle(ex, ey, 11); return; }
+    // Layout pass (ROADMAP §2 "engineer as a two-tone sprite with facing"): the amber head rides the sim's own
+    // `face` vector rather than sitting at a fixed offset, with a chevron on the leading edge, so which way the
+    // engineer is turned is readable while standing still. `lastFace` holds the last non-zero facing, because
+    // `face` is [0, 0] at a standstill. GAME-ASSUMPTION: drawing only — nothing reads the chevron, and the lamp
+    // cone the ROADMAP line also asks for is NOT drawn (D-B5-1 decided against a personal light).
+    if (e.face[0] || e.face[1]) this.lastFace = [e.face[0], e.face[1]];
+    const fl = Math.hypot(this.lastFace[0], this.lastFace[1]) || 1, fx = this.lastFace[0] / fl, fy = this.lastFace[1] / fl;
     g.fillStyle(0x0b0e1a, 0.6); g.fillCircle(ex + 2, ey + 3, 11);
     g.fillStyle(e.dash > 0 ? 0xbfe8ff : 0xf5f0e0, 1); g.fillCircle(ex, ey, 10);
-    g.fillStyle(0xe8a93a, 1); g.fillCircle(ex, ey - 2, 5);
+    g.fillStyle(0xe8a93a, 1); g.fillCircle(ex + fx * 3, ey + fy * 3, 5);
+    g.lineStyle(2 / zoom, 0x0b0e1a, 0.8);
+    g.lineBetween(ex + fx * 10 - fy * 5, ey + fy * 10 + fx * 5, ex + fx * 13, ey + fy * 13);
+    g.lineBetween(ex + fx * 10 + fy * 5, ey + fy * 10 - fx * 5, ex + fx * 13, ey + fy * 13);
     if (e.hp < 100) { g.fillStyle(0x1a1d26, 1); g.fillRect(ex - 12, ey + 13, 24, 4); g.fillStyle(0x6fe08a, 1); g.fillRect(ex - 12, ey + 13, 24 * e.hp / 100, 4); }
     if (e.stamina < 1 || e.sprint) {
       g.fillStyle(0x1a1d26, 1); g.fillRect(ex - 12, ey + 18, 24, 3);
@@ -754,24 +1044,122 @@ export class WorldScene extends Phaser.Scene {
   /** M4: the crawlers on the tile layer — a dark disc with an HP bar once hurt, a red rim while it has turned on the
    *  engineer (D5 retaliation), a birth ring for its first second at the ridge; shades are faint and drawn only on
    *  lit tiles (§7: untargetable, and unseen, off them). GAME-ASSUMPTION: code-drawn discs stand in for the crawler
-   *  and shade sprites until the art pass. */
+   *  and shade sprites until the art pass.
+   *  RI-04 (plan §6, §7): the active emergence points pulse on the Dark kerbs the rot comes out of; a crawler carries
+   *  a heading tick and, under the cursor, a line to its target tile; a shade leaves a fading trace on the unlit tiles
+   *  it crossed (a trace is drawn on unlit ground and never implies the tile is lit); a Stalker is a triangle along its
+   *  heading with its perception ring round its home, a yellow wind-up rim before its first strike, red while on you. */
   private drawThreat(): void {
     const g = this.gThreat, st = this.st, th = st.flow?.threat;
     g.clear();
     if (!th || !threatActive(st)) return;
     const cam = this.cameras.main, zoom = cam.zoom, wv = cam.worldView;
+    const onScreen = (px: number, py: number, pad = 48) => px >= wv.x - pad && px <= wv.right + pad && py >= wv.y - pad && py <= wv.bottom + pad;
+    const now = performance.now();
+    // the emergence points: a pulsing ring on the kerb tile, a tick toward the block the rot walks into
+    for (const p of activeEmergencePoints(st)) {
+      const px = (p.tx + 0.5) * TILE_PX, py = (p.ty + 0.5) * TILE_PX;
+      if (!onScreen(px, py)) continue;
+      const o = st.blocks[p.other], b = st.blocks[p.block], dx = o.x - b.x, dy = o.y - b.y, L = Math.hypot(dx, dy) || 1;
+      const pulse = 0.5 + 0.5 * Math.sin(now / 400 + p.id);
+      g.lineStyle(1.5 / zoom, 0xc06ae0, 0.35 + 0.4 * pulse); g.strokeCircle(px, py, 7 + 4 * pulse);
+      g.fillStyle(0xc06ae0, 0.9); g.fillCircle(px, py, 2.5);
+      g.lineStyle(2 / zoom, 0xc06ae0, 0.7); g.lineBetween(px, py, px + dx / L * 12, py + dy / L * 12);
+    }
+    // RI-06: the Junction Heart — a pulsing ring on the yard's substation while it stands; each feeder cabinet as a
+    // square (green on the live grid, amber supplied but unpowered, red knocked out, grey empty); a requested packet's
+    // approach shown on its emergence point before the bodies are born (§9.2 default 6: "show the approach")
+    const H = heartOf(st);
+    if (H && !H.destroyed) {
+      const hb = st.blocks[H.site], hs = substationAt(st, hb.x, hb.y);
+      if (hs) {
+        const px = (hs.tx + hs.size / 2) * TILE_PX, py = (hs.ty + hs.size / 2) * TILE_PX, pulse = 0.5 + 0.5 * Math.sin(now / 300);
+        if (onScreen(px, py)) { g.lineStyle(2.5 / zoom, 0xe04a6a, 0.45 + 0.45 * pulse); g.strokeCircle(px, py, 14 + 6 * pulse); g.lineStyle(1 / zoom, 0xe04a6a, 0.3); g.strokeCircle(px, py, 26 + 10 * (1 - pulse)); }
+      }
+      H.cabinets.forEach((c, k) => {
+        const px = c.x * TILE_PX, py = c.y * TILE_PX;
+        if (!onScreen(px, py)) return;
+        const colour = c.down ? 0xe0483a : cabinetConnected(st, k) ? 0x5ad07a : (c.delivered.steel + c.delivered.copper > 0 ? 0xe0b04a : 0x8a8a8a);
+        g.fillStyle(colour, 0.85); g.fillRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
+        g.lineStyle(1.5 / zoom, 0x101010, 0.8); g.strokeRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
+        g.lineStyle(1 / zoom, colour, 0.5); g.strokeCircle(px + TILE_PX / 2, py + TILE_PX / 2, TILE_PX * 0.9);
+      });
+      for (const p of H.pending) {
+        const c = H.cabinets[p.cabinet], pt = c ? emergencePoint(st, c.approach, H.site) : undefined;
+        if (!pt) continue;
+        const px = (pt.tx + 0.5) * TILE_PX, py = (pt.ty + 0.5) * TILE_PX, pulse = 0.5 + 0.5 * Math.sin(now / 150);
+        if (!onScreen(px, py)) continue;
+        g.lineStyle(2 / zoom, 0xe04a6a, 0.5 + 0.5 * pulse); g.strokeCircle(px, py, 10 + 8 * pulse);
+        g.lineStyle(2 / zoom, 0xe04a6a, 0.8); g.lineBetween(px, py, c.x * TILE_PX + TILE_PX / 2, c.y * TILE_PX + TILE_PX / 2);
+      }
+    }
+    // a shade's trace: the tiles it crossed, fading over TRACE_S, on unlit ground only (a lit tile shows the shade itself)
+    for (const tr of shadeTraces(st)) {
+      if (litAt(st, tr.tx, tr.ty)) continue;
+      const px = (tr.tx + 0.5) * TILE_PX, py = (tr.ty + 0.5) * TILE_PX;
+      if (!onScreen(px, py)) continue;
+      const a = 0.4 * (1 - tr.age / TRACE_S);
+      g.fillStyle(0x9a7ab0, a); g.fillPoints([{ x: px, y: py - 5 }, { x: px + 5, y: py }, { x: px, y: py + 5 }, { x: px - 5, y: py }], true);
+    }
+    const hov = this.hoverTile && st.flow ? crawlerAt(st, this.hoverTile.tx + 0.5, this.hoverTile.ty + 0.5) : null;
+    // Layout pass (ROADMAP §2 "distinct crawler / shade shapes"): both were discs a pixel apart in radius. The
+    // crawler keeps the disc; the shade is a diamond, which reads at a glance and at 0.5×. GAME-ASSUMPTION:
+    // drawing only — the hitbox, the rifle and §7's lit-tile rule are unchanged.
+    const dia = (cxp: number, cyp: number, rr: number): Phaser.Types.Math.Vector2Like[] =>
+      [{ x: cxp, y: cyp - rr }, { x: cxp + rr, y: cyp }, { x: cxp, y: cyp + rr }, { x: cxp - rr, y: cyp }];
     for (const c of th.crawlers) {
       const px = c.x * TILE_PX, py = c.y * TILE_PX;
       if (px < wv.x - 48 || px > wv.right + 48 || py < wv.y - 48 || py > wv.bottom + 48) continue;
       const shade = c.kind === 'shade';
       if (shade && !litAt(st, Math.floor(c.x), Math.floor(c.y))) continue;
-      const r = shade ? 8 : 9, age = st.t - c.born, maxHp = ENEMIES[shade ? 1 : 0].hp;
-      g.fillStyle(0x0b0e1a, shade ? 0.25 : 0.7); g.fillCircle(px + 2, py + 3, r);
-      g.fillStyle(shade ? 0x7a6a9a : 0x3a2a4a, shade ? 0.45 : 1); g.fillCircle(px, py, r);
-      if (c.onPlayer) { g.lineStyle(3 / zoom, 0xe05a5a, 0.95); g.strokeCircle(px, py, r + 2); }
-      else { g.lineStyle(1.5 / zoom, 0x9a7ab0, 0.6); g.strokeCircle(px, py, r); }
+      const r = 9, age = st.t - c.born, maxHp = ENEMIES[shade ? 1 : 0].hp;
+      if (shade) {
+        g.fillStyle(0x0b0e1a, 0.25); g.fillPoints(dia(px + 2, py + 3, r), true);
+        g.fillStyle(0x7a6a9a, 0.45); g.fillPoints(dia(px, py, r), true);
+      } else {
+        g.fillStyle(0x0b0e1a, 0.7); g.fillCircle(px + 2, py + 3, r);
+        g.fillStyle(0x3a2a4a, 1); g.fillCircle(px, py, r);
+      }
+      const rim = (rr: number) => { if (shade) g.strokePoints(dia(px, py, rr), true); else g.strokeCircle(px, py, rr); };
+      if (c.onPlayer) { g.lineStyle(3 / zoom, 0xe05a5a, 0.95); rim(r + 2); }
+      else { g.lineStyle(1.5 / zoom, 0x9a7ab0, 0.6); rim(r); }
       if (age < 1) { g.lineStyle(2 / zoom, 0xd0a0ff, 1 - age); g.strokeCircle(px, py, r + 4 + age * 10); }
       if (c.hp < maxHp) { g.fillStyle(0x1a1d26, 1); g.fillRect(px - 10, py - r - 7, 20, 3); g.fillStyle(0xe05a5a, 1); g.fillRect(px - 10, py - r - 7, 20 * Math.max(0, c.hp) / maxHp, 3); }
+      // RI-04: the heading tick (§7 "direction and current target are inspectable"); the target line under the cursor
+      if (c.dir && (c.dir[0] || c.dir[1])) { g.lineStyle(2 / zoom, c.onPlayer ? 0xe05a5a : 0xd0b0e0, 0.9); g.lineBetween(px + c.dir[0] * r, py + c.dir[1] * r, px + c.dir[0] * (r + 7), py + c.dir[1] * (r + 7)); }
+      if (c === hov) {
+        const tg = crawlerTarget(st, c);
+        if (tg) {
+          const qx = tg.tx * TILE_PX, qy = tg.ty * TILE_PX;
+          g.lineStyle(1.5 / zoom, 0xe0c0ff, 0.8); g.strokeRect(qx + 1, qy + 1, TILE_PX - 2, TILE_PX - 2);
+          g.lineStyle(1 / zoom, 0xe0c0ff, 0.5); g.lineBetween(px, py, qx + TILE_PX / 2, qy + TILE_PX / 2);
+        }
+      }
+    }
+    // RI-04: the Stalkers (the candidate is on) — a triangle along the heading, an HP bar once hurt, the perception ring
+    // and a mark on the home tile so the territory reads before the first contact, the wind-up rim, red while on you
+    const S = th.stalk;
+    if (S) {
+      const per = S.cand.perception * TILE_PX, maxHp = stalkerHp(S.cand);
+      for (const s of stalkersOf(st)) {
+        const px = s.x * TILE_PX, py = s.y * TILE_PX, hx = s.hx * TILE_PX, hy = s.hy * TILE_PX;
+        if (onScreen(hx, hy, per + 48)) {
+          g.lineStyle(1.5 / zoom, 0xc06060, s.mode === 'guard' ? 0.35 : 0.18); g.strokeCircle(hx, hy, per);
+          g.lineStyle(1.5 / zoom, 0xc06060, 0.7); g.lineBetween(hx - 5, hy - 5, hx + 5, hy + 5); g.lineBetween(hx - 5, hy + 5, hx + 5, hy - 5);
+        }
+        if (!onScreen(px, py)) continue;
+        const r = 11, [dx, dy] = s.dir[0] || s.dir[1] ? s.dir : [0, -1];
+        const tri = (cxp: number, cyp: number, rr: number): Phaser.Types.Math.Vector2Like[] =>
+          [{ x: cxp + dx * rr, y: cyp + dy * rr }, { x: cxp - dy * rr * 0.7 - dx * rr * 0.6, y: cyp + dx * rr * 0.7 - dy * rr * 0.6 }, { x: cxp + dy * rr * 0.7 - dx * rr * 0.6, y: cyp - dx * rr * 0.7 - dy * rr * 0.6 }];
+        g.fillStyle(0x0b0e1a, 0.7); g.fillPoints(tri(px + 2, py + 3, r), true);
+        g.fillStyle(0x5a2430, 1); g.fillPoints(tri(px, py, r), true);
+        const onYou = s.mode === 'pursue' || s.mode === 'attack';
+        if (s.mode === 'attack' && !s.warmed) { g.lineStyle(3 / zoom, 0xffcc44, 1); g.strokeCircle(px, py, r + 2 + 8 * (1 - s.windup / S.cand.windupS)); }
+        else if (onYou) { g.lineStyle(3 / zoom, 0xe05a5a, 0.95); g.strokeCircle(px, py, r + 2); }
+        else { g.lineStyle(1.5 / zoom, s.mode === 'investigate' ? 0xe0a060 : 0xc06060, 0.7); g.strokeCircle(px, py, r); }
+        if (s.mode === 'investigate') { g.lineStyle(1 / zoom, 0xe0a060, 0.5); g.lineBetween(px, py, s.px * TILE_PX, s.py * TILE_PX); }
+        if (s.hp < maxHp) { g.fillStyle(0x1a1d26, 1); g.fillRect(px - 12, py - r - 8, 24, 3); g.fillStyle(0xe05a5a, 1); g.fillRect(px - 12, py - r - 8, 24 * Math.max(0, s.hp) / maxHp, 3); }
+      }
     }
   }
 
@@ -814,6 +1202,17 @@ export class WorldScene extends Phaser.Scene {
     else if (kind !== 'turret' && kind !== 'substation') this.arrow(g, gcx, gcy, this.dir, size * HALF - 4, col, 0.9);
   }
 
+  /** RI-05: a pool's contents as item-coloured squares, one per ten items (rounded up), at most perRow × rows. */
+  private itemSquares(g: Phaser.GameObjects.Graphics, pool: Record<string, number> | undefined, x: number, y: number, perRow: number, rows: number): void {
+    if (!pool) return;
+    let n = 0;
+    for (const [k, v] of Object.entries(pool)) {
+      for (let i = 0; i < Math.ceil(v / 10) && n < perRow * rows; i++, n++) {
+        g.fillStyle(ITEM_COL[k] ?? 0xffffff, 1); g.fillRect(x + (n % perRow) * 9, y + Math.floor(n / perRow) * 9, 7, 7);
+      }
+    }
+  }
+
   private arrow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, dir: Dir, len: number, col: number, alpha = 1): void {
     const dx = DX[dir], dy = DY[dir], px = -dy, py = dx;   // perpendicular
     const tipx = cx + dx * len, tipy = cy + dy * len, base = len * 0.45, w = 6;
@@ -835,12 +1234,16 @@ export class WorldScene extends Phaser.Scene {
     // (warm when lit, dark with a cross when broken or eaten — E repairs those), then each block's substation slab,
     // then the pole wires
     const lit = new Set<number>();
+    // RI-04 (§7 "an approaching Shade has an identifiable trace or flicker"): a lit post within three tiles of a shade
+    // flickers — its glyph only; the light layer and the lit/unlit rule are untouched
+    const shades = !!st.flow?.threat?.crawlers.some(c => c.kind === 'shade'), flick = Math.floor(now / 90) % 3 === 0;
     for (const bi of vis) {
       for (const l of blockLights(st, bi)) {
         const lx = (l.tx + 0.5) * TILE_PX, ly = (l.ty + 0.5) * TILE_PX;
         if (l.kind !== 'streetlight') { if (l.lit) lit.add(Math.floor(l.tx) * 4096 + Math.floor(l.ty)); continue; }
-        g.fillStyle(l.broken ? 0x2a2d36 : l.lit ? 0xfff3b0 : 0x8a8f9a, 1); g.fillCircle(lx, ly, 4);
-        if (l.lit) { g.fillStyle(LIGHT_COL, 0.35); g.fillCircle(lx, ly, 7); }
+        const dim = l.lit && shades && flick && shadeNear(st, l.tx, l.ty);
+        g.fillStyle(l.broken ? 0x2a2d36 : dim ? 0xb0a070 : l.lit ? 0xfff3b0 : 0x8a8f9a, 1); g.fillCircle(lx, ly, 4);
+        if (l.lit) { g.fillStyle(LIGHT_COL, dim ? 0.12 : 0.35); g.fillCircle(lx, ly, 7); }
         if (l.broken) { g.lineStyle(1.5, l.why === 'eaten' ? 0xc06ae0 : 0xe05a5a, 0.9); g.lineBetween(lx - 4, ly - 4, lx + 4, ly + 4); g.lineBetween(lx - 4, ly + 4, lx + 4, ly - 4); }
       }
       const b = st.blocks[bi], sub = substationAt(st, b.x, b.y);
@@ -858,6 +1261,13 @@ export class WorldScene extends Phaser.Scene {
     for (const m of f.machines) {
       if (m.x + m.size <= tx0 || m.x > tx1 || m.y + m.size <= ty0 || m.y > ty1) continue;
       const px = m.x * TILE_PX, py = m.y * TILE_PX, sz = m.size * TILE_PX, cx = px + sz / 2, cy = py + sz / 2;
+      // Layout pass (ROADMAP §2 "distinct machine silhouettes with outlines"): the shapes were already distinct but
+      // the outlines were not — the turret's showed only while idle, the generator, excavator and assembler had an
+      // inner line and no rim, the lamp and pole had neither. Every box machine now gets the same two marks, drawn
+      // here and closed after the switch: a dark drop shadow that lifts it off the ground, and a screen-constant
+      // rim. The posts (lamp, pole) take a dark backing slab in their own case. GAME-ASSUMPTION: drawing only.
+      const box = BOX_MACHINE.has(m.kind);
+      if (box || m.kind === 'depot') { g.fillStyle(0x05070d, 0.5); g.fillRect(px + 5, py + 6, sz - 4, sz - 4); }
       switch (m.kind) {
         case 'turret': {
           const rounds = m.inv.rounds ?? 0, frac = Math.min(1, rounds / TURRET_HOPPER);
@@ -870,19 +1280,22 @@ export class WorldScene extends Phaser.Scene {
           // hopper bar: green → amber → red, blinking outline when empty (the same event turns the map pip red)
           g.fillStyle(0x1a1d26, 1); g.fillRect(px + 6, py + sz - 12, sz - 12, 6);
           g.fillStyle(frac > 0.5 ? 0x6fe08a : frac > 0 ? 0xe8a93a : 0xe05a5a, 1); g.fillRect(px + 6, py + sz - 12, (sz - 12) * frac, 6);
-          if (rounds <= 0 && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2); }
-          if (!m.busy) { g.lineStyle(1.5, 0x8a8f9a, 0.6); g.strokeRect(px + 2, py + 2, sz - 4, sz - 4); }
+          // `busy` is "covers a live edge": a turret that covers nothing keeps its grey mark, now inside the rim
+          if (!m.busy) { g.lineStyle(1.5 / zoom, 0x8a8f9a, 0.6); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12); }
           break;
         }
         case 'lamp': {
           const on = lit.has(m.x * 4096 + m.y);
+          const dim = on && shades && flick && shadeNear(st, m.x, m.y);   // RI-04: the same flicker on a lamp near a shade
+          g.fillStyle(0x05070d, 0.5); g.fillRect(cx - 6, py + 6, 12, TILE_PX - 8);
           g.fillStyle(MACHINE_COL.lamp, 1); g.fillRect(cx - 3, py + 8, 6, TILE_PX - 12);
-          g.fillStyle(on ? 0xfff3b0 : 0x3a3a40, 1); g.fillCircle(cx, py + 9, 6);
-          if (on) { g.fillStyle(LIGHT_COL, 0.35); g.fillCircle(cx, py + 9, 9); }
+          g.fillStyle(dim ? 0xb0a070 : on ? 0xfff3b0 : 0x3a3a40, 1); g.fillCircle(cx, py + 9, 6);
+          if (on) { g.fillStyle(LIGHT_COL, dim ? 0.12 : 0.35); g.fillCircle(cx, py + 9, 9); }
           break;
         }
         case 'pole': {
           const on = grid.connected.has(m.id);
+          g.fillStyle(0x05070d, 0.5); g.fillRect(cx - 11, py + 5, 22, TILE_PX - 6);
           g.fillStyle(MACHINE_COL.pole, 1); g.fillRect(cx - 3, py + 6, 6, TILE_PX - 8);
           g.fillRect(cx - 9, py + 8, 18, 3);
           g.fillStyle(on ? 0xb6e36a : 0x8a8f9a, 1); g.fillCircle(cx - 8, py + 9, 2.5); g.fillCircle(cx + 8, py + 9, 2.5);
@@ -908,6 +1321,48 @@ export class WorldScene extends Phaser.Scene {
           break;
         }
         case 'substation': { g.lineStyle(1.5, 0x8a8f9a, 0.6); g.strokeRect(px + 4, py + 4, sz - 8, sz - 8); break; }
+        // RI-05: the supply chest and the rail kit. A Track tile draws sleepers and two rails along the axis of its
+        // track neighbours (a lone tile along its facing; a junction both — it voids the route, and reads as a cross);
+        // a Tram stop is a 2×2 slab with a platform stripe (amber while powered, grey unpowered) on each side that
+        // touches track, its platform's items as squares on the left and its arrivals' on the right; a Tram is a
+        // one-tile car with a heading arrow and its cargo as squares; a Supply chest a 2×2 box with a lid line and
+        // its contents as squares (one square per ten items). GAME-ASSUMPTION: drawing only.
+        case 'track': {
+          const isTrack = (x: number, y: number) => machineAt(st, x, y)?.kind === 'track';
+          const v = isTrack(m.x, m.y - 1) || isTrack(m.x, m.y + 1), hz = isTrack(m.x - 1, m.y) || isTrack(m.x + 1, m.y);
+          const axisV = v || (!hz && m.dir % 2 === 0), axisH = hz || (!v && m.dir % 2 === 1);
+          const q = TILE_PX / 4, o = TILE_PX / 8;
+          if (axisV) { g.fillStyle(MACHINE_COL.track, 1); for (let k = 0; k < 4; k++) g.fillRect(px + o, py + o + k * q, TILE_PX - 2 * o, 3); g.fillStyle(0x9aa3b8, 1); g.fillRect(px + q, py, 3, TILE_PX); g.fillRect(px + TILE_PX - q - 3, py, 3, TILE_PX); }
+          if (axisH) { g.fillStyle(MACHINE_COL.track, 1); for (let k = 0; k < 4; k++) g.fillRect(px + o + k * q, py + o, 3, TILE_PX - 2 * o); g.fillStyle(0x9aa3b8, 1); g.fillRect(px, py + q, TILE_PX, 3); g.fillRect(px, py + TILE_PX - q - 3, TILE_PX, 3); }
+          break;
+        }
+        case 'tramstop': {
+          g.fillStyle(MACHINE_COL.tramstop, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+          const isTrack = (x: number, y: number) => machineAt(st, x, y)?.kind === 'track', t = 6;
+          g.fillStyle(powered(st, m) ? 0xe8c96a : 0x6a6f7a, 1);
+          if (isTrack(m.x, m.y - 1) || isTrack(m.x + 1, m.y - 1)) g.fillRect(px + 4, py + 2, sz - 8, t);
+          if (isTrack(m.x, m.y + 2) || isTrack(m.x + 1, m.y + 2)) g.fillRect(px + 4, py + sz - 2 - t, sz - 8, t);
+          if (isTrack(m.x - 1, m.y) || isTrack(m.x - 1, m.y + 1)) g.fillRect(px + 2, py + 4, t, sz - 8);
+          if (isTrack(m.x + 2, m.y) || isTrack(m.x + 2, m.y + 1)) g.fillRect(px + sz - 2 - t, py + 4, t, sz - 8);
+          this.itemSquares(g, m.inv, px + 12, py + 14, 3, 3);                 // the platform: waiting for a tram
+          this.itemSquares(g, m.cargo, px + sz / 2 + 6, py + 14, 3, 3);       // the arrivals: unloaded, for an inserter
+          break;
+        }
+        case 'tram': {
+          g.fillStyle(0x05070d, 0.5); g.fillRect(px + 5, py + 7, TILE_PX - 6, TILE_PX - 8);
+          g.fillStyle(MACHINE_COL.tram, 1); g.fillRect(px + 3, py + 5, TILE_PX - 6, TILE_PX - 10);
+          g.lineStyle(2 / zoom, 0xf0d0a0, 0.9); g.strokeRect(px + 3, py + 5, TILE_PX - 6, TILE_PX - 10);
+          this.arrow(g, cx, cy, m.dir, TILE_PX / 2 - 5, 0xfff0d0, 0.9);
+          this.itemSquares(g, m.cargo, px + 8, py + 9, 4, 2);
+          break;
+        }
+        case 'chest': {
+          g.fillStyle(MACHINE_COL.chest, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+          g.lineStyle(2, 0x2c2a20, 1); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12);
+          g.fillStyle(0x7a7050, 1); g.fillRect(px + 6, py + Math.floor(sz / 3), sz - 12, 3);   // the lid line
+          this.itemSquares(g, m.inv, px + 12, py + Math.floor(sz / 3) + 8, 6, 3);
+          break;
+        }
         case 'generator': {
           const coal = m.inv.coal ?? 0;
           g.fillStyle(MACHINE_COL.generator, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
@@ -919,12 +1374,12 @@ export class WorldScene extends Phaser.Scene {
           for (let k = 0; k < Math.min(10, Math.ceil(coal / 5)); k++) { g.fillStyle(ITEM_COL.coal, 1); g.fillRect(px + 10 + (k % 5) * 9, py + 12 + Math.floor(k / 5) * 9, 7, 7); }
           g.fillStyle(0x1e1418, 1); g.fillRect(px + 10, py + sz - 16, sz - 20, 8);
           g.fillStyle(0xff9a3a, 1); g.fillRect(px + 10, py + sz - 16, (sz - 20) * Math.min(1, m.timer), 8);
-          if (coal <= 0 && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2); }
           break;
         }
         case 'belt': this.drawBelt(g, m, px, py); break;
         case 'inserter': {
           g.fillStyle(0x3a3220, 1); g.fillRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
+          g.lineStyle(1.5 / zoom, 0x9aa3b8, 0.6); g.strokeRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
           g.fillStyle(MACHINE_COL.inserter, 1); g.fillCircle(cx, cy, 7);
           const [ix, iy] = inputTile(m), [ox, oy] = outputTile(m);
           const toOut = m.phase === 1;
@@ -951,22 +1406,40 @@ export class WorldScene extends Phaser.Scene {
           g.fillStyle(MACHINE_COL.assembler, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
           g.lineStyle(2, 0x33293d, 1); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12);
           this.arrow(g, cx, cy, m.dir, sz / 2 - 2, 0xd8d0e8, 0.7);
-          // progress bar and the input/output counts as item squares
-          const prog = m.busy ? Math.min(1, m.timer / SHOT.seconds) : 0;
+          // progress bar and the input/output counts as item squares, in the recipe's own items (RI-01: one row an input)
+          const r = recipeOf(m), o = recipeOutput(r);
+          const prog = m.busy ? Math.min(1, m.timer / r.seconds) : 0;
           g.fillStyle(0x1e1826, 1); g.fillRect(px + 10, py + sz - 16, sz - 20, 8);
-          g.fillStyle(0xe6d45a, 1); g.fillRect(px + 10, py + sz - 16, (sz - 20) * prog, 8);
-          for (let k = 0; k < Math.min(8, m.inv.steel ?? 0); k++) { g.fillStyle(ITEM_COL.steel, 1); g.fillRect(px + 10 + k * 9, py + 10, 7, 7); }
-          for (let k = 0; k < Math.min(4, m.inv.copper ?? 0); k++) { g.fillStyle(ITEM_COL.copper, 1); g.fillRect(px + 10 + k * 9, py + 20, 7, 7); }
-          for (let k = 0; k < Math.min(5, m.out); k++) { g.fillStyle(ITEM_COL.magazine, 1); g.fillRect(px + sz - 18, py + 10 + k * 9, 7, 7); }
+          g.fillStyle(ITEM_COL[o] ?? 0xe6d45a, 1); g.fillRect(px + 10, py + sz - 16, (sz - 20) * prog, 8);
+          Object.keys(r.inputs).forEach((k, row) => { for (let n = 0; n < Math.min(8, m.inv[k] ?? 0); n++) { g.fillStyle(ITEM_COL[k] ?? 0xffffff, 1); g.fillRect(px + 10 + n * 9, py + 10 + row * 10, 7, 7); } });
+          for (let k = 0; k < Math.min(5, m.out); k++) { g.fillStyle(ITEM_COL[o] ?? 0xe6d45a, 1); g.fillRect(px + sz - 18, py + 10 + k * 9, 7, 7); }
           break;
         }
         case 'depot': {
+          // the fill indicator (drawing only): the line buffer the HQ's turrets draw from, as magazines, green → amber →
+          // red like a hopper bar; the outline holds 3 screen px so the Depot reads at 0.5× (STANDARDS C.2).
+          // GAME-ASSUMPTION (GA-EF-2): the bar is st.buffer / bufferCap (the block sim's line buffer, not the chest's
+          // magazines), green above half, amber below it, red with a blinking outline at 0; the beacon at the viewport edge is the
+          // Depot's glyph and the tile distance — §19's "visible six blocks out" is Phase 12 art (drawing only).
+          const cap = st.config.bufferCap, frac = Math.min(1, st.buffer / cap), mags = Math.floor(st.buffer / SHOT.count);
           g.fillStyle(MACHINE_COL.depot, 0.9); g.fillRect(px, py, sz, sz);
-          g.lineStyle(2 / zoom, 0xffffff, 0.8); g.strokeRect(px, py, sz, sz);
-          this.depotText.setPosition(cx, cy).setScale(Math.max(1, 1 / zoom)).setVisible(true);
+          g.lineStyle(3 / zoom, 0xffffff, 0.9); g.strokeRect(px, py, sz, sz);
+          g.fillStyle(0x1a1d26, 1); g.fillRect(px + 12, py + sz - 24, sz - 24, 12);
+          g.fillStyle(frac > 0.5 ? 0x6fe08a : frac > 0 ? 0xe8a93a : 0xe05a5a, 1); g.fillRect(px + 12, py + sz - 24, (sz - 24) * frac, 12);
+          if (mags <= 0 && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 3, py + 3, sz - 6, sz - 6); }
+          const label = `Depot\n${mags} / ${Math.floor(cap / SHOT.count)} mag`;
+          if (label !== this.depotLabel) { this.depotLabel = label; this.depotText.setText(label); }
+          this.depotText.setPosition(cx, cy - 6).setScale(Math.max(1, 1 / zoom)).setVisible(true);
           break;
         }
       }
+      if (box) {
+        g.lineStyle(2 / zoom, 0x9aa3b8, 0.75); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2);
+        // the empty alert is drawn after the rim so it still wins: a turret with no rounds, a Generator with no coal
+        const empty = m.kind === 'turret' ? (m.inv.rounds ?? 0) <= 0 : m.kind === 'generator' ? (m.inv.coal ?? 0) <= 0 : false;
+        if (empty && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2); }
+      }
+      if (STATUS_KIND.has(m.kind)) this.drawStatusMark(g, m, px, py, zoom);   // RI-02: the state mark, over everything
     }
   }
 

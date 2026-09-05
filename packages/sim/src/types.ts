@@ -148,6 +148,11 @@ export interface SimStats {
   throttleMin: number;   // the lowest supply ÷ demand seen (1 = never short)
   lostInWindow: number; lostAfterWindow: number;   // blocks lost during / after the shortfall window
   wellsDead: number;
+  // RI-01's resource accounting (ledger.ts). The block sim's abstract flows in rounds and rubble units:
+  ringDraw: number;      // rounds the line buffer put in ring hoppers (a transfer; the ledger holds both sides)
+  ringFired: number;     // rounds a ring hopper with no physical turret spent on arrivals (D-P4-9's stand-in edges; every edge on a block-only run)
+  spentSteel: number; spentCopper: number;   // stock a claim (§5's 10 wire, 5 frames as rubble) or a block-level assembler took
+  roundsLost: number;    // rounds a full line buffer could not take back (a turret's loose rounds on pick-up, a stand-in hopper's on its first turret, the block tick's cap)
 }
 
 /** Power-model state. D-B3-4 (§14): one pool, no shedding; while demand exceeds supply every machine runs at
@@ -181,20 +186,41 @@ export type Command =
   | { type: 'pickUp'; x: number; y: number }
   | { type: 'fire'; edge: number }                    // -1 = cease fire
   | { type: 'enterTruck' }
-  | { type: 'chestTake'; item: string; n: number }
-  | { type: 'chestPut'; item: string; n: number }
+  // RI-05: `x`/`y` name a supply chest or a tram stop within reach (plan §5.2's named installation); absent = the Depot
+  | { type: 'chestTake'; item: string; n: number; x?: number; y?: number }
+  | { type: 'chestPut'; item: string; n: number; x?: number; y?: number }
   // M6: the scene's remaining direct calls as commands, so a played session's log replays whole (hour.ts `replay`)
   | { type: 'feed'; x: number; y: number }          // E on a turret / Generator: magazines / coal from the pockets
   | { type: 'repair'; x: number; y: number }        // E on an eaten lamp: 1 Cu from the pockets
-  | { type: 'rotate'; x: number; y: number };       // R on a machine
+  | { type: 'rotate'; x: number; y: number }        // R on a machine
+  | { type: 'setRecipe'; x: number; y: number; recipe: string }    // RI-01: T on an Assembler — one of flow.ts RECIPE_IDS
+  // RI-03 (plan §4.1): physical commissioning. `deliver` moves claim materials from the pockets into a Dark block's
+  // installation (its substation, within reach); `activate` is the explicit Activate on it — the only thing that
+  // starts Contested on the tile layer. Block coordinates (bx, by), unlike the tile commands above. The block-level
+  // `claim` above is the legacy map claim (the lattice bots, the snapshot fixture, the labelled legacy E-hour run).
+  | { type: 'deliver'; bx: number; by: number; item: string; n: number; cabinet?: number }   // RI-06: `cabinet` k → the Heart's feeder cabinet k, not the substation
+  | { type: 'activate'; bx: number; by: number }
+  // RI-05 (plan §5): commission a ready non-claim project (project.ts) — the supply depot on a Held block; the
+  // rail-yard project commissions through `activate` above (its site's claim is its commissioning)
+  | { type: 'commission'; id: string }
+  // RI-06 (plan §9): repair a knocked-out feeder cabinet (E on it, REPAIR_COPPER); abort the running commissioning explicitly (plan §9.2 default 9)
+  | { type: 'repairCabinet'; cabinet: number }
+  | { type: 'abort' };
+
+/** RI-05 (plan §5.1): a neighbourhood project's stage, derived from the site's real prerequisites (project.ts). */
+export type ProjectStage = 'discovered' | 'preparing' | 'ready' | 'commissioning' | 'restored' | 'interrupted';
 
 export type SimEvent =
   | { type: 'claim'; t: number; x: number; y: number; district: District; well: boolean; d: number;
       fBefore: number; fAfter: number; iBefore: number; iAfter: number; retake: boolean;
-      cr: number; sh: number; hu: number }
+      cr: number; sh: number; hu: number;
+      /** RI-03: which path started Contested — the legacy map claim or a physical activation — and, for an
+       *  activation, its commissioning id (one per attempt; the wake bloom it fires carries the same id). */
+      via: 'map' | 'activate'; id?: number }
   | { type: 'claim-rejected'; t: number; x: number; y: number; reason: string }
+  | { type: 'activate-rejected'; t: number; x: number; y: number; id: number; reason: string }   // RI-03: an Activate attempt refused, with the prerequisite it lacked
   | { type: 'held'; t: number; x: number; y: number; facility: string | null; survivor: string | null; unlocks: string[] }   // unlocks (prompt B M3): what the survivor group puts on the toolbar
-  | { type: 'bloom'; t: number; x: number; y: number; cr: number; sh: number; hu: number; wake: boolean }
+  | { type: 'bloom'; t: number; x: number; y: number; cr: number; sh: number; hu: number; wake: boolean; id?: number }   // id (RI-03): the activation's commissioning id on its wake bloom
   | { type: 'fall'; t: number; x: number; y: number; reason: string; delay: number; starved: string }   // delay: s from first unfed arrival (-1 none); starved: district of the empty edge's dark block ('-' none)
   | { type: 'sub-off'; t: number; x: number; y: number }
   | { type: 'sub-on'; t: number; x: number; y: number }
@@ -216,7 +242,11 @@ export type SimEvent =
   | { type: 'lamp-eaten'; t: number; x: number; y: number; tx: number; ty: number }    // M4: a crawler put a lit lamp out on block (x,y)
   | { type: 'arrival'; t: number; x: number; y: number; n: number; of: number; shade: boolean }   // M4: the 1st and every 10th unshot arrival at a block's substation (n of the 40)
   | { type: 'well-dead'; t: number; x: number; y: number }
-  | { type: 'hour'; t: number; row: HourRow };
+  | { type: 'project'; t: number; id: string; stage: ProjectStage; site: number; attempt: number }   // RI-05: a project changed stage (site = its block index; attempt = the commissioning id, -1 none)
+  | { type: 'stalker'; t: number; id: number; what: 'guard' | 'investigate' | 'pursue' | 'attack' | 'return' | 'spawn' | 'hit' | 'dodged' | 'dead' | 'retired'; x: number; y: number; site: number }   // RI-04: a Stalker changed mode, swung, died or retired (x,y its tile; site its block index)
+  | { type: 'hour'; t: number; row: HourRow }
+  // RI-06: the Junction Heart's transitions and packets (plan §9.2: "save all transitions deterministically") — one event per fact
+  | { type: 'heart'; t: number; what: 'start' | 'packet' | 'born' | 'knockout' | 'repair' | 'interrupted' | 'destroyed' | 'aborted'; attempt: number; x: number; y: number; threshold?: number; cabinet?: number; n?: number; why?: string };
 
 /** D5: the engineer. One body on the tile grid; the harness moves it block to block along the streets. */
 export interface Engineer {
@@ -301,7 +331,10 @@ export interface SimState {
 // ------------------------------------------------------------------ proto section
 /** The prototype's config numbers. Every number that moved in the calibration is tagged PROTO-CALIBRATED with the
  *  target it was set to hit (CALIBRATION_REPORT.md); the rest are the GAME-ASSUMPTION values of the build report.
- *  The regression fixtures never read this block: they run with the economy off and `startAsmRate` null. */
+ *  The regression fixtures never read this block: they run with the economy off and `startAsmRate` null.
+ *  D-B1-1 (2026-09-04): the start stock and rounds here stay as the calibration froze them (80 steel / 40 copper /
+ *  0 stone / 200 rounds); the tile chest is constants.ts START_CHEST and docsync does not compare the two. */
+// prototype-era, frozen at Gate A; excluded from docsync
 export const PROTO_CALIBRATED = {
   startAssemblers: 1,          // one assembler at the start (build report, assumption 3)
   // PROTO-CALIBRATED (T2): the start assembler is a 10 mag/min "Mk1"; the 20 mag/min assembler is the purchase.
@@ -310,6 +343,9 @@ export const PROTO_CALIBRATED = {
   // PROTO-CALIBRATED: kept at 300. Lever 2 (100) was tried and rejected: 100 rounds fill one of the start block's
   // hoppers, so two pips are red at minute 0 for two minutes, and nothing else in the session changed.
   startRounds: 200,
+  // D1 (economy-fix task Step 2, item 4): the substation draw the block sim states is the doc's 100 / 20 kW, not the
+  // pre-D1 "doc" 200 / 40. Power is off in the calibration, so no calibrated number moves; only the config hash does.
+  draw: 'half' as SimConfig['draw'],
   eco: {
     // PROTO-CALIBRATED (T3): rubble per Held block per minute, civic : residential : industrial fixed 1 : 1 : 1.
     // Lever 3, swept 4/8/12/16/24/26/28/30/32: 32 is the lowest level at which compact and cheapest reach 180 min
@@ -331,7 +367,7 @@ export const PROTO_CALIBRATED = {
 /** Apply the proto numbers to a base config (the proto's session and the calibration harness both go through here). */
 export function protoCalibrated(base: SimConfig): SimConfig {
   const p = PROTO_CALIBRATED;
-  return { ...base, asmSchedule: [], startAssemblers: p.startAssemblers, startAsmRate: p.startAsmRate, startRounds: p.startRounds,
+  return { ...base, asmSchedule: [], startAssemblers: p.startAssemblers, startAsmRate: p.startAsmRate, startRounds: p.startRounds, draw: p.draw,
            eco: { ...base.eco, ...p.eco, claimCost: { ...p.eco.claimCost }, assemblerCost: { ...p.eco.assemblerCost },
                   startStock: { ...p.eco.startStock }, startPatch: { ...p.eco.startPatch }, magazineCost: { ...p.eco.magazineCost }, pool: { ...p.eco.pool } } };
 }

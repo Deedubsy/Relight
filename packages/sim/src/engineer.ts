@@ -29,8 +29,9 @@ export const DODGE_TILES = 3, DODGE_S = 0.25, DODGE_COOLDOWN_S = 1, DODGE_COST =
 /** GAME-ASSUMPTION (D-B1-5): the rifle reaches the turret's range (9 tiles — no range advantage) and hits anything
  *  within 1.5 tiles of the line to the cursor, so it is aim, not twitch. */
 export const RIFLE_RANGE = TURRET_RANGE, RIFLE_HIT_RADIUS = 1.5;
-/** Stack sizes for the pocket count (GAME-ASSUMPTION: rubble 50 a stack, magazines 20, machines one each). */
-export const STACK: Record<string, number> = { stone: 50, copper: 50, steel: 50, coal: 50, iron: 50, magazine: 20 };
+/** Stack sizes for the pocket count (GAME-ASSUMPTION: rubble 50 a stack, magazines 20, machines one each; RI-01: the
+ *  §12 intermediates the placed Assembler makes stack 50 like rubble until a rule says otherwise). */
+export const STACK: Record<string, number> = { stone: 50, copper: 50, steel: 50, coal: 50, iron: 50, magazine: 20, wire: 50, frame: 50, board: 50 };
 export const stackSize = (item: string) => STACK[item] ?? 1;
 
 export function createEngineer(st: SimState, startIdx: number): Engineer {
@@ -263,7 +264,9 @@ export function engineerCommand(st: SimState, c: Command): void {
       break;
     case 'aim': e.aim = e.down < 0 ? c.at : null; break;
     case 'enterTruck': if (e.truckFound && e.down < 0) e.truck = !e.truck; break;
-    case 'mineAt': case 'craft': case 'place': case 'pickUp': case 'chestTake': case 'chestPut': case 'feed': case 'repair': case 'rotate': handHook.current?.(st, c); break;
+    case 'mineAt': case 'craft': case 'place': case 'pickUp': case 'chestTake': case 'chestPut': case 'feed': case 'repair': case 'rotate':
+    case 'deliver': case 'activate': case 'commission':   // RI-03: the commissioning commands are hand commands too; RI-05: a project's too
+    case 'repairCabinet': case 'abort': handHook.current?.(st, c); break;   // RI-06: the Heart's feeder repair and the explicit abort
   }
 }
 

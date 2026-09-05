@@ -2,24 +2,26 @@
 
 Living document, rewritten from the top at each prompt B milestone (D5/D6 rework, 2026-09-04): the current milestones first, the §19 first-hour test at the top, Gate B before the appendix. The lattice slice's M1–M3 (2026-09-03) stay at the end as the record of what was built and measured before the rework; Gate B is not scored on them.
 
-## §19 first-hour test (human play) — not scored yet
+## §19 first-hour test (human play) — **0–10 scored at Gate B, the rest not recorded**
 
-Scored by a human after prompt B M6, from a played hour. Nothing here is filled in by the bot.
+Scored by a human, from a played hour. Nothing here is filled in by the bot. Played by Daniel on 2026-09-05 (`docs/GATE_B.md`); the gate was closed as fully tested the same day, and the empty rows below are a **provenance note, not an outstanding debt** — no number is inferred into them.
 
 | Window | New unlock | Current problem | Memorable moment |
 |---|---|---|---|
-| 0–10 min | — | — | — |
-| 10–30 min | — | — | — |
-| 30–60 min | — | — | — |
+| 0–10 min | **Movement.** *"Movement is good, it's kind of intuitive but need more development time."* | **Not knowing what to do next.** *"Knowing what is needed next. Maybe we need a small quest system?"* → **D-GB-2** | **None.** *"Nothing yet."* |
+| 10–30 min | *not recorded — empty* | *not recorded — empty* | *not recorded — empty* |
+| 30–60 min | *not recorded — empty* | *not recorded — empty* | *not recorded — empty* |
 
-Did the burn-off make you say something? —
+Did the burn-off make you say something? — **Not answered as asked.** What came back instead is a request to change what the lights *are*: light earned and walked out by the player rather than granted by a claim (**D-GB-1**, decided the same day as the hybrid, option (c)). Whether the current payoff lands is therefore still unestablished.
+
+**Read against §19's own claim.** The doc says minutes 0–10 teach two rules — blocks bloom, and ammo is made from rubble. **Neither was named back**; movement was, which §19 does not count as a rule, and the absence of direction is something §19 does not predict. One session cannot rewrite the test, and §19 now carries that sentence against itself (`RELIGHT-design.md`, T9).
 
 Gate B's two new rows (prompt B M6; the harness answers the second half of each from the played hour's export):
 
 | Row | Answer |
 |---|---|
-| At what minute did the player first fire, and did it matter? (`npm run replay -- <export.json>` → `held anyway` / `saved it` / `fell anyway`) | — (the human's). The bot beside it, E-hour rifle on, 2026-09-04: first shot 2:48 / 2:44 / 3:05 on seeds 3 / 4 / 5, the first crawler's tick; **held anyway** on seeds 3 and 4, **fell anyway** on seed 5 (north fell at 58:27 with the rifle and without); the browser's hour on seed 3: 19 hand-fired fights, all held anyway |
-| The walking row: minutes walked and chest trips in the hour, against §19's 15 % (the export's `summary.walkedPct`, `summary.chestTrips`) | — (the human's). The bot beside it: 2.8 / 3.1 / 2.8 min walked = 4.6 / 5.1 / 4.7 %, 11 / 10 / 9 chest trips (E-hour); the browser's hour 5.0 %, 18 trips |
+| At what minute did the player first fire, and did it matter? (`npm run replay -- <export.json>` → `held anyway` / `saved it` / `fell anyway`) | **Gate B, 2026-09-05: no minute taken; it did not matter** — *"I was just shooting at things"*. No rescue, nothing saved, which agrees with the bots at both scales and is the play half of **D-R1**. Two asks came with it: more range or none (**D-GB-3**) and more enemies at the player (**D-GB-4**). The bot beside it, E-hour rifle on, 2026-09-04: The bot beside it, E-hour rifle on, 2026-09-04: first shot 2:48 / 2:44 / 3:05 on seeds 3 / 4 / 5, the first crawler's tick; **held anyway** on seeds 3 and 4, **fell anyway** on seed 5 (north fell at 58:27 with the rifle and without); the browser's hour on seed 3: 19 hand-fired fights, all held anyway |
+| The walking row: minutes walked and chest trips in the hour, against §19's 15 % (the export's `summary.walkedPct`, `summary.chestTrips`) | **Gate B, 2026-09-05: unrecorded** — no telemetry panel was read, so no human share exists and this row stays the bot's. The bot beside it: The bot beside it: 2.8 / 3.1 / 2.8 min walked = 4.6 / 5.1 / 4.7 %, 11 / 10 / 9 chest trips (E-hour); the browser's hour 5.0 %, 18 trips |
 
 ## GAME-ASSUMPTION register (generated from the Assumed tables below, prompt B M6)
 
@@ -786,15 +788,581 @@ The scripted checks: `npm test` 121 / 121 (the seven `hour.test.ts` cases pass a
 - **D-B6-2 the claim minutes**: the calibration's 15 / 25 / 40 (a) / §11's prose read as 10 / 20 / 30 — the earliest of each window (b) / the bot claims when the line has 60 magazines banked, whatever the minute (c). Recommend (a) until E-hour's first run says the bot is idle waiting for the clock.
 - **D-B6-3 the replay's ground**: the command log with the aim dropped, judged per hand-fired fight and the HQ (a) / judged on the HQ alone (b) / the fight's edge only, ignoring the block's later fate (c). Recommend (a).
 
-## Gate B
+## Economy fix, the layout pass and E-rifle at tile scale — built 2026-09-04 (E-hour and E-rifle re-run; cheap checks green; not the full verification pass)
 
-verdict:
+Run names `B-M6-hour` (E-hour re-run: seeds 3 / 4 / 5 × rifle off / on, the D-P4-7 pair, and `E-hour-north` to 75:00), `B-M6-hour-north`, `B-M6-light` (the light tests at radius 7), `E-rifle-tile` (the steady hour and the rescue at tile scale, `docs/experiments/E-rifle.json`). ROADMAP §0 lines 1–4. The human's decisions came in the chat message of 2026-09-04 ("Gate B is not scored on this hour. M6 shows it loses on every seed and can't afford its own script. Fix, re-run, then I play. D-P4-4 / D-B1-1 (decided): Mk1 Shot assembler recipe 6 s = 10 mag/min … D-P4-7 … D-P4-8 (decided): six start turrets, hoppers full, plus 20 magazines in the chest … Streetlights (new row, D-B5-4): radius to the street midline (~7 tiles) … E-hour pass condition: §11's end state reached on seeds 3/4/5 with no block falling and steel never at zero — or §11 rewritten to what the economy affords (two claims in the hour, north at 60–75) with the same no-fall condition. Report which."); `DECISIONS.md` carries each row's `decided by / on / via`.
+
+**The pass condition, reported:** §11 is **rewritten** to what the economy affords. On the Mk1 line the old script (three claims, north at 40) cannot hold north on any seed; the rewritten hour — east at 15, west at 25, Generator 4 at 45, the second copper Excavator at 46, the third Assembler at 50, north at 60–75 — reaches its end state (4 Generators, 7 Excavators, 3 Assemblers, 6 turrets, 3 Held) on seeds 3 / 4 / 5, rifle off and on, with **no block falling, no brownout and steel never below 30**. North claimed at 65:00 is Held in 30 s and falls at 72:45–74:38 on every seed because the Generators run dry at 67:51–68:01 (the HQ's coal patch is dug out at ~36:00 and west's coal is a stand-in that makes nothing): north is a coal problem, D-P4-10.
+
+### Taken provisionally (rule 14)
+
+- **GA-EF-1 — the second steel Excavator at 12:00, not the message's "~15:00".** The steel curve's minimum (30) is at 12:01 on every seed and a 15:00 placement crosses east's claim and kit. Reversing it moves no rule and no fixture; the row is D-P4-4's status.
+
+### Built
+
+- **Sim** — `recipes.ts`: Shot magazine Mk1 6 s / 10 mag/min (`SHOT`), a Mk2 row at 3 s / 20 mag/min (the purchase; unlock open, D-B1-1); `STREETLIGHT_RADIUS` 7 (the Lamp keeps 4). `flow.ts`: `START_TURRETS` 6 through D-B1-4's segment rule with every hopper at 50; `START_CHEST` 200 steel / 100 copper / 50 stone / **40 coal** / 20 magazines (`START_CHEST_COAL`, D-P4-7 (b)); the chest's coal counted in `flowSummary`. `hour.ts`: the second steel Excavator into the chest at 12:00 (`HOUR_STEEL2_AT`, `steelToChest`), the second copper Excavator at 46:00 (`HOUR_COPPER2_AT`), the third Assembler at 50:00 (`HOUR_ASM3_AT`), claims east 15 / west 25 / north 65 (`HOUR_CLAIM_AT`), `HOUR_END` 4 / 7 / 3 / 6 turrets / 3 Held, `coalPlan` 'wait' | 'chest' for D-P4-7's pair, the fall's reason captured (`fellWhy`), `putNear` spiral placement, `handsOff` + `rescueStance` for E-rifle's tile rescue. `light.ts` comment follows the radius.
+- **Harness** — `ehour.ts`: the D-P4-7 pair (`E-hour-coal`), `E-hour-north` (claim at 65:00, the run carried to 75:00), the stock table with the steel curve's minimum, the timeline's first amber / red / hand-feed, `northAt65` in the data. `erifle.ts`: `E-rifle-tile-steady` (the hour bot rifle off / on) and `E-rifle-tile-rescue` (`tileRescue`: the most threatened Held block's edge or whole ring dry, the belt 90 s or 600 s away, the engineer at the segment's midpoint with 20 magazines; five tile checks).
+- **Game (the layout pass, ROADMAP §0 line 1; STANDARDS 4.3, B.3, B.6, C.2)** — `main.ts`: `Scale.RESIZE`, the world view fills the window (`style.css`: `#map` flex, `#panel` 420 px, scrolling). `worldScene.ts`: the HUD top-left (view, block, zoom, tiles, pockets, in hand, power) and a **key strip** bottom-left (move, zoom range, `P` pause, `-` / `=` speed, the tool keys), both pinned under zoom; **kerb pips** (`drawKerbPips`: each segment's pip colour on its kerb tiles); the **Depot** with a 3-screen-px outline, a **fill bar** (line buffer / `bufferCap`, green → amber → red, blinking at 0) and the label `Depot · n / cap mag`; a **beacon** at the viewport's edge with the tile distance when the Depot is off-screen. `panel.ts`: the build menu says "Shot assembler Mk1, 6 s a magazine (10/min); the Mk2 (3 s) is the purchase", the turret's range and hopper, the Lamp's radius; the survivor list's first row from minute one is **"Blueprints and copy-paste · a survivor's gift (Phase 7) — not yet found"** (STANDARDS dealbreaker 1, Phase 7's row).
+- **Tests** — `defence.test.ts` (six full turrets, 40 + 40 coal, 20 magazines, every pip green from the first tick; the city-HQ apportion), `flow.test.ts` (the line at 60 / `SHOT.seconds` = 10 / min; the craft in 6 s), `light.test.ts` (kerb > 0.5, half-street > 0.4, lot < 0.6, Dark ≤ 0.25 at radius 7), `hour.test.ts` (the first hand-feed ≥ 4 min; no north claim by 45).
+- **Doc** — §11 rewritten in all three windows (0–10 around the ~6-minute red pip as the hand-feed beat; 10–30 east 15 / west 25; 30–60 the fourth Generator, copper 2, Assembler 3, north at 60–75 and the tile-scale rifle), §12's table (docsync, the Mk1 and Mk2 rows) and ammo chain, §13's Assembler row and fixtures paragraph (radius 7); six changelog lines.
+
+### Assumed (every `GAME-ASSUMPTION` in the economy-fix code)
+
+- **GA-EF-1** (`hour.ts`) — the second steel Excavator at 12:00 rather than ~15:00 (above; provisional).
+- **GA-EF-2** (`worldScene.ts`) — the Depot's fill bar is the block sim's line buffer over `bufferCap` (not the chest's magazines), green above half, amber below it, red with a blinking outline at 0; the beacon is the Depot's glyph and tile distance at the viewport's edge; drawing only — §19's "visible six blocks out" is Phase 12 art.
+- **GA-EF-3** (`panel.ts`) — the blueprints row is a fixed line of text, not a survivor the sim knows; Phase 7 replaces it.
+- **GA-EF-4** (`erifle.ts`) — the dry edge is made by cutting the belt (`e.cut`) and emptying the hoppers for 90 s or 600 s; the block sim has no tile-level belt to cut, so the cut is the stand-in.
+- Carried, still true: GA-B6-1 … GA-B6-7 (the hour bot's hands, claim clock, stand-ins, kits, replay), GA-B6-3 in particular — west's coal is a stand-in that makes nothing, which is why north is a coal problem.
+
+### Deferred
+
+- West's real coal (an Excavator and belt on west's rubble at the claim) → D-P4-10's decision, after Gate B.
+- A second Shot line or the Mk2 purchase from the idle steel → D-P4-11, Gate B's tedium row.
+- The `E-hour-north` run stops at 75:00; the human's north at 60–75 with real coal is unmeasured until D-P4-10 is built.
+
+### Measured (E-hour and E-rifle re-run 2026-09-04; not the full verification pass — the pass re-runs these plus the soak)
+
+**E-hour, seeds 3 / 4 / 5, rifle off and on (10 / 10 checks).**
+
+| moment | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| first crawler / turret fire | 2:48 | 2:44 | 3:05 |
+| first amber · first red | 3:14 · 6:09 | 2:55 · 5:33 | 3:18 · 6:18 |
+| first hand-feed | 6:11 | 5:36 | 6:21 |
+| Generator 2 | 6:01 | 6:02 | 6:01 |
+| line Excavators · Assembler · first line magazine | 6:14 · 8:01 · 8:08 | 6:14 · 8:01 · 8:07 | 6:11 · 8:03 · 8:10 |
+| second steel Excavator | 12:01 | 12:02 | 12:01 |
+| east claimed · Held | 15:03 · 15:34 | 15:01–15:03 · 15:37–15:38 | 15:01 · 15:31 |
+| west claimed · Held | 25:00 · 25:35 | 25:00 · 25:30 | 25:00 · 25:30 |
+| Generator 4 · copper 2 | 45:00 · 46:01 | 45:00 · 46:03 | 45:00 · 46:02 |
+| first shot (rifle on) | 14:02 | 5:37 | 6:26 |
+| brownout · fall · steel zero | never | never | never |
+
+| end state | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| Held / HQ / turrets / Generators / Excavators / Assemblers | 3 / yes / 6 / 4 / 7 / 3 | same | same |
+| line magazines · hand-fed (off / on) | 519 · 864 / 861 | 519 · 822 / 819 | 519 · 792 / 788 |
+| walked (min, %) · claim walk-overs (s) · chest trips | 2.2, 3.7 % · 11 · 9–11 | 2.2–2.3, 3.7–3.8 % · 8–9 · 13–14 | 1.3–1.4, 2.2–2.4 % · 13 · 3–4 |
+| crawlers · turret kills · rifle kills (on) | 463 · 463 · 0 | 329 · 322–328 · 6 | 228 · 226–228 · 2 |
+| steel min · copper min · coal min | 30 @ 12:01 · 17 · 0 | 30 @ 12:02 · 17 · 0 | 30 @ 12:01 · 17 · 0 |
+| chest at 60:00 (St / Cu / coal / mag) | 1144 / 265 / 2 / 45 | 1144 / 264 / 2 / 127 | 1145 / 264 / 2 / 51 |
+| Gate B rifle row (replay) | 7 fights, held anyway | 7 fights, held anyway | 3 fights, held anyway |
+
+The steel curve: 200 → 42 at 10:00 → **30 at 12:01** → 118 at 15:00 → 1,144 at 60:00 (every seed within 1). The coal column is the Generators' clock: 40 → 402 at 30:00 (the patch) → 52 at 55:00 → 2 at 60:00.
+
+**D-P4-7 (E-hour-coal, rifle off):** (a) coal Excavator first, chest coal 0 — Generator 2 at 7:32 / 7:24 / 7:26; (b) 40 coal in the chest — 6:01 / 6:02 / 6:01. Both: no brownout, coal min 0, 0 coal refusals. **(b) shipped.**
+
+**E-hour-north (north claimed at 65:00, to 75:00, rifle off):**
+
+| seed | Held north | turrets carried | Generators dry | brownout | north fell | why | chest at 75 (St / Cu / coal / mag) |
+|---|---|---|---|---|---|---|---|
+| 3 | 65:29 | 68:51 | 68:00 | 65:44, 557 s | 72:47 | shade | 1520 / 397 / 0 / 0 |
+| 4 | 65:34 | 68:59 | 68:01 | 65:45, 556 s | 72:45 | shade | 1524 / 397 / 0 / 99 |
+| 5 | 65:29 | 68:56 | 67:51 | 66:31, 510 s | 74:38 | unfed | 1524 / 397 / 0 / 20 |
+
+**E-rifle at tile scale (12 / 12 checks with the lattice rows).** Steady: line magazines 519 / 519 on every seed (0.00 % diff), hand-fed 864 → 861, 822 → 819, 792 → 788, falls 0 / 0, rifle rounds 22 / 26 / 9, rifle kills 0 / 6 / 2, turret kills 463 / 322 / 226, first shot 14:02 / 5:37 / 6:26, HP lost 0, downs 0.
+
+| belt | scope | without the rifle | with the rifle | kills | HP lost (min HP) |
+|---|---|---|---|---|---|
+| 90 s | edge, 6 runs | holds | holds | 0–8 | 0–40 (60) |
+| 90 s | ring, 6 runs | holds | holds | 0–8 | 0–45 (55) |
+| 600 s | edge, 6 runs | seed 5 at 20:00 falls at +7.2 min (unfed); 5 hold | **all hold** | 18–32 | 22–120 (34) |
+| 600 s | ring, 6 runs | all fall at +4.3 … +8.9 min (unfed) | seed 4 holds both; seed 3 +5.7 / +9.0, seed 5 +4.4 / +7.7 (delayed 0.1 / 2.8 / 0.1 / 2.1 min) | 15–23 | 29–80 (55) |
+
+Never knocked down; mean damage over the lattice rescues 62 HP.
+
+**Light at radius 7 (`B-M6-light`, seeds 3 / 4 / 5):** kerb row 65–93 % lit (radius 4: 50–68 %), half-street 44–65 % (26–41 %), lot 44–50 %, a Dark lot ≤ 25 %.
+
+**The layout pass:** the game builds (`npm run typecheck` includes it) and the snapshot is unchanged (config `68d07000`); no human has looked at it — its measure is the four one-minute STANDARDS checks (4.3, B.3, B.6, C.2) in the controls walkthrough (§0 line 5).
+
+**The verification pass should measure:** E-hour and E-rifle as above on a clean run, the 900 s soak with the resized world view (the HUD and key strip pinned at every zoom, the Depot beacon at 0.5×, the fill bar), the full experiments list (EXPERIMENTS.md carries the tile sections), calibration unchanged.
+
+### Where the economy fix and the doc disagree (reported, not resolved)
+
+- **§11's 30–60 still lists the Electricians, the HQ's white border and the first shade at 32–47** — none of them happens in the two-claim hour (E-hour findings, every seed); the paragraph now says so beside them, the numbers stand as the lattice's.
+- **§11 "walk over … 2–8 s"** — the six walks were 8 / 8 / 3 / 2 / 13 / 13 s; seed 5's 13 s is west (a longer street), the doc's line is east's; the harness finding now compares with 2–8 s.
+- **§12 C9 / D-P3-7 "no Mk1 / Mk2 ladder"** — reversed by D-P4-4 / D-B1-1 (decided); the paragraph says so. Calibration untouched (the block-level `asmRate` is the Mk2's 20).
+- **§13 "3 in 8 broken" vs §7 "broken 20 % of the time"** — pre-existing, untouched.
+- **§5.8 "two turrets an edge"** — the HQ has six on three segments (D-B1-4); a claim still lays none (D-P4-9).
+
+**Rebased onto the guardrails (Steps 4–6, `GUARDRAILS_REPORT.md`, 2026-09-04).** The fix now reads every tempo number from `packages/sim/src/constants.ts` (`SHOT_MAGAZINE` 6 s and `SHOT_MAGAZINE_MK2_SECONDS` 3, `ASSEMBLER_TIERS` Mk1 10 / Mk2 20 with `ASSEMBLER_MK1_MAG_PER_MIN` and `ASSEMBLER_MAG_PER_MIN` = the Mk2, the block sim's `asmRate`, so no fixture and no config hash moved; `START_TURRETS` 6, `STREETLIGHT_RADIUS` 7, `START_CHEST` with coal 40, `HOUR_CLAIM_MIN` 15 / 25 / 65, `HOUR_STEEL2_MIN` 12, `HOUR_COPPER2_MIN` 46, `HOUR_ASM3_MIN` 50, an eleven-line `HOUR_MINUTES`); `recipes.ts`, `flow.ts` and `hour.ts` only re-export. Of `GUARDRAILS_REPORT.md` §5's eight recorded disagreements, **items 1 (assembler rate) and 8 (§11 windows) are resolved by this fix** — the doc, the calibration's start "Mk1" and the tile recipe all say 10 mag/min for the Mk1 and 20 for the Mk2, and §11 names the claim minutes — and `docsync:check` now compares the Mk1 with `PROTO_CALIBRATED.startAsmRate` and the Mk2 with `asmRate`, and reads §11's "about minute 15 / 25" and "north at 60–75". **Items 2–7 remain and `docsync:check` exits 1 on them by design** (six lines: the calibration's 100-round edge hopper, the calibration's 80 / 40 / 0 chest, the calibration's and `FIRST_HOUR_DEFAULTS`' 200 / 40 kW draw, `STREETLIGHT_STEP` 3, `FIRST_HOUR_DEFAULTS.gens` 0 / 30); each is a human row, not a build fix, so under the constitution's "report, do not resolve" they are reported here, and CLAUDE.md rule 13's "if any is red, fix it before writing the report" is read as applying to checks the build can turn green without settling a constant. `firsthour.ts`'s north claim at 40 (`FIRST_HOUR_CLAIMS`) is a seventh line that only prints when it disagrees with `HOUR_CLAIM_MIN.north` (65); it does, so the check lists it with item 8's text — the calibration's E4 hour is the doc-literal one and is left as the human's. Stamps: `EXPERIMENTS.md` and `docs/experiments/*.json` were regenerated by the full run on the rebased tree; their `source_commit` is the parent (`9fa9739`, the tree at generation time is the fix's), the limit `freshness.ts` names.
+
+### Decisions for the human (recommended in `DECISIONS.md`)
+
+- **D-P4-10 coal after the patch, north's minute**: west's coal made real at the claim (a) / a 1,000+ HQ patch (b) / a delivering stand-in (c). Recommend (a).
+- **D-P4-11 the idle steel**: a second Shot line at ~30:00 (a) / the Mk2 purchase priced from it (b) / leave it until the played hour says whether the hand-feed is the beat or tedium (c). Recommend (c), then (a).
+- **D-P4-9 (open)**: north's two carried turrets did not hold it at 40 and will not at 65 without coal; a claim that lays its own turrets and its coal Excavator from stock is one row now (with D-P4-10).
+
+### Rule 12 — the message's numbers that are in neither the doc nor a decided row (now recorded)
+
+Mk1 6 s = 10 mag/min and Mk2 3 s (were C9's "no ladder"); the second steel Excavator at ~15:00 (placed 12:00, GA-EF-1); 40 coal in the chest (D-P4-7 (b)); six turrets with full hoppers plus 20 magazines (D-P4-8; §11 said two on the north edge); the streetlight radius ~7 (D-B5-4; the code had 4); two claims and north at 60–75 (the fallback pass condition, now §11). ROADMAP §0 line 3 said "HUMAN FIRST (write rows … in DECISIONS.md)": the rows came by chat message and are recorded with that message as `via`.
+
+## M6 re-run after the economy fix — **passes**, measured 2026-09-05 (`docs/PROGRESS.md` T2; run name `B-M6-hour-3`)
+
+**No-fall hour: yes.** On seeds 3, 4 and 5, rifle off and on — six runs — **no block falls, the chest's steel is never zero, and there is not one brownout second**. E-hour is **10 / 10**. Nothing was changed to make it pass here: the hour passes on the three rows the human decided on 2026-09-05 (D-HOUR-2, D-P4-10, D-P4-9 — `ECONOMY_FIX_REPORT.md` §9, the section "The blockers" above), and this task re-ran it and wrote the numbers down. Measured, not unverified: `npm run experiments` is 13 experiments, 231 s, **0 failing checks**, and E-hour alone was re-run on the committed tree to confirm it: **10 / 10 in 43.9 s, and the only byte that moved in `docs/experiments/E-hour.json` was the `source_commit` stamp** — every measured number is identical, which is the determinism the three replay checks assert, shown across two separate invocations.
+
+Every number below is `[sim: B-M6-hour-3]` (`docs/experiments/E-hour.json`, seeds 3 / 4 / 5, rifle off and on; the rifle changes only the marks given in brackets). §11's existing `[sim: B-M6-hour]` tags were not renamed — the tag names the experiment, and these are its current numbers.
+
+### The hour, seeds 3 / 4 / 5
+
+| moment | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| mine done · craft done | 0:20 · 1:20 | 0:20 · 1:20 | 0:20 · 1:20 |
+| first crawler (turrets fire) | 2:48 | 2:44 | 3:05 |
+| first amber pip · first red pip · hand-feed | 3:14 · 6:09 · 6:11 | 2:55 · 5:33 · 5:36 | 3:18 · 6:18 · 6:21 |
+| Generator 2 built · coal Excavator's line laid | 6:01 · 6:14 | 6:02 · 6:14 | 6:01 · 6:11 |
+| Shot line (Assembler at 8) · first line magazine | 8:01 · 8:08 | 8:01 · 8:07 | 8:03 · 8:10 |
+| the chest's start rounds run out | 10:02 | 10:03 (on: 10:04) | 10:04 |
+| **second steel Excavator into the chest (D-HOUR-2: 12)** | **12:01** | **12:02** | **12:01** |
+| Generator 3 (15) | 15:03 | 15:03 (on: 15:01) | 15:01 |
+| east claimed · walked over · Held · kitted | 15:03 · 15:11 · 15:34 · 15:34 | 15:03 · 15:06 · 15:38 (on: 15:01 · 15:04 · 15:36) | 15:01 · 15:07 · 15:31 · 15:31 |
+| west claimed · Held · kitted | 25:00 · 25:35 · 25:35 | 25:00 · 25:30 · 25:30 | 25:00 · 25:30 · 25:30 |
+| Generator 4 (45) · copper Excavator 2 (46) | 45:00 · 46:02 | 45:01 (on: 45:00) · 46:03 | 45:00 · 46:01 |
+| **north claimed (D-P4-10: 65)** | **never — past the hour** | **never** | **never** |
+| **first brownout · seconds** | **never · 0** | **never · 0** | **never · 0** |
+| **steel zero** | **never** | **never** | **never** |
+| **any block fell** | **no** | **no** | **no** |
+| first shade (§11 / E3: 32–47) | never | never | never |
+| first shot (rifle on) | 14:02 | 5:37 | 6:22 |
+| blocks Held at 60 (HQ, east, west) | 3 | 3 | 3 |
+| time walked (off / on) | 3.7 % / 3.8 % | 3.8 % / 3.6 % | 2.2 % / 2.2 % |
+| claim walk-overs (s) | 14 | 9 | 11 |
+| chest trips · magazines hand-fed (off) | 9 · 858 | 14 · 821 | 4 · 792 |
+| crawlers · killed by turrets · by the rifle (on) | 463 · 438 · 1 | 329 · 325 · 3 | 228 · 227 · 1 |
+| reach refusals · claim refusals | 0 · 0 | 0 · 0 | 0 · 0 |
+| Gate B replay verdict (fights) | held anyway (7) | held anyway (7) | held anyway (1) |
+
+End state, all six runs: **3 Held with the HQ standing, 6 turrets, 4 Generators, 7 Excavators, 3 Assemblers, 519 line magazines.** §11's end state is a two-claim hour (`HOUR_END.held` 3, D-P4-10), and every run reaches it.
+
+### The chest
+
+**Steel** 200 → 200 (5:00) → 42 (10:00) → **the minimum, 30 at 12:01–12:02**, when the second steel Excavator is paid for → 118 (15:00) → 338 (25:00) → 778 (40:00) → 1,144 (55:00). The minute-15 cluster that emptied the chest in the 2026-09-04 attempt is gone: with the Excavator at 12 the chest is 76 steel ahead by 15:00 and Generator 3 and east's six kits are paid out of that.
+
+**Copper** 100 → 27 from 20:00 (the minimum is **17**) → 134 at 50:00 → 264 at 55:00, the second copper Excavator at 46 turning it.
+
+**Coal** 40 → 0 at 6:01–6:02 (Generator 2's take — the coal minimum, and the only zero in the hour) → 118 (10:00) → the HQ patch's peak 448–450 at 30:00 → 298 (40:00) → 98 (50:00) → 48 (55:00) → **out for good at 56:00, and 0 at the hour on every seed**. §11 said 2; the doc was corrected.
+
+### After the hour — `E-hour-north` (measured, not scored)
+
+The same hour carried to 75:00 with north claimed at `constants.HOUR`'s 65:00, rifle off:
+
+| | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| north claimed · Held | 65:00 · 65:29 | 65:00 · 65:34 | 65:00 · 65:29 |
+| north fell | **never** | **never** | **never** |
+| falls · Held at 75:00 | 0 · **4** | 0 · **4** | 0 · **4** |
+| Generators dry · first brownout · seconds | 67:59 · 65:44 · 557 | 68:01 · 65:45 · 556 | 67:51 · 66:31 · 510 |
+| chest at 75:00 (St / Cu / coal / mag) | 1520 / 397 / 0 / 69 | 1524 / 397 / 0 / 220 | 1524 / 397 / 0 / 153 |
+| verdict | stands | stands | stands |
+
+In the 2026-09-04 attempt this variant fell at 72:47 / 72:45 / 74:38 on the three seeds. **D-P4-9 is what changed it**: with §11's two carried turrets removed, north's edges keep the block sim's ring-fed 100-round hopper instead of a hand-fed 50, and one engineer no longer has three physical turrets to keep alive across a 510–557 s brownout. North is still a coal problem — the Generators run dry at 67:51–68:01 and the chest's coal is 0 — which is what **D-P4-12** exists to fix.
+
+### The two M6 checks
+
+| check | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| (a) west's coal at a Generator | never (GA-B6-3: the stand-in makes nothing) | never | never |
+| (a) chest coal out for good · Generators dry · margin | 56:00 · never in the hour · **−4.0 min** | 56:00 · never · **−4.0 min** | 56:00 · never · **−4.0 min** |
+| (b) first red pip · crawlers spawned by then · arrivals at a Held edge by then | 6:09 · 60 · 0 | 5:33 · 44 · 0 | 6:18 · 44 · 0 |
+
+(a) is two minutes better than the 2026-09-04 attempt's −6.0 (the coal Excavator's line is unchanged; the hour simply ends with more of the patch behind it), and it is still negative: the chest's coal runs out inside the hour and west's never comes. That is a Phase 5 number behind **D-P4-12**, not a constant to move. (b) is unchanged: by the first red pip 44–60 crawlers have spawned and **none** has reached a Held edge — the turrets kill them on the street, so the ~6-minute red is made of spawns, not arrivals, and the HQ's arrival count is 0 against the 40-arrival rule.
+
+### E-hour's ten checks
+
+All green: three per-seed replay-determinism checks (the logged hour replays to the same Held set, machine count and shots, aim kept), the chest's steel never zero (worst run 30), no block falls (0 across 6 runs), no brownout (worst 0 s), §11's end state on every run (4 Generators, 7 Excavators, 3 Assemblers, 3 Held — 6 / 6), §19's walking at most 15 % (worst 3.79 %), the claim walk-overs under a minute (worst 14.00 s), and the HQ standing at the hour (6 / 6).
+
+### Where it still disagrees with the doc
+
+**One finding, on all six runs, unchanged and already reported: the first shade never happens.** §11 and E3 put it at minute 32–47. It survived the economy fix, the decided minutes and now this hour, and it is the only line E-hour prints. In the two-claim hour the bot never lets a block sleep past d = 0.3 — the shade is a lesson hour one no longer teaches.
+
+### The 2026-09-04 attempt, kept as the record (run name `B-M6-hour-2`)
+
+**No-fall hour: no.** North, claimed at constants.HOUR's minute 40 (D-HOUR-1), falls on every seed inside the hour, and the chest's steel reaches zero at 15:02 on every seed. Nothing was changed to make it pass (the task's rule); the human chooses (ROADMAP §0 line 3, D-P4-10). Every number below is `[sim: B-M6-hour-2]` (`docs/experiments/E-hour.json`, stamp `ab8d80b` / `b95922d2`, seeds 3 / 4 / 5, rifle off and on; the rifle changes only the marks given in brackets). E-hour is red: 4 of its 10 checks fail (steel never zero, no fall, no brownout, end state).
+
+| moment | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| mine done · craft done | 0:20 · 1:20 | 0:20 · 1:20 | 0:20 · 1:20 |
+| first crawler (turrets fire) | 2:48 | 2:44 | 3:05 |
+| first empty hopper (first red pip) · hand-feed | 6:09 · 6:11 | 5:33 · 5:36 | 6:18 · 6:21 |
+| Generator 2 built, the chest's coal in it; coal Excavator's line laid | 6:01 · 6:14 | 6:02 · 6:14 | 6:01 · 6:11 |
+| Shot line (Assembler at 8) · first line magazine | 8:01 · 8:08 | 8:01 · 8:07 | 8:03 · 8:10 |
+| second steel Excavator (D-P4-7: 15) · Generator 3 | 15:00 · 15:03 | 15:03 (on: 15:02) · 15:05 (on: 15:03) | 15:01 · 15:02 |
+| east claimed · Held | 15:03 · 15:34 | 15:05 · 15:40 (on: 15:03 · 15:38) | 15:02 · 15:32 |
+| west claimed · Held | 25:00 · 25:35 | 25:00 · 25:30 | 25:00 · 25:30 |
+| north claimed · Held (D-HOUR-1: 40) | 40:00 · 40:29 | 40:01 · 40:34 | 40:00 · 40:30 |
+| the two turrets picked up · carried to north | 43:41 · 43:51 (on: 43:39 · 43:48) | 43:47 · 43:58 | 43:46 · 43:55 |
+| first shade | 44:41 | 44:45 | never |
+| Generator 4 (45) · copper Excavator 2 (46) | 45:00 · 46:01 | 45:00 · 46:01 | 45:00 · 46:02 |
+| first brownout · seconds | 40:01 · 299 | 40:02 · 299 | 40:01 · 300 |
+| **steel zero** | **15:02** | **15:04** (on: 15:03) | **15:02** |
+| **north fell (why)** | **52:43 (shade)** | **48:54 (unfed)** (on: 49:05) | **49:55 (unfed)** (on: 50:02) |
+| chest at the fall (St / Cu / coal / mag) | 962 / 205 / 2 / 19 (53:00) | 888 / 105 / 2 / 79 (49:00) | 918 / 134 / 2 / 36 (50:00) |
+| time walked (off / on) | 5.0 % / 4.8 % | 5.0 % / 4.6 % | 3.9 % / 3.9 % |
+| blocks Held at 60 (HQ, east, west) | 3 | 3 | 3 |
+| lowest chest steel · minute | 0 · 15:02 | 0 · 15:04 | 0 · 15:02 |
+| first shot (rifle on) · Gate B replay verdict | 14:02 · fell anyway (11 fights) | 5:37 · fell anyway (14 fights) | 6:26 · fell anyway (5 fights) |
+
+The steel curve: 200 → 42 at 10:00 and 15:00 → **0 at 15:02** → 29 / 27 / 29 at 16:00 → 1,127–1,151 at 60:00. The three steps constants.HOUR puts at minute 15 (the second steel Excavator and its two belts, Generator 3, east's six kits) draw the chest's 42 steel together; with the Excavator at 12 (the withdrawn GA-EF-1) the minimum was 30 at 12:01. The coal column: 40 → 402 at 30:00 (the HQ patch) → 2 at 50:00 → out for good at 54:00 on every seed; the Generators run on their hoppers to the hour. North at 40 adds a fourth block's draw before Generator 4: the brownout runs 40:01 → 45:00 (299–300 s) on every seed, and north falls at 48:54–52:43 (unfed on seeds 4 / 5, a shade on seed 3) with 2 coal and 19–79 magazines in the chest.
+
+**The two-claim variant (E-hour-north: east 15, west 25, north moved to 65:00, run to 75:00, rifle off).** Inside the 60 minutes no block falls and there is no brownout (the first is 66:16 / 66:20 / 67:06), but the chest's steel still reaches zero at 15:02 / 15:04 / 15:02 (the same minute-15 cluster), so **the two-claim variant is not a no-fall hour by the task's definition either** (no fall, yes; steel never zero, no). After the hour: north Held 65:29 / 65:34 / 65:29, the turrets carried 68:51 / 68:59 / 68:56, the Generators dry 68:02 / 68:06 / 67:57, brownout 525 / 521 / 475 s, north fell 72:47 (shade) / 72:45 (shade) / 74:38 (unfed); chest at 75: 1435–1439 / 397 / 0 / 0–100; 3 Held at 75. The design doc was not edited (the human chooses).
+
+**The two M6 checks never run before (E-hour-m6checks, rifle off):**
+
+| check | seed 3 | seed 4 | seed 5 |
+|---|---|---|---|
+| (a) west's coal at a Generator | never (GA-B6-3: the stand-in makes nothing) | never | never |
+| (a) chest coal out for good · Generators dry · margin | 54:00 · not in the hour · **−6.0 min** | 54:00 · not in the hour · **−6.0 min** | 54:00 · not in the hour · **−6.0 min** |
+| (b) first red pip · crawlers spawned by then · arrivals at a Held edge by then | 6:09 · 60 · 0 | 5:33 · 44 · 0 | 6:18 · 44 · 0 |
+
+(a) The chest's coal runs out 6 minutes before the hour's end on every seed and west's coal never comes (through Gate B the west-coal stand-in makes nothing, GA-B6-3): the margin is negative, and it is a Phase 5 number (west's coal real) rather than a constant's. (b) By the first red pip the threat has spawned 44–60 crawlers and none has arrived at a Held edge (the turrets kill them on the street): the HQ's arrival count at ~6 minutes is 0, far below 40; the spawn count is the number the ~6-minute red is made of.
+
+**Unchanged from the previous run (`B-M6-hour`):** the 0–10 script (mine 0:20, craft 1:20, first crawler 2:44–3:05, first red 5:33–6:18, Generator 2 at 6:01–6:02, first line magazine 8:07–8:10), east and west (15 / 25), Generator 4 at 45, walking under 5 %, the HQ standing at the hour on every seed, the logged hour replaying to the same state. **Changed by the decided minutes:** the second steel Excavator 12 → 15 (steel min 30 → 0) and north 65 → 40 (a fall inside the hour and 299–300 s of brownout).
+
+## Layout and readability pass — built 2026-09-05 (unverified; `docs/PROGRESS.md` T3)
+
+Full report: **`docs/LAYOUT_PASS_REPORT.md`**. This finishes the pass the economy-fix task started
+on 2026-09-04 (the section above: `Scale.RESIZE` and the full-viewport world, the top-left HUD and
+the bottom-left key strip, the HQ's kerb pips, the Depot's outline, fill bar and beacon). Drawing only — no file in `packages/sim` was opened,
+the config hash is unmoved (`0176f61d`), and no measured number in this report can have changed.
+
+Ten of `ROADMAP.md` §2's eleven readability items were built: the HUD as four corner overlays with
+the toasts moved to bottom-centre, the map view as a centred full-screen overlay that refits on
+resize, an opening zoom that puts the HQ lot at about a third of the viewport's height, the kerb
+line where a lot meets a street, a soft light falloff (a render-side blur over the lit mask —
+`lightPix`, `lightMask` and `litAt` are untouched), a common drop shadow and rim on every box
+machine, the engineer's facing from `e.face` with a chevron, the shade as a diamond against the
+crawler's disc, and the kerb pip on every Held block's front rather than the HQ's alone. The
+full-viewport canvas and the clumped rubble were already built.
+
+**The eleventh item was refused.** §2's line asks for the engineer to carry "a lamp cone";
+**D-B5-1** (decided, Daniel, 2026-09-04) decided against a personal light. The facing was built,
+the cone was not, and the ROADMAP line is reported as wrong rather than edited (constitution rule
+12). D-B5-1 reopens only on STANDARDS row A.7 — the played-dark sentence — which the T5–T8 waiver
+did not produce (`GATE_B.md`).
+
+**Cheap checks green:** `npm test` 121/121, `typecheck`, `lint`, `docsync:check`, `snapshot:check`.
+**Unverified:** the light-map blur costs 7–12 ms of arithmetic per repaint in Node at eight
+repaints a second, and the map view rebuilds its raster on every resize step; both want the 900 s
+soak on the reference machine before the pass's frame numbers mean anything. The pass's own success
+condition — a stranger points to street, lot edge, lit area, rubble, Depot and engineer unaided —
+is **untested**: T7 was waived and `docs/layout-pass/STRANGER_TEST.md` was never written.
+
+**Three decisions:** D-LP-1 (the opening zoom clamps to 0.5× at 1080p and seed 4's 46-tile HQ lot
+never reaches a third), D-LP-2 (the key strip's corner), D-LP-3 (the falloff strength — the one
+that touches the identity).
+
+## The blockers — built and **measured** 2026-09-05 (`docs/PROGRESS.md` T1 done)
+
+Full report: **`docs/ECONOMY_FIX_REPORT.md` §9**. On the instruction "Do the blockers" the three
+decision rows that walled T1's third clause were written as `decided` — Daniel, 2026-09-05, that
+message, each taking its own recommendation — and then built. This section carries measured
+numbers rather than the usual *unverified*, because T1's definition of done **is** "make main
+green": the suite is the measurement (constitution rule 13), so `npm run experiments` was run.
+
+### Built
+
+- **D-HOUR-2 (a)** — `constants.HOUR`'s `steel-2` from minute **15 to 12**; §11's generated minute
+  table follows by docsync; GA-EF-1's provisional 12:00 becomes a decided row. The decided 200
+  start steel was the decided minute list's bill to minute 15 exactly, so no bot behaviour could
+  have saved it.
+- **D-P4-10 (a), the north-minute half** — `claim-north` from **40 to 65**, past the hour on
+  purpose, and `HOUR_END` from 4 Held to **3**: hour one is two claims (east 15, west 25). The
+  report expects north's claim, the HQ's white border and the Electricians only from `northAt`;
+  `firsthour.ts` records that the `t < 3600` loop never adds north's substation. The 300 s
+  brownout between two decided minutes is gone by construction.
+- **D-P4-9** — §11's two carried turrets removed, with `carryTurrets`, `turretSpots`, `idleTurret`,
+  `hqTurrets` and `HourBot.carried`; `flow.ts` and `firsthour.ts` lost their references and
+  `hour.test.ts`'s minute-45 test was rewritten for two claims. Through Gate B a claimed block's
+  edges keep the block sim's ring-fed hopper and nothing physical stands on them.
+- **One defect from the light review**: `E-hour-stock`'s header was thirteen hardcoded five-minute
+  labels against twelve columns of data, so every published value read one step late. It is now
+  derived from the report's own sample times.
+
+### Measured
+
+**`npm run experiments`: 13 experiments, 231 s, 0 failing checks.** E-hour **10 / 10** (was 6 / 10),
+E-rifle **12 / 12** (was 10 / 12 — the seed-5 knockdown in the 600 s edge rescue does not recur).
+`snapshot:check` matches at config `0176f61d`; `npm test` 121 / 121; typecheck, lint and
+`docsync:check` green.
+
+| | before (economy-fix task Step 6) | now |
+|---|---|---|
+| chest steel minimum | 0 at 15:02–15:04, every seed | **30 at 12:01–12:02**, every seed |
+| brownout | 262–315 s (exactly 300 s where nothing falls) | **0 s, 0 refusals**, six runs |
+| falls | 3 runs of 6 lose north | **0 falls**, six runs |
+| end state | 4 Held expected, not reached | **3 Held**, HQ held, 6 turrets, 4 Generators, 7 Excavators, 3 Assemblers, 519 magazines, six runs |
+| walking / walk-overs | — | 2.2–3.8 % against §19's 15 %; 9–14 s against the 60 s rule |
+
+**`E-hour-north` (measured, not scored) is the result worth naming.** Carried to 75:00 with north
+claimed at `constants.HOUR`'s 65:00, north is Held at 65:29–65:34 and **never falls on any of the
+three seeds — 0 falls, 4 Held at 75:00** — where the same variant fell at 72:45–74:38 on every seed
+while §11 carried two turrets onto it. Removing them is what saved it: a physical turret on a claim
+takes its edge off the ring feed (`hookSyncEdges`) and swaps a ring-fed 100-round hopper filled from
+a buffer for a hand-fed 50, and one engineer cannot keep three of those fed. On the block-level
+hopper north rides out the 510–557 s brownout that the hand-fed turrets did not. The Generators
+still run dry at 67:51–68:01 and the chest at 75:00 reads 1520–1524 steel / 397 copper / **0 coal**.
+
+### Where it disagrees with the doc
+
+- **§11 said the chest's coal is 2 at minute 60.** It is **0**, spent for good at **56:00**, on
+  every seed. Two sentences corrected.
+- **§11 still described the two south-facing turrets picked up and carried, and "four stacks in
+  your pockets".** Removed through Gate B under D-P4-9; the sentence now says what a claim's edges
+  actually do.
+- **§11 still put the second steel Excavator at minute 15 and north at "60–75 once west's coal is
+  real".** Both are decided numbers now, and the prose says so.
+
+### Deferred
+
+- **Every front edge physical — a claim lays its segment's turrets from stock** (D-P4-9's other
+  half) → after Gate B. The four functions were deleted, not hidden; `DEFERRED.md` names commit
+  `6694b71` as the last one that has them. It cannot be built until the ring feed keeps feeding an
+  edge that has a turret on it.
+- **West's coal made real** (D-P4-10 (a)'s other half) → after Gate B and behind **D-P4-12**.
+  `rubbleOf` has no coal kind at all — stone / copper / steel / null — and west is a rail yard, so
+  a physical Excavator on its lot digs steel. The two constants it needs are the human's.
+
+### Three decisions for the human
+
+1. **D-P4-12** — the rail yard's coal (recommended: a fourth rubble kind, `coal`, at the HQ patch's
+   ~700). Blocks nothing; what it buys back is the Generators running dry at 67:51–68:01.
+2. **`HOUR_END.held` is 3**, so §11's enclosure — the HQ's white border when north holds — and the
+   Electricians walking out of civic north are beats a 3,600 s run never reaches. Is that the shape
+   of hour one, or a hole in it?
+3. **The first shade still never happens** in the bot's hour, six runs, against §11 and E3's minute
+   32–47. It is the only finding E-hour prints, and it has now survived every economy change.
+
+## E-rifle at tile scale — the rescue run and the steady run, **measured** 2026-09-05 (`docs/PROGRESS.md` T4 done; run name `E-rifle-tile`)
+
+**The rifle decides a rescue.** At block scale it never did: twelve of twelve rescues held either
+way, and the item went to `DEFERRED.md` as "the block-scale E-rifle never sees the rifle decide a
+rescue". At tile scale, over **24 scenarios run twice** (2 belts × 2 scopes × 3 seeds × 2 minutes,
+rifle off and on — 48 runs), **seven blocks fall without the rifle and four with it**: the rifle
+**saves three outright**, delays three of the four it cannot save, and never loses a block sooner
+than the unarmed run does. Evidence: `docs/EXPERIMENTS.md` rows `E-rifle-tile-steady` and
+`E-rifle-tile-rescue` (regenerated on the committed tree), and `docs/experiments/E-rifle.json`.
+
+Measured, not *unverified*: T4's definition of done **is** the measurement (constitution rule 13),
+so `npm run experiments` was run — **13 experiments, 256 s, 0 failing checks**, E-rifle **14 / 14**
+in 96.6 s. The tile sections themselves were built on 2026-09-04 and the blockers task changed what
+they measure, so this task re-ran them on a commit rather than a working tree and wrote the numbers
+down.
+
+### Built
+
+One thing, and it came out of reading the run rather than out of the task line: **the tile steady
+table now carries §19's two guards.** The tile path always accumulated them — `walk.ts`'s
+`spendRound` calls `markShot`, and `advanceFlow` runs the block `step()` once every sim second
+(`flow.ts`, `if (f.tick % TILE_TPS === 0)`), which is where `engineer.danger` is filled — but the
+`E-rifle-tile-steady` table stopped at HP lost and downs, so the 10 % shooting and 5 % danger caps
+were scored **only** on the 5 h compact bot. Two columns and two checks (`erifle.ts`), and E-rifle
+goes **12 checks → 14**. No sim file was opened; the config hash is unmoved at `b95922d2`.
+
+Everything else T4 reports is a measurement of code that already exists (`erifle.ts`'s `tileRescue`
+and the two tile sections; `hour.ts`'s `handsOff` and `rescueStance`). The re-run is against commit
+`2f1b016`, on top of the three rows decided on 2026-09-05 (D-P4-9, D-HOUR-2, D-P4-10).
+
+### The steady hour — `E-rifle-tile-steady`
+
+§11's hour, the hour bot, rifle off vs on. The reflex fires at the nearest crawler in range while
+the bot walks its script.
+
+| seed | line magazines off → on | diff | hand-fed off → on | falls off / on | rifle rounds | rifle kills | turret kills | first shot | HP lost | downs | shooting (§19: 10 %) | danger (§19: 5 %) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 3 | 519 → 519 | 0.00 % | 858 → 856 | 0 / 0 | 18 | 1 | 438 | 14:02 | 0 | 0 | **0.50 %** | **0.00 %** |
+| 4 | 519 → 519 | 0.00 % | 821 → 823 | 0 / 0 | 25 | 3 | 325 | 5:37 | 0 | 0 | **0.69 %** | **0.00 %** |
+| 5 | 519 → 519 | 0.00 % | 792 → 792 | 0 / 0 | 2 | 1 | 227 | 6:22 | 0 | 0 | **0.06 %** | **0.00 %** |
+
+The rifle is invisible in steady play at tile scale, which is what §24 risk 10 asks for: the line
+makes the same 519 magazines with it and without, the hands carry within two trips of the same
+number, five kills of 990 across the three seeds are the engineer's and the other 985 are the
+turrets', and nobody takes a scratch. The bot's hour is 45 rounds fired on three seeds; the first
+shot lands at 5:37–14:02, i.e. after the first bloom, never at the start.
+
+**§19's two guards, now measured on the hour the player plays**: the engineer shoots for **18 s /
+25 s / 2 s of 3,600 — 0.50 % / 0.69 % / 0.06 %** against the 10 % cap, and spends **0 seconds** with
+a crawler on them — **0.00 %** against D-B1-5's 5 % cap. That is a fifteenth to a two-hundredth of
+what §19 allows. The block-scale rows, on a 5 h compact bot, read 0.00 % and 0.07 %; the tile hour
+is the busier of the two and still nowhere near the ceiling. **The caps are not what constrains
+this design** — nothing in the hour pushes the engineer toward the shooting §19 was written to
+limit, and the number that does bite is the rescue's HP, below.
+
+### The rescue — `E-rifle-tile-rescue`
+
+The most threatened Held block runs dry: `edge` = the turrets and hopper of the edge facing its
+worst Dark neighbour at 0 rounds, `ring` = every edge of the block. The belt is **90 s** away (§11's
+rescue) or **600 s** (it never comes inside the window). The bot drops its script and its hands and
+stands at the dry edge's street midpoint; with the rifle it carries 20 magazines, without it stands
+there empty-handed — **the body is in both arms, the magazines are the difference**. Then 10 minutes.
+
+| belt | scope | scenarios | fall without the rifle | fall with it | verdict |
+|---|---|---|---|---|---|
+| 90 s | edge | 6 | 0 | 0 | a late belt is not the rifle's fight |
+| 90 s | ring | 6 | 0 | 0 | nor is a late belt on every edge |
+| 600 s | edge | 6 | **1** (seed 5, 20:00, +7.2 min, `unfed`) | 0 | **the rifle's fight, and it wins it** |
+| 600 s | ring | 6 | **6** (+4.3 to +8.9 min, all `unfed`) | 4 | two saved (seed 4, both minutes); the other four fall **later**: +5.6 → +5.7, +6.3 → +9.0, +4.3 → +4.4, +5.6 → +7.7 |
+
+- **Every fall in all 48 runs is `unfed`** — crawlers reaching the substation past dry turrets.
+  Not one is a shade.
+- **Cost**: 0–120 HP lost, HP min **34** (600 s edge, seed 3, 35:00), **0 knock-downs in 24 rifle
+  runs**; the mean rescue costs **38.7 HP** against the block-scale rescue's 62.4.
+- **Ammo is not the limit**: 924 rounds and 307 kills over the 24 rifle runs, the busiest single
+  rescue **96 rounds** — under half of the 20 magazines (200 rounds) the engineer carries in. What
+  runs out is coverage and HP, not Shot.
+- **Scale of the fight**: 22–170 crawlers are born in a rescue window; the block that falls unfed
+  without the rifle sees 107 of them, and the ring scenarios that beat the rifle see 97–170.
+
+### The fourteen checks (E-rifle 14 / 14, all green)
+
+The seven tile checks: the magazine bill moves < 5 % (0.00 %); nothing falls in the hour rifle off
+or on (0 / 0 / 0); **shooting ≤ 10 % of the hour (max 0.69 %)**; **danger ≤ 5 % (max 0.00 %,
+D-B1-5)**; one dry edge whose belt never comes — **1 / 1 single-edge falls saved**; a whole dry ring
+is beyond one rifle at one edge — **2 / 6 ring falls saved, the rest delayed 0.1 / 2.8 / 0.1 /
+2.1 min**; the engineer is never knocked down (HP lost 0–120, HP min 34). The seven block-scale
+checks are unchanged: 0.00 % ammo diff, nothing lost in steady play, shooting 0.00 % and danger
+0.07 % of an hour (§19, D-B1-5), 2 / 12 scenarios fall without the rifle, and the 62.36 HP damage
+number.
+
+### Determinism
+
+Nothing the sim computes moved. Against the committed generated files, the whole of `docs/` after
+the re-run is: **the `source_commit` stamp on fourteen files, one wall-clock figure (231 s → 256 s)
+in the `EXPERIMENTS.md` header, and the two new §19 columns and two new checks in E-rifle.** Twelve
+of the thirteen experiments produced JSON whose only changed line is the stamp; E-rifle's only
+removals are the stamp and the reflowed table header. Two invocations on two commits, the same
+numbers.
+
+### Where it disagrees with the doc
+
+1. **§5's rescue sentence is the block sim's, and the tile sim answers differently.** §5 says "when
+   the block's whole belt is 90 s away it falls in about 1.5 min to a **shade** at an unlit edge, and
+   the rifle cannot save it" **[sim: E-rifle]**. At tile scale a whole ring 90 s dry **never falls at
+   all** (12 of 12 hold, both arms), and when a ring does fall — the belt 600 s away — the killer is
+   **always crawlers, never a shade**. Both sentences are tagged to their own run, so neither is
+   wrong as written; but §5's picture of what beats the rifle (an untargetable shade) and the tile
+   layer's (more crawlers than one engineer at one edge can kill) are different pictures, and the
+   tile one is the one the player will meet. §11's `[sim: E-rifle-tile]` sentence already reads the
+   tile way and needed no edit.
+2. **§19's two guards were being scored on the wrong bot — fixed in this task.** The 10 % shooting
+   and 5 % danger caps were computed only by the 5 h compact bot in `E-rifle-steady`. The tile path
+   was never uninstrumented — `markShot` fires from `walk.ts`'s `spendRound` and `advanceFlow` runs
+   the block `step()` every sim second — the tile *report* simply did not carry the two shares. It
+   does now (0.50 / 0.69 / 0.06 % shooting, 0.00 % danger), and the caps are checked where the rifle
+   actually is. **No §19 number in the doc moves**: the tile hour is comfortably inside both.
+3. **The generated header's date is UTC.** `EXPERIMENTS.md` says "Generated … on 2026-09-04" for a
+   run made on the morning of 2026-09-05 AEST, because `cli.ts` stamps `toISOString()`. Cosmetic,
+   but every generated file dated this way will read a day early for this machine's mornings.
+
+### Deferred / re-read
+
+`DEFERRED.md` has its "Re-read at E-rifle at tile scale" section: the 2026-09-04 item **"E-rifle at
+tile scale — the rifle never decides a rescue"** is **deleted**, closed by this run, and the §19
+reporting gap this task found is **deleted in the same breath** — it was built, not parked. Nothing
+new is parked.
+
+### Three decisions for the human
+
+1. **Which scale scores §5's rescue sentence?** Recommendation: **the tile layer** — rewrite §5's
+   "falls to a shade in ~1.5 min, the rifle cannot save it" as the tile finding (a late belt costs
+   nothing; a belt that never comes costs the block unless the engineer stands on the dry edge; a
+   whole dry ring is beyond one rifle) and keep the block-scale sentence as the lattice's record.
+   No constant moves either way; it is which sim the design sentence quotes.
+2. **Can D-R1 come off `provisional`?** The row — "the rifle and the shade" — was taken as (a) *keep
+   D5, the rifle is for crawlers* on 2026-09-04, with (b) a hand lamp held back for a slice M5
+   experiment "if Gate B testers lose a block to a shade while standing on it". Two runs now say the
+   shade is not the fight: **no shade kills anything in the 48 tile rescues** (every fall is
+   `unfed`) and **E-hour spawns zero shades in six hours**. Recommendation: **decide (a)** — with
+   the caveat that both are bot runs, and Gate B, the play that (b) was waiting on, was waived.
+3. **Does the 600 s belt stay?** It is not §11's rescue (§11's is 90 s) and it is the only scenario
+   in which the rifle changes an outcome. Recommendation: **keep it, named as what it is** — the
+   rifle's whole justification under §24 risk 10 rests on it, and at 90 s the experiment cannot tell
+   an armed engineer from an unarmed one.
+
+## Gate B — **proceed, with conditions** (2026-09-05, `docs/GATE_B.md`)
+
+verdict: **proceed — with conditions.** Recorded for Daniel on 2026-09-05, and
+**closed by him as fully tested the same day** — `PROGRESS.md` T8 is `done` and
+nothing is owed back to the gate.
+
+**Where the numbers come from.** Minutes 0–10 of §19's first-hour table carry the
+player's own words; **10–30 and 30–60 were not recorded and stay empty**, and no
+minute markers or telemetry were taken, so every shooting, danger and walking share
+quoted in this report is still **the bot's**, tagged `[sim: E-hour]` /
+`[sim: E-rifle-tile]` and never `[play: Gate B]`. The controls walkthrough, the
+two-assembler line and the stranger test remain **waived, not passed**.
+
+**What it closed.** **STANDARDS row A.7**, the hand-lamp sentence, played dark:
+*"Yea the dark is pretty good so far."* The dark reads as **the claim's price, not
+as a missing flashlight**, so **D-B5-1 does not reopen and now has play behind it**
+— the first of `STANDARDS.md`'s 46 rows to close (`closed: 1 of 46`).
+
+**What it found.** §19 expects minutes 0–10 to teach two rules (blocks bloom; ammo
+is made from rubble). **Neither was named back.** What came back was *"movement is
+good … but needs more development time"* and, as the hour's one problem, *"knowing
+what to do next"*. The memorable moment §19 expects by minute 50 was not reached
+(*"nothing yet"*). The rifle was fired without mattering — *"I was just shooting at
+things"* — which is the play-side half of what **D-R1** has been waiting for and
+agrees with `E-rifle` at both scales. **No shade was seen**, and none was recorded
+either way, so §11's minute 32–47 is neither confirmed nor contradicted: `E-hour`'s
+"never" stands as **the experiment's open finding**, carried into Phase 5, not as a
+debt of this gate.
+
+**What it opened — four rows, D-GB-1 to D-GB-4**, three of which asked for
+something the doc does not contain (constitution rule 12: listed, not built).
+
+**D-GB-1 is decided, as the hybrid (option c)** — Daniel, 2026-09-05. The claim
+still burns off its block, so §5's rule, §11's hour and every measured number in
+this report stand; **powering and lighting the next area becomes a physical
+expedition the engineer walks**, and an area lighting up becomes a threat trigger
+beside the wake bloom. It is Phase 5 / 6 work; the doc sentences it moves (§5, §10,
+§11, §19) move on the milestone that builds it, with a changelog line.
+
+**D-GB-2 (knowing what to do next, against constitution rule 8's "no tutorial
+screens"), D-GB-3 (rifle range) and D-GB-4 (enemy density) are `open (gate
+condition)`** — the gate passed *with* them, so they are resolved inside Phase 5.
+D-GB-4 needs no permission: §19 caps player shooting at 10 % of an hour and the
+measured hour is **0.50 / 0.69 / 0.06 %**, with danger **0.00 %** against a 5 %
+cap, so density has twenty-fold headroom inside the design's own limits.
+
+**The standing tension, named once.** D-GB-1, D-GB-3 and D-GB-4 all pull toward a
+game in which the player fights, explores and lights the world personally. §19 caps
+the player's shooting at a tenth of an hour on purpose, because the doc's game is
+one in which turrets fight and the engineer builds the thing that fights. The
+hybrid is the answer taken; if Phase 5's work finds it does not hold, this is the
+sentence to come back to.
 
 ---
 
 # Appendix — the lattice slice (superseded by the D5/D6 rework, 2026-09-04)
 
 Not scored at Gate B. Kept as the record of what the lattice slice built and measured; its GAME-ASSUMPTIONs that survive the rework are still in the code and listed in `REWORK_REPORT.md` §3.
+
+## Absorb Gate B — **doc only, no code**, 2026-09-05 (`docs/PROGRESS.md` T9 done; evidence `PROGRAMME_STATE.md` B.31)
+
+The last Phase 4 task. It folds the played hour into `RELIGHT-design.md` and this report, records D-GB-1's hybrid as a decision the doc carries but has not built, attaches the gate's evidence to the rows that were waiting on it, and hands D-GB-2 / D-GB-3 / D-GB-4 to Phase 5 as the verdict's three conditions.
+
+**Built.** Nothing in code, deliberately — see "where it disagrees" below. Seven edits to `RELIGHT-design.md`, and the played hour folded into this report's §19 table and its two Gate B rows:
+
+1. **§4 — the pre-placed `[play: Gate B]` tag split.** The tag had been put on the body sentence before the gate was played. Only the movement half survives contact: *"movement is good, it's kind of intuitive but needs more development time"* keeps `[play: Gate B]`; sprint, dodge and "the game is completable without any of them" keep only `[sim: B-M1-body]` because they were never exercised. The rifle's own play line (*"I was just shooting at things"*) is named there as D-R1's play half.
+2. **§4 — the range clause named as the disagreement.** "Out to the turret's 9 tiles (no range advantage)" is the one clause the played hour argued with; **D-GB-3** is named against it, and it stands as written until that row is decided.
+3. **§19 — the 10 % shooting cap loses its `[play: Gate B]` tag.** The gate read no telemetry, so no player shooting share exists and the tag was never earned. The bot's **0.50 / 0.69 / 0.06 % shooting and 0.00 % danger [sim: E-rifle-tile]** are stated in its place, and **D-GB-4**'s ask is named against that headroom.
+4. **§19 — the first-hour test carries the finding against itself.** Neither of minute 0–10's two rules was named back; movement was; the session's only problem was not knowing what to do next (**D-GB-2**, against constitution rule 8, so the rule-8-legal forms are listed first). The later windows are marked untested rather than contradicted.
+5. **§10 — D-GB-1's hybrid, decided and not built.** The three loops stay exactly as written; the hybrid's content is recorded beneath them (the expedition the engineer walks; an area lighting up as a threat trigger beside the wake bloom) with the statement that §5, §11 and §18 do not move until the milestone that builds it.
+6. **§19 — the walking share stops implying a human number.** "A player's share is M6's number" is corrected: M6 measured the bot (4.6–5.2 % at tile scale) and Gate B read no telemetry, so the row has no human number and the doc no longer says otherwise.
+7. **§25 — open questions 19, 20 and 21**, the three gate conditions, so they live in the spec and not only in `DECISIONS.md`. The **Changelog preamble** now says what a `[play: Gate B]` tag means beside `[play: Gate A]`: a witnessed statement from one played hour, never a measured share.
+
+**Assumed.** No new GAME-ASSUMPTION. T9 built nothing, so it assumed nothing about the sim; the register above is unchanged.
+
+**Deferred.** D-GB-1's build (the expedition and the lighting-up trigger) to Phase 5 / 6, with the doc sentences it will move named in `DECISIONS.md` and §10. D-GB-2's answer, D-GB-3's range number and D-GB-4's density number to Phase 5 as the verdict's conditions. §19's unrecorded windows, the burn-off line, the first shade and the human walking share to the next played session — observations, not debts (`DEFERRED.md` re-read).
+
+**Measured.** Nothing new. The only figures T9 writes into the doc — 0.50 / 0.69 / 0.06 % shooting and 0.00 % danger — arrive already tagged `[sim: E-rifle-tile]` from T4's measured run. The suite is unmoved at 13 experiments, 0 failing checks, and the config hash did not change because `packages/sim` was not opened. Cheap checks only for this task; nothing here waits on a verification pass.
+
+**Where it disagrees with the doc — and with its own task line.** T9's task says "fold the played hour and D-GB-1's hybrid into **code** and doc". **No code was written, and that is the honest answer rather than a shortfall.** The gate produced no constant; D-GB-1's build is Phase 5 / 6 work by the terms of the decision itself; and D-GB-2, D-GB-3 and D-GB-4 are `open (gate condition)`, so writing a quest system, a rifle range or a density number now would be building from a prompt that carries a rule the design doc does not — constitution rule 12, the same rule the gate invoked when it refused to build them. The second disagreement is with the doc's own history: **two `[play: Gate B]` tags were placed before Gate B was played**, and one of them (§19's cap) was simply not earned. It has been removed rather than justified.
+
+**Three decisions for the human.**
+1. **D-R1 — take (a).** The rifle's play half is in (it decided nothing), and A.7's answer closes option (b), the hand lamp. (a) is the only live option and is already what the code does; deciding it is a signature.
+2. **D-P4-5 — make every assembler physical.** The condition attached to that recommendation ("the block-level button stays through Gate B so the played hour is one model") is met. It is now unconditioned and blocks nothing.
+3. **D-GB-2's first form.** The rule-8-legal answer — a next-objective line in the HUD driven by the sim's own state — is cheap and is what Phase 5 would build first. A quest system is a rule-8 change and stays yours to take explicitly.
 
 ## Lattice M1 Ground — built 2026-09-03
 

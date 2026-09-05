@@ -10,6 +10,7 @@
  *  ringed by street. */
 import { SimState, Block, District, INERT, VOID } from './types';
 import { hash01 } from './prng';
+import { LAMP_STEP_TILES } from './constants';
 import { districtOf } from './districts';
 import { poolMax } from './queries';
 
@@ -69,11 +70,14 @@ export function substationReserved(seed: number, b: Pick<Block, 'x' | 'y'>, hq: 
   return lx >= sx && lx < sx + SUBSTATION_TILES && ly >= sy && ly < sy + SUBSTATION_TILES;
 }
 
-/** §5/§18 (M3): the cell's pre-existing streetlights, on the margin row next to the lot on each street side.
- *  GAME-ASSUMPTION: eight a side, every three tiles (Lamp radius 4 makes a continuous strip when all work), and each
- *  is broken with probability 3/8, so a side averages the §5 line's "3 Lamps to plug broken streetlights". They draw
- *  nothing of their own (the substation's 100/20 kW covers the cell's fixtures) and light when the substation powers. */
-export const STREETLIGHT_STEP = 3, STREETLIGHTS_PER_SIDE = 8, STREETLIGHT_BROKEN = 3 / 8;
+/** §5/§18 (M3): the lattice cell's pre-existing streetlights, on the margin row next to the lot on each street side.
+ *  The spacing is the doc's one every LAMP_STEP_TILES (4) along the kerb (D-B1-4; economy-fix task Step 2, item 6 —
+ *  it was a live 3 here), and a side takes as many as fit the lot's length at that spacing (24 / 4 = 6; it was eight
+ *  at 3). GAME-ASSUMPTION: each is broken with probability 3/8 (at eight a side that averaged the §5 line's "3 Lamps to
+ *  plug broken streetlights"; at six it averages 2.25 — reported, not re-chosen). They draw nothing of their own (the
+ *  substation's 100/20 kW covers the cell's fixtures) and light when the substation powers. The city's faces use
+ *  ground.ts faceLights (FACE_LIGHT_STEP = LAMP_STEP_TILES); this is the lattice only. */
+export const STREETLIGHT_STEP: number = LAMP_STEP_TILES, STREETLIGHTS_PER_SIDE: number = Math.floor(LOT_TILES / STREETLIGHT_STEP), STREETLIGHT_BROKEN = 3 / 8;
 export interface Streetlight { tx: number; ty: number; side: number; broken: boolean }
 export function streetlights(seed: number, b: Pick<Block, 'x' | 'y'>): Streetlight[] {
   const out: Streetlight[] = [];
@@ -86,8 +90,24 @@ export function streetlights(seed: number, b: Pick<Block, 'x' | 'y'>): Streetlig
   }
   return out;
 }
-export type RubbleType = 'stone' | 'copper' | 'steel';
+export type RubbleType = 'stone' | 'copper' | 'steel' | 'coal';
 export type DepositType = 'iron' | 'coal';
+/** D-P4-12 (a), decided 2026-09-05, and C5: a fourth rubble kind, coal, on the rail yard only — RAIL_YARD_COAL units
+ *  a lot, the HQ coal patch's size (START_COAL_PATCH), because west's claim replaces the patch rather than ending coal
+ *  for the game. This overrides §12's untagged "~30k a block". The heap is one RAIL_YARD_HEAP × RAIL_YARD_HEAP
+ *  square (implementation default, RI-01 2026-09-05: the HQ coal patch's 3×3 density, so an Excavator standing on
+ *  it reaches every tile); the block carries no other rubble. The city generator has no rail-yard district: the rail
+ *  yard is the HQ's most westward claimable neighbour (ground.ts `railYardOf`), the block the hour bot claims as
+ *  "west" (constants.HOUR "claim west (rail yard)", D-HOUR-1). */
+export const RAIL_YARD_HEAP = 3, RAIL_YARD_COAL_TILES = RAIL_YARD_HEAP * RAIL_YARD_HEAP;
+/** 78 a tile × 9 = 702: D-P4-12's ~700 as a whole number of units a tile, so the heap yields exactly what it holds
+ *  (flow.ts `mineUnit` counts a tile's last fraction as a whole unit — the HQ coal patch, 700 over 9 tiles, yields 702). */
+export const RAIL_YARD_COAL_PER_TILE = 78, RAIL_YARD_COAL = RAIL_YARD_COAL_PER_TILE * RAIL_YARD_COAL_TILES;
+/** D-P4-2 (decided): a district rubble tile holds RUBBLE_UNITS_PER_TILE units (§12: 300 a tile, so a 250–350-tile
+ *  block holds 75–105k), dug by machines and hands on the tile layer (RI-01 2026-09-05: before it a tile held the
+ *  block's pool over its tile count, 257–360). The block sim's pool (the block-only runs' flat-yield stock) drops
+ *  one tile's share when a tile is dug out, so `standing` and the map's pool strip agree with the tiles. */
+export const RUBBLE_UNITS_PER_TILE = 300;
 
 /** §12: a block holds 250–350 rubble tiles. GAME-ASSUMPTION: the count is uniform in that range per cell and does
  *  not vary with district or depth; only the density variant does. */

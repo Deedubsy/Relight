@@ -1,15 +1,17 @@
 :root {
   --bg: #0b0e1a; --panel: #121a30; --panel-2: #182240; --ink: #e6e9f2; --muted: #9aa5b8;
   --amber: #e8a93a; --red: #ff3b30; --green: #3ddc84; --amber-pip: #f2b632; --line: #26314f;
+  /* layout pass: the panel column and the page gutter, so the toasts can centre on the canvas rather than the window */
+  --panel-w: 420px; --gutter: 12px;
   font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink); height: 100%; }
-#app { display: flex; gap: 12px; padding: 12px; align-items: flex-start; min-height: 100vh; }
-#map { flex: 0 0 auto; border-radius: 6px; overflow: hidden; }
+#app { display: flex; gap: var(--gutter); padding: var(--gutter); align-items: flex-start; height: 100vh; }
+#map { flex: 1 1 auto; min-width: 648px; height: calc(100vh - 24px); border-radius: 6px; overflow: hidden; }
 #map canvas { display: block; }
-#panel { flex: 1 1 360px; max-width: 420px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+#panel { flex: 0 0 var(--panel-w); max-width: var(--panel-w); max-height: calc(100vh - 24px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
 #panel section { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
 #panel h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: 0.02em; }
 #panel h2 { font-size: 11px; margin: 0 0 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
@@ -42,7 +44,12 @@ ul.plain li { display: flex; justify-content: space-between; gap: 8px; }
 ul.plain li .muted, .muted { color: var(--muted); }
 #tooltip { position: fixed; pointer-events: none; background: #05070f; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 6px 9px; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; z-index: 10; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
 #tooltip .bad { color: var(--red); }
-#toasts { position: fixed; left: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 20; }
+/* layout pass (ROADMAP §2): the toasts are the HUD's bottom-centre overlay. They sat bottom-left, on top of the
+   world view's key strip; the four corners are now the world scene's (top-left keys, top-right territory,
+   bottom-left power and pockets, bottom-right speed and clock) and the centre is theirs. Centred on the canvas,
+   not on the window, so the panel column does not pull them off-centre. */
+#toasts { position: fixed; bottom: 16px; left: calc(50vw - (var(--panel-w) + var(--gutter)) / 2); transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 20; pointer-events: none; }
 .toast { background: #05070f; border: 1px solid var(--line); border-left: 3px solid var(--amber); border-radius: 4px; padding: 6px 10px; font-size: 12px; max-width: 420px; animation: toast-in 150ms ease-out; }
 .toast.bad { border-left-color: var(--red); }
 .toast.good { border-left-color: var(--green); }
@@ -52,3 +59,22 @@ ul.plain li .muted, .muted { color: var(--muted); }
 .hint { color: var(--muted); font-size: 11px; margin-top: 6px; }
 kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; font: inherit; font-size: 11px; }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+/* RI-02 (§11.2): the current-goal line — one screen-space line over the top of the canvas, readable at any zoom,
+   with the reason under it and the shortage line (amber) beneath that when something is short. Centred on the
+   canvas like the toasts. No list, no screens (rule 8; D-GB-2 (a)). */
+#goal { position: fixed; top: 10px; left: calc(50vw - (var(--panel-w) + var(--gutter)) / 2); transform: translateX(-50%);
+  max-width: min(720px, 70vw); background: #05070fdd; border: 1px solid var(--line); border-top: 3px solid var(--amber); border-radius: 4px;
+  padding: 7px 12px 6px; z-index: 15; pointer-events: none; text-align: center; font-variant-numeric: tabular-nums; }
+#goal .goal-text { font-size: 15px; font-weight: 600; }
+#goal .goal-why { font-size: 12px; color: var(--muted); margin-top: 2px; }
+#goal .goal-support { font-size: 12px; color: var(--amber); margin-top: 4px; border-top: 1px solid var(--line); padding-top: 4px; }
+#goal .goal-support::before { content: "▲ "; }
+/* RI-02 (§11.2 "UI scaling"): the panel narrows under 1200 px and the layout stacks under 900 px, so the desktop UI
+   stays usable at 1280×720 and the canvas never pushes the page sideways. */
+@media (max-width: 1200px) { :root { --panel-w: 340px; } #panel { font-size: 12px; } .stat b { font-size: 16px; } }
+@media (max-width: 900px) {
+  #app { flex-direction: column; height: auto; }
+  #map { min-width: 0; width: 100%; height: 60vh; }
+  #panel { flex: 0 0 auto; max-width: none; width: 100%; max-height: none; }
+  #toasts, #goal { left: 50vw; }
+}

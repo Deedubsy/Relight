@@ -47,7 +47,9 @@ export interface ClaimInfo {
   wakeBloomCrawlers: number;  // approximate size of the wake bloom at the current rot
 }
 
-/** Tooltip data for the Claim tool: `Claim — rot 31 % · front +2 · closes 1`. */
+/** Tooltip data for the map's block preview: `rot 31 % · front +2 · closes 1`. RI-03 (plan §4.1): the map only previews
+ *  — it charges nothing and grants nothing; `ok` here is the legacy map claim's answer (adjacency and the chest's
+ *  stock), which the game's map no longer sends. Whether the physical Activate is available is `activationCheck`. */
 export function claimInfo(st: SimState, x: number, y: number): ClaimInfo {
   const base = { x, y, district: 'out' as District, well: false, rot: 0, frontDelta: 0, closes: 0, fAfter: 0, iAfter: 0,
                  cost: st.config.economy ? { ...st.config.eco.claimCost } : null, affordable: true, wakeBloomCrawlers: 0 };

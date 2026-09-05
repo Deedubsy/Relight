@@ -2,7 +2,7 @@
  *  starting coal, the HQ substation, machines placed at the minutes §11 states, three starting neighbours, coal from
  *  the west block's rubble once it is Held. Deterministic, no map. E4. A shortfall throttles (D-B3-4). */
 import { COAL_MJ, GENERATOR_KW } from './recipes';
-import { HOUR_CLAIM_MIN, SUBSTATION_KW } from './constants';
+import { HOUR_CLAIM_MIN, HOUR_GENERATOR_MIN, SUBSTATION_KW } from './constants';
 
 export interface FirstHourOptions {
   startCoal: number;        // units in the HQ's starting stock (§11: 40)
@@ -10,18 +10,24 @@ export interface FirstHourOptions {
   coalRubble: boolean;      // coal rubble available from t = 0 (instead of after the west block is Held)
   drawFlat: boolean;        // every substation 120 kW
   gens: number[];           // ticks at which a Generator is placed (index 0 is the starting one)
-  subKw: number;            // frontage substation draw (doc 200, D1 100)
-  interiorKw: number;       // interior substation draw (doc 40, D1 20)
+  subKw: number;            // frontage substation draw (D1 100; the pre-D1 200 is FIRST_HOUR_PRE_D1)
+  interiorKw: number;       // interior substation draw (D1 20; the pre-D1 40 is FIRST_HOUR_PRE_D1)
   patch: number | null;     // units in the HQ-lot coal patch, mined by an Excavator from `patchExcAt`
   patchExcAt: number;
 }
 
+/** The doc's numbers (economy-fix task Step 2, items 5 and 7): D1's draws (SUBSTATION_KW) and the Generators at
+ *  constants.HOUR's minutes (D-P4-7: 0 / 6 / 15 / 45). */
 export const FIRST_HOUR_DEFAULTS: FirstHourOptions = {
-  startCoal: 40, hqDraw: 200, coalRubble: false, drawFlat: false, gens: [0, 30 * 60],
-  subKw: 200, interiorKw: 40, patch: null, patchExcAt: 6 * 60,
+  startCoal: 40, hqDraw: SUBSTATION_KW.front, coalRubble: false, drawFlat: false, gens: HOUR_GENERATOR_MIN.map(m => m * 60),
+  subKw: SUBSTATION_KW.front, interiorKw: SUBSTATION_KW.interior, patch: null, patchExcAt: 6 * 60,
 };
 
-/** D1 variant: substations 100/20 kW, HQ 100 kW, coal patch on the HQ lot (D1: ~700 units). */
+/** The pre-D1 draws (the doc before D1: 200 kW front, 40 kW interior, HQ 200). E4 prints one comparison row with
+ *  them and nothing else reads this; no live rule carries 200 / 40. */
+export const FIRST_HOUR_PRE_D1: Partial<FirstHourOptions> = { subKw: 200, interiorKw: 40, hqDraw: 200 };
+
+/** D1 variant: the coal patch on the HQ lot (D1: ~700 units); its draws are the defaults now. */
 export const FIRST_HOUR_D1: Partial<FirstHourOptions> = { subKw: SUBSTATION_KW.front, interiorKw: SUBSTATION_KW.interior, hqDraw: SUBSTATION_KW.front, patch: 700 };
 
 export interface FirstHourResult {
@@ -32,7 +38,8 @@ export interface FirstHourResult {
   demandKw: number[];     // per minute
 }
 
-/** §11 timeline: east claim at 15 min, west at 25, north at 40; burn-off 20 s + 60 s × rot. */
+/** §11 timeline: east claim at 15 min, west at 25, north at 65 (D-P4-10 (a) — past the hour, so the 3,600 s loop
+ *  below never adds north's substation and the HQ never turns interior); burn-off 20 s + 60 s × rot. */
 export const FIRST_HOUR_CLAIMS = { east: HOUR_CLAIM_MIN.east * 60, west: HOUR_CLAIM_MIN.west * 60, north: HOUR_CLAIM_MIN.north * 60 };
 
 export function firstHour(over: Partial<FirstHourOptions> = {}): FirstHourResult {

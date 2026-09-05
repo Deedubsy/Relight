@@ -1,7 +1,10 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
-  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined } from '@relight/sim';
-import { Session, setSpeed, queue, shareUrl, record } from './session';
+  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS,
+  currentGoal, Goal, blockLabel, blockNameAt, edgeName, idxOf, activationCheck,
+  machineAt, inReach, MACHINE_SIZE, projectList, describeProject, SUPPLY_CHEST_CAP, STOP_CAP, TRAM_CAP, TRAM_TPS, TRAM_DWELL_S, MACHINE_KW } from '@relight/sim';   // RI-05
+import { Session, setSpeed, queue, shareUrl, record, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
+import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
 
@@ -25,6 +28,9 @@ export interface Panel {
   toggleDebug(): boolean;
   /** M1: show/hide the pockets and the Depot chest (Tab or I, or E on the Depot); returns the new visibility. */
   togglePockets(): boolean;
+  /** RI-05: open the pockets targeted at the Supply chest or Tram stop at (x, y) (E on it): its transfers go there
+   *  (chestTake / chestPut at). Tab / I target the Depot again. Pressing it on the same target closes them. */
+  openPocketsAt(x: number, y: number): void;
   /** D-B1-5: show/hide the build menu (B); a click on a row puts that building in the hand. */
   toggleBuild(): boolean;
   /** Esc: close the pockets and the build menu. */
@@ -69,8 +75,32 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   btnView.onclick = () => hooks.onToggleView();
   head.append(btnView, btnLink);
   header.append(head);
-  header.append(el('p', 'hint', 'Click a Dark block next to your territory to claim it. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary).'));
+  // RI-02 (§11.2): the save / load baseline — slot 1 in this browser (Ctrl+S / Ctrl+O), beside the download below
+  const saveRow = el('div', 'row');
+  const btnSave = el('button', undefined, 'Save (Ctrl+S)');
+  btnSave.title = 'Save the game to slot 1 in this browser: the state and every command so far. Load reloads the page from it, paused.';
+  btnSave.onclick = () => saveGame();
+  const btnLoad = el('button', undefined, 'Load (Ctrl+O)');
+  btnLoad.title = 'Reload the page from slot 1 (the last Save in this browser). Unsaved progress is lost.';
+  btnLoad.onclick = () => loadGame();
+  const saveNote = el('span', 'hint', '');
+  saveRow.append(btnSave, btnLoad, saveNote);
+  header.append(saveRow);
+  header.append(el('p', 'hint', 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
   root.append(header);
+  function saveGame(): void {
+    try {
+      const save = saveSlot(session, '1');
+      saveNote.textContent = `slot 1: ${clockOf(save.t)}`;
+      toast(`Saved to slot 1 at ${clockOf(save.t)} (state ${save.hash}) — Ctrl+O or Load reloads it`, 'good');
+    } catch (e) { toast(`Could not save: ${(e as Error).message}`, 'bad'); }
+  }
+  function loadGame(): void {
+    if (!hasSlot('1')) { toast('Slot 1 is empty in this browser — Ctrl+S saves to it', 'bad'); return; }
+    if (!window.confirm('Reload from slot 1? Unsaved progress is lost.')) return;
+    location.href = slotUrl(session, '1');
+  }
+  if (hasSlot('1')) saveNote.textContent = session.params.state === 'local:1' ? 'loaded from slot 1' : 'slot 1 has a save';
 
   // HUD
   const hudSec = el('section');
@@ -94,7 +124,10 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   // kits are taken here, one a claim, and a claim made with no kit in the pockets toasts that its edges wait.
   const pocketSec = el('section');
   pocketSec.hidden = true;
-  pocketSec.append(el('h2', undefined, 'Pockets and the Depot chest (Tab / I, or E on the Depot)'));
+  let pocketAt: [number, number] | null = null;   // RI-05: the Supply chest or Tram stop the pockets talk to (E on it); null = the Depot
+  const pocketTarget = () => pocketAt ? machineAt(session.state, pocketAt[0], pocketAt[1]) : undefined;
+  const pocketWhere = () => { const m = pocketTarget(); return !m ? 'the Depot' : m.kind === 'tramstop' ? 'the Tram stop\'s platform' : 'the Supply chest'; };
+  pocketSec.append(el('h2', undefined, 'Pockets and the chest (Tab / I, or E on the Depot; E on a Supply chest or a Tram stop targets it)'));
   const pocketHead = el('p', 'hint', '');
   pocketSec.append(pocketHead);
   const pocketList = el('ul', 'plain');
@@ -103,8 +136,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const row = el('div', 'row');
     const n = item === 'kit' ? 1 : item === 'magazine' ? 5 : stackSize(item);
     const take = el('button', undefined, `Take ${n}`), put = el('button', undefined, 'Put all');
-    take.onclick = () => { const r = chestTake(session.state, item, n); record(session, { type: 'chestTake', item, n }); if (r.moved) toast(`${r.moved} ${item} into the pockets`, 'good'); else toast(r.reason, 'bad'); };
-    put.onclick = () => { const r = chestPut(session.state, item, 1e9); record(session, { type: 'chestPut', item, n: 1e9 }); if (r.moved) toast(`${r.moved} ${item} into the Depot`, 'good'); else toast(r.reason, 'bad'); };
+    take.onclick = () => { const r = chestTake(session.state, item, n, pocketAt ?? undefined); record(session, { type: 'chestTake', item, n, ...(pocketAt ? { x: pocketAt[0], y: pocketAt[1] } : {}) }); if (r.moved) toast(`${r.moved} ${item} into the pockets`, 'good'); else toast(r.reason, 'bad'); };
+    put.onclick = () => { const r = chestPut(session.state, item, 1e9, pocketAt ?? undefined); record(session, { type: 'chestPut', item, n: 1e9, ...(pocketAt ? { x: pocketAt[0], y: pocketAt[1] } : {}) }); if (r.moved) toast(`${r.moved} ${item} into ${pocketWhere()}`, 'good'); else toast(r.reason, 'bad'); };
     row.append(take, put);
     l.append(a, v); pocketList.append(l); pocketList.append(row);
     return { item: item as ChestItem, v, take, put };
@@ -113,7 +146,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const pocketMach = el('li'); const pocketMachV = el('span', 'mono', 'none');
   pocketMach.append(el('span', undefined, 'machines carried (one stack each)'), pocketMachV); pocketList.append(pocketMach);
   pocketSec.append(pocketList);
-  pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
+  pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's steel and copper go from the pockets into the block's substation (E on it) and are spent at Activate; its edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
   root.append(pocketSec);
 
   // D-B1-5: the build menu (B). The hotbar (1–8) is its shortcut; 9 is the rifle. Prompt B M3: the Electricians'
@@ -124,11 +157,16 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const buildList = el('ul', 'plain');
   const BUILD: { kind: BuildKind; key: string; what: string }[] = [
     { kind: 'belt', key: '1', what: '7.5 items/s' }, { kind: 'inserter', key: '2', what: 'one item a second across a tile' },
-    { kind: 'excavator', key: '3', what: '3×3, 0.5/s onto the belt it faces' }, { kind: 'assembler', key: '4', what: `Shot assembler, ${SHOT.seconds} s a magazine` },
-    { kind: 'turret', key: '5', what: '2×2, range 9, 50-round hopper' }, { kind: 'lamp', key: '6', what: 'lights 8 tiles' },
-    { kind: 'pole', key: '7', what: 'carries power, claims across the street' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
+    { kind: 'excavator', key: '3', what: '3×3, 0.5/s onto the belt it faces' }, { kind: 'assembler', key: '4', what: `Assembler (3×3): Shot magazine ${SHOT.seconds} s (${Math.round(60 / SHOT.seconds)}/min), or Wire / Frame / Board — T on it sets the recipe; the Mk2 (3 s) is the purchase` },
+    { kind: 'turret', key: '5', what: `2×2, range ${TURRET_RANGE}, ${TURRET_HOPPER}-round hopper` }, { kind: 'lamp', key: '6', what: `lights a ${LAMP_RADIUS}-tile radius` },
+    { kind: 'pole', key: '7', what: 'carries power; a run reaching a Dark block\'s substation is the claim\'s power connection' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
     { kind: 'floodlight', key: '0', what: '2×2, 40 kW, a 12-tile cone along its facing (R rotates)' }, { kind: 'bigpole', key: '[', what: '2×2, reach 12' },
     { kind: 'substation', key: ']', what: '3×3, gives a face that has none (the outskirts) its substation' },
+    // RI-05 (plan §5, the minimal part of T16): the supply chest (the field kit) and the rail kit (the rail yard's restoration)
+    { kind: 'chest', key: 'C', what: `2×2 Supply chest: holds ${SUPPLY_CHEST_CAP} items of any kind; inserters and the pockets (E on it) use it; a restored supply depot's chest hands out kits` },
+    { kind: 'track', key: 'L', what: 'one tile of rail on a street (walkable); a tram runs the length of one unbranched line' },
+    { kind: 'tramstop', key: 'H', what: `2×2, ${MACHINE_KW.tramstop} kW, beside the track: an inserter (or E) loads its platform, a tram takes the platform and leaves its cargo as arrivals for an inserter to take (${STOP_CAP} each)` },
+    { kind: 'tram', key: 'V', what: `one tile on the track: carries ${TRAM_CAP} items at ${TRAM_TPS} tiles/s between the stops on its line, ${TRAM_DWELL_S} s at each` },
   ];
   const buildCarried: { kind: BuildKind; v: HTMLElement; btn: HTMLButtonElement; lock: HTMLElement }[] = [];
   for (const b of BUILD) {
@@ -172,8 +210,10 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     : `Each assembler adds ${st.config.asmRate} magazines per minute`;
   btnAsm.onclick = () => queue(session, { type: 'addAssembler' });
   asmRow.append(btnAsm);
+  // RI-01 (D-P4-5): under the tile line every Assembler is placed by hand; the block-level purchase is refused by the sim
+  asmRow.hidden = flow;
   stockSec.append(asmRow);
-  if (eco) stockSec.append(el('p', 'hint', `A claim costs ${st.config.eco.claimCost.copper} Cu (10 wire) and ${st.config.eco.claimCost.steel} steel (5 frames). A magazine costs ${st.config.eco.magazineCost.steel} steel + ${st.config.eco.magazineCost.copper} Cu (§12); assemblers stop when the stock runs out. Held blocks yield their district's rubble: civic stone, residential copper, industrial steel.`));
+  if (eco) stockSec.append(el('p', 'hint', `A claim costs ${st.config.eco.claimCost.steel} steel (5 frames) and ${st.config.eco.claimCost.copper} Cu (10 wire), delivered from the pockets to the block's substation and spent once at Activate — nothing is charged from the map. A magazine costs ${st.config.eco.magazineCost.steel} steel + ${st.config.eco.magazineCost.copper} Cu (§12); assemblers stop when the stock runs out. Held blocks yield their district's rubble: civic stone, residential copper, industrial steel.`));
   debug.append(stockSec);
 
   // M2: the tile line on the HQ lot (world view). Counts and rates come from flowSummary; the Craft button queues a
@@ -187,7 +227,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     lineSec.append(el('h2', undefined, 'Line on the HQ lot (world view)'));
     const lineList = el('ul', 'plain');
     const li2 = (label: string) => { const l = el('li'); const a = el('span', undefined, label); const v = el('span', 'mono', '0'); l.append(a, v); lineList.append(l); return v; };
-    vMach = li2('Excavators / belts / inserters / Shot assemblers'); vBeltItems = li2('Items on belts'); vLineRate = li2('Line mag/min (assemblers crafting now)');
+    vMach = li2('Excavators / belts / inserters / Assemblers'); vBeltItems = li2('Items on belts'); vLineRate = li2('Line mag/min (assemblers crafting now)');
     vLineMade = li2('Magazines made by the line'); vHand = li2('Mined / crafted by hand'); vBuffer = li2('Magazines in the line buffer'); vCoal = li2('Coal (Depot + Generators)'); vCrafts = li2('Hand crafts queued');
     // M3: power as one number (§14), the Generators, the turrets' hoppers, the lights
     vPower = li2('Power: load / supply kW (demand)'); vGens = li2('Generators burning / built'); vTurrets = li2('Turret rounds / capacity · on belts');
@@ -200,7 +240,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     craftRow.append(btnCraft);
     lineSec.append(craftRow);
     const mc = MACHINE_COST;
-    lineSec.append(el('p', 'hint', `World view: the hotbar 1–8 is the build menu's shortcut (B lists the buildings and their costs), 9 the rifle. R rotate, Q pipette / clear the hand, right-click picks a machine up into the pockets with an empty hand. WASD moves (Shift sprints, Space dodges); hand actions reach ${REACH} tiles. Hold the left button on rubble with an empty hand to mine it a unit a second into the pockets; E on the workbench crafts a magazine (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s). Magazines reach the ring only through the Depot: belt or inserter them into it, or carry them (Tab / I).`));
+    lineSec.append(el('p', 'hint', `World view: the hotbar 1–8 is the build menu's shortcut (B lists the buildings and their costs), 9 the rifle. R rotate, Q pipette / clear the hand, right-click picks a machine up into the pockets with an empty hand. C / L / H / V put the Supply chest, Track, Tram stop and Tram in the hand (the kit once the rail yard is restored; RI-05). WASD moves (Shift sprints, Space dodges); hand actions reach ${REACH} tiles. Hold the left button on rubble with an empty hand to mine it a unit a second into the pockets; E on the workbench crafts a magazine (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s). Magazines reach the ring only through the Depot: belt or inserter them into it, or carry them (Tab / I). With ?heart=1 (RI-06, a candidate) the rail yard's claim is the Junction Heart: string poles to and E-deliver the two feeder cabinets as well as the substation, Start there, keep both feeders powered — E repairs a knocked-out cabinet, X aborts.`));
     debug.append(lineSec);
   }
 
@@ -222,6 +262,9 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   facSec.append(el('p', 'hint', `A facility shows once it is within ${SKYLINE_RANGE} blocks of a Held block; survivors show once a block next to them is Held, and join when their block is.`));
   const survList = el('ul', 'plain');
   facSec.append(el('h2', undefined, 'Survivors'), survList);
+  // RI-05 (plan §5.3): the neighbourhood projects — stage, what each still needs, its reward once restored
+  const projList = el('ul', 'plain');
+  facSec.append(el('h2', undefined, 'Projects'), projList, el('p', 'hint', 'A neighbourhood project (the rail yard\'s restoration first, its reward the rail kit; a local supply depot at a Supply chest). Deliveries by hand (E) or by belt; the rail yard\'s commissioning is its block\'s Activate, the depot\'s is E at its chest once its materials are in it.'));
   debug.append(facSec);
 
   // summary
@@ -245,16 +288,16 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     toast('Telemetry exported', 'good');
   };
   sumRow.append(btnExport);
-  const btnState = el('button', undefined, 'Save snapshot');
-  btnState.title = 'Download the raw sim state; load it later with ?state=<file url>';
+  const btnState = el('button', undefined, 'Download save');
+  btnState.title = 'Download a save file (the state and the command log); load it later with ?state=<file url>';
   btnState.onclick = () => {
-    const blob = new Blob([JSON.stringify(session.state)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(makeSessionSave(session))], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `relight-state-seed${st.seed}-${clockOf(session.state.t).replace(/:/g, '')}.json`;
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    toast('Snapshot saved', 'good');
+    toast('Save file downloaded', 'good');
   };
   sumRow.append(btnState);
   sumSec.append(sumRow);
@@ -275,7 +318,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   let ringKey = '';
   let selected: number | null = null;
   function renderRing(edges: FrontEdgeView[]): void {
-    const key = edges.map(e => `${e.id}:${e.pip}:${Math.round(e.level * 20)}`).join(',') + `|${selected}`;
+    const key = edges.map(e => `${e.id}:${e.pip}:${Math.round(e.level * 20)}`).join(',') + `|${selected}|${debugView.coords}`;
     if (key === ringKey || dragging !== null) return;
     ringKey = key;
     ring.innerHTML = '';
@@ -284,7 +327,9 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       l.draggable = true;
       l.dataset.id = String(e.id);
       if (e.id === selected) l.classList.add('selected');
-      l.append(el('span', 'pos', String(e.ringPos + 1)), el('span', `pip ${e.pip}`, PIP_GLYPH[e.pip]), el('span', 'mono', `(${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})  ${e.darkDistrict}`), el('span', 'lvl', pct(e.level)));
+      // RI-02: the street's name (names.ts); the block coordinates only behind the ` toggle
+      const where = debugView.coords ? `(${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})  ${e.darkDistrict}` : edgeName(session.state, e.id);
+      l.append(el('span', 'pos', String(e.ringPos + 1)), el('span', `pip ${e.pip}`, PIP_GLYPH[e.pip]), el('span', 'mono', where), el('span', 'lvl', pct(e.level)));
       l.title = `Dark side rot ${pct(e.darkRot)}${e.darkWell ? ' · well' : ''}`;
       l.onclick = () => { hooks.onSelectEdge(selected === e.id ? null : e.id); };
       l.ondragstart = ev => { dragging = e.id; ev.dataTransfer?.setData('text/plain', String(e.id)); };
@@ -313,12 +358,31 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   }
   function clearMarks(): void { for (const c of Array.from(ring.children)) c.classList.remove('drop-before', 'drop-after'); }
 
+  // RI-02 (§11.2, D-GB-2 (a), rule 8): the current-goal line over the canvas — goal.ts `currentGoal` read off the
+  // state once a sim second; the goal text and its reason, and the shortage line under it while something is short.
+  const goalEl = document.getElementById('goal')!;
+  const goalText = goalEl.querySelector('.goal-text')!, goalWhy = goalEl.querySelector('.goal-why')!, goalSupport = goalEl.querySelector('.goal-support') as HTMLElement;
+  let goalSecond = -1, goalKey = '';
+  function updateGoal(s: SimState): void {
+    const sec = Math.floor(s.t);
+    if (sec === goalSecond) return;
+    goalSecond = sec;
+    const g: Goal = currentGoal(s);
+    const key = `${g.goal.id}|${g.goal.text}|${g.goal.why}|${g.support ? `${g.support.id}|${g.support.text}` : ''}`;
+    if (key === goalKey) return;
+    goalKey = key;
+    goalText.textContent = g.goal.text; goalWhy.textContent = g.goal.why;
+    goalSupport.textContent = g.support ? `${g.support.text} — ${g.support.why}` : '';
+    goalSupport.hidden = !g.support;
+    goalEl.hidden = false;
+  }
   let lastUpdate = -1e9;
   let lastFacKey = '';
   function update(nowMs: number): void {
     if (nowMs - lastUpdate < 150) return;
     lastUpdate = nowMs;
     const s: SimState = session.state;
+    updateGoal(s);
     const h = hud(s);
     sHeld.b.textContent = String(h.held); sFront.b.textContent = String(h.front); sInt.b.textContent = String(h.interior);
     const fs = flowSummary(s);
@@ -329,12 +393,16 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     sEmpty.b.textContent = String(h.ammo.emptyHoppers); sEmpty.s.classList.toggle('warn', h.ammo.emptyHoppers > 0);
     sClock.b.textContent = h.clock;
     for (const { m, b } of speedBtns) b.classList.toggle('active', s.speed === m);
+    projList.replaceChildren(...projectList(s).map(r => el('li', undefined, describeProject(s, r))));   // RI-05
     if (!pocketSec.hidden) {
-      const e = s.engineer, near = nearDepot(s);
-      pocketHead.textContent = `${invStacks(e.inv)} / ${INV_STACKS} stacks · ${near ? 'at the Depot' : `walk to the Depot to transfer (${REACH} tiles)`} · HP ${Math.round(e.hp)}`;
+      // RI-05: a targeted chest or stop that was picked up or lost sends the pockets back to the Depot
+      const tgt = pocketTarget();
+      if (pocketAt && (!tgt || (tgt.kind !== 'chest' && tgt.kind !== 'tramstop'))) pocketAt = null;
+      const e = s.engineer, near = pocketAt && tgt ? inReach(s, tgt.x, tgt.y, MACHINE_SIZE[tgt.kind]) : nearDepot(s), where = pocketWhere();
+      pocketHead.textContent = `${invStacks(e.inv)} / ${INV_STACKS} stacks · ${near ? `at ${where}` : `walk to ${where} to transfer (${REACH} tiles)`}${pocketAt && tgt ? ` · ${tgt.kind === 'tramstop' ? `platform ${Object.values(tgt.inv).reduce((a, b) => a + b, 0)} / ${STOP_CAP}` : `${Object.values(tgt.inv).reduce((a, b) => a + b, 0)} / ${SUPPLY_CHEST_CAP}`}` : ''} · HP ${Math.round(e.hp)}`;
       for (const r of pocketRows) {
-        const c = chestCount(s, r.item);
-        r.v.textContent = `pockets ${e.inv[r.item] ?? 0} · chest ${c === Infinity ? '∞' : c}`;
+        const c = pocketAt && tgt ? (tgt.inv[r.item] ?? 0) : chestCount(s, r.item);
+        r.v.textContent = `pockets ${e.inv[r.item] ?? 0} · ${pocketAt ? 'there' : 'chest'} ${c === Infinity ? '∞' : c}`;
         r.take.disabled = !near || c <= 0; r.put.disabled = !near || !(e.inv[r.item] > 0);
       }
       const mach = KINDS.filter(k => (e.inv[k] ?? 0) > 0).map(k => `${e.inv[k]} ${k}`);
@@ -352,7 +420,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const broke = eco && (s.stock.copper < s.config.eco.assemblerCost.copper || s.stock.steel < s.config.eco.assemblerCost.steel);
     btnAsm.disabled = broke || si.free === 0;
     btnAsm.title = si.free === 0 ? 'No free machine slot: an assembler needs an Interior block (every neighbour Held or inert). Enclose a block to get one.'
-      : broke ? 'Not enough rubble' : `Goes on block (${si.next!.x},${si.next!.y}); makes ${s.config.asmRate} magazines per minute`;
+      : broke ? 'Not enough rubble' : `Goes on ${blockLabel(s, idxOf(s, si.next!.x, si.next!.y), debugView.coords)}; makes ${s.config.asmRate} magazines per minute`;
     if (vMach && s.flow) {
       vMach.textContent = `${fs.excavators} / ${fs.belts} / ${fs.inserters} / ${fs.assemblers}`; vBeltItems!.textContent = String(fs.beltItems);
       vLineRate!.textContent = f1(fs.productionMagPerMin); vLineMade!.textContent = String(fs.magsMade);
@@ -368,13 +436,19 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     renderRing(frontList(s));
     const facs = facilityList(s).filter(f => f.visible);
     const survs = survivorList(s).filter(f => f.revealed);
-    const fk = facs.map(f => `${f.name}${f.held ? 1 : 0}`).join() + '|' + survs.map(f => `${f.tag}${f.held ? 1 : 0}`).join();
+    const fk = facs.map(f => `${f.name}${f.held ? 1 : 0}`).join() + '|' + survs.map(f => `${f.tag}${f.held ? 1 : 0}`).join() + `|${debugView.coords}`;
     if (fk !== lastFacKey) {
       lastFacKey = fk; facList.innerHTML = ''; survList.innerHTML = '';
-      for (const f of facs) { const l = el('li'); l.append(el('span', undefined, `${f.name} (${f.x},${f.y})`), el('span', f.held ? '' : 'muted', f.held ? 'reached' : `${f.dist} blocks from HQ`)); facList.append(l); }
+      // RI-02: facilities and survivors by their block's name (names.ts); the coordinates only behind the ` toggle
+      const at = (x: number, y: number) => blockLabel(s, idxOf(s, x, y), debugView.coords);
+      for (const f of facs) { const l = el('li'); l.append(el('span', undefined, `${f.name} · ${at(f.x, f.y)}`), el('span', f.held ? '' : 'muted', f.held ? 'reached' : `${f.dist} blocks from HQ`)); facList.append(l); }
       if (!facs.length) facList.append(el('li', 'muted', 'nothing on the skyline yet'));
-      for (const f of survs) { const l = el('li'); l.append(el('span', undefined, `${f.tag} · ${f.name} (${f.x},${f.y})`), el('span', f.held ? '' : 'muted', f.held ? 'with us' : 'seen')); survList.append(l); }
-      if (!survs.length) survList.append(el('li', 'muted', 'none found yet'));
+      // Phase 7 (STANDARDS dealbreaker 1): from minute one the panel says where blueprints and copy-paste will come from.
+      // GAME-ASSUMPTION (GA-EF-3): the row is a fixed line of text ("not yet found"), not a survivor the sim knows; Phase 7
+      // replaces it with the real survivor's row and the §8 gift
+      { const l = el('li'); l.append(el('span', undefined, 'Blueprints and copy-paste · a survivor\'s gift (Phase 7)'), el('span', 'muted', 'not yet found')); survList.append(l); }
+      for (const f of survs) { const l = el('li'); l.append(el('span', undefined, `${f.tag} · ${f.name} · ${at(f.x, f.y)}`), el('span', f.held ? '' : 'muted', f.held ? 'with us' : 'seen')); survList.append(l); }
+      if (!survs.length) survList.append(el('li', 'muted', 'no one else found yet'));
     }
     const sum = summarise(session.telemetry, s);
     dTime.textContent = sum.simTime;
@@ -407,19 +481,21 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
         : info.slot === 'at risk' ? 'assembler AT RISK: block is back on the front' : 'front block: slot taken by the defence ring';
       const rubble = info.district === 'out' ? 'no rubble (outskirts)' : info.poolLeft > 0 ? `rubble left ${Math.floor(info.poolLeft)} (${pct(info.poolFrac)})` : 'dug out: no rubble left';
       tip.innerHTML = '';
-      tip.append(el('div', undefined, `Held (${info.x},${info.y}) · ${slot}`), el('div', info.poolLeft > 0 ? 'muted' : 'bad', `${info.district} · ${rubble}`));
+      tip.append(el('div', undefined, `${blockLabel(session.state, idxOf(session.state, info.x, info.y), debugView.coords)} · Held · ${slot}`), el('div', info.poolLeft > 0 ? 'muted' : 'bad', `${info.district} · ${rubble}`));
       tip.hidden = false;
       const w0 = tip.offsetWidth, h0 = tip.offsetHeight;
       tip.style.left = `${Math.min(px + 14, window.innerWidth - w0 - 8)}px`; tip.style.top = `${Math.min(py + 14, window.innerHeight - h0 - 8)}px`;
       return;
     }
+    // RI-03 (plan §4.1): the map previews; the third line is the installation's answer — ready, or the prerequisite
+    // the physical Activate still lacks (adjacency, the substation, the pole run, the supply, the materials, reach)
     const sign = info.frontDelta >= 0 ? '+' : '−';
-    const line1 = `Claim — rot ${pct(info.rot)} · front ${sign}${Math.abs(info.frontDelta)} · closes ${info.closes}`;
-    const cost = info.cost ? ` · ${info.cost.copper} Cu ${info.cost.steel} steel` : '';
+    const line1 = `${blockLabel(session.state, idxOf(session.state, info.x, info.y), debugView.coords)} — rot ${pct(info.rot)} · front ${sign}${Math.abs(info.frontDelta)} · closes ${info.closes}`;
+    const cost = info.cost ? ` · claim ${info.cost.steel} steel + ${info.cost.copper} Cu at its substation` : '';
     const line2 = `${info.district}${info.well ? ' · well' : ''}${cost} · wake bloom ≈ ${info.wakeBloomCrawlers} crawlers`;
+    const chk = activationCheck(session.state, info.x, info.y);
     tip.innerHTML = '';
-    tip.append(el('div', undefined, line1), el('div', 'muted', line2));
-    if (!info.ok) tip.append(el('div', 'bad', info.reason ?? ''));
+    tip.append(el('div', undefined, line1), el('div', 'muted', line2), el('div', chk.ok ? 'muted' : 'bad', chk.ok ? 'ready — E at its substation activates the claim' : `on foot: ${chk.reason}`));
     tip.hidden = false;
     const w = tip.offsetWidth, hgt = tip.offsetHeight;
     tip.style.left = `${Math.min(px + 14, window.innerWidth - w - 8)}px`;
@@ -428,13 +504,18 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
 
   const panelRef: Panel = {
     update, tooltip, tooltipText, toast, setView, onPick: null,
-    toggleDebug() { debug.hidden = !debug.hidden; return !debug.hidden; },
-    togglePockets() { pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; return !pocketSec.hidden; },
+    toggleDebug() { debug.hidden = !debug.hidden; debugView.coords = !debug.hidden; ringKey = ''; lastFacKey = ''; return !debug.hidden; },
+    togglePockets() { pocketAt = null; pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; return !pocketSec.hidden; },
+    openPocketsAt(x, y) {   // RI-05
+      const same = pocketAt !== null && pocketAt[0] === x && pocketAt[1] === y;
+      if (same && !pocketSec.hidden) { pocketSec.hidden = true; pocketAt = null; } else { pocketAt = [x, y]; pocketSec.hidden = false; }
+      lastUpdate = -1e9;
+    },
     toggleBuild() { buildSec.hidden = !buildSec.hidden; return !buildSec.hidden; },
     closeAll() { pocketSec.hidden = true; buildSec.hidden = true; },
     setSelectedEdge(e) {
       selected = e ? e.id : null; ringKey = '';
-      if (e) toast(`Edge (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y}) is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);
+      if (e) toast(`${edgeName(session.state, e.id)}${debugView.coords ? ` (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})` : ''} is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);
     },
   };
   return panelRef;

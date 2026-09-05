@@ -25,11 +25,13 @@ test('light map: the HQ face\'s street is lit by its kerb streetlights, its lot 
   const hq = hqIndex(st), G = ground(st), mask = lightMask(st);
   assert.ok(subPowered(st, st.blocks[hq]), 'the HQ powers its streetlights');
   const c = litCount(st, hq, mask);
-  // the kerb row (the strip the streetlights stand on); the half-street to the midline is 6–7 tiles deep and a radius-4
-  // light cannot reach its far side, so it lights ≈ 40 % — reported in SLICE_REPORT "M5 disagrees" (verification pass)
-  assert.ok(c.kerbOf > 0 && c.kerb / c.kerbOf > 0.5, `most of the HQ's kerb row is lit (${c.kerb}/${c.kerbOf}; 3 in 8 lamps are broken)`);
-  assert.ok(c.streetOf > 0 && c.street / c.streetOf > 0.25, `the half-street is lit in part (${c.street}/${c.streetOf})`);
-  assert.ok(c.lot < c.lotOf, `the lot is not lit end to end (${c.lot}/${c.lotOf})`);
+  // D-B5-4: streetlight radius 7 reaches the street midline, so a held face lights its half of the shared street where
+  // its lamps stand (3 in 8 are broken at start). Thresholds are the values measured on this seed (3) by the economy-fix
+  // task, 2026-09-04, at radius 7 and a 4-tile lamp step: kerb 92/112, half-street 435/737, lot 389/780 (seeds 4 / 5:
+  // kerb 137/148, 79/121; street 726/1125, 362/820; lot 604/1197, 391/891). A lower lit fraction is a regression.
+  assert.ok(c.kerbOf > 0 && c.kerb / c.kerbOf >= 92 / 112, `the HQ's kerb row is lit as measured (${c.kerb}/${c.kerbOf} vs 92/112; 3 in 8 lamps are broken)`);
+  assert.ok(c.streetOf > 0 && c.street / c.streetOf >= 435 / 737, `the half-street is lit as measured (${c.street}/${c.streetOf} vs 435/737)`);
+  assert.ok(c.lot / c.lotOf <= 389 / 780, `the lot is lit no further than measured (${c.lot}/${c.lotOf} vs 389/780)`);
   const bg = G.blocks[hq];
   assert.equal(mask[bg.pole[1] * G.tw + bg.pole[0]], 0, 'the lot\'s pole of inaccessibility (farthest from any street) is unlit');
   for (let k = 0; k < 400; k++) {
@@ -39,7 +41,8 @@ test('light map: the HQ face\'s street is lit by its kerb streetlights, its lot 
   // a Dark neighbour's tiles: unlit but where the HQ's streetlights reach across the street
   for (const j of st.blocks.map((b, i) => i).filter(i => st.blocks[i].state === DARK)) {
     const cj = litCount(st, j, mask);
-    assert.ok(cj.lot <= cj.lotOf * 0.25, `a Dark lot is mostly unlit (${cj.lot}/${cj.lotOf})`);
+    // measured on seed 3: the most-lit Dark lot is 2/1116 (the HQ's kerb lights reaching across the street)
+    assert.ok(cj.lot / cj.lotOf <= 2 / 1116, `a Dark lot is unlit but where the HQ's lights reach (${cj.lot}/${cj.lotOf} vs 2/1116)`);
   }
 });
 

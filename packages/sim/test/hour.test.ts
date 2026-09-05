@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_CONFIG, protoCalibrated, createState, citySpec, ensureFlow, advanceFlow, SimState, HELD, LoggedCommand, Command,
   createHourBot, hourCommands, runHour, hourReport, replay, replayVerdict, neighbourToward, dirOf, hqIdx, hqLot, machineAt, place, handFeed,
-  HOUR_MINE_STEEL, HOUR_CLAIM_AT, TILE_TPS, engineerCommand, TURRET_HOPPER,
+  HOUR_MINE_STEEL, HOUR_CLAIM_AT, HOUR_S, TILE_TPS, engineerCommand, TURRET_HOPPER,
 } from '../src/index';
 
 function city(seed = 3): SimState {
@@ -16,17 +16,17 @@ function city(seed = 3): SimState {
   return st;
 }
 
-test('hour bot, minutes 0–6: walks to the steel patch, hand-mines, crafts at the workbench, walks magazines to the turrets', () => {
+test('hour bot, minutes 0–8: walks to the steel patch, hand-mines, crafts at the workbench, walks magazines to the turrets on the ~6-minute red pip (D-P4-8)', () => {
   const st = city(), bot = createHourBot(false);
-  runHour(st, bot, 6 * 60);
+  runHour(st, bot, 8 * 60);
   const m = bot.log.marks, f = st.flow!;
   assert.ok(m['mine-done'] !== undefined && m['mine-done'] < 4 * 60, `mined by 4:00 (${JSON.stringify(bot.log.entries.slice(0, 8))})`);
   assert.ok(f.stats.handMined >= HOUR_MINE_STEEL, `hand-mined ${f.stats.handMined}`);
   assert.ok(m['craft-done'] !== undefined && f.stats.handCrafted > 0, 'crafted at the workbench');
-  assert.ok(m['feed-done'] !== undefined, 'the two feed rounds were walked');
+  assert.ok(m['first-hand-feed'] !== undefined && m['first-hand-feed'] >= 4 * 60, `the hand-feed beat answered the first red pip (${m['first-hand-feed']})`);
   assert.ok(f.stats.handFed >= 0 && bot.fedAtFeedDone >= 0, `hand-fed count recorded (${bot.fedAtFeedDone})`);
   assert.ok(st.engineer.walked > 10, 'the engineer walked');
-  assert.ok(bot.log.walks.length >= 4, `walks timed: ${bot.log.walks.length}`);
+  assert.ok(bot.log.walks.length >= 2, `walks timed: ${bot.log.walks.length} (the steel patch and the workbench; the feed beat's trips are the hands, not steps)`);
 });
 
 test('hour bot, minute 10: the three Excavators, the Shot line and Generator 2 stand on the HQ lot; every refusal is in the log with a reason', () => {
@@ -40,19 +40,27 @@ test('hour bot, minute 10: the three Excavators, the Shot line and Generator 2 s
   for (const r of bot.log.refused) assert.ok(r.reason.length > 0);
 });
 
-test('hour bot, minute 45: east, west and north claimed on the calibration\'s clock, walked over and kitted; the bot never teleports', () => {
+test('hour bot, minute 45: east and west claimed at constants.HOUR\'s minutes (15:00, 25:00 — D-HOUR-1), walked over and kitted, north (65:00, D-P4-10 (a)) inside the 75-minute hour (D-HOUR-3) but not yet claimed at 45:00; the bot never teleports', () => {
   const st = city(), bot = createHourBot(false);
   let maxStep = 0, px = st.engineer.x, py = st.engineer.y;
   const f = ensureFlow(st), cmds: Command[] = [];
   st.speed = 1;
-  const end = 45 * 60 * TILE_TPS;
+  const end = 45 * 60 * TILE_TPS, vias: string[] = [];
   while (f.tick < end) {
-    cmds.length = 0; hourCommands(st, bot, cmds); st.acc = 0; advanceFlow(st, 1 / TILE_TPS, cmds, 1); st.events.length = 0;
+    cmds.length = 0; hourCommands(st, bot, cmds); st.acc = 0; advanceFlow(st, 1 / TILE_TPS, cmds, 1);
+    for (const ev of st.events) if (ev.type === 'claim') vias.push(ev.via);
+    st.events.length = 0;
     const d = Math.hypot(st.engineer.x - px, st.engineer.y - py); if (d > maxStep) maxStep = d; px = st.engineer.x; py = st.engineer.y;
   }
   const m = bot.log.marks;
-  for (const dir of ['east', 'west', 'north'] as const) {
+  assert.ok(HOUR_CLAIM_AT.north > 45 * 60 && HOUR_CLAIM_AT.north < HOUR_S, `north's claim is after 45:00 and inside the ${HOUR_S / 60}-minute hour (constants.HOUR: ${HOUR_CLAIM_AT.north / 60}:00, D-P4-10, D-HOUR-3)`);
+  assert.equal(m['claim-north'], undefined, `north not claimed by 45:00 (${m['claim-north']})`);
+  // RI-03: the claim mark is the Activate at the substation, after the pole run, the delivery and the trip back for the
+  // kits (seed 3: east 15:18, west 25:09 — the map click's 15:03 and 25:00 before RI-03)
+  assert.deepEqual(vias, ['activate', 'activate'], 'every claim went the physical path (Activate), none from the map');
+  for (const dir of ['east', 'west'] as const) {
     assert.ok(m[`claim-${dir}`] !== undefined && m[`claim-${dir}`] >= HOUR_CLAIM_AT[dir] && m[`claim-${dir}`] < HOUR_CLAIM_AT[dir] + 120, `${dir} claimed near ${HOUR_CLAIM_AT[dir] / 60}:00 (${m[`claim-${dir}`]})`);
+    assert.ok(m[`strung-${dir}`] !== undefined && m[`strung-${dir}`] <= m[`claim-${dir}`], `${dir}'s pole run stood before its Activate`);
     assert.ok(bot.claimed[dir] !== undefined && dirOf(st, hqIdx(st), bot.claimed[dir]!) === dir, `${dir} lies ${dir} of the HQ`);
     assert.ok(bot.log.walks.some(w => w.name === `walk-over ${dir}`), `the walk over to ${dir} was timed`);
   }

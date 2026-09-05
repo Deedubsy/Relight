@@ -9,6 +9,7 @@ import {
   STREET, WATER, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
   RUBBLE_TILES_MIN, RUBBLE_TILES_MAX, RUBBLE_VARIANTS, HQ_RUBBLE_TILES, HQ_PATCHES, LATTICE_AREA, DEPOSIT_TILES,
   rubbleOf, ground, groundTiles, tileAt, chunkTiles, chunkKey, blockKey, standing, poolCap, describeGround, hqLot, CHUNK,
+  RAIL_YARD_COAL_TILES, RAIL_YARD_COAL, RUBBLE_UNITS_PER_TILE, tileUnits,
 } from '../src/index';
 
 function fresh(seed = 3, economy = false): SimState {
@@ -81,7 +82,7 @@ test('the river is river tiles and no block; plazas and parks are inert faces wi
 test('rubble: 250–350 tiles scaled by area, typed by district, in clusters, five variants; outskirts carry deposits or nothing', () => {
   const st = fresh();
   const G = ground(st), cg = generateCity(3, 'river'), tiles = groundTiles(st);
-  const seen = { stone: 0, copper: 0, steel: 0 };
+  const seen = { stone: 0, copper: 0, steel: 0, coal: 0 };
   let deposits = 0, outskirts = 0, big = 0, small = 0, bigCount = 0, smallCount = 0;
   const variants = new Set<number>();
   for (const bg of G.blocks) {
@@ -95,6 +96,17 @@ test('rubble: 250–350 tiles scaled by area, typed by district, in clusters, fi
       else assert.equal(bg.count, 0);
       continue;
     }
+    // RI-01 (D-P4-12, rules change reported in docs/RI_PASS_1_REPORT.md): the rail yard is the one district face whose
+    // rubble is not its district's — one 3×3 coal heap of RAIL_YARD_COAL units, nothing else standing, the densest variant
+    if (bg.i === G.railYard) {
+      assert.equal(bg.rubble, 'coal'); assert.equal(bg.count, RAIL_YARD_COAL_TILES);
+      assert.ok(Math.abs(tileUnits(G, bg.i) * bg.count - RAIL_YARD_COAL) < 1e-6, 'the heap holds RAIL_YARD_COAL units in all');
+      for (const t of bg.tiles) if (tiles.kind[t] === T_RUBBLE) assert.equal(tiles.variant[t], RUBBLE_VARIANTS);
+      assert.equal(standing(st, bg.i), bg.count);
+      seen.coal++;
+      continue;
+    }
+    assert.equal(tileUnits(G, bg.i), RUBBLE_UNITS_PER_TILE, 'a district tile holds §12\'s 300 units (D-P4-2)');
     assert.equal(bg.rubble, rubbleOf(b.name));
     seen[bg.rubble!]++;
     if (bg.hq) assert.equal(bg.count, HQ_RUBBLE_TILES, 'the HQ face is cleared (M2)');
@@ -121,7 +133,7 @@ test('rubble: 250–350 tiles scaled by area, typed by district, in clusters, fi
       assert.ok(near / nearAll > Math.min(1.5 * dens, dens + 0.2), `face ${bg.i}: ${(near / nearAll).toFixed(2)} near the densest heap vs ${(bg.count / bg.tiles.length).toFixed(2)} overall`);
     }
   }
-  assert.ok(seen.stone > 0 && seen.copper > 0 && seen.steel > 0, JSON.stringify(seen));
+  assert.ok(seen.stone > 0 && seen.copper > 0 && seen.steel > 0 && seen.coal === 1, JSON.stringify(seen));
   assert.ok(outskirts > 0 && deposits > 0 && deposits < outskirts, `${deposits} deposits on ${outskirts} outskirts faces`);
   assert.ok(big > 0 && small > 0 && bigCount / big > 2 * smallCount / small, `a big face carries more: ${(bigCount / big).toFixed(0)} vs ${(smallCount / small).toFixed(0)} (${big} big, ${small} small)`);
   assert.equal(variants.size, RUBBLE_VARIANTS, 'all five variants appear');
@@ -131,7 +143,8 @@ test('the density gradient: deeper faces (hops from the HQ) show heavier rubble 
   const st = fresh();
   const G = ground(st), cg = generateCity(3, 'river'), tiles = groundTiles(st);
   const mean = (bg: (typeof G.blocks)[number]) => { let s = 0, n = 0; for (const t of bg.tiles) if (tiles.kind[t] === T_RUBBLE) { s += tiles.variant[t]; n++; } return n ? s / n : 0; };
-  const res = G.blocks.filter(bg => st.blocks[bg.i].name === 'res' && !bg.hq && bg.count > 0);
+  // the rail yard (RI-01, D-P4-12) is a designated coal heap, not a district face on the gradient
+  const res = G.blocks.filter(bg => st.blocks[bg.i].name === 'res' && !bg.hq && bg.count > 0 && bg.i !== G.railYard);
   const shallow = res.filter(bg => cg.hops[bg.i] <= 2), deep = res.filter(bg => cg.hops[bg.i] >= 4);
   assert.ok(shallow.length > 0 && deep.length > 0, `${shallow.length} shallow, ${deep.length} deep residential faces`);
   const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
