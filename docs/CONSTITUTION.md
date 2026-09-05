@@ -8,16 +8,21 @@ the root `CLAUDE.md`; the phases and their exit criteria are `PHASES.md`; the ta
 
 Rule numbers are stable because every phase report cites them ("rule 12", "rule 14"). The
 wording was revised on 2026-09-05 by the pre-Phase-5 cleanup (`PROGRESS.md` T11a); the
-previous text is `archive/pre-phase-5-cleanup/CONSTITUTION-2026-09-05.md`. Where an old
-report quotes a rule, it quotes the old wording, and the old wording was the rule then.
+previous text is `archive/pre-phase-5-cleanup/CONSTITUTION-2026-09-05.md`. It was revised
+again the same day by `PROGRESS.md` RI-00, which adopted `REVISED_DEVELOPMENT_PLAN.md`
+(D-RI-1) and replaced the three-systems stop with a scope test (D-RI-3); the T11a wording
+is `git show d778018:docs/CONSTITUTION.md`. Where an old report quotes a rule, it quotes
+the old wording, and the old wording was the rule then.
 
 ## Scope
 
 Relight is the full game `RELIGHT-design.md` describes: a 2D city-reclamation factory game
-with three systems (§26), built through the fourteen phases of `PHASES.md` to a Steam
-release. The programme's ambition and identity are the design doc's; the phases build
-toward that game, never toward a smaller one. Content is seeds, presets and facilities; a
-proposed fourth system goes through §23's rejected-alternatives test before anything else.
+whose loop is claim → power → produce → defend → relight, built through the fourteen
+phases of `PHASES.md` to a Steam release, in the order `REVISED_DEVELOPMENT_PLAN.md`
+gives (adopted 2026-09-05, D-RI-1; `PROGRESS.md` owns its task statuses). The programme's
+ambition and identity are the design doc's; the phases build toward that game, never
+toward a smaller one. Content is seeds, presets and facilities; a proposed feature passes
+rule 2's scope test and §23's rejected-alternatives test before anything else.
 
 ## The rules
 
@@ -34,10 +39,17 @@ proposed fourth system goes through §23's rejected-alternatives test before any
    redefine a player-facing acceptance criterion, and a generated change that moves one is
    a rules change and is reported as one.
 
-2. **Three systems.** §26's count is three (belts/inserters/machines; the front rule; found
-   tech as a map). Every phase report recounts it. A recount of four or more is a stop
-   condition (rule 10). The engineer's body (rifle, sprint, dodge, reach, pockets) is
-   presence, not a system, unless it grows rules of its own.
+2. **The scope test.** §26 counts the systems (three on 2026-09-05: belts/inserters/
+   machines; the front rule; found tech as a map) and every phase report recounts it as a
+   reported number. A feature is added only if it strengthens the loop (claim, power,
+   produce, defend, relight), has a clear implementation boundary, and justifies its
+   interaction and testing cost, inside `REVISED_DEVELOPMENT_PLAN.md` §2's boundaries (no
+   enemy loot, experience, random drops, survival needs, settlement happiness or dialogue
+   trees; no automatic world-wide escalation; no compulsory reflex-heavy boss fights;
+   belts and machinery not routinely destructible). This is not permission to add
+   unrelated systems. D-RI-3 (2026-09-05) replaced the earlier "a recount of four or more
+   is a stop condition" with this test. The engineer's body (rifle, sprint, dodge, reach,
+   pockets) is presence, not a system, unless it grows rules of its own.
 
 3. **Headless first.** `packages/sim` is pure TypeScript with no renderer dependency;
    `step(state, commands)` returns the next state. Every rule exists there before it is
@@ -71,8 +83,9 @@ proposed fourth system goes through §23's rejected-alternatives test before any
    sign on a human's behalf, or infer that a test was performed.
 
 8. **No tutorial screens.** §11 is the tutorial; every rule surfaces as a toast, a tooltip, a
-   pip, a HUD line driven by the sim's own state, or a thing happening on screen. D-GB-2
-   tests the limit of this rule and is the human's to move.
+   pip, a HUD line driven by the sim's own state, or a thing happening on screen. The
+   current-goal line (D-GB-2 (a), provisional; built by RI-02) is this rule's form, not an
+   exception; a quest or dialogue system would be, and is the human's to move.
 
 9. **Phase exit.** A phase ends with: its report (built / assumed / measured with
    provenance / where it disagrees with the doc / open questions — as many as there are,
@@ -84,7 +97,9 @@ proposed fourth system goes through §23's rejected-alternatives test before any
 10. **Stop conditions.** Stop and ask when: a core rule, progression, scope or go/no-go
     decision is needed for the current task; a change would move a fixture, a `[play: …]`
     lock, a decided constant or an expected result; a check is red for a reason outside
-    the task; a §26 recount reaches four; or the action is destructive or outward-facing
+    the task; a mechanic or benchmark change the adopted plan does not name
+    (`REVISED_DEVELOPMENT_PLAN.md` §1: a separate, visible decision); or the action is
+    destructive or outward-facing
     (push, merge, deploy, deleting evidence, an external tracker). Otherwise proceed and
     record what was chosen.
 
@@ -134,6 +149,12 @@ proposed fourth system goes through §23's rejected-alternatives test before any
   they touch; they do not run unrelated simulations.
 - **Baseline failures** (red before the task started) are recorded separately from the
   task's own results and never hidden by the task.
+
+Candidate configurations (the plan's Tuning candidates: enemy numbers, the Junction Heart's
+timers, the opening windows, rifle range) run beside the 75-minute benchmark and never in
+place of it; the legacy reproduction runs keep their original configuration and are labelled
+by scope (D-RI-5, `REVISED_DEVELOPMENT_PLAN.md` §14.4). Promotion into the benchmark is a
+`decided` row.
 
 ## Status vocabulary
 

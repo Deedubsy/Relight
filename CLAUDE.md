@@ -15,8 +15,10 @@ every number with provenance; humans deciding the rules, Claude the implementati
 3. `docs/CONSTITUTION.md` — the rules. Stable; skim once you know it.
 4. `docs/DECISIONS.md` — the rows the current task's `blocked by` names, and the
    "Outstanding questions" section.
-5. The design-doc sections the task names; `docs/PHASES.md` for the phase's exit criteria.
-   `docs/DEFERRED.md` only when a task points at it.
+5. The design-doc sections the task names, and the section of
+   `docs/REVISED_DEVELOPMENT_PLAN.md` (the adopted plan, D-RI-1) that defines the task;
+   `docs/PHASES.md` for the phase's exit criteria. `docs/DEFERRED.md` only when a task
+   points at it.
 
 Do not read the archive (`docs/archive/`) or the phase reports to find current state;
 they are history and evidence.
@@ -30,6 +32,7 @@ they are history and evidence.
 | `docs/PROGRESS.md` | task status, order, dependencies, acceptance, evidence location | narratives |
 | `docs/PROGRAMME_STATE.md` | the two-page handoff: phase, next task, built vs stand-in, evidence, open items, counters | milestone history (that is the phase reports and the archive) |
 | `docs/PHASES.md` | each phase's scope and exit criteria | a second task tracker |
+| `docs/REVISED_DEVELOPMENT_PLAN.md` | the adopted plan, verbatim, with a provenance preface: the RI task definitions, defaults and labels | task status; it is not edited below its preface |
 | `docs/DECISIONS.md` | every decision and open question with provenance and supersession | task history |
 | `docs/DEFERRED.md` | obligations with no task yet; a link once one exists | anything already scheduled |
 | phase reports, `GATE_*.md`, `TEST_RESULTS.md`, `docs/EXPERIMENTS.md`, `docs/experiments/` | history and evidence | corrections (never rewritten) |
@@ -53,17 +56,17 @@ doc's changelog for any doc edit) → commit → report → stop. `/next` runs t
 ## Commands
 
 All from the repo root, after `npm install`. Verified on 2026-09-05 by running them
-during the cleanup unless marked otherwise.
+during the cleanup (T11a); RI-00 (doc-only) reran the three doc checks the same day.
 
-| command | what | ran this session |
+| command | what | last run (2026-09-05) |
 |---|---|---|
-| `npm test` | node:test across sim / harness / tools (121 tests) | yes, 121 pass |
-| `npm run typecheck` | `tsc --strict` on every package, then the game build | yes, green |
-| `npm run lint` | eslint on sim, harness, tools | yes, green |
-| `npm run docsync:check` | the design doc's generated tables and guarded prose sentences match `packages/sim` (`npm run docsync` regenerates) | yes, green (~3 s) |
-| `npm run freshness:check` | every generated file's `source_commit` is an ancestor of HEAD and its `config_hash` current | yes, green (~4 s) |
-| `npm run snapshot:check` | `packages/game/public/snapshots/b-compact-seed3.json` still reproduces | yes, green (~3 s) |
-| `npm run experiments` | E1–E9, E-hour, E-rifle, E-variance, E-walk → `docs/EXPERIMENTS.md` (a red experiment is a red build) | not run (doc-only task); last recorded run GREEN at 2f1b016 |
+| `npm test` | node:test across sim / harness / tools (121 tests) | T11a: 121 pass |
+| `npm run typecheck` | `tsc --strict` on every package, then the game build | T11a: green |
+| `npm run lint` | eslint on sim, harness, tools | T11a: green |
+| `npm run docsync:check` | the design doc's generated tables and guarded prose sentences match `packages/sim` (`npm run docsync` regenerates) | RI-00: green (~3 s) |
+| `npm run freshness:check` | every generated file's `source_commit` is an ancestor of HEAD and its `config_hash` current | RI-00: green (~4 s) |
+| `npm run snapshot:check` | `packages/game/public/snapshots/b-compact-seed3.json` still reproduces | RI-00: green (~3 s) |
+| `npm run experiments` | E1–E9, E-hour, E-rifle, E-variance, E-walk → `docs/EXPERIMENTS.md` (a red experiment is a red build) | not run (doc-only tasks); last recorded run GREEN at 2f1b016 |
 | `npm run calibrate -- --out docs/experiments/calibration.json --md docs/experiments/calibration.md` | the bot calibration | not run |
 | `npm run seeds`, `npm run section18`, `npm run replay`, `npm run nightly` | seed images, §18 images, hour replay, the nightly runs | not run |
 | `npm run dev` / `npm run build` | the game (`packages/game`, Vite) | not run |
@@ -91,8 +94,9 @@ pass. Statuses: tasks `todo` / `in_progress` / `blocked` / `done` / `waived`.
 
 A core rule, progression, scope or go/no-go decision the task needs · a change that would
 move a fixture, a `[play: …]` lock, a decided constant or an expected result · a check red
-for a reason outside the task · a §26 recount reaching four · anything destructive or
-outward-facing (push, merge, deleting evidence, external trackers). Otherwise proceed and
+for a reason outside the task · a mechanic or benchmark change the adopted plan does not
+name · anything destructive or outward-facing (push, merge, deleting evidence, external
+trackers). Otherwise proceed and
 record the choice. One unresolved question blocks the work that depends on it, not the
 session.
 
@@ -101,10 +105,6 @@ session.
 Before ending a session: `PROGRAMME_STATE.md` "Now" is true, `PROGRESS.md` carries the
 real statuses, and the final message names the next task and whether it is ready or
 blocked on what.
-
-**Cleanup session, 2026-09-05:** the pre-Phase-5 cleanup (T11a) does not start Phase 5
-gameplay work. That is an instruction for that session only; the durable state is
-`PROGRAMME_STATE.md`. Delete this paragraph when T12 starts.
 
 ## Commits
 
@@ -116,7 +116,8 @@ Claude-Session: https://claude.ai/code/session_018pVusisgbVYVEpZ9PFYF1w
 ```
 
 No push, merge or PR change unless the human asks. Branch `phase-4` carries the open PR #5
-(#1–#4 merged 2026-09-03); the first Phase 5 build task opens `phase-5` on top of it.
+(#1–#4 merged 2026-09-03); RI-01, the plan's first build task, opens `ri-pass-1` on top of
+it and the RI tasks commit there.
 
 ## Working habits
 

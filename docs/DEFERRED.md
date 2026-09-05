@@ -23,24 +23,24 @@ twenty-four "Re-read at …" sections) is `archive/pre-phase-5-cleanup/DEFERRED-
 - **Gate B's unrecorded observations for the next played hour past minute 30**: the first
   shade (§11 and E3 put it at minute 32–47; the bot's six hours produce none), shades on
   lit tiles, the burn-off question ("did the lights coming on land?"), copper for repairs,
-  repair-by-E, light on the map view. T19 stops at minute 20, so these need a longer
-  session; unscheduled.
+  repair-by-E, light on the map view. T19's opening part stops at minute 20; its RI-08 session runs longer
+  and can record them (`PROGRESS.md` T19).
 
 ## Scheduled — link only
 
 - M6's two unrun checks (rail-yard coal margin ≥ 10 min; the arrival count at the first
-  red pip) → `PROGRESS.md` **T12** acceptance.
-- West's coal, rubble sinks for stone, D-P4-3's placeholder tripwire → **T12**.
-- Every front edge physical (restore from commit 6694b71) → **T13**.
+  red pip) → `PROGRESS.md` **RI-01** acceptance (T12's scope, absorbed 2026-09-05).
+- West's coal, rubble sinks for stone, D-P4-3's placeholder tripwire → **RI-01**.
+- Every front edge physical (restore from commit 6694b71) → **RI-03** (field deployment); the rest of T13 → **RI-09**.
 - D-P4-11 (the idle steel, the Mk2 purchase, the hand-feed) → measured by **T12b**, then
   the human's row.
-- The controls walkthrough's four STANDARDS rows (4.3 / B.3 / B.6 / C.2) → **T19**.
+- The controls walkthrough's four STANDARDS rows (4.3 / B.3 / B.6 / C.2) → **T19** (now RI-08's human session).
 - The Phase 5 gate deletions (`--map lattice`, `?map=lattice`, lattice fixtures and
   results, `?flow=0`, `sim.ts` `syncEdges` GA-B1-15) → **T17**.
 - The light-map blur's browser frame cost and the map view's resize raster → **T17**'s
   full verification.
-- D-GB-1's hybrid loop → `PHASES.md` **Phase 6**, with its definition as the entry
-  criterion.
+- D-GB-1's hybrid loop → **RI-03**, **RI-05**, **RI-06** (`REVISED_DEVELOPMENT_PLAN.md` §4–§9
+  is its definition; D-RI-4 superseded the Phase 6 placement on 2026-09-05).
 
 ## Closed at the cleanup (2026-09-05), with the evidence
 

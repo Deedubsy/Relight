@@ -12,6 +12,7 @@ Start with `CLAUDE.md` (the read order), then:
 - `docs/DECISIONS.md` — every decision with provenance, and the outstanding questions.
 - `docs/RELIGHT-design.md` — the spec. Every number carries `[sim: run]` or `[play: session]`.
 - `docs/PHASES.md` — the fourteen phases, scope and exit criteria.
+- `docs/REVISED_DEVELOPMENT_PLAN.md` — the adopted development plan (2026-09-05): the RI-00 … RI-13 task definitions and the direction; statuses live in `PROGRESS.md`.
 - `docs/DEFERRED.md` — unscheduled obligations only.
 - `docs/PHASE_N_REPORT.md`, `docs/GATE_B.md`, `docs/EXPERIMENTS.md` — history and evidence.
 - `docs/archive/` — superseded documents, with a README mapping old paths to new.
