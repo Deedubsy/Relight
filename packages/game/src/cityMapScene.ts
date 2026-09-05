@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import {
   SimState, SimEvent, DARK, CONTESTED, HELD, INERT, VOID, idxOf, isCandidate, rotOf, rotTier, frontList, FrontEdgeView,
   claimInfo, heldInfo, nearestHeld, facilityList, survivorList, isInterior, poolMax, generateCity, CityGeom, CityPreset,
-  STREET, WATER, segKey,
+  STREET, WATER, segKey, activationCheck, claimNeed, blockNameAt,
 } from '@relight/sim';
 import { Session, queue } from './session';
 import { SceneHooks, MapView, C } from './mapScene';
@@ -165,7 +165,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     const onMap = tx >= 0 && ty >= 0 && tx < g.tw && ty < g.th;
     const owner = onMap ? g.owner[ty * g.tw + tx] : -2;
     // D-B1-5: a click on a street tile or a Held block's tile sets a walk-here target (the A* in walk.ts) — the only
-    // auto-walk the player has; any WASD input cancels it. A Dark block claims (and nothing walks).
+    // auto-walk the player has; any WASD input cancels it. A Dark block previews (RI-03: nothing is claimed here).
     if (st.flow && onMap && (owner === -1 || (owner >= 0 && st.blocks[owner].state === HELD))) {
       queue(this.session, { type: 'move', x: tx + 0.5, y: ty + 0.5 });
       return;
@@ -174,8 +174,13 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     if (i < 0) return;
     const b = st.blocks[i];
     if (b.state === DARK) {
-      const info = claimInfo(st, b.x, b.y);
-      if (info.ok) queue(this.session, { type: 'claim', x: b.x, y: b.y });
+      // RI-03 (plan §4.1, D-RI-2): the map selects, previews and plans — it charges nothing and grants nothing. The
+      // claim is physical: a pole run to the block's substation, the materials delivered there from the pockets (E)
+      // and an explicit Activate (E) within reach. The tooltip carries the preview; the click says what it still needs.
+      const info = claimInfo(st, b.x, b.y), chk = activationCheck(st, b.x, b.y), need = claimNeed(st);
+      const sign = info.frontDelta >= 0 ? '+' : '−';
+      const deliver = need.steel + need.copper > 0 ? `deliver ${need.steel} steel + ${need.copper} Cu to it (E)` : 'nothing to deliver (economy off)';
+      this.hooks.onToast(`${blockNameAt(st, b.x, b.y)} — rot ${Math.round(info.rot * 100)} % · front ${sign}${Math.abs(info.frontDelta)} · closes ${info.closes} · wake bloom ≈ ${info.wakeBloomCrawlers}. The map claims nothing: string poles (7) to its substation, ${deliver}, then E on the substation to Activate. ${chk.ok ? 'Ready — E at its substation activates it' : `Now: ${chk.reason}`}`, chk.ok ? 'good' : 'info');
     }
   }
 

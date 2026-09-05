@@ -12,7 +12,7 @@ import {
   TILE_TPS, TILE_DT, TURRET_HOPPER, TURRET_ROUNDS_PER_S, GENERATOR_KW, COAL_MJ, START_COAL, START_CHEST_COAL, START_TURRETS, SHOT, LAMP_RADIUS, POLE_REACH, MACHINE_KW,
   Machine, SimState, SimEvent, citySpec, hqIdx,
   cityGeomOf, segBetween, segLength, TURRET_PER_TILES, canPickUp,
-  lockReason, unlockedKinds, survivorJoined, faceSub, blockLights, hqLot, ground, machineAt, step as blockStep,
+  lockReason, unlockedKinds, survivorJoined, faceSub, blockLights, hqLot, ground, machineAt, step as blockStep, claimNeed, activationCheck, deliverTo, activate,
   FLOODLIGHT_KW, FLOODLIGHT_RANGE, BIG_POLE_REACH, SURVIVOR_UNLOCKS,
 } from '../src/index';
 
@@ -261,7 +261,7 @@ test('lamps and streetlights: radius 4, lit while the substation powers; three i
   assert.match(describeMachine(st, lamp), /dark/);
 });
 
-test('poles: reach 8 from a claimed substation; a connected run that reaches a Dark neighbour\'s substation claims it; a map claim strings its own poles', () => {
+test('poles: reach 8 from a claimed substation; RI-03: a connected run that reaches a Dark neighbour\'s substation claims nothing — the block waits for its materials and an explicit Activate; a map claim still strings its own poles (legacy)', () => {
   const st = rich(fresh());
   const f = st.flow!;
   const [sx, sy] = st.start;
@@ -286,11 +286,21 @@ test('poles: reach 8 from a claimed substation; a connected run that reaches a D
     cx = px + 0.5; cy = py + 0.5; n++;
   }
   assert.ok(n >= 2, `${n} poles`);
-  assert.ok(f.pending.some(c => c.type === 'claim' && c.x === sx && c.y === sy - 1), 'the run raises the claim');
+  assert.equal(f.pending.some(c => c.type === 'claim'), false, 'the run raises no claim (RI-03: power connection alone activates nothing)');
   advanceFlow(st, 1, [], 4);
-  assert.ok(([CONTESTED, HELD] as number[]).includes(north.state), 'the block map accepted the pole claim');
-  assert.equal(f.pending.length, 0);
+  assert.equal(north.state, DARK, 'the block stays Dark on power alone');
+  assert.ok(poleGrid(st).reached.includes(idxOf(st, sx, sy - 1)), 'the run reaches the substation');
   assert.equal(layPoles(st, sx, sy - 1), 0, 'already strung');
+  const need = claimNeed(st);
+  assert.equal(activationCheck(st, sx, sy - 1).reason, `needs ${need.steel} more steel, ${need.copper} more Cu delivered`);
+  // at the substation: deliver the claim's materials, then the explicit Activate — paid from the pockets, never the chest
+  st.engineer.x = target.x - 1; st.engineer.y = target.y + 1.5; st.engineer.target = null;
+  assert.ok(deliverTo(st, sx, sy - 1, 'steel', need.steel).ok); assert.ok(deliverTo(st, sx, sy - 1, 'copper', need.copper).ok);
+  const stock0 = { ...st.stock };
+  assert.ok(activate(st, sx, sy - 1).ok, activationCheck(st, sx, sy - 1).reason);
+  assert.equal(north.state, CONTESTED, 'Activate starts Contested');
+  assert.deepEqual(st.stock, stock0, 'the Depot chest is not charged');
+  assert.equal(f.pending.length, 0);
   // a claim from the map view lays its own run to the west neighbour
   const west = st.blocks[idxOf(st, sx - 1, sy)];
   assert.equal(west.state, DARK);

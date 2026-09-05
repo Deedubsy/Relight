@@ -11,7 +11,7 @@
  *  belt 7.5 items/s (4 items a tile at 1.875 tiles/s), inserter 1 item/s, Mk1 Shot assembler 6 s a magazine (10/min, D-P4-4). */
 import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command, Engineer } from './types';
 import { openLedger } from './ledger';
-import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing, burnOffS } from './sim';
+import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing, burnOffS, isCandidate, startContested } from './sim';
 import { edgeId, edgeFrom, edgeTo } from './graph';
 import { Recipe, RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH, FLOODLIGHT_KW, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH } from './recipes';
 import { BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, START_CHEST, START_TURRETS, STREETLIGHT_RADIUS } from './constants';
@@ -43,6 +43,19 @@ export const KIND_LABEL: Record<Kind, string> = {
   excavator: 'Excavator', belt: 'belt', inserter: 'inserter', assembler: 'Assembler', depot: 'Depot', turret: 'Gun turret', lamp: 'Lamp',
   pole: 'pole', generator: 'Generator', floodlight: 'Floodlight', bigpole: 'Big pole', substation: 'Substation',
 };
+/** RI-03 (plan §4.2): the field kit — what may stand on a Dark or Contested block directly adjacent to Held ground
+ *  before it is claimed: poles, the unlocked lights, turrets, belts, inserters and the outskirts Substation. (The
+ *  plan lists chests too; the tile layer has no chest kind yet — RI-05's named supply depot is where one arrives.)
+ *  Extraction and assembly stay on Held lots (D-CU-1 (a), implementation default: no interior-only restriction). */
+export const FIELD_KIT: readonly Kind[] = ['pole', 'bigpole', 'lamp', 'floodlight', 'turret', 'belt', 'inserter', 'substation'];
+export const isFieldKind = (k: Kind): boolean => FIELD_KIT.includes(k);
+/** A block the field kit may stand on: Dark or Contested with a Held neighbour — the claim front. */
+export function fieldBlock(st: SimState, bi: number): boolean {
+  const b = st.blocks[bi];
+  if (b.state !== DARK && b.state !== CONTESTED) return false;
+  for (const n of st.nb[bi]) if (st.blocks[n].state === HELD) return true;
+  return false;
+}
 export function unlockedBy(kind: Kind): string | null {
   for (const [name, ks] of Object.entries(SURVIVOR_UNLOCKS)) if (ks.includes(kind)) return name;
   return null;
@@ -195,8 +208,16 @@ export interface FlowState {
            minedOf: Record<Item, number>; handMinedOf: Record<Item, number>; railCoal: number;
            made: Record<Item, number>; consumed: Record<Item, number>; turretFed: number; genFed: number;
            placed: { steel: number; copper: number } };
-  /** M3: commands the tile layer raises for the block map (a pole run reaching a Dark block's substation claims it). */
+  /** M3: commands the tile layer raises for the block map. RI-03 (plan §4.1): a pole run no longer raises a claim —
+   *  power connection alone never activates a block; the list stays for saves and dev hooks. */
   pending: Command[];
+  /** RI-03 (plan §4.3): claim materials delivered to a Dark block's installation (`deliverTo`), by block index —
+   *  committed to that restoration stage, neither in the pockets nor spent, until `activate` consumes them once
+   *  (the ledger counts them as `committed`). */
+  delivered: Record<number, { steel: number; copper: number }>;
+  /** RI-03: the last commissioning id — one per activation attempt, accepted or refused (`claim` and `bloom` events
+   *  carry it; a refusal is an `activate-rejected` event with it). */
+  commissionSeq: number;
   /** M3: the grid as of the last block tick — kW supplied, demanded, delivered; seconds demand exceeded supply. */
   /** §14 as one number: kW the Generators give, kW asked, kW carried, seconds short so far, and the D-B3-4 throttle
    *  (supply ÷ demand, 1 when covered) every drawing machine runs at this second. */
@@ -226,7 +247,7 @@ export function ensureFlow(st: SimState): FlowState {
              fired: 0, coalBurned: 0, handFed: 0, handFedMags: 0, handFedCoal: 0, chestTrips: 0, reachRefused: 0,
              minedOf: zeroItems(), handMinedOf: zeroItems(), railCoal: 0, made: zeroItems(), consumed: zeroItems(), turretFed: 0, genFed: 0,
              placed: { steel: 0, copper: 0 } },
-    pending: [],
+    pending: [], delivered: {}, commissionSeq: 0,
     power: { supply: 0, demand: 0, load: 0, overS: 0, throttle: 1 },
   };
   st.flow = f;
@@ -393,6 +414,7 @@ function upgrade(f: FlowState): FlowState {
   f.stats.minedOf ??= zeroItems(); f.stats.handMinedOf ??= zeroItems(); f.stats.railCoal ??= 0;
   f.stats.made ??= zeroItems(); f.stats.consumed ??= zeroItems(); f.stats.turretFed ??= 0; f.stats.genFed ??= 0;
   f.stats.placed ??= { steel: 0, copper: 0 };
+  f.delivered ??= {}; f.commissionSeq ??= 0;   // RI-03: a pre-RI-03 save has no deliveries and no attempts
   for (const m of f.machines) delete (m as { shed?: boolean }).shed;   // pre-D-B3-4 snapshots carried a shed flag
   return f;
 }
@@ -459,22 +481,48 @@ export function subPowered(st: SimState, b: Block): boolean {
   return true;
 }
 /** A machine with a draw runs while its cell is powered. D-B3-4: power never switches a machine off; short of supply
- *  every machine runs at `flow.power.throttle` (see `stepFlow`). */
+ *  every machine runs at `flow.power.throttle` (see `stepFlow`). RI-03: on the claim front (`fieldBlock`) a device is
+ *  powered by a connected pole in reach (`fieldPowered`), not by the block's substation, which is not yet the grid's. */
 export function powered(st: SimState, m: Machine): boolean {
   if (MACHINE_KW[m.kind] === 0) return true;
+  const bi = blockIdxOf(st, m);
+  if (bi >= 0 && fieldBlock(st, bi)) return fieldPowered(st, m);
   return subPowered(st, blockOf(st, m));
+}
+/** RI-03 (plan §4.2): a field device draws real power from the physically connected upstream grid — a pole hung
+ *  (through poles) from a claimed substation that is switched on stands within its own reach of the device, and the
+ *  grid has supply. Never the block sim's abstract supply and never a flag: a device out of every pole's reach is off,
+ *  whatever its block's neighbours have. A field device with no draw (a belt, a turret, a pole) runs where it stands. */
+export function fieldPowered(st: SimState, m: Machine): boolean {
+  if (st.config.power && effectiveSupply(st) <= 0) return false;
+  return poleReaches(st, poleGrid(st).on, m.x, m.y, m.size);
+}
+/** Whether a pole in `set` (ids) stands within its reach of the rect. */
+function poleReaches(st: SimState, set: Set<number>, x: number, y: number, size: number): boolean {
+  const f = st.flow!;
+  for (const p of f.machines) if (isPole(p) && set.has(p.id) && distToRect(pcx(p), pcy(p), x, y, size) <= reachOf(p)) return true;
+  return false;
 }
 /** D-B3-4: the speed every drawing machine runs at this second (supply ÷ demand, 1 when the grid is covered). */
 export function throttle(st: SimState): number {
   return st.config.power && st.flow ? st.flow.power.throttle : 1;
 }
+/** A machine runs on a Held block while powered; RI-03: a field device (`FIELD_KIT`) also runs on the claim front
+ *  (`fieldBlock`), a belt or turret where it stands, a drawing device through a connected pole in reach. Nothing here
+ *  changes the block's state: a running field device never marks its block Held (plan §4.2). */
 function running(st: SimState, m: Machine): boolean {
-  return blockIdxOf(st, m) >= 0 && blockOf(st, m).state === HELD && powered(st, m);
+  const bi = blockIdxOf(st, m);
+  if (bi < 0) return false;
+  if (st.blocks[bi].state === HELD) return powered(st, m);
+  return isFieldKind(m.kind) && fieldBlock(st, bi) && powered(st, m);
 }
+/** Exported for threat.ts (the turrets) and goal.ts (the status words). */
+export const machineRunning = running;
 function stopReason(st: SimState, m: Machine): string {
-  if (blockIdxOf(st, m) < 0 || blockOf(st, m).state !== HELD) return ' · stopped (block not Held)';
+  const bi = blockIdxOf(st, m), field = bi >= 0 && isFieldKind(m.kind) && fieldBlock(st, bi);
+  if (bi < 0 || (blockOf(st, m).state !== HELD && !field)) return ' · stopped (block not Held)';
   if (MACHINE_KW[m.kind] === 0) return '';
-  if (!subPowered(st, blockOf(st, m))) return ' · no power';
+  if (!powered(st, m)) return field ? ' · no connected pole in reach' : ' · no power';
   if (throttle(st) < 1 - 1e-9) return ` · at ${Math.round(throttle(st) * 100)} % (brownout)`;
   return '';
 }
@@ -852,7 +900,7 @@ export function advanceFlow(st: SimState, realSeconds: number, commands: readonl
   }
   return n;
 }
-/** Every claim the block map accepted since event `from` gets its pole run (a claim raised by a pole run is already strung). */
+/** Every legacy map claim accepted since event `from` gets its pole run (an activation's run already stands: `layPoles` lays nothing). */
 function stringClaims(st: SimState, from: number): void {
   for (let i = from; i < st.events.length; i++) { const ev = st.events[i]; if (ev.type === 'claim') layPoles(st, ev.x, ev.y); }
 }
@@ -870,18 +918,21 @@ export const costStr = (c: { steel: number; copper: number }): string => c.steel
 
 /** GAME-ASSUMPTION: a machine goes on any tile of a Held block's cell (lot or its street margin: §14 lets belts run
  *  on streets; an inserter is belt furniture and may too; excavators, assemblers and Generators stay on the lot;
- *  (M3) turrets and Lamps may stand on the street too — §14 keeps room for "a lamp line" there; a pole goes on any
- *  street tile of the city and on any lot that is not Inert — Dark included, since a pole run is how the crew
- *  strings a claim ahead of itself),
+ *  (M3) turrets and Lamps may stand on the street too — §14 keeps room for "a lamp line" there),
  *  never on a tile another machine or the lot's substation holds, and only the Excavator may stand on rubble (it digs
- *  what it stands on) — except posts: a pole or a Lamp is thin enough to stand among rubble. */
+ *  what it stands on) — except posts: a pole or a Lamp is thin enough to stand among rubble.
+ *  RI-03 (plan §4.2): off Held ground only the field kit stands, and only on the claim front — a Dark or Contested
+ *  block with a Held neighbour (`fieldBlock`), its lot or its street margin. The outskirts Substation (D-CU-3 (b)) is
+ *  a field kind: it goes on an unheld outskirts lot next to Held ground before activation, and it is the installation
+ *  the claim's materials are delivered to. (M3's "a pole on any Dark lot" is narrowed to the front: a run past the
+ *  front claimed nothing and now powers nothing.) */
 export function placeable(st: SimState, kind: Kind, tx: number, ty: number): string {
   tx = Math.floor(tx); ty = Math.floor(ty);
   const f = ensureFlow(st), G = ground(st), size = MACHINE_SIZE[kind];
   const lock = lockReason(st, kind);
   if (lock) return lock;
-  // posts (poles, Lamps, Big poles) stand in rubble; pole-likes may also stand on the street and on claimed or Dark blocks
-  const post = kind === 'pole' || kind === 'lamp' || kind === 'bigpole', polelike = kind === 'pole' || kind === 'bigpole';
+  // posts (poles, Lamps, Big poles) stand in rubble
+  const post = kind === 'pole' || kind === 'lamp' || kind === 'bigpole';
   for (let y = ty; y < ty + size; y++) for (let x = tx; x < tx + size; x++) {
     if (!inGround(G, x, y)) return 'outside the city';
     const t = y * G.tw + x, o = G.owner[t];
@@ -889,7 +940,10 @@ export function placeable(st: SimState, kind: Kind, tx: number, ty: number): str
     const margin = o === -1, bi = margin ? G.near[t] : o;
     if (bi < 0) return 'outside the city';
     const b = st.blocks[bi];
-    if (b.state !== HELD && !(polelike && (margin || b.state === CONTESTED || b.state === DARK))) return 'the block is not Held';
+    if (b.state !== HELD) {
+      if (!isFieldKind(kind)) return 'the block is not Held';
+      if (!fieldBlock(st, bi)) return b.state === DARK || b.state === CONTESTED ? 'not next to Held ground' : 'the block is not Held';
+    }
     if (f.occ[t] !== undefined) return 'another machine is there';
     if (margin && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && !post) return 'not on the street';
     // prompt B M3: a craftable Substation goes on a face that has none (§7: the outskirts), on the lot, one a face
@@ -936,9 +990,7 @@ export function place(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir
   if (!chk.ok) return null;
   if (chk.carried) pocketDrop(st.engineer, kind, 1);
   else { pocketDrop(st.engineer, 'steel', chk.cost.steel); pocketDrop(st.engineer, 'copper', chk.cost.copper); st.flow!.stats.placed.steel += chk.cost.steel; st.flow!.stats.placed.copper += chk.cost.copper; }
-  const m = addMachine(st, kind, tx, ty, dir);
-  if (kind === 'pole' || kind === 'bigpole') poleClaims(st, m);
-  return m;
+  return addMachine(st, kind, tx, ty, dir);   // RI-03: a pole that reaches a Dark substation claims nothing (plan §4.1)
 }
 
 /** What a pick-up puts in the pockets: the machine as one stack (two turrets and their magazines are four stacks),
@@ -1209,10 +1261,12 @@ function hookDemandKw(st: SimState, all: boolean): number {
   for (const m of f.machines) {
     const w = MACHINE_KW[m.kind];
     if (!w) continue;
-    if (blockIdxOf(st, m) < 0) continue;
-    const b = blockOf(st, m);
-    if (b.state !== HELD) continue;
-    if (all || (b.subOn && st.t >= b.shadeOff)) kw += w;
+    const bi = blockIdxOf(st, m);
+    if (bi < 0) continue;
+    const b = st.blocks[bi];
+    if (b.state === HELD) { if (all || (b.subOn && st.t >= b.shadeOff)) kw += w; continue; }
+    // RI-03 (plan §4.2): a field device on the claim front is real demand on the grid its pole hangs from
+    if (isFieldKind(m.kind) && fieldBlock(st, bi) && poleReaches(st, poleGrid(st).on, m.x, m.y, m.size)) kw += w;
   }
   return kw;
 }
@@ -1382,6 +1436,9 @@ export function repairLight(st: SimState, tx: number, ty: number): RepairCheck {
 export interface PoleGrid {
   /** Pole ids linked (through poles within reach 8 of each other) to a claimed block's substation. */
   connected: Set<number>;
+  /** RI-03: the subset hung from a substation that is switched on (its block's `subOn`, past the shade) — the live
+   *  grid a field device draws from (`fieldPowered`) and an activation needs (`activationCheck`). */
+  on: Set<number>;
   /** Wires to draw: from a pole's centre to what it hangs from (a pole or a substation), in tile units. */
   links: { x0: number; y0: number; x1: number; y1: number }[];
   /** Dark blocks whose substation a connected pole reaches. */
@@ -1397,41 +1454,49 @@ export const reachOf = (m: Machine): number => (m.kind === 'bigpole' ? BIG_POLE_
 const isPole = (m: Machine): boolean => m.kind === 'pole' || m.kind === 'bigpole';
 const pcx = (m: Machine): number => m.x + m.size / 2, pcy = (m: Machine): number => m.y + m.size / 2;
 /** GAME-ASSUMPTION: a pole hangs from any pole or claimed substation within reach 8 (centre to centre, or to the
- *  substation's nearest edge). The block map stays the judge of power: the poles are how a claim is strung and shown,
- *  and a Dark substation a connected pole reaches raises the claim; a claimed block keeps its power whether or not
- *  its poles still stand. A built Substation (prompt B M3) anchors like a pre-existing one. */
+ *  substation's nearest edge). The block map stays the judge of a claimed block's power: its poles are how a claim is
+ *  strung and shown, and a claimed block keeps its power whether or not its poles still stand. A built Substation
+ *  (prompt B M3) anchors like a pre-existing one. RI-03 (plan §4.1): a Dark substation a connected pole reaches is
+ *  `reached` — the power-connection prerequisite of `activationCheck` — and claims nothing by itself; `on` is the
+ *  live part of the grid, the one field devices draw from. */
 export function poleGrid(st: SimState): PoleGrid {
   const f = ensureFlow(st);
   const c = gridCache.get(f);
   if (c && c.rev === f.rev && c.t === st.t) return c.grid;
-  const grid: PoleGrid = { connected: new Set(), links: [], reached: [] };
+  const grid: PoleGrid = { connected: new Set(), on: new Set(), links: [], reached: [] };
   const poles = f.machines.filter(isPole);
-  const subs: { bi: number; x: number; y: number; size: number; claimed: boolean }[] = [];
+  const subs: { bi: number; x: number; y: number; size: number; claimed: boolean; on: boolean }[] = [];
   const G = ground(st);
   for (const bg of G.blocks) {
     const b = st.blocks[bg.i];
     if (b.state !== HELD && b.state !== CONTESTED && b.state !== DARK) continue;
     const sub = faceSub(st, bg.i);
     if (!sub) continue;
-    subs.push({ bi: bg.i, x: sub.x, y: sub.y, size: sub.size, claimed: b.state !== DARK });
+    subs.push({ bi: bg.i, x: sub.x, y: sub.y, size: sub.size, claimed: b.state !== DARK, on: b.state !== DARK && b.subOn && st.t >= b.shadeOff });
   }
-  const queue: Machine[] = [];
-  for (const m of poles) {
-    for (const s of subs) {
-      if (!s.claimed || distToRect(pcx(m), pcy(m), s.x, s.y, s.size) > reachOf(m)) continue;
-      grid.connected.add(m.id); queue.push(m);
-      grid.links.push({ x0: pcx(m), y0: pcy(m), x1: s.x + s.size / 2, y1: s.y + s.size / 2 });
-      break;
-    }
-  }
-  for (let q = 0; q < queue.length; q++) {
-    const a = queue[q];
+  // two floods over the same wires: from every claimed substation (connected), and from the switched-on ones (on)
+  const flood = (anchor: (s: typeof subs[number]) => boolean, into: Set<number>, draw: boolean) => {
+    const queue: Machine[] = [];
     for (const m of poles) {
-      if (grid.connected.has(m.id) || Math.hypot(pcx(m) - pcx(a), pcy(m) - pcy(a)) > Math.max(reachOf(m), reachOf(a))) continue;
-      grid.connected.add(m.id); queue.push(m);
-      grid.links.push({ x0: pcx(m), y0: pcy(m), x1: pcx(a), y1: pcy(a) });
+      for (const s of subs) {
+        if (!anchor(s) || distToRect(pcx(m), pcy(m), s.x, s.y, s.size) > reachOf(m)) continue;
+        into.add(m.id); queue.push(m);
+        if (draw) grid.links.push({ x0: pcx(m), y0: pcy(m), x1: s.x + s.size / 2, y1: s.y + s.size / 2 });
+        break;
+      }
     }
-  }
+    for (let q = 0; q < queue.length; q++) {
+      const a = queue[q];
+      for (const m of poles) {
+        if (into.has(m.id) || Math.hypot(pcx(m) - pcx(a), pcy(m) - pcy(a)) > Math.max(reachOf(m), reachOf(a))) continue;
+        into.add(m.id); queue.push(m);
+        if (draw) grid.links.push({ x0: pcx(m), y0: pcy(m), x1: pcx(a), y1: pcy(a) });
+      }
+    }
+    return queue;
+  };
+  const queue = flood(s => s.claimed, grid.connected, true);
+  flood(s => s.on, grid.on, false);
   for (const s of subs) {
     if (s.claimed) continue;
     for (const m of queue) if (distToRect(pcx(m), pcy(m), s.x, s.y, s.size) <= reachOf(m)) { grid.reached.push(s.bi); break; }
@@ -1439,35 +1504,24 @@ export function poleGrid(st: SimState): PoleGrid {
   gridCache.set(f, { rev: f.rev, t: st.t, grid });
   return grid;
 }
-/** A just-placed pole that joins the grid and reaches a Dark block's substation raises that block's claim; the block
- *  sim accepts or rejects it by its own rules (adjacency, cost) on the next tick. */
-function poleClaims(st: SimState, m: Machine): void {
-  const f = st.flow!, g = poleGrid(st);
-  if (!g.connected.has(m.id)) return;
-  for (const bi of g.reached) {
-    const b = st.blocks[bi];
-    if (f.pending.some(c => c.type === 'claim' && c.x === b.x && c.y === b.y)) continue;
-    const sub = faceSub(st, bi);
-    if (!sub || distToRect(pcx(m), pcy(m), sub.x, sub.y, sub.size) > reachOf(m)) continue;
-    f.pending.push({ type: 'claim', x: b.x, y: b.y });
-  }
-}
-/** A claim made from the map view strings its poles: from the nearest connected point (a pole, or a claimed
- *  neighbour's substation) straight towards the new block's substation, one pole every 7 tiles, each shifted to the
- *  nearest free tile. GAME-ASSUMPTION: the claim's 10 wire + 5 frames already paid for them; a run that finds no room
- *  simply stops short (the map still powers the block). */
-export function layPoles(st: SimState, x: number, y: number): number {
-  const f = ensureFlow(st), bi = idxOf(st, x, y);
-  if (bi < 0) return 0;
-  const b = st.blocks[bi], sub = faceSub(st, bi);
-  if (!sub || (b.state !== HELD && b.state !== CONTESTED)) return 0;   // an outskirts face has no substation to string to (§7)
+/** RI-03: the pole run that would connect block `bi`'s substation to the grid — from the nearest connected point (a
+ *  pole, or a claimed neighbour's substation) straight towards it, one pole every 7 tiles, each shifted to the nearest
+ *  free tile — as tiles, placing nothing. Empty when the substation is already within a connected pole's reach, when
+ *  the block has no substation, when nothing connected is near, or when the run finds no room (it stops short). The
+ *  hour bot places the run pole by pole from this (each pole priced and within reach like any placement); `layPoles`
+ *  lays it whole for a legacy map claim. */
+export function polePlan(st: SimState, bi: number): [number, number][] {
+  const f = ensureFlow(st);
+  if (bi < 0) return [];
+  const sub = faceSub(st, bi);
+  if (!sub) return [];
   const tx = sub.x, ty = sub.y, tcx = tx + sub.size / 2, tcy = ty + sub.size / 2;
   const g = poleGrid(st);
   let from: [number, number] | null = null, best = Infinity;
   for (const m of f.machines) {
     if (!isPole(m) || !g.connected.has(m.id)) continue;
     const d = distToRect(pcx(m), pcy(m), tx, ty, sub.size);
-    if (d <= reachOf(m)) return 0;   // already strung (a world-view claim)
+    if (d <= reachOf(m)) return [];   // already strung
     if (d < best) { best = d; from = [pcx(m), pcy(m)]; }
   }
   for (const ni of st.nb[bi]) {
@@ -1477,8 +1531,9 @@ export function layPoles(st: SimState, x: number, y: number): number {
     const d = Math.hypot(cx - tcx, cy - tcy);
     if (d < best) { best = d; from = [cx, cy]; }
   }
-  if (!from) return 0;
-  let [cx, cy] = from, laid = 0;
+  if (!from) return [];
+  const plan: [number, number][] = [], taken = new Set<number>();
+  let [cx, cy] = from;
   for (let n = 0; n < 16; n++) {
     if (distToRect(cx, cy, tx, ty, sub.size) <= POLE_REACH) break;
     const d = Math.hypot(tcx - cx, tcy - cy), ux = (tcx - cx) / d, uy = (tcy - cy) / d;
@@ -1490,14 +1545,103 @@ export function layPoles(st: SimState, x: number, y: number): number {
         if (Math.max(Math.abs(ox), Math.abs(oy)) !== ring) continue;
         const px = gx + ox, py = gy + oy;
         if (Math.hypot(px + 0.5 - cx, py + 0.5 - cy) > POLE_REACH) continue;
-        if (placeable(st, 'pole', px, py) === '') { put = [px, py]; break; }
+        if (!taken.has(py * f.tw + px) && placeable(st, 'pole', px, py) === '') { put = [px, py]; break; }
       }
     }
     if (!put) break;
-    addMachine(st, 'pole', put[0], put[1], 0);
-    laid++; cx = put[0] + 0.5; cy = put[1] + 0.5;
+    plan.push(put); taken.add(put[1] * f.tw + put[0]);
+    cx = put[0] + 0.5; cy = put[1] + 0.5;
   }
-  return laid;
+  return plan;
+}
+/** A legacy map claim strings its poles whole (`polePlan`, placed free). GAME-ASSUMPTION: the claim's 10 wire + 5
+ *  frames already paid for them; a run that finds no room simply stops short (the map still powers the block). An
+ *  activation lays nothing here: its run already stands, pole by pole from the pockets. */
+export function layPoles(st: SimState, x: number, y: number): number {
+  const bi = idxOf(st, x, y);
+  if (bi < 0) return 0;
+  const b = st.blocks[bi];
+  if (b.state !== HELD && b.state !== CONTESTED) return 0;
+  const plan = polePlan(st, bi);
+  for (const [px, py] of plan) addMachine(st, 'pole', px, py, 0);
+  return plan.length;
+}
+
+// ------------------------------------------------------------------ RI-03: physical commissioning (plan §4.1)
+
+/** What a claim takes (§5's 10 wire + 5 frames as rubble: the block sim's `eco.claimCost`); nothing without the economy. */
+export function claimNeed(st: SimState): { steel: number; copper: number } {
+  return st.config.economy ? { steel: st.config.eco.claimCost.steel, copper: st.config.eco.claimCost.copper } : { steel: 0, copper: 0 };
+}
+/** What has been delivered to a block's installation so far (committed there until it activates). */
+export function deliveredTo(st: SimState, bi: number): { steel: number; copper: number } {
+  const d = st.flow?.delivered[bi];
+  return d ? { ...d } : { steel: 0, copper: 0 };
+}
+export interface DeliverCheck { ok: boolean; reason: string; moved: number }
+/** Claim materials go from the pockets into a Dark block's installation — its substation, within reach — up to what
+ *  the claim still needs. They sit committed there (ledger `committed`), neither in the pockets nor spent, until
+ *  `activate` consumes them; a legitimate inventory interaction, never a charge from the map or the Depot. */
+export function deliverTo(st: SimState, bx: number, by: number, item: string, n: number): DeliverCheck {
+  const f = ensureFlow(st), bi = idxOf(st, bx, by);
+  if (bi < 0) return { ok: false, reason: 'out of bounds', moved: 0 };
+  if (item !== 'steel' && item !== 'copper') return { ok: false, reason: 'a claim takes steel and copper', moved: 0 };
+  const b = st.blocks[bi];
+  if (b.state !== DARK) return { ok: false, reason: b.state === CONTESTED ? 'already commissioning' : b.state === HELD ? 'already Held' : 'not a Dark block', moved: 0 };
+  const sub = faceSub(st, bi);
+  if (!sub) return { ok: false, reason: 'no substation — the outskirts need a Substation first', moved: 0 };
+  if (!inReach(st, sub.x, sub.y, sub.size)) return { ok: false, reason: 'walk closer to the substation', moved: 0 };
+  const need = claimNeed(st), got = f.delivered[bi] ?? { steel: 0, copper: 0 };
+  const room = need[item] - got[item];
+  if (room <= 0) return { ok: false, reason: `it has its ${need[item]} ${item === 'copper' ? 'Cu' : 'steel'}`, moved: 0 };
+  const moved = pocketDrop(st.engineer, item, Math.min(Math.floor(n), room));
+  if (moved <= 0) return { ok: false, reason: `no ${item} in the pockets`, moved: 0 };
+  got[item] += moved; f.delivered[bi] = got;
+  return { ok: true, reason: '', moved };
+}
+export interface ActivateCheck { ok: boolean; reason: string; need: { steel: number; copper: number }; have: { steel: number; copper: number } }
+/** Why Activate is unavailable on block (bx, by), in the order the installation UI names them: the block's state, an
+ *  adjacent Held block (the implementation default — a special case must be explicit here), the installation, the
+ *  pole run, the grid, the materials, reach, the engineer. `ok` when it may activate. Power connection alone is never
+ *  enough: nothing here fires — the block stays Dark until the explicit Activate. */
+export function activationCheck(st: SimState, bx: number, by: number): ActivateCheck {
+  const need = claimNeed(st);
+  const no = (reason: string, have = { steel: 0, copper: 0 }): ActivateCheck => ({ ok: false, reason, need, have });
+  const bi = idxOf(st, bx, by);
+  if (bi < 0) return no('out of bounds');
+  const b = st.blocks[bi];
+  if (b.state === CONTESTED) return no('already commissioning');
+  if (b.state === HELD) return no('already Held');
+  if (b.state !== DARK) return no('not a Dark block');
+  if (!isCandidate(st, bi)) return no('no Held block adjacent');
+  const sub = faceSub(st, bi);
+  if (!sub) return no('no substation — the outskirts need a Substation first');
+  const have = deliveredTo(st, bi), g = poleGrid(st);
+  if (!g.reached.includes(bi)) return no('no pole run reaches its substation', have);
+  if (!poleReaches(st, g.on, sub.x, sub.y, sub.size)) return no('its pole run hangs from a substation that is off', have);
+  if (st.config.power && effectiveSupply(st) <= 0) return no('the grid has no supply — no Generator burning', have);
+  if (have.steel < need.steel || have.copper < need.copper) {
+    const s = need.steel - have.steel, c = need.copper - have.copper;
+    return no(`needs ${[s > 0 ? `${s} more steel` : '', c > 0 ? `${c} more Cu` : ''].filter(Boolean).join(', ')} delivered`, have);
+  }
+  if (!inReach(st, sub.x, sub.y, sub.size)) return no('walk closer to the substation', have);
+  if (st.engineer.down >= 0) return no('the engineer is down', have);
+  return { ok: true, reason: '', need, have };
+}
+/** The explicit Activate (plan §4.1): one commissioning id per attempt. A refusal is an `activate-rejected` event
+ *  naming the missing prerequisite and charges nothing. Success consumes the delivered materials once — into the block
+ *  sim's spent counters, never out of the chest (plan §4.3: never both the Depot and the installation) — and starts
+ *  Contested through the one shared path, whose wake bloom is this attempt's configured response and carries the same
+ *  id. Idempotent: a repeated or replayed Activate on a block already commissioning is refused. */
+export function activate(st: SimState, bx: number, by: number): ActivateCheck {
+  const f = ensureFlow(st), id = ++f.commissionSeq;
+  const chk = activationCheck(st, bx, by);
+  if (!chk.ok) { st.events.push({ type: 'activate-rejected', t: st.t, x: bx, y: by, id, reason: chk.reason }); return chk; }
+  const bi = idxOf(st, bx, by), got = f.delivered[bi] ?? { steel: 0, copper: 0 };
+  st.stats.spentSteel = (st.stats.spentSteel ?? 0) + got.steel; st.stats.spentCopper = (st.stats.spentCopper ?? 0) + got.copper;
+  delete f.delivered[bi];
+  startContested(st, bi, 'activate', id);
+  return chk;
 }
 
 // ------------------------------------------------------------------ M3: hands
@@ -1631,6 +1775,9 @@ handHook.current = (st, c) => {
     case 'rotate': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) rotate(st, c.x, c.y); break; }
     // RI-01: the scene's T on an Assembler as a command (within reach, a known recipe)
     case 'setRecipe': { const m = machineAt(st, c.x, c.y); if (m && isRecipeId(c.recipe) && inReach(st, m.x, m.y, m.size)) setRecipe(st, c.x, c.y, c.recipe); break; }
+    // RI-03: physical commissioning — materials into the installation and the explicit Activate (both check reach of it)
+    case 'deliver': deliverTo(st, c.bx, c.by, c.item, c.n); break;
+    case 'activate': activate(st, c.bx, c.by); break;
     default: break;
   }
 };

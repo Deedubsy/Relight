@@ -14,6 +14,7 @@ import { SimState, HELD, DARK, CONTESTED, Edge } from './types';
 import {
   Machine, MACHINE_COST, MACHINE_KW, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
   recipeOf, recipeOutput, subPowered, poleGrid, inputTile, outputTile, findRubble, asmCanStart, costStr, Item,
+  isFieldKind, fieldBlock, powered,
 } from './flow';
 import { ground, hqLot, blockOfTile } from './ground';
 import { HQ_PATCHES, P_COAL, P_COPPER, P_STEEL, RAIL_YARD_COAL } from './tiles';
@@ -237,8 +238,9 @@ export interface MachineStatus { state: MachineState; reason: string }
 /** §11.2: a machine's working / starved / blocked state in one word, with the reason (never colour alone). */
 export function machineStatus(st: SimState, m: Machine): MachineStatus {
   const bi = blockOfTile(st, m.x, m.y), b = bi >= 0 ? st.blocks[bi] : null;
-  if (!b || b.state !== HELD) return { state: 'off', reason: 'block not Held' };
-  if (MACHINE_KW[m.kind] > 0 && !subPowered(st, b)) return { state: 'off', reason: 'no power' };
+  const field = bi >= 0 && isFieldKind(m.kind) && fieldBlock(st, bi);   // RI-03: the field kit runs on the claim front
+  if (!b || (b.state !== HELD && !field)) return { state: 'off', reason: 'block not Held' };
+  if (MACHINE_KW[m.kind] > 0 && !powered(st, m)) return { state: 'off', reason: field ? 'no connected pole in reach' : 'no power' };
   switch (m.kind) {
     case 'turret': {
       if ((m.inv.rounds ?? 0) < 1) return { state: 'starved', reason: 'empty hopper' };

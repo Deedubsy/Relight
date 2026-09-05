@@ -31,6 +31,8 @@ interface PoleLine { x0: number; y0: number; x1: number; y1: number }
 export interface SceneHooks {
   onHover(info: ReturnType<typeof claimInfo> | HeldInfo | null, px: number, py: number): void;
   onPipSelect(edge: FrontEdgeView | null): void;
+  /** RI-03: a Dark block's click previews the claim and says what it still needs — the map claims nothing. */
+  onToast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
 }
 
 /** What main.ts needs from whichever map scene is up (the lattice MapScene or the city's CityMapScene). */

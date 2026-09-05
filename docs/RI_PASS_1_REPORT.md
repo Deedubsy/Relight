@@ -374,3 +374,172 @@ one-slot save are reversible by name.
 
 **Next.** RI-03, ready (blocked by RI-01, done; RI-02 before it in list order, done);
 T12b and T12c runnable behind it.
+
+## RI-03 — Physical commissioning and field deployment (2026-09-05)
+
+**Authorisation.** The plan's RI-03 row (§4) and `PROGRESS.md`'s, executed on "Whole plan"
+(D-RI-1, recorded at RI-00). RI-01 was its only blocker; RI-02, before it in list order,
+was done. The direction is D-RI-2 (decided, Daniel, 2026-09-05: one claim path, the map
+charges nothing, the hour bot moves to it with the legacy run beside it); the defaults it
+builds on are D-CU-1 (a) and D-CU-3 (b), provisional under D-RI-6. Every default this
+task chose is named below as an implementation default: reversible, not a historical
+approval, and no earlier gate is credited with any of them. The benchmark's configuration
+did not change (D-RI-5): `E-hour` runs economy off, so the claim's delivery is zero there
+and 10 steel + 5 Cu in the game; the unit test covers the paid path.
+
+**What the repository was (inspected before any edit).** HEAD `38ec158` on `ri-pass-1`
+(RI-02). The map's claim tool queued a `claim` command on a Dark block's click; `sim.ts`
+`claim` took the price from the Depot chest's stock and started Contested at once, and
+`flow.ts` `layPoles` then laid the pole run to the block's substation for free from the
+claim event. Placing a pole whose reach touched a Dark block's substation claimed that
+block (`poleClaims`): power connection alone activated it, which plan §4.1 forbids. Poles
+and big poles were the only placement allowed off Held ground (on any Dark / Contested
+block, adjacent to Held or not); every other kind, the craftable Substation included, was
+refused with "the block is not Held". An outskirts block was claimed from the map and held
+on the block sim's abstract supply until a Substation was built on it (`ground.ts`
+GAME-ASSUMPTION; D-CU-3, D-B3-2's split). A turret fired only on a Held block and
+`machineStatus` said "block not Held" for anything else. The hour bot claimed from the map
+(`claimAt`). 128 tests, every check green (RI-02, the same day).
+
+**Built (code, `packages/sim`, `packages/harness`, `packages/game`).**
+
+- **The commissioning API** (`flow.ts`): `claimNeed(st)` (the claim's steel and copper;
+  zero with economy off); `deliverTo(st, bx, by, item, n)` moves up to the need from the
+  pockets into the block's installation — its substation, within interaction reach — as
+  `f.delivered[bi]`, the ledger's new `committed` place (plan §4.3: in an inventory,
+  committed, or consumed, never two); `activationCheck(st, bx, by)` names the one missing
+  prerequisite in a fixed order (out of bounds, already commissioning, already Held, not a
+  Dark block, no Held block adjacent, no substation — the outskirts need a Substation
+  first, no pole run reaches its substation, the run hangs from a substation that is off,
+  the grid has no supply, needs N more steel / M more Cu delivered, walk closer to the
+  substation, the engineer is down); `activate(st, bx, by)` takes one commissioning id
+  (`f.commissionSeq`), pushes `activate-rejected {id, reason}` on a refusal, and on
+  success moves the delivered materials to the sinks once, deletes the delivery and calls
+  `startContested(st, i, 'activate', id)`. Commands `deliver {bx, by, item, n}` and
+  `activate {bx, by}` (hand commands, `engineer.ts`); a pre-RI-03 save upgrades with no
+  deliveries and no attempts.
+- **One Contested start** (`sim.ts` `startContested`): the legacy map `claim` and
+  `activate` share it, so the wake bloom (§5 step 3) fires once per attempt and carries
+  the activation's `id`, as does the `claim` event (`via: 'map' | 'activate'`); a
+  second Activate is refused "already commissioning", so a replayed command is idempotent.
+  `layPoles` from the claim event and `poleClaims` are gone: a pole reaching a Dark
+  substation claims nothing.
+- **The field kit** (`FIELD_KIT`: pole, big pole, lamp, floodlight, turret, belt,
+  inserter, Substation): placeable on a Dark or Contested block that shares a street with
+  a Held block (`fieldBlock`; "not next to Held ground" otherwise); reach, footprint,
+  collision, inventory, unlock and price rules unchanged. A field device is powered by a
+  connected, switched-on pole within its own reach on a grid with supply (`fieldPowered`,
+  `poleGrid.on`), never by its block's substation and never by a flag; a belt or a turret
+  with no draw runs where it stands (`running`, exported as `machineRunning`); a turret
+  fires on the front (`threat.ts`); `machineStatus` says "no connected pole in reach"
+  (`goal.ts`). Nothing here touches the block's state: a field device never marks a block
+  Held.
+- **The outskirts** (D-CU-3 (b)): the craftable Substation is field kit, placed on the
+  Dark outskirts block from a neighbouring Held street and paid from the pockets (D-B3-1's
+  stand-in); `substationAt` / `isSubstationTile` find it, and it is the installation the
+  claim is delivered to and activated at. The `ground.ts` abstract-power assumption is
+  gone; what remains there is narrower — a Held outskirts block's kerb has no
+  streetlights to light.
+- **The hour bot on the physical path** (`hour.ts`, `createHourBot(rifle, coalPlan,
+  northAt, claimPath = 'physical')`): to the chest for the claim's materials plus the pole
+  run's (`spare = poles + 2`), the run strung pole by pole to the block's substation
+  (`stringTask`), the delivery, the walk to the substation, up to a minute's wait for a
+  transient (a brownout second) to pass, the Activate, then the same walk-over and kit
+  wait as the map path (`physicalClaimStep`); every command is one a player sends.
+  `claimPath: 'map'` keeps the old bot for the legacy comparison.
+- **The harness** (`ehour.ts`): the scored runs count Activates, deliveries and map claims
+  from the log, with a new check that every claim was an Activate; a legacy run per seed
+  (map claim, rifle off, 75 minutes) fills `E-hour-legacy`, `-legacy-end` and
+  `-legacy-delta` (the claim and Held moments, physical − map in seconds).
+- **The game**: the map's Dark-block click previews (rot, front, closes, the wake bloom,
+  what the claim needs at its substation, the missing prerequisite) and sends nothing
+  (`cityMapScene.ts`; `panel.ts`'s tooltip and hints say the same); in the world, E on a
+  Dark block's substation within reach delivers the claim's steel then copper from the
+  pockets and, when `activationCheck` passes, queues `activate` — otherwise a red toast
+  names what is missing (`worldScene.ts`); the hover line on a Dark substation shows
+  delivered / needed and the next prerequisite, and the walk-closer cursor covers it;
+  toasts for the activation and a refusal (`main.ts`); `session.ts` counts an Activate as
+  the player's claim; `telemetry.ts` records `via` and the rejections.
+- **Tests** (`commission.test.ts`, five): one path (the map previews and charges nothing,
+  a pole run claims nothing, the materials delivered once and consumed once at Activate,
+  one claim event and one wake bloom carrying the attempt id, a second Activate refused,
+  the ledger neither losing nor doubling them); every prerequisite reason in order,
+  including missing power and a substation switched off; the outskirts Substation as
+  field kit before activation and its claim; the field kit's power (a lamp off until a
+  connected pole reaches it, then lit on real demand; a turret not off; an Assembler and
+  a far belt refused; no block marked Held); the physical claim logged at 14:00 replaying
+  from a save to the unbroken run's hash. `defence.test.ts`, `flow.test.ts` and
+  `hour.test.ts` rewritten to the physical path (the pole test, the placement rule, the
+  claim vias).
+
+**Implementation defaults (reversible, D-RI-6).** Ordinary activation needs an adjacent
+Held block (plan §4.1's default; the outskirts follow it too); the substation is the
+installation (no separate cabinet); a delivery takes only up to the need and only from
+the pockets; the prerequisite order above; the bot's minute-long wait for a transient
+before the Activate and its `poles + 2` spare; the walk-over timed from the Activate to
+the arrival (an engineer already in reach of the lot walks no logged walk, so the
+arrival act writes it); the legacy run rifle off only; the field kit's power through a
+pole's own reach (a turret, belt or pole needs no pole at all).
+
+**Measured (`E-hour`, 75 minutes, seeds 3 / 4 / 5; `docs/EXPERIMENTS.md` E-hour, 19/19
+checks, 69.1 s; the legacy sections read the rifle-off runs).** *Every claim physical*:
+3 Activates, 0 deliveries (economy off), 0 map claims and 3 claims Held on all six scored
+runs. *The claim moments* (rifle off; physical vs map): east Activate 15:18 / 15:11 /
+15:09 against the map click's 15:03 / 15:03 / 15:01, Held 15:49 / 15:46 / 15:39 against
+15:34 / 15:38 / 15:31; west 25:09 / 25:14 / 25:10 against 25:00, Held 25:44 / 25:43 /
+25:40 against 25:35 / 25:30 / 25:30; north 65:10 / 65:14 / 65:18 against 65:00, Held
+65:39 / 65:48 / 65:47 against 65:29 / 65:34 / 65:29 — the physical path adds 8–18 s a
+claim (`E-hour-legacy-delta`), the pole run and the delivery walk before the Activate.
+*End state*: 4 Held, the HQ standing, 6 turrets, 4 Generators, 7 Excavators, 3 Assemblers
+and 669 line magazines on every run of both paths; walked 3.3–4.7 % of the hour physical
+against 2.8–4.1 % map; the claim walk-overs 1–3 s physical (the Activate is next to the
+lot) against 15–17 s map; no refusal, no brownout, no fall on either path. *Unchanged*:
+the ledger conserves every item (0.000 unexplained, six runs), the rail yard's coal 47.9
+min ahead, the chest's steel never under 19 (RI-01 and RI-02 read 23; the bot now carries
+the pole run's steel out of the chest — a real change of when the chest is lowest, not a
+rule change), the goal line 0 of 13,503 samples wrong, 42/42 beats, the save at 30:00
+replaying to the unbroken hash on every seed. *`E-rifle`*: its tile tables replay the hour
+bot's log, so the steady and rescue rows moved with the new log (shooting 0.47 / 0.92 /
+0.31 % against 0.58 / 0.69 / 0.17 %; danger 0.00 %; the same rescue verdicts: every
+single-edge fall saved, 2 of 6 ring falls saved and the rest delayed); all 14 checks
+green. E1–E9, E-variance and E-walk are byte-identical but for the stamp.
+
+**Browser check.** Not run this task: the game build is green inside `npm run typecheck`
+(44 modules), and the map preview, the E delivery / Activate and the toasts were read,
+not played. RI-02's Playwright check is the last browser evidence.
+
+**Verified (commands actually run, 2026-09-05, after the code and before the records).**
+
+| command | result |
+|---|---|
+| `npm test` | 133 pass, 0 fail (128 + `commission.test.ts`'s 5) |
+| `npm run typecheck` | green, including the Vite game build |
+| `npm run lint` | red once (`ehour.ts` kept a `\'` inside a template literal), fixed, then green |
+| `npm run docsync:check` | green — both messages (re-run after the design-doc edits, closing table) |
+| `npm run experiments` | 13 experiments, 277 s, **0 failing checks**; `E-hour` 19/19 (18 + RI-03's 1), 69.1 s; `E-rifle` 14/14; the rest as at RI-02 |
+| `npm run freshness:check` | green — every generated file made on an ancestor of HEAD with the current config (the experiments are stamped `38ec158`, RI-02's commit, because the run preceded this commit) |
+| `npm run snapshot:check` | green, unchanged (`held 28 front 11 interior 18 lost 0 claims 27`: the compact scenario claims by the legacy map path) |
+
+**Fixtures, expected results and generated files.** `packages/sim/fixtures/city{3,4,5}.json`
+and `b-compact-seed3.json` unchanged. No expected result altered; `hour.test.ts`'s
+minute-45 expectations moved with the bot's path (the same 120 s tolerance, the vias
+`activate`). `docs/EXPERIMENTS.md` and `docs/experiments/*.json` regenerated by the run
+(`E-hour` and `E-rifle` carry the physical path's numbers; three legacy sections and one
+check added; the rest byte-identical but for the stamp).
+
+**Not built, and where it goes.** The hour bot laying a claim's turrets from stock
+(D-P4-9's other half, the 6694b71 restoration): the field turret now exists and fires on
+the front, but placing two on every claim changes the benchmark's balance — a separate,
+visible decision, `DEFERRED.md` (RI-07's rerun is the natural place). Chests in the field
+kit: the slice has no placeable chest kind (the Depot is its one chest); RI-05's local
+supply depot is where one appears. A boss's configured response replacing the wake bloom
+(RI-06) and the restoration stages (RI-05) sit on the commissioning id built here. Sound
+stays deferred (RI-02).
+
+**Not decided by this task (for the human, no blocker).** D-CU-1 (a) kept and D-CU-3
+(b) built, both still provisional until signed or reversed; D-B3-1 and D-B3-2 keep their
+recommendations (annotated). Whether the benchmark bot should lay a claim's turrets is the
+one new question.
+
+**Next.** RI-04, ready (blocked by RI-02 and RI-03, both done); T12b and T12c runnable
+behind it in list order.

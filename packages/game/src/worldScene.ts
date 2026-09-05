@@ -31,6 +31,7 @@ import {
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
   lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
   blockLabel, machineStatus, MachineState,
+  activationCheck, claimNeed, deliveredTo, deliverTo,
 } from '@relight/sim';
 import { Session, queue, record } from './session';
 import { View, debugView, hudInset } from './view';
@@ -411,9 +412,10 @@ export class WorldScene extends Phaser.Scene {
     this.tool = t;
   }
 
-  /** E interacts (D-B1-5): the Depot opens the chest, the workbench crafts a magazine, a machine reports itself, the
-   *  truck is entered or left where it was found, a survivor group on the block answers. E never mines, places or
-   *  fires. Everything but the truck needs the thing within reach. */
+  /** E interacts (D-B1-5): the Depot opens the chest, the workbench crafts a magazine, a Dark block's substation takes
+   *  the claim's materials from the pockets and Activates (RI-03), a machine reports itself, the truck is entered or
+   *  left where it was found, a survivor group on the block answers. E never mines, places or fires. Everything but
+   *  the truck needs the thing within reach. */
   private interact(): void {
     const st = this.st, h = this.hoverTile;
     if (!st.flow || !this.onFoot) return;
@@ -437,6 +439,35 @@ export class WorldScene extends Phaser.Scene {
       const bi = light.bi, b = st.blocks[bi];
       this.hooks.onToast(`${light.l.kind === 'lamp' ? 'Lamp' : 'Streetlight'} repaired (${REPAIR_COPPER} Cu from the pockets) — ${b.state === HELD || b.state === CONTESTED ? 'it lights while the substation powers it' : 'it lights when its block is claimed'}`, 'good');
       return;
+    }
+    // RI-03 (plan §4.1, D-RI-2): E on a Dark block's substation — the installation — moves what the claim still needs
+    // from the pockets into it (a legitimate inventory interaction, logged as `deliver`) and, when every prerequisite
+    // holds, sends the explicit Activate; otherwise the toast names the missing prerequisite. A built outskirts
+    // Substation is a machine too, so this comes before the machine report.
+    if (h && isSubstationTile(st, h.tx, h.ty)) {
+      const bi = blockOfTile(st, h.tx, h.ty), b = bi >= 0 ? st.blocks[bi] : null;
+      if (b && (b.state === DARK || b.state === CONTESTED)) {
+        const sub = substationAt(st, b.x, b.y);
+        if (!sub || !this.reachable(sub.tx, sub.ty, sub.size, true)) return;
+        const name = blockLabel(st, bi, debugView.coords);
+        if (b.state === CONTESTED) { this.hooks.onToast(`${name} · commissioning — burn-off ${Math.round(100 * contestProgress(st, bi))} %`); return; }
+        const need = claimNeed(st), moved: string[] = [];
+        for (const item of ['steel', 'copper'] as const) {
+          const short = need[item] - deliveredTo(st, bi)[item];
+          if (short <= 0 || (e.inv[item] ?? 0) <= 0) continue;
+          const r = deliverTo(st, b.x, b.y, item, short);
+          record(this.session, { type: 'deliver', bx: b.x, by: b.y, item, n: short });
+          if (r.ok) moved.push(`${r.moved} ${item === 'copper' ? 'Cu' : 'steel'}`);
+        }
+        const chk = activationCheck(st, b.x, b.y), got = deliveredTo(st, bi);
+        if (chk.ok) {
+          queue(this.session, { type: 'activate', bx: b.x, by: b.y });   // the claim event's toast says the rest
+          if (moved.length) this.hooks.onToast(`${moved.join(' + ')} delivered to ${name}'s substation — activating`, 'good');
+          return;
+        }
+        this.hooks.onToast(`${name}${moved.length ? ` · ${moved.join(' + ')} delivered` : ''} · ${got.steel}/${need.steel} steel, ${got.copper}/${need.copper} Cu at its substation · not activated: ${chk.reason}`, 'bad');
+        return;
+      }
     }
     const m = h ? machineAt(st, h.tx, h.ty) : undefined;
     if (m) {
@@ -586,7 +617,12 @@ export class WorldScene extends Phaser.Scene {
     if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
     else if (st.flow && isSubstationTile(st, tx, ty)) {
       const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
-      if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (the block is unfed, or the grid is dead)'}`);
+      if (sub && st.blocks[bi].state === DARK) {
+        // RI-03: the installation UI — what is delivered, and the prerequisite the Activate still lacks
+        const chk = activationCheck(st, st.blocks[bi].x, st.blocks[bi].y), need = claimNeed(st), got = deliveredTo(st, bi);
+        const materials = need.steel + need.copper > 0 ? `${got.steel}/${need.steel} steel, ${got.copper}/${need.copper} Cu delivered · ` : '';
+        lines.unshift(`Substation · Dark · ${materials}${chk.ok ? 'ready — E activates the claim' : `to claim: ${chk.reason}${/more steel|more Cu/.test(chk.reason) ? ' (E delivers from the pockets)' : ''}`}`);
+      } else if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (the block is unfed, or the grid is dead)'}`);
     }
     // M5: a light under the cursor — its state, and the repair rule when it is broken or eaten
     const light = lightAt(st, tx, ty);
@@ -601,7 +637,8 @@ export class WorldScene extends Phaser.Scene {
     const cw = st.flow ? crawlerAt(st, tx + 0.5, ty + 0.5) : null;   // M4: a crawler under the cursor (shades only on lit tiles)
     if (cw) lines.unshift(describeCrawler(st, cw));
     // the "walk closer" cursor: something to do here, out of reach
-    const actionable = this.onFoot && (this.tool !== 'hand' || !!m || !!rubbleAt(st, tx, ty) || !!(light && light.l.why));
+    const actionable = this.onFoot && (this.tool !== 'hand' || !!m || !!rubbleAt(st, tx, ty) || !!(light && light.l.why)
+      || (!!st.flow && bi >= 0 && st.blocks[bi].state === DARK && isSubstationTile(st, tx, ty)));
     const far = actionable && !inReach(st, tx, ty, 1);
     if (far) lines.unshift(`Walk closer (reach ${REACH} tiles)`);
     this.hooks.onHoverText(lines.join('\n'), rect.left + p.x, rect.top + p.y);

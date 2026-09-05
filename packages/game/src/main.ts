@@ -48,6 +48,8 @@ function describe(events: SimEvent[]): void {
       case 'sub-off': panel.toast(`${at(ev.x, ev.y)}'s substation stopped: ${session.state.config.unfedN} crawlers unfed. It falls if this goes on.`, 'bad'); break;
       case 'sub-on': panel.toast(`${at(ev.x, ev.y)}'s substation back on`, 'good'); break;
       case 'claim-rejected': panel.toast(`Claim on ${at(ev.x, ev.y)} rejected: ${ev.reason}`, 'bad'); break;
+      // RI-03 (plan §4.1): the installation names the prerequisite an Activate lacked
+      case 'activate-rejected': panel.toast(`${at(ev.x, ev.y)} not activated: ${ev.reason}`, 'bad'); break;
       case 'assembler': panel.toast(`Assembler built on ${at(ev.x, ev.y)} — ${ev.count} running`, 'good'); break;
       case 'assembler-rejected': panel.toast(ev.reason === 'no free interior slot' ? 'No assembler: no free machine slot (enclose a block first)' : 'No assembler: cannot afford it', 'bad'); break;
       case 'machine-lost': panel.toast(`Assembler on ${at(ev.x, ev.y)} lost with its block — ${ev.count} running`, 'bad'); break;
@@ -61,8 +63,11 @@ function describe(events: SimEvent[]): void {
       case 'claim': {
         if (!session.state.flow) break;
         const kits = session.state.engineer.inv.kit ?? 0;
-        // M5 (§5 step 3–4, §6): the streetlights come on now, in sequence; the rot burns off over 20 + 60·d s
-        panel.toast(`Poles strung to ${at(ev.x, ev.y)} — its streetlights come on now, ${LIGHT_SEQ_PER_S} a second from the substation out; the rot burns off in ${Math.round(session.state.blocks[idxOf(session.state, ev.x, ev.y)].contestUntil - ev.t)} s${kits ? '' : '. Its edges wait for a kit: take kits from the Depot chest (I) and walk there'}`);
+        const burn = Math.round(session.state.blocks[idxOf(session.state, ev.x, ev.y)].contestUntil - ev.t);
+        // M5 (§5 step 3–4, §6): the streetlights come on now, in sequence; the rot burns off over 20 + 60·d s.
+        // RI-03: the game's claim is the Activate at the substation (materials spent once, there); the map path's
+        // wording stays for the legacy bot / a replay of an old log
+        panel.toast(`${ev.via === 'activate' ? `${at(ev.x, ev.y)} activated — its claim materials spent at the substation` : `Poles strung to ${at(ev.x, ev.y)}`} — its streetlights come on now, ${LIGHT_SEQ_PER_S} a second from the substation out; the rot burns off in ${burn} s${kits ? '' : '. Its edges wait for a kit: take kits from the Depot chest (I) and walk there'}`);
         break;
       }
       case 'kitted': panel.toast(`Kits laid on ${at(ev.x, ev.y)} — ${ev.edges} edge${ev.edges === 1 ? '' : 's'} armed`, 'good'); break;
@@ -99,6 +104,7 @@ const game = new Phaser.Game({
 const hooks: SceneHooks = {
   onHover: (info, px, py) => panel.tooltip(info, px, py),
   onPipSelect: e => panel.setSelectedEdge(e),
+  onToast: (msg, kind) => panel.toast(msg, kind),
 };
 // D6: the city map draws polygons; the lattice MapScene stays for ?map=lattice and the lattice-era snapshots
 const mapScene: MapView = session.state.city ? new CityMapScene(session, hooks) : new MapScene(session, hooks);

@@ -1,7 +1,7 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
   CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS,
-  currentGoal, Goal, blockLabel, blockNameAt, edgeName, idxOf } from '@relight/sim';
+  currentGoal, Goal, blockLabel, blockNameAt, edgeName, idxOf, activationCheck } from '@relight/sim';
 import { Session, setSpeed, queue, shareUrl, record, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
 import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
@@ -82,7 +82,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const saveNote = el('span', 'hint', '');
   saveRow.append(btnSave, btnLoad, saveNote);
   header.append(saveRow);
-  header.append(el('p', 'hint', 'Click a Dark block next to your territory to claim it. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
+  header.append(el('p', 'hint', 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
   root.append(header);
   function saveGame(): void {
     try {
@@ -139,7 +139,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const pocketMach = el('li'); const pocketMachV = el('span', 'mono', 'none');
   pocketMach.append(el('span', undefined, 'machines carried (one stack each)'), pocketMachV); pocketList.append(pocketMach);
   pocketSec.append(pocketList);
-  pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
+  pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's steel and copper go from the pockets into the block's substation (E on it) and are spent at Activate; its edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
   root.append(pocketSec);
 
   // D-B1-5: the build menu (B). The hotbar (1–8) is its shortcut; 9 is the rifle. Prompt B M3: the Electricians'
@@ -152,7 +152,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     { kind: 'belt', key: '1', what: '7.5 items/s' }, { kind: 'inserter', key: '2', what: 'one item a second across a tile' },
     { kind: 'excavator', key: '3', what: '3×3, 0.5/s onto the belt it faces' }, { kind: 'assembler', key: '4', what: `Assembler (3×3): Shot magazine ${SHOT.seconds} s (${Math.round(60 / SHOT.seconds)}/min), or Wire / Frame / Board — T on it sets the recipe; the Mk2 (3 s) is the purchase` },
     { kind: 'turret', key: '5', what: `2×2, range ${TURRET_RANGE}, ${TURRET_HOPPER}-round hopper` }, { kind: 'lamp', key: '6', what: `lights a ${LAMP_RADIUS}-tile radius` },
-    { kind: 'pole', key: '7', what: 'carries power, claims across the street' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
+    { kind: 'pole', key: '7', what: 'carries power; a run reaching a Dark block\'s substation is the claim\'s power connection' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
     { kind: 'floodlight', key: '0', what: '2×2, 40 kW, a 12-tile cone along its facing (R rotates)' }, { kind: 'bigpole', key: '[', what: '2×2, reach 12' },
     { kind: 'substation', key: ']', what: '3×3, gives a face that has none (the outskirts) its substation' },
   ];
@@ -201,7 +201,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   // RI-01 (D-P4-5): under the tile line every Assembler is placed by hand; the block-level purchase is refused by the sim
   asmRow.hidden = flow;
   stockSec.append(asmRow);
-  if (eco) stockSec.append(el('p', 'hint', `A claim costs ${st.config.eco.claimCost.copper} Cu (10 wire) and ${st.config.eco.claimCost.steel} steel (5 frames). A magazine costs ${st.config.eco.magazineCost.steel} steel + ${st.config.eco.magazineCost.copper} Cu (§12); assemblers stop when the stock runs out. Held blocks yield their district's rubble: civic stone, residential copper, industrial steel.`));
+  if (eco) stockSec.append(el('p', 'hint', `A claim costs ${st.config.eco.claimCost.steel} steel (5 frames) and ${st.config.eco.claimCost.copper} Cu (10 wire), delivered from the pockets to the block's substation and spent once at Activate — nothing is charged from the map. A magazine costs ${st.config.eco.magazineCost.steel} steel + ${st.config.eco.magazineCost.copper} Cu (§12); assemblers stop when the stock runs out. Held blocks yield their district's rubble: civic stone, residential copper, industrial steel.`));
   debug.append(stockSec);
 
   // M2: the tile line on the HQ lot (world view). Counts and rates come from flowSummary; the Craft button queues a
@@ -468,13 +468,15 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       tip.style.left = `${Math.min(px + 14, window.innerWidth - w0 - 8)}px`; tip.style.top = `${Math.min(py + 14, window.innerHeight - h0 - 8)}px`;
       return;
     }
+    // RI-03 (plan §4.1): the map previews; the third line is the installation's answer — ready, or the prerequisite
+    // the physical Activate still lacks (adjacency, the substation, the pole run, the supply, the materials, reach)
     const sign = info.frontDelta >= 0 ? '+' : '−';
-    const line1 = `Claim ${blockLabel(session.state, idxOf(session.state, info.x, info.y), debugView.coords)} — rot ${pct(info.rot)} · front ${sign}${Math.abs(info.frontDelta)} · closes ${info.closes}`;
-    const cost = info.cost ? ` · ${info.cost.copper} Cu ${info.cost.steel} steel` : '';
+    const line1 = `${blockLabel(session.state, idxOf(session.state, info.x, info.y), debugView.coords)} — rot ${pct(info.rot)} · front ${sign}${Math.abs(info.frontDelta)} · closes ${info.closes}`;
+    const cost = info.cost ? ` · claim ${info.cost.steel} steel + ${info.cost.copper} Cu at its substation` : '';
     const line2 = `${info.district}${info.well ? ' · well' : ''}${cost} · wake bloom ≈ ${info.wakeBloomCrawlers} crawlers`;
+    const chk = activationCheck(session.state, info.x, info.y);
     tip.innerHTML = '';
-    tip.append(el('div', undefined, line1), el('div', 'muted', line2));
-    if (!info.ok) tip.append(el('div', 'bad', info.reason ?? ''));
+    tip.append(el('div', undefined, line1), el('div', 'muted', line2), el('div', chk.ok ? 'muted' : 'bad', chk.ok ? 'ready — E at its substation activates the claim' : `on foot: ${chk.reason}`));
     tip.hidden = false;
     const w = tip.offsetWidth, hgt = tip.offsetHeight;
     tip.style.left = `${Math.min(px + 14, window.innerWidth - w - 8)}px`;

@@ -6,9 +6,9 @@ now. The per-milestone history lives in the phase reports (`PHASE_0_REPORT.md` �
 `archive/pre-phase-5-cleanup/PROGRAMME_STATE-2026-09-05.md`. Rules: `CONSTITUTION.md`.
 Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 
-## Now (2026-09-05, after RI-02 built the goal line and the save / load baseline)
+## Now (2026-09-05, after RI-03 built physical commissioning and the field kit)
 
-- **The revised development plan is in execution: RI-00, RI-01 and RI-02 are done.**
+- **The revised development plan is in execution: RI-00, RI-01, RI-02 and RI-03 are done.**
   Daniel authorised the plan with "Whole plan" (D-RI-1); it is
   `REVISED_DEVELOPMENT_PLAN.md`, verbatim, and its tasks RI-00 … RI-13 are in
   `PROGRESS.md`. RI-01 built the real opening economy (`RI_PASS_1_REPORT.md` "RI-01"):
@@ -23,17 +23,25 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
   hash, a validated load, Ctrl+S / Ctrl+O to a local slot, a download carrying the command
   log); 1200 / 900 px breakpoints. `E-hour` 18/18: the goal line never wrong on 13,503
   samples, 42/42 beats, a save at 30:00 replaying to the unbroken hash on every seed.
-- **Next task: RI-03 — physical commissioning and field deployment** (plan §4; D-CU-1,
-  D-CU-3, D-P4-9's other half): one claim path where the map selection previews and
-  charges nothing, and a claim is a power connection, materials delivered to the
-  installation and an explicit Activate within reach, paid once; the field kit placeable
-  on Dark / Contested blocks adjacent to Held on real power; one commissioning event per
-  activation; the outskirts Substation before activation; replay and save consistency;
-  the hour bot on the physical path, reported beside the legacy run. **Ready**: blocked by
-  RI-01 (done); RI-02, before it in list order, is done. Branch `ri-pass-1` on top of
-  `phase-4`. The order after it: RI-04 → RI-05 → RI-06 → RI-07 → RI-08 (whose played
-  session is **T19**, human) → RI-09 (T13 → T17, T18) → RI-10 → RI-11 → RI-12 → RI-13;
-  T12b and T12c are runnable behind RI-03 in list order.
+  RI-03 built physical commissioning and field deployment ("RI-03"): one claim path — the
+  map previews and charges nothing; a claim is a pole run to the block's substation, the
+  claim's steel and copper delivered there from the pockets and an explicit Activate within
+  reach, paid once, one commissioning id an attempt (D-RI-2); the field kit (poles, lights,
+  turrets, belts, inserters, the outskirts Substation) on Dark / Contested blocks next to
+  Held, on real pole power, never marking a block Held; the outskirts Substation before
+  activation (D-CU-3 (b)); the hour bot on the physical path with the map claim beside it.
+  `E-hour` 19/19: every claim an Activate, the claims 8–18 s after the map click's, 4 Held
+  and no fall on every seed.
+- **Next task: RI-04 — enemy origins, Crawler / Shade clarity and the Stalker
+  prototype** (plan §6, §7; D-GB-4 owned there): emergence points with stable ids and
+  valid placement, no spawn inside a secured interior; a Crawler's target and direction
+  and a Shade's trace inspectable; the Stalker (`guard → investigate → pursue → attack →
+  return`) tied to an occupied site, its §7.1 candidates in one candidate configuration
+  and never in the benchmark (D-RI-5); `E-rifle` rerun and reported. **Ready**: blocked
+  by RI-02 and RI-03, both done. Branch `ri-pass-1` on top of `phase-4`. The order after
+  it: RI-05 → RI-06 → RI-07 → RI-08 (whose played session is **T19**, human) → RI-09
+  (T13 → T17, T18) → RI-10 → RI-11 → RI-12 → RI-13; T12b and T12c are runnable behind
+  RI-04 in list order.
 - **Phase 5 — the factory, complete — is open; RI-01 built its first pieces** (the
   per-machine recipe, coal rubble, the ledger) and the rest is not built. The plan
   interleaves the phases (`PHASES.md` top note): the hybrid of D-GB-1 moved from Phase 6
@@ -51,7 +59,7 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 ## What is built, what is a stand-in
 
 **Implemented and measured** (`docs/EXPERIMENTS.md`, 13 experiments GREEN on 2026-09-05
-at RI-02, stamped `9a47430` + RI-02's tree, config b95922d2; `SLICE_REPORT.md`):
+at RI-03, stamped `38ec158` + RI-03's tree, config b95922d2; `SLICE_REPORT.md`):
 
 - The block sim: §5's front rule, wake bloom and burn-off, the 40-unshot-arrival fall,
   proportional brownout (D-B3-4), wells, the 25-hour compact / spike / quiet-block
@@ -63,7 +71,8 @@ at RI-02, stamped `9a47430` + RI-02's tree, config b95922d2; `SLICE_REPORT.md`):
   the rifle; hand-mining and the workbench; the physical line on the HQ lot and the
   claims (Excavators, the placed Assembler on Shot / Wire / Frame / Board, one-lane belts,
   one inserter, turrets with hoppers); rubble at 300 a tile, the rail yard's coal heap
-  (RI-01); Generators on coal; claims from the map paid from the Depot chest; the
+  (RI-01); Generators on coal; claims by the physical path — poles, a delivery, an
+  Activate (RI-03); the
   Electricians' unlocks (Floodlight, Big pole, craftable Substation); crawlers, shades,
   hulks; the conservation ledger (`ledger.ts`).
 - The hour-one bot (`E-hour`): no block lost on seeds 3 / 4 / 5 at 75 minutes, rifle off
@@ -93,12 +102,17 @@ at RI-02, stamped `9a47430` + RI-02's tree, config b95922d2; `SLICE_REPORT.md`):
 - Stone has no sink: east's line digs 1,750 stone in the hour on seeds 3 and 5 and it
   sits in the chest (`E-hour-ledger`); a stone-consuming use is a new mechanic and a
   separate decision (`RI_PASS_1_REPORT.md` "RI-01").
-- **Claims are made from the map and paid from the Depot chest** (`sim.ts` `claim`,
-  `flow.ts` laying the poles); the intended rule is physical commissioning (D-RI-2, §28.2)
-  and the field kit on adjacent Dark ground (§28.3) — RI-03. The craftable Substation
-  costs a 50 steel + 25 Cu stand-in (D-B3-1); the map claim holds an outskirts block on
-  the block sim's abstract power until the Substation is placed (GAME-ASSUMPTION,
-  `ground.ts`; D-CU-3 (b) provisional — RI-03).
+- **Claims are physical** (RI-03, D-RI-2; §5 steps 1–4): the map previews and charges
+  nothing; a Dark block next to Held is claimed by a pole run to its substation, the
+  claim's steel and copper delivered there from the pockets (E) and an explicit Activate
+  (E) within reach, paid once (`flow.ts` `deliverTo` / `activate`, one commissioning id an
+  attempt). The legacy map claim (`sim.ts` `claim`) survives for the block-level bots, the
+  compact snapshot and the labelled `E-hour-legacy` comparison. The field kit stands on
+  Dark / Contested blocks next to Held on real pole power (`fieldPowered`); the craftable
+  Substation costs a 50 steel + 25 Cu stand-in (D-B3-1) and is field kit on the Dark
+  outskirts block before activation (D-CU-3 (b), provisional). *Stand-ins:* the benchmark
+  runs economy off, so its delivery is zero there and 10 steel + 5 Cu in the game; the
+  hour bot does not lay a claim's turrets (D-P4-9's other half, `DEFERRED.md`).
 - **Save / load is a baseline, not a feature** (RI-02): one local slot (Ctrl+S / Ctrl+O),
   a download, a state hash and the command log so a load replays; no slot list, no
   autosave, no naming. (Before RI-02 this line said none existed — wrong: a download and a
@@ -130,11 +144,12 @@ at RI-02, stamped `9a47430` + RI-02's tree, config b95922d2; `SLICE_REPORT.md`):
 ## Counters
 
 - Untagged numbers in the design doc: **33** (21 tile-scale, 12 design inputs), unchanged
-  since Phase 4 M3; the cleanup, RI-01 and RI-02 added none (RI-01's numbers carry `[sim: E-hour-…]`
-  tags or a decision id).
+  since Phase 4 M3; the cleanup, RI-01, RI-02 and RI-03 added none (RI-01's and RI-03's numbers
+  carry `[sim: E-hour-…]` tags or a decision id).
 - §26: **three systems, complexity 5 / 10**, a reported count since D-RI-3 (the stop
   condition never fired and no longer exists; rule 2's scope test admits features).
-  Recounted when RI-03 … RI-06 land.
+  Recounted at RI-03: still three (commissioning is §5's claim made physical, not a
+  fourth system); next at RI-04 … RI-06.
 - `STANDARDS.md`: **closed 1 of 46** (A.7, the hand-lamp sentence, at Gate B). Phase 5's
   fifteen build-with rows are listed on `PHASES.md` Phase 5.
 - Engineer guards (shooting ≤ 10 %, danger ≤ 5 %, walking): every number is the bot's; no
@@ -147,10 +162,12 @@ at RI-02, stamped `9a47430` + RI-02's tree, config b95922d2; `SLICE_REPORT.md`):
   blocker); D-CU-2 the Chemist and Polymer (RI-11, not a blocker); D-P4-11 the idle steel
   and the hand-feed (RI-01 explained the hand-fed total as transfers the ledger balances
   and split it; T12b measures the share); a sink for stone (RI-01 surfaced it: a new
-  mechanic, nobody's task yet).
+  mechanic, nobody's task yet); the hour bot laying a claim's turrets from stock
+  (D-P4-9's other half: RI-03 built the field turret and left the benchmark's balance to
+  the human, `DEFERRED.md`).
 - **Provisional rows on the plan's defaults** (D-RI-6; sign or reverse by name, any time):
-  D-GB-2 (a) the goal line (RI-02); D-CU-1 (a) production on any Held lot (RI-03);
-  D-CU-3 (b) the outskirts Substation before activation (RI-03).
+  D-GB-2 (a) the goal line (RI-02); D-CU-1 (a) production on any Held lot (kept at
+  RI-03); D-CU-3 (b) the outskirts Substation before activation (built at RI-03).
 - **Provisional rows a task will embody**: D-P4-5 (every assembler physical — built by
   RI-01, unsigned);
   D-B4-3 (the turret in the chain, RI-10 reconciles); D-SA-2 (the string table, T13 in

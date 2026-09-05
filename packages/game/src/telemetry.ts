@@ -5,6 +5,8 @@ export interface ClaimRecord {
   t: number; x: number; y: number; district: string; well: boolean; d: number;
   fBefore: number; fAfter: number; iBefore: number; iAfter: number; retake: boolean; wakeCrawlers: number;
   source: 'player' | 'bot';
+  /** RI-03: the physical Activate at the substation, or the legacy map claim (the comparison bot, an old log). */
+  via: 'map' | 'activate';
 }
 export interface MinuteRecord {
   t: number; held: number; front: number; interior: number; contested: number; lost: number;
@@ -57,9 +59,10 @@ export function recordEvent(tel: Telemetry, ev: SimEvent, source: 'player' | 'bo
   switch (ev.type) {
     case 'claim':
       tel.claims.push({ t: ev.t, x: ev.x, y: ev.y, district: ev.district, well: ev.well, d: ev.d, fBefore: ev.fBefore, fAfter: ev.fAfter,
-                        iBefore: ev.iBefore, iAfter: ev.iAfter, retake: ev.retake, wakeCrawlers: ev.cr, source });
+                        iBefore: ev.iBefore, iAfter: ev.iAfter, retake: ev.retake, wakeCrawlers: ev.cr, source, via: ev.via });
       break;
     case 'claim-rejected': tel.rejected.push({ t: ev.t, x: ev.x, y: ev.y, reason: ev.reason }); break;
+    case 'activate-rejected': tel.rejected.push({ t: ev.t, x: ev.x, y: ev.y, reason: ev.reason }); break;   // RI-03
     case 'fall': tel.losses.push({ t: ev.t, x: ev.x, y: ev.y, reason: ev.reason }); break;
     case 'reorder': tel.reorders.push({ t: ev.t, ids: ev.ids.slice() }); break;
     case 'assembler': tel.assemblers.push({ t: ev.t, count: ev.count, x: ev.x, y: ev.y, source }); break;

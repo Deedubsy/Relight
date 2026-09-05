@@ -156,9 +156,11 @@ function cityGround(st: SimState): Ground {
       count: 0, order: new Int32Array(0), hq, pole: [cb.cx, cb.cy],
     };
     // §7 (prompt B M3, run name B-M3-unlocks): an outskirts face has no substation and no streetlights; the
-    // Electricians' craftable Substation (flow.ts `faceSub`) is how one gets a substation. GAME-ASSUMPTION: the block
-    // sim still powers a Held outskirts block (its abstract substation, D-P4-9's split) — at tile level nothing there
-    // anchors a pole run or lights the kerb until a Substation is built.
+    // Electricians' craftable Substation (flow.ts `faceSub`) is how one gets a substation. RI-03 (D-CU-3 (b)): the
+    // Substation stands on the unheld outskirts lot first, as field kit next to Held ground, and is the installation
+    // the claim is delivered to and activated at — the block sim's abstract supply no longer holds an outskirts block
+    // without one (the map claim that did is the labelled legacy path). GAME-ASSUMPTION (still): a Held outskirts
+    // block's kerb has no streetlights to light.
     const outskirts = cg.district[i] === 3;
     bg.sub = hq ? { x: hqb.sqx + HQ_SUBSTATION[0], y: hqb.sqy + HQ_SUBSTATION[1], size: SUBSTATION_TILES } : inert || outskirts ? null : faceSubstation(G, cg, i);
     if (!inert && !outskirts) bg.lights = faceLights(G, cg, st.seed, i);

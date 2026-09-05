@@ -45,16 +45,22 @@ test('hour bot, minute 45: east and west claimed at constants.HOUR\'s minutes (1
   let maxStep = 0, px = st.engineer.x, py = st.engineer.y;
   const f = ensureFlow(st), cmds: Command[] = [];
   st.speed = 1;
-  const end = 45 * 60 * TILE_TPS;
+  const end = 45 * 60 * TILE_TPS, vias: string[] = [];
   while (f.tick < end) {
-    cmds.length = 0; hourCommands(st, bot, cmds); st.acc = 0; advanceFlow(st, 1 / TILE_TPS, cmds, 1); st.events.length = 0;
+    cmds.length = 0; hourCommands(st, bot, cmds); st.acc = 0; advanceFlow(st, 1 / TILE_TPS, cmds, 1);
+    for (const ev of st.events) if (ev.type === 'claim') vias.push(ev.via);
+    st.events.length = 0;
     const d = Math.hypot(st.engineer.x - px, st.engineer.y - py); if (d > maxStep) maxStep = d; px = st.engineer.x; py = st.engineer.y;
   }
   const m = bot.log.marks;
   assert.ok(HOUR_CLAIM_AT.north > 45 * 60 && HOUR_CLAIM_AT.north < HOUR_S, `north's claim is after 45:00 and inside the ${HOUR_S / 60}-minute hour (constants.HOUR: ${HOUR_CLAIM_AT.north / 60}:00, D-P4-10, D-HOUR-3)`);
   assert.equal(m['claim-north'], undefined, `north not claimed by 45:00 (${m['claim-north']})`);
+  // RI-03: the claim mark is the Activate at the substation, after the pole run, the delivery and the trip back for the
+  // kits (seed 3: east 15:18, west 25:09 — the map click's 15:03 and 25:00 before RI-03)
+  assert.deepEqual(vias, ['activate', 'activate'], 'every claim went the physical path (Activate), none from the map');
   for (const dir of ['east', 'west'] as const) {
     assert.ok(m[`claim-${dir}`] !== undefined && m[`claim-${dir}`] >= HOUR_CLAIM_AT[dir] && m[`claim-${dir}`] < HOUR_CLAIM_AT[dir] + 120, `${dir} claimed near ${HOUR_CLAIM_AT[dir] / 60}:00 (${m[`claim-${dir}`]})`);
+    assert.ok(m[`strung-${dir}`] !== undefined && m[`strung-${dir}`] <= m[`claim-${dir}`], `${dir}'s pole run stood before its Activate`);
     assert.ok(bot.claimed[dir] !== undefined && dirOf(st, hqIdx(st), bot.claimed[dir]!) === dir, `${dir} lies ${dir} of the HQ`);
     assert.ok(bot.log.walks.some(w => w.name === `walk-over ${dir}`), `the walk over to ${dir} was timed`);
   }

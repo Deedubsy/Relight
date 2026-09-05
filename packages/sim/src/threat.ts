@@ -25,7 +25,7 @@ import { passable, spendRound } from './walk';
 import { hurt, threatHooks, RETALIATE_HP_PER_S, RIFLE_RANGE, RIFLE_HIT_RADIUS, rifleRate } from './engineer';
 import { ENEMIES } from './enemies';
 import { TURRET_RANGE, TURRET_ROUNDS_PER_S } from './recipes';
-import { FlowState, faceSub, blockLights, litAt, TURRET_FLASH_S } from './flow';
+import { FlowState, faceSub, blockLights, litAt, TURRET_FLASH_S, machineRunning } from './flow';
 
 export const ROUND_DMG = TURRET.roundDmg;   // constants.ts (§7: 4 HP a round)
 export const CONTACT_R = 1.2, DANGER_R = 3, PATH_R = 0.9, EAT_R = 1.6, STUCK_S = 30;
@@ -243,7 +243,8 @@ function tick(st: SimState, dt: number): void {
     if (cd < -1) cd = -1;
     const cx = m.x + m.size / 2, cy = m.y + m.size / 2;
     const bi = G.near[m.y * tw + m.x];
-    while (cd <= 0 && (m.inv.rounds ?? 0) >= 1 - 1e-9 && bi >= 0 && st.blocks[bi].state === HELD) {
+    // RI-03: a turret fires where it runs — on its Held block, or on the claim front as a field device (flow.ts `running`)
+    while (cd <= 0 && (m.inv.rounds ?? 0) >= 1 - 1e-9 && bi >= 0 && machineRunning(st, m)) {
       const c = nearest(st, cs, cx, cy, TURRET_RANGE);
       if (!c) { cd = 0; break; }
       m.inv.rounds = Math.max(0, (m.inv.rounds ?? 0) - 1); m.out += 1; m.timer = TURRET_FLASH_S; f.stats.fired += 1;

@@ -39,7 +39,7 @@ const chest = (x: { steel: number; copper: number; coal: number; magazines: numb
 const n1 = (x: number) => x.toFixed(1);
 
 export const EHOUR: Experiment = {
-  id: 'E-hour', title: `§11's ${MIN}-minute hour on the tile layer (M6, RI-01)`,
+  id: 'E-hour', title: `§11's ${MIN}-minute hour on the tile layer (M6, RI-01; RI-03: the physical claim, the map claim beside it)`,
   run(ctx): ExperimentResult {
     const { seeds } = ctx;
     const sections: Section[] = [], checks: Check[] = [], data: Record<string, unknown> = {};
@@ -50,6 +50,9 @@ export const EHOUR: Experiment = {
     const steelMin: number[] = [], fell: number[] = [], brownout: number[] = [], endOk: boolean[] = [], northOk: boolean[] = [], railMargins: number[] = [];
     const ledgers: Record<string, Ledger> = {}, conserved: boolean[] = [];
     const goalRuns: GoalReplay[] = [];
+    // RI-03 (D-RI-2): the scored runs claim by the physical path — the pole run, the delivery at the substation, the
+    // explicit Activate — through the same commands a player sends; `physical` is red if any claim came from the map
+    const physical: boolean[] = [], physicalNote: string[] = [];
     for (const seed of seeds) {
       for (const rifle of [false, true]) {
         const st = hourCity(seed), bot = createHourBot(rifle, 'chest', NORTH_AT), log: LoggedCommand[] = [];
@@ -57,6 +60,9 @@ export const EHOUR: Experiment = {
         runHour(st, bot, HOUR_S, log);
         const r = hourReport(st, bot), key = `${seed}/${rifle ? 'rifle' : 'no-rifle'}`, on = rifle ? 'on' : 'off';
         reports[key] = r;
+        const activates = log.filter(c => c.c.type === 'activate').length, mapClaims = log.filter(c => c.c.type === 'claim').length, delivers = log.filter(c => c.c.type === 'deliver').length;
+        physical.push(mapClaims === 0 && activates === r.held - 1 && r.held >= 2);
+        physicalNote.push(`${key}: ${activates} Activate, ${delivers} deliver, ${mapClaims} map claim, ${r.held - 1} claims Held`);
         timeline.push([seed, on, ...MARKS.map(m => mmss(r.marks[m]))]);
         rows.push([seed, on, r.held, r.hqHeld ? 'yes' : 'no', r.turrets, r.generators, r.excavators, r.assemblers, r.magsMade, n1(r.walkedS / 60), n1(r.walkedPct) + ' %',
                    r.claimWalkS.toFixed(0), r.chestTrips, r.handFed, r.reachRefused, r.crawlers, r.shades, r.turretKills, r.rifleKills, r.brownoutS.toFixed(0), r.refused.length]);
@@ -124,6 +130,32 @@ export const EHOUR: Experiment = {
     sections.push({ title: 'E-hour-coal: D-P4-7 — Generator 2\'s coal, the first 20 minutes, rifle off',
       note: 'the game ships (b); (a) is measured with the chest\'s coal zeroed so Generator 2 waits for the coal Excavator\'s first 40 units',
       header: ['seed', 'plan', 'Generator 2', 'first brownout', 'brownout (s)', 'coal min', 'coal refusals'], rows: coalRows });
+    // RI-03 (D-RI-2): the legacy map claim — the benchmark's original claim path — stays beside the scored runs as the
+    // comparison: one rifle-off run per seed with the bot's `claimPath: 'map'`, the same city and clock. Not scored.
+    const legacyTimeline: (string | number)[][] = [], legacyRows: (string | number)[][] = [], legacyDelta: (string | number)[][] = [];
+    const CLAIM_MARKS = ['claim-east', 'held-east', 'claim-west', 'held-west', 'claim-north', 'held-north'];
+    for (const seed of seeds) {
+      const st = hourCity(seed), bot = createHourBot(false, 'chest', NORTH_AT, 'map');
+      ctx.log(`E-hour-legacy seed ${seed} (map claim)`);
+      runHour(st, bot, HOUR_S, []);
+      const r = hourReport(st, bot), p = reports[`${seed}/no-rifle`];
+      legacyTimeline.push([seed, 'map', ...MARKS.map(m => mmss(r.marks[m]))]);
+      legacyRows.push([seed, 'map', r.held, r.hqHeld ? 'yes' : 'no', r.turrets, r.generators, r.excavators, r.assemblers, r.magsMade, n1(r.walkedS / 60), n1(r.walkedPct) + ' %',
+                       r.claimWalkS.toFixed(0), r.chestTrips, r.handFed, r.reachRefused, r.crawlers, r.shades, r.turretKills, r.rifleKills, r.brownoutS.toFixed(0), r.refused.length]);
+      for (const m of CLAIM_MARKS) {
+        const a = p?.marks[m], b = r.marks[m];
+        legacyDelta.push([seed, m, mmss(a), mmss(b), a !== undefined && b !== undefined ? (a - b).toFixed(0) : '-']);
+      }
+    }
+    sections.push({ title: 'E-hour-legacy: the map claim beside the physical one (comparison, not scored) — §11\'s moments, rifle off',
+      note: 'RI-03 (D-RI-2): the scored runs above claim by the physical path (a pole run to the block\'s substation, the claim\'s steel and copper delivered there from the pockets, an explicit Activate within reach); this run is the benchmark\'s original map click, kept as the comparison. Both run the benchmark\'s configuration (economy off: the delivery is zero here; in the game the claim is 10 steel + 5 Cu at the substation).',
+      header: ['seed', 'claim', ...MARKS], rows: legacyTimeline });
+    sections.push({ title: `E-hour-legacy-end: the map-claim run's end state at ${MIN}:00, walking and the hands`,
+      header: ['seed', 'claim', 'held', 'HQ held', 'turrets', 'Generators', 'Excavators', 'Assemblers', 'line magazines', 'walked (min)', 'walked % (§19: 15)', 'claim walk-overs (s)', 'chest trips', 'hand-fed', 'reach refusals', 'crawlers', 'shades', 'turret kills', 'rifle kills', 'brownout (s)', 'refusals'], rows: legacyRows });
+    sections.push({ title: 'E-hour-legacy-delta: the claim moments, physical against map (rifle off)',
+      note: 'physical − map in seconds: the pole run, the delivery and the trip back for the kits are what the physical claim adds before the Activate',
+      header: ['seed', 'moment', 'physical', 'map', 'physical − map (s)'], rows: legacyDelta });
+    data.legacy = { rows: legacyRows, delta: legacyDelta };
     // RI-01 (D-HOUR-3, D-P4-10): north is the third claim, at constants.HOUR's 65:00 inside the 75-minute hour, on the
     // block-level hopper alone (D-P4-9: no turret is carried over); it is Held at 75:00 or the run is red. Before RI-01
     // this was a separate rifle-off run, measured and not scored (T1: "north at 60–75").
@@ -181,7 +213,8 @@ export const EHOUR: Experiment = {
     data.north = { held: northOk.filter(Boolean).length, of: northOk.length, northAt: NORTH_AT };
     const worstMargin = Math.min(...railMargins);
     data.passVerdict = { steelNeverZero: Math.min(...steelMin) >= 1, noFall: fell.every(x => x === 0), noBrownout: brownout.every(x => x === 0), endState: endOk.every(Boolean),
-                         northHeld: northOk.every(Boolean), railMargin: worstMargin >= 600, conserved: conserved.every(Boolean) };
+                         northHeld: northOk.every(Boolean), railMargin: worstMargin >= 600, conserved: conserved.every(Boolean), physical: physical.every(Boolean) };
+    checks.push(isTrue('RI-03 (D-RI-2): every claim on the scored runs by the physical path — an Activate at the substation per claim, no map claim', physical.every(Boolean), physicalNote.join(' | ')));
     checks.push(isTrue('D-P4-4: the chest\'s steel never at zero (worst run)', Math.min(...steelMin) >= 1, `minimum ${Math.min(...steelMin)} steel`));
     checks.push(isTrue('E-hour pass: no block falls on any run', fell.every(x => x === 0), `${fell.reduce((a, b) => a + b, 0)} falls across ${fell.length} runs`));
     checks.push(isTrue('§11: no brownout in the hour (every run)', brownout.every(x => x === 0), `worst ${Math.max(...brownout).toFixed(0)} s`));
@@ -194,6 +227,6 @@ export const EHOUR: Experiment = {
     checks.push(within('§19: walking at most 15 % of the hour (worst seed)', Math.max(...walkedPct), 0, 15, ' %'));
     checks.push(within('rework: the claim walk-overs under a minute of hour one (worst seed)', Math.max(...claimWalk), 0, 60, ' s'));
     checks.push(isTrue(`the HQ stands at ${MIN}:00 on every seed`, hqHeld.every(Boolean), `${hqHeld.filter(Boolean).length}/${hqHeld.length} runs`));
-    return { id: 'E-hour', title: EHOUR.title, pyNames: [], docRefs: ['§11', '§19', 'calibration'], setup: `river city, seeds ${seeds.join('/')}, hour bot, rifle off and on, ${MIN} min (constants.HOUR)`, sections, checks, data };
+    return { id: 'E-hour', title: EHOUR.title, pyNames: [], docRefs: ['§11', '§19', 'calibration'], setup: `river city, seeds ${seeds.join('/')}, hour bot on the physical claim path, rifle off and on, ${MIN} min (constants.HOUR); the map-claim bot beside it, rifle off`, sections, checks, data };
   },
 };

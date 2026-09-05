@@ -18,8 +18,10 @@ import { ROUNDS_PER_MAG } from './constants';
 import { Item, ITEMS, zeroItems, isItem, recipeOf, recipeOutput, REPAIR_COPPER, ensureFlow } from './flow';   // flow.ts imports openLedger back: only functions cross, at call time
 
 /** Where the items are, one column a place. */
-export type LedgerPlace = 'chest' | 'buffer' | 'ring' | 'pockets' | 'machines' | 'belts';
-export const LEDGER_PLACES: readonly LedgerPlace[] = ['chest', 'buffer', 'ring', 'pockets', 'machines', 'belts'];
+/** RI-03: `committed` is claim material delivered to a Dark block's installation and not yet activated (plan §4.3:
+ *  in an inventory, committed to a restoration stage, or consumed — never two of them). */
+export type LedgerPlace = 'chest' | 'buffer' | 'ring' | 'pockets' | 'machines' | 'belts' | 'committed';
+export const LEDGER_PLACES: readonly LedgerPlace[] = ['chest', 'buffer', 'ring', 'pockets', 'machines', 'belts', 'committed'];
 
 export interface Ledger {
   ok: boolean;
@@ -52,6 +54,7 @@ export function heldItems(st: SimState): { total: Record<Item, number>; where: R
   add('buffer', 'magazine', st.buffer / ROUNDS);
   for (const e of st.ring) if (!e.turrets) add('ring', 'magazine', e.hopper / ROUNDS);   // a stand-in edge's hopper; a turret edge's mirrors its turrets
   for (const k in st.engineer.inv) add('pockets', k, st.engineer.inv[k]);
+  for (const bi in f.delivered ?? {}) { add('committed', 'steel', f.delivered[bi].steel); add('committed', 'copper', f.delivered[bi].copper); }
   for (const m of f.machines) {
     for (const it of m.items) add('belts', it.k, 1);
     if (m.hold) add(m.kind === 'belt' ? 'belts' : 'machines', m.hold, 1);

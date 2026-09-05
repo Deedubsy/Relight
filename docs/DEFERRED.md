@@ -33,10 +33,15 @@ twenty-four "Re-read at …" sections) is `archive/pre-phase-5-cleanup/DEFERRED-
   RI-02's row and not built. Today no essential information travels by sound or colour
   alone (the machine status marks are shapes with words); final audio is Phase 12's.
   Nobody's task yet.
+- **The hour bot laying a claim's turrets from stock** (D-P4-9's other half, the
+  restoration from commit 6694b71; since RI-03, 2026-09-05). The field turret exists and
+  fires on the claim front; the benchmark bot placing turrets on each claim changes the
+  hour's balance, so it is a separate, visible decision for the human — RI-07's rerun is
+  the natural place.
 
 ## Scheduled — link only
 
-- Every front edge physical (restore from commit 6694b71) → **RI-03** (field deployment); the rest of T13 → **RI-09**.
+- Every front edge physical → built at **RI-03** (the field turret is placeable and fires on the claim front); the rest of T13 → **RI-09**.
 - D-P4-11 (the idle steel, the Mk2 purchase, the hand-feed) → measured by **T12b**, then
   the human's row.
 - The controls walkthrough's four STANDARDS rows (4.3 / B.3 / B.6 / C.2) → **T19** (now RI-08's human session).

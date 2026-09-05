@@ -214,9 +214,22 @@ test('placement: Held cells only, streets for belts and inserters, no rubble und
   const st = rich(fresh());
   const [sx, sy] = st.start;
   const steel0 = st.engineer.inv.steel, cu0 = st.engineer.inv.copper, stock0 = { ...st.stock };
-  // a Dark neighbour
+  // a Dark block away from Held ground takes nothing; RI-03 (plan §4.2): a Dark block next to Held ground takes the
+  // field kit (a belt, a pole, a turret) and never production (an Assembler)
   const dark = st.blocks.find(b => b.state === DARK && b.y < st.h - 1)!;
-  assert.equal(canPlace(st, 'belt', dark.x * CELL_TILES + 10, dark.y * CELL_TILES + 10).reason, 'the block is not Held');
+  assert.equal(canPlace(st, 'belt', dark.x * CELL_TILES + 10, dark.y * CELL_TILES + 10).reason, 'not next to Held ground');
+  assert.equal(canPlace(st, 'assembler', dark.x * CELL_TILES + 10, dark.y * CELL_TILES + 10).reason, 'the block is not Held');
+  const front = st.blocks[idxOf(st, sx, sy - 1)];
+  assert.equal(front.state, DARK);
+  const frontTile = (kind: 'belt' | 'assembler'): string => {
+    for (let ly = 0; ly < 12; ly++) for (let lx = 0; lx < 12; lx++) {
+      const r = canPlace(st, kind, front.x * CELL_TILES + MARGIN_TILES + lx, front.y * CELL_TILES + MARGIN_TILES + ly).reason;
+      if (r !== 'rubble in the way' && r !== 'another machine is there' && r !== 'the substation is there') return r;
+    }
+    return 'no free lot tile';
+  };
+  assert.equal(frontTile('belt'), '', 'a belt goes on the front block (field kit)');
+  assert.equal(frontTile('assembler'), 'the block is not Held', 'an Assembler does not');
   // the street margin of the start cell
   const street: [number, number] = [sx * CELL_TILES + 1, sy * CELL_TILES + 10];
   assert.equal(canPlace(st, 'belt', ...street).ok, true);

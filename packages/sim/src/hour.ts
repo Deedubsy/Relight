@@ -22,6 +22,7 @@ import { HQ_PATCHES, P_STEEL, DEPOT_LOT, DEPOT_TILES } from './tiles';
 import {
   Kind, Dir, Item, Machine, depotRect, chestCount, turretEdge, placeable, canPlace, canPickUp, rubbleAt, outputTile, machineAt, DX, DY, DIR_NAMES,
   MACHINE_SIZE, MACHINE_COST, GENERATOR_COAL_CAP, survivorJoined, advanceFlow, TILE_DT, TILE_TPS, ensureFlow, SHOT, START_TURRETS,
+  polePlan, claimNeed, deliveredTo, activationCheck, faceSub,
 } from './flow';
 import { threatActive, threatOf } from './threat';
 import { HOUR_CLAIM_MIN, HOUR_GENERATOR_MIN, HOUR_SHOT_LINE_MIN, HOUR_STEEL2_MIN, HOUR_COPPER2_MIN, HOUR_ASM3_MIN, HOUR_MINUTES } from './constants';
@@ -78,6 +79,10 @@ export interface HourBot {
   /** D-P4-7: where Generator 2's coal comes from — (b) the chest's 40 start coal, or (a) the coal Excavator's first
    *  units, waited for after its belt is laid (the harness runs both; the game ships (b)). */
   coalPlan: 'chest' | 'wait';
+  /** RI-03 (D-RI-2): how the bot claims — `physical` (string poles to the block's substation, deliver the claim's steel
+   *  and copper there, Activate within reach; the game's path) or `map` (the legacy map click, kept as E-hour's
+   *  comparison run and the benchmark's original configuration). */
+  claimPath: 'physical' | 'map';
   /** The hand-feed beat's last run (D-P4-8: a red pip on an HQ edge sends the bot to its turrets with the pockets). */
   lastFeed: number;
   /** The chest by the minute, for the steel curve (D-P4-4: report its minimum). */
@@ -594,15 +599,102 @@ function claimStep(bot: HourBot, dir: HourDir): Task[] {
         goto(`${dir}'s lot`, sx, sy, 1, `walk-over ${dir}`),
         act(`arrived on ${dir}`, st2 => { mark(bot, st2, `arrive-${dir}`); }),
         until(`${dir} Held and kitted`, st2 => kitted(st2, i), burnOffS(b.d) + 180),
-        act(`${dir} kitted`, st2 => {
-          if (kitted(st2, i)) { mark(bot, st2, `kitted-${dir}`); return; }
-          const mine = st2.ring.filter(e => e.a === i), un = mine.filter(e => e.kit === false);
-          if (un.length) refused(bot, st2, `kit ${dir}'s ring`, `${un.length} of ${mine.length} edges were born unkitted (${st2.engineer.inv.kit ?? 0} kits left) — a kit is spent at the instant an edge is born`);
-        }),
+        act(`${dir} kitted`, st2 => kittedNote(bot, st2, dir, i)),
         chest(`back from ${dir}`, st),
       ];
     }),
   ];
+}
+
+/** The kit wait's verdict: `kitted-<dir>`, or the edges born unkitted written down (a kit is spent at the instant an edge is born). */
+function kittedNote(bot: HourBot, st: SimState, dir: HourDir, i: number): void {
+  if (kitted(st, i)) { mark(bot, st, `kitted-${dir}`); return; }
+  const mine = st.ring.filter(e => e.a === i), un = mine.filter(e => e.kit === false);
+  if (un.length) refused(bot, st, `kit ${dir}'s ring`, `${un.length} of ${mine.length} edges were born unkitted (${st.engineer.inv.kit ?? 0} kits left) — a kit is spent at the instant an edge is born`);
+}
+
+/** RI-03 (plan §4.1, D-RI-2): the physical claim. Take the claim's steel and copper plus the poles' from the chest,
+ *  string a pole run to the direction's substation, deliver the materials there, go back for the kits, Activate within
+ *  reach of the substation, then the same walk-over and kit wait as the map path. Two chest trips: HOUR_KITS kits fill
+ *  the pockets (KIT_STACKS × HOUR_KITS = INV_STACKS), so the materials go first. Every command is one a player sends
+ *  (`chestTake`, `place`, `deliver`, `activate`); the map click charges nothing. */
+function physicalClaimStep(bot: HourBot, dir: HourDir): Task[] {
+  return [
+    act(`claim ${dir} (physical)`, st => {
+      const i = neighbourToward(st, dir);
+      if (i < 0) { refused(bot, st, `claim ${dir}`, 'no Dark candidate that way'); return; }
+      const b = st.blocks[i], sub = faceSub(st, i);
+      if (!sub) { refused(bot, st, `claim ${dir}`, 'no substation to deliver to (the outskirts need a Substation first)'); return; }
+      bot.claimed[dir] = i;
+      const need = claimNeed(st), poles = polePlan(st, i).length, spare = poles + 2;
+      note(bot, st, `${dir} = block ${i} (${b.name}, d ${b.d.toFixed(2)}, burn-off ${burnOffS(b.d).toFixed(0)} s): ${poles} pole(s) to string, ${need.steel} steel + ${need.copper} Cu to deliver`);
+      const deliver = (st2: SimState, out: Command[], item: 'steel' | 'copper'): void => {
+        const got = deliveredTo(st2, i), n = item === 'steel' ? need.steel - got.steel : need.copper - got.copper;
+        if (n > 0) out.push({ type: 'deliver', bx: b.x, by: b.y, item, n });
+      };
+      return [
+        takeTask(bot, { steel: need.steel + spare * MACHINE_COST.pole.steel, copper: need.copper + spare * MACHINE_COST.pole.copper }),
+        stringTask(bot, i, dir, 0),
+        goto(`${dir}'s substation`, sub.x, sub.y, sub.size, `deliver ${dir}`),
+        act(`deliver to ${dir}`, (st2, out) => { deliver(st2, out, 'steel'); deliver(st2, out, 'copper'); }),
+        act(`${dir} delivered`, st2 => {
+          const got = deliveredTo(st2, i);
+          note(bot, st2, `${got.steel} steel + ${got.copper} Cu delivered to ${dir}'s substation (needs ${need.steel} + ${need.copper})`);
+          if (got.steel < need.steel || got.copper < need.copper) refused(bot, st2, `deliver ${dir}'s materials`, `${got.steel} of ${need.steel} steel, ${got.copper} of ${need.copper} Cu delivered`);
+          else mark(bot, st2, `deliver-${dir}`);
+        }),
+        chest(`back for ${dir}'s kits`, st),
+        ...kitsTask(bot),
+        goto(`${dir}'s substation`, sub.x, sub.y, sub.size, `activate ${dir}`),
+        // a transient (a brownout second with no Generator burning) is waited out, up to a minute
+        until(`${dir} ready to activate`, st2 => activationCheck(st2, b.x, b.y).ok, 60),
+        act(`activate ${dir}`, (st2, out) => {
+          const chk = activationCheck(st2, b.x, b.y);
+          if (!chk.ok) { refused(bot, st2, `activate ${dir}`, chk.reason); return [chest(`back from ${dir}`, st2)]; }
+          out.push({ type: 'activate', bx: b.x, by: b.y });
+          mark(bot, st2, `claim-${dir}`);
+          const [sx, sy] = blockStand(st2, i), t0 = st2.t;
+          return [
+            goto(`${dir}'s lot`, sx, sy, 1, `walk-over ${dir}`),
+            act(`arrived on ${dir}`, st3 => {
+              mark(bot, st3, `arrive-${dir}`);
+              // the walk-over is timed like the map path's: an engineer who activated from the kerb and was already in reach of
+              // the lot (the runner logs no walk it never had to send) walked the seconds between the Activate and this arrival
+              if (!bot.log.walks.some(w => w.name === `walk-over ${dir}`)) bot.log.walks.push({ name: `walk-over ${dir}`, t0, t1: st3.t, tiles: 0 });
+            }),
+            until(`${dir} Held and kitted`, st3 => kitted(st3, i), burnOffS(b.d) + 180),
+            act(`${dir} kitted`, st3 => kittedNote(bot, st3, dir, i)),
+            chest(`back from ${dir}`, st2),
+          ];
+        }),
+      ];
+    }),
+  ];
+}
+
+/** RI-03: string the pole run one pole at a time — the plan is read off the state each time (the pole just placed is
+ *  the next start), the bot walks within reach and places it; a refusal (reach, cost, the tile) ends the run. A run
+ *  of twenty is a refusal (the plan never needs more than sixteen). */
+function stringTask(bot: HourBot, i: number, dir: HourDir, n: number): Task {
+  return act(n === 0 ? `string ${dir}` : `next pole to ${dir}`, st => {
+    const plan = polePlan(st, i);
+    if (!plan.length) {
+      if (n > 0) mark(bot, st, `strung-${dir}`);
+      note(bot, st, n > 0 ? `${n} pole(s) strung to ${dir}'s substation` : `${dir}'s substation is already on the grid`);
+      return;
+    }
+    if (n >= 20) { refused(bot, st, `string ${dir}`, `${n} poles placed and the run still does not reach`); return; }
+    const [px, py] = plan[0];
+    return [
+      goto('pole', px, py, 1, n === 0 ? `string ${dir}` : undefined),
+      act('place pole', (st2, out) => {
+        const chk = canPlace(st2, 'pole', px, py);
+        if (!chk.ok) { refused(bot, st2, `pole at (${px},${py}) for ${dir}`, chk.reason); return; }
+        out.push({ type: 'place', item: 'pole', x: px, y: py, dir: 0 });
+        return [stringTask(bot, i, dir, n + 1)];
+      }),
+    ];
+  });
 }
 
 /** The five-minute rounds run: magazines and coal from the chest, every turret and Generator at or under half topped up. */
@@ -642,8 +734,10 @@ export function hourSteps(bot: HourBot): HourStep[] {
       })];
   } });
   const claimMin = (dir: HourDir): number => dir === 'north' ? bot.northAt : HOUR_CLAIM_AT[dir];
-  const claimAt = (dir: HourDir): HourStep => ({ at: claimMin(dir), name: `§11 ${claimMin(dir) / 60}:00 — claim ${dir}`, tasks: st => [
-    chest('to the chest for kits', st), ...kitsTask(bot), ...claimStep(bot, dir)] });
+  // RI-03: the physical path (the game's) or the legacy map click (E-hour's comparison run)
+  const claimAt = (dir: HourDir): HourStep => ({ at: claimMin(dir), name: `§11 ${claimMin(dir) / 60}:00 — claim ${dir}`, tasks: st =>
+    bot.claimPath === 'physical' ? [chest('to the chest for the claim', st), ...physicalClaimStep(bot, dir)]
+                                 : [chest('to the chest for kits', st), ...kitsTask(bot), ...claimStep(bot, dir)] });
   const burnE = burnOffS(0.22);
   return [
     { at: 0, name: '§11 0:00 — to the steel patch, hand-mine 20 steel', tasks: st => {
@@ -707,9 +801,9 @@ export function hourSteps(bot: HourBot): HourStep[] {
 
 // ------------------------------------------------------------------ the bot
 
-export function createHourBot(rifle = false, coalPlan: 'chest' | 'wait' = 'chest', northAt = HOUR_CLAIM_AT.north): HourBot {
+export function createHourBot(rifle = false, coalPlan: 'chest' | 'wait' = 'chest', northAt = HOUR_CLAIM_AT.north, claimPath: 'physical' | 'map' = 'physical'): HourBot {
   const bot: HourBot = { rifle, log: { entries: [], marks: {}, walks: [], refused: [] }, steps: [], next: 0, queue: [], claimed: {}, lastRun: HOUR_RUN_FROM - HOUR_RUN_GAP, aiming: false, fellWhy: {}, handsOff: false, ticks: 0, fedAtFeedDone: -1,
-    coalPlan, lastFeed: -Infinity, stock: [], steelMin: Infinity, steelMinAt: -1, copperMin: Infinity, coalMin: Infinity, northAt, atFirstRed: null, coalZeroAt: -1 };
+    coalPlan, claimPath, lastFeed: -Infinity, stock: [], steelMin: Infinity, steelMinAt: -1, copperMin: Infinity, coalMin: Infinity, northAt, atFirstRed: null, coalZeroAt: -1 };
   bot.steps = hourSteps(bot).sort((a, b) => a.at - b.at);
   return bot;
 }

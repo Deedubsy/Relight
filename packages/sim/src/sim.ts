@@ -382,14 +382,16 @@ function wakeBloom(st: SimState, d: number, x: number, y: number): [number, numb
   return [2 * cr, 2 * sh, 2 * hu];
 }
 
-function recordBloom(st: SimState, i: number, cr: number, sh: number, hu: number, wake: boolean): void {
+function recordBloom(st: SimState, i: number, cr: number, sh: number, hu: number, wake: boolean, id?: number): void {
   const b = st.blocks[i];
   const rounds = cr * 3 + sh * 10, shells = hu * 10;
   st.totalRounds += rounds; st.totalShells += shells;
   const slot = st.t % 600;
   st.recentRounds[slot] += rounds; st.recentRoundsSum += rounds;
   st.recentShells[slot] += shells; st.recentShellsSum += shells;
-  st.events.push({ type: 'bloom', t: st.t, x: b.x, y: b.y, cr, sh, hu, wake });
+  const ev: SimEvent = { type: 'bloom', t: st.t, x: b.x, y: b.y, cr, sh, hu, wake };
+  if (id !== undefined) ev.id = id;   // RI-03: an activation's wake bloom carries its commissioning id
+  st.events.push(ev);
   if (!st.config.production) return;
   const ns = st.nb[i], B = st.blocks;
   let ne = 0;
@@ -657,9 +659,11 @@ function rubbleOf(name: District): 'stone' | 'copper' | 'steel' | null {
   return name === 'civ' ? 'stone' : name === 'res' ? 'copper' : name === 'ind' ? 'steel' : null;
 }
 
-/** Claim block (x, y). Bots call this with a valid candidate; the proto's click goes through the same checks. */
+/** The legacy map claim of block (x, y): a candidate (Dark next to Held), paid from the Depot chest's stock, Contested
+ *  at once. The block-level bots and the snapshot fixture call it; the harness's labelled legacy E-hour comparison
+ *  sends it. RI-03 (plan §4.1): the tile layer's one claim path is `activate` (flow.ts) — the game's map view no
+ *  longer sends `claim`; selecting a Dark block there charges nothing. Both paths end in `startContested`. */
 export function claim(st: SimState, x: number, y: number): boolean {
-  const t = st.t;
   if (!inBounds(st, x, y)) return reject(st, x, y, 'out of bounds');
   const i = idxOf(st, x, y);
   if (!isCandidate(st, i)) return reject(st, x, y, st.blocks[i].state === DARK ? 'not adjacent to a Held block' : 'not Dark');
@@ -669,7 +673,16 @@ export function claim(st: SimState, x: number, y: number): boolean {
     st.stock.copper -= c.copper; st.stock.steel -= c.steel;
     st.stats.spentCopper = (st.stats.spentCopper ?? 0) + c.copper; st.stats.spentSteel = (st.stats.spentSteel ?? 0) + c.steel;   // ?? 0: a pre-RI-01 snapshot
   }
-  const b = st.blocks[i];
+  startContested(st, i, 'map');
+  return true;
+}
+
+/** RI-03: the one Contested start both paths share — the wake bloom (§5 step 3, once: the commissioning event's
+ *  configured response), the burn-off timer (§5 step 4), the claim counters and the `claim` event. The caller has
+ *  checked the prerequisites and taken the payment; `id` is an activation's commissioning id, stamped on the claim
+ *  event and its wake bloom so telemetry shows one response per attempt and never a bloom and an encounter twice. */
+export function startContested(st: SimState, i: number, via: 'map' | 'activate', id?: number): void {
+  const t = st.t, b = st.blocks[i], x = b.x, y = b.y;
   const F = frontage(st), I = interior(st);
   // GAME-ASSUMPTION: the claim event's F/I "after" are projections at claim time (as if the block were Held now),
   // not the values when it actually turns Held; the brief's telemetry does not say which.
@@ -677,16 +690,17 @@ export function claim(st: SimState, x: number, y: number): boolean {
   catchUp(st, b, t);
   const [cr, sh, hu] = wakeBloom(st, b.d, x, y);
   const dBefore = b.d;
-  recordBloom(st, i, cr, sh, hu, true);
+  recordBloom(st, i, cr, sh, hu, true, id);
   b.state = CONTESTED; b.contestUntil = t + burnOffS(b.d);   // §5 step 4: 20 + 60·d s of burn-off [sim: B-M5-light]
   b.awake = false;
   const retake = st.fallen[i];
   if (retake) st.stats.retakes++;
   st.stats.claims++;
   stateChange(st, i);
-  st.events.push({ type: 'claim', t, x, y, district: b.name, well: b.well, d: dBefore,
-                   fBefore: F, fAfter, iBefore: I, iAfter, retake, cr, sh, hu });
-  return true;
+  const ev: SimEvent = { type: 'claim', t, x, y, district: b.name, well: b.well, d: dBefore,
+                         fBefore: F, fAfter, iBefore: I, iAfter, retake, cr, sh, hu, via };
+  if (id !== undefined) ev.id = id;
+  st.events.push(ev);
 }
 
 function reject(st: SimState, x: number, y: number, reason: string): boolean {

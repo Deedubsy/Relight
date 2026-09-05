@@ -201,7 +201,8 @@ export function frame(s: Session, realDt: number): SimEvent[] {
   s.realElapsed += realDt;
   const cmds = s.pending;
   s.pending = [];
-  const playerClaims = new Set(cmds.filter(c => c.type === 'claim').map(c => `${(c as { x: number }).x},${(c as { y: number }).y}`));
+  const playerClaims = new Set(cmds.filter(c => c.type === 'claim' || c.type === 'activate')
+    .map(c => c.type === 'activate' ? `${c.bx},${c.by}` : `${(c as { x: number }).x},${(c as { y: number }).y}`));   // RI-03: the Activate is the game's claim
   let playerBuilds = cmds.filter(c => c.type === 'addAssembler').length;   // player commands are applied first, in order
   if (s.bot) botCommands(s.state, s.bot, cmds);   // player commands first, then the bot's (dev aid only)
   if (s.bot && s.state.flow) botHands(s.state);   // M3: the bot hand-feeds turrets and Generators from the Depot

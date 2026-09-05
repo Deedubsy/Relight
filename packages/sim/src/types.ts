@@ -192,15 +192,25 @@ export type Command =
   | { type: 'feed'; x: number; y: number }          // E on a turret / Generator: magazines / coal from the pockets
   | { type: 'repair'; x: number; y: number }        // E on an eaten lamp: 1 Cu from the pockets
   | { type: 'rotate'; x: number; y: number }        // R on a machine
-  | { type: 'setRecipe'; x: number; y: number; recipe: string };   // RI-01: T on an Assembler — one of flow.ts RECIPE_IDS
+  | { type: 'setRecipe'; x: number; y: number; recipe: string }    // RI-01: T on an Assembler — one of flow.ts RECIPE_IDS
+  // RI-03 (plan §4.1): physical commissioning. `deliver` moves claim materials from the pockets into a Dark block's
+  // installation (its substation, within reach); `activate` is the explicit Activate on it — the only thing that
+  // starts Contested on the tile layer. Block coordinates (bx, by), unlike the tile commands above. The block-level
+  // `claim` above is the legacy map claim (the lattice bots, the snapshot fixture, the labelled legacy E-hour run).
+  | { type: 'deliver'; bx: number; by: number; item: string; n: number }
+  | { type: 'activate'; bx: number; by: number };
 
 export type SimEvent =
   | { type: 'claim'; t: number; x: number; y: number; district: District; well: boolean; d: number;
       fBefore: number; fAfter: number; iBefore: number; iAfter: number; retake: boolean;
-      cr: number; sh: number; hu: number }
+      cr: number; sh: number; hu: number;
+      /** RI-03: which path started Contested — the legacy map claim or a physical activation — and, for an
+       *  activation, its commissioning id (one per attempt; the wake bloom it fires carries the same id). */
+      via: 'map' | 'activate'; id?: number }
   | { type: 'claim-rejected'; t: number; x: number; y: number; reason: string }
+  | { type: 'activate-rejected'; t: number; x: number; y: number; id: number; reason: string }   // RI-03: an Activate attempt refused, with the prerequisite it lacked
   | { type: 'held'; t: number; x: number; y: number; facility: string | null; survivor: string | null; unlocks: string[] }   // unlocks (prompt B M3): what the survivor group puts on the toolbar
-  | { type: 'bloom'; t: number; x: number; y: number; cr: number; sh: number; hu: number; wake: boolean }
+  | { type: 'bloom'; t: number; x: number; y: number; cr: number; sh: number; hu: number; wake: boolean; id?: number }   // id (RI-03): the activation's commissioning id on its wake bloom
   | { type: 'fall'; t: number; x: number; y: number; reason: string; delay: number; starved: string }   // delay: s from first unfed arrival (-1 none); starved: district of the empty edge's dark block ('-' none)
   | { type: 'sub-off'; t: number; x: number; y: number }
   | { type: 'sub-on'; t: number; x: number; y: number }
