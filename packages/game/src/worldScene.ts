@@ -23,7 +23,7 @@ import {
   TILE_PX, RUBBLE_VARIANTS, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
   ground, chunkTiles, chunkKey, CHUNK, describeGround, blockOfTile, inReach, depotRect, REACH, INV_STACKS, invStacks, currentPath,
   Kind, Dir, DX, DY, DIR_NAMES, Machine, MACHINE_SIZE, SHOT, EXCAVATOR_PER_S,
-  machineAt, rubbleAt, canPlace, place, remove, canPickUp, costStr, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
+  machineAt, powered, rubbleAt, canPlace, place, remove, canPickUp, costStr, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
   handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
   POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST, segBetween, cityGeomOf, CityGeom, pipOf, edgeCap,
   lockReason, KIND_LABEL, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH,
@@ -74,7 +74,8 @@ const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
  *  a paler copper, frame a paler steel, board green) until the art pass. */
 const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a, wire: 0xf0a86a, frame: 0xb4c6e8, board: 0x5fae6a };
 const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a,
-  turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a };
+  turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a,
+  chest: 0x4a4636, track: 0x3a3c44, tramstop: 0x3f4a5e, tram: 0xb0572a };   // RI-05: the supply chest and the rail kit (flat colours until the art pass)
 const LIGHT_COL = 0xffe9a0;
 /** M5 light map. GAME-ASSUMPTION: the unlit texel is a multiply of ~25 % with a cool cast (§4's "desaturated and
  *  darkened to ~25 %" — a multiply cannot desaturate, so the cast stands in for it until the Phase 12 art pass);
@@ -87,7 +88,7 @@ const UNLIT_RGB = [62, 66, 98], LIGHT_REFRESH_MS = 125, SWEEP_R = 16;
 const LIGHT_SOFT = 0.7;
 /** Layout pass, drawing only: the machines whose footprint is a box, so they take the common drop shadow and rim.
  *  Belts, inserters and the posts are not boxes — a rim per tile would draw a ladder down a belt run. */
-const BOX_MACHINE = new Set(['turret', 'floodlight', 'generator', 'excavator', 'assembler', 'bigpole']);
+const BOX_MACHINE = new Set(['turret', 'floodlight', 'generator', 'excavator', 'assembler', 'bigpole', 'chest', 'tramstop']);   // RI-05: the chest and the stop are boxes too
 /** D-B5-1's hand lamp, drawing only: a 2-tile disc on the engineer in the light map when the human takes it (`?handlamp=1`). */
 const HAND_LAMP_R = 2;
 
@@ -98,14 +99,17 @@ export type Tool = 'hand' | 'rifle' | Exclude<Kind, 'depot'>;
  *  digits — 0 Floodlight, [ Big pole, ] Substation — and answer with why they are locked until the group joins. */
 export const HOTBAR: readonly Tool[] = ['belt', 'inserter', 'excavator', 'assembler', 'turret', 'lamp', 'pole', 'generator', 'rifle'];
 /** GAME-ASSUMPTION: the Electricians' unlocks sit on 0, [ and ] (§4 gives the hotbar 1–9; - and = are the speed keys). */
-export const UNLOCK_KEYS: Readonly<Record<string, Tool>> = { '0': 'floodlight', '[': 'bigpole', ']': 'substation' };
-export const TOOL_KEY_LINE = '1 belt · 2 inserter · 3 Excavator · 4 Assembler · 5 turret · 6 lamp · 7 pole · 8 Generator · 9 rifle · 0 / [ / ] Floodlight / Big pole / Substation (Electricians) · B build menu · R rotate · T recipe (on an Assembler) · Q pipette / clear hand · E interact · right-click removes (empty hand) or clears the hand';
+export const UNLOCK_KEYS: Readonly<Record<string, Tool>> = { '0': 'floodlight', '[': 'bigpole', ']': 'substation',
+  'c': 'chest', 'l': 'track', 'h': 'tramstop', 'v': 'tram' };   // RI-05: the supply chest and the rail kit (the rail yard's restoration unlocks the kit; the chest is in the field kit)
+export const TOOL_KEY_LINE = '1 belt · 2 inserter · 3 Excavator · 4 Assembler · 5 turret · 6 lamp · 7 pole · 8 Generator · 9 rifle · 0 / [ / ] Floodlight / Big pole / Substation (Electricians) · B build menu · R rotate · T recipe (on an Assembler) · Q pipette / clear hand · E interact · right-click removes (empty hand) or clears the hand · C / L / H / V Supply chest / Track / Tram stop / Tram (the rail yard\'s restoration unlocks the kit; RI-05)';
 
 export interface WorldHooks {
   onHoverText(text: string | null, px: number, py: number): void;
   onToast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
   /** E on the Depot: open the chest (the pockets panel). */
   onChest(): void;
+  /** RI-05: E on a Supply chest or a Tram stop within reach — the pockets, targeted at it (chestTake / chestPut at). */
+  onChestAt(x: number, y: number): void;
 }
 
 interface Chunk { key: string; frames: Uint8Array }
@@ -370,7 +374,7 @@ export class WorldScene extends Phaser.Scene {
     if (!st.flow) return false;
     const slot = '123456789'.indexOf(k);
     if (slot >= 0) { this.setTool(HOTBAR[slot]); return true; }
-    const unlock = UNLOCK_KEYS[k];
+    const unlock = UNLOCK_KEYS[k] ?? UNLOCK_KEYS[lower];   // RI-05: the letters
     if (unlock) {
       // prompt B M3: a locked unlock says who unlocks it (rule 8) and stays out of the hand
       const lock = lockReason(st, unlock as Kind);
@@ -474,6 +478,7 @@ export class WorldScene extends Phaser.Scene {
     if (m) {
       if (!this.reachable(m.x, m.y, m.size, true)) return;
       if (m.kind === 'depot') { this.hooks.onChest(); return; }
+      if (m.kind === 'chest' || m.kind === 'tramstop') { this.hooks.onChestAt(m.x, m.y); return; }   // RI-05: the pockets talk to it
       this.hooks.onToast(`${this.statusLine(m)} · ${describeMachine(st, m)}`);
       return;
     }
@@ -1138,6 +1143,17 @@ export class WorldScene extends Phaser.Scene {
     else if (kind !== 'turret' && kind !== 'substation') this.arrow(g, gcx, gcy, this.dir, size * HALF - 4, col, 0.9);
   }
 
+  /** RI-05: a pool's contents as item-coloured squares, one per ten items (rounded up), at most perRow × rows. */
+  private itemSquares(g: Phaser.GameObjects.Graphics, pool: Record<string, number> | undefined, x: number, y: number, perRow: number, rows: number): void {
+    if (!pool) return;
+    let n = 0;
+    for (const [k, v] of Object.entries(pool)) {
+      for (let i = 0; i < Math.ceil(v / 10) && n < perRow * rows; i++, n++) {
+        g.fillStyle(ITEM_COL[k] ?? 0xffffff, 1); g.fillRect(x + (n % perRow) * 9, y + Math.floor(n / perRow) * 9, 7, 7);
+      }
+    }
+  }
+
   private arrow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, dir: Dir, len: number, col: number, alpha = 1): void {
     const dx = DX[dir], dy = DY[dir], px = -dy, py = dx;   // perpendicular
     const tipx = cx + dx * len, tipy = cy + dy * len, base = len * 0.45, w = 6;
@@ -1246,6 +1262,48 @@ export class WorldScene extends Phaser.Scene {
           break;
         }
         case 'substation': { g.lineStyle(1.5, 0x8a8f9a, 0.6); g.strokeRect(px + 4, py + 4, sz - 8, sz - 8); break; }
+        // RI-05: the supply chest and the rail kit. A Track tile draws sleepers and two rails along the axis of its
+        // track neighbours (a lone tile along its facing; a junction both — it voids the route, and reads as a cross);
+        // a Tram stop is a 2×2 slab with a platform stripe (amber while powered, grey unpowered) on each side that
+        // touches track, its platform's items as squares on the left and its arrivals' on the right; a Tram is a
+        // one-tile car with a heading arrow and its cargo as squares; a Supply chest a 2×2 box with a lid line and
+        // its contents as squares (one square per ten items). GAME-ASSUMPTION: drawing only.
+        case 'track': {
+          const isTrack = (x: number, y: number) => machineAt(st, x, y)?.kind === 'track';
+          const v = isTrack(m.x, m.y - 1) || isTrack(m.x, m.y + 1), hz = isTrack(m.x - 1, m.y) || isTrack(m.x + 1, m.y);
+          const axisV = v || (!hz && m.dir % 2 === 0), axisH = hz || (!v && m.dir % 2 === 1);
+          const q = TILE_PX / 4, o = TILE_PX / 8;
+          if (axisV) { g.fillStyle(MACHINE_COL.track, 1); for (let k = 0; k < 4; k++) g.fillRect(px + o, py + o + k * q, TILE_PX - 2 * o, 3); g.fillStyle(0x9aa3b8, 1); g.fillRect(px + q, py, 3, TILE_PX); g.fillRect(px + TILE_PX - q - 3, py, 3, TILE_PX); }
+          if (axisH) { g.fillStyle(MACHINE_COL.track, 1); for (let k = 0; k < 4; k++) g.fillRect(px + o + k * q, py + o, 3, TILE_PX - 2 * o); g.fillStyle(0x9aa3b8, 1); g.fillRect(px, py + q, TILE_PX, 3); g.fillRect(px, py + TILE_PX - q - 3, TILE_PX, 3); }
+          break;
+        }
+        case 'tramstop': {
+          g.fillStyle(MACHINE_COL.tramstop, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+          const isTrack = (x: number, y: number) => machineAt(st, x, y)?.kind === 'track', t = 6;
+          g.fillStyle(powered(st, m) ? 0xe8c96a : 0x6a6f7a, 1);
+          if (isTrack(m.x, m.y - 1) || isTrack(m.x + 1, m.y - 1)) g.fillRect(px + 4, py + 2, sz - 8, t);
+          if (isTrack(m.x, m.y + 2) || isTrack(m.x + 1, m.y + 2)) g.fillRect(px + 4, py + sz - 2 - t, sz - 8, t);
+          if (isTrack(m.x - 1, m.y) || isTrack(m.x - 1, m.y + 1)) g.fillRect(px + 2, py + 4, t, sz - 8);
+          if (isTrack(m.x + 2, m.y) || isTrack(m.x + 2, m.y + 1)) g.fillRect(px + sz - 2 - t, py + 4, t, sz - 8);
+          this.itemSquares(g, m.inv, px + 12, py + 14, 3, 3);                 // the platform: waiting for a tram
+          this.itemSquares(g, m.cargo, px + sz / 2 + 6, py + 14, 3, 3);       // the arrivals: unloaded, for an inserter
+          break;
+        }
+        case 'tram': {
+          g.fillStyle(0x05070d, 0.5); g.fillRect(px + 5, py + 7, TILE_PX - 6, TILE_PX - 8);
+          g.fillStyle(MACHINE_COL.tram, 1); g.fillRect(px + 3, py + 5, TILE_PX - 6, TILE_PX - 10);
+          g.lineStyle(2 / zoom, 0xf0d0a0, 0.9); g.strokeRect(px + 3, py + 5, TILE_PX - 6, TILE_PX - 10);
+          this.arrow(g, cx, cy, m.dir, TILE_PX / 2 - 5, 0xfff0d0, 0.9);
+          this.itemSquares(g, m.cargo, px + 8, py + 9, 4, 2);
+          break;
+        }
+        case 'chest': {
+          g.fillStyle(MACHINE_COL.chest, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+          g.lineStyle(2, 0x2c2a20, 1); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12);
+          g.fillStyle(0x7a7050, 1); g.fillRect(px + 6, py + Math.floor(sz / 3), sz - 12, 3);   // the lid line
+          this.itemSquares(g, m.inv, px + 12, py + Math.floor(sz / 3) + 8, 6, 3);
+          break;
+        }
         case 'generator': {
           const coal = m.inv.coal ?? 0;
           g.fillStyle(MACHINE_COL.generator, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);

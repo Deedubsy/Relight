@@ -12,7 +12,7 @@ import {
   TILE_TPS, TILE_DT, TURRET_HOPPER, TURRET_ROUNDS_PER_S, GENERATOR_KW, COAL_MJ, START_COAL, START_CHEST_COAL, START_TURRETS, SHOT, LAMP_RADIUS, POLE_REACH, MACHINE_KW,
   Machine, SimState, SimEvent, citySpec, hqIdx,
   cityGeomOf, segBetween, segLength, TURRET_PER_TILES, canPickUp,
-  lockReason, unlockedKinds, survivorJoined, faceSub, blockLights, hqLot, ground, machineAt, step as blockStep, claimNeed, activationCheck, deliverTo, activate,
+  lockReason, unlockedKinds, survivorJoined, KINDS, RAIL_ROUTE_KINDS, faceSub, blockLights, hqLot, ground, machineAt, step as blockStep, claimNeed, activationCheck, deliverTo, activate,
   FLOODLIGHT_KW, FLOODLIGHT_RANGE, BIG_POLE_REACH, SURVIVOR_UNLOCKS,
 } from '../src/index';
 
@@ -425,7 +425,7 @@ test("unlocks: the Electricians' Floodlight, Big pole and Substation are locked 
     assert.deepEqual(held.unlocks, ['Floodlight', 'Big pole', 'Substation']);
     assert.equal(st.blocks[bi].state, HELD);
     for (const k of SURVIVOR_UNLOCKS.Electricians) assert.equal(lockReason(st, k), '', `seed ${seed}: ${k} unlocked`);
-    assert.equal(unlockedKinds(st).length, 12);
+    assert.equal(unlockedKinds(st).length, KINDS.length - RAIL_ROUTE_KINDS.length);   // RI-05: everything but the rail kit, which the rail-yard project grants
     // the block falls: the group has walked into the Depot (§11) — the toolbar keeps the rows
     st.blocks[bi].state = DARK; st.fallen[bi] = true;
     assert.equal(survivorJoined(st, 'Electricians'), true);

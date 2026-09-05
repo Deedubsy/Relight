@@ -186,8 +186,9 @@ export type Command =
   | { type: 'pickUp'; x: number; y: number }
   | { type: 'fire'; edge: number }                    // -1 = cease fire
   | { type: 'enterTruck' }
-  | { type: 'chestTake'; item: string; n: number }
-  | { type: 'chestPut'; item: string; n: number }
+  // RI-05: `x`/`y` name a supply chest or a tram stop within reach (plan §5.2's named installation); absent = the Depot
+  | { type: 'chestTake'; item: string; n: number; x?: number; y?: number }
+  | { type: 'chestPut'; item: string; n: number; x?: number; y?: number }
   // M6: the scene's remaining direct calls as commands, so a played session's log replays whole (hour.ts `replay`)
   | { type: 'feed'; x: number; y: number }          // E on a turret / Generator: magazines / coal from the pockets
   | { type: 'repair'; x: number; y: number }        // E on an eaten lamp: 1 Cu from the pockets
@@ -198,7 +199,13 @@ export type Command =
   // starts Contested on the tile layer. Block coordinates (bx, by), unlike the tile commands above. The block-level
   // `claim` above is the legacy map claim (the lattice bots, the snapshot fixture, the labelled legacy E-hour run).
   | { type: 'deliver'; bx: number; by: number; item: string; n: number }
-  | { type: 'activate'; bx: number; by: number };
+  | { type: 'activate'; bx: number; by: number }
+  // RI-05 (plan §5): commission a ready non-claim project (project.ts) — the supply depot on a Held block; the
+  // rail-yard project commissions through `activate` above (its site's claim is its commissioning)
+  | { type: 'commission'; id: string };
+
+/** RI-05 (plan §5.1): a neighbourhood project's stage, derived from the site's real prerequisites (project.ts). */
+export type ProjectStage = 'discovered' | 'preparing' | 'ready' | 'commissioning' | 'restored' | 'interrupted';
 
 export type SimEvent =
   | { type: 'claim'; t: number; x: number; y: number; district: District; well: boolean; d: number;
@@ -232,6 +239,7 @@ export type SimEvent =
   | { type: 'lamp-eaten'; t: number; x: number; y: number; tx: number; ty: number }    // M4: a crawler put a lit lamp out on block (x,y)
   | { type: 'arrival'; t: number; x: number; y: number; n: number; of: number; shade: boolean }   // M4: the 1st and every 10th unshot arrival at a block's substation (n of the 40)
   | { type: 'well-dead'; t: number; x: number; y: number }
+  | { type: 'project'; t: number; id: string; stage: ProjectStage; site: number; attempt: number }   // RI-05: a project changed stage (site = its block index; attempt = the commissioning id, -1 none)
   | { type: 'stalker'; t: number; id: number; what: 'guard' | 'investigate' | 'pursue' | 'attack' | 'return' | 'spawn' | 'hit' | 'dodged' | 'dead' | 'retired'; x: number; y: number; site: number }   // RI-04: a Stalker changed mode, swung, died or retired (x,y its tile; site its block index)
   | { type: 'hour'; t: number; row: HourRow };
 

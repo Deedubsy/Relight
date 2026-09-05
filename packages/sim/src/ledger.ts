@@ -60,6 +60,7 @@ export function heldItems(st: SimState): { total: Record<Item, number>; where: R
     if (m.hold) add(m.kind === 'belt' ? 'belts' : 'machines', m.hold, 1);
     if (m.kind === 'turret') add('machines', 'magazine', (m.inv.rounds ?? 0) / ROUNDS);
     else { for (const k in m.inv) add('machines', k, m.inv[k]); if (m.out > 0) add('machines', m.kind === 'assembler' ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
+    if (m.cargo) for (const k in m.cargo) add('machines', k, m.cargo[k]);   // RI-05: a tram's load, a stop's arrivals
   }
   const total = zeroItems();
   for (const p of LEDGER_PLACES) for (const k of ITEMS) total[k] += where[p][k];

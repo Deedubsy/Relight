@@ -60,16 +60,16 @@ during the cleanup (T11a) and again during RI-01 (every row, the same day).
 
 | command | what | last run (2026-09-05) |
 |---|---|---|
-| `npm test` | node:test across sim / harness / tools (145 tests) | RI-04: 145 pass (133 + `emergence.test.ts`'s 4 + `stalker.test.ts`'s 8) |
-| `npm run typecheck` | `tsc --strict` on every package, then the game build | RI-04: green, including the Vite game build |
-| `npm run lint` | eslint on sim, harness, tools | RI-04: green |
-| `npm run docsync:check` | the design doc's generated tables and guarded prose sentences match `packages/sim` (`npm run docsync` regenerates); every `[play: <gate>]` tag names a recorded gate | RI-04: green (~3 s) |
-| `npm run freshness:check` | every generated file's `source_commit` is an ancestor of HEAD and its `config_hash` current | RI-04: green (~4 s; the experiments stamped `9d6a172`, RI-03's commit, the run preceding RI-04's) |
-| `npm run snapshot:check` | `packages/game/public/snapshots/b-compact-seed3.json` still reproduces | RI-04: green, unchanged |
-| `npm run experiments` | E1–E9, E-hour, E-rifle, E-variance, E-walk → `docs/EXPERIMENTS.md` (a red experiment is a red build) | RI-04: 13 experiments, 0 failing, 296 s (`E-hour` 19/19, `E-rifle` 16/16 with `E-rifle-cand-stalker`) |
+| `npm test` | node:test across sim / harness / tools (148 tests) | RI-05: 148 pass (145 + `project.test.ts`'s 3) |
+| `npm run typecheck` | `tsc --strict` on every package, then the game build | RI-05: green, including the Vite game build |
+| `npm run lint` | eslint on sim, harness, tools | RI-05: green |
+| `npm run docsync:check` | the design doc's generated tables and guarded prose sentences match `packages/sim` (`npm run docsync` regenerates); every `[play: <gate>]` tag names a recorded gate | RI-05: green (~3 s) |
+| `npm run freshness:check` | every generated file's `source_commit` is an ancestor of HEAD and its `config_hash` current | RI-05: green (~4 s; the experiments stamped `24bc007`, RI-04's commit, the run preceding RI-05's) |
+| `npm run snapshot:check` | `packages/game/public/snapshots/b-compact-seed3.json` still reproduces | RI-05: green, unchanged |
+| `npm run experiments` | E1–E9, E-hour, E-rifle, E-variance, E-walk, E-project → `docs/EXPERIMENTS.md` (a red experiment is a red build) | RI-05: 14 experiments, 0 failing, 369 s (`E-project` 10/10, `E-hour` 19/19, `E-rifle` 16/16) |
 | `npm run calibrate -- --out docs/experiments/calibration.json --md docs/experiments/calibration.md` | the bot calibration | not run |
 | `npm run seeds`, `npm run section18`, `npm run replay`, `npm run nightly` | seed images, §18 images, hour replay, the nightly runs | not run |
-| `npm run dev` / `npm run build` | the game (`packages/game`, Vite) | RI-04: the game build green inside `npm run typecheck`; no browser check this task either (RI-02's Playwright check at 1280×720 and 1920×1080 is the last) |
+| `npm run dev` / `npm run build` | the game (`packages/game`, Vite) | RI-05: the game build green inside `npm run typecheck`; no browser check this task either (RI-02's Playwright check at 1280×720 and 1920×1080 is the last) |
 
 Do not invent commands. Do not claim a command ran if it was only inspected; report the
 actual output, including a red result. The Playwright soak (verification pass only) runs

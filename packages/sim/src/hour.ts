@@ -12,8 +12,8 @@
  *  rifle matter" row). The bot is a dev aid: not a player control, never on by default (`?autoplay=hour`). */
 import { SimState, Command, HELD, DARK } from './types';
 import { hqIdx, RIFLE_RANGE, INV_STACKS, KIT_STACKS, invStacks, invCap } from './engineer';
-import { ground, hqLot, inReach, Ground } from './ground';
-import { LOT_TILES } from './tiles';
+import { ground, hqLot, inReach, Ground, blockOfTile } from './ground';
+import { LOT_TILES, MARGIN_TILES } from './tiles';
 import { findPath, passable } from './walk';
 import { burnOffS, isCandidate } from './sim';
 import { pipOf, edgeCap } from './queries';
@@ -22,8 +22,9 @@ import { HQ_PATCHES, P_STEEL, DEPOT_LOT, DEPOT_TILES } from './tiles';
 import {
   Kind, Dir, Item, Machine, depotRect, chestCount, turretEdge, placeable, canPlace, canPickUp, rubbleAt, outputTile, machineAt, DX, DY, DIR_NAMES,
   MACHINE_SIZE, MACHINE_COST, GENERATOR_COAL_CAP, survivorJoined, advanceFlow, TILE_DT, TILE_TPS, ensureFlow, SHOT, START_TURRETS,
-  polePlan, claimNeed, deliveredTo, activationCheck, faceSub,
+  polePlan, claimNeed, deliveredTo, activationCheck, faceSub, lockReason, tramAt, poolStr,
 } from './flow';
+import { projectOf, commissionCheck, describeProject, RAIL_YARD_PROJECT, SUPPLY_DEPOT_PROJECT, SUPPLY_DEPOT_NEED } from './project';
 import { threatActive, threatOf } from './threat';
 import { HOUR_CLAIM_MIN, HOUR_GENERATOR_MIN, HOUR_SHOT_LINE_MIN, HOUR_STEEL2_MIN, HOUR_COPPER2_MIN, HOUR_ASM3_MIN, HOUR_MINUTES } from './constants';
 
@@ -95,6 +96,11 @@ export interface HourBot {
   atFirstRed: { t: number; spawned: number; arrivals: number } | null;
   /** M6 check: when the chest's coal first read zero (-1: never). */
   coalZeroAt: number;
+  /** RI-05: how the rail yard's coal reaches the Depot — `belt` (E-hour's line, the benchmark) or `tram` (E-project:
+   *  the restoration's reward laid as one track, two stops and one tram, and the local depot supplied by it). */
+  route: 'belt' | 'tram';
+  /** RI-05: the tram route as laid (`tramLine`), for the depot-supply step and the report. */
+  tram: TramPlan | null;
 }
 
 /** GAME-ASSUMPTION (M6): the bot's numbers where §11 gives none — 20 steel hand-mined (ten magazines' worth), ten
@@ -267,12 +273,23 @@ function put(bot: HourBot, kind: Kind, lx: number, ly: number, dir: Dir): Task[]
 }
 
 /** RI-01: `put` at an absolute tile — a claim's lot or the street between it and the HQ. */
+/** A hand action that must run within reach of a tile (the sim drops a hand command out of reach without a word — a
+ *  walk still under way from an earlier goto can carry the engineer past the tile between the goto's check and the
+ *  action's tick): out of reach, it stops the walk, walks back and tries again, up to three times (RI-05). */
+function within(bot: HourBot, label: string, tx: number, ty: number, size: number, fn: (st: SimState, out: Command[]) => void, tries = 0): Task[] {
+  return [goto(label, tx, ty, size), act(label, (st2, out) => {
+    if (inReach(st2, tx, ty, size)) { fn(st2, out); return; }
+    if (tries >= 3) { refused(bot, st2, label, 'out of reach after three walks'); return; }
+    out.push({ type: 'move', x: st2.engineer.x, y: st2.engineer.y });
+    return within(bot, label, tx, ty, size, fn, tries + 1);
+  })];
+}
 function putAt(bot: HourBot, kind: Kind, tx: number, ty: number, dir: Dir, label = `${kind} at (${tx},${ty})`): Task[] {
-  return [goto(label, tx, ty, MACHINE_SIZE[kind]), act(`place ${label}`, (st2, out) => {
+  return within(bot, `place ${label}`, tx, ty, MACHINE_SIZE[kind], (st2, out) => {
     const chk = canPlace(st2, kind, tx, ty);
     if (!chk.ok) { refused(bot, st2, label, chk.reason); return; }
     out.push({ type: 'place', item: kind, x: tx, y: ty, dir });
-  })];
+  });
 }
 function dirBetween(x: number, y: number, nx: number, ny: number): Dir {
   for (let d = 0; d < 4; d++) if (x + DX[d] === nx && y + DY[d] === ny) return d as Dir;
@@ -782,7 +799,12 @@ export function hourSteps(bot: HourBot): HourStep[] {
     { at: HOUR_CLAIM_AT.east + burnE + 60, name: 'east\'s Excavator on its own rubble, belted into the Depot (RI-01, D-P4-5)', tasks: st => blockLine(bot, 'east', 'own', st) },
     wireAssembler(HOUR_CLAIM_AT.east + burnE + 120, 11, 1),
     claimAt('west'),
-    { at: HOUR_CLAIM_AT.west + burnE + 60, name: 'the rail yard\'s coal Excavator, belted into the Depot (RI-01, D-P4-12)', tasks: st => blockLine(bot, 'west', 'coal', st) },
+    bot.route === 'tram'
+      ? { at: HOUR_CLAIM_AT.west + burnE + 60, name: 'the rail yard\'s coal Excavator, its coal to the Depot by tram: the restoration\'s reward laid (RI-05, plan §5)', tasks: st => tramLine(bot, st) }
+      : { at: HOUR_CLAIM_AT.west + burnE + 60, name: 'the rail yard\'s coal Excavator, belted into the Depot (RI-01, D-P4-12)', tasks: st => blockLine(bot, 'west', 'coal', st) },
+    // RI-05: the local supply depot's materials ride the tram the other way (plan §5.2, §9.1: the reward used on the next
+    // delivery); the step is absent on the belt route, so E-hour's timeline is unchanged
+    ...(bot.route === 'tram' ? [{ at: HOUR_CLAIM_AT.west + burnE + 6 * 60, name: 'the local supply depot, supplied by tram and commissioned (RI-05, plan §5.2)', tasks: (st: SimState) => depotSupply(bot, st) }] : []),
     gen(4, 15, 3),
     // the second copper Excavator waits for Generator 4: three Generators carry 900 kW and the line plus the stand-ins
     // already draw 890, so a seventh Excavator before the fourth Generator is the 38:00 brownout E-hour found
@@ -799,11 +821,183 @@ export function hourSteps(bot: HourBot): HourStep[] {
   ];
 }
 
+// ------------------------------------------------------------------ RI-05: the tram route (plan §5, the minimal part of T16)
+
+/** RI-05: the rail yard's reward laid and used on the very next delivery (plan §9.1). One track column on the street
+ *  between the yard and the HQ, a stop at each end, one tram. The yard's coal Excavator belts into stop A's platform,
+ *  the tram carries the coal to stop B, whose inserter puts it on a belt into the Depot (E-hour's coal line, by tram
+ *  instead of by belt); on the way back the tram carries what the bot loads on B's platform to A, whose inserter
+ *  fills the supply chest beside it — the local depot project's materials (plan §5.2), delivered by the reward.
+ *  The plan is read off the state: the street column nearest the HQ lot that takes it all, stop B's row nearest the
+ *  Depot's, stop A's nearest the heap's, the belts by breadth-first search over tiles a belt may stand on now. */
+export interface TramPlan {
+  /** The track column and its rows (inclusive). */
+  xT: number; yLo: number; yHi: number;
+  exc: { x: number; y: number; d: Dir }; excBelts: BeltStep[];
+  stopA: [number, number]; insA: [number, number]; chest: [number, number];
+  stopB: [number, number]; insB: [number, number]; depotBelts: BeltStep[];
+}
+/** The shortest belt run from `from` to any tile of `goals` (its value the direction into the machine beyond it), over
+ *  tiles a belt may stand on now (`placeable`), never `avoid`, inside `box` (inclusive). */
+function beltRun(st: SimState, from: [number, number], goals: Map<number, Dir>, avoid: ReadonlySet<number>, box: { x0: number; y0: number; x1: number; y1: number }): BeltStep[] | null {
+  const tw = ground(st).tw, key = (x: number, y: number) => y * tw + x;
+  const start = key(from[0], from[1]);
+  if (from[0] < box.x0 || from[0] > box.x1 || from[1] < box.y0 || from[1] > box.y1 || avoid.has(start) || placeable(st, 'belt', from[0], from[1]) !== '') return null;
+  const prev = new Map<number, number>([[start, -1]]), queue = [start];
+  for (let qi = 0; qi < queue.length; qi++) {
+    const t = queue[qi];
+    if (goals.has(t)) {
+      const tiles: number[] = [];
+      for (let c = t; c !== -1; c = prev.get(c)!) tiles.push(c);
+      tiles.reverse();
+      return tiles.map((c, k) => {
+        const x = c % tw, y = (c - x) / tw;
+        if (k === tiles.length - 1) return { x, y, dir: goals.get(t)! };
+        const nx = tiles[k + 1] % tw, ny = (tiles[k + 1] - nx) / tw;
+        return { x, y, dir: dirBetween(x, y, nx, ny) };
+      });
+    }
+    const x = t % tw, y = (t - x) / tw;
+    for (let d = 0; d < 4; d++) {
+      const nx = x + DX[d], ny = y + DY[d];
+      if (nx < box.x0 || nx > box.x1 || ny < box.y0 || ny > box.y1) continue;
+      const nt = key(nx, ny);
+      if (prev.has(nt) || avoid.has(nt) || placeable(st, 'belt', nx, ny) !== '') continue;
+      prev.set(nt, t); queue.push(nt);
+    }
+  }
+  return null;
+}
+/** Rows from `c` outward within [lo, hi]: the nearest first. */
+function rowsFrom(c: number, lo: number, hi: number): number[] {
+  const out: number[] = [];
+  for (let r = 0; r <= hi - lo; r++) for (const y of [c - r, c + r]) if (y >= lo && y <= hi && !out.includes(y)) out.push(y);
+  return out;
+}
+export function tramPlan(st: SimState, yard: number, hq: number): TramPlan | string {
+  const G = ground(st), Y = G.blocks[yard], H = G.blocks[hq], tw = G.tw;
+  if (Y.x1 >= H.x0) return 'the rail yard is not west of the HQ';
+  const heap = heapSpot(st, yard);
+  if (!heap) return 'the rail yard\'s heap spot is taken';
+  const [hx, hy] = heap, ecx = hx + 1, ecy = hy + 1;
+  const d = depotRect(st), key = (x: number, y: number) => y * tw + x;
+  const track = (x: number, y: number) => placeable(st, 'track', x, y) === '';
+  const free = (kind: Kind, x: number, y: number) => placeable(st, kind, x, y) === '';
+  const later = lotRectTiles(st, HOUR_LATER_LOT);
+  for (let xT = H.x0 + MARGIN_TILES - 1; xT > Y.x1 - MARGIN_TILES; xT--) {
+    // stop B east of the track, its inserter, the belt into the Depot (the row nearest the Depot's first)
+    let B: { yB: number; belts: BeltStep[] } | null = null;
+    for (const yB of rowsFrom(Math.floor(d.y + d.size / 2), H.y0 + 1, H.y1 - 2)) {
+      if (!track(xT, yB) || !track(xT, yB + 1) || !free('tramstop', xT + 1, yB) || !free('inserter', xT + 3, yB)) continue;
+      const avoid = new Set<number>(later);
+      for (let y = H.y0; y <= H.y1; y++) avoid.add(key(xT, y));
+      for (const [x, y] of [[xT + 1, yB], [xT + 2, yB], [xT + 1, yB + 1], [xT + 2, yB + 1], [xT + 3, yB]]) avoid.add(key(x, y));
+      const belts = beltPath(beltRoutes(st, hq, avoid), xT + 4, yB);
+      if (belts) { B = { yB, belts }; break; }
+    }
+    if (!B) continue;
+    // stop A west of the track, its inserter, the supply chest on the yard's side, the Excavator's belts into the platform
+    for (const yA of rowsFrom(ecy, Y.y0 + 1, Y.y1 - 2)) {
+      if (Math.abs(yA - B.yB) < 2) continue;   // no track tile beside both stops
+      if (!free('tramstop', xT - 2, yA) || !free('inserter', xT - 3, yA) || !free('chest', xT - 5, yA) || blockOfTile(st, xT - 5, yA) !== yard) continue;
+      const yLo = Math.min(yA, B.yB), yHi = Math.max(yA, B.yB) + 1;
+      let ok = true;
+      for (let y = yLo; y <= yHi && ok; y++) ok = track(xT, y);
+      if (!ok) continue;
+      const avoid = new Set<number>();
+      for (let y = Y.y0; y <= Y.y1; y++) avoid.add(key(xT, y));
+      for (const [x, y] of [[xT - 3, yA], [xT - 5, yA], [xT - 4, yA], [xT - 5, yA + 1], [xT - 4, yA + 1], [xT - 2, yA], [xT - 1, yA], [xT - 2, yA + 1], [xT - 1, yA + 1]]) avoid.add(key(x, y));
+      // the tiles a belt may enter the stop from, and its direction into the stop (the inserter's tile is not one)
+      const goals = new Map<number, Dir>([[key(xT - 3, yA + 1), 1], [key(xT - 2, yA - 1), 2], [key(xT - 1, yA - 1), 2], [key(xT - 2, yA + 2), 0], [key(xT - 1, yA + 2), 0]]);
+      let best: { d: Dir; belts: BeltStep[] } | null = null;
+      for (let dd = 0; dd < 4; dd++) {
+        const ed = dd as Dir;
+        const belts = beltRun(st, [ecx + DX[ed] * 2, ecy + DY[ed] * 2], goals, avoid, { x0: Y.x0, y0: Y.y0, x1: xT - 1, y1: Y.y1 });
+        if (belts && (!best || belts.length < best.belts.length)) best = { d: ed, belts };
+      }
+      if (!best) continue;
+      return { xT, yLo, yHi, exc: { x: hx, y: hy, d: best.d }, excBelts: best.belts, stopA: [xT - 2, yA], insA: [xT - 3, yA], chest: [xT - 5, yA], stopB: [xT + 1, B.yB], insB: [xT + 3, B.yB], depotBelts: B.belts };
+    }
+  }
+  return 'no street column between the yard and the HQ takes the track, a stop at each end with its inserter, the chest, and belts to the platform and the Depot';
+}
+/** The pockets' rubble and magazines into the chest (room for a take). */
+const pocketsToChest = (label: string): Task => act(label, (st, out) => {
+  for (const item of ['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board'] as const) {
+    const n = st.engineer.inv[item] ?? 0;
+    if (n > 0) out.push({ type: 'chestPut', item, n });
+  }
+});
+function tramLine(bot: HourBot, st: SimState): Task[] {
+  const i = bot.claimed.west, G = ground(st), hq = hqIdx(st);
+  if (i === undefined || st.blocks[i].state !== HELD) { refused(bot, st, 'the tram line', i === undefined ? 'west was never claimed' : 'west is not Held'); return []; }
+  if (i !== G.railYard) { refused(bot, st, 'the tram line', `west (block ${i}) is not the rail yard (block ${G.railYard})`); return []; }
+  const lock = lockReason(st, 'track');
+  if (lock) { refused(bot, st, 'the tram line', lock); return []; }
+  const plan = tramPlan(st, i, hq);
+  if (typeof plan === 'string') { refused(bot, st, 'the tram line', plan); return []; }
+  bot.tram = plan;
+  const trackN = plan.yHi - plan.yLo + 1;
+  note(bot, st, `the tram line: Excavator at (${plan.exc.x},${plan.exc.y}) facing ${DIR_NAMES[plan.exc.d]}, ${plan.excBelts.length} belts to stop A at (${plan.stopA[0]},${plan.stopA[1]}), the track on column ${plan.xT} rows ${plan.yLo}–${plan.yHi} (${trackN} tiles), stop B at (${plan.stopB[0]},${plan.stopB[1]}), ${plan.depotBelts.length} belts to the Depot, the supply chest at (${plan.chest[0]},${plan.chest[1]})`);
+  const C = MACHINE_COST;
+  const yardSteel = C.excavator.steel + plan.excBelts.length * C.belt.steel + C.tramstop.steel + C.inserter.steel + C.chest.steel, yardCu = C.tramstop.copper + C.inserter.copper + C.chest.copper;
+  const hqSteel = trackN * C.track.steel + C.tramstop.steel + C.inserter.steel + plan.depotBelts.length * C.belt.steel, hqCu = C.tramstop.copper + C.inserter.copper;
+  const t: Task[] = [chest('to the chest', st), pocketsToChest('the pockets\' rubble and magazines into the chest'), takeTask(bot, { steel: yardSteel, copper: yardCu })];
+  // the yard's side: the Excavator on the heap, its belts, stop A, the inserter into the supply chest, the chest
+  t.push(...putAt(bot, 'excavator', plan.exc.x, plan.exc.y, plan.exc.d, 'the rail yard\'s coal Excavator'));
+  for (const b of plan.excBelts) t.push(...putAt(bot, 'belt', b.x, b.y, b.dir));
+  t.push(...putAt(bot, 'tramstop', plan.stopA[0], plan.stopA[1], 0, 'stop A (the yard)'));
+  t.push(...putAt(bot, 'inserter', plan.insA[0], plan.insA[1], 3, 'stop A\'s inserter into the supply chest'));
+  t.push(...putAt(bot, 'chest', plan.chest[0], plan.chest[1], 0, 'the supply chest'));
+  // the HQ's side: the track, stop B, the inserter onto the belt into the Depot, the belt
+  t.push(chest('to the chest', st), takeTask(bot, { steel: hqSteel, copper: hqCu }));
+  for (let y = plan.yLo; y <= plan.yHi; y++) t.push(...putAt(bot, 'track', plan.xT, y, 2, `track (${plan.xT},${y})`));
+  t.push(...putAt(bot, 'tramstop', plan.stopB[0], plan.stopB[1], 0, 'stop B (the HQ)'));
+  t.push(...putAt(bot, 'inserter', plan.insB[0], plan.insB[1], 1, 'stop B\'s inserter onto the Depot belt'));
+  for (const b of plan.depotBelts) t.push(...putAt(bot, 'belt', b.x, b.y, b.dir));
+  // the tram, on the track beside stop A
+  t.push(chest('to the chest', st), takeTask(bot, { steel: C.tram.steel, copper: C.tram.copper }));
+  t.push(...putAt(bot, 'tram', plan.xT, plan.stopA[1], 2, 'the tram'));
+  t.push(act('the tram line laid', st2 => {
+    if (tramAt(st2, plan.xT, plan.stopA[1])) mark(bot, st2, 'tram-route');
+    else refused(bot, st2, 'the tram line', 'no tram on the track at the end of the step');
+    mark(bot, st2, 'west-line');
+  }));
+  return t;
+}
+/** RI-05: the local depot's materials (SUPPLY_DEPOT_NEED) from the Depot to stop B's platform by hand, to stop A by tram,
+ *  into the chest by A's inserter; then the commissioning within reach of the chest. */
+function depotSupply(bot: HourBot, st: SimState): Task[] {
+  const p = bot.tram;
+  if (!p) { refused(bot, st, 'the depot\'s supply by tram', 'no tram route was laid'); return []; }
+  const [bx, by] = p.stopB, [cx, cy] = p.chest, need = SUPPLY_DEPOT_NEED;
+  return [
+    chest('to the chest for the depot\'s supply', st), pocketsToChest('the pockets\' rubble and magazines into the chest'),
+    takeTask(bot, { coal: need.coal, magazine: need.magazine }),
+    ...within(bot, 'load stop B\'s platform', bx, by, MACHINE_SIZE.tramstop, (st2, out) => {
+      for (const [item, n] of Object.entries(need) as ['coal' | 'magazine', number][]) {
+        const have = st2.engineer.inv[item] ?? 0;
+        if (have > 0) out.push({ type: 'chestPut', item, n: Math.min(n, have), x: bx, y: by });
+        else refused(bot, st2, `load ${n} ${item} on the platform`, 'none in the pockets');
+      }
+    }),
+    act('the platform loaded', st2 => { const m = machineAt(st2, bx, by); note(bot, st2, `stop B's platform: ${m && m.kind === 'tramstop' ? poolStr(m.inv) || 'empty' : 'no stop'}`); }),
+    until('the depot\'s materials in its chest', st2 => { const s = projectOf(st2, SUPPLY_DEPOT_PROJECT)?.stage; return s === 'ready' || s === 'restored'; }, 300),
+    ...within(bot, 'commission the depot at its chest', cx, cy, MACHINE_SIZE.chest, (st2, out) => {
+      const chk = commissionCheck(st2, SUPPLY_DEPOT_PROJECT);
+      if (!chk.ok) { refused(bot, st2, 'commission the supply depot', chk.reason); return; }
+      out.push({ type: 'commission', id: SUPPLY_DEPOT_PROJECT });
+    }),
+    act('the depot', st2 => { const r = projectOf(st2, SUPPLY_DEPOT_PROJECT); note(bot, st2, r ? describeProject(st2, r) : 'no depot project'); }),
+    chest('back from the depot', st),
+  ];
+}
+
 // ------------------------------------------------------------------ the bot
 
-export function createHourBot(rifle = false, coalPlan: 'chest' | 'wait' = 'chest', northAt = HOUR_CLAIM_AT.north, claimPath: 'physical' | 'map' = 'physical'): HourBot {
+export function createHourBot(rifle = false, coalPlan: 'chest' | 'wait' = 'chest', northAt = HOUR_CLAIM_AT.north, claimPath: 'physical' | 'map' = 'physical', route: 'belt' | 'tram' = 'belt'): HourBot {
   const bot: HourBot = { rifle, log: { entries: [], marks: {}, walks: [], refused: [] }, steps: [], next: 0, queue: [], claimed: {}, lastRun: HOUR_RUN_FROM - HOUR_RUN_GAP, aiming: false, fellWhy: {}, handsOff: false, ticks: 0, fedAtFeedDone: -1,
-    coalPlan, claimPath, lastFeed: -Infinity, stock: [], steelMin: Infinity, steelMinAt: -1, copperMin: Infinity, coalMin: Infinity, northAt, atFirstRed: null, coalZeroAt: -1 };
+    coalPlan, claimPath, lastFeed: -Infinity, stock: [], steelMin: Infinity, steelMinAt: -1, copperMin: Infinity, coalMin: Infinity, northAt, atFirstRed: null, coalZeroAt: -1, route, tram: null };
   bot.steps = hourSteps(bot).sort((a, b) => a.at - b.at);
   return bot;
 }
@@ -837,6 +1031,14 @@ function watch(st: SimState, bot: HourBot): void {
   // Depot having taken more coal by machine than the HQ patch's Excavator ever dug (hand-mined coal goes to the
   // pockets, never by belt), so the mark lags the true arrival by the patch coal still on its belt at the time.
   if (f.stats.railCoal > 0) mark(bot, st, 'rail-coal-mined');
+  // RI-05: the project's moments — the yard restored and its kit unlocked (the same second: no unlock before the
+  // restoration), the tram's first unload, the depot's materials in its chest, the depot commissioned
+  if (f.projects[RAIL_YARD_PROJECT]?.stage === 'restored') mark(bot, st, 'rail-yard-restored');
+  if (lockReason(st, 'track') === '') mark(bot, st, 'rail-kit-unlocked');
+  if ((f.stats.tramMoved ?? 0) > 0) mark(bot, st, 'tram-first-delivery');
+  const dp = f.projects[SUPPLY_DEPOT_PROJECT];
+  if (dp?.stage === 'ready' || dp?.stage === 'restored') mark(bot, st, 'depot-supplied');
+  if (dp?.stage === 'restored') mark(bot, st, 'depot-restored');
   if (f.stats.delivered.coal > f.stats.minedOf.coal - f.stats.handMinedOf.coal - f.stats.railCoal) mark(bot, st, 'rail-coal-arrived');
   if (f.tick % TILE_TPS === 0) {
     for (const ed of st.ring) {

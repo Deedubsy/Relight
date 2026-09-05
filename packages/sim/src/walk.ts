@@ -20,8 +20,10 @@ import { ROUNDS_PER_MAG } from './recipes';
 export const WORKBENCH_LOT: readonly [number, number] = [DEPOT_LOT + 3, DEPOT_LOT + DEPOT_TILES];
 export function workbenchTile(st: SimState): [number, number] { return hqLot(st, WORKBENCH_LOT[0], WORKBENCH_LOT[1]); }
 
-/** GAME-ASSUMPTION: the engineer walks through belts and poles (thin), never through other machines or water. */
-const PASSABLE = new Set(['belt', 'pole']);
+/** GAME-ASSUMPTION: the engineer walks through belts and poles (thin), never through other machines or water.
+ *  RI-05: and over track (rails in the street) and a tram (it rides the track, is not in `occ`, and moves without
+ *  bumping the placement revision this map is rebuilt on). */
+const PASSABLE = new Set(['belt', 'pole', 'track', 'tram']);
 
 const solids = new WeakMap<FlowState, { rev: number; solid: Uint8Array }>();
 function solidMap(st: SimState, G: Ground): Uint8Array | null {

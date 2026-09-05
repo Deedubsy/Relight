@@ -9,8 +9,9 @@
  *
  *  Rates (all measured by test/flow.test.ts, run name M2-rates): Excavator 0.5 items/s onto the tile it faces,
  *  belt 7.5 items/s (4 items a tile at 1.875 tiles/s), inserter 1 item/s, Mk1 Shot assembler 6 s a magazine (10/min, D-P4-4). */
-import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command, Engineer } from './types';
+import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command, Engineer, ProjectStage } from './types';
 import { openLedger } from './ledger';
+import { syncProjects, projectActivated, commission, projectOf, SUPPLY_DEPOT_PROJECT } from './project';   // RI-05: only functions cross, at call time (project.ts imports back)
 import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing, burnOffS, isCandidate, startContested } from './sim';
 import { edgeId, edgeFrom, edgeTo } from './graph';
 import { Recipe, RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH, FLOODLIGHT_KW, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH } from './recipes';
@@ -22,6 +23,7 @@ import {
 } from './tiles';
 import { ground, inGround, hqLot, blockOfTile, goneOf, poolCap, substationOwner, blocksNear, inReach, cityGeomOf, segAxis, segLength, tileUnits } from './ground';
 import { tickEngineerTiles, workbenchTile } from './walk';
+import { blockName } from './names';   // RI-05: the supply depot's name
 import { take as pocketTake, drop as pocketDrop, invStacks, invCap, handHook, hqIdx as hqIndex, upgradeEngineer, threatHooks } from './engineer';
 import type { ThreatState } from './threat';
 import { segBetween, frontTiles, CitySeg } from './city';
@@ -33,21 +35,29 @@ const EPS = 1e-9;
 export type Dir = 0 | 1 | 2 | 3;               // N E S W
 export const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 export const DIR_NAMES = ['north', 'east', 'south', 'west'];
-export type Kind = 'excavator' | 'belt' | 'inserter' | 'assembler' | 'depot' | 'turret' | 'lamp' | 'pole' | 'generator' | 'floodlight' | 'bigpole' | 'substation';
-export const KINDS: readonly Kind[] = ['excavator', 'belt', 'inserter', 'assembler', 'depot', 'turret', 'lamp', 'pole', 'generator', 'floodlight', 'bigpole', 'substation'];
+export type Kind = 'excavator' | 'belt' | 'inserter' | 'assembler' | 'depot' | 'turret' | 'lamp' | 'pole' | 'generator' | 'floodlight' | 'bigpole' | 'substation'
+  | 'chest' | 'track' | 'tramstop' | 'tram';   // RI-05: the supply chest (plan §4.2/§5.2) and the minimal transport kit (§13, the minimal part of T16)
+export const KINDS: readonly Kind[] = ['excavator', 'belt', 'inserter', 'assembler', 'depot', 'turret', 'lamp', 'pole', 'generator', 'floodlight', 'bigpole', 'substation', 'chest', 'track', 'tramstop', 'tram'];
 /** Prompt B M3 (run name B-M3-unlocks): the Electricians' unlocks (§8, §13). GAME-ASSUMPTION: a group's unlocks land
  *  on the toolbar when its block turns Held and stay if the block later falls (§11: "the Electricians walk into the
  *  Depot"); the other groups' unlocks are not in the slice. */
 export const SURVIVOR_UNLOCKS: Record<string, readonly Kind[]> = { Electricians: ['floodlight', 'bigpole', 'substation'] };
+/** RI-05 (plan §5.2, §9.1): the rail-yard restoration project's reward is the transport kit — Track, Tram stop and
+ *  Tram — an operational capability, granted once when the project is restored and kept if the block is later lost
+ *  (plan §5.1: "follow existing unlock persistence"). Implementation default: in this slice the project grants what
+ *  §13's Tram depot / Rail crew rows give in the design; those rows stay the design. */
+export const RAIL_ROUTE_KINDS: readonly Kind[] = ['track', 'tramstop', 'tram'];
+export const PROJECT_UNLOCKS: Record<string, readonly Kind[]> = { 'rail-yard': RAIL_ROUTE_KINDS };
 export const KIND_LABEL: Record<Kind, string> = {
   excavator: 'Excavator', belt: 'belt', inserter: 'inserter', assembler: 'Assembler', depot: 'Depot', turret: 'Gun turret', lamp: 'Lamp',
   pole: 'pole', generator: 'Generator', floodlight: 'Floodlight', bigpole: 'Big pole', substation: 'Substation',
+  chest: 'Supply chest', track: 'Track', tramstop: 'Tram stop', tram: 'Tram',
 };
 /** RI-03 (plan §4.2): the field kit — what may stand on a Dark or Contested block directly adjacent to Held ground
- *  before it is claimed: poles, the unlocked lights, turrets, belts, inserters and the outskirts Substation. (The
- *  plan lists chests too; the tile layer has no chest kind yet — RI-05's named supply depot is where one arrives.)
- *  Extraction and assembly stay on Held lots (D-CU-1 (a), implementation default: no interior-only restriction). */
-export const FIELD_KIT: readonly Kind[] = ['pole', 'bigpole', 'lamp', 'floodlight', 'turret', 'belt', 'inserter', 'substation'];
+ *  before it is claimed: poles, the unlocked lights, turrets, belts, inserters, (RI-05) the supply chest and the
+ *  outskirts Substation. Extraction, assembly and the rail kit stay on Held ground (D-CU-1 (a), implementation
+ *  default: no interior-only restriction). */
+export const FIELD_KIT: readonly Kind[] = ['pole', 'bigpole', 'lamp', 'floodlight', 'turret', 'belt', 'inserter', 'chest', 'substation'];
 export const isFieldKind = (k: Kind): boolean => FIELD_KIT.includes(k);
 /** A block the field kit may stand on: Dark or Contested with a Held neighbour — the claim front. */
 export function fieldBlock(st: SimState, bi: number): boolean {
@@ -69,10 +79,19 @@ export function survivorJoined(st: SimState, name: string): boolean {
   }
   return false;
 }
-/** Why a kind cannot be placed yet ('' when it can): the group that unlocks it has not joined. */
+/** The project whose reward unlocks a kind (RI-05), or null. */
+export function unlockedByProject(kind: Kind): string | null {
+  for (const [id, ks] of Object.entries(PROJECT_UNLOCKS)) if (ks.includes(kind)) return id;
+  return null;
+}
+/** Why a kind cannot be placed yet ('' when it can): the group that unlocks it has not joined, or (RI-05) the
+ *  project that grants it is not restored — owning the reward, not the facility being operational now. */
 export function lockReason(st: SimState, kind: Kind): string {
   const who = unlockedBy(kind);
-  return who && !survivorJoined(st, who) ? `the ${who} unlock it — hold their block` : '';
+  if (who && !survivorJoined(st, who)) return `the ${who} unlock it — hold their block`;
+  const pid = unlockedByProject(kind);
+  if (pid && projectOf(st, pid)?.stage !== 'restored') return `the ${pid === 'rail-yard' ? 'rail yard restoration' : pid} unlocks it`;
+  return '';
 }
 export function unlockedKinds(st: SimState): Kind[] { return KINDS.filter(k => !lockReason(st, k)); }
 export function isKind(s: string): s is Kind { return (KINDS as readonly string[]).includes(s); }
@@ -130,7 +149,7 @@ export const ASM_INPUT_MULT = 4, ASM_OUTPUT_CAP = 5;
 /** GAME-ASSUMPTION: hand-mining takes one unit a second straight into the Depot; hand-crafting a magazine takes the
  *  recipe's 3 s and its 2 steel + 1 Cu from the stock (§11 hand-feeds the first turrets). */
 export const HAND_MINE_PER_S = 1;
-export const MACHINE_SIZE: Record<Kind, number> = { excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2, floodlight: 2, bigpole: 2, substation: SUBSTATION_TILES };
+export const MACHINE_SIZE: Record<Kind, number> = { excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2, floodlight: 2, bigpole: 2, substation: SUBSTATION_TILES, chest: 2, track: 1, tramstop: 2, tram: 1 };
 /** GAME-ASSUMPTION: machine costs in rubble (§13 gives none). The assembler costs what the block-level one does
  *  (§12: 20 Cu + 40 steel); the Excavator 10 steel; a belt tile 1 steel; an inserter 1 steel + 1 Cu; (M3) a Gun
  *  turret 15 steel + 5 Cu, a Lamp and a pole 1 steel + 1 Cu each, a Generator 30 steel + 10 Cu. Pick-up returns the machine itself
@@ -142,12 +161,23 @@ export const MACHINE_COST: Record<Kind, { steel: number; copper: number }> = {
   assembler: { steel: 40, copper: 20 }, depot: { steel: 0, copper: 0 },
   turret: { steel: 15, copper: 5 }, lamp: { steel: 1, copper: 1 }, pole: { steel: 1, copper: 1 }, generator: { steel: 30, copper: 10 },
   floodlight: { steel: 10, copper: 5 }, bigpole: { steel: 4, copper: 4 }, substation: { steel: 50, copper: 25 },
+  // RI-05 GAME-ASSUMPTIONS (§13 prices none): a supply chest 10 steel; a Track tile 1 steel like a belt tile; a Tram
+  // stop 10 steel; a Tram 20 steel + 5 Cu — copper, not steel, is the hour's short item when the reward is laid (the
+  // Depot holds ~18 Cu at 26:00 and none comes until the second copper Excavator at 46:00; Generator 4 at 45:00 needs 10)
+  chest: { steel: 10, copper: 0 }, track: { steel: 1, copper: 0 }, tramstop: { steel: 10, copper: 0 }, tram: { steel: 20, copper: 5 },
 };
 /** §13 power draw (kW). A machine with a draw runs only on a powered cell (M3); belts, turrets, poles and Generators
  *  draw nothing. GAME-ASSUMPTION: a placed machine draws its rated kW whether busy or idle (§13 has no idle draw). */
-export const MACHINE_KW: Record<Kind, number> = { excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: 0, lamp: LAMP_KW, pole: 0, generator: 0, floodlight: FLOODLIGHT_KW, bigpole: 0, substation: 0 };
+export const MACHINE_KW: Record<Kind, number> = { excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: 0, lamp: LAMP_KW, pole: 0, generator: 0, floodlight: FLOODLIGHT_KW, bigpole: 0, substation: 0, chest: 0, track: 0, tramstop: 20, tram: 0 };
 /** GAME-ASSUMPTION: a Generator holds 50 coal (the §11 start's 40 fit); a turret's muzzle flash lasts half a second. */
 export const GENERATOR_COAL_CAP = 50, TURRET_FLASH_S = 0.5;
+/** RI-05, the minimal transport route (§13's rows): a Tram carries 200 items at 8 tiles/s between the stops on its
+ *  track; a Tram stop draws 20 kW. GAME-ASSUMPTIONS: a stop's platform and its arrivals hold 200 items each (one
+ *  tram load); the tram's transfer at a stop is instant and it dwells 4 s (§13's "up to 6 inserters" is the full
+ *  design's loading rate; here the stop's pools are the buffer); a supply chest holds 200 items in all; the stop's
+ *  footprint is 2×2 (the machine record has one square size; §13 draws 2×3) and the tram one tile (§13's 1×3 is
+ *  drawn longer, not occupied). */
+export const TRAM_CAP = 200, TRAM_TPS = 8, TRAM_DWELL_S = 4, STOP_CAP = 200, SUPPLY_CHEST_CAP = 200;
 
 export interface BeltItem { k: Item; p: number }
 export interface Machine {
@@ -168,6 +198,27 @@ export interface Machine {
   recipe?: RecipeId;
   /** Turret (RI-02): seconds until it may fire again (threat.ts); in the state so a load keeps it. Absent = ready. */
   cool?: number;
+  /** RI-05. Tram: its load. Tram stop: the arrivals (what a tram unloaded; inserters and hands take from here),
+   *  while `inv` is the platform (what boards the next tram). Supply chest: `inv` is the contents. */
+  cargo?: Record<string, number>;
+  /** RI-05, Tram: heading along its route (`tramRoute` order) and the stop it last served (-1 none). */
+  run?: { fwd: boolean; stop: number };
+}
+/** RI-05 (plan §5.1): a neighbourhood project record — see project.ts. */
+export interface ProjectRecord {
+  projectId: string; siteId: number; neighbourhoodBlockIds: number[];
+  requirements: Partial<Record<Item, number>>;
+  /** What has reached the site: for the rail yard a view of the claim's committed store while it exists and the
+   *  consumed amounts after activation; for the supply depot what its chest holds, capped at the requirement. */
+  deliveredItems: Partial<Record<Item, number>>;
+  stage: ProjectStage;
+  /** The commissioning id (`FlowState.commissionSeq`) of the Activate that started its burn-off; -1 none. */
+  activationAttemptId: number;
+  rewardId: string | null;
+  /** Sim seconds (-1 not yet): recorded once. */
+  restoredAt: number; rewardAt: number;
+  /** The supply chest's machine id on the site (-1 none). */
+  installId: number;
 }
 export interface FlowState {
   version: 1;
@@ -207,7 +258,9 @@ export interface FlowState {
             *  steel and copper machine placements took from the pockets. */
            minedOf: Record<Item, number>; handMinedOf: Record<Item, number>; railCoal: number;
            made: Record<Item, number>; consumed: Record<Item, number>; turretFed: number; genFed: number;
-           placed: { steel: number; copper: number } };
+           placed: { steel: number; copper: number };
+           /** RI-05: items a tram unloaded at a stop (the route's deliveries) and items a belt committed to a claim. */
+           tramMoved?: number; beltDelivered?: number };
   /** M3: commands the tile layer raises for the block map. RI-03 (plan §4.1): a pole run no longer raises a claim —
    *  power connection alone never activates a block; the list stays for saves and dev hooks. */
   pending: Command[];
@@ -218,6 +271,8 @@ export interface FlowState {
   /** RI-03: the last commissioning id — one per activation attempt, accepted or refused (`claim` and `bloom` events
    *  carry it; a refusal is an `activate-rejected` event with it). */
   commissionSeq: number;
+  /** RI-05 (plan §5): the neighbourhood project records by id (project.ts). */
+  projects: Record<string, ProjectRecord>;
   /** M3: the grid as of the last block tick — kW supplied, demanded, delivered; seconds demand exceeded supply. */
   /** §14 as one number: kW the Generators give, kW asked, kW carried, seconds short so far, and the D-B3-4 throttle
    *  (supply ÷ demand, 1 when covered) every drawing machine runs at this second. */
@@ -247,7 +302,7 @@ export function ensureFlow(st: SimState): FlowState {
              fired: 0, coalBurned: 0, handFed: 0, handFedMags: 0, handFedCoal: 0, chestTrips: 0, reachRefused: 0,
              minedOf: zeroItems(), handMinedOf: zeroItems(), railCoal: 0, made: zeroItems(), consumed: zeroItems(), turretFed: 0, genFed: 0,
              placed: { steel: 0, copper: 0 } },
-    pending: [], delivered: {}, commissionSeq: 0,
+    pending: [], delivered: {}, commissionSeq: 0, projects: {},
     power: { supply: 0, demand: 0, load: 0, overS: 0, throttle: 1 },
   };
   st.flow = f;
@@ -279,6 +334,7 @@ export function ensureFlow(st: SimState): FlowState {
   const [wx, wy] = workbenchTile(st);
   st.engineer.x = wx + 0.5; st.engineer.y = wy + 0.5; st.engineer.block = hqIndex(st); st.engineer.dest = -1; st.engineer.remaining = 0;
   f.ledger = openLedger(st);   // RI-01: the opening stock the conservation check counts from
+  syncProjects(st);            // RI-05: the rail-yard project is discovered from the start
   return f;
 }
 
@@ -415,6 +471,7 @@ function upgrade(f: FlowState): FlowState {
   f.stats.made ??= zeroItems(); f.stats.consumed ??= zeroItems(); f.stats.turretFed ??= 0; f.stats.genFed ??= 0;
   f.stats.placed ??= { steel: 0, copper: 0 };
   f.delivered ??= {}; f.commissionSeq ??= 0;   // RI-03: a pre-RI-03 save has no deliveries and no attempts
+  f.projects ??= {}; f.stats.tramMoved ??= 0; f.stats.beltDelivered ??= 0;   // RI-05: a pre-RI-05 save discovers its projects on the next sync
   for (const m of f.machines) delete (m as { shed?: boolean }).shed;   // pre-D-B3-4 snapshots carried a shed flag
   return f;
 }
@@ -620,13 +677,17 @@ export function accepts(st: SimState, m: Machine, k: Item, p = 0): boolean {
     case 'assembler': { const need = recipeNeed(recipeOf(m), k); return need !== undefined && (m.inv[k] ?? 0) < need * ASM_INPUT_MULT; }
     case 'turret': return k === 'magazine' && (m.inv.rounds ?? 0) + SHOT.count <= TURRET_HOPPER + 1e-9;
     case 'generator': return k === 'coal' && (m.inv.coal ?? 0) < GENERATOR_COAL_CAP;
+    case 'chest': return invTotal(m.inv) < SUPPLY_CHEST_CAP;        // RI-05: any item, up to the cap
+    case 'tramstop': return invTotal(m.inv) < STOP_CAP;             // RI-05: onto the platform, up to the cap
     default: return false;
   }
 }
+/** Items in a pool, in all. */
+export function invTotal(inv: Record<string, number> | undefined): number { let n = 0; for (const k in inv) n += inv[k]; return n; }
 /** Could this machine ever take this item (type only)? An inserter picks up by this and waits by `accepts`. */
 export function wants(m: Machine, k: Item): boolean {
   switch (m.kind) {
-    case 'belt': case 'depot': return true;
+    case 'belt': case 'depot': case 'chest': case 'tramstop': return true;
     case 'assembler': return recipeNeed(recipeOf(m), k) !== undefined;
     case 'turret': return k === 'magazine';
     case 'generator': return k === 'coal';
@@ -694,11 +755,27 @@ function tickBelt(st: SimState, m: Machine, dt: number): void {
       if (np >= 1) {
         const n = nextOf(st, m);
         if (n && giveItem(st, n, it.k, np - 1)) { items.pop(); continue; }
+        if (!n && beltDeliver(st, m, it.k)) { items.pop(); continue; }   // RI-05: into a claim's installation
         np = 1 - BELT_SPACING / 2;
       }
     } else np = Math.min(np, items[i + 1].p - BELT_SPACING);
     it.p = Math.max(it.p, np);
   }
+}
+
+/** RI-05 (plan §5.1: "the same physical delivery systems as other facilities"): a belt whose next tile is the
+ *  substation of a Dark block on the claim front commits the steel or copper it carries to that claim — the same
+ *  committed store `deliverTo` fills by hand (ledger `committed`), up to what the claim still needs. */
+function beltDeliver(st: SimState, m: Machine, k: Item): boolean {
+  if (k !== 'steel' && k !== 'copper') return false;
+  const f = st.flow!, nx = m.x + DX[m.dir], ny = m.y + DY[m.dir];
+  const sm = machineAt(st, nx, ny);
+  const bi = sm ? (sm.kind === 'substation' ? blockIdxOf(st, sm) : -1) : substationOwner(st, nx, ny);
+  if (bi < 0 || st.blocks[bi].state !== DARK || !fieldBlock(st, bi)) return false;
+  const need = claimNeed(st), got = f.delivered[bi] ?? { steel: 0, copper: 0 };
+  if (got[k] >= need[k]) return false;
+  got[k]++; f.delivered[bi] = got; f.stats.beltDelivered = (f.stats.beltDelivered ?? 0) + 1;
+  return true;
 }
 
 // ------------------------------------------------------------------ inserters, excavators, assemblers
@@ -726,6 +803,10 @@ function tickInserter(st: SimState, m: Machine, dt: number): void {
       // right now, swings over and waits holding it (the Factorio behaviour); it never picks an item the target has no use for.
       for (let i = src.items.length - 1; i >= 0; i--) if (wants(dst, src.items[i].k)) { k = src.items[i].k; src.items.splice(i, 1); break; }
     } else if (src.kind === 'assembler' && src.out > 0) { const o = recipeOutput(recipeOf(src)); if (wants(dst, o)) { src.out--; k = o; } }
+    else if (src.kind === 'chest' || src.kind === 'tramstop') {   // RI-05: from a chest's contents or a stop's arrivals, the first item the target could use
+      const pool = src.kind === 'chest' ? src.inv : (src.cargo ??= {});
+      for (const kk in pool) if (pool[kk] >= 1 && isItem(kk) && wants(dst, kk)) { pool[kk]--; if (pool[kk] <= 0) delete pool[kk]; k = kk; break; }
+    }
     if (!k) return;
     m.hold = k; m.phase = 1; m.timer = INSERTER_SWING + Math.min(0, m.timer);
   }
@@ -873,7 +954,9 @@ export function stepFlow(st: SimState, dt = TILE_DT): void {
   for (const m of f.machines) {
     if (m.kind === 'turret') { m.timer = Math.max(0, m.timer - dt); continue; }
     if (m.kind === 'generator') { if (running(st, m)) tickGenerator(st, m, dt, share); continue; }
-    if (m.kind === 'belt' || m.kind === 'depot' || m.kind === 'lamp' || m.kind === 'pole' || m.kind === 'floodlight' || m.kind === 'bigpole' || m.kind === 'substation' || !running(st, m)) continue;
+    if (m.kind === 'tram') { tickTram(st, m, dt); continue; }   // RI-05: draws nothing and rides its track whatever the grid does; the stops need power to transfer
+    if (m.kind === 'belt' || m.kind === 'depot' || m.kind === 'lamp' || m.kind === 'pole' || m.kind === 'floodlight' || m.kind === 'bigpole' || m.kind === 'substation'
+      || m.kind === 'chest' || m.kind === 'track' || m.kind === 'tramstop' || !running(st, m)) continue;
     if (m.kind === 'inserter') tickInserter(st, m, mdt);
     else if (m.kind === 'excavator') tickExcavator(st, m, mdt);
     else tickAssembler(st, m, mdt);
@@ -896,9 +979,109 @@ export function advanceFlow(st: SimState, realSeconds: number, commands: readonl
   for (let k = 0; k < n; k++) {
     stepFlow(st, TILE_DT);
     f.tick++;
-    if (f.tick % TILE_TPS === 0) { ev0 = st.events.length; step(st); stringClaims(st, ev0); }
+    if (f.tick % TILE_TPS === 0) { ev0 = st.events.length; step(st); stringClaims(st, ev0); syncProjects(st); }   // RI-05: stages follow the block tick
   }
   return n;
+}
+
+// ------------------------------------------------------------------ RI-05: the tram route
+
+const routeCache = new WeakMap<FlowState, { rev: number; n: number; routes: Map<number, number[]> }>();
+/** The tram standing on a tile (a tram rides on its track and is not in `occ`). */
+export function tramAt(st: SimState, tx: number, ty: number): Machine | undefined {
+  const f = st.flow;
+  if (!f) return undefined;
+  for (const m of f.machines) if (m.kind === 'tram' && m.x === tx && m.y === ty) return m;
+  return undefined;
+}
+function trackAt(st: SimState, tx: number, ty: number): boolean { return machineAt(st, tx, ty)?.kind === 'track'; }
+/** A tram's route: the run of track its tile belongs to, as tile indices from one end to the other (the lower-index
+ *  end first). Empty when it stands off the track or the track branches (a junction: the tram parks — the minimal
+ *  route is one line). A closed loop runs as an out-and-back from the tram's tile. Cached per placement revision. */
+export function tramRoute(st: SimState, m: Machine): number[] {
+  const f = st.flow!;
+  let c = routeCache.get(f);
+  if (!c || c.rev !== f.rev || c.n !== f.machines.length) { c = { rev: f.rev, n: f.machines.length, routes: new Map() }; routeCache.set(f, c); }
+  const t0 = m.y * f.tw + m.x, hit = c.routes.get(t0);
+  if (hit) return hit;
+  const tw = f.tw;
+  const nbs = (t: number): number[] => {
+    const x = t % tw, y = (t - x) / tw, out: number[] = [];
+    for (let d = 0; d < 4; d++) if (trackAt(st, x + DX[d], y + DY[d])) out.push((y + DY[d]) * tw + x + DX[d]);
+    return out;
+  };
+  let path: number[] = [];
+  if (trackAt(st, m.x, m.y)) {
+    // walk both ways from the tram's tile; a branch anywhere on the run voids the route
+    const walk = (from: number, prev: number): number[] | null => {
+      const out: number[] = []; let cur = from, back = prev;
+      for (let guard = 0; guard < 100000; guard++) {
+        const n = nbs(cur).filter(x => x !== back);
+        if (n.length > 1) return null;
+        if (n.length === 0 || n[0] === t0) return out;
+        out.push(n[0]); back = cur; cur = n[0];
+      }
+      return out;
+    };
+    const first = nbs(t0);
+    if (first.length <= 2) {
+      const a = first.length > 0 ? walk(t0, first.length > 1 ? first[1] : -1) : [];
+      const b = first.length > 1 ? walk(t0, first[0]) : [];
+      if (a && b) { path = [...b.reverse(), t0, ...a]; if (path[0] > path[path.length - 1]) path.reverse(); }
+    }
+  }
+  for (const t of path) c.routes.set(t, path);
+  if (!path.length) c.routes.set(t0, path);
+  return path;
+}
+/** The stop a track tile serves: a Tram stop whose footprint touches it. */
+export function stopAt(st: SimState, tx: number, ty: number): Machine | undefined {
+  for (let d = 0; d < 4; d++) { const n = machineAt(st, tx + DX[d], ty + DY[d]); if (n?.kind === 'tramstop') return n; }
+  return undefined;
+}
+/** RI-05: the stop's cranes — the tram's arrival is unloaded into the stop's arrivals and its platform boards, each
+ *  up to its cap, at once; nothing moves at an unpowered stop. */
+function tramTransfer(st: SimState, m: Machine, stop: Machine): void {
+  if (!running(st, stop)) return;
+  const f = st.flow!, cargo = (m.cargo ??= {}), arrivals = (stop.cargo ??= {});
+  for (const k of Object.keys(cargo)) {
+    const n = Math.min(cargo[k], STOP_CAP - invTotal(arrivals));
+    if (n <= 0) break;
+    arrivals[k] = (arrivals[k] ?? 0) + n; cargo[k] -= n; if (cargo[k] <= 0) delete cargo[k];
+    f.stats.tramMoved = (f.stats.tramMoved ?? 0) + n;
+  }
+  for (const k of Object.keys(stop.inv)) {
+    const n = Math.min(stop.inv[k], TRAM_CAP - invTotal(cargo));
+    if (n <= 0) break;
+    cargo[k] = (cargo[k] ?? 0) + n; stop.inv[k] -= n; if (stop.inv[k] <= 0) delete stop.inv[k];
+  }
+}
+/** The tram shuttles end to end along its route at TRAM_TPS, dwelling TRAM_DWELL_S at each stop it passes (once a
+ *  visit — a 2×2 stop touches two track tiles). `timer` is its progress to the next tile; `phase` 1 while dwelling,
+ *  2 parked with no route. It moves without power (the stops need it to transfer). */
+function tickTram(st: SimState, m: Machine, dt: number): void {
+  const f = st.flow!, run = (m.run ??= { fwd: true, stop: -1 });
+  if (m.phase === 1) { m.timer -= dt; if (m.timer > EPS) return; m.phase = 0; m.timer = 0; }
+  const path = tramRoute(st, m);
+  if (path.length < 2) { m.phase = 2; m.timer = 0; return; }
+  m.phase = 0;
+  m.timer += dt * TRAM_TPS;
+  while (m.timer >= 1 - EPS) {
+    m.timer -= 1;
+    const i = path.indexOf(m.y * f.tw + m.x);
+    if (i < 0) { m.phase = 2; m.timer = 0; return; }
+    if (run.fwd && i === path.length - 1) run.fwd = false; else if (!run.fwd && i === 0) run.fwd = true;
+    const t = path[run.fwd ? i + 1 : i - 1], nx = t % f.tw, ny = (t - nx) / f.tw;
+    for (let d = 0; d < 4; d++) if (DX[d] === nx - m.x && DY[d] === ny - m.y) m.dir = d as Dir;
+    m.x = nx; m.y = ny;
+    const stop = stopAt(st, nx, ny);
+    if (!stop) { run.stop = -1; continue; }
+    if (stop.id === run.stop) continue;
+    run.stop = stop.id;
+    tramTransfer(st, m, stop);
+    m.phase = 1; m.timer = TRAM_DWELL_S;
+    return;
+  }
 }
 /** Every legacy map claim accepted since event `from` gets its pole run (an activation's run already stands: `layPoles` lays nothing). */
 function stringClaims(st: SimState, from: number): void {
@@ -931,6 +1114,8 @@ export function placeable(st: SimState, kind: Kind, tx: number, ty: number): str
   const f = ensureFlow(st), G = ground(st), size = MACHINE_SIZE[kind];
   const lock = lockReason(st, kind);
   if (lock) return lock;
+  // RI-05: a tram rides a track tile (it is not in `occ`); one a tile
+  if (kind === 'tram') return !trackAt(st, tx, ty) ? 'a tram goes on a track' : tramAt(st, tx, ty) ? 'a tram is there' : '';
   // posts (poles, Lamps, Big poles) stand in rubble
   const post = kind === 'pole' || kind === 'lamp' || kind === 'bigpole';
   for (let y = ty; y < ty + size; y++) for (let x = tx; x < tx + size; x++) {
@@ -945,7 +1130,8 @@ export function placeable(st: SimState, kind: Kind, tx: number, ty: number): str
       if (!fieldBlock(st, bi)) return b.state === DARK || b.state === CONTESTED ? 'not next to Held ground' : 'the block is not Held';
     }
     if (f.occ[t] !== undefined) return 'another machine is there';
-    if (margin && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && !post) return 'not on the street';
+    if (margin && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && kind !== 'chest' && kind !== 'track' && kind !== 'tramstop' && !post) return 'not on the street';
+    if (!margin && kind === 'track') return 'track runs on streets';   // RI-05, §13: Track — streets only
     // prompt B M3: a craftable Substation goes on a face that has none (§7: the outskirts), on the lot, one a face
     if (kind === 'substation' && faceSub(st, bi)) return 'the face has a substation';
     if (!margin && substationOwner(st, x, y) >= 0) return 'the substation is there';
@@ -975,7 +1161,8 @@ function addMachine(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir):
   const f = st.flow!;
   const m: Machine = { id: f.next++, kind, x: tx, y: ty, dir, size: MACHINE_SIZE[kind], items: [], hold: null, timer: 0, phase: 0, inv: {}, out: 0, busy: false };
   f.machines.push(m);
-  for (let y = ty; y < ty + m.size; y++) for (let x = tx; x < tx + m.size; x++) f.occ[y * f.tw + x] = m.id;
+  if (kind === 'tram') { m.cargo = {}; m.run = { fwd: true, stop: -1 }; }   // RI-05: rides the track's tile, never occupies it
+  else for (let y = ty; y < ty + m.size; y++) for (let x = tx; x < tx + m.size; x++) f.occ[y * f.tw + x] = m.id;
   // GAME-ASSUMPTION (M4): a new machine on an eaten lamp's tile is a fresh lamp (the eaten one was picked up)
   if (f.threat?.broken.length) f.threat.broken = f.threat.broken.filter(t => { const x = t % f.tw, y = Math.floor(t / f.tw); return x < tx || x >= tx + m.size || y < ty || y >= ty + m.size; });
   f.rev++;
@@ -1005,14 +1192,16 @@ export function pickUpItems(m: Machine): Record<string, number> {
   if (m.kind === 'turret') add('magazine', Math.floor((m.inv.rounds ?? 0) / SHOT.count));
   else if (m.kind === 'generator') add('coal', Math.floor(m.inv.coal ?? 0));
   else { for (const k in m.inv) add(k, Math.floor(m.inv[k])); add(m.kind === 'assembler' ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
+  if (m.cargo) for (const k in m.cargo) add(k, Math.floor(m.cargo[k]));   // RI-05: a tram's load, a stop's arrivals
   return out;
 }
 export interface PickUpCheck { ok: boolean; reason: string; m: Machine | null; stacks: number; items: Record<string, number> }
 /** Can the machine on this tile be picked up into the pockets? All of it or none: a full pocket refuses. */
 export function canPickUp(st: SimState, tx: number, ty: number): PickUpCheck {
-  const m = st.flow ? machineAt(st, tx, ty) : null;
+  const m = st.flow ? (tramAt(st, tx, ty) ?? machineAt(st, tx, ty)) : null;   // RI-05: the tram before the track under it
   if (!m) return { ok: false, reason: 'nothing there', m: null, stacks: 0, items: {} };
   if (m.kind === 'depot') return { ok: false, reason: 'the Depot stays', m, stacks: 0, items: {} };
+  if (m.kind === 'track' && tramAt(st, tx, ty)) return { ok: false, reason: 'a tram stands on it', m, stacks: 0, items: {} };
   const items = pickUpItems(m), e = st.engineer;
   const trial: Engineer = { ...e, inv: { ...e.inv } };
   const before = invStacks(trial.inv);
@@ -1037,7 +1226,7 @@ export function remove(st: SimState, tx: number, ty: number): Machine | null {
     const loose = (m.inv.rounds ?? 0) % SHOT.count, give = Math.min(loose, Math.max(0, st.config.bufferCap - st.buffer));
     st.buffer += give; st.stats.roundsLost = (st.stats.roundsLost ?? 0) + loose - give;
   }
-  for (let y = m.y; y < m.y + m.size; y++) for (let x = m.x; x < m.x + m.size; x++) delete f.occ[y * f.tw + x];
+  if (m.kind !== 'tram') for (let y = m.y; y < m.y + m.size; y++) for (let x = m.x; x < m.x + m.size; x++) delete f.occ[y * f.tw + x];
   f.machines.splice(f.machines.indexOf(m), 1);
   f.rev++;
   return m;
@@ -1046,7 +1235,8 @@ export function remove(st: SimState, tx: number, ty: number): Machine | null {
 /** Turn a placed machine a quarter clockwise. */
 export function rotate(st: SimState, tx: number, ty: number): Machine | null {
   const m = machineAt(st, tx, ty);
-  if (!m || !st.flow || m.kind === 'depot' || m.kind === 'pole' || m.kind === 'lamp' || m.kind === 'bigpole' || m.kind === 'substation') return null;
+  if (!m || !st.flow || m.kind === 'depot' || m.kind === 'pole' || m.kind === 'lamp' || m.kind === 'bigpole' || m.kind === 'substation'
+    || m.kind === 'chest' || m.kind === 'track' || m.kind === 'tramstop' || m.kind === 'tram') return null;
   m.dir = ((m.dir + 1) % 4) as Dir;
   st.flow.rev++;
   return m;
@@ -1150,7 +1340,21 @@ export function describeMachine(st: SimState, m: Machine): string {
       return `${r.name === 'Shot magazine' ? 'Shot' : r.name} assembler → ${DIR_NAMES[m.dir]} · ${ins} · ${m.out} ${plural(o, m.out)} out${m.busy ? ` · ${Math.round(m.timer / r.seconds * 100)} %` : ''}${on}`;
     }
     case 'depot': { const s = st.flow!.store, mid = (['wire', 'frame', 'board'] as const).filter(k => s[k] > 0).map(k => ` · ${k} ${Math.floor(s[k])}`).join(''); return `Depot · steel ${Math.floor(st.stock.steel)} · Cu ${Math.floor(st.stock.copper)} · stone ${Math.floor(st.stock.stone)} · coal ${Math.floor(s.coal)}${mid} · ${Math.floor(st.buffer / SHOT.count)} magazines in the line buffer`; }
+    // RI-05
+    case 'chest': { const d = depotChestOf(st, m); return `${d ? `${blockName(st, d.siteId)} supply depot (restored · hands out kits)` : 'Supply chest'} · ${poolStr(m.inv) || 'empty'} · ${invTotal(m.inv)} / ${SUPPLY_CHEST_CAP}${on}`; }
+    case 'track': { const tr = tramAt(st, m.x, m.y); return `Track · streets only${tr ? ' · a tram on it' : ''}${stopAt(st, m.x, m.y) ? ' · serves a stop' : ''}`; }
+    case 'tramstop': return `Tram stop · ${MACHINE_KW.tramstop} kW · platform ${poolStr(m.inv) || 'empty'} (${invTotal(m.inv)} / ${STOP_CAP}) · arrivals ${poolStr(m.cargo) || 'none'} (${invTotal(m.cargo)} / ${STOP_CAP})${on}`;
+    case 'tram': { const path = tramRoute(st, m); return `Tram → ${DIR_NAMES[m.dir]} · ${poolStr(m.cargo) || 'empty'} (${invTotal(m.cargo)} / ${TRAM_CAP}) · ${path.length < 2 ? 'no route (one line of track, no junction)' : m.phase === 1 ? 'at a stop' : `route ${path.length} tiles, ${TRAM_TPS} t/s`}${on}`; }
   }
+}
+/** "coal 20 · magazine 10" for a pool. */
+export function poolStr(inv: Record<string, number> | undefined): string {
+  return Object.keys(inv ?? {}).filter(k => (inv![k] ?? 0) > 0).map(k => `${k === 'copper' ? 'Cu' : k} ${Math.floor(inv![k])}`).join(' · ');
+}
+/** RI-05: the restored supply-depot project this chest is the installation of, if any. */
+export function depotChestOf(st: SimState, m: Machine): ProjectRecord | undefined {
+  const r = projectOf(st, SUPPLY_DEPOT_PROJECT);
+  return r && r.stage === 'restored' && r.installId === m.id ? r : undefined;
 }
 
 // ------------------------------------------------------------------ M3: turrets and the ring
@@ -1600,6 +1804,7 @@ export function deliverTo(st: SimState, bx: number, by: number, item: string, n:
   const moved = pocketDrop(st.engineer, item, Math.min(Math.floor(n), room));
   if (moved <= 0) return { ok: false, reason: `no ${item} in the pockets`, moved: 0 };
   got[item] += moved; f.delivered[bi] = got;
+  syncProjects(st);
   return { ok: true, reason: '', moved };
 }
 export interface ActivateCheck { ok: boolean; reason: string; need: { steel: number; copper: number }; have: { steel: number; copper: number } }
@@ -1607,7 +1812,7 @@ export interface ActivateCheck { ok: boolean; reason: string; need: { steel: num
  *  adjacent Held block (the implementation default — a special case must be explicit here), the installation, the
  *  pole run, the grid, the materials, reach, the engineer. `ok` when it may activate. Power connection alone is never
  *  enough: nothing here fires — the block stays Dark until the explicit Activate. */
-export function activationCheck(st: SimState, bx: number, by: number): ActivateCheck {
+export function activationCheck(st: SimState, bx: number, by: number, hands = true): ActivateCheck {
   const need = claimNeed(st);
   const no = (reason: string, have = { steel: 0, copper: 0 }): ActivateCheck => ({ ok: false, reason, need, have });
   const bi = idxOf(st, bx, by);
@@ -1627,8 +1832,8 @@ export function activationCheck(st: SimState, bx: number, by: number): ActivateC
     const s = need.steel - have.steel, c = need.copper - have.copper;
     return no(`needs ${[s > 0 ? `${s} more steel` : '', c > 0 ? `${c} more Cu` : ''].filter(Boolean).join(', ')} delivered`, have);
   }
-  if (!inReach(st, sub.x, sub.y, sub.size)) return no('walk closer to the substation', have);
-  if (st.engineer.down >= 0) return no('the engineer is down', have);
+  if (hands && !inReach(st, sub.x, sub.y, sub.size)) return no('walk closer to the substation', have);   // RI-05: `hands` false asks about the site alone (a project's "ready")
+  if (hands && st.engineer.down >= 0) return no('the engineer is down', have);
   return { ok: true, reason: '', need, have };
 }
 /** The explicit Activate (plan §4.1): one commissioning id per attempt. A refusal is an `activate-rejected` event
@@ -1642,8 +1847,10 @@ export function activate(st: SimState, bx: number, by: number): ActivateCheck {
   if (!chk.ok) { st.events.push({ type: 'activate-rejected', t: st.t, x: bx, y: by, id, reason: chk.reason }); return chk; }
   const bi = idxOf(st, bx, by), got = f.delivered[bi] ?? { steel: 0, copper: 0 };
   st.stats.spentSteel = (st.stats.spentSteel ?? 0) + got.steel; st.stats.spentCopper = (st.stats.spentCopper ?? 0) + got.copper;
+  projectActivated(st, bi, id, got);   // RI-05: the site's project records the attempt and what it consumed
   delete f.delivered[bi];
   startContested(st, bi, 'activate', id);
+  syncProjects(st);
   return chk;
 }
 
@@ -1731,9 +1938,38 @@ export function chestCount(st: SimState, item: ChestItem): number {
 }
 /** GAME-ASSUMPTION (M4 telemetry): a trip to the chest is the first transaction after being out of the Depot's reach. */
 function chestTrip(f: FlowState): void { if (f.hand.away) { f.stats.chestTrips++; f.hand.away = false; } }
-/** Move up to `n` of an item from the chest to the pockets (as many as fit). */
-export function chestTake(st: SimState, item: ChestItem, n: number): { moved: number; reason: string } {
+/** RI-05: the supply chest or tram stop at a tile, for the hand: the machine and its pool, or the refusal. A stop's
+ *  arrivals are taken from first, then its platform; the hand puts onto its platform. */
+function handPool(st: SimState, at: [number, number]): { m: Machine; take: Record<string, number>[]; put: Record<string, number>; cap: number } | string {
+  const m = machineAt(st, at[0], at[1]);
+  if (!m || (m.kind !== 'chest' && m.kind !== 'tramstop')) return 'no chest or stop there';
+  if (!inReach(st, m.x, m.y, m.size)) return `walk closer to the ${KIND_LABEL[m.kind]}`;
+  return m.kind === 'chest' ? { m, take: [m.inv], put: m.inv, cap: SUPPLY_CHEST_CAP } : { m, take: [(m.cargo ??= {}), m.inv], put: m.inv, cap: STOP_CAP };
+}
+/** Move up to `n` of an item from the chest to the pockets (as many as fit). RI-05: `at` names a supply chest or a
+ *  tram stop instead of the Depot; kits come from the Depot and from a restored supply depot (its reward). */
+export function chestTake(st: SimState, item: ChestItem, n: number, at?: [number, number]): { moved: number; reason: string } {
   const f = ensureFlow(st);
+  if (at) {
+    const p = handPool(st, at);
+    if (typeof p === 'string') return { moved: 0, reason: p };
+    if (item === 'kit') {
+      if (!depotChestOf(st, p.m)) return { moved: 0, reason: 'kits come from the Depot or a restored supply depot' };
+      const got = pocketTake(st.engineer, 'kit', Math.max(0, n));
+      return got > 0 ? { moved: got, reason: '' } : { moved: 0, reason: 'the pockets are full' };
+    }
+    let moved = 0;
+    for (const pool of p.take) {
+      const have = Math.floor(pool[item] ?? 0), want = Math.max(0, Math.min(n - moved, have));
+      if (want <= 0) continue;
+      const got = pocketTake(st.engineer, item, want);
+      if (got <= 0) break;
+      pool[item] -= got; if (pool[item] <= 0) delete pool[item]; moved += got;
+    }
+    if (moved <= 0) return { moved: 0, reason: p.take.some(pool => (pool[item] ?? 0) >= 1) ? 'the pockets are full' : `no ${item === 'magazine' ? 'magazines' : item} there` };
+    syncProjects(st);
+    return { moved, reason: '' };
+  }
   if (!nearDepot(st)) return { moved: 0, reason: 'walk closer to the Depot' };
   const have = chestCount(st, item), want = Math.max(0, Math.min(n, have));
   if (want <= 0) return { moved: 0, reason: `no ${item === 'magazine' ? 'magazines' : item} in the Depot` };
@@ -1745,9 +1981,21 @@ export function chestTake(st: SimState, item: ChestItem, n: number): { moved: nu
   else if (item !== 'kit') st.stock[item] -= got;
   return { moved: got, reason: '' };
 }
-/** Move up to `n` of an item from the pockets to the chest. A full line buffer refuses magazines. */
-export function chestPut(st: SimState, item: ChestItem, n: number): { moved: number; reason: string } {
+/** Move up to `n` of an item from the pockets to the chest. A full line buffer refuses magazines. RI-05: `at` names
+ *  a supply chest (its contents) or a tram stop (its platform) instead; the cap refuses the rest. */
+export function chestPut(st: SimState, item: ChestItem, n: number, at?: [number, number]): { moved: number; reason: string } {
   const f = ensureFlow(st);
+  if (at) {
+    const p = handPool(st, at);
+    if (typeof p === 'string') return { moved: 0, reason: p };
+    if (item === 'kit') return { moved: 0, reason: 'kits stay in the pockets' };
+    const have = st.engineer.inv[item] ?? 0, want = Math.max(0, Math.min(n, have, p.cap - invTotal(p.put)));
+    if (want <= 0) return { moved: 0, reason: have <= 0 ? `no ${item} in the pockets` : `the ${KIND_LABEL[p.m.kind]} is full` };
+    const put = pocketDrop(st.engineer, item, want);
+    p.put[item] = (p.put[item] ?? 0) + put;
+    syncProjects(st);
+    return { moved: put, reason: '' };
+  }
   if (!nearDepot(st)) return { moved: 0, reason: 'walk closer to the Depot' };
   const have = st.engineer.inv[item] ?? 0;
   let want = Math.max(0, Math.min(n, have));
@@ -1767,8 +2015,8 @@ handHook.current = (st, c) => {
   switch (c.type) {
     case 'mineAt': setHandMine(st, [c.x, c.y]); break;
     case 'craft': queueCraft(st, c.count ?? 1); break;
-    case 'chestTake': if (isChestItem(c.item)) chestTake(st, c.item, c.n); break;
-    case 'chestPut': if (isChestItem(c.item)) chestPut(st, c.item, c.n); break;
+    case 'chestTake': if (isChestItem(c.item)) chestTake(st, c.item, c.n, c.x !== undefined && c.y !== undefined ? [c.x, c.y] : undefined); break;
+    case 'chestPut': if (isChestItem(c.item)) chestPut(st, c.item, c.n, c.x !== undefined && c.y !== undefined ? [c.x, c.y] : undefined); break;
     // M2: the command form of the scene's placement — within reach (8 tiles) or nothing, never moved
     case 'place': if (isKind(c.item) && inReach(st, c.x, c.y, MACHINE_SIZE[c.item])) place(st, c.item, c.x, c.y, ((c.dir ?? 0) % 4) as Dir); break;
     case 'pickUp': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) remove(st, c.x, c.y); break; }
@@ -1781,8 +2029,10 @@ handHook.current = (st, c) => {
     // RI-03: physical commissioning — materials into the installation and the explicit Activate (both check reach of it)
     case 'deliver': deliverTo(st, c.bx, c.by, c.item, c.n); break;
     case 'activate': activate(st, c.bx, c.by); break;
+    case 'commission': commission(st, c.id); break;   // RI-05: the supply depot's commissioning (checks reach of its chest)
     default: break;
   }
+  syncProjects(st);   // RI-05: a placement, pick-up or transfer may move a project's stage
 };
 
 // ------------------------------------------------------------------ world-view drawing (§18, docsync)
@@ -1792,7 +2042,8 @@ export const LOT_LEGEND =
   '`:` street, `.` ground, `r` rubble, `#` steel patch, `&` copper patch, `*` coal patch, `~` inert/river; ' +
   '`L` streetlight lit, `l` streetlight dark, `b` streetlight broken; `T` Gun turret (hopper > 0), `t` turret with an empty hopper; ' +
   '`G` Generator burning, `g` Generator dry; `S` substation powered, `s` unpowered; `D` Depot; `X` Excavator running, `x` stopped; ' +
-  '`A` Shot assembler crafting, `a` idle; `^ > v <` belt by direction, `I` inserter; `@` Lamp lit, `o` Lamp dark; `P` pole. ' +
+  '`A` Shot assembler crafting, `a` idle; `^ > v <` belt by direction, `I` inserter; `@` Lamp lit, `o` Lamp dark; `P` pole; ' +
+  '`c` supply chest, `=` track, `H` tram stop, `M` tram (RI-05). ' +
   'A brownout (D-B3-4) slows every machine instead of stopping any, so it does not show in the drawing.';
 
 /** One character per tile of a cell (default the HQ), the whole 32×32 cell with its street margins, rows ty 0 (north)
@@ -1830,6 +2081,10 @@ export function renderLot(st: SimState, bx = st.start[0], by = st.start[1]): str
       case 'floodlight': ch = running(st, m) ? 'F' : 'f'; break;
       case 'bigpole': ch = 'B'; break;
       case 'substation': ch = 'S'; break;
+      case 'chest': ch = 'c'; break;
+      case 'track': ch = '='; break;
+      case 'tramstop': ch = 'H'; break;
+      case 'tram': ch = 'M'; break;
     }
     for (let dy = 0; dy < m.size; dy++) for (let dx = 0; dx < m.size; dx++) put(m.x + dx - ox, m.y + dy - oy, ch);
   }

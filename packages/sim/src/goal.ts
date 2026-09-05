@@ -14,7 +14,7 @@ import { SimState, HELD, DARK, CONTESTED, Edge } from './types';
 import {
   Machine, MACHINE_COST, MACHINE_KW, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
   recipeOf, recipeOutput, subPowered, poleGrid, inputTile, outputTile, findRubble, asmCanStart, costStr, Item,
-  isFieldKind, fieldBlock, powered,
+  isFieldKind, fieldBlock, powered, invTotal, tramAt, tramRoute,
 } from './flow';
 import { ground, hqLot, blockOfTile } from './ground';
 import { HQ_PATCHES, P_COAL, P_COPPER, P_STEEL, RAIL_YARD_COAL } from './tiles';
@@ -277,5 +277,10 @@ export function machineStatus(st: SimState, m: Machine): MachineStatus {
     case 'pole': case 'bigpole': return poleGrid(st).connected.has(m.id) ? { state: 'running', reason: 'on the grid' } : { state: 'idle', reason: 'not connected' };
     case 'substation': return subPowered(st, b) ? { state: 'running', reason: 'on' } : { state: 'off', reason: 'off' };
     case 'depot': return { state: 'idle', reason: `${chestMags(st)} magazines in the line buffer` };
+    // RI-05
+    case 'chest': { const n = invTotal(m.inv); return n > 0 ? { state: 'idle', reason: `${n} item${n === 1 ? '' : 's'}` } : { state: 'idle', reason: 'empty' }; }
+    case 'track': return { state: 'idle', reason: tramAt(st, m.x, m.y) ? 'a tram on it' : 'rail' };
+    case 'tramstop': { const a = invTotal(m.cargo), q = invTotal(m.inv); return a + q > 0 ? { state: 'idle', reason: `${q} waiting, ${a} arrived` } : { state: 'idle', reason: 'empty' }; }
+    case 'tram': { const path = tramRoute(st, m); return path.length < 2 ? { state: 'starved', reason: 'no route' } : m.phase === 1 ? { state: 'idle', reason: 'at a stop' } : { state: 'running', reason: `${invTotal(m.cargo)} aboard` }; }
   }
 }

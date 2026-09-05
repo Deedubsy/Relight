@@ -6,9 +6,9 @@ now. The per-milestone history lives in the phase reports (`PHASE_0_REPORT.md` �
 `archive/pre-phase-5-cleanup/PROGRAMME_STATE-2026-09-05.md`. Rules: `CONSTITUTION.md`.
 Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 
-## Now (2026-09-05, after RI-04 built emergence points, Crawler / Shade readability and the Stalker candidate)
+## Now (2026-09-05, after RI-05 built the project record, the rail yard's reward and the minimal tram route)
 
-- **The revised development plan is in execution: RI-00 … RI-04 are done.**
+- **The revised development plan is in execution: RI-00 … RI-05 are done.**
   Daniel authorised the plan with "Whole plan" (D-RI-1); it is
   `REVISED_DEVELOPMENT_PLAN.md`, verbatim, and its tasks RI-00 … RI-13 are in
   `PROGRESS.md`. RI-01 built the real opening economy (`RI_PASS_1_REPORT.md` "RI-01"):
@@ -39,19 +39,34 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
   attack → return`, one per Dark well block, §7.1's numbers in `candidates.ts`) behind
   `enableStalkers` / `?stalker=1`, outside the benchmark's configuration (D-RI-5).
   `E-rifle` 16/16 with `E-rifle-cand-stalker` beside the benchmark rows (0 contacts on
-  the hour — the bot never nears a well block); `E-hour` 19/19; 145 tests.
-- **Next task: RI-05 — neighbourhood project framework and the rail-yard reward** (plan
-  §5; the minimal part of T16): the project record and its stages; deliveries by hand
-  and by belt; the rail-yard restoration as the first project, deliverable before trams;
-  one minimal transport route (one track, two stops, one tram) that makes a real
-  follow-on delivery; a local supply depot as a named chest; stages and deliveries
-  surviving save / load and replay, ordinary items only, no circular unlock. **Ready**:
-  blocked by RI-03, done. Branch `ri-pass-1` on top of `phase-4`. The order after it:
-  RI-06 → RI-07 → RI-08 (whose played session is **T19**, human) → RI-09 (T13 → T17,
-  T18) → RI-10 → RI-11 → RI-12 → RI-13; T12b and T12c are runnable behind RI-05 in list
-  order.
+  the hour — the bot never nears a well block); `E-hour` 19/19; 145 tests. RI-05 built
+  the neighbourhood project framework and the rail-yard reward ("RI-05"): the project
+  record (`project.ts`) with its stage derived from the site's real state — the block
+  record alone owns territory; the rail yard as the first project (its claim's materials
+  by hand or off a belt into its substation, the Activate its commissioning, restored
+  when Held with the attempt id) and its reward the transport kit — Track, Tram stop,
+  Tram — unlocked at the restoration's second and never before; one minimal route (one
+  line of track, two stops, one tram, paid from the Depot's stock) carrying the yard's
+  coal to the Depot and the local supply depot's materials back; the depot a named Supply
+  chest commissioned within reach, changing the record alone. `E-project` 10/10:
+  restored 25:40–25:46, the coal at the Depot by tram 27:05–27:15, the depot restored
+  32:15–32:18, 732 items by tram, the replay and a 40:00 save to the same hash on every
+  seed, 4 Held and no fall. The route sits beside the benchmark, never in it: `E-hour`
+  19/19 with the belt line unchanged (only the state hash moved — the state now carries
+  the records). 148 tests.
+- **Next task: RI-06 — the Junction Heart** (plan §9): two feeder cabinets prepared in
+  either order; Start commissioning; 90 s of productive commissioning paused on power
+  loss (candidate); packets at 25 / 50 / 75 % keyed to attempt and threshold;
+  interrupted after 60 s without progress (candidate) or by abort; retry without a second
+  charge; completion destroys the Heart and grants the unlock once; §9.4 met by a bot
+  with a prepared factory and no rifle use; interruption / retry / save / load tested.
+  **Ready**: blocked by RI-04 and RI-05, both done. Branch `ri-pass-1` on top of
+  `phase-4`. The order after it: RI-07 → RI-08 (whose played session is **T19**, human)
+  → RI-09 (T13 → T17, T18) → RI-10 → RI-11 → RI-12 → RI-13; T12b and T12c are runnable
+  behind RI-06 in list order.
 - **Phase 5 — the factory, complete — is open; RI-01 built its first pieces** (the
-  per-machine recipe, coal rubble, the ledger) and the rest is not built. The plan
+  per-machine recipe, coal rubble, the ledger), RI-05 its transport's first piece (the
+  minimal tram route and the Supply chest) and the rest is not built. The plan
   interleaves the phases (`PHASES.md` top note): the hybrid of D-GB-1 moved from Phase 6
   into RI-03 / RI-05 / RI-06 (D-RI-4); the three-systems stop became rule 2's scope test
   (D-RI-3); D-GB-2, D-CU-1 and D-CU-3 are provisional on the plan's defaults (D-RI-6).
@@ -66,8 +81,8 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 
 ## What is built, what is a stand-in
 
-**Implemented and measured** (`docs/EXPERIMENTS.md`, 13 experiments GREEN on 2026-09-05
-at RI-04, stamped `9d6a172` + RI-04's tree, config b95922d2; `SLICE_REPORT.md`):
+**Implemented and measured** (`docs/EXPERIMENTS.md`, 14 experiments GREEN on 2026-09-05
+at RI-05, stamped `24bc007` + RI-05's tree, config b95922d2; `SLICE_REPORT.md`):
 
 - The block sim: §5's front rule, wake bloom and burn-off, the 40-unshot-arrival fall,
   proportional brownout (D-B3-4), wells, the 25-hour compact / spike / quiet-block
@@ -85,16 +100,29 @@ at RI-04, stamped `9d6a172` + RI-04's tree, config b95922d2; `SLICE_REPORT.md`):
   hulks, born on emergence points (one per block and shared street, on the Dark block's
   frontage kerb, never inside a Held block) with a readable heading, target tile and
   shade trace (RI-04); the conservation ledger (`ledger.ts`).
+- Neighbourhood projects and the transport kit (RI-05): the project record with its
+  stages derived from the site (`project.ts`); the rail yard as the first project, its
+  claim's materials by hand or off a belt, restored by the Activate, its reward the kit —
+  Track (streets only, walkable), the Tram stop (two 200-item pools, 20 kW), the Tram
+  (200 items, 8 t/s, one line between two stops, 4 s dwell) — unlocked at the
+  restoration and never before; the Supply chest (2×2, 200 items, field kit) and the
+  local supply depot commissioned on it; belts ending in a chest or a stop, inserters
+  taking from them (`E-project`: 732 items by tram, the replay and a 40:00 save to the
+  same hash on seeds 3 / 4 / 5).
 - The hour-one bot (`E-hour`): no block lost on seeds 3 / 4 / 5 at 75 minutes, rifle off
   and on; north claimed at 65:00 is Held from 65:29–65:34 to 75:00 on every run; the rail
   yard's coal at the Depot at 27:02–27:04, 47.9 min before the hour ends; every item
-  conserved (`E-hour-ledger`). `E-rifle` at
+  conserved (`E-hour-ledger`); the same bot on the tram route beside it (`E-project`): the
+  yard's coal at the Depot at 27:05–27:15, the depot restored 32:15–32:18, 4 Held, no
+  fall. `E-rifle` at
   tile scale: the rifle decides a rescue (48 runs) and the bot spends 0.19 / 0.25 / 0.17 %
   of the hour shooting, 0.00 / 0.58 / 0.00 % in danger (RI-04's run).
 - The game (`packages/game`): world view and map view, HUD corners, the telemetry panel,
   the current-goal line with its reason and support, machine status marks, stable block
   names with debug coordinates behind the toggle, save / load to a local slot and a
-  download with a state hash (RI-02), the 3 h snapshot (`snapshot:check`), §18 and seed
+  download with a state hash (RI-02), the Supply chest / Track / Tram stop / Tram drawn
+  and placed (keys C / L / H / V), E on a chest or a stop for its pockets, the Projects
+  list and the project toasts (RI-05), the 3 h snapshot (`snapshot:check`), §18 and seed
   images (`freshness:check`).
 
 **Stand-ins and approved-not-built changes** (each labelled where it sits in the doc):
@@ -127,8 +155,19 @@ at RI-04, stamped `9d6a172` + RI-04's tree, config b95922d2; `SLICE_REPORT.md`):
   a download, a state hash and the command log so a load replays; no slot list, no
   autosave, no naming. (Before RI-02 this line said none existed — wrong: a download and a
   `?state=<url>` load had existed since Phase 4 without a hash, a validation or a log;
-  corrected 2026-09-05.) No project record, Conductor or boss site exist (§28.4, §28.7,
-  §28.8) — RI-05, RI-06, RI-10, RI-12.
+  corrected 2026-09-05.) No Conductor or boss site exists (§28.7, §28.8) — RI-06, RI-10,
+  RI-12; the project record exists (RI-05, §28.4) with the catalogue's first two entries,
+  the rest RI-11.
+- **The transport kit is the minimal route** (RI-05; §13, §14, §28.4; D-RI-6): a 2×2 Tram
+  stop with two 200-item pools and an instant transfer at a powered stop in place of
+  §13's 2×3 with six inserters; a one-tile Tram; the reward grants §13's Tram depot /
+  Rail crew kit (those rows stay the design); the depot's stock 20 coal + 10 magazines
+  and its 'hands out kits' function; the prices (a stop 10 steel, the tram 20 steel + 5
+  Cu, track 1 steel a tile, the chest 10 steel) are GAME-ASSUMPTIONS (§13 prices none).
+  The route sits beside the benchmark (`E-project`), and on it the two stops' 40 kW brown
+  the hour out from 26:43 until Generator 4 at 45:00 where the belt route never does, and
+  the tram's copper leaves 1 Cu on seed 3 — reported for the human, not tuned. The
+  Freight tram, the truck and the Rail crew are unbuilt; the rest of T16 is RI-09.
 - **The Stalker is a candidate, not a benchmark enemy** (RI-04; §28.6, D-RI-5): §7.1's
   numbers sit in `packages/sim/src/candidates.ts` outside `SimConfig`, switched on by
   `enableStalkers` (the game's `?stalker=1`) and reported as `E-rifle-cand-stalker`
@@ -146,14 +185,14 @@ at RI-04, stamped `9d6a172` + RI-04's tree, config b95922d2; `SLICE_REPORT.md`):
 - The hybrid expedition loop (D-GB-1) is decided and not built; its definition is
   `REVISED_DEVELOPMENT_PLAN.md` §4–§9 (§28) and its tasks are RI-03 / RI-05 / RI-06
   (D-RI-4).
-- Not built at all: trams, the truck, barricades, cannons, undergrounds, splitters,
-  filters, chests as placeable objects, the string table, undo / redo.
+- Not built at all: the Freight tram, the truck, barricades, cannons, undergrounds,
+  splitters, filters, the string table, undo / redo.
 
 ## Evidence
 
 | kind | where | state |
 |---|---|---|
-| simulation | `docs/EXPERIMENTS.md`, `docs/experiments/*.json`, `calibration.md` | 13 experiments GREEN at RI-04 (2026-09-05, 296 s, 0 failing; `E-hour` 19/19, `E-rifle` 16/16 with the candidate rows; stamped `9d6a172` + RI-04's tree); every generated file fresh (`freshness:check`, 2026-09-05) |
+| simulation | `docs/EXPERIMENTS.md`, `docs/experiments/*.json`, `calibration.md` | 14 experiments GREEN at RI-05 (2026-09-05, 369 s, 0 failing; `E-project` 10/10, `E-hour` 19/19, `E-rifle` 16/16 with the candidate rows; stamped `24bc007` + RI-05's tree); every generated file fresh (`freshness:check`, 2026-09-05) |
 | snapshot | `packages/game/public/snapshots/b-compact-seed3.json` | matches (compact seed 3 at 3:00:00, config 0176f61d); regenerated by RI-01 for five new stats counters, the state otherwise identical |
 | human approval | `TEST_RESULTS.md` (Gate A), `GATE_B.md` (Gate B) | both passed by the owner alone; no outside tester has played |
 | human play | `GATE_B.md` §19 table | minutes 0–10 only; 10–30 and 30–60 unrecorded; walking, first shade, burn-off, first pip unrecorded |
@@ -162,14 +201,18 @@ at RI-04, stamped `9d6a172` + RI-04's tree, config b95922d2; `SLICE_REPORT.md`):
 ## Counters
 
 - Untagged numbers in the design doc: **33** (21 tile-scale, 12 design inputs), unchanged
-  since Phase 4 M3; the cleanup and RI-01 … RI-04 added none (RI-01's and RI-03's numbers
+  since Phase 4 M3; the cleanup and RI-01 … RI-05 added none (RI-01's and RI-03's numbers
   carry `[sim: E-hour-…]` tags or a decision id; RI-04's are candidates in
-  `candidates.ts` and named as such in §7, not written into the doc).
+  `candidates.ts` and named as such in §7, not written into the doc; RI-05's as-built
+  sizes, caps and prices are labelled implementation defaults under D-RI-6 and its
+  measured moments carry `[sim: E-project-…]`).
 - §26: **three systems, complexity 5 / 10**, a reported count since D-RI-3 (the stop
   condition never fired and no longer exists; rule 2's scope test admits features).
   Recounted at RI-04: still three (commissioning is §5's claim made physical; the
   Stalker is §7's roster and the emergence points are the threat system's, not a fourth
-  system); next at RI-05 / RI-06.
+  system). Recounted at RI-05: still three (a project is §5's claim given a purpose and a
+  reward; the tram is §14's one bulk system, in the count since Phase 0; the Supply chest
+  is the Depot's chest placed); next at RI-06.
 - `STANDARDS.md`: **closed 1 of 46** (A.7, the hand-lamp sentence, at Gate B). Phase 5's
   fifteen build-with rows are listed on `PHASES.md` Phase 5.
 - Engineer guards (shooting ≤ 10 %, danger ≤ 5 %, walking): every number is the bot's; no
@@ -188,11 +231,17 @@ at RI-04, stamped `9d6a172` + RI-04's tree, config b95922d2; `SLICE_REPORT.md`):
   (D-RI-5, a decided row — `E-rifle-cand-stalker` measured no contact on the hour,
   geography, not evidence); whether `E-rifle`'s tile-rescue stance should leave the
   street midpoint now that the emergence mouth crosses it (RI-04 kept the legacy
-  configuration, plan §14, and reported seed 5's thinner margins).
+  configuration, plan §14, and reported seed 5's thinner margins); the tram route's cost
+  on the hour (RI-05: the two Tram stops' 20 kW brown the hour out from 26:43 to Generator
+  4 where the belt route never does, and the Tram's copper leaves 1 Cu on seed 3 — an
+  earlier Generator 4, a stop drawing only while transferring, or a price; no row yet);
+  whether the tram route ever joins the benchmark (D-RI-5, a decided row).
 - **Provisional rows on the plan's defaults** (D-RI-6; sign or reverse by name, any time):
   D-GB-2 (a) the goal line (RI-02); D-CU-1 (a) production on any Held lot (kept at
   RI-03); D-CU-3 (b) the outskirts Substation before activation (built at RI-03); the
-  Stalker's §7.1 state machine (built at RI-04 as the candidate, `stalker.ts`).
+  Stalker's §7.1 state machine (built at RI-04 as the candidate, `stalker.ts`); RI-05's
+  transport-kit sizes, caps and prices and the depot's stock (`RI_PASS_1_REPORT.md`
+  "RI-05").
 - **Provisional rows a task will embody**: D-P4-5 (every assembler physical — built by
   RI-01, unsigned);
   D-B4-3 (the turret in the chain, RI-10 reconciles); D-SA-2 (the string table, T13 in
@@ -203,7 +252,8 @@ at RI-04, stamped `9d6a172` + RI-04's tree, config b95922d2; `SLICE_REPORT.md`):
 - **Recommended rows whose rule is built and in the doc but carry no name** (D-B1-4,
   D-B3-4, D-B3-1, D5, D6, D-B1-5, D-LP-1…3 among 31): provenance gaps, not open questions.
 - **Unscheduled obligations**: `DEFERRED.md` (the reference-machine soak by hand, the
-  stranger test, the calibration pip bands, the soak script's home).
+  stranger test, the calibration pip bands, the soak script's home, a readable refusal
+  for an out-of-reach hand command, the Tram stop's 20 kW on the hour).
 
 ## Standing rules for every phase
 

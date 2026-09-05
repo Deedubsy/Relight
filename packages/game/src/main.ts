@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
   hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
+  projectOf, projectTitle, describeProject, RAIL_ROUTE_REWARD, LOCAL_DEPOT_REWARD,   // RI-05
   idxOf, LIGHT_SEQ_PER_S, REPAIR_COPPER, hourReport, blockLabel, stateHash, currentGoal, clockOf,
 } from '@relight/sim';
 import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue, record, replaySession, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
@@ -45,6 +46,16 @@ function describe(events: SimEvent[]): void {
         if (ev.facility) panel.toast(`Reached the ${ev.facility}`, 'good');
         if (ev.survivor) panel.toast(`${ev.survivor}: "We're in."${ev.unlocks.length ? ` — ${ev.unlocks.join(', ')} are on the build menu (B; keys 0, [ and ])` : ''}`, 'good');
         break;
+      case 'project': {   // RI-05 (plan §5.3): the project's stage, what it still needs, and its reward once restored
+        const r = projectOf(session.state, ev.id);
+        if (!r) break;
+        const title = projectTitle(session.state, r);
+        if (ev.stage === 'restored') panel.toast(`${title} restored — ${r.rewardId === RAIL_ROUTE_REWARD ? 'Track, Tram stop and Tram are on the build menu (B; keys L, H, V): a line of track on the street, a stop at each end, a tram on it; an inserter or E loads a stop\'s platform, the tram carries it to the other stop' : r.rewardId === LOCAL_DEPOT_REWARD ? 'its Supply chest hands out kits (E on it)' : describeProject(session.state, r)}`, 'good');
+        else if (ev.stage === 'ready') panel.toast(describeProject(session.state, r), 'good');
+        else if (ev.stage === 'interrupted') panel.toast(`${title} interrupted — ${describeProject(session.state, r)}`, 'bad');
+        else if (ev.stage !== 'discovered') panel.toast(describeProject(session.state, r));
+        break;
+      }
       case 'fall': panel.toast(`${at(ev.x, ev.y)} lost — ${ev.reason}`, 'bad'); break;
       case 'sub-off': panel.toast(`${at(ev.x, ev.y)}'s substation stopped: ${session.state.config.unfedN} crawlers unfed. It falls if this goes on.`, 'bad'); break;
       case 'sub-on': panel.toast(`${at(ev.x, ev.y)}'s substation back on`, 'good'); break;
@@ -117,7 +128,7 @@ const hooks: SceneHooks = {
 };
 // D6: the city map draws polygons; the lattice MapScene stays for ?map=lattice and the lattice-era snapshots
 const mapScene: MapView = session.state.city ? new CityMapScene(session, hooks) : new MapScene(session, hooks);
-const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind), onChest: () => panel.togglePockets() });
+const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind), onChest: () => panel.togglePockets(), onChestAt: (x, y) => panel.openPocketsAt(x, y) });
 worldScene.handLamp = new URLSearchParams(location.search).get('handlamp') === '1';   // D-B5-1 preview only
 panel.onPick = kind => { worldScene.setTool(kind); panel.toast(`${kind} in hand — left-click places it, R rotates, right-click clears the hand`); };
 game.scene.add('map', mapScene, view.mode === 'map');

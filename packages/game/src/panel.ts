@@ -1,7 +1,8 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
   CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS,
-  currentGoal, Goal, blockLabel, blockNameAt, edgeName, idxOf, activationCheck } from '@relight/sim';
+  currentGoal, Goal, blockLabel, blockNameAt, edgeName, idxOf, activationCheck,
+  machineAt, inReach, MACHINE_SIZE, projectList, describeProject, SUPPLY_CHEST_CAP, STOP_CAP, TRAM_CAP, TRAM_TPS, TRAM_DWELL_S, MACHINE_KW } from '@relight/sim';   // RI-05
 import { Session, setSpeed, queue, shareUrl, record, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
 import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
@@ -27,6 +28,9 @@ export interface Panel {
   toggleDebug(): boolean;
   /** M1: show/hide the pockets and the Depot chest (Tab or I, or E on the Depot); returns the new visibility. */
   togglePockets(): boolean;
+  /** RI-05: open the pockets targeted at the Supply chest or Tram stop at (x, y) (E on it): its transfers go there
+   *  (chestTake / chestPut at). Tab / I target the Depot again. Pressing it on the same target closes them. */
+  openPocketsAt(x: number, y: number): void;
   /** D-B1-5: show/hide the build menu (B); a click on a row puts that building in the hand. */
   toggleBuild(): boolean;
   /** Esc: close the pockets and the build menu. */
@@ -120,7 +124,10 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   // kits are taken here, one a claim, and a claim made with no kit in the pockets toasts that its edges wait.
   const pocketSec = el('section');
   pocketSec.hidden = true;
-  pocketSec.append(el('h2', undefined, 'Pockets and the Depot chest (Tab / I, or E on the Depot)'));
+  let pocketAt: [number, number] | null = null;   // RI-05: the Supply chest or Tram stop the pockets talk to (E on it); null = the Depot
+  const pocketTarget = () => pocketAt ? machineAt(session.state, pocketAt[0], pocketAt[1]) : undefined;
+  const pocketWhere = () => { const m = pocketTarget(); return !m ? 'the Depot' : m.kind === 'tramstop' ? 'the Tram stop\'s platform' : 'the Supply chest'; };
+  pocketSec.append(el('h2', undefined, 'Pockets and the chest (Tab / I, or E on the Depot; E on a Supply chest or a Tram stop targets it)'));
   const pocketHead = el('p', 'hint', '');
   pocketSec.append(pocketHead);
   const pocketList = el('ul', 'plain');
@@ -129,8 +136,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const row = el('div', 'row');
     const n = item === 'kit' ? 1 : item === 'magazine' ? 5 : stackSize(item);
     const take = el('button', undefined, `Take ${n}`), put = el('button', undefined, 'Put all');
-    take.onclick = () => { const r = chestTake(session.state, item, n); record(session, { type: 'chestTake', item, n }); if (r.moved) toast(`${r.moved} ${item} into the pockets`, 'good'); else toast(r.reason, 'bad'); };
-    put.onclick = () => { const r = chestPut(session.state, item, 1e9); record(session, { type: 'chestPut', item, n: 1e9 }); if (r.moved) toast(`${r.moved} ${item} into the Depot`, 'good'); else toast(r.reason, 'bad'); };
+    take.onclick = () => { const r = chestTake(session.state, item, n, pocketAt ?? undefined); record(session, { type: 'chestTake', item, n, ...(pocketAt ? { x: pocketAt[0], y: pocketAt[1] } : {}) }); if (r.moved) toast(`${r.moved} ${item} into the pockets`, 'good'); else toast(r.reason, 'bad'); };
+    put.onclick = () => { const r = chestPut(session.state, item, 1e9, pocketAt ?? undefined); record(session, { type: 'chestPut', item, n: 1e9, ...(pocketAt ? { x: pocketAt[0], y: pocketAt[1] } : {}) }); if (r.moved) toast(`${r.moved} ${item} into ${pocketWhere()}`, 'good'); else toast(r.reason, 'bad'); };
     row.append(take, put);
     l.append(a, v); pocketList.append(l); pocketList.append(row);
     return { item: item as ChestItem, v, take, put };
@@ -155,6 +162,11 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     { kind: 'pole', key: '7', what: 'carries power; a run reaching a Dark block\'s substation is the claim\'s power connection' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
     { kind: 'floodlight', key: '0', what: '2×2, 40 kW, a 12-tile cone along its facing (R rotates)' }, { kind: 'bigpole', key: '[', what: '2×2, reach 12' },
     { kind: 'substation', key: ']', what: '3×3, gives a face that has none (the outskirts) its substation' },
+    // RI-05 (plan §5, the minimal part of T16): the supply chest (the field kit) and the rail kit (the rail yard's restoration)
+    { kind: 'chest', key: 'C', what: `2×2 Supply chest: holds ${SUPPLY_CHEST_CAP} items of any kind; inserters and the pockets (E on it) use it; a restored supply depot's chest hands out kits` },
+    { kind: 'track', key: 'L', what: 'one tile of rail on a street (walkable); a tram runs the length of one unbranched line' },
+    { kind: 'tramstop', key: 'H', what: `2×2, ${MACHINE_KW.tramstop} kW, beside the track: an inserter (or E) loads its platform, a tram takes the platform and leaves its cargo as arrivals for an inserter to take (${STOP_CAP} each)` },
+    { kind: 'tram', key: 'V', what: `one tile on the track: carries ${TRAM_CAP} items at ${TRAM_TPS} tiles/s between the stops on its line, ${TRAM_DWELL_S} s at each` },
   ];
   const buildCarried: { kind: BuildKind; v: HTMLElement; btn: HTMLButtonElement; lock: HTMLElement }[] = [];
   for (const b of BUILD) {
@@ -228,7 +240,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     craftRow.append(btnCraft);
     lineSec.append(craftRow);
     const mc = MACHINE_COST;
-    lineSec.append(el('p', 'hint', `World view: the hotbar 1–8 is the build menu's shortcut (B lists the buildings and their costs), 9 the rifle. R rotate, Q pipette / clear the hand, right-click picks a machine up into the pockets with an empty hand. WASD moves (Shift sprints, Space dodges); hand actions reach ${REACH} tiles. Hold the left button on rubble with an empty hand to mine it a unit a second into the pockets; E on the workbench crafts a magazine (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s). Magazines reach the ring only through the Depot: belt or inserter them into it, or carry them (Tab / I).`));
+    lineSec.append(el('p', 'hint', `World view: the hotbar 1–8 is the build menu's shortcut (B lists the buildings and their costs), 9 the rifle. R rotate, Q pipette / clear the hand, right-click picks a machine up into the pockets with an empty hand. C / L / H / V put the Supply chest, Track, Tram stop and Tram in the hand (the kit once the rail yard is restored; RI-05). WASD moves (Shift sprints, Space dodges); hand actions reach ${REACH} tiles. Hold the left button on rubble with an empty hand to mine it a unit a second into the pockets; E on the workbench crafts a magazine (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s). Magazines reach the ring only through the Depot: belt or inserter them into it, or carry them (Tab / I).`));
     debug.append(lineSec);
   }
 
@@ -250,6 +262,9 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   facSec.append(el('p', 'hint', `A facility shows once it is within ${SKYLINE_RANGE} blocks of a Held block; survivors show once a block next to them is Held, and join when their block is.`));
   const survList = el('ul', 'plain');
   facSec.append(el('h2', undefined, 'Survivors'), survList);
+  // RI-05 (plan §5.3): the neighbourhood projects — stage, what each still needs, its reward once restored
+  const projList = el('ul', 'plain');
+  facSec.append(el('h2', undefined, 'Projects'), projList, el('p', 'hint', 'A neighbourhood project (the rail yard\'s restoration first, its reward the rail kit; a local supply depot at a Supply chest). Deliveries by hand (E) or by belt; the rail yard\'s commissioning is its block\'s Activate, the depot\'s is E at its chest once its materials are in it.'));
   debug.append(facSec);
 
   // summary
@@ -378,12 +393,16 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     sEmpty.b.textContent = String(h.ammo.emptyHoppers); sEmpty.s.classList.toggle('warn', h.ammo.emptyHoppers > 0);
     sClock.b.textContent = h.clock;
     for (const { m, b } of speedBtns) b.classList.toggle('active', s.speed === m);
+    projList.replaceChildren(...projectList(s).map(r => el('li', undefined, describeProject(s, r))));   // RI-05
     if (!pocketSec.hidden) {
-      const e = s.engineer, near = nearDepot(s);
-      pocketHead.textContent = `${invStacks(e.inv)} / ${INV_STACKS} stacks · ${near ? 'at the Depot' : `walk to the Depot to transfer (${REACH} tiles)`} · HP ${Math.round(e.hp)}`;
+      // RI-05: a targeted chest or stop that was picked up or lost sends the pockets back to the Depot
+      const tgt = pocketTarget();
+      if (pocketAt && (!tgt || (tgt.kind !== 'chest' && tgt.kind !== 'tramstop'))) pocketAt = null;
+      const e = s.engineer, near = pocketAt && tgt ? inReach(s, tgt.x, tgt.y, MACHINE_SIZE[tgt.kind]) : nearDepot(s), where = pocketWhere();
+      pocketHead.textContent = `${invStacks(e.inv)} / ${INV_STACKS} stacks · ${near ? `at ${where}` : `walk to ${where} to transfer (${REACH} tiles)`}${pocketAt && tgt ? ` · ${tgt.kind === 'tramstop' ? `platform ${Object.values(tgt.inv).reduce((a, b) => a + b, 0)} / ${STOP_CAP}` : `${Object.values(tgt.inv).reduce((a, b) => a + b, 0)} / ${SUPPLY_CHEST_CAP}`}` : ''} · HP ${Math.round(e.hp)}`;
       for (const r of pocketRows) {
-        const c = chestCount(s, r.item);
-        r.v.textContent = `pockets ${e.inv[r.item] ?? 0} · chest ${c === Infinity ? '∞' : c}`;
+        const c = pocketAt && tgt ? (tgt.inv[r.item] ?? 0) : chestCount(s, r.item);
+        r.v.textContent = `pockets ${e.inv[r.item] ?? 0} · ${pocketAt ? 'there' : 'chest'} ${c === Infinity ? '∞' : c}`;
         r.take.disabled = !near || c <= 0; r.put.disabled = !near || !(e.inv[r.item] > 0);
       }
       const mach = KINDS.filter(k => (e.inv[k] ?? 0) > 0).map(k => `${e.inv[k]} ${k}`);
@@ -486,7 +505,12 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const panelRef: Panel = {
     update, tooltip, tooltipText, toast, setView, onPick: null,
     toggleDebug() { debug.hidden = !debug.hidden; debugView.coords = !debug.hidden; ringKey = ''; lastFacKey = ''; return !debug.hidden; },
-    togglePockets() { pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; return !pocketSec.hidden; },
+    togglePockets() { pocketAt = null; pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; return !pocketSec.hidden; },
+    openPocketsAt(x, y) {   // RI-05
+      const same = pocketAt !== null && pocketAt[0] === x && pocketAt[1] === y;
+      if (same && !pocketSec.hidden) { pocketSec.hidden = true; pocketAt = null; } else { pocketAt = [x, y]; pocketSec.hidden = false; }
+      lastUpdate = -1e9;
+    },
     toggleBuild() { buildSec.hidden = !buildSec.hidden; return !buildSec.hidden; },
     closeAll() { pocketSec.hidden = true; buildSec.hidden = true; },
     setSelectedEdge(e) {

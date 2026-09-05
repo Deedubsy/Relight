@@ -38,6 +38,20 @@ twenty-four "Re-read at …" sections) is `archive/pre-phase-5-cleanup/DEFERRED-
   fires on the claim front; the benchmark bot placing turrets on each claim changes the
   hour's balance, so it is a separate, visible decision for the human — RI-07's rerun is
   the natural place.
+- **A refusal the player can read for an out-of-reach hand command** (RI-05, 2026-09-05).
+  The sim drops a hand command — a placement, a take, a put, a delivery — whose target is
+  out of reach with no event and no reason a caller can read (`activate-rejected` is the
+  one hand refusal that leaves a trace). The hour bot met it when a walk still under way
+  carried the engineer past the tile between its check and the action's tick; it re-walks
+  and retries (`hour.ts` `within`). A visible refusal for the rest is nobody's task yet
+  (RI-09's T13 is the natural place).
+- **The Tram stop's 20 kW on the hour** (RI-05, 2026-09-05; §13's own figure). On the
+  minimal tram route the two stops brown the hour out from 26:43 until Generator 4 at
+  45:00 (1130–1688 s on seeds 3 / 4 / 5) where the belt route never browns out, and the
+  Tram's 5 Cu leaves copper at 1 on seed 3 (`E-project-beside`). The route sits beside the
+  benchmark; an earlier Generator 4 when the route is chosen, a stop that draws only while
+  transferring, or another price is a tuning decision for the human (`DECISIONS.md`
+  "Outstanding questions"). Nobody's task yet.
 
 ## Scheduled — link only
 

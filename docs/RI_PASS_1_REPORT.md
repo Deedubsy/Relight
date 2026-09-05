@@ -713,3 +713,211 @@ as plan §14 asks; the thinner seed-5 margins are reported, not fixed).
 
 **Next.** RI-05, ready (blocked by RI-03, done); T12b and T12c runnable behind it in list
 order.
+
+## RI-05 — Neighbourhood project framework and the rail-yard reward (2026-09-05)
+
+**Authorisation.** The plan's RI-05 row (§4.2, §4.4, §5, §9.1, §13 — "bring a minimum
+useful part of T16 / transport into RI-05") and `PROGRESS.md`'s, executed on "Whole plan"
+(D-RI-1, recorded at RI-00). Blocked by RI-03, done. The hybrid's second task (D-RI-4);
+the direction is GDD §28.4's project record, its first project and its reward, and §13 /
+§14's transport rows; every size, cap and price this task chose is an implementation
+default under D-RI-6 — reversible, not a historical approval, no earlier gate credited
+with any of it. The benchmark's configuration is unchanged (config hash `b95922d2` before
+and after; `E-hour`'s belt line untouched — the tram route runs beside it). Plan §2's
+boundaries hold: the reward is the transport capability, no loot, no random drop, no stat
+bonus; belts and machines stay indestructible. Plan §5.1's order holds and is measured:
+the rail yard is deliverable before any tram exists, the kit unlocks at the restoration's
+second and never before, and nothing the reward grants is needed to earn it.
+
+**What the repository was (inspected before any edit).** HEAD `24bc007` on `ri-pass-1`
+(RI-04's commit). No project record anywhere: territory was the block record alone
+(§4.4), a Held block was the end of its story, and §28.4 was direction with a catalogue.
+The Depot was the only chest — the HQ's inventory, reached by `chestTake` / `chestPut`
+from the Depot alone; `FIELD_KIT` had no chest and "chests as placeable objects" stood in
+the not-built list. No Track, Tram stop or Tram kind (§13's rows Track, Tram stop, Tram,
+Tram depot, Freight tram and Rail crew all unbuilt); `unlockedKinds` was every kind, and
+`defence.test.ts` asserted the literal 12. The yard's coal reached the Depot by belt in
+`E-hour` (RI-01's west line). The hour bot's hand commands that fell out of reach were
+dropped by the sim silently (a `chestTake` too far from the Depot does nothing and the
+bot waited on it), which mattered once the bot had to work at a chest placed by itself.
+
+**Built (code, `packages/sim`, `packages/harness`, `packages/game`).**
+
+- `packages/sim/src/project.ts` (new). The record — `projectId, siteId,
+  neighbourhoodBlockIds, requirements, deliveredItems, stage, activationAttemptId,
+  rewardId` plus `restoredAt, rewardAt, installId` — and the stages `discovered,
+  preparing, ready, commissioning, restored, interrupted`. The stage is derived by
+  `syncProjects` from the site's real state after every block tick and every hand
+  command, never stored as a second territory: `ready` when the claim's activation check
+  passes without hands, `commissioning` while the block is Contested (its attempt id
+  recorded), `restored` once when the block is first Held (a legacy map claim restores
+  with attempt −1, so a pre-RI-05 save discovers and restores its projects on load),
+  `interrupted` when a Dark site has an attempt behind it or a restored site is lost
+  (the reward stays — owning an unlock is distinguished from an operational facility by
+  `projectOperational`), `preparing` on a delivery, a pole run reaching the site or a
+  crafted Substation, else `discovered`. Two catalogue entries: the rail yard (its
+  requirements are the claim's, its reward `rail-route` — the kit) and the local supply
+  depot (created on the yard's restoration; requirements 20 coal + 10 magazines in a
+  Supply chest on the site; its reward `local-depot`, the chest that hands out kits).
+  `commission` is the depot's hand command: within reach of a stocked chest on a
+  restored site it changes the record alone — no claim, no charge, the stock stays,
+  idempotent. `describeProject` for the panel and the toasts; `projectTitle` names them
+  "<Block> restoration" / "<Block> supply depot".
+- `packages/sim/src/flow.ts`. Four kinds — `chest` (2×2), `track` (1), `tramstop` (2×2),
+  `tram` (1) — with `MACHINE_COST` (chest 10 steel, track 1, stop 10, tram 20 + 5 Cu) and
+  kW (the stop 20, the rest 0). `RAIL_ROUTE_KINDS` and `PROJECT_UNLOCKS` behind
+  `unlockedByProject`; `lockReason` says "the rail yard restoration unlocks it";
+  `FIELD_KIT` gains the chest. The tram: `tramRoute` (the one line its track makes, a
+  junction parks it; cached per placement revision), `stopAt`, `tramTransfer` (instant,
+  only at a `running` stop: the platform aboard, the cargo to the arrivals), `tickTram`
+  (8 t/s along the line, 4 s dwell, before the `!running` gate — it moves without
+  power). Inserters take from a chest's inventory and a stop's arrivals; belts end in a
+  chest or a stop's platform; `beltDeliver` lets a belt whose next tile is a Dark front
+  block's Substation commit steel / copper to the claim (`stats.beltDelivered`, the
+  "off a belt" delivery); `stats.tramMoved`. Placement: chest / track / stop on the
+  margin, `'track runs on streets'` elsewhere, a tram on track only, one a tile, not in
+  `occ`; pickup: a tram before its track, track under a tram refused. `chestTake` /
+  `chestPut` take an optional `at` — a chest or a stop within reach — through one
+  `handPool`; kits come only from the Depot or a restored depot's chest ("kits stay in
+  the pockets"). `activationCheck(st, bx, by, hands = true)`; `activate` records the
+  attempt on the project; `describeMachine` for the four kinds; the ASCII map's `c = H M`.
+- `packages/sim/src/types.ts` (`ProjectStage`, `ProjectRecord`, `FlowState.projects`, the
+  `commission` command, `chestTake` / `chestPut { x?, y? }`, the `project` event),
+  `walk.ts` (track and a tram are passable — rails in the street), `goal.ts` (a status
+  line for each kind), `ledger.ts` (a tram's load and a stop's pools are held items),
+  `engineer.ts` (`commission` goes through the hand hook), `index.ts`.
+- `packages/sim/src/hour.ts`. `createHourBot(…, route = 'belt' | 'tram')`; the belt
+  route is byte-for-byte the benchmark's. `within(bot, label, x, y, size, fn, tries)`
+  re-walks to the target up to three times before a hand command, because the sim drops
+  an out-of-reach one silently; `putAt` uses it. `tramPlan` reads the route off the
+  state — the street column between the yard and the HQ nearest the HQ lot that takes it
+  all, stop B on the Depot's row, stop A nearest the heap, the belts by breadth-first
+  search — and `tramLine` lays it from the Depot's stock at the west step + 60 s;
+  `depotSupply` (six minutes later) loads the depot's stock onto stop B's platform, waits
+  for the record to read ready, walks within reach of the chest and commissions. Marks:
+  rail-yard-restored, rail-kit-unlocked, tram-route, tram-first-delivery, depot-supplied,
+  depot-restored.
+- Tests. `packages/sim/test/project.test.ts` (new, 3): the rail yard's stages through the
+  pole run, hand and belt deliveries, the Activate, the restoration, the reward's lock
+  before and unlock after, a later loss (stage and reward kept, non-operational) and the
+  retake (re-grants nothing); the depot's commission (the record alone; the stock stays;
+  kits from the restored chest; a pre-RI-05 save discovers its projects on load); a chest
+  feeding and fed by inserters, the shuttle (track on the street only, a stop each end,
+  platform → arrivals, the hand and an inserter taking there), the ledger balanced and a
+  mid-run save to the same hash. `defence.test.ts` derives the unlocked count from
+  `KINDS` minus `RAIL_ROUTE_KINDS`.
+- `packages/harness/src/experiments/eproject.ts` (new) and `index.ts`: `E-project`, eight
+  sections and 10 checks on seeds 3 / 4 / 5 — the timeline, the records at the end, the
+  route as laid and its price, the replay with the kit's lock sampled every tick, the
+  stages, the 40:00 save, the ledger, and the same bot on the belt route beside it.
+- `packages/game/src/worldScene.ts` (the four kinds drawn — the chest's item squares, the
+  stop's platform stripe lit when powered, the tram on its rail; `MACHINE_COL`,
+  `BOX_MACHINE`, `UNLOCK_KEYS` C / L / H / V; E over a chest or a stop opens its
+  pockets), `panel.ts` (the pockets target the chest or stop under the engineer, the BUILD
+  rows, a Projects list from `describeProject`), `main.ts` (the `project` event's toasts:
+  discovered, ready, commissioning, restored, interrupted — the toast is the
+  presentation, never the completion).
+
+**Implementation defaults (reversible, D-RI-6).** The reward grants §13's Tram depot /
+Rail crew kit's three kinds — Track, Tram stop, Tram — and those rows stay the design;
+the Tram depot and Rail crew as buildings are unbuilt (RI-09). The Tram stop is 2×2 with
+two 200-item pools (platform, arrivals) and an instant transfer at a powered stop in
+place of §13's 2×3 with six inserters; it draws §13's 20 kW always. The Tram is one tile
+(§13: 1×3), 200 items at 8 t/s, a 4 s dwell, one line between two stops, a junction
+parks it; it draws no kW. Track runs on streets only, 1 steel a tile, walkable. The
+Supply chest is 2×2, 200 items in all, 10 steel, in the field kit. Prices: a stop 10
+steel, the tram 20 steel + 5 Cu — the copper so the route costs the one thing the hour
+is short of at 26:00 (GAME-ASSUMPTIONS; §13 prices none). The depot's stock is 20 coal +
+10 magazines, not consumed; its function is the kit hand-out. `preparing` is a delivery,
+a pole run reaching the site or a crafted Substation. A legacy map claim restores with
+attempt −1. The bot's `within` re-walk is the bot's, not a rule. Titles are capitalised
+block names. None of these is a historical approval; the human reverses any by name.
+
+**Measured (`E-project`, seeds 3 / 4 / 5, rifle off, the hour bot on the tram route).**
+
+| seed | claim-west | restored = kit unlocked | tram route | first delivery | yard's coal at the Depot | depot restored | first brownout | Generator 4 | claim-north | held-north |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 3 | 25:11 | 25:46 | 26:45 | 26:59 | 27:15 | 32:18 | 26:43 | 45:00 | 65:10 | 65:39 |
+| 4 | 25:14 | 25:43 | 26:47 | 27:00 | 27:15 | 32:15 | 26:44 | 45:01 | 65:14 | 65:48 |
+| 5 | 25:10 | 25:40 | 26:42 | 26:56 | 27:05 | 32:15 | 26:39 | 45:00 | 65:17 | 65:46 |
+
+At 75:00 on every seed: the rail-yard record `restored · attempt 2 · reward rail-route`,
+delivered 0 steel / 0 copper (the benchmark's economy-off claim, as at RI-03); the
+supply-depot record `restored · attempt -1 · reward local-depot · delivered 20 coal, 10
+magazine`; 732 items moved by tram; 702 coal dug at the yard; 4 Held, the HQ held, no
+fall, 0 refusals. The route as laid: seed 3 column 408 rows 622–628 (7 track), stops
+(406,627) / (409,622), the chest (403,627), 19 + 1 belts, 89 steel + 7 Cu; seed 4 column
+454 rows 662–665, 20 + 1 belts, 87 steel + 7 Cu; seed 5 column 283 rows 637–643, 16 + 3
+belts, 88 steel + 7 Cu. The replay: hashes d26403f4 / ea05f464 / 1aa9b52d equal to the
+played run's, the records equal, the kit locked at 0:00 and unlocked at the restoration's
+second, the route laid after it; stages discovered 0:00 → ready 25:05 / 25:06 / 25:05 →
+commissioning 25:11 / 25:14 / 25:10 → restored. The 40:00 save: 4bac3c2e / 5eb3e599 /
+ae8fd197 equal after the load, both copies to the same end hash, the goal line wrong 0
+samples. The ledger conserved on every seed (seed 3: steel 200 + 3297 → 1629 + 1868,
+copper 100 + 1157 → 475 + 782, coal 80 + 1404 → 548 + 936, magazines 50 + 669 → 253.8 +
+465.2; the tram's load and the stops' pools counted as held). Beside it, the same bot on
+the belt route: the west line 26:42 / 26:44 / 26:39, the coal at the Depot 27:04 / 27:04 /
+27:02, brownout 0 s, copper minimum 8 / 32 / 9, the chest at 75 1589/385/471/108,
+1605/2084/469/279, 1631/385/472/215 (St/Cu/coal/mag) against the tram route's
+1499/378/436/87, 1521/2048/436/259, 1546/378/440/196.
+
+*A finding, reported and not tuned.* The two Tram stops' 40 kW (§13's own 20 kW figure)
+put the tram-route hour into a proportional brownout from 26:43 / 26:44 / 26:39 until
+Generator 4 at 45:00 (1688 / 1131 / 1130 s) where the belt route never browns out, and
+the Tram's 5 Cu leaves copper at 1 on seed 3 (the belt route's minimum 8). The hour
+still stands on every seed (4 Held, no fall, the coal by tram eleven seconds behind the
+belt). Whether Generator 4 comes earlier when the route is chosen, the stop draws only
+while transferring, or the price changes is the human's tuning decision (`DECISIONS.md`
+"Outstanding questions", `DEFERRED.md`).
+
+`E-hour` 19/19 with every timeline and end number unchanged; only its state hashes moved
+(the state now carries `flow.projects` and two stats counters) and two marks were added
+(rail-yard-restored / rail-kit-unlocked at 25:46 / 25:43 / 25:40 — the same seconds as
+held-west). `E-rifle` 16/16, `E-variance`, `E-walk` and E1–E9 changed by their source
+stamp only (`9d6a172` → `24bc007`).
+
+**Browser check.** Not run this task: the game build is green inside `npm run typecheck`
+and the four kinds, the pockets on a chest or stop, the Projects list and the toasts
+were reviewed in the diff, not played. The record and its rewards are the sim's
+(`project.ts`); the game layer only draws them.
+
+**Verified (commands actually run, 2026-09-05, after the code and before the records).**
+
+| command | result |
+|---|---|
+| `npm test` | 148 pass, 0 fail (145 + `project.test.ts`'s 3) |
+| `npm run typecheck` | green, including the Vite game build |
+| `npm run lint` | green |
+| `npm run docsync:check` | green — both messages (the §13 footprint table is hand-written; the generated blocks are unchanged) |
+| `npm run experiments` | 14 experiments, 369 s, **0 failing checks**; `E-project` 10/10, 53.9 s; `E-hour` 19/19, 79.3 s; `E-rifle` 16/16, 126.6 s; `E-variance` 4/4, `E-walk` 3/3, E1–E9 green as at RI-04 |
+| `npm run freshness:check` | green — every generated file made on an ancestor of HEAD with the current config (the experiments are stamped `24bc007`, RI-04's commit, because the run preceded this commit) |
+| `npm run snapshot:check` | green, unchanged (`held 28 front 11 interior 18 lost 0 claims 27`) |
+
+The three checks were re-run after the document edits: docsync, freshness and snapshot
+green with the same messages.
+
+**Fixtures, expected results and generated files.** No fixture regenerated, no expected
+result edited, no source stamp rewritten by hand. `docs/EXPERIMENTS.md` and
+`docs/experiments/E-*.json` are the full run's output: `E-project.json` is new;
+`E-hour.json` changed in its hash rows and the two added marks alone; the others in
+their stamp alone. The compact snapshot is unchanged (no project in it — a snapshot is a
+tile state, and a loaded pre-RI-05 save discovers its projects itself). The design doc's
+generated tables are unchanged; the §13 rows edited are the hand-written footprint table.
+
+**Not built, and where it goes.** The rest of T16 — the Freight tram, the Tram depot and
+the Rail crew as buildings, routes with more than two stops, a stop's inserter sides —
+is RI-09. The catalogue's foundry, riverside generation and transformer are RI-11 (§28.4
+keeps them). A map-view marker for a discovered site (§5.3's presentation beyond the
+Projects list and the toasts). An interruption narrated beyond the record: a lost
+restored site reads `interrupted` and non-operational, nothing more. A readable refusal
+for an out-of-reach hand command (`DEFERRED.md`; RI-09's T13 is the natural place). The
+bot's turrets stay `DEFERRED.md` (RI-03); sound stays deferred (RI-02).
+
+**Not decided by this task (for the human, no blocker).** The Tram stop's 20 kW on the
+hour and the Tram's copper (the finding above). Whether the tram route ever joins the
+benchmark (D-RI-5, a decided row: beside it until the human moves it). The depot's
+reward — the kit hand-out is the minimum §28.4 names; anything richer is a design
+choice, not this task's. RI-05's sizes, caps and prices, listed above as defaults.
+
+**Next.** RI-06, ready (blocked by RI-04 and RI-05, both done); T12b and T12c runnable
+behind it in list order.
