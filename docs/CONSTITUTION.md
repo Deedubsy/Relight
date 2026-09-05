@@ -1,45 +1,163 @@
-# Relight — build the game from the design doc
+# Relight — programme constitution
 
-Starting point: `RELIGHT-design.md` and whatever else is in the repo. Nothing is assumed built. This is a programme of fourteen phases with a gate between each (the phases and their DoDs are in `PHASES.md`); you will finish it over many sessions, each of which starts by reading `PROGRAMME_STATE.md` and the last phase report, and ends by writing the next. Treat this file as the constitution.
+The stable rules of the programme: what the game is, who decides what, what counts as
+evidence, how work is verified, and what the status words mean. Operational steps are in
+the root `CLAUDE.md`; the phases and their exit criteria are `PHASES.md`; the task list is
+`PROGRESS.md`; the current state is `PROGRAMME_STATE.md`; decisions and open questions are
+`DECISIONS.md`; the game itself is `RELIGHT-design.md`.
 
-The session's read order is in `CLAUDE.md`; the phases are in `PHASES.md`.
+Rule numbers are stable because every phase report cites them ("rule 12", "rule 14"). The
+wording was revised on 2026-09-05 by the pre-Phase-5 cleanup (`PROGRESS.md` T11a); the
+previous text is `archive/pre-phase-5-cleanup/CONSTITUTION-2026-09-05.md`. Where an old
+report quotes a rule, it quotes the old wording, and the old wording was the rule then.
 
-## Constitution
+## Scope
 
-1. **The doc is the spec, the sim is the judge, the doc follows the sim.** Every rule is a sentence in `RELIGHT-design.md`; every number that matters carries `[sim: run]` or `[play: session]`. Code and doc disagreeing means the code is wrong until a run says otherwise, and then the doc changes with a changelog line. The doc never drifts into "whatever the code does".
-2. **Three systems: the front, found tech, automated combat.** Recount against §26 at every gate. A phase that needs a fourth system stops and reports. Complexity above 6 is a rework trigger.
-3. **Headless first.** The whole game lives in `packages/sim`, pure TypeScript, no engine, no DOM, fixed tick, deterministic, JSON-serialisable state, `step(state, commands) → state'`. Every feature is testable from a node harness before it has a pixel. The experiment suite runs in CI; a red experiment is a red build.
-4. **Production is territorial.** Machines occupy lots; only interior blocks (plus the HQ) host production; rubble is finite; magazines cost their recipe. These are §5 and §12 rules and they exist from the first prototype onward. A prototype in which an assembler is weightless or ore is infinite cannot test the front, because a number is always cheaper than a shape.
-5. **Bots are the instrument.** Four claim policies (compact, spike, cheapest, balanced) that also build when demand exceeds 80 % of production and a slot is free. Calibration means stating the behaviour a session must have and finding the config that produces it with bots; it never means adjusting a number until it feels right.
-6. **Report gaps, don't fill them.** Where the doc is silent, implement the simplest thing, tag it `GAME-ASSUMPTION` with the question it stands in for, list it in the phase report. Never a silent invention. Never "I made it more fun".
-7. **Humans decide constants, direction and verdicts.** Design constants, art direction, difficulty philosophy, engine swaps, go/no-go at the two human gates. Write the question and the evidence into the report; do not pick. `DECISIONS.md` logs every one.
-8. **Rules are watched, not read.** No tutorial screens. §11 is the tutorial; every rule surfaces as a toast, a tooltip, a pip, or a thing happening on screen. A rule that can't be taught that way is suspect.
-9. **Every phase ends the same way.** The cheap checks green at every milestone; the full verification pass green at every phase end; a five-minute smoke test a human ran; `PHASE_N_REPORT.md` (built, assumed, deferred, measured, three decisions for a human); `PROGRAMME_STATE.md` updated; `DEFERRED.md` re-read and every item given a phase or deleted with a reason; §26 recounted; **the `STANDARDS.md` rows for this phase are checked (one minute each, by a human), and no new gap was introduced without a row** (added 2026-09-04 by the standards audit).
-10. **Stop conditions are outcomes, not failures.** If the experiments say the front doesn't produce the layouts §9 promises, or a human gate returns `kill`, or the factory has no reason to exist without the threat, or complexity can't be held at 6 — write the finding and stop.
-11. **Provenance.** A decision counts as decided only when its row in `DECISIONS.md` has three things filled in: `decided by` (a person's name), `on` (a date), and `via` (a link or a quote of the message, the commit, or the report section where they said it). If any of the three is missing, the row is *recommended*, and the assistant must not act as if it were decided. Every number in the design doc must say where it came from: a run name, a play session, or a commit. Every generated file must contain the git commit and the config hash it was made from, and CI must fail if either does not match the current code.
-12. **Prompts do not carry constants or rules.** A task prompt may point at sections of the design doc and say what work to do. If a task prompt contains a number, a rate, a size, a cost, or a rule that is not already in the design doc or in a decided row of `DECISIONS.md`, the assistant's first and only action is to write a list of every such number or rule, say where it conflicts, and stop. The human resolves the list before any of the work starts.
-13. **"Built" means measured.** A milestone report may use the word "built" in its heading only when its Measured table contains numbers that came from running the code. Until then the heading must say "coded (unverified)". The cheap checks (test, typecheck, lint, docsync) run at the end of every milestone, before the report is written; a milestone is never marked coded while any of them is red. The full verification pass runs when the user says "verify".
-14. **Provisional decisions.** When the user says only "go", the assistant may act on a recommended decision only if all three are true: (a) the row is marked `provisional` in `DECISIONS.md`; (b) reversing it later would not change any game rule or any regression fixture; (c) the next report lists it first, under a heading "Taken provisionally". If a row is marked `blocking`, the assistant stops and asks the human to write the row before continuing.
+Relight is the full game `RELIGHT-design.md` describes: a 2D city-reclamation factory game
+with three systems (§26), built through the fourteen phases of `PHASES.md` to a Steam
+release. The programme's ambition and identity are the design doc's; the phases build
+toward that game, never toward a smaller one. Content is seeds, presets and facilities; a
+proposed fourth system goes through §23's rejected-alternatives test before anything else.
+
+## The rules
+
+1. **Design, code and evidence.** The design doc states the intended rules. Code implements
+   them. A simulation measures one implementation under stated conditions (scenario, seed,
+   duration, config, commit). A human playtest assesses the experience. When any two of
+   these disagree, the disagreement is diagnosed and recorded before anything moves: a
+   sim can show the doc's number is unreachable, that the code is wrong, or that the
+   scenario was wrong, and the report says which. The design doc labels three kinds of
+   statement so a reader can tell them apart: the **current intended rule**; a **current
+   implementation limitation** (`GAME-ASSUMPTION`, "the slice pays … as a stand-in"); and an
+   **approved future change** ("decided … not yet built", with its decision id). Tables
+   generated into the doc by `docsync` carry the code's constants; they never silently
+   redefine a player-facing acceptance criterion, and a generated change that moves one is
+   a rules change and is reported as one.
+
+2. **Three systems.** §26's count is three (belts/inserters/machines; the front rule; found
+   tech as a map). Every phase report recounts it. A recount of four or more is a stop
+   condition (rule 10). The engineer's body (rifle, sprint, dodge, reach, pockets) is
+   presence, not a system, unless it grows rules of its own.
+
+3. **Headless first.** `packages/sim` is pure TypeScript with no renderer dependency;
+   `step(state, commands)` returns the next state. Every rule exists there before it is
+   drawn. A red experiment is a red build.
+
+4. **Gameplay rules live in the design doc, not here.** This file holds no game rule. (The
+   old rule 4 stated one — "only interior blocks (plus the HQ) host production" — that the
+   D6 rework's §5 and the built sim no longer say; it is now `DECISIONS.md` D-CU-1, a
+   question for the human, and §5 is the current intended rule until it is answered.)
+
+5. **Bots are the instrument; people judge the experience.** Harness bots and experiments
+   issue the same commands a player can (`packages/sim` `Command`), from the same
+   inventories, at the same reach. A run that bypasses gameplay commands, or gives the bot
+   stock, power or placements a player cannot have, is labelled a scenario in its report
+   and is never evidence for a player-facing claim. Whether something is fun, legible or
+   tedious is a human observation and is recorded as one (rule 11).
+
+6. **Assumptions are tagged.** A value or rule the code needs that the doc does not state
+   carries a `GAME-ASSUMPTION` comment at its definition and a row in `DECISIONS.md` if a
+   human should choose it. Untagged numbers in the design doc are counted
+   (`PROGRAMME_STATE.md`) and the count is meant to fall.
+
+7. **Decision authority.** Core rules, progression, scope, phase go/no-go and player-facing
+   acceptance criteria are human decisions. Claude chooses routine implementation details
+   without asking, and may tune a constant only within bounds a decided row or the design
+   doc states. A number or rule a task needs that no decided row or design-doc sentence
+   supplies becomes a `DECISIONS.md` row with a recommendation; the task that needs it is
+   `blocked` on that row and every task that does not need it proceeds. **An unresolved
+   question blocks dependent work, not every unrelated task.** Claude can record a human's
+   direct authorisation (quoting the message, dated) and cannot originate an approval,
+   sign on a human's behalf, or infer that a test was performed.
+
+8. **No tutorial screens.** §11 is the tutorial; every rule surfaces as a toast, a tooltip, a
+   pip, a HUD line driven by the sim's own state, or a thing happening on screen. D-GB-2
+   tests the limit of this rule and is the human's to move.
+
+9. **Phase exit.** A phase ends with: its report (built / assumed / measured with
+   provenance / where it disagrees with the doc / open questions — as many as there are,
+   no fixed number); the full verification of the policy below, green or with every
+   failure named; `PROGRAMME_STATE.md` rewritten to the new state; `PHASES.md`'s exit
+   criteria checked one by one, including the `STANDARDS.md` rows for the phase; and the
+   §26 recount. Human gates (`PHASES.md`) are passed by a named person on a dated record.
+
+10. **Stop conditions.** Stop and ask when: a core rule, progression, scope or go/no-go
+    decision is needed for the current task; a change would move a fixture, a `[play: …]`
+    lock, a decided constant or an expected result; a check is red for a reason outside
+    the task; a §26 recount reaches four; or the action is destructive or outward-facing
+    (push, merge, deploy, deleting evidence, an external tracker). Otherwise proceed and
+    record what was chosen.
+
+11. **Provenance.** A decision is `decided` only with `decided by` (a person), `on` (a date)
+    and `via` (a message quote, commit or report section). Every claim of evidence names
+    its kind — a **design approval** (a human said so), a **simulation measurement** (run
+    name, seed, duration, config hash, commit) or a **human observation** (who, when, what
+    was recorded and what was not) — and the kind travels with the claim. Gate A's
+    `[play: Gate A]` tags are approval locks, not measurements; a `[play: Gate B]` tag must
+    support the specific sentence it sits on. Generated files carry `source_commit` and
+    `config_hash` stamps (`npm run freshness:check`); freshness depends on the inputs the
+    file actually reads, and stamps, fixtures and expected results are never rewritten or
+    regenerated to make a check green.
+
+12. **Undecided numbers.** If a task's inputs contain a number, rate, size, cost or rule
+    that is in neither the design doc nor a decided row, list each one as a `DECISIONS.md`
+    row with a recommendation, mark the task `blocked` on those rows, and carry on with the
+    work that does not depend on them. This is not a blanket stop: a doc-only task, a
+    refactor, a harness change or a task whose own inputs are decided is never held by a
+    number some other task needs.
+
+13. **"Built" is four separate claims.** *Implementation complete* (the code exists and the
+    cheap checks pass); *automated validation* (`not_run` / `passed` / `failed` /
+    `partial`, naming the run); *human approval* (a named person, a date, a record); and
+    *human play evidence* (an observation from a played session). A report names which of
+    the four it has. A file existing is not a pass; a gate stays passed when an observation
+    it hoped for went unmeasured, and the unmeasured observation is listed as owed.
+
+14. **Provisional decisions.** When a task needs a row that has a recommendation and no
+    human answer, Claude may act on the recommendation, set the row `provisional` with the
+    date and the commit, and list it in the report and in `PROGRAMME_STATE.md`. A human
+    confirms or reverses it; until then it is a choice the code embodies, not a rule the
+    game has. Human waivers (a task marked `waived` by a person) are preserved as written.
+
+## Verification policy (the one policy)
+
+- **Cheap checks after every meaningful code change**: `npm test`, `npm run typecheck`,
+  `npm run lint`, `npm run docsync:check` (about two minutes together).
+- **Focused experiments when a change touches what they measure**: `E-hour` for `hour.ts`
+  and `constants.ts` `HOUR`; `E-rifle` for the engineer and the enemies; `npm run
+  snapshot:check` for any sim rule; `E-chain` / `E-coal` / `E-tram` once they exist.
+- **Full verification** — `npm run experiments`, calibration, `freshness:check`,
+  `snapshot:check` and the Playwright soak — at phase exit, before a human gate, or when the
+  human asks for it. Until it has run on a milestone, that milestone's numbers are
+  *unverified*.
+- **Doc-only changes** run `docsync:check`, `freshness:check` and a link check on the paths
+  they touch; they do not run unrelated simulations.
+- **Baseline failures** (red before the task started) are recorded separately from the
+  task's own results and never hidden by the task.
+
+## Status vocabulary
+
+- Tasks (`PROGRESS.md`): `todo`, `in_progress`, `blocked` (names what it waits for), `done`
+  (its evidence exists and holds the result), `waived` (a named person waived it, with the
+  date). Only a human closes a `human` task.
+- Validation: `not_run`, `passed`, `failed`, `partial` (some checks ran; the report says
+  which).
+- Decisions (`DECISIONS.md`): `open`, `recommended`, `provisional`, `decided`, `superseded`;
+  `open (gate condition)` is kept for the rows a passed gate attached as conditions.
 
 ## Engine and layout
 
-Phaser 3 + TypeScript + Vite for rendering; Electron or Tauri for Steam (decided in Phase 13 on measured memory and startup). If Phase 11's performance gate fails after the allocation work, the sim ports to C# and the renderer to Godot (recommended — not yet decided, see DECISIONS.md row D-ENGINE-1); rule 3 is what makes that a month rather than a rewrite.
-
-```
-packages/sim        the game, engine-free
-packages/game       Phaser renderer, UI, input, audio
-packages/harness    node runners: experiments, bots, calibration, fixture export
-packages/tools      seed browser, map viewer, telemetry analyser, save inspector
-apps/steam          shell, Steamworks bridge, installers
-docs/               RELIGHT-design.md, reports, PROGRAMME_STATE.md, DECISIONS.md, DEFERRED.md
-```
-
----
+TypeScript throughout: `packages/sim` (headless), `packages/game` (Phaser 3 + Vite),
+`packages/harness` (experiments, calibration, snapshot, replay), `packages/tools`
+(docsync, freshness, section 18, seeds); `apps/steam` is planned for Phase 14. The engine
+gate is Phase 11: if the performance targets fail in TypeScript, the port is a human
+decision.
 
 ## Cross-cutting
 
-* **Telemetry** keeps one schema from the prototype to launch; the analyser reads all of it.
-* **Docs sync**: CI fails if `recipes.ts`, `districts.ts` or `enemies.ts` differ from the doc's tables, which are generated from them.
-* **DECISIONS.md**: one line per human decision — phase, evidence file, the doc sentence it produced.
-* **PROGRESS.md** is the only task list. A task is done when its evidence file contains the result, not when someone says so. Only a human marks a human-owned task done.
-* **The two human gates (A and B) and the engine gate are the only places the programme waits.** Everything else is a report and a next phase.
+Telemetry is a sim concern (walking, shooting and danger shares come from the same
+counters for bots and people). `npm run docsync` keeps the design doc's generated tables
+equal to the code and `docsync:check` fails when prose the constants table repeats has
+drifted. `DECISIONS.md` holds one row per decision; `PROGRESS.md` is the only task list;
+`PROGRAMME_STATE.md` is replaced, not appended. Two human gates have passed (A, B); the
+engine gate in Phase 11 is the one left.

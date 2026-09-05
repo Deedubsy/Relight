@@ -1,6 +1,6 @@
 # STANDARDS — the modern 2D factory-game baseline, and where Relight stands
 
-**Run on 2026-09-04** against `phase-4` at b666c68 (plus the Step 0 roadmap corrections). Brief: `docs/relight-standards-audit.md`. Report and verdicts: `docs/STANDARDS_REPORT.md`. Evidence per game, with the URLs each claim came from: `docs/standards/` (`factorio.md`, `shapez2.md`, `mindustry.md`, `captain-of-industry.md`, `foundry.md`, `oni.md`, `recent-indie.md` = Sandustry, `extra-categories.md` = body / threat / city, `reception.md` = what players punish and forgive; `relight-scoring.md` = the Relight column as read from the code and the doc).
+**Run on 2026-09-04** against `phase-4` at b666c68 (plus the Step 0 roadmap corrections). Brief: `docs/archive/pre-phase-5-cleanup/relight-standards-audit.md` (archived 2026-09-05). Report and verdicts: `docs/STANDARDS_REPORT.md`. Evidence per game, with the URLs each claim came from: `docs/standards/` (`factorio.md`, `shapez2.md`, `mindustry.md`, `captain-of-industry.md`, `foundry.md`, `oni.md`, `recent-indie.md` = Sandustry, `extra-categories.md` = body / threat / city, `reception.md` = what players punish and forgive; `relight-scoring.md` = the Relight column as read from the code and the doc).
 
 **The recent indie is Sandustry** (Lantto / Hooded Horse, early access 2026-08-13, 2D, 2,733 Steam reviews at 97 %, 100 k copies in its first week): the newest 2D factory game with a large enough review base to read complaints from; shapez 2 (1.0 2026-04-23) was the runner-up and is already in the list.
 
@@ -197,7 +197,7 @@ Runners-up: belt drag placement (press, day one) and production statistics.
 
 ## Injection summary — the human-check rows per phase
 
-Each row is one minute for a human at the phase's DoD. The same rows are written into `ROADMAP.md` §5, `CONSTITUTION.md`'s phase DoDs and `PROGRAMME_STATE.md`'s standing DoD block.
+Each row is one minute for a human at the phase's DoD. The same rows are written into `PHASES.md`'s DoD lines (`ROADMAP.md` §5 and the constitution's phase list were folded into it; `PROGRAMME_STATE.md` keeps the standing rule).
 
 | Phase | Build-with rows (must ship with the system they touch) | Add-later rows |
 |---|---|---|

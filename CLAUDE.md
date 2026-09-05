@@ -1,71 +1,128 @@
-# Programme Relight — working rules for Claude
+# Relight — working rules for Claude
 
-**At the start of every session, read these files in this order:**
-1. `docs/CONSTITUTION.md` — the rules.
-2. `docs/PROGRESS.md` — the task list. The top task that is not done is the next task.
-3. `docs/PROGRAMME_STATE.md` — the true current state. If it disagrees with the roadmap, PROGRAMME_STATE is right.
-4. The phase prompt named in the current task of `docs/PROGRESS.md`, if it names one.
-5. `docs/DECISIONS.md` — only the rows whose status is not `decided`.
-6. `docs/DEFERRED.md`.
+Relight is a 2D city-reclamation factory game: a lit block on the river, a front of
+street segments to feed with ammo, a factory built from rubble, and a city to relight.
+The design is `docs/RELIGHT-design.md`. Priorities, in order: the game the design doc
+describes; every rule headless first (`packages/sim`) and measured before it is drawn;
+every number with provenance; humans deciding the rules, Claude the implementation.
 
-**Then do the top task in `docs/PROGRESS.md` whose status is not done.** If its owner is human, stop and tell the user which task it is and what it needs. If its owner is claude and it is blocked, stop and name what it is blocked by.
+## Read order (start of every session)
 
-**Before starting any milestone:** compare the milestone's prompt with the design doc and with the decided rows of `DECISIONS.md`. If the prompt contains a number or a rule that is not in either, list every one, say what it conflicts with, and stop (Constitution rule 12).
+1. `docs/PROGRAMME_STATE.md` — where the programme is, what is built, what is a stand-in,
+   and the next task. Two pages.
+2. `docs/PROGRESS.md` — the only task list. The first task whose status is `todo` or
+   `in_progress` and whose `blocked by` is clear is the current task.
+3. `docs/CONSTITUTION.md` — the rules. Stable; skim once you know it.
+4. `docs/DECISIONS.md` — the rows the current task's `blocked by` names, and the
+   "Outstanding questions" section.
+5. The design-doc sections the task names; `docs/PHASES.md` for the phase's exit criteria.
+   `docs/DEFERRED.md` only when a task points at it.
 
-The design is `docs/RELIGHT-design.md`; the current slice prompt is `docs/relight-prompt-B-vertical-slice.md`.
+Do not read the archive (`docs/archive/`) or the phase reports to find current state;
+they are history and evidence.
 
-## Layout
+## Who owns what
 
-npm-workspaces monorepo. `packages/sim` (block sim, city, tiles, flow, engineer, walk), `packages/game` (Phaser + Vite world and map views; dev hooks on `window.__relight`), `packages/harness` (experiments E1–E9, E-rifle, E-walk, E-variance, calibration), `packages/tools` (section 18, docsync).
+| file | holds | does not hold |
+|---|---|---|
+| `docs/CONSTITUTION.md` | principles, decision authority, verification policy, status words | gameplay rules, tasks |
+| `docs/RELIGHT-design.md` | the current intended rules; labelled implementation limitations and approved-not-built changes | task status |
+| `docs/PROGRESS.md` | task status, order, dependencies, acceptance, evidence location | narratives |
+| `docs/PROGRAMME_STATE.md` | the two-page handoff: phase, next task, built vs stand-in, evidence, open items, counters | milestone history (that is the phase reports and the archive) |
+| `docs/PHASES.md` | each phase's scope and exit criteria | a second task tracker |
+| `docs/DECISIONS.md` | every decision and open question with provenance and supersession | task history |
+| `docs/DEFERRED.md` | obligations with no task yet; a link once one exists | anything already scheduled |
+| phase reports, `GATE_*.md`, `TEST_RESULTS.md`, `docs/EXPERIMENTS.md`, `docs/experiments/` | history and evidence | corrections (never rewritten) |
 
-## Verification pass (only when the user asks for it — never on a bare "go")
+When two disagree: for a rule, a `decided` row beats the design doc, which beats every
+other file; for task status, `PROGRESS.md` beats everything; for current state,
+`PROGRAMME_STATE.md`. Fix the loser in the same change. A historical report is not
+fixed; the current document is, with a line saying so.
 
-The user says 'verify' to run this. A bare 'go' runs only the cheap checks at the end of the milestone.
+## Task flow
 
-The scripted checks, experiments, calibration and the headless soak are **not** part of a milestone. They run as a separate verification pass when the user says so, and then all of them, from the repo root:
+Select (first runnable task; if it is `blocked`, name the blocker and go to the next
+runnable one; if its owner is `human`, say what it needs and stop) → set `in_progress`
+→ implement → verify (cheap checks after any meaningful code change; the focused
+experiment when the change touches what it measures — constitution "Verification
+policy") → review the diff (accidental gameplay change, a rule that does not surface
+in-game, a missing tag, a fabricated approval) → update records (`PROGRESS.md` status
+and one log line; `PROGRAMME_STATE.md` "Now"; `DECISIONS.md` rows touched; the design
+doc's changelog for any doc edit) → commit → report → stop. `/next` runs this.
 
-```
-npm test                 # node:test, sim/harness/tools
-npm run typecheck        # includes the game build
-npm run lint
-npm run snapshot:check   # packages/game/public/snapshots/b-compact-seed3.json
-npm run docsync:check    # doc tables match packages/sim
-npm run experiments      # ~105 s
-npm run calibrate -- --out docs/experiments/calibration.json --md docs/experiments/calibration.md
-```
+## Commands
 
-plus the 900 s Playwright soak against the Vite preview. A red experiment is a red build. Fixtures `packages/sim/fixtures/city{3,4,5}.json` are the D6 regression set: a change that moves them is a rules change and is reported as one (regenerate with `npx tsx packages/sim/test/_exportCity.ts`). Until a verification pass has run, a milestone's measured numbers are marked *unverified* in the report; nothing else waits on it.
+All from the repo root, after `npm install`. Verified on 2026-09-05 by running them
+during the cleanup unless marked otherwise.
 
-## The rules
+| command | what | ran this session |
+|---|---|---|
+| `npm test` | node:test across sim / harness / tools (121 tests) | yes, 121 pass |
+| `npm run typecheck` | `tsc --strict` on every package, then the game build | yes, green |
+| `npm run lint` | eslint on sim, harness, tools | yes, green |
+| `npm run docsync:check` | the design doc's generated tables and guarded prose sentences match `packages/sim` (`npm run docsync` regenerates) | yes, green (~3 s) |
+| `npm run freshness:check` | every generated file's `source_commit` is an ancestor of HEAD and its `config_hash` current | yes, green (~4 s) |
+| `npm run snapshot:check` | `packages/game/public/snapshots/b-compact-seed3.json` still reproduces | yes, green (~3 s) |
+| `npm run experiments` | E1–E9, E-hour, E-rifle, E-variance, E-walk → `docs/EXPERIMENTS.md` (a red experiment is a red build) | not run (doc-only task); last recorded run GREEN at 2f1b016 |
+| `npm run calibrate -- --out docs/experiments/calibration.json --md docs/experiments/calibration.md` | the bot calibration | not run |
+| `npm run seeds`, `npm run section18`, `npm run replay`, `npm run nightly` | seed images, §18 images, hour replay, the nightly runs | not run |
+| `npm run dev` / `npm run build` | the game (`packages/game`, Vite) | not run |
 
-**The rules are in `docs/CONSTITUTION.md`. Read it at the start of every session. Nothing in this file overrides it. If this file and CONSTITUTION.md ever disagree, CONSTITUTION.md is right and this file must be fixed.**
+Do not invent commands. Do not claim a command ran if it was only inspected; report the
+actual output, including a red result. The Playwright soak (verification pass only) runs
+against the Vite preview on port 4173 (`?view=world&seed=3`), started from `packages/game`.
 
-## Every milestone ends with
+## The sim / renderer boundary
 
-1. A light review: read the diff back once for type errors, dead paths, rules that do not surface in-game, and tags missing from the report. Fix what the read finds. Run the cheap checks (test, typecheck, lint, docsync). If any is red, fix it before writing the report. Do not run experiments, calibration or the soak unless the user said 'verify'.
-2. Its `docs/SLICE_REPORT.md` section: built / assumed (every GAME-ASSUMPTION) / deferred / measured (marked *unverified* until the verification pass; list what the pass should measure) / where it disagrees with the doc / three decisions for the human.
-3. `docs/PROGRAMME_STATE.md` status line and section, plus the §26 untagged recount.
-4. A `docs/DEFERRED.md` re-read section.
-5. `docs/DECISIONS.md` rows with recommendations.
-6. One commit with the trailers below, push, and the PR body updated with a section for the milestone and a "For the human" list. The commit message says "unverified" until the verification pass has run on it.
-7. **The report to the user ends with a file-by-file change list**: every file touched, marked created / edited / renamed / deleted, with a one-line summary of what changed in it, grouped sim / game / tests / docs. Build it from `git show --name-status HEAD`.
-8. Then stop. The next milestone starts on the next go; the verification pass starts only when the user asks for it.
+`packages/sim` is pure: `step(state, commands)` and nothing else changes state.
+`packages/game` only draws state and sends commands. Bots and experiments use the same
+commands, inventories and reach a player has. Never bypass a gameplay command or grant a
+bot stock, power or placements a player cannot get; if a scenario needs that, the run is
+labelled a scenario in its report and is not evidence for a player-facing claim.
 
-## Commits and PRs
+## Four things "done" can mean
 
-Commit messages end with:
+*Implementation complete* · *automated validation* (`not_run` / `passed` / `failed` /
+`partial`, naming the run) · *human approval* (person, date, record) · *human play
+evidence* (a played session's observation). Say which you have. A file existing is not a
+pass. Statuses: tasks `todo` / `in_progress` / `blocked` / `done` / `waived`.
+
+## Stop and ask
+
+A core rule, progression, scope or go/no-go decision the task needs · a change that would
+move a fixture, a `[play: …]` lock, a decided constant or an expected result · a check red
+for a reason outside the task · a §26 recount reaching four · anything destructive or
+outward-facing (push, merge, deleting evidence, external trackers). Otherwise proceed and
+record the choice. One unresolved question blocks the work that depends on it, not the
+session.
+
+## Handoff
+
+Before ending a session: `PROGRAMME_STATE.md` "Now" is true, `PROGRESS.md` carries the
+real statuses, and the final message names the next task and whether it is ready or
+blocked on what.
+
+**Cleanup session, 2026-09-05:** the pre-Phase-5 cleanup (T11a) does not start Phase 5
+gameplay work. That is an instruction for that session only; the durable state is
+`PROGRAMME_STATE.md`. Delete this paragraph when T12 starts.
+
+## Commits
+
+One commit per task, message named after the task. Trailers:
 
 ```
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01GFnpcztBCdSbXdjYj46qPW
+Claude-Session: https://claude.ai/code/session_018pVusisgbVYVEpZ9PFYF1w
 ```
 
-PR bodies end with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`, a blank line, then the session URL. PRs are stacked: #1 → #2 → #3 → #4.
+No push, merge or PR change unless the human asks. Branch `phase-4` carries the open PR #5
+(#1–#4 merged 2026-09-03); the first Phase 5 build task opens `phase-5` on top of it.
 
 ## Working habits
 
-- Run Bash from the repo root. In bypass-permissions mode prefer Bash (cat, sed, python3 heredocs) over the Read/Edit/Write tools.
-- Give a one-line progress update every few minutes of work.
-- Temporary scripts go in the session scratchpad, never the repo.
-- Soak hygiene (verification pass only): idle host, background Bash, kill by PID, never `pkill -f`. The reference-machine soak is by hand; headless swiftshader fps is for regressions only.
-- Headless browser checks (verification pass only) run Playwright against the Vite preview on port 4173 (`?view=world&seed=3`), started from `packages/game`.
+Run Bash from the repo root, prefixing commands with `cd /mnt/e/Factorio2 &&` or using
+absolute paths (the shell's cwd can drift); in bypass-permissions mode prefer Bash (cat,
+sed, python3 heredocs) over the Read/Edit/Write tools. Temporary scripts go in the session
+scratchpad, never the repo. Soak hygiene: idle host, background Bash, kill by PID, never
+`pkill -f`; the reference-machine soak is by hand. Give a one-line progress update every
+few minutes of work.
