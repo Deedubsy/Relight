@@ -1,5 +1,5 @@
 {
- "source_commit": "c81f5e0dd4a7b2b78f8aa835cfc09d16cca8331e",
+ "source_commit": "2f1b01648465eb6aaec941da23ffe382c123d3d9",
  "config_hash": "b95922d2",
  "config_ref": {
   "kind": "experiments"
@@ -290,7 +290,9 @@
     "turret kills",
     "first shot",
     "HP lost",
-    "downs"
+    "downs",
+    "shooting (§19: 10)",
+    "danger (§19: 5)"
    ],
    "rows": [
     [
@@ -307,7 +309,9 @@
      438,
      "14:02",
      "0",
-     0
+     0,
+     "0.50 %",
+     "0.00 %"
     ],
     [
      4,
@@ -323,7 +327,9 @@
      325,
      "5:37",
      "0",
-     0
+     0,
+     "0.69 %",
+     "0.00 %"
     ],
     [
      5,
@@ -339,7 +345,9 @@
      227,
      "6:22",
      "0",
-     0
+     0,
+     "0.06 %",
+     "0.00 %"
     ]
    ]
   },
@@ -770,6 +778,16 @@
    "name": "tile: nothing falls in the hour, rifle off or on",
    "pass": true,
    "detail": "falls per seed 0/0/0"
+  },
+  {
+   "name": "tile §19: shooting time ≤ 10 % of the hour (max over seeds)",
+   "pass": true,
+   "detail": "0.69 % (expected 0–10 %)"
+  },
+  {
+   "name": "tile §19 (D-B1-5): time in danger ≤ 5 % of the hour (max over seeds)",
+   "pass": true,
+   "detail": "0.00 % (expected 0–5 %)"
   },
   {
    "name": "tile: one dry edge (§11's rescue, the belt never comes) — the rifle saves every block that falls without it",
@@ -1238,6 +1256,33 @@
    "fellWithout": 2,
    "savedByRifle": 0,
    "shadeFallsWith": 2
+  },
+  "tileSteady": {
+   "diffs": [
+    0,
+    0,
+    0
+   ],
+   "fell": [
+    0,
+    0,
+    0
+   ],
+   "fired": [
+    18,
+    25,
+    2
+   ],
+   "shootPct": [
+    0.5,
+    0.6944444444444444,
+    0.05555555555555555
+   ],
+   "dangerPct": [
+    0,
+    0,
+    0
+   ]
   },
   "tileRescue": {
    "rescues": [

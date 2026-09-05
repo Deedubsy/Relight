@@ -24,9 +24,12 @@ Daniel ("Do the blockers") and built, and `npm run experiments` is **13 experime
 failing checks**, so "make main green" is met. Nothing on the critical path is blocked any
 more. **T2 is done 2026-09-05** — E-hour is a
 no-fall hour on seeds 3, 4 and 5, rifle off and on, and the numbers are written into
-`SLICE_REPORT.md`. **The next task is T4** (E-rifle at tile scale: the rescue run and the
-steady run), which has no blocker and whose experiment is already 12 / 12. Then T9, which
-still needs re-scoping — Gate B was waived, so there is no played hour to fold — and T10.
+`SLICE_REPORT.md`. **T4 is done 2026-09-05** — at tile scale the rifle decides a rescue
+(48 runs: 7 blocks fall without it, 4 with it, 3 saved and 3 delayed, every fall `unfed`
+and never a shade), and the tile steady table now scores §19's two caps on §11's own hour,
+taking E-rifle to 14 / 14. **The next task is T9, and it cannot be done as written** —
+Gate B was waived, so there is no played hour to fold. It needs a real Gate B or a
+rewritten task line before T10 can open.
 
 ## Tasks
 
@@ -35,7 +38,7 @@ still needs re-scoping — Gate B was waived, so there is no played hour to fold
 | T1 | Resolve the eight constant disagreements, rebuild the economy fix, make main green | claude | done | | `docs/ECONOMY_FIX_REPORT.md` §9 | 2026-09-05 |
 | T2 | Re-run E-hour until no block falls on seeds 3, 4 and 5 | claude | done | | `docs/SLICE_REPORT.md` section "M6 re-run after the economy fix" | 2026-09-05 |
 | T3 | Layout and readability pass | claude | done | | `docs/LAYOUT_PASS_REPORT.md` | 2026-09-05 |
-| T4 | E-rifle at tile scale: the rescue run and the steady run | claude | doing | | `docs/EXPERIMENTS.md` row `E-rifle-tile` | |
+| T4 | E-rifle at tile scale: the rescue run and the steady run | claude | done | | `docs/EXPERIMENTS.md` row `E-rifle-tile` | 2026-09-05 |
 | T5 | Controls walkthrough on the reference machine | human | done (waived) | T3 | `docs/GATE_B.md` section "Controls walkthrough" |  2026-09-05 |
 | T6 | Build a two-assembler ammo line unaided in ten minutes | human | done (waived) | T3 | `docs/GATE_B.md` section "Two-assembler line" |  2026-09-05 |
 | T7 | Stranger test: eight questions, a person who has not seen the game | human | done (waived) | T3 | `docs/GATE_B.md` section "Stranger test" |  2026-09-05 |
@@ -57,12 +60,27 @@ still needs re-scoping — Gate B was waived, so there is no played hour to fold
   `HOUR_END.held` is 3, so the HQ's white border and the Electricians walking out
   of civic north are beats a 3,600 s run never reaches. Phase 5's opening should
   say whether that is the shape of hour one or a hole in it.
-- **The first shade never happens in the bot's hour.** §11 and E3 put it at
-  minute 32–47; six runs of E-hour print it as the experiment's only finding, and
-  it has now survived the economy fix, the decided minutes and T2's no-fall hour.
-  Either §11's minute is wrong for a two-claim hour, or the bot never lets a block
-  sleep past d = 0.3 and a human would. **A played hour is what tells them apart**,
-  and Gate B was waived.
+- **The first shade never happens in the bot's hour, and T4 sharpened it.** §11 and
+  E3 put the first shade at minute 32–47; six runs of E-hour print it as the
+  experiment's only finding, and it has survived the economy fix, the decided
+  minutes and T2's no-fall hour. T4 adds that **no shade kills anything in 48 tile
+  rescue runs** — every fall is `unfed` — and that E-hour spawns **0 shades in six
+  hours**. So the question is no longer "when does the first shade arrive" but
+  "does a human let a block sleep past d = 0.3 where the bot never does".
+  **A played hour is what tells them apart**, and Gate B was waived.
+- Row **D-R1** (the rifle and the shade) is still `provisional` and now has tile
+  evidence attached: no shade kills anything in 48 rescues, no shade is born in six
+  hours. Blocks nothing; option (a) is already what the code does. Deciding it is a
+  signature, and the caveat is that both runs are bots.
+- **§5's rescue sentence quotes the block sim** — "a whole belt 90 s away falls in
+  ~1.5 min to a shade at an unlit edge, and the rifle cannot save it". The tile sim
+  says a 90 s ring never falls at all and the killer is always crawlers. Both are
+  tagged to their own run, so nothing is wrong as written; which sim §5 quotes is a
+  human's word. Blocks nothing.
+- **The 600 s belt is the rifle's only justification in evidence.** It is not §11's
+  rescue (§11's is 90 s, at which the experiment cannot tell an armed engineer from
+  an unarmed one). Keep it, drop it, or rename it — the human's call; §24 risk 10
+  rests on it.
 - **T9 needs re-scoping.** Its task is "fold the played hour into code and doc".
   Gate B was waived, so there is no played hour to fold. T9 cannot be done as
   written; it needs either a real Gate B or a rewritten task line.
@@ -146,3 +164,23 @@ still needs re-scoping — Gate B was waived, so there is no played hour to fold
   §11 and E3's minute 32–47. Evidence: `docs/SLICE_REPORT.md` section "M6 re-run after the
   economy fix", which now carries the passing run (`B-M6-hour-3`) with the 2026-09-04
   attempt kept beneath it as the record.
+- 2026-09-05 — T4 **done**. E-rifle at tile scale, both runs, on a commit rather than a
+  working tree: **13 experiments, 256 s, 0 failing checks**, E-rifle **14 / 14** in 96.6 s.
+  **The rescue**: 24 scenarios (2 belts × 2 scopes × 3 seeds × 2 minutes) run rifle off and
+  on — 48 runs — **7 blocks fall without the rifle and 4 with it; 3 saved outright, 3 of the
+  other 4 delayed, and no block is ever lost sooner with it**. §11's 90 s belt is not the
+  rifle's fight (12 of 12 hold in both arms); the fight is a belt that never comes (600 s),
+  where one dry edge is saved 1 / 1 and a whole dry ring is beyond one engineer (2 / 6).
+  **Every fall in all 48 runs is `unfed` — not one shade.** Cost: HP min 34, **0 knock-downs
+  in 24 rifle runs**, mean 38.7 HP; ammo is never the limit (busiest rescue 96 of 200 rounds
+  carried). **The steady hour**: 519 line magazines rifle off and on on every seed, 0 falls,
+  0 HP lost, 5 of 990 kills the engineer's. **One thing was built** that the task line did not
+  ask for: the tile steady table now carries §19's two guards — they always accumulated on the
+  tile path (`markShot` from `walk.ts`, the block `step()` from `advanceFlow`) but were scored
+  only on the 5 h compact bot — so **shooting 0.50 / 0.69 / 0.06 % against the 10 % cap and
+  danger 0.00 % against D-B1-5's 5 %** are now checks, and E-rifle went 12 → 14. Determinism
+  held a third time: the whole of `docs/` moved by fourteen `source_commit` stamps, one
+  wall-clock figure and E-rifle's new columns. Evidence: `docs/EXPERIMENTS.md` rows
+  `E-rifle-tile-steady` and `E-rifle-tile-rescue`; also `SLICE_REPORT.md` "E-rifle at tile
+  scale", `PROGRAMME_STATE.md` B.27 / B.28, `DEFERRED.md` re-read (the 2026-09-04 tile item
+  deleted), and the tile evidence appended to **D-R1**, which stays `provisional`.

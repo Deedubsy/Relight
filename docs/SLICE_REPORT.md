@@ -1130,6 +1130,152 @@ still run dry at 67:51–68:01 and the chest at 75:00 reads 1520–1524 steel / 
 3. **The first shade still never happens** in the bot's hour, six runs, against §11 and E3's minute
    32–47. It is the only finding E-hour prints, and it has now survived every economy change.
 
+## E-rifle at tile scale — the rescue run and the steady run, **measured** 2026-09-05 (`docs/PROGRESS.md` T4 done; run name `E-rifle-tile`)
+
+**The rifle decides a rescue.** At block scale it never did: twelve of twelve rescues held either
+way, and the item went to `DEFERRED.md` as "the block-scale E-rifle never sees the rifle decide a
+rescue". At tile scale, over **24 scenarios run twice** (2 belts × 2 scopes × 3 seeds × 2 minutes,
+rifle off and on — 48 runs), **seven blocks fall without the rifle and four with it**: the rifle
+**saves three outright**, delays three of the four it cannot save, and never loses a block sooner
+than the unarmed run does. Evidence: `docs/EXPERIMENTS.md` rows `E-rifle-tile-steady` and
+`E-rifle-tile-rescue` (regenerated on the committed tree), and `docs/experiments/E-rifle.json`.
+
+Measured, not *unverified*: T4's definition of done **is** the measurement (constitution rule 13),
+so `npm run experiments` was run — **13 experiments, 256 s, 0 failing checks**, E-rifle **14 / 14**
+in 96.6 s. The tile sections themselves were built on 2026-09-04 and the blockers task changed what
+they measure, so this task re-ran them on a commit rather than a working tree and wrote the numbers
+down.
+
+### Built
+
+One thing, and it came out of reading the run rather than out of the task line: **the tile steady
+table now carries §19's two guards.** The tile path always accumulated them — `walk.ts`'s
+`spendRound` calls `markShot`, and `advanceFlow` runs the block `step()` once every sim second
+(`flow.ts`, `if (f.tick % TILE_TPS === 0)`), which is where `engineer.danger` is filled — but the
+`E-rifle-tile-steady` table stopped at HP lost and downs, so the 10 % shooting and 5 % danger caps
+were scored **only** on the 5 h compact bot. Two columns and two checks (`erifle.ts`), and E-rifle
+goes **12 checks → 14**. No sim file was opened; the config hash is unmoved at `b95922d2`.
+
+Everything else T4 reports is a measurement of code that already exists (`erifle.ts`'s `tileRescue`
+and the two tile sections; `hour.ts`'s `handsOff` and `rescueStance`). The re-run is against commit
+`2f1b016`, on top of the three rows decided on 2026-09-05 (D-P4-9, D-HOUR-2, D-P4-10).
+
+### The steady hour — `E-rifle-tile-steady`
+
+§11's hour, the hour bot, rifle off vs on. The reflex fires at the nearest crawler in range while
+the bot walks its script.
+
+| seed | line magazines off → on | diff | hand-fed off → on | falls off / on | rifle rounds | rifle kills | turret kills | first shot | HP lost | downs | shooting (§19: 10 %) | danger (§19: 5 %) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 3 | 519 → 519 | 0.00 % | 858 → 856 | 0 / 0 | 18 | 1 | 438 | 14:02 | 0 | 0 | **0.50 %** | **0.00 %** |
+| 4 | 519 → 519 | 0.00 % | 821 → 823 | 0 / 0 | 25 | 3 | 325 | 5:37 | 0 | 0 | **0.69 %** | **0.00 %** |
+| 5 | 519 → 519 | 0.00 % | 792 → 792 | 0 / 0 | 2 | 1 | 227 | 6:22 | 0 | 0 | **0.06 %** | **0.00 %** |
+
+The rifle is invisible in steady play at tile scale, which is what §24 risk 10 asks for: the line
+makes the same 519 magazines with it and without, the hands carry within two trips of the same
+number, five kills of 990 across the three seeds are the engineer's and the other 985 are the
+turrets', and nobody takes a scratch. The bot's hour is 45 rounds fired on three seeds; the first
+shot lands at 5:37–14:02, i.e. after the first bloom, never at the start.
+
+**§19's two guards, now measured on the hour the player plays**: the engineer shoots for **18 s /
+25 s / 2 s of 3,600 — 0.50 % / 0.69 % / 0.06 %** against the 10 % cap, and spends **0 seconds** with
+a crawler on them — **0.00 %** against D-B1-5's 5 % cap. That is a fifteenth to a two-hundredth of
+what §19 allows. The block-scale rows, on a 5 h compact bot, read 0.00 % and 0.07 %; the tile hour
+is the busier of the two and still nowhere near the ceiling. **The caps are not what constrains
+this design** — nothing in the hour pushes the engineer toward the shooting §19 was written to
+limit, and the number that does bite is the rescue's HP, below.
+
+### The rescue — `E-rifle-tile-rescue`
+
+The most threatened Held block runs dry: `edge` = the turrets and hopper of the edge facing its
+worst Dark neighbour at 0 rounds, `ring` = every edge of the block. The belt is **90 s** away (§11's
+rescue) or **600 s** (it never comes inside the window). The bot drops its script and its hands and
+stands at the dry edge's street midpoint; with the rifle it carries 20 magazines, without it stands
+there empty-handed — **the body is in both arms, the magazines are the difference**. Then 10 minutes.
+
+| belt | scope | scenarios | fall without the rifle | fall with it | verdict |
+|---|---|---|---|---|---|
+| 90 s | edge | 6 | 0 | 0 | a late belt is not the rifle's fight |
+| 90 s | ring | 6 | 0 | 0 | nor is a late belt on every edge |
+| 600 s | edge | 6 | **1** (seed 5, 20:00, +7.2 min, `unfed`) | 0 | **the rifle's fight, and it wins it** |
+| 600 s | ring | 6 | **6** (+4.3 to +8.9 min, all `unfed`) | 4 | two saved (seed 4, both minutes); the other four fall **later**: +5.6 → +5.7, +6.3 → +9.0, +4.3 → +4.4, +5.6 → +7.7 |
+
+- **Every fall in all 48 runs is `unfed`** — crawlers reaching the substation past dry turrets.
+  Not one is a shade.
+- **Cost**: 0–120 HP lost, HP min **34** (600 s edge, seed 3, 35:00), **0 knock-downs in 24 rifle
+  runs**; the mean rescue costs **38.7 HP** against the block-scale rescue's 62.4.
+- **Ammo is not the limit**: 924 rounds and 307 kills over the 24 rifle runs, the busiest single
+  rescue **96 rounds** — under half of the 20 magazines (200 rounds) the engineer carries in. What
+  runs out is coverage and HP, not Shot.
+- **Scale of the fight**: 22–170 crawlers are born in a rescue window; the block that falls unfed
+  without the rifle sees 107 of them, and the ring scenarios that beat the rifle see 97–170.
+
+### The fourteen checks (E-rifle 14 / 14, all green)
+
+The seven tile checks: the magazine bill moves < 5 % (0.00 %); nothing falls in the hour rifle off
+or on (0 / 0 / 0); **shooting ≤ 10 % of the hour (max 0.69 %)**; **danger ≤ 5 % (max 0.00 %,
+D-B1-5)**; one dry edge whose belt never comes — **1 / 1 single-edge falls saved**; a whole dry ring
+is beyond one rifle at one edge — **2 / 6 ring falls saved, the rest delayed 0.1 / 2.8 / 0.1 /
+2.1 min**; the engineer is never knocked down (HP lost 0–120, HP min 34). The seven block-scale
+checks are unchanged: 0.00 % ammo diff, nothing lost in steady play, shooting 0.00 % and danger
+0.07 % of an hour (§19, D-B1-5), 2 / 12 scenarios fall without the rifle, and the 62.36 HP damage
+number.
+
+### Determinism
+
+Nothing the sim computes moved. Against the committed generated files, the whole of `docs/` after
+the re-run is: **the `source_commit` stamp on fourteen files, one wall-clock figure (231 s → 256 s)
+in the `EXPERIMENTS.md` header, and the two new §19 columns and two new checks in E-rifle.** Twelve
+of the thirteen experiments produced JSON whose only changed line is the stamp; E-rifle's only
+removals are the stamp and the reflowed table header. Two invocations on two commits, the same
+numbers.
+
+### Where it disagrees with the doc
+
+1. **§5's rescue sentence is the block sim's, and the tile sim answers differently.** §5 says "when
+   the block's whole belt is 90 s away it falls in about 1.5 min to a **shade** at an unlit edge, and
+   the rifle cannot save it" **[sim: E-rifle]**. At tile scale a whole ring 90 s dry **never falls at
+   all** (12 of 12 hold, both arms), and when a ring does fall — the belt 600 s away — the killer is
+   **always crawlers, never a shade**. Both sentences are tagged to their own run, so neither is
+   wrong as written; but §5's picture of what beats the rifle (an untargetable shade) and the tile
+   layer's (more crawlers than one engineer at one edge can kill) are different pictures, and the
+   tile one is the one the player will meet. §11's `[sim: E-rifle-tile]` sentence already reads the
+   tile way and needed no edit.
+2. **§19's two guards were being scored on the wrong bot — fixed in this task.** The 10 % shooting
+   and 5 % danger caps were computed only by the 5 h compact bot in `E-rifle-steady`. The tile path
+   was never uninstrumented — `markShot` fires from `walk.ts`'s `spendRound` and `advanceFlow` runs
+   the block `step()` every sim second — the tile *report* simply did not carry the two shares. It
+   does now (0.50 / 0.69 / 0.06 % shooting, 0.00 % danger), and the caps are checked where the rifle
+   actually is. **No §19 number in the doc moves**: the tile hour is comfortably inside both.
+3. **The generated header's date is UTC.** `EXPERIMENTS.md` says "Generated … on 2026-09-04" for a
+   run made on the morning of 2026-09-05 AEST, because `cli.ts` stamps `toISOString()`. Cosmetic,
+   but every generated file dated this way will read a day early for this machine's mornings.
+
+### Deferred / re-read
+
+`DEFERRED.md` has its "Re-read at E-rifle at tile scale" section: the 2026-09-04 item **"E-rifle at
+tile scale — the rifle never decides a rescue"** is **deleted**, closed by this run, and the §19
+reporting gap this task found is **deleted in the same breath** — it was built, not parked. Nothing
+new is parked.
+
+### Three decisions for the human
+
+1. **Which scale scores §5's rescue sentence?** Recommendation: **the tile layer** — rewrite §5's
+   "falls to a shade in ~1.5 min, the rifle cannot save it" as the tile finding (a late belt costs
+   nothing; a belt that never comes costs the block unless the engineer stands on the dry edge; a
+   whole dry ring is beyond one rifle) and keep the block-scale sentence as the lattice's record.
+   No constant moves either way; it is which sim the design sentence quotes.
+2. **Can D-R1 come off `provisional`?** The row — "the rifle and the shade" — was taken as (a) *keep
+   D5, the rifle is for crawlers* on 2026-09-04, with (b) a hand lamp held back for a slice M5
+   experiment "if Gate B testers lose a block to a shade while standing on it". Two runs now say the
+   shade is not the fight: **no shade kills anything in the 48 tile rescues** (every fall is
+   `unfed`) and **E-hour spawns zero shades in six hours**. Recommendation: **decide (a)** — with
+   the caveat that both are bot runs, and Gate B, the play that (b) was waiting on, was waived.
+3. **Does the 600 s belt stay?** It is not §11's rescue (§11's is 90 s) and it is the only scenario
+   in which the rifle changes an outcome. Recommendation: **keep it, named as what it is** — the
+   rifle's whole justification under §24 risk 10 rests on it, and at 90 s the experiment cannot tell
+   an armed engineer from an unarmed one.
+
 ## Gate B
 
 verdict:
