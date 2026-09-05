@@ -192,11 +192,13 @@ Six milestones, in the order the dependencies force. Every one is blocked on `PR
 
 ## 9. The experiments
 
+**Renamed by D-P5-7 at T11, 2026-09-05**: `E-chain`, `E-coal`, `E-tram`, the tile-era convention. The name-collision note below is what the row was written from; `E10` stays the retired bloom-cadence run cited in §25 item 1, C8, D-P3-5 and D-P3-11.
+
 | | What it measures | Note |
 |---|---|---|
-| **E10 chain throughput** | Every chain at its §12 rate: wire, frame, board, concrete, shell, fuel, polymer, and the Shot line already measured. The check is that a chain built at doc rates reaches the doc's number. | **Name collision.** §25 item 1, C8, D-P3-5 and D-P3-11 all cite `E10-bloom-cadence`, the retired Python bloom experiment. A `[sim: E10-…]` tag would be ambiguous in the one section that already carries one. Recommend the tile-era naming the harness has used since M6 — **`E-chain`, `E-coal`, `E-tram`** — and `PHASES.md` corrected to match. Row **D-P5-7**; nothing is tagged `E10` until it is settled. |
-| **E11 coal depletion** | When the Turbine hall is needed. §25 item 9 is the open question it closes: *"there is no rubble-depletion model, so 'coal runs out for the second player in three' (§15) is unsupported; it needs excavator throughput against per-block rubble stock."* | Needs D-P4-2 and D-P4-12 first — it is a run against numbers that do not exist yet. |
-| **E12 tram sufficiency** | One tram carries the outskirts' steel at 25 h. | The 25-hour run is the block sim's (E9-hold's shape); the tram is a tile object. Whether E12 runs at block or tile scale is a harness question for M6, not a doc one. |
+| **`E-chain`** chain throughput (was "E10", renamed by D-P5-7) | Every chain at its §12 rate: wire, frame, board, concrete, shell, fuel, polymer, and the Shot line already measured. The check is that a chain built at doc rates reaches the doc's number. | **Name collision.** §25 item 1, C8, D-P3-5 and D-P3-11 all cite `E10-bloom-cadence`, the retired Python bloom experiment. A `[sim: E10-…]` tag would be ambiguous in the one section that already carries one. Recommend the tile-era naming the harness has used since M6 — **`E-chain`, `E-coal`, `E-tram`** — and `PHASES.md` corrected to match. Row **D-P5-7**; nothing is tagged `E10` until it is settled. |
+| **`E-coal`** coal depletion (was "E11") | When the Turbine hall is needed. §25 item 9 is the open question it closes: *"there is no rubble-depletion model, so 'coal runs out for the second player in three' (§15) is unsupported; it needs excavator throughput against per-block rubble stock."* | Needs D-P4-2 and D-P4-12 first — it is a run against numbers that do not exist yet. |
+| **`E-tram`** tram sufficiency (was "E12") | One tram carries the outskirts' steel at 25 h. | The 25-hour run is the block sim's (E9-hold's shape); the tram is a tile object. Whether E12 runs at block or tile scale is a harness question for M6, not a doc one. |
 
 ---
 
@@ -216,7 +218,47 @@ What has to be true before the DoD can even be attempted: §18's 5 h territory i
 
 ---
 
-## Three decisions for the human
+## 12. The decisions (T11, 2026-09-05) — the stop is lifted
+
+Section 2c stopped the phase under constitution rule 12: seven rules in Phase 5's line were in neither the design doc nor a decided row, so they were listed and not built. **`PROGRESS.md` T11 closed all seven and seven more in one message** — the human's *"Go with your recommendation for all"* — and every row was taken on its own recommendation, with the rule-11 triple written into each: `decided | Daniel | 2026-09-05 | the chat message of 2026-09-05 ("Go with your recommendation for all"), taking this row's recommendation`.
+
+**The stop is lifted. `DECISIONS.md` now holds no `open` row** — only D-GB-2, D-GB-3 and D-GB-4 remain `open (gate condition)`, which is exactly what Gate B's verdict made them, to be resolved inside this phase rather than before it.
+
+**The seven rule-12 rows (§2c):**
+
+| row | taken | the doc sentence that moved |
+|---|---|---|
+| D-P5-1 | (a) **no map-view dim** — the HUD bar (demand ÷ supply, the percentage) and the machine panel carry the read | none. §14's *"lights do not dim"* stands, and §4's map-view vocabulary stays at ten entries. Builds at M4 with STANDARDS 2.6 / 2.7 |
+| D-P5-2 | (a) every §13 row whose unlock is `start` or belongs to a Phase 5 system; no machine outside §13; Cannon, Barricade, Mixer, Pumpjack, the six facilities and the Line truck garage ship with their own phases | `PHASES.md` Phase 5. §13's unlock column unchanged. Concrete stays generated recipe data until the Mixer arrives |
+| D-P5-3 | (a) **one lane** | §14's opening sentence, rewritten: `flow.ts` was right since M2. STANDARDS 2.1 closes as a **deliberate** divergence from Factorio, the only reference of seven with two lanes |
+| D-P5-4 | (a) the word splits — the bot's blueprint **file** is a harness JSON built in Phase 5; the in-game blueprint is Phase 7's found unlock and Phase 8's build | §14, §19's tedium audit **and §24 risk 1's mitigation**, which had rested on "blueprints from minute one" and now rests on the kit stamp. STANDARDS 1.11 and dealbreaker 1 close: the gate is visible from minute one, which is the condition the baseline forgives it under |
+| D-P5-5 | (a) a **per-inserter filter setting**, one item kind, off by default | §13's Inserter row. No new machine, no tier ladder, D-INSERTERS-1 intact. STANDARDS 2.5 closes; builds at M3 |
+| D-P5-6 | **(c)** the route appears only while a tram stop is selected | none — §4's fixed vocabulary is untouched, which is why (c) was preferred to (a). The sentence lands at M5 |
+| D-P5-7 | (a) `E-chain`, `E-coal`, `E-tram` | `PHASES.md`'s experiment line. `E10` stays the retired bloom-cadence run in §25 item 1, C8, D-P3-5 and D-P3-11; nothing new is tagged `E10` |
+
+**The five M1/M2 constants**, each on its own recommendation: **D-P4-2** (the stand-in through M2; M1's rubble model sets units per tile against §12's 300 a tile and 75–105k a block), **D-P4-3** (the 160-tile placeholder stays inert; Phase 9's validator places facilities), **D-P4-12** (a `coal` rubble kind on rail-yard / industrial lots at **~700 a lot**), **C5** (coal ~700, already in the doc body; steel stays the named placeholder M1 sizes), **D-B2-1** ((a) for the slice as built, and **(b) is what Phase 5 builds** — a workbench recipe with a craft time, priced by M1's recipe table).
+
+**And two programme calls the same message settled**, both of them decisions 1 and 2 below:
+
+- **D-GB-1-rider — Phase 6 builds D-GB-1's hybrid**, as its own milestone and its own doc-edit pass. Phase 5 stays the phase that finishes the factory; the loop change that moves §5, §10, §11, §18 and §19 does not get folded into a corner of M4. `PHASES.md` Phase 6 now says so in its first sentence.
+- **D-HOUR-3 — hour one is re-scoped to 75 minutes.** North's claim at 65:00 becomes a scored check with its own DoD line, and the HQ's white border and the Electricians stop being beats a 3,600 s run can never reach. `E-hour-north` already holds to 75:00 on every seed **[sim: B-M6-hour-north]**. **It builds at M1**, because §11's minute table is generated by docsync from `constants.ts` `HOUR` — the re-scope is a code change first and a doc change by regeneration.
+
+### 12a. The one place a decided row overrode the design doc
+
+Every other row filled a blank. **D-P4-12 did not.** §12's raws table read *"Coal | rail-yard rubble (direct, ~30k per block)"* — untagged prose, no run behind it — and the row's recommendation was **~700 a lot**, 43× smaller, on the argument that west's claim replaces the HQ patch rather than ending coal for the game. §2's corrected premise put both numbers in front of the human before the row was signed, so the decision was informed and §12's line is now rewritten to ~700 with a changelog line. `PROGRESS.md` names it as the sentence to reopen if ~30k was the intent; **`E-coal` measures it at M1** — at ~700 the Turbine hall has a job, at ~30k it does not.
+
+### 12b. What Claude decided, and what it did not
+
+Three rows are named by Phase 5 milestones but were **not** in T11's list, so they were taken `provisional` under constitution rule 14 and are attributed to Claude Code, not to the human: **D-B2-2** (slots stay `floor(area / 600)` now, dropped at M6 when tile lines replace the block stand-in), **C3** (unchanged — one ammo line per interior block), **D-SA-2** (a string table in Phase 5, translation bought in Phase 13). T13 and T17 name them in their blocked-by lines so they surface at the milestone that needs them. **Nothing was built from any of the fourteen decided rows in this task**: T11 is doc-only, and T12 (M1) is the first build.
+
+One task line was corrected while the block list was regenerated: **T15 no longer waits on D-GB-2's form.** Gate B passed *with* D-GB-2 as a condition to be resolved **inside** Phase 5, so M4 resolves it — the row's recommendation is the rule-8-legal forms first (a HUD next-objective line driven by the sim's own state), then re-ask. A quest system stays the human's to take, and takes constitution rule 8 with it.
+
+---
+
+## Three decisions for the human — all three answered 2026-09-05
+
+**All three were answered by the human's message *"Go with your recommendation for all"* (see §12): decision 1 is D-GB-1-rider (Phase 6), decision 2 is D-HOUR-3 (75 minutes, at M1), decision 3 is the seven rows of §2c. They are kept below as written, so the recommendations that were taken can be read back.**
+
 
 1. **Which phase builds D-GB-1's hybrid.** It is decided and not built, and it is the only inherited item that changes the loop rather than completing it. **Recommend Phase 6**, with the threat trigger it contains: Phase 5 is already six weeks of completing §12–§14, and putting a loop change inside it means the phase that finishes the factory is also the phase that moves §5, §11 and §18. If it goes in Phase 5, it wants its own milestone and its own doc-edit pass, not a corner of M4.
 2. **Re-scope §11's hour to 75 minutes, or split the beats.** `E-hour-north` already shows north Held at 65:29–65:34 and standing to 75:00 on every seed. Re-scoping turns the enclosure, the Electricians and the burn-off payoff from promises into scored checks and answers three of §3d's observations in one session; leaving it at 60 means §11's "30–60 min" paragraph keeps describing minute 65 and the next played hour will miss the same beats Gate B missed. **Recommend re-scoping**, with north's claim getting its own DoD line as `DEFERRED.md` asks.

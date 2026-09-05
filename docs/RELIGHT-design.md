@@ -245,7 +245,7 @@ The minute table below is generated from `packages/sim/src/constants.ts` (`HOUR`
 | Steel | industrial rubble (direct) · iron ore deposit → Foundry | rubble tiles hold 300 units; a block holds 250–350 rubble tiles (75–105k) |
 | Copper | residential rubble (direct) · copper ore deposit → Foundry | same |
 | Stone | civic rubble (direct) · quarry | Mixer turns 2 stone → 1 concrete |
-| Coal | rail-yard rubble (direct, ~30k per block) · coal seam (outskirts) | 4 MJ each; Shell recipe |
+| Coal | rail-yard rubble (direct, ~700 a lot — D-P4-12, decided 2026-09-05; was ~30k a block, untagged) · coal seam (outskirts) | 4 MJ each; Shell recipe |
 | Crude | oil field (outskirts, late) → Pumpjack → Crude drum item | no fluid system; Refinery → Fuel + Polymer |
 
 Mined-out rubble tiles become plain ground you can build on. Deposits are large (iron mine ~2M, coal seam ~1.5M) and outskirts, so they are held at outskirt front cost.
@@ -304,7 +304,7 @@ The Assembler ladder (D-P4-4): the start Assembler is the Mk1; the Mk2 is a sepa
 | Pole | 1×1 | — | reach 8 **[sim: M3-rates]**, supplies 7×7 (in M3 a substation powers its whole cell, so a pole only links) | start |
 | Big pole | 2×2 | — | reach 12 **[sim: B-M3-unlocks]**, supplies 3×3 (in the slice it links, as a Pole does) | Electricians |
 | Belt / Fast belt | 1×1 | — | 7.5/s **[sim: M2-rates]** · 15/s | start / Foundry |
-| Inserter | 1×1 | 10 kW | 1 item/s **[sim: M2-rates]**; one inserter and no tier ladder — a faster one is added later as found tech only if the chain-throughput experiment shows a chain that cannot reach its §12 rate (D-INSERTERS-1) | start |
+| Inserter | 1×1 | 10 kW | 1 item/s **[sim: M2-rates]**; one inserter and no tier ladder — a faster one is added later as found tech only if the chain-throughput experiment shows a chain that cannot reach its §12 rate (D-INSERTERS-1). **Each inserter carries a filter setting** — one item kind, off by default — so a single item can be pulled off a mixed belt without a second machine (D-P5-5) | start |
 | Splitter | 1×2 | — | with priority side | start |
 | Underground pair | 1×1 ×2 | — | span 4 | start |
 | Chest | 1×1 | — | 400 items | start |
@@ -347,7 +347,7 @@ Twenty-eight things with a footprint, twenty-six of them placeable: the workbenc
 
 ## 14. Logistics
 
-**Belts.** Standard two-lane belts, 7.5/s and 15/s (four items a tile; 8/16 until Phase 4 M2 fixed the tile tick at 20/s, D-P4-6), inserters at 1/s **[sim: M2-rates]**, splitters with priority, undergrounds of span 4. Belts run on lots and on streets; streets are 8 wide **[sim: M1-tiles]**, which is room for two belts, a track and a lamp line.
+**Belts.** One lane (D-P5-3, decided 2026-09-05: `flow.ts` has had one lane since M2 and the doc followed it, not the other way round), 7.5/s and 15/s (four items a tile; 8/16 until Phase 4 M2 fixed the tile tick at 20/s, D-P4-6), inserters at 1/s **[sim: M2-rates]**, splitters with priority, undergrounds of span 4. Belts run on lots and on streets; streets are 8 wide **[sim: M1-tiles]**, which is room for two belts, a track and a lamp line — and two inputs to one machine are two belts and two inserters, not two lanes on one belt.
 
 **Power.** Poles link substations; each substation powers its whole block (lot and its half of every street segment around it) so you never pole individual machines inside a held block. Grid is one pool, and a brownout is proportional (D-B3-4, Factorio's rule): when demand exceeds supply every machine on the grid runs at supply ÷ demand. Nothing switches off, nothing has an order, and no substation is ever stopped by power; substations are binary and stop only under the unfed rule (§5). It is legible — every machine visibly slows, and the HUD shows one bar, demand over supply and the percentage everything runs at **[sim: M3-rates]** — and it cannot cascade, because there is nothing to shed **[sim: E2-matrix]**. What a shortfall costs is output first (an assembler line is 220 kW **[sim: E2-demand]**) and the ring second: a sustained one slows the Shot assemblers with everything else, the Depot buffer drains, then the hoppers, the pip goes red and the unfed rule takes the block — 67–216 minutes to the first red pip at a 50 % shortfall, 12–16 at 90 %, and the first fall 2–8 minutes behind the pip in every run **[sim: E2-sustained6h-h500-50pct, E2-sustained6h-h500-90pct]**. Lights do not dim: a Lamp, Floodlight or streetlight is lit at any throttle above zero and dark only on a dead grid. Belts and turrets are never slowed. A grid with no Generator burning is dead, not browned out: everything on it stops at once, and it is back — substation included — the second a Generator burns again **[sim: M3-rates]**.
 
@@ -357,7 +357,7 @@ Twenty-eight things with a footprint, twenty-six of them placeable: the workbenc
 
 **The truck's two lives (Tram depot, then Foreman).** The truck is found at the Tram depot with the keys in it. Driven, it is a 200-stack inventory on wheels at three times walking speed on streets, and the engineer's reach works from its seat: the walk to the chest becomes a drive, and a claim's kit rides out with you. With the Foreman it becomes the **Line truck**: a front kit is a saved strip the length of a street segment (turrets one per 16 tiles, lamps, a belt stub, a pole); the truck holds four kits and, when a block goes Held, drives itself from the Depot, lays the kit on every new frontage edge and picks the turrets up from every edge that just went interior, drawing from the Depot chest, not from the engineer's pockets. This is the tedium fix for re-fronting and it is a found unlock so the player has done it by hand, then by driving, for ~4 hours first.
 
-**Blueprints and copy-paste** from minute one.
+**Blueprints and copy-paste** are a found unlock, not a starting tool (D-P5-4, decided 2026-09-05): the survivor who brings them is Phase 7's, the ghosted delivery is Phase 8's, and the "blueprint file" Phase 5's bot builds from is a harness input, not an in-game item. Until then the kit is a manual stamp.
 
 **Not present:** fluids, robots, trains with signals, item quality, circuits. See section 22.
 
@@ -425,7 +425,7 @@ At 10 minutes the HQ stands alone with its four street edges red. At 5 hours the
 | Repeated action | Frequency | Removal point |
 |---|---|---|
 | Hand-feeding turrets | first 10 min, then only on line breaks | belt to hopper, minute ~8; Gunsmith removes the inserter |
-| Placing a front strip on a new edge | every claim | blueprint from minute 1; Line truck kits from hour 4–6 |
+| Placing a front strip on a new edge | every claim | the kit as a manual stamp from the start; blueprints when the survivor brings them (D-P5-4); Line truck kits from hour 4–6 |
 | Picking up interior turrets | every enclosure | Line truck |
 | Extending the ammo belt | every claim | interior trunk stays; the ring layout makes it one splitter |
 | Linking a substation | every claim | one pole drag; never removed, it is the claim itself |
@@ -498,7 +498,7 @@ At 10 minutes the HQ stands alone with its four street edges red. At 5 hours the
 ## 24. Biggest development risks
 
 **Design risks.**
-1. *Re-fronting is tedious before the Foreman.* Mitigation as a design change: blueprints from minute one; the "kit" concept is available as a manual stamp from the start; if playtests still show fatigue at hour 2, the Line truck moves into the starting toolbar and the Foreman becomes an upgrade (4 kits → 8, auto-restore).
+1. *Re-fronting is tedious before the Foreman.* Mitigation as a design change: the "kit" concept is available as a manual stamp from the start, and blueprints when the survivor brings them (D-P5-4 — they are no longer the first-hour answer); if playtests still show fatigue at hour 2, the Line truck moves into the starting toolbar and the Foreman becomes an upgrade (4 kits → 8, auto-restore).
 2. *Ammo tuning: the front either never bites or starves everyone.* Mitigation: the tuning surface is four numbers per district (dmax, g, bloom base, bloom slope) and the sim already exposes them; blooms are capped and bursty, but a line near parity at 5 h with an empty buffer from 2 h lost 19 blocks (4–33) in five hours on the spike policy, all on industrial and well edges, while compact play at 58 % load lost none **[sim: E1-ring-spike, E1-ring-substation-N40]**: the pip reddens slowly on a residential edge and a well edge simply falls.
 3. *Rot is unreadable.* Mitigation: five discrete density tiers in the overlay tileset, the map-view mottle, and the bloom ring; if testers still cannot read it, show density as a number on hover only in map view.
 4. *A block falling is not legible.* Mitigation: a 60-second "sabotaged" or "brownout" icon on the substation, the lights going out in sequence (the payoff played backwards), and the block's map square blinking navy for 10 s before the state change.
@@ -787,3 +787,7 @@ Each edit as `§N — what changed — why — run name`. Run names before Phase
 - Changelog — what `[play: Gate B]` means, beside `[play: Gate A]`: a witnessed statement from one played hour, never a measured share — Gate B
 - §19 — "a player's [walking] share is M6's number" → still unmeasured: M6 measured the bot (4.6–5.2 % at tile scale) and Gate B read no telemetry, so the walking row has no human number and the doc no longer implies one — Gate B, B-M6-hour
 - §13 — the Inserter row carries D-INSERTERS-1's answer: one inserter, no tier ladder, and a faster one only as found tech if the chain-throughput experiment finds a chain that cannot reach its §12 rate — D-INSERTERS-1 decided by the human 2026-09-04 — Phase 5 opening (no run)
+- §14 — "Standard two-lane belts" → **one lane**: `flow.ts` has had one lane since M2, two lanes exist to carry two inputs on one belt and §13's recipes are served by a second belt and a second inserter on 8-wide streets — D-P5-3 decided by the human 2026-09-05 — T11 (no run)
+- §14, §19 tedium audit, §24 risk 1 — "Blueprints and copy-paste from minute one" → **a found unlock**: the survivor is Phase 7's, ghosted delivery Phase 8's, and Phase 5's bot builds from a harness blueprint file that is not an in-game item; the kit stays a manual stamp from the start and is now risk 1's mitigation on its own — D-P5-4 decided by the human 2026-09-05 — T11 (no run)
+- §13 — the Inserter row carries a **filter setting**, one item kind, off by default, so a single item comes off a mixed belt with no second machine and no tier ladder — D-P5-5 decided by the human 2026-09-05 — T11 (no run)
+- §12 raws — rail-yard coal rubble is **~700 a lot**, not ~30k a block: west's claim replaces the HQ patch rather than ending coal for the game, and the ~30k the table carried was untagged prose that no run had ever measured. This is the one place a decided row overrides a doc number rather than filling a blank — D-P4-12 decided by the human 2026-09-05 — T11 (no run; `E-coal` measures it at M1)
