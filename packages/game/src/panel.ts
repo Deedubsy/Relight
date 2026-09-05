@@ -1,7 +1,9 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
-  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS } from '@relight/sim';
-import { Session, setSpeed, queue, shareUrl, record } from './session';
+  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS,
+  currentGoal, Goal, blockLabel, blockNameAt, edgeName, idxOf } from '@relight/sim';
+import { Session, setSpeed, queue, shareUrl, record, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
+import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
 
@@ -69,8 +71,32 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   btnView.onclick = () => hooks.onToggleView();
   head.append(btnView, btnLink);
   header.append(head);
-  header.append(el('p', 'hint', 'Click a Dark block next to your territory to claim it. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary).'));
+  // RI-02 (§11.2): the save / load baseline — slot 1 in this browser (Ctrl+S / Ctrl+O), beside the download below
+  const saveRow = el('div', 'row');
+  const btnSave = el('button', undefined, 'Save (Ctrl+S)');
+  btnSave.title = 'Save the game to slot 1 in this browser: the state and every command so far. Load reloads the page from it, paused.';
+  btnSave.onclick = () => saveGame();
+  const btnLoad = el('button', undefined, 'Load (Ctrl+O)');
+  btnLoad.title = 'Reload the page from slot 1 (the last Save in this browser). Unsaved progress is lost.';
+  btnLoad.onclick = () => loadGame();
+  const saveNote = el('span', 'hint', '');
+  saveRow.append(btnSave, btnLoad, saveNote);
+  header.append(saveRow);
+  header.append(el('p', 'hint', 'Click a Dark block next to your territory to claim it. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
   root.append(header);
+  function saveGame(): void {
+    try {
+      const save = saveSlot(session, '1');
+      saveNote.textContent = `slot 1: ${clockOf(save.t)}`;
+      toast(`Saved to slot 1 at ${clockOf(save.t)} (state ${save.hash}) — Ctrl+O or Load reloads it`, 'good');
+    } catch (e) { toast(`Could not save: ${(e as Error).message}`, 'bad'); }
+  }
+  function loadGame(): void {
+    if (!hasSlot('1')) { toast('Slot 1 is empty in this browser — Ctrl+S saves to it', 'bad'); return; }
+    if (!window.confirm('Reload from slot 1? Unsaved progress is lost.')) return;
+    location.href = slotUrl(session, '1');
+  }
+  if (hasSlot('1')) saveNote.textContent = session.params.state === 'local:1' ? 'loaded from slot 1' : 'slot 1 has a save';
 
   // HUD
   const hudSec = el('section');
@@ -247,16 +273,16 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     toast('Telemetry exported', 'good');
   };
   sumRow.append(btnExport);
-  const btnState = el('button', undefined, 'Save snapshot');
-  btnState.title = 'Download the raw sim state; load it later with ?state=<file url>';
+  const btnState = el('button', undefined, 'Download save');
+  btnState.title = 'Download a save file (the state and the command log); load it later with ?state=<file url>';
   btnState.onclick = () => {
-    const blob = new Blob([JSON.stringify(session.state)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(makeSessionSave(session))], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `relight-state-seed${st.seed}-${clockOf(session.state.t).replace(/:/g, '')}.json`;
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    toast('Snapshot saved', 'good');
+    toast('Save file downloaded', 'good');
   };
   sumRow.append(btnState);
   sumSec.append(sumRow);
@@ -277,7 +303,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   let ringKey = '';
   let selected: number | null = null;
   function renderRing(edges: FrontEdgeView[]): void {
-    const key = edges.map(e => `${e.id}:${e.pip}:${Math.round(e.level * 20)}`).join(',') + `|${selected}`;
+    const key = edges.map(e => `${e.id}:${e.pip}:${Math.round(e.level * 20)}`).join(',') + `|${selected}|${debugView.coords}`;
     if (key === ringKey || dragging !== null) return;
     ringKey = key;
     ring.innerHTML = '';
@@ -286,7 +312,9 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       l.draggable = true;
       l.dataset.id = String(e.id);
       if (e.id === selected) l.classList.add('selected');
-      l.append(el('span', 'pos', String(e.ringPos + 1)), el('span', `pip ${e.pip}`, PIP_GLYPH[e.pip]), el('span', 'mono', `(${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})  ${e.darkDistrict}`), el('span', 'lvl', pct(e.level)));
+      // RI-02: the street's name (names.ts); the block coordinates only behind the ` toggle
+      const where = debugView.coords ? `(${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})  ${e.darkDistrict}` : edgeName(session.state, e.id);
+      l.append(el('span', 'pos', String(e.ringPos + 1)), el('span', `pip ${e.pip}`, PIP_GLYPH[e.pip]), el('span', 'mono', where), el('span', 'lvl', pct(e.level)));
       l.title = `Dark side rot ${pct(e.darkRot)}${e.darkWell ? ' · well' : ''}`;
       l.onclick = () => { hooks.onSelectEdge(selected === e.id ? null : e.id); };
       l.ondragstart = ev => { dragging = e.id; ev.dataTransfer?.setData('text/plain', String(e.id)); };
@@ -315,12 +343,31 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   }
   function clearMarks(): void { for (const c of Array.from(ring.children)) c.classList.remove('drop-before', 'drop-after'); }
 
+  // RI-02 (§11.2, D-GB-2 (a), rule 8): the current-goal line over the canvas — goal.ts `currentGoal` read off the
+  // state once a sim second; the goal text and its reason, and the shortage line under it while something is short.
+  const goalEl = document.getElementById('goal')!;
+  const goalText = goalEl.querySelector('.goal-text')!, goalWhy = goalEl.querySelector('.goal-why')!, goalSupport = goalEl.querySelector('.goal-support') as HTMLElement;
+  let goalSecond = -1, goalKey = '';
+  function updateGoal(s: SimState): void {
+    const sec = Math.floor(s.t);
+    if (sec === goalSecond) return;
+    goalSecond = sec;
+    const g: Goal = currentGoal(s);
+    const key = `${g.goal.id}|${g.goal.text}|${g.goal.why}|${g.support ? `${g.support.id}|${g.support.text}` : ''}`;
+    if (key === goalKey) return;
+    goalKey = key;
+    goalText.textContent = g.goal.text; goalWhy.textContent = g.goal.why;
+    goalSupport.textContent = g.support ? `${g.support.text} — ${g.support.why}` : '';
+    goalSupport.hidden = !g.support;
+    goalEl.hidden = false;
+  }
   let lastUpdate = -1e9;
   let lastFacKey = '';
   function update(nowMs: number): void {
     if (nowMs - lastUpdate < 150) return;
     lastUpdate = nowMs;
     const s: SimState = session.state;
+    updateGoal(s);
     const h = hud(s);
     sHeld.b.textContent = String(h.held); sFront.b.textContent = String(h.front); sInt.b.textContent = String(h.interior);
     const fs = flowSummary(s);
@@ -354,7 +401,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const broke = eco && (s.stock.copper < s.config.eco.assemblerCost.copper || s.stock.steel < s.config.eco.assemblerCost.steel);
     btnAsm.disabled = broke || si.free === 0;
     btnAsm.title = si.free === 0 ? 'No free machine slot: an assembler needs an Interior block (every neighbour Held or inert). Enclose a block to get one.'
-      : broke ? 'Not enough rubble' : `Goes on block (${si.next!.x},${si.next!.y}); makes ${s.config.asmRate} magazines per minute`;
+      : broke ? 'Not enough rubble' : `Goes on ${blockLabel(s, idxOf(s, si.next!.x, si.next!.y), debugView.coords)}; makes ${s.config.asmRate} magazines per minute`;
     if (vMach && s.flow) {
       vMach.textContent = `${fs.excavators} / ${fs.belts} / ${fs.inserters} / ${fs.assemblers}`; vBeltItems!.textContent = String(fs.beltItems);
       vLineRate!.textContent = f1(fs.productionMagPerMin); vLineMade!.textContent = String(fs.magsMade);
@@ -370,16 +417,18 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     renderRing(frontList(s));
     const facs = facilityList(s).filter(f => f.visible);
     const survs = survivorList(s).filter(f => f.revealed);
-    const fk = facs.map(f => `${f.name}${f.held ? 1 : 0}`).join() + '|' + survs.map(f => `${f.tag}${f.held ? 1 : 0}`).join();
+    const fk = facs.map(f => `${f.name}${f.held ? 1 : 0}`).join() + '|' + survs.map(f => `${f.tag}${f.held ? 1 : 0}`).join() + `|${debugView.coords}`;
     if (fk !== lastFacKey) {
       lastFacKey = fk; facList.innerHTML = ''; survList.innerHTML = '';
-      for (const f of facs) { const l = el('li'); l.append(el('span', undefined, `${f.name} (${f.x},${f.y})`), el('span', f.held ? '' : 'muted', f.held ? 'reached' : `${f.dist} blocks from HQ`)); facList.append(l); }
+      // RI-02: facilities and survivors by their block's name (names.ts); the coordinates only behind the ` toggle
+      const at = (x: number, y: number) => blockLabel(s, idxOf(s, x, y), debugView.coords);
+      for (const f of facs) { const l = el('li'); l.append(el('span', undefined, `${f.name} · ${at(f.x, f.y)}`), el('span', f.held ? '' : 'muted', f.held ? 'reached' : `${f.dist} blocks from HQ`)); facList.append(l); }
       if (!facs.length) facList.append(el('li', 'muted', 'nothing on the skyline yet'));
       // Phase 7 (STANDARDS dealbreaker 1): from minute one the panel says where blueprints and copy-paste will come from.
       // GAME-ASSUMPTION (GA-EF-3): the row is a fixed line of text ("not yet found"), not a survivor the sim knows; Phase 7
       // replaces it with the real survivor's row and the §8 gift
       { const l = el('li'); l.append(el('span', undefined, 'Blueprints and copy-paste · a survivor\'s gift (Phase 7)'), el('span', 'muted', 'not yet found')); survList.append(l); }
-      for (const f of survs) { const l = el('li'); l.append(el('span', undefined, `${f.tag} · ${f.name} (${f.x},${f.y})`), el('span', f.held ? '' : 'muted', f.held ? 'with us' : 'seen')); survList.append(l); }
+      for (const f of survs) { const l = el('li'); l.append(el('span', undefined, `${f.tag} · ${f.name} · ${at(f.x, f.y)}`), el('span', f.held ? '' : 'muted', f.held ? 'with us' : 'seen')); survList.append(l); }
       if (!survs.length) survList.append(el('li', 'muted', 'no one else found yet'));
     }
     const sum = summarise(session.telemetry, s);
@@ -413,14 +462,14 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
         : info.slot === 'at risk' ? 'assembler AT RISK: block is back on the front' : 'front block: slot taken by the defence ring';
       const rubble = info.district === 'out' ? 'no rubble (outskirts)' : info.poolLeft > 0 ? `rubble left ${Math.floor(info.poolLeft)} (${pct(info.poolFrac)})` : 'dug out: no rubble left';
       tip.innerHTML = '';
-      tip.append(el('div', undefined, `Held (${info.x},${info.y}) · ${slot}`), el('div', info.poolLeft > 0 ? 'muted' : 'bad', `${info.district} · ${rubble}`));
+      tip.append(el('div', undefined, `${blockLabel(session.state, idxOf(session.state, info.x, info.y), debugView.coords)} · Held · ${slot}`), el('div', info.poolLeft > 0 ? 'muted' : 'bad', `${info.district} · ${rubble}`));
       tip.hidden = false;
       const w0 = tip.offsetWidth, h0 = tip.offsetHeight;
       tip.style.left = `${Math.min(px + 14, window.innerWidth - w0 - 8)}px`; tip.style.top = `${Math.min(py + 14, window.innerHeight - h0 - 8)}px`;
       return;
     }
     const sign = info.frontDelta >= 0 ? '+' : '−';
-    const line1 = `Claim — rot ${pct(info.rot)} · front ${sign}${Math.abs(info.frontDelta)} · closes ${info.closes}`;
+    const line1 = `Claim ${blockLabel(session.state, idxOf(session.state, info.x, info.y), debugView.coords)} — rot ${pct(info.rot)} · front ${sign}${Math.abs(info.frontDelta)} · closes ${info.closes}`;
     const cost = info.cost ? ` · ${info.cost.copper} Cu ${info.cost.steel} steel` : '';
     const line2 = `${info.district}${info.well ? ' · well' : ''}${cost} · wake bloom ≈ ${info.wakeBloomCrawlers} crawlers`;
     tip.innerHTML = '';
@@ -434,13 +483,13 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
 
   const panelRef: Panel = {
     update, tooltip, tooltipText, toast, setView, onPick: null,
-    toggleDebug() { debug.hidden = !debug.hidden; return !debug.hidden; },
+    toggleDebug() { debug.hidden = !debug.hidden; debugView.coords = !debug.hidden; ringKey = ''; lastFacKey = ''; return !debug.hidden; },
     togglePockets() { pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; return !pocketSec.hidden; },
     toggleBuild() { buildSec.hidden = !buildSec.hidden; return !buildSec.hidden; },
     closeAll() { pocketSec.hidden = true; buildSec.hidden = true; },
     setSelectedEdge(e) {
       selected = e ? e.id : null; ringKey = '';
-      if (e) toast(`Edge (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y}) is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);
+      if (e) toast(`${edgeName(session.state, e.id)}${debugView.coords ? ` (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})` : ''} is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);
     },
   };
   return panelRef;

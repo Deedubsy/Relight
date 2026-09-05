@@ -153,6 +153,8 @@ export interface Machine {
   inv: Record<string, number>; out: number; busy: boolean;
   /** Assembler (RI-01): which of ASSEMBLER_RECIPES it runs; absent = the Shot magazine. */
   recipe?: RecipeId;
+  /** Turret (RI-02): seconds until it may fire again (threat.ts); in the state so a load keeps it. Absent = ready. */
+  cool?: number;
 }
 export interface FlowState {
   version: 1;
@@ -681,7 +683,8 @@ function tickInserter(st: SimState, m: Machine, dt: number): void {
   }
 }
 
-function findRubble(st: SimState, m: Machine): TileRubble | null {
+/** The rubble tile an Excavator would dig next: the first in its reach (one tile around its footprint). RI-02 exports it for `machineStatus`. */
+export function findRubble(st: SimState, m: Machine): TileRubble | null {
   for (let ty = m.y - 1; ty <= m.y + m.size; ty++) for (let tx = m.x - 1; tx <= m.x + m.size; tx++) {
     const r = rubbleAt(st, tx, ty);
     if (r) return r;
@@ -704,7 +707,7 @@ function tickExcavator(st: SimState, m: Machine, dt: number): void {
   m.hold = mineUnit(st, r);
 }
 
-function asmCanStart(m: Machine): boolean {
+export function asmCanStart(m: Machine): boolean {
   const r = recipeOf(m);
   if (m.out >= ASM_OUTPUT_CAP) return false;
   for (const k in r.inputs) if ((m.inv[k] ?? 0) < r.inputs[k]) return false;

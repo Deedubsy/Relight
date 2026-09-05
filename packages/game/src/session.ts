@@ -4,6 +4,7 @@ import {
   SimState, SimEvent, Command, SimConfig, DEFAULT_CONFIG, generateMap, createState, advance, takeEvents,
   Bot, createBot, botCommands, Policy, POLICIES, protoCalibrated, ensureFlow, advanceFlow, botHands, citySpec, CityPreset, CITY_PRESETS,
   HourBot, createHourBot, hourCommands, LoggedCommand, replay, replayVerdict, ReplayVerdict,
+  SaveFile, makeSave, loadState, isSaveFile, stateHash,
 } from '@relight/sim';
 import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } from './telemetry';
 
@@ -60,15 +61,40 @@ export function snapshotUrl(ref: string): string {
   return /^(https?:)?\//.test(ref) || ref.includes('/') || ref.endsWith('.json') ? ref : `/snapshots/${ref}.json`;
 }
 
-/** Fetch and validate a snapshot. Throws with a readable message; the caller decides whether to fall back. */
-export async function loadSnapshot(ref: string): Promise<SimState> {
-  const url = snapshotUrl(ref);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`snapshot ${url}: HTTP ${res.status}`);
-  const json = await res.json() as { finalState?: SimState } & Partial<SimState>;
-  const st = (json.finalState ?? json) as SimState;
-  if (st.version !== 1 || !Array.isArray(st.blocks) || !st.config || !Array.isArray(st.ring)) throw new Error(`snapshot ${url}: not a Relight state`);
-  return st;
+/** RI-02 (§11.2 save / load baseline): the browser save slots. `?state=local:<slot>` loads one; Ctrl+S / the panel's
+ *  Save button writes slot 1. A slot holds a save file (save.ts `SaveFile`: the state, the session's command log and
+ *  the URL parameters), so a loaded session keeps replaying from tick 0 when the log was complete. Implementation
+ *  default (RI-02): one named slot in `localStorage` under `relight.save.<slot>`; the download and URL paths stay. */
+export const LOCAL_PREFIX = 'local:';
+export const saveKey = (slot: string): string => `relight.save.${slot}`;
+export function hasSlot(slot: string): boolean {
+  try { return localStorage.getItem(saveKey(slot)) !== null; } catch { return false; }
+}
+
+/** What a `state` reference resolves to: the validated state (a deep copy, transients reset) and, from a save file,
+ *  the command log it carried. */
+export interface Loaded { state: SimState; log: LoggedCommand[]; logComplete: boolean; ref: string; saved?: SaveFile }
+
+/** Fetch and validate a snapshot: a browser save slot (`local:<slot>`), a shipped snapshot name, or a URL to a save
+ *  file, a raw state or a telemetry export. Throws with a readable message; the caller decides whether to fall back. */
+export async function loadSnapshot(ref: string): Promise<Loaded> {
+  let json: unknown;
+  if (ref.startsWith(LOCAL_PREFIX)) {
+    const slot = ref.slice(LOCAL_PREFIX.length);
+    let raw: string | null = null;
+    try { raw = localStorage.getItem(saveKey(slot)); } catch { raw = null; }
+    if (raw === null) throw new Error(`save slot ${slot} is empty in this browser`);
+    json = JSON.parse(raw);
+  } else {
+    const url = snapshotUrl(ref);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`snapshot ${url}: HTTP ${res.status}`);
+    json = await res.json();
+  }
+  let state: SimState;
+  try { state = loadState(json); } catch (e) { throw new Error(`${ref}: ${(e as Error).message}`); }
+  const saved = isSaveFile(json) ? json : undefined;
+  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete, ref, saved };
 }
 
 export interface Session {
@@ -86,6 +112,9 @@ export interface Session {
   /** A = fresh start; B = a loaded snapshot (the test plan's scenarios). */
   scenario: 'A' | 'B';
   startT: number;   // sim tick the session started at (0 for A)
+  /** RI-02: `log` runs from tick 0 (a fresh session, or one loaded from a save that carried its whole log), so the
+   *  session still replays from a fresh state; false once it continues a bare snapshot. */
+  logComplete: boolean;
 }
 
 /** GAME-ASSUMPTION: the prototype's config. Production on with the doc's ring and unfed rule; the assembler
@@ -100,12 +129,10 @@ export function protoConfig(p: UrlParams): SimConfig {
 
 /** A fresh session (scenario A) or one continuing from `snapshot` (scenario B). A snapshot starts paused so the
  *  tester can read the map; its seed, economy and scatter come from the snapshot, not the URL. */
-export function createSession(params: UrlParams, snapshot: SimState | null = null): Session {
+export function createSession(params: UrlParams, snapshot: Loaded | null = null): Session {
   let state: SimState;
   if (snapshot) {
-    state = JSON.parse(JSON.stringify(snapshot)) as SimState;
-    state.events = []; state.acc = 0; state.speed = 0;
-    state.survivors ??= [];
+    state = loadState(snapshot.state);   // RI-02: the validated deep copy (save.ts), transients reset, paused
     params = { ...params, seed: state.seed, economy: state.config.economy, scatter: state.config.scatter, map: state.city ? (state.city.preset as CityPreset) : 'lattice' };
   } else {
     // D6: the map is the street-first city unless ?map=lattice; M1 put the tile layer on its faces, so flow is on there too
@@ -127,9 +154,32 @@ export function createSession(params: UrlParams, snapshot: SimState | null = nul
   tel.speeds.push({ t: state.t, realTime: 0, speed: state.speed });
   // the proto's bots build assemblers (calibration step 4); the regression's bots do not
   const hour = params.autoplay === 'hour' && state.flow ? createHourBot(params.rifle) : null;
-  return { params, state, bot: params.autoplay && params.autoplay !== 'hour' ? createBot(params.autoplay, null, true) : null, hour, telemetry: tel, pending: [], log: [],
-           lastMinute: Math.floor(state.t / 60) * 60, realElapsed: 0, scenario, startT: state.t };
+  // RI-02: a save that carried its whole log continues it, so the loaded session replays from tick 0 like a fresh one
+  const logComplete = !snapshot || snapshot.logComplete;
+  return { params, state, bot: params.autoplay && params.autoplay !== 'hour' ? createBot(params.autoplay, null, true) : null, hour, telemetry: tel, pending: [], log: snapshot && snapshot.logComplete ? snapshot.log : [],
+           lastMinute: Math.floor(state.t / 60) * 60, realElapsed: 0, scenario, startT: state.t, logComplete };
 }
+
+/** RI-02: the session as a save file — the state, the command log (complete or not) and the URL parameters. */
+export function makeSessionSave(s: Session): SaveFile {
+  const p = s.params;
+  return makeSave(s.state, { log: s.log, logComplete: s.logComplete, params: { seed: p.seed, economy: p.economy, scatter: p.scatter, map: p.map, flow: p.flow, view: p.view, player: p.player, from: p.state } });
+}
+
+/** RI-02: write the session to a browser save slot. Returns the save's hash and clock; throws when the browser
+ *  refuses (private mode, quota). The state is untouched — saving is not a command and is not logged. */
+export function saveSlot(s: Session, slot = '1'): SaveFile {
+  const save = makeSessionSave(s);
+  localStorage.setItem(saveKey(slot), JSON.stringify(save));
+  return save;
+}
+
+/** RI-02: the URL that reloads the page from a browser save slot (`?state=local:<slot>`, the other parameters kept). */
+export function slotUrl(s: Session, slot = '1'): string {
+  return shareUrl({ ...s.params, state: `${LOCAL_PREFIX}${slot}` });
+}
+
+export { stateHash };
 
 export function queue(s: Session, c: Command): void { s.pending.push(c); }
 
@@ -193,7 +243,8 @@ export function runTicks(s: Session, ticks: number): SimEvent[] {
  *  judge every hand-fired engagement. Only a fresh-start session (scenario A) with the flow layer replays; a
  *  snapshot session's base state is not rebuilt here. GAME-ASSUMPTION (M6): see hour.ts `replay`. */
 export function replaySession(s: Session, opts: { rifleOff?: boolean } = {}): { verdict: ReplayVerdict; state: SimState } | { error: string } {
-  if (s.scenario !== 'A') return { error: 'a snapshot session does not replay (scenario B)' };
+  // RI-02: a session loaded from a save that carried its whole log replays too (the log runs from tick 0)
+  if (s.scenario !== 'A' && !s.logComplete) return { error: 'a snapshot session without its command log does not replay (scenario B)' };
   if (!s.state.flow) return { error: 'no flow layer (flow=0): nothing to replay' };
   const config = protoConfig(s.params);
   const spec = s.params.map === 'lattice' ? generateMap(s.params.seed, config) : citySpec(s.params.seed, s.params.map, config);

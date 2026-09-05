@@ -6,26 +6,34 @@ now. The per-milestone history lives in the phase reports (`PHASE_0_REPORT.md` �
 `archive/pre-phase-5-cleanup/PROGRAMME_STATE-2026-09-05.md`. Rules: `CONSTITUTION.md`.
 Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 
-## Now (2026-09-05, after RI-01 built the real opening economy)
+## Now (2026-09-05, after RI-02 built the goal line and the save / load baseline)
 
-- **The revised development plan is in execution: RI-00 and RI-01 are done.** Daniel
-  authorised the plan with "Whole plan" (D-RI-1); it is `REVISED_DEVELOPMENT_PLAN.md`,
-  verbatim, and its tasks RI-00 … RI-13 are in `PROGRESS.md`. RI-01 built the real
-  opening economy (`RI_PASS_1_REPORT.md` "RI-01"): the placed Assembler runs Shot, Wire,
-  Frame or Board chosen per machine (D-B2-1 (b)); a district tile holds 300 units and the
-  map's pool follows the tiles (D-P4-2); the rail yard is a 3×3 heap of 702 coal
-  (D-P4-12) that the hour bot belts into the Depot from 26:39–26:44; `HOUR_MINUTES` is 75
-  and north's claim is scored (D-HOUR-3); every Assembler is a placed machine (D-P4-5);
-  `ledger.ts` balances every item on every `E-hour` run; the hand-feed count is split
-  into 69–150 magazines and 928–932 coal (D-P4-11).
-- **Next task: RI-02 — opening guidance and essential presentation** (T12a's line: the
-  goal line from the sim's state with the reason it matters, machine states readable,
-  place / remove / invalid-action feedback, stable destination names, a save / load
-  baseline after verifying none exists, two viewport sizes; rule 8 kept). **Ready**: its
-  only blocker was RI-01. Branch `ri-pass-1` on top of `phase-4`. The order after it:
-  RI-03 → RI-04 → RI-05 → RI-06 → RI-07 → RI-08 (whose played session is **T19**, human)
-  → RI-09 (T13 → T17, T18) → RI-10 → RI-11 → RI-12 → RI-13; T12b and T12c are runnable
-  behind RI-02 in list order.
+- **The revised development plan is in execution: RI-00, RI-01 and RI-02 are done.**
+  Daniel authorised the plan with "Whole plan" (D-RI-1); it is
+  `REVISED_DEVELOPMENT_PLAN.md`, verbatim, and its tasks RI-00 … RI-13 are in
+  `PROGRESS.md`. RI-01 built the real opening economy (`RI_PASS_1_REPORT.md` "RI-01"):
+  the placed Assembler on four recipes (D-B2-1 (b)); rubble 300 a tile (D-P4-2); the rail
+  yard's 3×3 heap of 702 coal belted into the Depot from 26:39–26:44 (D-P4-12);
+  `HOUR_MINUTES` 75 with north scored (D-HOUR-3); every Assembler physical (D-P4-5);
+  `ledger.ts` balancing every item; the hand-feed count split (D-P4-11). RI-02 built the
+  opening guidance and the essential presentation ("RI-02"): the current-goal HUD line
+  read off the state with its reason and an amber support line (D-GB-2 (a), rule 8 kept);
+  machine running / starved / blocked / idle / off as a shape, a word and a reason; stable
+  block names with debug coordinates behind the toggle; the save / load baseline (a state
+  hash, a validated load, Ctrl+S / Ctrl+O to a local slot, a download carrying the command
+  log); 1200 / 900 px breakpoints. `E-hour` 18/18: the goal line never wrong on 13,503
+  samples, 42/42 beats, a save at 30:00 replaying to the unbroken hash on every seed.
+- **Next task: RI-03 — physical commissioning and field deployment** (plan §4; D-CU-1,
+  D-CU-3, D-P4-9's other half): one claim path where the map selection previews and
+  charges nothing, and a claim is a power connection, materials delivered to the
+  installation and an explicit Activate within reach, paid once; the field kit placeable
+  on Dark / Contested blocks adjacent to Held on real power; one commissioning event per
+  activation; the outskirts Substation before activation; replay and save consistency;
+  the hour bot on the physical path, reported beside the legacy run. **Ready**: blocked by
+  RI-01 (done); RI-02, before it in list order, is done. Branch `ri-pass-1` on top of
+  `phase-4`. The order after it: RI-04 → RI-05 → RI-06 → RI-07 → RI-08 (whose played
+  session is **T19**, human) → RI-09 (T13 → T17, T18) → RI-10 → RI-11 → RI-12 → RI-13;
+  T12b and T12c are runnable behind RI-03 in list order.
 - **Phase 5 — the factory, complete — is open; RI-01 built its first pieces** (the
   per-machine recipe, coal rubble, the ledger) and the rest is not built. The plan
   interleaves the phases (`PHASES.md` top note): the hybrid of D-GB-1 moved from Phase 6
@@ -34,7 +42,7 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 - Phases 0–4 are complete. **Gate A** (2026-09-03) was an owner-only `go` on the bot
   calibration and the smoke test. **Gate B** (2026-09-05, `GATE_B.md`) is `proceed — with
   conditions`: one hour played by the owner, only minutes 0–10 recorded, no telemetry
-  read; the conditions are D-GB-2 (now provisional (a), RI-02), D-GB-3 (rifle range,
+  read; the conditions are D-GB-2 (provisional (a), built at RI-02, T19 tests it), D-GB-3 (rifle range,
   RI-08's candidate) and D-GB-4 (enemy density, RI-04 / RI-10) — none blocks RI-01.
 - Branch `ri-pass-1` on `phase-4`; PR #5 (`phase-4`) open, #1–#4 merged (checked read-only on
   2026-09-05). Nothing
@@ -43,7 +51,7 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 ## What is built, what is a stand-in
 
 **Implemented and measured** (`docs/EXPERIMENTS.md`, 13 experiments GREEN on 2026-09-05
-at RI-01, stamped `5f49691` + RI-01's tree, config b95922d2; `SLICE_REPORT.md`):
+at RI-02, stamped `9a47430` + RI-02's tree, config b95922d2; `SLICE_REPORT.md`):
 
 - The block sim: §5's front rule, wake bloom and burn-off, the 40-unshot-arrival fall,
   proportional brownout (D-B3-4), wells, the 25-hour compact / spike / quiet-block
@@ -65,7 +73,10 @@ at RI-01, stamped `5f49691` + RI-01's tree, config b95922d2; `SLICE_REPORT.md`):
   tile scale: the rifle decides a rescue (48 runs) and the bot spends 0.50 / 0.69 / 0.06 %
   of the hour shooting, 0.00 % in danger.
 - The game (`packages/game`): world view and map view, HUD corners, the telemetry panel,
-  the 3 h snapshot (`snapshot:check`), §18 and seed images (`freshness:check`).
+  the current-goal line with its reason and support, machine status marks, stable block
+  names with debug coordinates behind the toggle, save / load to a local slot and a
+  download with a state hash (RI-02), the 3 h snapshot (`snapshot:check`), §18 and seed
+  images (`freshness:check`).
 
 **Stand-ins and approved-not-built changes** (each labelled where it sits in the doc):
 
@@ -88,9 +99,12 @@ at RI-01, stamped `5f49691` + RI-01's tree, config b95922d2; `SLICE_REPORT.md`):
   costs a 50 steel + 25 Cu stand-in (D-B3-1); the map claim holds an outskirts block on
   the block sim's abstract power until the Substation is placed (GAME-ASSUMPTION,
   `ground.ts`; D-CU-3 (b) provisional — RI-03).
-- **No save / load exists** (`packages/game` has no save path; checked 2026-09-05) —
-  RI-02's baseline. No project record, emergence points, Stalker, Conductor or boss site
-  exist (§28.4–28.8) — RI-04 … RI-06, RI-10, RI-12.
+- **Save / load is a baseline, not a feature** (RI-02): one local slot (Ctrl+S / Ctrl+O),
+  a download, a state hash and the command log so a load replays; no slot list, no
+  autosave, no naming. (Before RI-02 this line said none existed — wrong: a download and a
+  `?state=<url>` load had existed since Phase 4 without a hash, a validation or a log;
+  corrected 2026-09-05.) No project record, emergence points, Stalker, Conductor or boss
+  site exist (§28.4–28.8) — RI-04 … RI-06, RI-10, RI-12.
 - Turrets are unharmed waypoints in the crawler chain (D-B4-3, provisional) while §22
   says they can be chewed; the barricade chain is Phase 6.
 - The hour bot hand-feeds 69–150 magazines and walks 928–932 coal from the chest to the
@@ -107,7 +121,7 @@ at RI-01, stamped `5f49691` + RI-01's tree, config b95922d2; `SLICE_REPORT.md`):
 
 | kind | where | state |
 |---|---|---|
-| simulation | `docs/EXPERIMENTS.md`, `docs/experiments/*.json`, `calibration.md` | 13 experiments GREEN at RI-01 (2026-09-05, 244 s, 0 failing; stamped `5f49691` + RI-01's tree); every generated file fresh (`freshness:check`, 2026-09-05) |
+| simulation | `docs/EXPERIMENTS.md`, `docs/experiments/*.json`, `calibration.md` | 13 experiments GREEN at RI-02 (2026-09-05, 267 s, 0 failing; `E-hour` 18/18 with the goal-line and save checks; stamped `9a47430` + RI-02's tree); every generated file fresh (`freshness:check`, 2026-09-05) |
 | snapshot | `packages/game/public/snapshots/b-compact-seed3.json` | matches (compact seed 3 at 3:00:00, config 0176f61d); regenerated by RI-01 for five new stats counters, the state otherwise identical |
 | human approval | `TEST_RESULTS.md` (Gate A), `GATE_B.md` (Gate B) | both passed by the owner alone; no outside tester has played |
 | human play | `GATE_B.md` §19 table | minutes 0–10 only; 10–30 and 30–60 unrecorded; walking, first shade, burn-off, first pip unrecorded |
@@ -116,7 +130,7 @@ at RI-01, stamped `5f49691` + RI-01's tree, config b95922d2; `SLICE_REPORT.md`):
 ## Counters
 
 - Untagged numbers in the design doc: **33** (21 tile-scale, 12 design inputs), unchanged
-  since Phase 4 M3; the cleanup and RI-01 added none (RI-01's numbers carry `[sim: E-hour-…]`
+  since Phase 4 M3; the cleanup, RI-01 and RI-02 added none (RI-01's numbers carry `[sim: E-hour-…]`
   tags or a decision id).
 - §26: **three systems, complexity 5 / 10**, a reported count since D-RI-3 (the stop
   condition never fired and no longer exists; rule 2's scope test admits features).

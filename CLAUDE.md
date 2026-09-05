@@ -60,16 +60,16 @@ during the cleanup (T11a) and again during RI-01 (every row, the same day).
 
 | command | what | last run (2026-09-05) |
 |---|---|---|
-| `npm test` | node:test across sim / harness / tools (124 tests) | RI-01: 124 pass |
-| `npm run typecheck` | `tsc --strict` on every package, then the game build | RI-01: green |
-| `npm run lint` | eslint on sim, harness, tools | RI-01: green |
-| `npm run docsync:check` | the design doc's generated tables and guarded prose sentences match `packages/sim` (`npm run docsync` regenerates); every `[play: <gate>]` tag names a recorded gate | RI-01: green (~3 s) |
-| `npm run freshness:check` | every generated file's `source_commit` is an ancestor of HEAD and its `config_hash` current | RI-01: green (~4 s) |
-| `npm run snapshot:check` | `packages/game/public/snapshots/b-compact-seed3.json` still reproduces | RI-01: green after `npm run snapshot` regenerated it (five new counters, state identical) |
-| `npm run experiments` | E1–E9, E-hour, E-rifle, E-variance, E-walk → `docs/EXPERIMENTS.md` (a red experiment is a red build) | RI-01: 13 experiments, 0 failing, ~4 min |
+| `npm test` | node:test across sim / harness / tools (128 tests) | RI-02: 128 pass |
+| `npm run typecheck` | `tsc --strict` on every package, then the game build | RI-02: green (red once on a test-file typing, fixed) |
+| `npm run lint` | eslint on sim, harness, tools | RI-02: green (red once on an unused import, fixed) |
+| `npm run docsync:check` | the design doc's generated tables and guarded prose sentences match `packages/sim` (`npm run docsync` regenerates); every `[play: <gate>]` tag names a recorded gate | RI-02: green (~3 s) |
+| `npm run freshness:check` | every generated file's `source_commit` is an ancestor of HEAD and its `config_hash` current | RI-02: green (~4 s) |
+| `npm run snapshot:check` | `packages/game/public/snapshots/b-compact-seed3.json` still reproduces | RI-02: green, unchanged |
+| `npm run experiments` | E1–E9, E-hour, E-rifle, E-variance, E-walk → `docs/EXPERIMENTS.md` (a red experiment is a red build) | RI-02: 13 experiments, 0 failing, 267 s |
 | `npm run calibrate -- --out docs/experiments/calibration.json --md docs/experiments/calibration.md` | the bot calibration | not run |
 | `npm run seeds`, `npm run section18`, `npm run replay`, `npm run nightly` | seed images, §18 images, hour replay, the nightly runs | not run |
-| `npm run dev` / `npm run build` | the game (`packages/game`, Vite) | not run |
+| `npm run dev` / `npm run build` | the game (`packages/game`, Vite) | RI-02: `npm run build --workspace=@relight/game` green; `vite preview --port 4173` drove a Playwright check at 1280×720 and 1920×1080 |
 
 Do not invent commands. Do not claim a command ran if it was only inspected; report the
 actual output, including a red result. The Playwright soak (verification pass only) runs

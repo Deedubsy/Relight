@@ -25,7 +25,7 @@ import { passable, spendRound } from './walk';
 import { hurt, threatHooks, RETALIATE_HP_PER_S, RIFLE_RANGE, RIFLE_HIT_RADIUS, rifleRate } from './engineer';
 import { ENEMIES } from './enemies';
 import { TURRET_RANGE, TURRET_ROUNDS_PER_S } from './recipes';
-import { FlowState, Machine, faceSub, blockLights, litAt, TURRET_FLASH_S } from './flow';
+import { FlowState, faceSub, blockLights, litAt, TURRET_FLASH_S } from './flow';
 
 export const ROUND_DMG = TURRET.roundDmg;   // constants.ts (§7: 4 HP a round)
 export const CONTACT_R = 1.2, DANGER_R = 3, PATH_R = 0.9, EAT_R = 1.6, STUCK_S = 30;
@@ -174,7 +174,8 @@ function fieldFor(st: SimState, c: Crawler): Field {
 
 // ------------------------------------------------------------------ the tick
 
-const cool = new WeakMap<Machine, number>();
+// RI-02: the turret's firing cooldown lives on the Machine (`cool`), so a saved state reloads mid-cooldown and replays
+// identically; before RI-02 it sat in a WeakMap outside the state and a load reset it to 0.
 const isCrawlerHeld = (st: SimState, c: Crawler): boolean => st.blocks[c.to].state === HELD;
 
 function tick(st: SimState, dt: number): void {
@@ -238,7 +239,7 @@ function tick(st: SimState, dt: number): void {
   // the turrets: 5 rounds/s each at the nearest crawler within 9 tiles, shades only where the tile is lit
   for (const m of f.machines) {
     if (m.kind !== 'turret') continue;
-    let cd = (cool.get(m) ?? 0) - dt;
+    let cd = (m.cool ?? 0) - dt;
     if (cd < -1) cd = -1;
     const cx = m.x + m.size / 2, cy = m.y + m.size / 2;
     const bi = G.near[m.y * tw + m.x];
@@ -250,7 +251,7 @@ function tick(st: SimState, dt: number): void {
       c.hp -= ROUND_DMG;
       if (c.hp <= 0) { T.stats.turretKills++; cs.splice(cs.indexOf(c), 1); }
     }
-    cool.set(m, cd);
+    m.cool = cd;
   }
   // the bots' rifle (D5): a bot standing on a red edge fires at that edge's crawlers within reach of the rifle
   if (e.firing >= 0 && !e.aim && engUp && e.dash <= 0 && e.cooldown <= 0) {

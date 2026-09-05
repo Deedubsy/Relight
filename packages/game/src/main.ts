@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
 import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
   hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
-  idxOf, LIGHT_SEQ_PER_S, REPAIR_COPPER, hourReport,
+  idxOf, LIGHT_SEQ_PER_S, REPAIR_COPPER, hourReport, blockLabel, stateHash, currentGoal, clockOf,
 } from '@relight/sim';
-import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue, record, replaySession } from './session';
+import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue, record, replaySession, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
 import { MapScene, MapView, SceneHooks, MAP_W, MAP_H } from './mapScene';
 import { CityMapScene } from './cityMapScene';
 import { WorldScene, Tool } from './worldScene';
-import { View } from './view';
+import { View, debugView, hudInset } from './view';
 import { createPanel, exportExtra } from './panel';
 import { exportJson, summarise } from './telemetry';
 
@@ -29,29 +29,32 @@ const panel = createPanel(session, document.getElementById('panel')!, {
   onSelectEdge(id) { mapScene.selectEdge(id); },
   onToggleView() { toggleView(); },
 });
-if (loadError) panel.toast(`Could not load the snapshot (${loadError}); started a fresh seed ${session.state.seed} instead`, 'bad');
-else if (session.scenario === 'B') panel.toast(`Snapshot loaded at ${session.telemetry.meta.startT / 3600 | 0}:${String(Math.floor(session.telemetry.meta.startT / 60) % 60).padStart(2, '0')} — paused. Press space or a speed to begin.`, 'good');
+if (loadError) panel.toast(`Could not load the save (${loadError}); started a fresh seed ${session.state.seed} instead`, 'bad');
+else if (session.scenario === 'B') panel.toast(`${params.state?.startsWith('local:') ? 'Save' : 'Snapshot'} loaded at ${clockOf(session.startT)} (state ${stateHash(session.state)}) — paused. Press P or a speed to begin.`, 'good');
+
+/** RI-02: a block by its stable name (names.ts), with the coordinates only behind the ` toggle. */
+const at = (x: number, y: number): string => blockLabel(session.state, idxOf(session.state, x, y), debugView.coords);
 
 function describe(events: SimEvent[]): void {
   for (const ev of events) {
     switch (ev.type) {
       case 'held':
         // M5 (rule 8): the burn-off's end is the payoff — say so
-        if (session.state.flow) panel.toast(`Block (${ev.x},${ev.y}) held — burn-off done, its streets are lit; the lot stays dark until you put Lamps on it`, 'good');
+        if (session.state.flow) panel.toast(`${at(ev.x, ev.y)} held — burn-off done, its streets are lit; the lot stays dark until you put Lamps on it`, 'good');
         if (ev.facility) panel.toast(`Reached the ${ev.facility}`, 'good');
         if (ev.survivor) panel.toast(`${ev.survivor}: "We're in."${ev.unlocks.length ? ` — ${ev.unlocks.join(', ')} are on the build menu (B; keys 0, [ and ])` : ''}`, 'good');
         break;
-      case 'fall': panel.toast(`Block (${ev.x},${ev.y}) lost — ${ev.reason}`, 'bad'); break;
-      case 'sub-off': panel.toast(`Substation (${ev.x},${ev.y}) stopped: ${session.state.config.unfedN} crawlers unfed. It falls if this goes on.`, 'bad'); break;
-      case 'sub-on': panel.toast(`Substation (${ev.x},${ev.y}) back on`, 'good'); break;
-      case 'claim-rejected': panel.toast(`Claim (${ev.x},${ev.y}) rejected: ${ev.reason}`, 'bad'); break;
-      case 'assembler': panel.toast(`Assembler built on (${ev.x},${ev.y}) — ${ev.count} running`, 'good'); break;
+      case 'fall': panel.toast(`${at(ev.x, ev.y)} lost — ${ev.reason}`, 'bad'); break;
+      case 'sub-off': panel.toast(`${at(ev.x, ev.y)}'s substation stopped: ${session.state.config.unfedN} crawlers unfed. It falls if this goes on.`, 'bad'); break;
+      case 'sub-on': panel.toast(`${at(ev.x, ev.y)}'s substation back on`, 'good'); break;
+      case 'claim-rejected': panel.toast(`Claim on ${at(ev.x, ev.y)} rejected: ${ev.reason}`, 'bad'); break;
+      case 'assembler': panel.toast(`Assembler built on ${at(ev.x, ev.y)} — ${ev.count} running`, 'good'); break;
       case 'assembler-rejected': panel.toast(ev.reason === 'no free interior slot' ? 'No assembler: no free machine slot (enclose a block first)' : 'No assembler: cannot afford it', 'bad'); break;
-      case 'machine-lost': panel.toast(`Assembler on (${ev.x},${ev.y}) lost with its block — ${ev.count} running`, 'bad'); break;
-      case 'run-dry': panel.toast(`Block (${ev.x},${ev.y}) is dug out — no more ${ev.district === 'civ' ? 'stone' : ev.district === 'res' ? 'copper' : 'steel'} from it`); break;
+      case 'machine-lost': panel.toast(`Assembler on ${at(ev.x, ev.y)} lost with its block — ${ev.count} running`, 'bad'); break;
+      case 'run-dry': panel.toast(`${at(ev.x, ev.y)} is dug out — no more ${ev.district === 'civ' ? 'stone' : ev.district === 'res' ? 'copper' : 'steel'} from it`); break;
       case 'reorder': panel.toast('Ring order changed'); break;
       // M3 (rule 8): the hopper, Generator and §14 brownout rules surface as toasts from the sim's events
-      case 'hopper-empty': panel.toast(`Hopper EMPTY on block (${ev.x},${ev.y}) facing (${ev.nx},${ev.ny}) — its pip is red until it is fed`, 'bad'); break;
+      case 'hopper-empty': panel.toast(`Hopper EMPTY on ${at(ev.x, ev.y)} facing ${at(ev.nx, ev.ny)} — its pip is red until it is fed`, 'bad'); break;
       case 'gen-dry': panel.toast('The Generator burned its last coal — hand-feed it (click it with the hand) or belt coal in. No power until then.', 'bad'); break;
       case 'brownout': panel.toast(`Brownout: demand ${Math.round(ev.demandKw)} kW over ${Math.round(ev.supplyKw)} kW supply — every machine runs at ${Math.round(100 * Math.max(0, ev.supplyKw) / ev.demandKw)} % until a Generator is added or fed (§14). Nothing switches off.`, 'bad'); break;
       case 'power-ok': panel.toast('Power back: supply covers demand, every machine at full speed', 'good'); break;
@@ -59,23 +62,23 @@ function describe(events: SimEvent[]): void {
         if (!session.state.flow) break;
         const kits = session.state.engineer.inv.kit ?? 0;
         // M5 (§5 step 3–4, §6): the streetlights come on now, in sequence; the rot burns off over 20 + 60·d s
-        panel.toast(`Poles strung to (${ev.x},${ev.y}) — its streetlights come on now, ${LIGHT_SEQ_PER_S} a second from the substation out; the rot burns off in ${Math.round(session.state.blocks[idxOf(session.state, ev.x, ev.y)].contestUntil - ev.t)} s${kits ? '' : '. Its edges wait for a kit: take kits from the Depot chest (I) and walk there'}`);
+        panel.toast(`Poles strung to ${at(ev.x, ev.y)} — its streetlights come on now, ${LIGHT_SEQ_PER_S} a second from the substation out; the rot burns off in ${Math.round(session.state.blocks[idxOf(session.state, ev.x, ev.y)].contestUntil - ev.t)} s${kits ? '' : '. Its edges wait for a kit: take kits from the Depot chest (I) and walk there'}`);
         break;
       }
-      case 'kitted': panel.toast(`Kits laid on block (${ev.x},${ev.y}) — ${ev.edges} edge${ev.edges === 1 ? '' : 's'} armed`, 'good'); break;
+      case 'kitted': panel.toast(`Kits laid on ${at(ev.x, ev.y)} — ${ev.edges} edge${ev.edges === 1 ? '' : 's'} armed`, 'good'); break;
       case 'engineer-down': panel.toast('The engineer is down — back at the HQ workbench in 10 s', 'bad'); break;
       // M4 (rule 8): the tile threat's rules surface as toasts — retaliation only (D5), lamps eaten, the 40-arrival count
       case 'engineer-up': panel.toast('Back on your feet at the HQ workbench — pockets intact, no other penalty', 'good'); break;
       case 'retaliate': panel.toast(ev.cause === 'shot' ? 'A crawler turned on you: you shot it. It bites at arm\'s reach (5 HP/s) — finish it (3 rounds) or step back' : 'A crawler turned on you: you are standing in its path. Step aside, or shoot it', 'bad'); break;
-      case 'lamp-eaten': panel.toast(`A crawler put out the lamp on tile (${ev.tx},${ev.ty}) — block (${ev.x},${ev.y}) is darker; the next ones head for its turrets, then the substation. E on the lamp repairs it (${REPAIR_COPPER} Cu)`, 'bad'); break;
-      case 'arrival': panel.toast(`${ev.shade ? 'A shade' : 'A crawler'} reached the substation on block (${ev.x},${ev.y}) unshot — ${ev.n} of ${ev.of}${ev.shade ? ' (the substation is off 30 s)' : ''}`, 'bad'); break;
+      case 'lamp-eaten': panel.toast(`A crawler put out a lamp on ${at(ev.x, ev.y)}${debugView.coords ? ` (tile (${ev.tx},${ev.ty}))` : ''} — the block is darker; the next ones head for its turrets, then the substation. E on the lamp repairs it (${REPAIR_COPPER} Cu)`, 'bad'); break;
+      case 'arrival': panel.toast(`${ev.shade ? 'A shade' : 'A crawler'} reached the substation on ${at(ev.x, ev.y)} unshot — ${ev.n} of ${ev.of}${ev.shade ? ' (the substation is off 30 s)' : ''}`, 'bad'); break;
       case 'bloom': {
         // GAME-ASSUMPTION: only the blooms on or next to the engineer's block toast; the rest are the map view's pulses
         const st = session.state, e = st.engineer;
         if (!st.flow || st.lattice) break;
         const eb = blockOfTile(st, Math.floor(e.x), Math.floor(e.y));
         if (eb < 0 || Math.abs(st.blocks[eb].x - ev.x) > 1 || Math.abs(st.blocks[eb].y - ev.y) > 1) break;
-        panel.toast(`Bloom on (${ev.x},${ev.y}) beside you: ${Math.round(ev.cr)} crawler${Math.round(ev.cr) === 1 ? '' : 's'}${ev.sh >= 0.5 ? ` and ${Math.round(ev.sh)} shade${Math.round(ev.sh) === 1 ? '' : 's'}` : ''} at the ridge, coming for the lit lamps`, 'bad');
+        panel.toast(`Bloom on ${at(ev.x, ev.y)} beside you: ${Math.round(ev.cr)} crawler${Math.round(ev.cr) === 1 ? '' : 's'}${ev.sh >= 0.5 ? ` and ${Math.round(ev.sh)} shade${Math.round(ev.sh) === 1 ? '' : 's'}` : ''} at the ridge, coming for the lit lamps`, 'bad');
         break;
       }
     }
@@ -112,6 +115,9 @@ game.events.on(Phaser.Core.Events.STEP, (time: number, delta: number) => {
   const events = frame(session, Math.min(0.1, delta / 1000));
   if (events.length) { mapScene.consume(events, time); describe(events); }
   panel.update(performance.now());
+  // RI-02: the world view's top HUD corners sit under the goal overlay (measured here, not per frame — the panel throttles)
+  const goalEl = document.getElementById('goal');
+  hudInset.top = goalEl && !goalEl.hidden ? goalEl.offsetHeight + 4 : 0;
 });
 
 /** The block the engineer stands in (or last stood in), for the map's marker. */
@@ -149,6 +155,19 @@ const SPEEDS = [1, 4, 16];
 window.addEventListener('keydown', ev => {
   if ((ev.target as HTMLElement)?.tagName === 'INPUT') return;
   const k = ev.key;
+  // RI-02: Ctrl+S saves to slot 1 in this browser, Ctrl+O reloads the page from it (the panel's Save / Load buttons)
+  if ((ev.ctrlKey || ev.metaKey) && (k === 's' || k === 'S')) {
+    ev.preventDefault();
+    try { const save = saveSlot(session, '1'); panel.toast(`Saved to slot 1 at ${clockOf(save.t)} (state ${save.hash}) — Ctrl+O or Load reloads it`, 'good'); }
+    catch (e) { panel.toast(`Could not save: ${(e as Error).message}`, 'bad'); }
+    return;
+  }
+  if ((ev.ctrlKey || ev.metaKey) && (k === 'o' || k === 'O')) {
+    ev.preventDefault();
+    if (!hasSlot('1')) { panel.toast('Slot 1 is empty in this browser — Ctrl+S saves to it', 'bad'); return; }
+    if (window.confirm('Reload from slot 1? Unsaved progress is lost.')) location.href = slotUrl(session, '1');
+    return;
+  }
   if (k === 'p' || k === 'P') setSpeed(session, session.state.speed === 0 ? 1 : 0);
   else if (k === '-' || k === '_' || k === '=' || k === '+') {
     const cur = SPEEDS.indexOf(session.state.speed), next = k === '-' || k === '_' ? Math.max(0, cur - 1) : Math.min(SPEEDS.length - 1, cur + 1);
@@ -176,7 +195,16 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   hour: () => session.hour ? hourReport(session.state, session.hour) : null,
   commandLog: () => session.log,
   replay: (opts: { rifleOff?: boolean } = {}) => { const r = replaySession(session, opts); return 'error' in r ? r : r.verdict; },
+  /** RI-02: replay the session's whole log (aim kept) from a fresh state and compare hashes with the played state. */
+  replayHash: () => { const r = replaySession(session, { rifleOff: false }); return 'error' in r ? r : { same: stateHash(r.state) === stateHash(session.state), replayed: stateHash(r.state), played: stateHash(session.state), tick: r.state.flow?.tick ?? -1 }; },
   stateJson: () => JSON.stringify(session.state),
+  /** RI-02: the state hash (save.ts), the current goal line, the save file, and the browser slot (the Ctrl+S / Ctrl+O path). */
+  stateHash: () => stateHash(session.state),
+  goal: () => currentGoal(session.state),
+  saveFile: () => makeSessionSave(session),
+  save: (slot = '1') => saveSlot(session, slot).hash,
+  loadUrl: (slot = '1') => slotUrl(session, slot),
+  debugCoords: (on?: boolean) => { if (on !== undefined) debugView.coords = on; return debugView.coords; },
   configHash: session.telemetry.meta.configHash,
   toggleView,
   /** M1 (prompt B): the bots' and dev hooks — not player controls (D-B1-5). `walkTo(x, y)` sets a walk-here target on

@@ -29,6 +29,10 @@ twenty-four "Re-read at …" sections) is `archive/pre-phase-5-cleanup/DEFERRED-
   1,750 stone in the 75-minute hour on seeds 3 and 5 with nothing to spend it on
   (`E-hour-ledger`); a stone-consuming use is a new mechanic — a separate, visible
   decision, nobody's task yet (`RI_PASS_1_REPORT.md` "RI-01").
+- **Basic sound and volume / mute controls** (plan §11.2; RI-02, 2026-09-05): not in
+  RI-02's row and not built. Today no essential information travels by sound or colour
+  alone (the machine status marks are shapes with words); final audio is Phase 12's.
+  Nobody's task yet.
 
 ## Scheduled — link only
 

@@ -30,9 +30,17 @@ import {
   setRecipe, RECIPE_IDS, recipeOf, recipeOutput,
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
   lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
+  blockLabel, machineStatus, MachineState,
 } from '@relight/sim';
 import { Session, queue, record } from './session';
-import { View } from './view';
+import { View, debugView, hudInset } from './view';
+
+/** RI-02 (§11.2 "machine purpose and working / starved / blocked state", never colour alone): the state word's
+ *  glyph, in the tooltip and the E toast, and drawn as the same shape on the machine (drawStatusMark). */
+const STATUS_GLYPH: Record<MachineState, string> = { running: '▶', starved: '○', blocked: '■', idle: '–', off: '✕' };
+const STATUS_COL: Record<MachineState, number> = { running: 0x6fe08a, starved: 0xe8a93a, blocked: 0xe05a5a, idle: 0x9aa5b8, off: 0x9aa5b8 };
+/** The machines that have a working state (the belts, inserters, posts and the substation slab do not). */
+const STATUS_KIND = new Set<Kind>(['turret', 'generator', 'excavator', 'assembler', 'floodlight']);
 
 /** GAME-ASSUMPTION: the constitution's 0.5–3× zoom, not §4's 1.0–0.2×; the doc is edited to this range (D-P4-1). */
 export const ZOOM_MIN = 0.5, ZOOM_MAX = 3, ZOOM_STEP = 1.15;
@@ -434,7 +442,7 @@ export class WorldScene extends Phaser.Scene {
     if (m) {
       if (!this.reachable(m.x, m.y, m.size, true)) return;
       if (m.kind === 'depot') { this.hooks.onChest(); return; }
-      this.hooks.onToast(describeMachine(st, m));
+      this.hooks.onToast(`${this.statusLine(m)} · ${describeMachine(st, m)}`);
       return;
     }
     if (e.truckFound) { queue(this.session, { type: 'enterTruck' }); this.hooks.onToast(e.truck ? 'Out of the truck' : 'In the truck — 3× walk speed, 200 stacks'); return; }
@@ -572,9 +580,10 @@ export class WorldScene extends Phaser.Scene {
     const bi = blockOfTile(st, tx, ty);
     // M5: an unlit tile says what that means (rule 8: the lit/unlit rule is on the tooltip, not only in the texture)
     const unlit = st.flow && !this.lightPix[ty * G.tw + tx] ? ' · unlit (rot can sit here; a shade here cannot be hit)' : '';
-    const lines = [describeGround(st, tx, ty) + unlit];
+    // RI-02: the tile coordinates are debug coordinates — shown only behind the ` toggle
+    const groundLine = describeGround(st, tx, ty), lines = [(debugView.coords ? groundLine : groundLine.replace(/^tile \(-?\d+,-?\d+\) · /, '')) + unlit];
     if (bi >= 0) lines.push(this.blockLine(bi));
-    if (m) lines.unshift(describeMachine(st, m));
+    if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
     else if (st.flow && isSubstationTile(st, tx, ty)) {
       const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
       if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (the block is unfed, or the grid is dead)'}`);
@@ -600,13 +609,34 @@ export class WorldScene extends Phaser.Scene {
     if (cur !== this.cursor) { this.cursor = cur; this.input.setDefaultCursor(cur); }
   }
 
+  /** RI-02 (§11.2 "stable named destinations"): the block's name (names.ts — bearing and district, "HQ", the rail
+   *  yard) and its state; the block coordinates only behind the ` toggle. */
   private blockLine(i: number): string {
     const st = this.st, b = st.blocks[i];
-    const name = b.name === 'civ' ? 'civic' : b.name === 'res' ? 'residential' : b.name === 'ind' ? 'industrial' : 'outskirts';
     const river = st.lattice ? b.y === st.h - 1 : false;
     const state = river ? 'river' : b.state === DARK ? `Dark · rot ${Math.round(b.d * 100)} %` : b.state === CONTESTED ? 'Contested' : b.state === HELD ? (isInterior(st, i) ? 'Held · interior' : 'Held · front') : b.state === INERT || b.state === VOID ? 'inert' : '?';
-    const hq = b.x === st.start[0] && b.y === st.start[1] ? ' · HQ' : '';
-    return `block (${b.x},${b.y}) · ${name} · ${state}${hq}`;
+    return `${blockLabel(st, i, debugView.coords)} · ${state}`;
+  }
+
+  /** RI-02: a machine's state word with its reason, glyph first ("▶ running · digging steel"). */
+  private statusLine(m: Machine): string {
+    const s = machineStatus(this.st, m);
+    return `${STATUS_GLYPH[s.state]} ${s.state} · ${s.reason}`;
+  }
+
+  /** RI-02: the state mark on a machine — the tooltip's glyph as a shape at the top-left corner: running a right-pointing
+   *  triangle, starved a ring, blocked a square, idle a bar, off a cross. Shape and colour together, so a state reads
+   *  without colour (constitution, Phase 2). Drawing only. */
+  private drawStatusMark(g: Phaser.GameObjects.Graphics, m: Machine, px: number, py: number, zoom: number): void {
+    const s = machineStatus(this.st, m).state, col = STATUS_COL[s], r = 5 / Math.max(1, zoom * 0.75), x = px + 4 + r, y = py + 4 + r;
+    g.fillStyle(0x05070d, 0.85); g.fillCircle(x, y, r + 3);
+    switch (s) {
+      case 'running': g.fillStyle(col, 1); g.fillTriangle(x - r * 0.7, y - r, x - r * 0.7, y + r, x + r, y); break;
+      case 'starved': g.lineStyle(2 / Math.max(1, zoom * 0.75), col, 1); g.strokeCircle(x, y, r * 0.8); break;
+      case 'blocked': g.fillStyle(col, 1); g.fillRect(x - r * 0.75, y - r * 0.75, r * 1.5, r * 1.5); break;
+      case 'idle': g.fillStyle(col, 1); g.fillRect(x - r * 0.8, y - 1.5, r * 1.6, 3); break;
+      case 'off': g.lineStyle(2 / Math.max(1, zoom * 0.75), col, 1); g.lineBetween(x - r * 0.7, y - r * 0.7, x + r * 0.7, y + r * 0.7); g.lineBetween(x - r * 0.7, y + r * 0.7, x + r * 0.7, y - r * 0.7); break;
+    }
   }
 
   // ------------------------------------------------------------------ frame
@@ -776,11 +806,11 @@ export class WorldScene extends Phaser.Scene {
     // wrapped to a little over half the viewport so it never runs under the territory block opposite it
     const wrap = Math.round(cam.width * KEY_STRIP_FRAC);
     if (this.keyWrap !== wrap) { this.keyWrap = wrap; this.keyText.setWordWrapWidth(wrap); }
-    this.keyText.setScale(1 / cam.zoom).setPosition(...pin(8, 8))
+    this.keyText.setScale(1 / cam.zoom).setPosition(...pin(8, 8 + hudInset.top))
       .setText(`${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}${st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}` : ''}`);
 
     // top-right: territory — the block under the engineer, what the view holds, the zoom
-    this.terrText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8, 8))
+    this.terrText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8, 8 + hudInset.top))
       .setText(`World view · ${n} tiles · zoom ${cam.zoom.toFixed(2)}×${fi >= 0 ? `\n${this.blockLine(fi)}` : ''}`);
 
     // bottom-left: power and pockets (the two stocks that decide the hour)
@@ -1184,6 +1214,7 @@ export class WorldScene extends Phaser.Scene {
         const empty = m.kind === 'turret' ? (m.inv.rounds ?? 0) <= 0 : m.kind === 'generator' ? (m.inv.coal ?? 0) <= 0 : false;
         if (empty && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2); }
       }
+      if (STATUS_KIND.has(m.kind)) this.drawStatusMark(g, m, px, py, zoom);   // RI-02: the state mark, over everything
     }
   }
 

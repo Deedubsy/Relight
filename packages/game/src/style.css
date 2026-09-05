@@ -59,3 +59,22 @@ ul.plain li .muted, .muted { color: var(--muted); }
 .hint { color: var(--muted); font-size: 11px; margin-top: 6px; }
 kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; font: inherit; font-size: 11px; }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+/* RI-02 (§11.2): the current-goal line — one screen-space line over the top of the canvas, readable at any zoom,
+   with the reason under it and the shortage line (amber) beneath that when something is short. Centred on the
+   canvas like the toasts. No list, no screens (rule 8; D-GB-2 (a)). */
+#goal { position: fixed; top: 10px; left: calc(50vw - (var(--panel-w) + var(--gutter)) / 2); transform: translateX(-50%);
+  max-width: min(720px, 70vw); background: #05070fdd; border: 1px solid var(--line); border-top: 3px solid var(--amber); border-radius: 4px;
+  padding: 7px 12px 6px; z-index: 15; pointer-events: none; text-align: center; font-variant-numeric: tabular-nums; }
+#goal .goal-text { font-size: 15px; font-weight: 600; }
+#goal .goal-why { font-size: 12px; color: var(--muted); margin-top: 2px; }
+#goal .goal-support { font-size: 12px; color: var(--amber); margin-top: 4px; border-top: 1px solid var(--line); padding-top: 4px; }
+#goal .goal-support::before { content: "▲ "; }
+/* RI-02 (§11.2 "UI scaling"): the panel narrows under 1200 px and the layout stacks under 900 px, so the desktop UI
+   stays usable at 1280×720 and the canvas never pushes the page sideways. */
+@media (max-width: 1200px) { :root { --panel-w: 340px; } #panel { font-size: 12px; } .stat b { font-size: 16px; } }
+@media (max-width: 900px) {
+  #app { flex-direction: column; height: auto; }
+  #map { min-width: 0; width: 100%; height: 60vh; }
+  #panel { flex: 0 0 auto; max-width: none; width: 100%; max-height: none; }
+  #toasts, #goal { left: 50vw; }
+}

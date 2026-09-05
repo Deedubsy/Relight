@@ -1,5 +1,5 @@
 {
- "source_commit": "5f49691e849775bcd8ebc725ddac5855e8c68967",
+ "source_commit": "9a4743078a14c32d259c5a79ee3bb6669c5949b9",
  "config_hash": "b95922d2",
  "config_ref": {
   "kind": "experiments"
@@ -1133,6 +1133,883 @@
      "-"
     ]
    ]
+  },
+  {
+   "title": "E-hour-goal: RI-02 — the current-goal line (goal.ts currentGoal) sampled every second of the rifle-off log, checked against the state it claims (goalcheck.ts)",
+   "note": "wrong = samples whose goal or support id differs from the oracle's (the first unmet §11 row; the first live shortage); under 5 s = ids up under five seconds (the bot doing two things a second apart); came back = an id shown again after leaving; support = seconds each amber line was up",
+   "header": [
+    "seed",
+    "samples",
+    "wrong",
+    "goal ids shown, in order",
+    "changes",
+    "under 5 s",
+    "came back",
+    "support line",
+    "problems"
+   ],
+   "rows": [
+    [
+     3,
+     4501,
+     0,
+     "mine → craft → coal-line → gen-2 → copper-line → shot-line → steel-2 → gen-3 → contest-east → claim-west → contest-west → rail-coal → gen-4 → copper-2 → assembler-3 → claim-north → contest-north → hold",
+     17,
+     1,
+     "-",
+     "feed 1 s",
+     "-"
+    ],
+    [
+     4,
+     4501,
+     0,
+     "mine → craft → coal-line → gen-2 → steel-line → copper-line → shot-line → steel-2 → gen-3 → contest-east → claim-west → contest-west → rail-coal → gen-4 → copper-2 → assembler-3 → claim-north → contest-north → hold",
+     18,
+     2,
+     "-",
+     "feed 26 s",
+     "-"
+    ],
+    [
+     5,
+     4501,
+     0,
+     "mine → craft → coal-line → gen-2 → copper-line → shot-line → steel-2 → gen-3 → contest-east → claim-west → contest-west → rail-coal → gen-4 → copper-2 → assembler-3 → claim-north → contest-north → hold",
+     17,
+     1,
+     "-",
+     "feed 36 s",
+     "-"
+    ]
+   ]
+  },
+  {
+   "title": "E-hour-goal-beats: every §11 row with a state-derived beat (constants.HOUR) — the goal line before and at the beat",
+   "note": "the beat is the first second the state meets the row (hand-mined 20, hand-crafted 10, a machine standing, a block leaving Dark), not the bot's mark; two rows met in the same second share a before/after pair",
+   "header": [
+    "seed",
+    "§11 row",
+    "§11 min",
+    "beat at",
+    "goal before",
+    "goal at the beat",
+    "changed"
+   ],
+   "rows": [
+    [
+     3,
+     "mine",
+     0,
+     "0:21",
+     "mine",
+     "craft",
+     "yes"
+    ],
+    [
+     3,
+     "craft",
+     0,
+     "1:21",
+     "craft",
+     "coal-line",
+     "yes"
+    ],
+    [
+     3,
+     "coal-excavator",
+     6,
+     "6:01",
+     "coal-line",
+     "gen-2",
+     "yes"
+    ],
+    [
+     3,
+     "generator-2",
+     6,
+     "6:02",
+     "gen-2",
+     "copper-line",
+     "yes"
+    ],
+    [
+     3,
+     "line-excavators",
+     6,
+     "6:08",
+     "copper-line",
+     "shot-line",
+     "yes"
+    ],
+    [
+     3,
+     "shot-line",
+     8,
+     "8:01",
+     "shot-line",
+     "steel-2",
+     "yes"
+    ],
+    [
+     3,
+     "steel-2",
+     12,
+     "12:02",
+     "steel-2",
+     "gen-3",
+     "yes"
+    ],
+    [
+     3,
+     "generator-3",
+     15,
+     "15:04",
+     "gen-3",
+     "contest-east",
+     "yes"
+    ],
+    [
+     3,
+     "claim-east",
+     15,
+     "15:04",
+     "gen-3",
+     "contest-east",
+     "yes"
+    ],
+    [
+     3,
+     "claim-west",
+     25,
+     "25:01",
+     "claim-west",
+     "contest-west",
+     "yes"
+    ],
+    [
+     3,
+     "generator-4",
+     45,
+     "45:02",
+     "gen-4",
+     "copper-2",
+     "yes"
+    ],
+    [
+     3,
+     "copper-2",
+     46,
+     "46:02",
+     "copper-2",
+     "assembler-3",
+     "yes"
+    ],
+    [
+     3,
+     "assembler-3",
+     50,
+     "50:02",
+     "assembler-3",
+     "claim-north",
+     "yes"
+    ],
+    [
+     3,
+     "claim-north",
+     65,
+     "65:01",
+     "claim-north",
+     "contest-north",
+     "yes"
+    ],
+    [
+     4,
+     "mine",
+     0,
+     "0:21",
+     "mine",
+     "craft",
+     "yes"
+    ],
+    [
+     4,
+     "craft",
+     0,
+     "1:21",
+     "craft",
+     "coal-line",
+     "yes"
+    ],
+    [
+     4,
+     "coal-excavator",
+     6,
+     "6:02",
+     "coal-line",
+     "gen-2",
+     "yes"
+    ],
+    [
+     4,
+     "generator-2",
+     6,
+     "6:03",
+     "gen-2",
+     "steel-line",
+     "yes"
+    ],
+    [
+     4,
+     "line-excavators",
+     6,
+     "6:10",
+     "copper-line",
+     "shot-line",
+     "yes"
+    ],
+    [
+     4,
+     "shot-line",
+     8,
+     "8:01",
+     "shot-line",
+     "steel-2",
+     "yes"
+    ],
+    [
+     4,
+     "steel-2",
+     12,
+     "12:03",
+     "steel-2",
+     "gen-3",
+     "yes"
+    ],
+    [
+     4,
+     "generator-3",
+     15,
+     "15:04",
+     "gen-3",
+     "contest-east",
+     "yes"
+    ],
+    [
+     4,
+     "claim-east",
+     15,
+     "15:04",
+     "gen-3",
+     "contest-east",
+     "yes"
+    ],
+    [
+     4,
+     "claim-west",
+     25,
+     "25:01",
+     "claim-west",
+     "contest-west",
+     "yes"
+    ],
+    [
+     4,
+     "generator-4",
+     45,
+     "45:02",
+     "gen-4",
+     "copper-2",
+     "yes"
+    ],
+    [
+     4,
+     "copper-2",
+     46,
+     "46:03",
+     "copper-2",
+     "assembler-3",
+     "yes"
+    ],
+    [
+     4,
+     "assembler-3",
+     50,
+     "50:02",
+     "assembler-3",
+     "claim-north",
+     "yes"
+    ],
+    [
+     4,
+     "claim-north",
+     65,
+     "65:01",
+     "claim-north",
+     "contest-north",
+     "yes"
+    ],
+    [
+     5,
+     "mine",
+     0,
+     "0:21",
+     "mine",
+     "craft",
+     "yes"
+    ],
+    [
+     5,
+     "craft",
+     0,
+     "1:21",
+     "craft",
+     "coal-line",
+     "yes"
+    ],
+    [
+     5,
+     "coal-excavator",
+     6,
+     "6:01",
+     "coal-line",
+     "gen-2",
+     "yes"
+    ],
+    [
+     5,
+     "generator-2",
+     6,
+     "6:02",
+     "gen-2",
+     "copper-line",
+     "yes"
+    ],
+    [
+     5,
+     "line-excavators",
+     6,
+     "6:08",
+     "copper-line",
+     "shot-line",
+     "yes"
+    ],
+    [
+     5,
+     "shot-line",
+     8,
+     "8:03",
+     "shot-line",
+     "steel-2",
+     "yes"
+    ],
+    [
+     5,
+     "steel-2",
+     12,
+     "12:01",
+     "steel-2",
+     "gen-3",
+     "yes"
+    ],
+    [
+     5,
+     "generator-3",
+     15,
+     "15:02",
+     "gen-3",
+     "contest-east",
+     "yes"
+    ],
+    [
+     5,
+     "claim-east",
+     15,
+     "15:02",
+     "gen-3",
+     "contest-east",
+     "yes"
+    ],
+    [
+     5,
+     "claim-west",
+     25,
+     "25:01",
+     "claim-west",
+     "contest-west",
+     "yes"
+    ],
+    [
+     5,
+     "generator-4",
+     45,
+     "45:01",
+     "gen-4",
+     "copper-2",
+     "yes"
+    ],
+    [
+     5,
+     "copper-2",
+     46,
+     "46:02",
+     "copper-2",
+     "assembler-3",
+     "yes"
+    ],
+    [
+     5,
+     "assembler-3",
+     50,
+     "50:01",
+     "assembler-3",
+     "claim-north",
+     "yes"
+    ],
+    [
+     5,
+     "claim-north",
+     65,
+     "65:01",
+     "claim-north",
+     "contest-north",
+     "yes"
+    ]
+   ]
+  },
+  {
+   "title": "E-hour-goal-changes: every change of the goal id through the rifle-off hour, with the seconds the previous id was up",
+   "header": [
+    "seed",
+    "at",
+    "from",
+    "to",
+    "previous id up (s)"
+   ],
+   "rows": [
+    [
+     3,
+     "0:21",
+     "mine",
+     "craft",
+     21
+    ],
+    [
+     3,
+     "1:21",
+     "craft",
+     "coal-line",
+     60
+    ],
+    [
+     3,
+     "6:01",
+     "coal-line",
+     "gen-2",
+     280
+    ],
+    [
+     3,
+     "6:02",
+     "gen-2",
+     "copper-line",
+     1
+    ],
+    [
+     3,
+     "6:08",
+     "copper-line",
+     "shot-line",
+     6
+    ],
+    [
+     3,
+     "8:01",
+     "shot-line",
+     "steel-2",
+     113
+    ],
+    [
+     3,
+     "12:02",
+     "steel-2",
+     "gen-3",
+     241
+    ],
+    [
+     3,
+     "15:04",
+     "gen-3",
+     "contest-east",
+     182
+    ],
+    [
+     3,
+     "15:34",
+     "contest-east",
+     "claim-west",
+     30
+    ],
+    [
+     3,
+     "25:01",
+     "claim-west",
+     "contest-west",
+     567
+    ],
+    [
+     3,
+     "25:35",
+     "contest-west",
+     "rail-coal",
+     34
+    ],
+    [
+     3,
+     "26:40",
+     "rail-coal",
+     "gen-4",
+     65
+    ],
+    [
+     3,
+     "45:02",
+     "gen-4",
+     "copper-2",
+     1102
+    ],
+    [
+     3,
+     "46:02",
+     "copper-2",
+     "assembler-3",
+     60
+    ],
+    [
+     3,
+     "50:02",
+     "assembler-3",
+     "claim-north",
+     240
+    ],
+    [
+     3,
+     "65:01",
+     "claim-north",
+     "contest-north",
+     899
+    ],
+    [
+     3,
+     "65:29",
+     "contest-north",
+     "hold",
+     28
+    ],
+    [
+     4,
+     "0:21",
+     "mine",
+     "craft",
+     21
+    ],
+    [
+     4,
+     "1:21",
+     "craft",
+     "coal-line",
+     60
+    ],
+    [
+     4,
+     "6:02",
+     "coal-line",
+     "gen-2",
+     281
+    ],
+    [
+     4,
+     "6:03",
+     "gen-2",
+     "steel-line",
+     1
+    ],
+    [
+     4,
+     "6:05",
+     "steel-line",
+     "copper-line",
+     2
+    ],
+    [
+     4,
+     "6:10",
+     "copper-line",
+     "shot-line",
+     5
+    ],
+    [
+     4,
+     "8:01",
+     "shot-line",
+     "steel-2",
+     111
+    ],
+    [
+     4,
+     "12:03",
+     "steel-2",
+     "gen-3",
+     242
+    ],
+    [
+     4,
+     "15:04",
+     "gen-3",
+     "contest-east",
+     181
+    ],
+    [
+     4,
+     "15:38",
+     "contest-east",
+     "claim-west",
+     34
+    ],
+    [
+     4,
+     "25:01",
+     "claim-west",
+     "contest-west",
+     563
+    ],
+    [
+     4,
+     "25:30",
+     "contest-west",
+     "rail-coal",
+     29
+    ],
+    [
+     4,
+     "26:42",
+     "rail-coal",
+     "gen-4",
+     72
+    ],
+    [
+     4,
+     "45:02",
+     "gen-4",
+     "copper-2",
+     1100
+    ],
+    [
+     4,
+     "46:03",
+     "copper-2",
+     "assembler-3",
+     61
+    ],
+    [
+     4,
+     "50:02",
+     "assembler-3",
+     "claim-north",
+     239
+    ],
+    [
+     4,
+     "65:01",
+     "claim-north",
+     "contest-north",
+     899
+    ],
+    [
+     4,
+     "65:34",
+     "contest-north",
+     "hold",
+     33
+    ],
+    [
+     5,
+     "0:21",
+     "mine",
+     "craft",
+     21
+    ],
+    [
+     5,
+     "1:21",
+     "craft",
+     "coal-line",
+     60
+    ],
+    [
+     5,
+     "6:01",
+     "coal-line",
+     "gen-2",
+     280
+    ],
+    [
+     5,
+     "6:02",
+     "gen-2",
+     "copper-line",
+     1
+    ],
+    [
+     5,
+     "6:08",
+     "copper-line",
+     "shot-line",
+     6
+    ],
+    [
+     5,
+     "8:03",
+     "shot-line",
+     "steel-2",
+     115
+    ],
+    [
+     5,
+     "12:01",
+     "steel-2",
+     "gen-3",
+     238
+    ],
+    [
+     5,
+     "15:02",
+     "gen-3",
+     "contest-east",
+     181
+    ],
+    [
+     5,
+     "15:31",
+     "contest-east",
+     "claim-west",
+     29
+    ],
+    [
+     5,
+     "25:01",
+     "claim-west",
+     "contest-west",
+     570
+    ],
+    [
+     5,
+     "25:30",
+     "contest-west",
+     "rail-coal",
+     29
+    ],
+    [
+     5,
+     "26:37",
+     "rail-coal",
+     "gen-4",
+     67
+    ],
+    [
+     5,
+     "45:01",
+     "gen-4",
+     "copper-2",
+     1104
+    ],
+    [
+     5,
+     "46:02",
+     "copper-2",
+     "assembler-3",
+     61
+    ],
+    [
+     5,
+     "50:01",
+     "assembler-3",
+     "claim-north",
+     239
+    ],
+    [
+     5,
+     "65:01",
+     "claim-north",
+     "contest-north",
+     900
+    ],
+    [
+     5,
+     "65:29",
+     "contest-north",
+     "hold",
+     28
+    ]
+   ]
+  },
+  {
+   "title": "E-hour-save: RI-02's save / load baseline — the replay saved at 30:00 (save.ts makeSave → JSON → loadState), both copies replayed to 75:00",
+   "note": "hash = save.ts stateHash (FNV-1a of the canonical JSON without events, acc and speed); played = the bot's own run the log came from",
+   "header": [
+    "seed",
+    "saved at",
+    "hash at the save",
+    "hash after the load",
+    "same",
+    "end",
+    "hash: unbroken replay",
+    "hash: loaded copy",
+    "same",
+    "hash: played run",
+    "replay = played"
+   ],
+   "rows": [
+    [
+     3,
+     "30:00",
+     "f05fb490",
+     "f05fb490",
+     "yes",
+     "75:00",
+     "f401f450",
+     "f401f450",
+     "yes",
+     "f401f450",
+     "yes"
+    ],
+    [
+     4,
+     "30:00",
+     "14d2c5df",
+     "14d2c5df",
+     "yes",
+     "75:00",
+     "06aed13f",
+     "06aed13f",
+     "yes",
+     "06aed13f",
+     "yes"
+    ],
+    [
+     5,
+     "30:00",
+     "4e46aaf6",
+     "4e46aaf6",
+     "yes",
+     "75:00",
+     "defb21b1",
+     "defb21b1",
+     "yes",
+     "defb21b1",
+     "yes"
+    ]
+   ]
   }
  ],
  "checks": [
@@ -1150,6 +2027,31 @@
    "name": "seed 5: the logged hour replays to the same state (aim kept)",
    "pass": true,
    "detail": "same Held set, machine count and shots"
+  },
+  {
+   "name": "RI-02: the goal line is never wrong against the state (1 Hz through the rifle-off hour, seeds 3/4/5)",
+   "pass": true,
+   "detail": "0 of 13503 samples disagree with the oracle"
+  },
+  {
+   "name": "RI-02: the goal line changes at every §11 beat the state can derive",
+   "pass": true,
+   "detail": "42/42 beats changed the line"
+  },
+  {
+   "name": "RI-02: the goal line is stable — no id comes back once the state has moved past it",
+   "pass": true,
+   "detail": "seed 3: 17 changes, 1 under 5 s, 0 back; seed 4: 18 changes, 2 under 5 s, 0 back; seed 5: 17 changes, 1 under 5 s, 0 back"
+  },
+  {
+   "name": "RI-02: a save at 30:00 reloads to the same hash and replays to the unbroken run's hash at 75:00 (every seed)",
+   "pass": true,
+   "detail": "seed 3: load same, end same; seed 4: load same, end same; seed 5: load same, end same"
+  },
+  {
+   "name": "RI-02: the rifle-off log replays to the played run's state hash",
+   "pass": true,
+   "detail": "seed 3: same; seed 4: same; seed 5: same"
   },
   {
    "name": "D-P4-4: the chest's steel never at zero (worst run)",
@@ -1406,6 +2308,810 @@
    "heldReplayed": 4,
    "verdict": "held anyway"
   },
+  "goal": [
+   {
+    "seed": 3,
+    "samples": 4501,
+    "wrong": 0,
+    "problems": [],
+    "transitions": [
+     {
+      "t": 21,
+      "from": "mine",
+      "to": "craft",
+      "dwellS": 21
+     },
+     {
+      "t": 81,
+      "from": "craft",
+      "to": "coal-line",
+      "dwellS": 60
+     },
+     {
+      "t": 361,
+      "from": "coal-line",
+      "to": "gen-2",
+      "dwellS": 280
+     },
+     {
+      "t": 362,
+      "from": "gen-2",
+      "to": "copper-line",
+      "dwellS": 1
+     },
+     {
+      "t": 368,
+      "from": "copper-line",
+      "to": "shot-line",
+      "dwellS": 6
+     },
+     {
+      "t": 481,
+      "from": "shot-line",
+      "to": "steel-2",
+      "dwellS": 113
+     },
+     {
+      "t": 722,
+      "from": "steel-2",
+      "to": "gen-3",
+      "dwellS": 241
+     },
+     {
+      "t": 904,
+      "from": "gen-3",
+      "to": "contest-east",
+      "dwellS": 182
+     },
+     {
+      "t": 934,
+      "from": "contest-east",
+      "to": "claim-west",
+      "dwellS": 30
+     },
+     {
+      "t": 1501,
+      "from": "claim-west",
+      "to": "contest-west",
+      "dwellS": 567
+     },
+     {
+      "t": 1535,
+      "from": "contest-west",
+      "to": "rail-coal",
+      "dwellS": 34
+     },
+     {
+      "t": 1600,
+      "from": "rail-coal",
+      "to": "gen-4",
+      "dwellS": 65
+     },
+     {
+      "t": 2702,
+      "from": "gen-4",
+      "to": "copper-2",
+      "dwellS": 1102
+     },
+     {
+      "t": 2762,
+      "from": "copper-2",
+      "to": "assembler-3",
+      "dwellS": 60
+     },
+     {
+      "t": 3002,
+      "from": "assembler-3",
+      "to": "claim-north",
+      "dwellS": 240
+     },
+     {
+      "t": 3901,
+      "from": "claim-north",
+      "to": "contest-north",
+      "dwellS": 899
+     },
+     {
+      "t": 3929,
+      "from": "contest-north",
+      "to": "hold",
+      "dwellS": 28
+     }
+    ],
+    "flicker": [
+     {
+      "t": 362,
+      "from": "gen-2",
+      "to": "copper-line",
+      "dwellS": 1
+     }
+    ],
+    "revisits": [],
+    "shown": [
+     "mine",
+     "craft",
+     "coal-line",
+     "gen-2",
+     "copper-line",
+     "shot-line",
+     "steel-2",
+     "gen-3",
+     "contest-east",
+     "claim-west",
+     "contest-west",
+     "rail-coal",
+     "gen-4",
+     "copper-2",
+     "assembler-3",
+     "claim-north",
+     "contest-north",
+     "hold"
+    ],
+    "supportSeconds": {
+     "feed": 1
+    },
+    "beats": [
+     {
+      "row": "mine",
+      "min": 0,
+      "t": 21,
+      "before": "mine",
+      "after": "craft",
+      "changed": true
+     },
+     {
+      "row": "craft",
+      "min": 0,
+      "t": 81,
+      "before": "craft",
+      "after": "coal-line",
+      "changed": true
+     },
+     {
+      "row": "coal-excavator",
+      "min": 6,
+      "t": 361,
+      "before": "coal-line",
+      "after": "gen-2",
+      "changed": true
+     },
+     {
+      "row": "generator-2",
+      "min": 6,
+      "t": 362,
+      "before": "gen-2",
+      "after": "copper-line",
+      "changed": true
+     },
+     {
+      "row": "line-excavators",
+      "min": 6,
+      "t": 368,
+      "before": "copper-line",
+      "after": "shot-line",
+      "changed": true
+     },
+     {
+      "row": "shot-line",
+      "min": 8,
+      "t": 481,
+      "before": "shot-line",
+      "after": "steel-2",
+      "changed": true
+     },
+     {
+      "row": "steel-2",
+      "min": 12,
+      "t": 722,
+      "before": "steel-2",
+      "after": "gen-3",
+      "changed": true
+     },
+     {
+      "row": "generator-3",
+      "min": 15,
+      "t": 904,
+      "before": "gen-3",
+      "after": "contest-east",
+      "changed": true
+     },
+     {
+      "row": "claim-east",
+      "min": 15,
+      "t": 904,
+      "before": "gen-3",
+      "after": "contest-east",
+      "changed": true
+     },
+     {
+      "row": "claim-west",
+      "min": 25,
+      "t": 1501,
+      "before": "claim-west",
+      "after": "contest-west",
+      "changed": true
+     },
+     {
+      "row": "generator-4",
+      "min": 45,
+      "t": 2702,
+      "before": "gen-4",
+      "after": "copper-2",
+      "changed": true
+     },
+     {
+      "row": "copper-2",
+      "min": 46,
+      "t": 2762,
+      "before": "copper-2",
+      "after": "assembler-3",
+      "changed": true
+     },
+     {
+      "row": "assembler-3",
+      "min": 50,
+      "t": 3002,
+      "before": "assembler-3",
+      "after": "claim-north",
+      "changed": true
+     },
+     {
+      "row": "claim-north",
+      "min": 65,
+      "t": 3901,
+      "before": "claim-north",
+      "after": "contest-north",
+      "changed": true
+     }
+    ],
+    "saveAtT": 1800,
+    "hashAtSave": "f05fb490",
+    "hashAfterLoad": "f05fb490",
+    "endTick": 90000,
+    "hashEndUnbroken": "f401f450",
+    "hashEndLoaded": "f401f450",
+    "hashEndPlayed": "f401f450"
+   },
+   {
+    "seed": 4,
+    "samples": 4501,
+    "wrong": 0,
+    "problems": [],
+    "transitions": [
+     {
+      "t": 21,
+      "from": "mine",
+      "to": "craft",
+      "dwellS": 21
+     },
+     {
+      "t": 81,
+      "from": "craft",
+      "to": "coal-line",
+      "dwellS": 60
+     },
+     {
+      "t": 362,
+      "from": "coal-line",
+      "to": "gen-2",
+      "dwellS": 281
+     },
+     {
+      "t": 363,
+      "from": "gen-2",
+      "to": "steel-line",
+      "dwellS": 1
+     },
+     {
+      "t": 365,
+      "from": "steel-line",
+      "to": "copper-line",
+      "dwellS": 2
+     },
+     {
+      "t": 370,
+      "from": "copper-line",
+      "to": "shot-line",
+      "dwellS": 5
+     },
+     {
+      "t": 481,
+      "from": "shot-line",
+      "to": "steel-2",
+      "dwellS": 111
+     },
+     {
+      "t": 723,
+      "from": "steel-2",
+      "to": "gen-3",
+      "dwellS": 242
+     },
+     {
+      "t": 904,
+      "from": "gen-3",
+      "to": "contest-east",
+      "dwellS": 181
+     },
+     {
+      "t": 938,
+      "from": "contest-east",
+      "to": "claim-west",
+      "dwellS": 34
+     },
+     {
+      "t": 1501,
+      "from": "claim-west",
+      "to": "contest-west",
+      "dwellS": 563
+     },
+     {
+      "t": 1530,
+      "from": "contest-west",
+      "to": "rail-coal",
+      "dwellS": 29
+     },
+     {
+      "t": 1602,
+      "from": "rail-coal",
+      "to": "gen-4",
+      "dwellS": 72
+     },
+     {
+      "t": 2702,
+      "from": "gen-4",
+      "to": "copper-2",
+      "dwellS": 1100
+     },
+     {
+      "t": 2763,
+      "from": "copper-2",
+      "to": "assembler-3",
+      "dwellS": 61
+     },
+     {
+      "t": 3002,
+      "from": "assembler-3",
+      "to": "claim-north",
+      "dwellS": 239
+     },
+     {
+      "t": 3901,
+      "from": "claim-north",
+      "to": "contest-north",
+      "dwellS": 899
+     },
+     {
+      "t": 3934,
+      "from": "contest-north",
+      "to": "hold",
+      "dwellS": 33
+     }
+    ],
+    "flicker": [
+     {
+      "t": 363,
+      "from": "gen-2",
+      "to": "steel-line",
+      "dwellS": 1
+     },
+     {
+      "t": 365,
+      "from": "steel-line",
+      "to": "copper-line",
+      "dwellS": 2
+     }
+    ],
+    "revisits": [],
+    "shown": [
+     "mine",
+     "craft",
+     "coal-line",
+     "gen-2",
+     "steel-line",
+     "copper-line",
+     "shot-line",
+     "steel-2",
+     "gen-3",
+     "contest-east",
+     "claim-west",
+     "contest-west",
+     "rail-coal",
+     "gen-4",
+     "copper-2",
+     "assembler-3",
+     "claim-north",
+     "contest-north",
+     "hold"
+    ],
+    "supportSeconds": {
+     "feed": 26
+    },
+    "beats": [
+     {
+      "row": "mine",
+      "min": 0,
+      "t": 21,
+      "before": "mine",
+      "after": "craft",
+      "changed": true
+     },
+     {
+      "row": "craft",
+      "min": 0,
+      "t": 81,
+      "before": "craft",
+      "after": "coal-line",
+      "changed": true
+     },
+     {
+      "row": "coal-excavator",
+      "min": 6,
+      "t": 362,
+      "before": "coal-line",
+      "after": "gen-2",
+      "changed": true
+     },
+     {
+      "row": "generator-2",
+      "min": 6,
+      "t": 363,
+      "before": "gen-2",
+      "after": "steel-line",
+      "changed": true
+     },
+     {
+      "row": "line-excavators",
+      "min": 6,
+      "t": 370,
+      "before": "copper-line",
+      "after": "shot-line",
+      "changed": true
+     },
+     {
+      "row": "shot-line",
+      "min": 8,
+      "t": 481,
+      "before": "shot-line",
+      "after": "steel-2",
+      "changed": true
+     },
+     {
+      "row": "steel-2",
+      "min": 12,
+      "t": 723,
+      "before": "steel-2",
+      "after": "gen-3",
+      "changed": true
+     },
+     {
+      "row": "generator-3",
+      "min": 15,
+      "t": 904,
+      "before": "gen-3",
+      "after": "contest-east",
+      "changed": true
+     },
+     {
+      "row": "claim-east",
+      "min": 15,
+      "t": 904,
+      "before": "gen-3",
+      "after": "contest-east",
+      "changed": true
+     },
+     {
+      "row": "claim-west",
+      "min": 25,
+      "t": 1501,
+      "before": "claim-west",
+      "after": "contest-west",
+      "changed": true
+     },
+     {
+      "row": "generator-4",
+      "min": 45,
+      "t": 2702,
+      "before": "gen-4",
+      "after": "copper-2",
+      "changed": true
+     },
+     {
+      "row": "copper-2",
+      "min": 46,
+      "t": 2763,
+      "before": "copper-2",
+      "after": "assembler-3",
+      "changed": true
+     },
+     {
+      "row": "assembler-3",
+      "min": 50,
+      "t": 3002,
+      "before": "assembler-3",
+      "after": "claim-north",
+      "changed": true
+     },
+     {
+      "row": "claim-north",
+      "min": 65,
+      "t": 3901,
+      "before": "claim-north",
+      "after": "contest-north",
+      "changed": true
+     }
+    ],
+    "saveAtT": 1800,
+    "hashAtSave": "14d2c5df",
+    "hashAfterLoad": "14d2c5df",
+    "endTick": 90000,
+    "hashEndUnbroken": "06aed13f",
+    "hashEndLoaded": "06aed13f",
+    "hashEndPlayed": "06aed13f"
+   },
+   {
+    "seed": 5,
+    "samples": 4501,
+    "wrong": 0,
+    "problems": [],
+    "transitions": [
+     {
+      "t": 21,
+      "from": "mine",
+      "to": "craft",
+      "dwellS": 21
+     },
+     {
+      "t": 81,
+      "from": "craft",
+      "to": "coal-line",
+      "dwellS": 60
+     },
+     {
+      "t": 361,
+      "from": "coal-line",
+      "to": "gen-2",
+      "dwellS": 280
+     },
+     {
+      "t": 362,
+      "from": "gen-2",
+      "to": "copper-line",
+      "dwellS": 1
+     },
+     {
+      "t": 368,
+      "from": "copper-line",
+      "to": "shot-line",
+      "dwellS": 6
+     },
+     {
+      "t": 483,
+      "from": "shot-line",
+      "to": "steel-2",
+      "dwellS": 115
+     },
+     {
+      "t": 721,
+      "from": "steel-2",
+      "to": "gen-3",
+      "dwellS": 238
+     },
+     {
+      "t": 902,
+      "from": "gen-3",
+      "to": "contest-east",
+      "dwellS": 181
+     },
+     {
+      "t": 931,
+      "from": "contest-east",
+      "to": "claim-west",
+      "dwellS": 29
+     },
+     {
+      "t": 1501,
+      "from": "claim-west",
+      "to": "contest-west",
+      "dwellS": 570
+     },
+     {
+      "t": 1530,
+      "from": "contest-west",
+      "to": "rail-coal",
+      "dwellS": 29
+     },
+     {
+      "t": 1597,
+      "from": "rail-coal",
+      "to": "gen-4",
+      "dwellS": 67
+     },
+     {
+      "t": 2701,
+      "from": "gen-4",
+      "to": "copper-2",
+      "dwellS": 1104
+     },
+     {
+      "t": 2762,
+      "from": "copper-2",
+      "to": "assembler-3",
+      "dwellS": 61
+     },
+     {
+      "t": 3001,
+      "from": "assembler-3",
+      "to": "claim-north",
+      "dwellS": 239
+     },
+     {
+      "t": 3901,
+      "from": "claim-north",
+      "to": "contest-north",
+      "dwellS": 900
+     },
+     {
+      "t": 3929,
+      "from": "contest-north",
+      "to": "hold",
+      "dwellS": 28
+     }
+    ],
+    "flicker": [
+     {
+      "t": 362,
+      "from": "gen-2",
+      "to": "copper-line",
+      "dwellS": 1
+     }
+    ],
+    "revisits": [],
+    "shown": [
+     "mine",
+     "craft",
+     "coal-line",
+     "gen-2",
+     "copper-line",
+     "shot-line",
+     "steel-2",
+     "gen-3",
+     "contest-east",
+     "claim-west",
+     "contest-west",
+     "rail-coal",
+     "gen-4",
+     "copper-2",
+     "assembler-3",
+     "claim-north",
+     "contest-north",
+     "hold"
+    ],
+    "supportSeconds": {
+     "feed": 36
+    },
+    "beats": [
+     {
+      "row": "mine",
+      "min": 0,
+      "t": 21,
+      "before": "mine",
+      "after": "craft",
+      "changed": true
+     },
+     {
+      "row": "craft",
+      "min": 0,
+      "t": 81,
+      "before": "craft",
+      "after": "coal-line",
+      "changed": true
+     },
+     {
+      "row": "coal-excavator",
+      "min": 6,
+      "t": 361,
+      "before": "coal-line",
+      "after": "gen-2",
+      "changed": true
+     },
+     {
+      "row": "generator-2",
+      "min": 6,
+      "t": 362,
+      "before": "gen-2",
+      "after": "copper-line",
+      "changed": true
+     },
+     {
+      "row": "line-excavators",
+      "min": 6,
+      "t": 368,
+      "before": "copper-line",
+      "after": "shot-line",
+      "changed": true
+     },
+     {
+      "row": "shot-line",
+      "min": 8,
+      "t": 483,
+      "before": "shot-line",
+      "after": "steel-2",
+      "changed": true
+     },
+     {
+      "row": "steel-2",
+      "min": 12,
+      "t": 721,
+      "before": "steel-2",
+      "after": "gen-3",
+      "changed": true
+     },
+     {
+      "row": "generator-3",
+      "min": 15,
+      "t": 902,
+      "before": "gen-3",
+      "after": "contest-east",
+      "changed": true
+     },
+     {
+      "row": "claim-east",
+      "min": 15,
+      "t": 902,
+      "before": "gen-3",
+      "after": "contest-east",
+      "changed": true
+     },
+     {
+      "row": "claim-west",
+      "min": 25,
+      "t": 1501,
+      "before": "claim-west",
+      "after": "contest-west",
+      "changed": true
+     },
+     {
+      "row": "generator-4",
+      "min": 45,
+      "t": 2701,
+      "before": "gen-4",
+      "after": "copper-2",
+      "changed": true
+     },
+     {
+      "row": "copper-2",
+      "min": 46,
+      "t": 2762,
+      "before": "copper-2",
+      "after": "assembler-3",
+      "changed": true
+     },
+     {
+      "row": "assembler-3",
+      "min": 50,
+      "t": 3001,
+      "before": "assembler-3",
+      "after": "claim-north",
+      "changed": true
+     },
+     {
+      "row": "claim-north",
+      "min": 65,
+      "t": 3901,
+      "before": "claim-north",
+      "after": "contest-north",
+      "changed": true
+     }
+    ],
+    "saveAtT": 1800,
+    "hashAtSave": "4e46aaf6",
+    "hashAfterLoad": "4e46aaf6",
+    "endTick": 90000,
+    "hashEndUnbroken": "defb21b1",
+    "hashEndLoaded": "defb21b1",
+    "hashEndPlayed": "defb21b1"
+   }
+  ],
   "reports": {
    "3/no-rifle": {
     "marks": {

@@ -221,3 +221,156 @@ recommendation; T12b measures the hand-feed share per variant. The implementatio
 defaults above are reversible by name.
 
 **Next.** RI-02, ready; T12b and T12c are runnable behind it in list order.
+
+## RI-02 — Opening guidance and essential presentation (2026-09-05)
+
+**Authorisation.** The plan's RI-02 row and `PROGRESS.md`'s, executed on "Whole plan"
+(D-RI-1, recorded at RI-00). RI-01 was its only blocker. Constitution rule 8 is kept: the
+goal is one HUD line read off the state — no list, no screens, no quest state. Every
+default this task chose is named below as an implementation default (D-RI-6): reversible,
+not a historical approval, and no earlier gate is credited with any of them.
+
+**What the repository was (inspected before any edit).** HEAD `9a47430` on `ri-pass-1`
+(RI-01). The plan's line "verify existing support before adding it" was applied first.
+*Save / load*: a path existed — the panel's "Save snapshot" button downloaded the raw
+state as JSON and `?state=<url>` loaded a JSON file (a raw state or a telemetry export's
+`finalState`) into a scenario-B session with no command log, so a loaded session could
+not replay; no hash, no validation, no slot; the turret cooldown lived in a `WeakMap`
+outside the state, so a load reset every turret to ready. `PROGRAMME_STATE.md`'s "No
+save / load exists (checked 2026-09-05)" and §28.10's "no save path exists on 2026-09-05"
+were both wrong and are corrected in this commit with a line saying so. *Guidance*: no
+goal line (T12a never started); the §11 beats' toasts existed (`main.ts` `describe`) and
+named blocks by coordinates. *Presentation*: the engineer, the hotbar line, the ghost
+with its reason ("walk closer", the price, the refusal), the "No <kind> here: <reason>"
+and "No pick-up: <reason>" toasts, the hand-feed and pick-up toasts, the turret flash
+and the E toast (`describeMachine`) existed; no running / starved / blocked word; blocks
+were coordinates everywhere ("block (421,634)"), always shown; one fixed layout (panel
+420 px, no breakpoints). 124 tests, every check green (RI-01, the same day).
+
+**Built (code, `packages/sim`, `packages/harness`, `packages/game`).**
+
+- **The current-goal line** (D-GB-2 (a), plan §11.2, rule 8's form): `goal.ts`
+  `currentGoal(st)` → `{ goal, support }`, a pure function of the state — the first §11
+  row the state has not met, in schedule order (`GOAL_ORDER`: hq-fell, front, mine,
+  craft, coal-line, gen-2, steel-line, copper-line, shot-line, steel-2, gen-3, then
+  claim / contest / retake for east, west and north with rail-coal, gen-4, copper-2 and
+  assembler-3 between them, then hold), each with a `why` carrying the state's numbers
+  (steel in the pockets, coal minutes left, the claim's price against the chest, the
+  magazines in the chest against the front's draw). A second, amber **support** line
+  names an immediate shortage — down, every Generator dry, a street's kit empty, a
+  hopper to hand-feed, a brownout — under the goal without replacing it (§11.2). Drawn
+  as `#goal` over the canvas (`index.html`, `style.css`), refreshed once a sim second
+  (`panel.ts` `updateGoal`); the world HUD's top corners sit under it (`view.ts`
+  `hudInset`). No completion state exists: a save reloads the state and the line follows.
+- **Machine states**: `goal.ts` `machineStatus(st, m)` → running / starved / blocked /
+  idle / off with a reason (no power, no rubble in reach, output full, waiting for
+  inputs, out of coal, no target, …). The world view draws it as a shape on the machine
+  (`worldScene.ts` `drawStatusMark`: ▶ running, ○ starved, ■ blocked, – idle, ✕ off — a
+  shape and a word, never colour alone), in the hover tooltip and in the E toast.
+- **Stable names** (`names.ts`): the HQ is "HQ"; the rail yard "<bearing> rail yard";
+  every other block its compass bearing from the HQ plus its district word, with the
+  hop count from two hops out ("east residential", "north-west civic 2"); unique per
+  city (" A" / " B" on a collision) and state-free — a claim, a fall or digging never
+  renames. `blockLabel(st, i, debug)` adds the coordinates only with the debug toggle
+  (` \` `, `debugView.coords`); `edgeName` names the ring's rows; `streetName` gives
+  "HQ's east street". Every toast, tooltip, ring row and facility row uses them.
+- **The save / load baseline** (`save.ts`): `stateHash` = FNV-1a over the canonical JSON
+  of the state minus the transients (`events`, `acc`, `speed`); `makeSave` → a versioned
+  `SaveFile` (state, command log, `logComplete`, params, hash); `loadState` validates and
+  deep-copies (a pre-RI-02 raw state and a telemetry export still load). In the game:
+  **Ctrl+S / Save** writes slot 1 to `localStorage` (`relight.save.1`) and toasts the
+  hash; **Ctrl+O / Load** confirms and reloads from it (`?state=local:1`); "Download
+  save" (was "Save snapshot") downloads the SaveFile; a save carries the session's
+  command log, so a loaded session replays (`replaySession` refuses only a log-less
+  scenario-B load). The turret cooldown moved into the state (`Machine.cool`) so a save
+  mid-cooldown reloads and replays identically — this task's one sim-state change, and
+  every number RI-01 measured is unchanged (below).
+- **Viewport sizes**: `style.css` breakpoints at 1200 px (narrower panel, smaller stats)
+  and 900 px (map over panel); the goal box centred over the canvas.
+- **The harness** (`goalcheck.ts`, `ehour.ts`): each seed's rifle-off log replayed from a
+  fresh city with `currentGoal` sampled at 1 Hz against an oracle independent of the
+  text building (one "still unmet" predicate per id), every id transition recorded, each
+  §11 beat derived from the state (not the bot's marks), and the save round trip at
+  30:00 (hash → `makeSave` → JSON → `loadState` → both copies replay to 75:00). Five new
+  `E-hour` checks and three sections (`E-hour-goal`, `-beats`, `-changes`); four tests
+  (`goal.test.ts`: names, the goal through 20 minutes, `machineStatus`, the save).
+- **Dev hooks** (`window.__relight`): `stateHash`, `goal`, `save`, `loadUrl`,
+  `debugCoords`, `replayHash`, `saveFile` — the browser check below drives them.
+
+**Implementation defaults (reversible, D-RI-6).** The goal order (§11's schedule, each
+row skipped once met; a claim's contest and retake forms; the five support ids); the
+naming rule (bearing + district + hop count; "HQ"; "<bearing> rail yard"); the hash's
+three transients; one local slot plus the download; the five status words and their
+shapes; `patchExcavators`'s geometric rule (an Excavator counts for an HQ patch when its
+reach covers a patch tile — counting by what it digs now reads 0 once the patch is out,
+so the goal would come back); the turret cooldown as state; the 1200 / 900 px
+breakpoints; the goal box sampled once a sim second.
+
+**Measured (`E-hour`, 75 minutes, seeds 3 / 4 / 5; `docs/EXPERIMENTS.md` E-hour, 18/18
+checks, 66.0 s; the RI-02 sections read the rifle-off runs).** *Never wrong*: 0 of
+13,503 samples (4,501 a seed) disagree with the oracle. *Every beat*: 42/42 state-derived
+§11 beats change the line — mine 0:21, craft 1:21, coal-excavator 6:01–6:02, generator-2
+6:02–6:03, line-excavators 6:08–6:10, shot-line 8:01–8:03, steel-2 12:01–12:03,
+generator-3 and claim-east in the same second at 15:02–15:04 (one change), claim-west
+25:01, generator-4 45:01–45:02, copper-2 46:02–46:03, assembler-3 50:01–50:02,
+claim-north 65:01. *Stable*: 17 / 18 / 17 changes a seed and no id comes back; the
+sequence is mine → craft → coal-line → gen-2 → copper-line → shot-line → steel-2 → gen-3
+→ contest-east → claim-west → contest-west → rail-coal → gen-4 → copper-2 → assembler-3
+→ claim-north → contest-north → hold (seed 4 shows steel-line for 2 s between gen-2 and
+copper-line). Two lines are up under 5 s on every seed: gen-2 for 1 s, because the bot
+places the coal Excavator and Generator 2 a second apart (a real one-second state,
+reported and not smoothed), and copper-line for 5–6 s. *Support*: "feed" (a hopper to
+hand-feed) shows for 1 / 26 / 36 s of the hour; nothing else fires. *Save*: the state at
+30:00 reloads to the same hash and replays to the unbroken run's hash at 75:00 on every
+seed; the whole rifle-off log replays to the played run's hash on every seed. Every
+RI-01 check and number is unchanged (rail coal 47.9 min ahead, steel's minimum 23,
+ledger 0.000, 6/6 end states); the regenerated record differs from RI-01's only in the
+stamp, the wall clock and the check count.
+
+**Browser check (Playwright over `vite preview` on port 4173, `?view=world&seed=3`,
+headless Chromium with swiftshader, 2026-09-05; the script and screenshots are in the
+session scratchpad, not the repo).** At 1280×720 and 1920×1080: the goal box shows
+"Mine steel from the HQ patch by hand: 0 / 20 (pockets 0 steel)" with its reason ("10
+hand-crafted magazines take 20 steel + 10 Cu; 20 magazines in the chest; the front drew
+0.0 a minute last minute"); the page never scrolls sideways (canvas 824×696 and
+1464×1056, panel 420 wide). After 90 sim seconds Ctrl+S's hash equals the live hash; the
+reload lands as scenario B with the log complete, paused, at the same hash, toasting
+"Save loaded at 0:01:30 (state …) — paused"; the replay hook reports the replayed and the
+played hash equal at both sizes. (The two sessions' hashes differ from each other because
+each ran live at 1× for a different fraction of a second before the check; every
+comparison is within one session.) The debug toggle shows "west rail yard (387,629) ·
+Dark · rot 24 %"; off, the coordinates go. Two findings: the goal box first covered the
+canvas's own key strip and territory text (both pinned at 8 px), fixed by the HUD inset
+and re-shot; and the preview 404s `/favicon.ico` (no icon is shipped — harmless).
+
+**Verified (commands actually run, 2026-09-05, after the code and before the records).**
+
+| command | result |
+|---|---|
+| `npm test` | 128 pass, 0 fail (124 + `goal.test.ts`'s 4) |
+| `npm run typecheck` | red once (`goal.test.ts` passed a `GoalId \| SupportId` to `GOAL_ORDER.indexOf`; tsx does not typecheck, so the tests had passed), fixed, then green including the Vite game build |
+| `npm run lint` | red once (`threat.ts` kept an unused `Machine` import after the cooldown moved), fixed, then green |
+| `npm run docsync:check` | green — both messages (re-run after the record edits, closing table) |
+| `npm run experiments` | 13 experiments, 267 s, **0 failing checks**; `E-hour` 18/18 (13 + RI-02's 5), 66.0 s; the rest as at RI-01 |
+| `npm run freshness:check` | green — every generated file made on an ancestor of HEAD with the current config (the experiments are stamped `9a47430`, RI-01's commit, because the run preceded this commit) |
+| `npm run snapshot:check` | green, unchanged (the compact scenario has no flow layer, so the cooldown field never appears) |
+| `npm run build --workspace=@relight/game` | green; `vite preview --port 4173` drove the browser check above |
+
+**Fixtures, expected results and generated files.** `packages/sim/fixtures/city{3,4,5}.json`
+and `b-compact-seed3.json` unchanged. No expected result altered. `docs/EXPERIMENTS.md`
+and `docs/experiments/*.json` regenerated by the run (the RI-01 numbers byte-identical;
+three RI-02 sections and five checks added).
+
+**Not built, and where it goes.** Basic sound and volume / mute controls (plan §11.2) —
+not in the RI-02 row, not built; `DEFERRED.md`. Enemy silhouettes and warnings before
+consequences (RI-04); commissioning, restoration and enclosure effects tied to real
+state (RI-03 / RI-05 / RI-06); the street / ruin treatment and facility silhouettes
+(Phase 12's art pass). Whether a person follows the line is T19's observation, so D-GB-2
+stays provisional.
+
+**Not decided by this task (for the human, no blocker).** D-GB-2 (a) is built and stays
+provisional until signed or reversed after T19; the naming rule, the goal order and the
+one-slot save are reversible by name.
+
+**Next.** RI-03, ready (blocked by RI-01, done; RI-02 before it in list order, done);
+T12b and T12c runnable behind it.

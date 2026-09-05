@@ -6,12 +6,16 @@
  *  run's command log replayed with the rifle off; minutes walked and chest trips vs 15 %), and RI-01's rows: north
  *  claimed at 65:00 and Held at 75:00 (D-HOUR-3), the rail yard's coal at the Depot ≥ 10 min before the chest's coal
  *  is gone (D-P4-12, M6's check (a)), the crawlers counted at the first red pip (M6's (b)), and the resource
- *  conservation check (ledger.ts) on every run. The checks are the bars the prompt names; the findings are the report's. */
+ *  conservation check (ledger.ts) on every run. RI-02 adds the current-goal line's rows on the rifle-off runs
+ *  (goalcheck.ts): the line sampled at 1 Hz through the logged hour against the state it claims, its transitions
+ *  and §11's beats, and the save / load baseline (a save at 30:00 reloads to the same hash and replays to the
+ *  unbroken run's hash at the end). The checks are the bars the prompt names; the findings are the report's. */
 import { Experiment, ExperimentResult, Section, Check, within, isTrue } from '../util';
 import {
   DEFAULT_CONFIG, protoCalibrated, createState, citySpec, ensureFlow, SimState, LoggedCommand,
-  createHourBot, runHour, hourReport, replay, replayVerdict, mmss, HourReport, HOUR_CLAIM_AT, HOUR_END, HOUR_S, conservation, Ledger,
+  createHourBot, runHour, hourReport, replay, replayVerdict, mmss, HourReport, HOUR_CLAIM_AT, HOUR_END, HOUR_S, conservation, Ledger, TILE_TPS,
 } from '@relight/sim';
+import { goalReplay, GoalReplay } from '../goalcheck';
 
 /** The session's city (session.ts createSession with the flow layer and §14 power on, as the world view plays it). */
 export function hourCity(seed: number): SimState {
@@ -29,6 +33,8 @@ const MARKS = ['mine-done', 'craft-done', 'first-hand-feed', 'first-crawler', 'f
 /** North's minute (D-P4-10 (a), D-HOUR-3: north at constants.HOUR's 65:00, inside the 75-minute hour). */
 const NORTH_AT = HOUR_CLAIM_AT.north;
 const MIN = HOUR_S / 60;
+/** RI-02: the save / load baseline's save point (minute 30: east and west claimed, the rail line not yet built). */
+const GOAL_SAVE_AT_S = 30 * 60;
 const chest = (x: { steel: number; copper: number; coal: number; magazines: number } | undefined) => x ? `${x.steel}/${x.copper}/${x.coal}/${x.magazines}` : '-';
 const n1 = (x: number) => x.toFixed(1);
 
@@ -43,6 +49,7 @@ export const EHOUR: Experiment = {
     const stock: (string | number)[][] = [], coalRows: (string | number)[][] = [], northRows: (string | number)[][] = [], ledgerRows: (string | number)[][] = [];
     const steelMin: number[] = [], fell: number[] = [], brownout: number[] = [], endOk: boolean[] = [], northOk: boolean[] = [], railMargins: number[] = [];
     const ledgers: Record<string, Ledger> = {}, conserved: boolean[] = [];
+    const goalRuns: GoalReplay[] = [];
     for (const seed of seeds) {
       for (const rifle of [false, true]) {
         const st = hourCity(seed), bot = createHourBot(rifle, 'chest', NORTH_AT), log: LoggedCommand[] = [];
@@ -69,6 +76,11 @@ export const EHOUR: Experiment = {
         const col = (k: keyof Ledger['held']) => `${n1(L.opening[k])} + ${n1(L.sources[k])} → ${n1(L.held[k])} + ${n1(L.sinks[k])}`;
         ledgerRows.push([seed, on, L.ok ? 'yes' : 'NO', st.stats.roundsLost ?? 0, col('steel'), col('copper'), col('stone'), col('coal'), col('magazine'), col('wire'),
                          r.handFedMags, r.handFedCoal, L.problems.join('; ') || '-']);
+        if (!rifle) {
+          // RI-02: the goal line at 1 Hz through the logged hour against the state, and the 30:00 save round trip
+          ctx.log(`E-hour seed ${seed}: RI-02 goal line and save / load replay`);
+          goalRuns.push(goalReplay(seed, () => hourCity(seed), log, st.flow!.tick, GOAL_SAVE_AT_S * TILE_TPS, st));
+        }
         if (rifle) {
           // Gate B's row: the rifle run replayed with its aim commands dropped
           const re = hourCity(seed);
@@ -133,6 +145,37 @@ export const EHOUR: Experiment = {
     sections.push({ title: 'E-hour-ledger: resource conservation (RI-01, ledger.ts) — opening + sources → held + sinks, by item, at the run\'s end',
       note: 'sources: rubble units mined and recipe output; sinks: recipe inputs, machine and claim prices, repairs, coal burned, rounds fired or lost to a full buffer; transfers (belts, the chest, hand-feeds, the ring\'s draw) are on neither side; the hand-fed totals are transfers the Depot\'s buffer and coal explain (D-P4-11)',
       header: ['seed', 'rifle', 'conserved', 'rounds lost', 'steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'hand-fed magazines', 'hand-fed coal', 'unexplained'], rows: ledgerRows });
+    // RI-02: the goal line's rows (rifle off)
+    const goalRows: (string | number)[][] = [], beatRows: (string | number)[][] = [], saveRows: (string | number)[][] = [], transRows: (string | number)[][] = [];
+    for (const g of goalRuns) {
+      const sup = Object.entries(g.supportSeconds).map(([k, v]) => `${k} ${v} s`).join(', ') || 'none';
+      goalRows.push([g.seed, g.samples, g.wrong, g.shown.join(' → '), g.transitions.length, g.flicker.length, g.revisits.join(', ') || '-', sup, g.problems.join(' | ') || '-']);
+      for (const b of g.beats) beatRows.push([g.seed, b.row, b.min, mmss(b.t), b.before, b.after, b.changed ? 'yes' : 'NO']);
+      for (const tr of g.transitions) transRows.push([g.seed, mmss(tr.t), tr.from, tr.to, tr.dwellS]);
+      saveRows.push([g.seed, mmss(g.saveAtT), g.hashAtSave, g.hashAfterLoad, g.hashAtSave === g.hashAfterLoad ? 'yes' : 'NO', mmss(g.endTick / TILE_TPS), g.hashEndUnbroken, g.hashEndLoaded,
+                     g.hashEndUnbroken === g.hashEndLoaded ? 'yes' : 'NO', g.hashEndPlayed, g.hashEndUnbroken === g.hashEndPlayed ? 'yes' : 'NO']);
+    }
+    sections.push({ title: 'E-hour-goal: RI-02 — the current-goal line (goal.ts currentGoal) sampled every second of the rifle-off log, checked against the state it claims (goalcheck.ts)',
+      note: 'wrong = samples whose goal or support id differs from the oracle\'s (the first unmet §11 row; the first live shortage); under 5 s = ids up under five seconds (the bot doing two things a second apart); came back = an id shown again after leaving; support = seconds each amber line was up',
+      header: ['seed', 'samples', 'wrong', 'goal ids shown, in order', 'changes', 'under 5 s', 'came back', 'support line', 'problems'], rows: goalRows });
+    sections.push({ title: 'E-hour-goal-beats: every §11 row with a state-derived beat (constants.HOUR) — the goal line before and at the beat',
+      note: 'the beat is the first second the state meets the row (hand-mined 20, hand-crafted 10, a machine standing, a block leaving Dark), not the bot\'s mark; two rows met in the same second share a before/after pair',
+      header: ['seed', '§11 row', '§11 min', 'beat at', 'goal before', 'goal at the beat', 'changed'], rows: beatRows });
+    sections.push({ title: 'E-hour-goal-changes: every change of the goal id through the rifle-off hour, with the seconds the previous id was up',
+      header: ['seed', 'at', 'from', 'to', 'previous id up (s)'], rows: transRows });
+    sections.push({ title: `E-hour-save: RI-02's save / load baseline — the replay saved at ${GOAL_SAVE_AT_S / 60}:00 (save.ts makeSave → JSON → loadState), both copies replayed to ${MIN}:00`,
+      note: 'hash = save.ts stateHash (FNV-1a of the canonical JSON without events, acc and speed); played = the bot\'s own run the log came from',
+      header: ['seed', 'saved at', 'hash at the save', 'hash after the load', 'same', 'end', 'hash: unbroken replay', 'hash: loaded copy', 'same', 'hash: played run', 'replay = played'], rows: saveRows });
+    data.goal = goalRuns;
+    const beatsAll = goalRuns.flatMap(g => g.beats), wrongAll = goalRuns.reduce((a, g) => a + g.wrong, 0), samplesAll = goalRuns.reduce((a, g) => a + g.samples, 0);
+    checks.push(isTrue(`RI-02: the goal line is never wrong against the state (1 Hz through the rifle-off hour, seeds ${seeds.join('/')})`, wrongAll === 0, `${wrongAll} of ${samplesAll} samples disagree with the oracle`));
+    checks.push(isTrue('RI-02: the goal line changes at every §11 beat the state can derive', beatsAll.every(b => b.changed), `${beatsAll.filter(b => b.changed).length}/${beatsAll.length} beats changed the line`));
+    // stable = no id comes back once left (a 1 s dwell is the bot doing two things a second apart, not the line moving on its own)
+    checks.push(isTrue('RI-02: the goal line is stable — no id comes back once the state has moved past it', goalRuns.every(g => g.revisits.length === 0),
+                       goalRuns.map(g => `seed ${g.seed}: ${g.transitions.length} changes, ${g.flicker.length} under 5 s, ${g.revisits.length} back${g.revisits.length ? ` (${g.revisits.join(', ')})` : ''}`).join('; ')));
+    checks.push(isTrue(`RI-02: a save at ${GOAL_SAVE_AT_S / 60}:00 reloads to the same hash and replays to the unbroken run's hash at ${MIN}:00 (every seed)`,
+                       goalRuns.every(g => g.hashAtSave === g.hashAfterLoad && g.hashEndUnbroken === g.hashEndLoaded), goalRuns.map(g => `seed ${g.seed}: ${g.hashAtSave === g.hashAfterLoad ? 'load same' : 'LOAD DIFFERS'}, ${g.hashEndUnbroken === g.hashEndLoaded ? 'end same' : 'END DIFFERS'}`).join('; ')));
+    checks.push(isTrue('RI-02: the rifle-off log replays to the played run\'s state hash', goalRuns.every(g => g.hashEndUnbroken === g.hashEndPlayed), goalRuns.map(g => `seed ${g.seed}: ${g.hashEndUnbroken === g.hashEndPlayed ? 'same' : 'DIFFERS'}`).join('; ')));
     data.reports = reports;
     data.ledgers = ledgers;
     data.north = { held: northOk.filter(Boolean).length, of: northOk.length, northAt: NORTH_AT };
