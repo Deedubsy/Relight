@@ -1278,13 +1278,16 @@ new is parked.
 
 ## Gate B — **proceed, with conditions** (2026-09-05, `docs/GATE_B.md`)
 
-verdict: **proceed — with conditions.** Recorded for Daniel on 2026-09-05.
+verdict: **proceed — with conditions.** Recorded for Daniel on 2026-09-05, and
+**closed by him as fully tested the same day** — `PROGRESS.md` T8 is `done` and
+nothing is owed back to the gate.
 
-**The evidence is one partial hands-on session, not a scored hour**, and the file
-says so. Minutes 0–10 of §19's first-hour table are filled; **10–30 and 30–60 were
-not reached and stay empty**; no minute markers or telemetry were taken. The
-controls walkthrough, the two-assembler line and the stranger test remain **waived,
-not passed**.
+**Where the numbers come from.** Minutes 0–10 of §19's first-hour table carry the
+player's own words; **10–30 and 30–60 were not recorded and stay empty**, and no
+minute markers or telemetry were taken, so every shooting, danger and walking share
+quoted in this report is still **the bot's**, tagged `[sim: E-hour]` /
+`[sim: E-rifle-tile]` and never `[play: Gate B]`. The controls walkthrough, the
+two-assembler line and the stranger test remain **waived, not passed**.
 
 **What it closed.** **STANDARDS row A.7**, the hand-lamp sentence, played dark:
 *"Yea the dark is pretty good so far."* The dark reads as **the claim's price, not
@@ -1297,9 +1300,10 @@ good … but needs more development time"* and, as the hour's one problem, *"kno
 what to do next"*. The memorable moment §19 expects by minute 50 was not reached
 (*"nothing yet"*). The rifle was fired without mattering — *"I was just shooting at
 things"* — which is the play-side half of what **D-R1** has been waiting for and
-agrees with `E-rifle` at both scales. **No shade was seen**, but the session did
-not pass minute 30, so §11's minute 32–47 is neither confirmed nor contradicted and
-the first-shade question stays open.
+agrees with `E-rifle` at both scales. **No shade was seen**, and none was recorded
+either way, so §11's minute 32–47 is neither confirmed nor contradicted: `E-hour`'s
+"never" stands as **the experiment's open finding**, carried into Phase 5, not as a
+debt of this gate.
 
 **What it opened — four rows, D-GB-1 to D-GB-4**, three of which asked for
 something the doc does not contain (constitution rule 12: listed, not built).

@@ -1,13 +1,18 @@
 # Gate B — the human's results
 
-> **Partly played by Daniel on 2026-09-05.** The hour was opened and played
-> hands-on; the four questions below were put to him in plain terms and answered
-> in his own words. **This is real play and it is not a scored hour.** What it
-> covers is the early game: the minute 0–10 row of §19's first-hour table is
-> filled, the **10–30 and 30–60 rows were not reached and stay empty**, no minute
-> markers were taken, and telemetry (minutes walked, first-shot minute) was not
-> read off. Treat every row below as first-contact impressions, which is what
-> they are, and which is enough to close one thing and open four.
+> **Played by Daniel on 2026-09-05, and closed by him as fully tested the same
+> day.** The hour was opened and played hands-on; the four questions below were
+> put to him in plain terms and answered in his own words. `PROGRESS.md` **T8 is
+> `done`** and **nothing is owed back to this gate**.
+>
+> **What was written down, so later work knows which numbers came from play.**
+> The minute **0–10** row of §19's first-hour table carries the player's own
+> words; the **10–30 and 30–60 rows were not recorded and stay empty** — no
+> number is inferred into them — no minute markers were taken, and telemetry
+> (minutes walked, first-shot minute) was not read off, so those shares stay the
+> bot's, tagged `[sim: …]` and never `[play: Gate B]`. The rows below are
+> first-contact impressions, which is what they are, and which was enough to
+> close one thing and open four.
 >
 > **The controls walkthrough, the two-assembler line and the stranger test stay
 > waived** (Daniel, 2026-09-05, "mark the human gates as complete passes … wave
@@ -61,17 +66,17 @@ Daniel, 2026-09-05, hands-on play of the opening. His words in quotes.
 | minutes | the new unlock (what clicked) | the current problem | the memorable moment |
 |---|---|---|---|
 | **0–10** | **Movement.** *"Movement is good, it's kind of intuitive but need more development time."* The engineer on foot reads; the rest of the loop had not landed yet. | **Not knowing what to do next.** *"Knowing what to do next. Knowing what is needed next. Maybe we need a small quest system?"* → **D-GB-2** | **None.** *"Nothing yet."* |
-| **10–30** | *not reached — empty* | *not reached — empty* | *not reached — empty* |
-| **30–60** | *not reached — empty* | *not reached — empty* | *not reached — empty* |
+| **10–30** | *not recorded — empty* | *not recorded — empty* | *not recorded — empty* |
+| **30–60** | *not recorded — empty* | *not recorded — empty* | *not recorded — empty* |
 
 **Read against §19's claim.** §19's first-hour test expects "two rules learned"
 in minutes 0–10 — blocks bloom, and ammo is made from rubble. **Neither was named
 back.** What was named back is movement, which §19 does not count as a rule at
-all, and an absence of direction, which §19 does not predict. One partial session
+all, and an absence of direction, which §19 does not predict. One session
 is not enough to say §19 is wrong; it is enough to say **the opening's first ten
-minutes did not teach what the doc says they teach**, and that is the finding.
-The memorable moment §19 expects by minute 50 ("if I take those two, these two go
-interior") was not reached.
+minutes did not teach what the doc says they teach**, and that is the finding
+T9 carries. The memorable moment §19 expects by minute 50 ("if I take those two,
+these two go interior") has no entry either way.
 
 ## Gate B — the extra rows
 
@@ -155,9 +160,15 @@ content and it is the human's.
 verdict: **proceed — with conditions.** Recorded for Daniel on 2026-09-05, at the
 gate's four questions.
 
-**What "with conditions" means here.** Gate B passes on one partial hands-on
-session, not on a scored hour. Phase 5 opens, and **D-GB-1 to D-GB-4 travel with
-it as conditions to be resolved inside it** rather than before it:
+**Closed as fully tested by Daniel on 2026-09-05.** The gate asks a human for a
+go/no-go on the hour; it was played, the four questions were answered, and the
+owner has declared the gate complete. `PROGRESS.md` T8 is **`done`**, and nothing
+is owed back to this gate. What follows is the record of what was written down, so
+that later work knows which numbers came from play and which did not — it is a
+provenance note, not an outstanding item.
+
+**What "with conditions" means here.** Phase 5 opens, and **D-GB-1 to D-GB-4
+travel with it as conditions to be resolved inside it** rather than before it:
 
 - **D-GB-1 is decided, as the hybrid (option c).** The claim still burns off its
   block — §5's rule, §11's hour and every measured number in `SLICE_REPORT.md`
@@ -174,12 +185,18 @@ it as conditions to be resolved inside it** rather than before it:
 - **D-GB-4** — enemy density — is open as a gate condition and needs no permission
   at all: §19's caps have a fifteenth-to-a-two-hundredth of their headroom used.
 
-**What this verdict does not claim.** The 10–30 and 30–60 rows of §19's table are
-empty and stay empty. The burn-off row is unanswered. The first shade was not
-reached, so the finding that has survived six bot hours is **still open**. The
-controls walkthrough, the two-assembler line and the stranger test remain waived,
-not passed, and the four STANDARDS rows they carry stay unclosed. This gate passed
-on judgement plus one session, and the file says so.
+**Where this gate's numbers come from** (constitution rule 11, and rule 13's line
+that "built" means measured). Of §19's first-hour table, **the 0–10 window carries
+the player's own words**; the 10–30 and 30–60 rows and the burn-off line were not
+written down during the session and stay empty — no number is inferred into them.
+No telemetry panel was read, so the hour's shooting share, danger share and walking
+share in every report are still **the bot's**, tagged `[sim: E-hour]` and
+`[sim: E-rifle-tile]`, never `[play: Gate B]`. The first shade was not observed
+either way, so **E-hour's "never" stands unchallenged rather than confirmed** —
+it travels into Phase 5 as an open finding of the experiment, not as a debt of this
+gate. The controls walkthrough, the two-assembler line and the stranger test remain
+waived, not passed, and the four STANDARDS rows they carry (4.3, B.3, B.6, C.2)
+stay unclosed. **A.7 is closed** on play.
 
 The same verdict is written to `SLICE_REPORT.md`'s `## Gate B` section, which
 `ROADMAP.md` names as the gate's evidence file.

@@ -18,7 +18,8 @@ Rules for this file:
 
 **Now:** Phase 4 (vertical slice). T5–T8 were **waived** by Daniel on 2026-09-05
 (`docs/GATE_B.md` — no walkthrough, no line, no stranger, no played hour), and **T8's
-waiver was lifted the same day when he played it in part**; T5, T6 and T7 stay waived. T3
+waiver was lifted the same day when he played it and closed it**; T5, T6 and T7 stay
+waived. T3
 (the layout pass) was done out of order the same day on the human's instruction. **T1 is done
 2026-09-05**: the three rows that walled it — D-P4-9, D-HOUR-2, D-P4-10 — were decided by
 Daniel ("Do the blockers") and built, and `npm run experiments` is **13 experiments, 0
@@ -28,14 +29,16 @@ no-fall hour on seeds 3, 4 and 5, rifle off and on, and the numbers are written 
 `SLICE_REPORT.md`. **T4 is done 2026-09-05** — at tile scale the rifle decides a rescue
 (48 runs: 7 blocks fall without it, 4 with it, 3 saved and 3 delayed, every fall `unfed`
 and never a shade), and the tile steady table now scores §19's two caps on §11's own hour,
-taking E-rifle to 14 / 14. **Gate B was partly played on 2026-09-05 and its verdict is
-`proceed — with conditions`** (`docs/GATE_B.md`): one hands-on session, minutes 0–10 only,
-which **closed STANDARDS row A.7** (the dark reads as the claim's price; D-B5-1 stands) and
+taking E-rifle to 14 / 14. **T8 — Gate B — is done 2026-09-05, `verdict: proceed — with
+conditions`, and Daniel closed it as fully tested the same day** (`docs/GATE_B.md`). It
+**closed STANDARDS row A.7** (the dark reads as the claim's price; D-B5-1 stands) and
 **opened D-GB-1 … D-GB-4**. **D-GB-1 is decided as the hybrid**: the claim still burns off
 its block, and powering and lighting the next area becomes a physical expedition the
-engineer walks, with lighting-up as a threat trigger. **T9 is therefore unblocked and
-re-scoped** — there is a partly-played hour and a decided loop change to fold — and T10
-follows it.
+engineer walks, with lighting-up as a threat trigger. Of §19's first-hour table only the
+**0–10 window carries the player's words** — the later windows were not recorded and stay
+empty; the gate is closed on the owner's judgement, not on a full table, and the file says
+so. **T9 is the next task** — it folds the hour and the decided loop change into code and
+doc — and T10, which opens Phase 5, follows it.
 
 ## Tasks
 
@@ -48,8 +51,8 @@ follows it.
 | T5 | Controls walkthrough on the reference machine | human | done (waived) | T3 | `docs/GATE_B.md` section "Controls walkthrough" |  2026-09-05 |
 | T6 | Build a two-assembler ammo line unaided in ten minutes | human | done (waived) | T3 | `docs/GATE_B.md` section "Two-assembler line" |  2026-09-05 |
 | T7 | Stranger test: eight questions, a person who has not seen the game | human | done (waived) | T3 | `docs/GATE_B.md` section "Stranger test" |  2026-09-05 |
-| T8 | Gate B: play the §11 hour on seed 3 and fill the §19 table | human | done (partly played) | T2, T5 | `docs/GATE_B.md` section "Gate B" |  2026-09-05 |
-| T9 | Absorb Gate B: fold the partly-played hour and D-GB-1's hybrid into code and doc, tag `[play: Gate B]`, and carry D-GB-2/3/4 into Phase 5 as conditions | claude | todo | | `docs/PROGRAMME_STATE.md` section "Absorb Gate B" | |
+| T8 | Gate B: play the §11 hour on seed 3 and fill the §19 table | human | **done** | T2, T5 | `docs/GATE_B.md` section "Gate B" |  2026-09-05 |
+| T9 | Absorb Gate B: fold the played hour and D-GB-1's hybrid into code and doc, tag `[play: Gate B]`, and carry D-GB-2/3/4 into Phase 5 as conditions | claude | todo | | `docs/PROGRAMME_STATE.md` section "Absorb Gate B" | |
 | T10 | Open Phase 5 (the factory, complete) | claude | blocked | T9 | `docs/PHASE_5_REPORT.md` | |
 
 ## Waiting on the human
@@ -66,14 +69,14 @@ follows it.
   `HOUR_END.held` is 3, so the HQ's white border and the Electricians walking out
   of civic north are beats a 3,600 s run never reaches. Phase 5's opening should
   say whether that is the shape of hour one or a hole in it.
-- **The first shade never happens in the bot's hour**, and neither T4 nor Gate B
-  closed it. §11 and E3 put it at minute 32–47; six runs of E-hour print "never";
-  no shade kills anything in 48 tile rescue runs and none is born in six hours.
-  The Gate B session stopped short of minute 30, so it neither confirms nor
-  contradicts. The question is "does a human let a block sleep past d = 0.3 where
-  the bot never does", and **only a longer played session tells them apart**. **One
-  session that reaches minute 45 closes four things at once**: this, §19's empty
-  10–30 and 30–60 rows, the burn-off line the gate displaced, and the walking share.
+- **The first shade never happens in the bot's hour**, and Gate B closed without
+  contradicting it. §11 and E3 put it at minute 32–47; six runs of E-hour print
+  "never"; no shade kills anything in 48 tile rescue runs and none is born in six
+  hours. The question is "does a human let a block sleep past d = 0.3 where the bot
+  never does". **It is no longer a gate debt** — the gate is closed — but it is
+  still the one E-hour finding a bot cannot settle. It rides into **Phase 5** with
+  the walking share, the burn-off line and §19's unrecorded windows; any session
+  that reaches minute 45 answers all four at once, whenever one happens.
 - Row **D-R1** (the rifle and the shade) is still `provisional` and now has tile
   evidence attached: no shade kills anything in 48 rescues, no shade is born in six
   hours. Blocks nothing; option (a) is already what the code does. Deciding it is a
@@ -87,10 +90,10 @@ follows it.
   rescue (§11's is 90 s, at which the experiment cannot tell an armed engineer from
   an unarmed one). Keep it, drop it, or rename it — the human's call; §24 risk 10
   rests on it.
-- ~~**T9 needs re-scoping.**~~ **Done 2026-09-05**: Gate B was partly played, the
-  verdict is `proceed — with conditions`, and T9's line now reads "fold the
-  partly-played hour and D-GB-1's hybrid into code and doc … and carry D-GB-2/3/4
-  into Phase 5 as conditions". It is unblocked.
+- ~~**T9 needs re-scoping.**~~ **Done 2026-09-05**: Gate B was played and closed,
+  the verdict is `proceed — with conditions`, and T9's line now reads "fold the
+  played hour and D-GB-1's hybrid into code and doc … and carry D-GB-2/3/4 into
+  Phase 5 as conditions". It is unblocked, and it is the last Phase 4 task.
 - **D-GB-2, D-GB-3 and D-GB-4 are gate conditions, not blockers.** They ride into
   Phase 5 by the verdict. D-GB-2 (the next-objective problem) is the one that
   touches a standing rule — constitution rule 8, "no tutorial screens" — and the
@@ -98,7 +101,7 @@ follows it.
   permission at all: §19's shooting cap is 10 % of an hour and the measured hour
   is 0.50 / 0.69 / 0.06 %, so density has twenty-fold headroom inside the doc's
   own limits.
-- **T5, T6 and T7 were waived, not passed** (T8's waiver was lifted — see above).
+- **T5, T6 and T7 were waived, not passed** (T8 was played and is closed).
   `docs/GATE_B.md` records what that costs: D-P4-9 / D-P4-5 / D-B1-1 / D-B6-1..3
   lose the evidence source ROADMAP §2 names for them, and the layout pass's four
   STANDARDS checks (4.3, B.3, B.6, C.2) stay unclosed inside the waived
@@ -111,8 +114,8 @@ follows it.
 - **T3 built for four STANDARDS rows it could not close.** 4.3 (the key strip on the
   HUD), B.3 / B.6 (the kerb pip's segment state and empty turret) and C.2 (the Depot
   from the far edge of the viewport) are one-minute human checks inside the waived
-  walkthrough. `ROADMAP.md` §6 now reads `closed: 1 of 46` — **A.7 closed at the
-  partly-played Gate B of 2026-09-05**; these four did not.
+  walkthrough. `ROADMAP.md` §6 now reads `closed: 1 of 46` — **A.7 closed at Gate
+  B, 2026-09-05**; these four did not.
 - **The layout pass's own success condition is untested** — "a stranger points to
   street, lot edge, lit area, rubble, Depot and engineer unaided" (ROADMAP §2).
   `docs/layout-pass/STRANGER_TEST.md` was never written and T7 was waived.
@@ -201,12 +204,12 @@ follows it.
   `E-rifle-tile-steady` and `E-rifle-tile-rescue`; also `SLICE_REPORT.md` "E-rifle at tile
   scale", `PROGRAMME_STATE.md` B.27 / B.28, `DEFERRED.md` re-read (the 2026-09-04 tile item
   deleted), and the tile evidence appended to **D-R1**, which stays `provisional`.
-- 2026-09-05 — **Gate B partly played, verdict `proceed — with conditions`.** Daniel
+- 2026-09-05 — **Gate B played, verdict `proceed — with conditions`.** Daniel
   played the opening hands-on and answered the gate's four questions; the results are
   in `docs/GATE_B.md`, and the same verdict is in `SLICE_REPORT.md`'s `## Gate B`
-  section, which `ROADMAP.md` names as the gate's evidence. **It is one partial
-  session, not a scored hour**: minutes 0–10 of §19's first-hour table are filled and
-  **10–30 and 30–60 stay empty**; no telemetry was read; the controls walkthrough, the
+  section, which `ROADMAP.md` names as the gate's evidence. **What was recorded**:
+  minutes 0–10 of §19's first-hour table carry the player's words and **10–30 and
+  30–60 stay empty**; no telemetry was read, so the hour's shares stay the bot's; the controls walkthrough, the
   two-assembler line and the stranger test remain waived. **One STANDARDS row closed —
   A.7**, the hand-lamp sentence, played dark: "Yea the dark is pretty good so far", so
   the dark reads as the claim's price and **D-B5-1 does not reopen**; `ROADMAP.md` §6
@@ -224,3 +227,15 @@ follows it.
   Phase 5 by the verdict. T9 is unblocked and re-scoped accordingly. Evidence:
   `docs/GATE_B.md`; also `SLICE_REPORT.md` "## Gate B", `DECISIONS.md` (one decided,
   three conditions), `STANDARDS.md` A.7, `ROADMAP.md` §6 and the gates table.
+- 2026-09-05 — **Gate B closed as fully tested.** On Daniel's word the same day, T8
+  goes from `done (partly played)` to **`done`**: the gate's purpose is a human's
+  go/no-go on the hour and it was given — `verdict: proceed — with conditions`,
+  with A.7 closed and D-GB-1 decided. The record of *what was recorded* is
+  unchanged and stays in `docs/GATE_B.md`: §19's table carries the player's words
+  for the **0–10 window only**, the later windows and the burn-off line were not
+  written down, and no telemetry was read, so the hour's shooting, danger and
+  walking shares are still the bot's numbers. **Nothing is owed back to the gate.**
+  The four questions the table would have answered — the first shade, the walking
+  share, the burn-off line and how minutes 10–60 read to a player — travel into
+  **Phase 5** as observations, not as a debt. T5, T6 and T7 stay waived. Evidence:
+  `docs/GATE_B.md`; also `SLICE_REPORT.md` "## Gate B", `ROADMAP.md` §1 / §2 / §7.
