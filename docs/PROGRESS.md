@@ -37,8 +37,16 @@ its block, and powering and lighting the next area becomes a physical expedition
 engineer walks, with lighting-up as a threat trigger. Of §19's first-hour table only the
 **0–10 window carries the player's words** — the later windows were not recorded and stay
 empty; the gate is closed on the owner's judgement, not on a full table, and the file says
-so. **T9 is the next task** — it folds the hour and the decided loop change into code and
-doc — and T10, which opens Phase 5, follows it.
+so. **T9 is done 2026-09-05** — doc only. It made the two `[play: Gate B]` tags that had been
+placed in `RELIGHT-design.md` *before* the gate was played true (§4's narrowed to the
+movement clause the hour reached; §19's 10 % shooting cap stripped of a tag the gate never
+earned, because no telemetry was read), wrote §19's first-hour finding against §19 itself,
+recorded **D-GB-1's hybrid in §10 as decided and not built**, added the three gate
+conditions to §25 as open questions 19–21, and attached the gate's evidence to D-R1,
+D-P4-5, C1 and C2 without deciding any of them. **No code file changed**: the gate produced
+no constant, and D-GB-2/3/4 are open, so building them would breach constitution rule 12.
+**Phase 4's task list is finished. T10, which opens Phase 5, is the next task and is
+unblocked.**
 
 ## Tasks
 
@@ -52,8 +60,8 @@ doc — and T10, which opens Phase 5, follows it.
 | T6 | Build a two-assembler ammo line unaided in ten minutes | human | done (waived) | T3 | `docs/GATE_B.md` section "Two-assembler line" |  2026-09-05 |
 | T7 | Stranger test: eight questions, a person who has not seen the game | human | done (waived) | T3 | `docs/GATE_B.md` section "Stranger test" |  2026-09-05 |
 | T8 | Gate B: play the §11 hour on seed 3 and fill the §19 table | human | **done** | T2, T5 | `docs/GATE_B.md` section "Gate B" |  2026-09-05 |
-| T9 | Absorb Gate B: fold the played hour and D-GB-1's hybrid into code and doc, tag `[play: Gate B]`, and carry D-GB-2/3/4 into Phase 5 as conditions | claude | doing | | `docs/PROGRAMME_STATE.md` section "Absorb Gate B" | |
-| T10 | Open Phase 5 (the factory, complete) | claude | blocked | T9 | `docs/PHASE_5_REPORT.md` | |
+| T9 | Absorb Gate B: fold the played hour and D-GB-1's hybrid into code and doc, tag `[play: Gate B]`, and carry D-GB-2/3/4 into Phase 5 as conditions | claude | **done** (doc only — no code; see the log) | | `docs/PROGRAMME_STATE.md` section "Absorb Gate B" | 2026-09-05 |
+| T10 | Open Phase 5 (the factory, complete) | claude | todo | | `docs/PHASE_5_REPORT.md` | |
 
 ## Waiting on the human
 
@@ -77,10 +85,23 @@ doc — and T10, which opens Phase 5, follows it.
   still the one E-hour finding a bot cannot settle. It rides into **Phase 5** with
   the walking share, the burn-off line and §19's unrecorded windows; any session
   that reaches minute 45 answers all four at once, whenever one happens.
-- Row **D-R1** (the rifle and the shade) is still `provisional` and now has tile
-  evidence attached: no shade kills anything in 48 rescues, no shade is born in six
-  hours. Blocks nothing; option (a) is already what the code does. Deciding it is a
-  signature, and the caveat is that both runs are bots.
+- Row **D-R1** (the rifle and the shade) is still `provisional`, and after T9 it has
+  both halves of its evidence. The bots: no shade kills anything in 48 rescues, none is
+  born in six hours. The play: the rifle was fired and decided nothing. And **A.7's answer
+  closes option (b)** — no hand lamp, D-B5-1 stands play-supported — so **(a) is the only
+  live option left and is already what the code does**. Blocks nothing; deciding it is a
+  signature.
+- Row **D-P4-5** (the two assembler stand-ins) is `provisional` and its recommendation is
+  now **unconditioned**: it said "make every assembler physical after Gate B, the
+  block-level button stays through Gate B so the played hour is one model", and Gate B is
+  past. Blocks nothing.
+- Rows **C1** and **C2** both name "Phase 4's human hour" as the first place they can
+  move. That hour was played and **could not move them** — no telemetry was read and no
+  claim minutes were taken — so both stay `provisional` on the sim's numbers, and the next
+  played session with the telemetry panel open is the occasion.
+- **The calibration's pip bands** (16–31 min, the lattice's, against ≈ 3 / ≈ 6 min at tile
+  level) are the last item T9's roadmap line listed that T9 could not settle: it is
+  recalibrate-or-retire, and that is a human's word, not a run.
 - **§5's rescue sentence quotes the block sim** — "a whole belt 90 s away falls in
   ~1.5 min to a shade at an unlit edge, and the rifle cannot save it". The tile sim
   says a 90 s ring never falls at all and the killer is always crawlers. Both are
@@ -90,10 +111,19 @@ doc — and T10, which opens Phase 5, follows it.
   rescue (§11's is 90 s, at which the experiment cannot tell an armed engineer from
   an unarmed one). Keep it, drop it, or rename it — the human's call; §24 risk 10
   rests on it.
-- ~~**T9 needs re-scoping.**~~ **Done 2026-09-05**: Gate B was played and closed,
-  the verdict is `proceed — with conditions`, and T9's line now reads "fold the
-  played hour and D-GB-1's hybrid into code and doc … and carry D-GB-2/3/4 into
-  Phase 5 as conditions". It is unblocked, and it is the last Phase 4 task.
+- ~~**T9 needs re-scoping.**~~ **Re-scoped and then done, both 2026-09-05.** T9 ran
+  against the re-scoped line and closed Phase 4. One thing in its own task line could not
+  be honoured and is reported rather than fudged: it says "into **code** and doc", and
+  **no code was written**, because the gate produced no constant, D-GB-1's build is Phase
+  5 / 6 work by the terms of the decision itself, and D-GB-2/3/4 are open — building any
+  of them now would be building from a prompt that carries a rule the design doc does not
+  (constitution rule 12, the same rule the gate invoked when it refused them).
+- **Two `[play: Gate B]` tags were in the design doc before Gate B was played**
+  (commits `27cc9b0`, `906044c`), and one of them — §19's 10 % shooting cap — was never
+  earned; T9 removed it and narrowed the other. Nothing in the repo would have caught
+  either: `docsync` cannot check a tag that names a gate that has not happened. Whether
+  Phase 5 adds a check for that, or accepts it and re-reads tags at every gate, is a
+  human's call. Blocks nothing.
 - **D-GB-2, D-GB-3 and D-GB-4 are gate conditions, not blockers.** They ride into
   Phase 5 by the verdict. D-GB-2 (the next-objective problem) is the one that
   touches a standing rule — constitution rule 8, "no tutorial screens" — and the
@@ -239,3 +269,31 @@ doc — and T10, which opens Phase 5, follows it.
   share, the burn-off line and how minutes 10–60 read to a player — travel into
   **Phase 5** as observations, not as a debt. T5, T6 and T7 stay waived. Evidence:
   `docs/GATE_B.md`; also `SLICE_REPORT.md` "## Gate B", `ROADMAP.md` §1 / §2 / §7.
+- 2026-09-05 — T9 **done**, doc only. **Absorb Gate B.** The two `[play: Gate B]`
+  tags that had been placed in `RELIGHT-design.md` *before* the gate was played are
+  now true: **§4's** is split, so the movement clause the hour actually reached keeps
+  the tag ("kind of intuitive but needs more development time") while sprint, dodge
+  and "completable without any of them" keep only `[sim: B-M1-body]`, and the 9-tile
+  "no range advantage" is named as the clause play argued with (**D-GB-3**);
+  **§19's 10 % shooting cap loses its tag entirely**, because the gate read no
+  telemetry and no player shooting share exists — the bot's 0.50 / 0.69 / 0.06 % and
+  0.00 % `[sim: E-rifle-tile]` stand in its place. **§19's first-hour test now carries
+  the finding against itself** (neither of minute 0–10's two rules was named back;
+  movement was; the hour's one problem was not knowing what to do next, **D-GB-2**,
+  against rule 8). **§10 records D-GB-1's hybrid as decided and not built** — the three
+  loops unchanged, the expedition and the lighting-up trigger written beneath them, and
+  the statement that §5, §11 and §18 do not move until the milestone that builds it.
+  **§25 gains open questions 19, 20 and 21**, the three gate conditions, and the
+  Changelog preamble now says what a `[play: Gate B]` tag means. `SLICE_REPORT.md`'s
+  §19 table and its two Gate B rows carry the played hour. Four `provisional` rows got
+  the gate's evidence and **none was decided** (rule 7): **D-R1** (A.7 closes option
+  (b), so (a) is the only live one), **D-P4-5** (its "through Gate B" condition met),
+  **C1** and **C2** (unmoved — no telemetry, no claim minutes). **No code file
+  changed**, and that is reported as a disagreement with T9's own task line rather
+  than as a shortfall: the gate produced no constant, D-GB-1's build is Phase 5 / 6
+  work by the terms of the decision, and D-GB-2/3/4 are open — rule 12. Cheap checks
+  green: tests 121 / 121, typecheck, lint, docsync, snapshot (config `0176f61d`); the
+  experiment suite is untouched at 13 experiments, 0 failing checks. **Phase 4 is
+  complete.** Evidence: `docs/PROGRAMME_STATE.md` B.31 / B.32; also `SLICE_REPORT.md`
+  "Absorb Gate B", `RELIGHT-design.md` (seven edits, seven changelog lines),
+  `DECISIONS.md`, `DEFERRED.md` re-read, `ROADMAP.md` §1 / §2 / §6 / §7.

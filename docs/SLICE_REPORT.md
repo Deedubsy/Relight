@@ -2,24 +2,26 @@
 
 Living document, rewritten from the top at each prompt B milestone (D5/D6 rework, 2026-09-04): the current milestones first, the §19 first-hour test at the top, Gate B before the appendix. The lattice slice's M1–M3 (2026-09-03) stay at the end as the record of what was built and measured before the rework; Gate B is not scored on them.
 
-## §19 first-hour test (human play) — not scored yet
+## §19 first-hour test (human play) — **0–10 scored at Gate B, the rest not recorded**
 
-Scored by a human after prompt B M6, from a played hour. Nothing here is filled in by the bot.
+Scored by a human, from a played hour. Nothing here is filled in by the bot. Played by Daniel on 2026-09-05 (`docs/GATE_B.md`); the gate was closed as fully tested the same day, and the empty rows below are a **provenance note, not an outstanding debt** — no number is inferred into them.
 
 | Window | New unlock | Current problem | Memorable moment |
 |---|---|---|---|
-| 0–10 min | — | — | — |
-| 10–30 min | — | — | — |
-| 30–60 min | — | — | — |
+| 0–10 min | **Movement.** *"Movement is good, it's kind of intuitive but need more development time."* | **Not knowing what to do next.** *"Knowing what is needed next. Maybe we need a small quest system?"* → **D-GB-2** | **None.** *"Nothing yet."* |
+| 10–30 min | *not recorded — empty* | *not recorded — empty* | *not recorded — empty* |
+| 30–60 min | *not recorded — empty* | *not recorded — empty* | *not recorded — empty* |
 
-Did the burn-off make you say something? —
+Did the burn-off make you say something? — **Not answered as asked.** What came back instead is a request to change what the lights *are*: light earned and walked out by the player rather than granted by a claim (**D-GB-1**, decided the same day as the hybrid, option (c)). Whether the current payoff lands is therefore still unestablished.
+
+**Read against §19's own claim.** The doc says minutes 0–10 teach two rules — blocks bloom, and ammo is made from rubble. **Neither was named back**; movement was, which §19 does not count as a rule, and the absence of direction is something §19 does not predict. One session cannot rewrite the test, and §19 now carries that sentence against itself (`RELIGHT-design.md`, T9).
 
 Gate B's two new rows (prompt B M6; the harness answers the second half of each from the played hour's export):
 
 | Row | Answer |
 |---|---|
-| At what minute did the player first fire, and did it matter? (`npm run replay -- <export.json>` → `held anyway` / `saved it` / `fell anyway`) | — (the human's). The bot beside it, E-hour rifle on, 2026-09-04: first shot 2:48 / 2:44 / 3:05 on seeds 3 / 4 / 5, the first crawler's tick; **held anyway** on seeds 3 and 4, **fell anyway** on seed 5 (north fell at 58:27 with the rifle and without); the browser's hour on seed 3: 19 hand-fired fights, all held anyway |
-| The walking row: minutes walked and chest trips in the hour, against §19's 15 % (the export's `summary.walkedPct`, `summary.chestTrips`) | — (the human's). The bot beside it: 2.8 / 3.1 / 2.8 min walked = 4.6 / 5.1 / 4.7 %, 11 / 10 / 9 chest trips (E-hour); the browser's hour 5.0 %, 18 trips |
+| At what minute did the player first fire, and did it matter? (`npm run replay -- <export.json>` → `held anyway` / `saved it` / `fell anyway`) | **Gate B, 2026-09-05: no minute taken; it did not matter** — *"I was just shooting at things"*. No rescue, nothing saved, which agrees with the bots at both scales and is the play half of **D-R1**. Two asks came with it: more range or none (**D-GB-3**) and more enemies at the player (**D-GB-4**). The bot beside it, E-hour rifle on, 2026-09-04: The bot beside it, E-hour rifle on, 2026-09-04: first shot 2:48 / 2:44 / 3:05 on seeds 3 / 4 / 5, the first crawler's tick; **held anyway** on seeds 3 and 4, **fell anyway** on seed 5 (north fell at 58:27 with the rifle and without); the browser's hour on seed 3: 19 hand-fired fights, all held anyway |
+| The walking row: minutes walked and chest trips in the hour, against §19's 15 % (the export's `summary.walkedPct`, `summary.chestTrips`) | **Gate B, 2026-09-05: unrecorded** — no telemetry panel was read, so no human share exists and this row stays the bot's. The bot beside it: The bot beside it: 2.8 / 3.1 / 2.8 min walked = 4.6 / 5.1 / 4.7 %, 11 / 10 / 9 chest trips (E-hour); the browser's hour 5.0 %, 18 trips |
 
 ## GAME-ASSUMPTION register (generated from the Assumed tables below, prompt B M6)
 
@@ -1334,6 +1336,33 @@ sentence to come back to.
 # Appendix — the lattice slice (superseded by the D5/D6 rework, 2026-09-04)
 
 Not scored at Gate B. Kept as the record of what the lattice slice built and measured; its GAME-ASSUMPTIONs that survive the rework are still in the code and listed in `REWORK_REPORT.md` §3.
+
+## Absorb Gate B — **doc only, no code**, 2026-09-05 (`docs/PROGRESS.md` T9 done; evidence `PROGRAMME_STATE.md` B.31)
+
+The last Phase 4 task. It folds the played hour into `RELIGHT-design.md` and this report, records D-GB-1's hybrid as a decision the doc carries but has not built, attaches the gate's evidence to the rows that were waiting on it, and hands D-GB-2 / D-GB-3 / D-GB-4 to Phase 5 as the verdict's three conditions.
+
+**Built.** Nothing in code, deliberately — see "where it disagrees" below. Seven edits to `RELIGHT-design.md`, and the played hour folded into this report's §19 table and its two Gate B rows:
+
+1. **§4 — the pre-placed `[play: Gate B]` tag split.** The tag had been put on the body sentence before the gate was played. Only the movement half survives contact: *"movement is good, it's kind of intuitive but needs more development time"* keeps `[play: Gate B]`; sprint, dodge and "the game is completable without any of them" keep only `[sim: B-M1-body]` because they were never exercised. The rifle's own play line (*"I was just shooting at things"*) is named there as D-R1's play half.
+2. **§4 — the range clause named as the disagreement.** "Out to the turret's 9 tiles (no range advantage)" is the one clause the played hour argued with; **D-GB-3** is named against it, and it stands as written until that row is decided.
+3. **§19 — the 10 % shooting cap loses its `[play: Gate B]` tag.** The gate read no telemetry, so no player shooting share exists and the tag was never earned. The bot's **0.50 / 0.69 / 0.06 % shooting and 0.00 % danger [sim: E-rifle-tile]** are stated in its place, and **D-GB-4**'s ask is named against that headroom.
+4. **§19 — the first-hour test carries the finding against itself.** Neither of minute 0–10's two rules was named back; movement was; the session's only problem was not knowing what to do next (**D-GB-2**, against constitution rule 8, so the rule-8-legal forms are listed first). The later windows are marked untested rather than contradicted.
+5. **§10 — D-GB-1's hybrid, decided and not built.** The three loops stay exactly as written; the hybrid's content is recorded beneath them (the expedition the engineer walks; an area lighting up as a threat trigger beside the wake bloom) with the statement that §5, §11 and §18 do not move until the milestone that builds it.
+6. **§19 — the walking share stops implying a human number.** "A player's share is M6's number" is corrected: M6 measured the bot (4.6–5.2 % at tile scale) and Gate B read no telemetry, so the row has no human number and the doc no longer says otherwise.
+7. **§25 — open questions 19, 20 and 21**, the three gate conditions, so they live in the spec and not only in `DECISIONS.md`. The **Changelog preamble** now says what a `[play: Gate B]` tag means beside `[play: Gate A]`: a witnessed statement from one played hour, never a measured share.
+
+**Assumed.** No new GAME-ASSUMPTION. T9 built nothing, so it assumed nothing about the sim; the register above is unchanged.
+
+**Deferred.** D-GB-1's build (the expedition and the lighting-up trigger) to Phase 5 / 6, with the doc sentences it will move named in `DECISIONS.md` and §10. D-GB-2's answer, D-GB-3's range number and D-GB-4's density number to Phase 5 as the verdict's conditions. §19's unrecorded windows, the burn-off line, the first shade and the human walking share to the next played session — observations, not debts (`DEFERRED.md` re-read).
+
+**Measured.** Nothing new. The only figures T9 writes into the doc — 0.50 / 0.69 / 0.06 % shooting and 0.00 % danger — arrive already tagged `[sim: E-rifle-tile]` from T4's measured run. The suite is unmoved at 13 experiments, 0 failing checks, and the config hash did not change because `packages/sim` was not opened. Cheap checks only for this task; nothing here waits on a verification pass.
+
+**Where it disagrees with the doc — and with its own task line.** T9's task says "fold the played hour and D-GB-1's hybrid into **code** and doc". **No code was written, and that is the honest answer rather than a shortfall.** The gate produced no constant; D-GB-1's build is Phase 5 / 6 work by the terms of the decision itself; and D-GB-2, D-GB-3 and D-GB-4 are `open (gate condition)`, so writing a quest system, a rifle range or a density number now would be building from a prompt that carries a rule the design doc does not — constitution rule 12, the same rule the gate invoked when it refused to build them. The second disagreement is with the doc's own history: **two `[play: Gate B]` tags were placed before Gate B was played**, and one of them (§19's cap) was simply not earned. It has been removed rather than justified.
+
+**Three decisions for the human.**
+1. **D-R1 — take (a).** The rifle's play half is in (it decided nothing), and A.7's answer closes option (b), the hand lamp. (a) is the only live option and is already what the code does; deciding it is a signature.
+2. **D-P4-5 — make every assembler physical.** The condition attached to that recommendation ("the block-level button stays through Gate B so the played hour is one model") is met. It is now unconditioned and blocks nothing.
+3. **D-GB-2's first form.** The rule-8-legal answer — a next-objective line in the HUD driven by the sim's own state — is cheap and is what Phase 5 would build first. A quest system is a rule-8 change and stays yours to take explicitly.
 
 ## Lattice M1 Ground — built 2026-09-03
 
