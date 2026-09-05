@@ -6,9 +6,16 @@ now. The per-milestone history lives in the phase reports (`PHASE_0_REPORT.md` �
 `archive/pre-phase-5-cleanup/PROGRAMME_STATE-2026-09-05.md`. Rules: `CONSTITUTION.md`.
 Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 
-## Now (2026-09-05, after RI-05 built the project record, the rail yard's reward and the minimal tram route)
+## Now (2026-09-05, after RI-06 wrote the Junction Heart — code only, unverified)
 
-- **The revised development plan is in execution: RI-00 … RI-05 are done.**
+- **RI-06's code is written and NOT verified.** On the user's instruction ("don't worry
+  about running tests or simulations, just write the code") RI-06 ran no test, experiment,
+  snapshot or browser check: `tsc` and eslint green is all. `E-heart` (15th experiment)
+  and `heart.test.ts` (six tests) exist unrun; `docs/EXPERIMENTS.md` and the `CLAUDE.md`
+  counters still describe RI-05's runs. The next verification pass runs `npm test`,
+  `npm run experiments`, `snapshot:check`, `freshness:check` and a browser check with
+  `?heart=1`, and fixes what they find before RI-06's evidence is claimed.
+- **The revised development plan is in execution: RI-00 … RI-06 are done (RI-06 unverified).**
   Daniel authorised the plan with "Whole plan" (D-RI-1); it is
   `REVISED_DEVELOPMENT_PLAN.md`, verbatim, and its tasks RI-00 … RI-13 are in
   `PROGRESS.md`. RI-01 built the real opening economy (`RI_PASS_1_REPORT.md` "RI-01"):
@@ -54,16 +61,23 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
   seed, 4 Held and no fall. The route sits beside the benchmark, never in it: `E-hour`
   19/19 with the belt line unchanged (only the state hash moved — the state now carries
   the records). 148 tests.
-- **Next task: RI-06 — the Junction Heart** (plan §9): two feeder cabinets prepared in
-  either order; Start commissioning; 90 s of productive commissioning paused on power
-  loss (candidate); packets at 25 / 50 / 75 % keyed to attempt and threshold;
-  interrupted after 60 s without progress (candidate) or by abort; retry without a second
-  charge; completion destroys the Heart and grants the unlock once; §9.4 met by a bot
-  with a prepared factory and no rifle use; interruption / retry / save / load tested.
-  **Ready**: blocked by RI-04 and RI-05, both done. Branch `ri-pass-1` on top of
-  `phase-4`. The order after it: RI-07 → RI-08 (whose played session is **T19**, human)
-  → RI-09 (T13 → T17, T18) → RI-10 → RI-11 → RI-12 → RI-13; T12b and T12c are runnable
-  behind RI-06 in list order.
+- **RI-06 built the Junction Heart as a candidate layer** (`RI_PASS_1_REPORT.md` "RI-06"):
+  `heart.ts` + `CANDIDATES.heart`, switched on by `enableHeart` / `?heart=1` (D-RI-5 —
+  beside the benchmark, config hash unchanged): two feeder cabinets on the yard's lot,
+  the Activate as the Start, 90 s productive / 60 s stall, Crawler packets keyed to
+  attempt and threshold, knock-out and repair, interruption preserving the deliveries and
+  the charge, the destruction and the once-only reward through the project record; the
+  hour bot's Heart step and patrol, `E-heart`, `heart.test.ts`, the game's cabinets,
+  ring, packet approach, E / X and toasts. Every number an implementation default.
+- **Next task: RI-07 — integrate the opening candidate** (plan §11.1; T12c feeds it): one
+  opening profile with real resources and commands in a candidate configuration separate
+  from the 75-minute benchmark; automation → route choice → small enclosure → rail
+  project → reward as one sequence. **Ready** in list order (blocked by RI-06, done —
+  unverified; a red `E-heart` or `heart.test.ts` in the verification pass is a check red
+  for a reason inside RI-06 and is fixed there first). Branch `ri-pass-1` on top of
+  `phase-4`. The order after it: RI-08 (whose played session is **T19**, human) → RI-09
+  (T13 → T17, T18) → RI-10 → RI-11 → RI-12 → RI-13; T12b and T12c are runnable behind
+  RI-06 in list order.
 - **Phase 5 — the factory, complete — is open; RI-01 built its first pieces** (the
   per-machine recipe, coal rubble, the ledger), RI-05 its transport's first piece (the
   minimal tram route and the Supply chest) and the rest is not built. The plan
@@ -212,7 +226,8 @@ at RI-05, stamped `24bc007` + RI-05's tree, config b95922d2; `SLICE_REPORT.md`):
   Stalker is §7's roster and the emergence points are the threat system's, not a fourth
   system). Recounted at RI-05: still three (a project is §5's claim given a purpose and a
   reward; the tram is §14's one bulk system, in the count since Phase 0; the Supply chest
-  is the Depot's chest placed); next at RI-06.
+  is the Depot's chest placed). Recounted at RI-06: still three (the Heart is §5's claim
+  under §7's threat rules with two more delivery targets — no fourth system); next at RI-07.
 - `STANDARDS.md`: **closed 1 of 46** (A.7, the hand-lamp sentence, at Gate B). Phase 5's
   fifteen build-with rows are listed on `PHASES.md` Phase 5.
 - Engineer guards (shooting ≤ 10 %, danger ≤ 5 %, walking): every number is the bot's; no
@@ -241,7 +256,9 @@ at RI-05, stamped `24bc007` + RI-05's tree, config b95922d2; `SLICE_REPORT.md`):
   RI-03); D-CU-3 (b) the outskirts Substation before activation (built at RI-03); the
   Stalker's §7.1 state machine (built at RI-04 as the candidate, `stalker.ts`); RI-05's
   transport-kit sizes, caps and prices and the depot's stock (`RI_PASS_1_REPORT.md`
-  "RI-05").
+  "RI-05"); RI-06's Heart geometry, cabinet recipe, packet roster / counts / cap /
+  approach delay and the knock-out and repair rules (`RI_PASS_1_REPORT.md` "RI-06",
+  unverified).
 - **Provisional rows a task will embody**: D-P4-5 (every assembler physical — built by
   RI-01, unsigned);
   D-B4-3 (the turret in the chain, RI-10 reconciles); D-SA-2 (the string table, T13 in

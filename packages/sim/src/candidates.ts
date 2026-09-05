@@ -31,7 +31,29 @@ export interface StalkerCandidate {
   respawnS: number;
 }
 
-export const CANDIDATES: { readonly stalker: StalkerCandidate } = {
+/** RI-06 (plan §9, D-RI-6): the Junction Heart's candidate numbers — the first boss's timers, packets and cabinet
+ *  recipe. Plan §9.2 labels the 90 s / 60 s timers and the packet roster "tuning candidates" and the cabinet amounts
+ *  "candidate recipe data"; none is a decided constant and none is in SimConfig (the benchmark never enables the
+ *  Heart — `enableHeart` is per state, like `enableStalkers`). */
+export interface HeartCandidate {
+  /** Seconds of PRODUCTIVE commissioning (both feeders powered) that destroy the Heart (plan §9.2 default 5, tuning candidate). */
+  productiveS: number;
+  /** Consecutive seconds without productive commissioning that interrupt the attempt (plan §9.2 default 9, tuning candidate). */
+  stallS: number;
+  /** The productive-progress percentages at which one reinforcement packet is requested, once each per attempt (plan §9.2 default 6). */
+  thresholds: readonly number[];
+  /** Implementation default: seconds the approach is shown (the packet's emergence point marked, the event logged) before its bodies are born. */
+  approachS: number;
+  /** Crawlers per packet, by threshold index (candidate data; the existing Crawler only — plan §9.1: no new enemy for the first boss). */
+  packets: readonly number[];
+  /** The encounter's own population bound: packet bodies alive at once (plan §9.2 default 6: "retain the global population budget"; default 11). */
+  maxAlive: number;
+  /** A feeder cabinet's restoration materials (candidate recipe data, plan §9.2 default 1). */
+  cabinet: { readonly steel: number; readonly copper: number };
+}
+
+export const CANDIDATES: { readonly stalker: StalkerCandidate; readonly heart: HeartCandidate } = {
   stalker: { perception: 8, leash: 16, hpMul: 2, speedMul: 1.2, windupS: 0.8, attackS: 1, attackHp: RETALIATE_HP_PER_S,
              investigateS: 6, lostS: 2, hysteresis: 2, respawnS: 120 },
+  heart: { productiveS: 90, stallS: 60, thresholds: [25, 50, 75], approachS: 5, packets: [2, 3, 4], maxAlive: 8, cabinet: { steel: 4, copper: 2 } },
 };

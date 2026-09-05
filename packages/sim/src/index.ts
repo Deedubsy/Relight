@@ -31,3 +31,4 @@ export * from './names';
 export * from './goal';
 export * from './save';
 export * from './project';   // RI-05
+export * from './heart';   // RI-06

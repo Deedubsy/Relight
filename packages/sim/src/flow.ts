@@ -26,6 +26,9 @@ import { tickEngineerTiles, workbenchTile } from './walk';
 import { blockName } from './names';   // RI-05: the supply depot's name
 import { take as pocketTake, drop as pocketDrop, invStacks, invCap, handHook, hqIdx as hqIndex, upgradeEngineer, threatHooks } from './engineer';
 import type { ThreatState } from './threat';
+import type { HeartState } from './heart';
+// RI-06: the Junction Heart (function-only, like project.ts: the modules import each other)
+import { heartAt, heartCheck, heartStarted, heartTick, cabinetAt, deliverToCabinet, repairCabinet, abortHeart } from './heart';
 import { segBetween, frontTiles, CitySeg } from './city';
 
 export const TILE_TPS = 20;                    // constitution: fixed 20 ticks/s at tile level
@@ -279,6 +282,8 @@ export interface FlowState {
   power: { supply: number; demand: number; load: number; overS: number; throttle: number };
   /** M4: the tile threat (threat.ts): crawlers, eaten lights, hand-fired engagements. Created on first use. */
   threat?: ThreatState;
+  /** RI-06: the Junction Heart candidate layer — absent unless `enableHeart` touched the state (D-RI-5). */
+  heart?: HeartState;
   /** M5: streetlights the engineer repaired (global tile index) — the §13 3-in-8 broken ones, once E has been on them
    *  with copper in the pockets. Eaten lights (`threat.broken`) are repaired by leaving that list. Created on first use. */
   repaired?: number[];
@@ -555,7 +560,7 @@ export function fieldPowered(st: SimState, m: Machine): boolean {
   return poleReaches(st, poleGrid(st).on, m.x, m.y, m.size);
 }
 /** Whether a pole in `set` (ids) stands within its reach of the rect. */
-function poleReaches(st: SimState, set: Set<number>, x: number, y: number, size: number): boolean {
+export function poleReaches(st: SimState, set: Set<number>, x: number, y: number, size: number): boolean {
   const f = st.flow!;
   for (const p of f.machines) if (isPole(p) && set.has(p.id) && distToRect(pcx(p), pcy(p), x, y, size) <= reachOf(p)) return true;
   return false;
@@ -943,6 +948,7 @@ export function stepFlow(st: SimState, dt = TILE_DT): void {
   if (!f) return;
   tickEngineerTiles(st, dt);   // D5: the engineer moves (and lays kits) ahead of the machines and the block tick
   threatHooks.current?.tick(st, dt);   // M4: crawlers walk, turrets and the bots' rifle shoot, arrivals count
+  heartTick(st, dt);   // RI-06: the Junction Heart's commissioning — a no-op on every state without the layer
   for (const m of beltOrder(st, f)) if (running(st, m)) tickBelt(st, m, dt);
   let gens = 0;
   for (const m of f.machines) if (m.kind === 'generator' && (m.inv.coal ?? 0) > 0 && running(st, m)) gens++;
@@ -1130,6 +1136,7 @@ export function placeable(st: SimState, kind: Kind, tx: number, ty: number): str
       if (!fieldBlock(st, bi)) return b.state === DARK || b.state === CONTESTED ? 'not next to Held ground' : 'the block is not Held';
     }
     if (f.occ[t] !== undefined) return 'another machine is there';
+    if (cabinetAt(st, x, y) >= 0) return 'the feeder cabinet is there';   // RI-06
     if (margin && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && kind !== 'chest' && kind !== 'track' && kind !== 'tramstop' && !post) return 'not on the street';
     if (!margin && kind === 'track') return 'track runs on streets';   // RI-05, §13: Track — streets only
     // prompt B M3: a craftable Substation goes on a face that has none (§7: the outskirts), on the lot, one a face
@@ -1543,6 +1550,8 @@ export function contestProgress(st: SimState, bi: number): number {
   const b = st.blocks[bi];
   if (b.state === HELD) return 1;
   if (b.state !== CONTESTED) return -1;
+  const H = heartAt(st, bi);
+  if (H && H.attempt >= 0) return Math.max(0, Math.min(1, H.progress / H.cand.productiveS));   // RI-06: productive progress, not a burn-off
   const len = burnOffS(b.d);
   return Math.max(0, Math.min(1, (st.t - (b.contestUntil - len)) / len));
 }
@@ -1556,7 +1565,8 @@ export function blockLights(st: SimState, bi: number): Light[] {
   if (b.state !== HELD && b.state !== CONTESTED && b.state !== DARK) return [];
   const on = subPowered(st, b);
   const f = st.flow, tw = ground(st).tw, eaten = f ? brokenSet(f) : null, fixed = f ? repairedSet(f) : null;   // M4/M5: eaten lights stay dark until E repairs them
-  const seqT = b.state === CONTESTED ? b.contestUntil - burnOffS(b.d) : -Infinity, ranks = b.state === CONTESTED ? lightRanks(st, bi) : null;
+  const H = heartAt(st, bi);   // RI-06: the Heart's block lights up along its productive progress, not a burn-off clock
+  const seqT = b.state === CONTESTED ? (H && H.attempt >= 0 ? st.t - H.progress : b.contestUntil - burnOffS(b.d)) : -Infinity, ranks = b.state === CONTESTED ? lightRanks(st, bi) : null;
   const out: Light[] = ground(st).blocks[bi].lights.map((l, k) => {
     const t = l.ty * tw + l.tx;
     const why: Light['why'] = eaten?.has(t) ? 'eaten' : l.broken && !fixed?.has(t) ? 'broken' : '';
@@ -1718,16 +1728,21 @@ export function poleGrid(st: SimState): PoleGrid {
  *  hour bot places the run pole by pole from this (each pole priced and within reach like any placement); `layPoles`
  *  lays it whole for a legacy map claim. */
 export function polePlan(st: SimState, bi: number): [number, number][] {
-  const f = ensureFlow(st);
   if (bi < 0) return [];
   const sub = faceSub(st, bi);
   if (!sub) return [];
-  const tx = sub.x, ty = sub.y, tcx = tx + sub.size / 2, tcy = ty + sub.size / 2;
+  return polePlanTo(st, bi, sub.x, sub.y, sub.size);
+}
+/** RI-06: the same run toward any rectangle on block `bi` (a feeder cabinet's tile) — from the nearest connected pole,
+ *  else a claimed neighbour's substation. */
+export function polePlanTo(st: SimState, bi: number, tx: number, ty: number, size: number): [number, number][] {
+  const f = ensureFlow(st);
+  const tcx = tx + size / 2, tcy = ty + size / 2;
   const g = poleGrid(st);
   let from: [number, number] | null = null, best = Infinity;
   for (const m of f.machines) {
     if (!isPole(m) || !g.connected.has(m.id)) continue;
-    const d = distToRect(pcx(m), pcy(m), tx, ty, sub.size);
+    const d = distToRect(pcx(m), pcy(m), tx, ty, size);
     if (d <= reachOf(m)) return [];   // already strung
     if (d < best) { best = d; from = [pcx(m), pcy(m)]; }
   }
@@ -1742,7 +1757,7 @@ export function polePlan(st: SimState, bi: number): [number, number][] {
   const plan: [number, number][] = [], taken = new Set<number>();
   let [cx, cy] = from;
   for (let n = 0; n < 16; n++) {
-    if (distToRect(cx, cy, tx, ty, sub.size) <= POLE_REACH) break;
+    if (distToRect(cx, cy, tx, ty, size) <= POLE_REACH) break;
     const d = Math.hypot(tcx - cx, tcy - cy), ux = (tcx - cx) / d, uy = (tcy - cy) / d;
     const stepLen = Math.min(POLE_REACH - 1, d);
     const gx = Math.floor(cx + ux * stepLen), gy = Math.floor(cy + uy * stepLen);
@@ -1789,12 +1804,14 @@ export interface DeliverCheck { ok: boolean; reason: string; moved: number }
 /** Claim materials go from the pockets into a Dark block's installation — its substation, within reach — up to what
  *  the claim still needs. They sit committed there (ledger `committed`), neither in the pockets nor spent, until
  *  `activate` consumes them; a legitimate inventory interaction, never a charge from the map or the Depot. */
-export function deliverTo(st: SimState, bx: number, by: number, item: string, n: number): DeliverCheck {
+export function deliverTo(st: SimState, bx: number, by: number, item: string, n: number, cabinet = -1): DeliverCheck {
+  if (cabinet >= 0) return deliverToCabinet(st, cabinet, item, n);   // RI-06: a feeder cabinet's materials (heart.ts)
   const f = ensureFlow(st), bi = idxOf(st, bx, by);
   if (bi < 0) return { ok: false, reason: 'out of bounds', moved: 0 };
   if (item !== 'steel' && item !== 'copper') return { ok: false, reason: 'a claim takes steel and copper', moved: 0 };
   const b = st.blocks[bi];
   if (b.state !== DARK) return { ok: false, reason: b.state === CONTESTED ? 'already commissioning' : b.state === HELD ? 'already Held' : 'not a Dark block', moved: 0 };
+  if (heartAt(st, bi)?.charged) return { ok: false, reason: 'the installation keeps its materials from the last attempt', moved: 0 };   // RI-06 (plan §9.2 default 10): charged once
   const sub = faceSub(st, bi);
   if (!sub) return { ok: false, reason: 'no substation — the outskirts need a Substation first', moved: 0 };
   if (!inReach(st, sub.x, sub.y, sub.size)) return { ok: false, reason: 'walk closer to the substation', moved: 0 };
@@ -1828,13 +1845,16 @@ export function activationCheck(st: SimState, bx: number, by: number, hands = tr
   if (!g.reached.includes(bi)) return no('no pole run reaches its substation', have);
   if (!poleReaches(st, g.on, sub.x, sub.y, sub.size)) return no('its pole run hangs from a substation that is off', have);
   if (st.config.power && effectiveSupply(st) <= 0) return no('the grid has no supply — no Generator burning', have);
-  if (have.steel < need.steel || have.copper < need.copper) {
+  // RI-06: the Heart's installation is charged on the first Start only; its feeder cabinets are prerequisites too (heart.ts)
+  const H = heartAt(st, bi), got = H?.charged ? { ...H.charge } : have;
+  if (!H?.charged && (have.steel < need.steel || have.copper < need.copper)) {
     const s = need.steel - have.steel, c = need.copper - have.copper;
     return no(`needs ${[s > 0 ? `${s} more steel` : '', c > 0 ? `${c} more Cu` : ''].filter(Boolean).join(', ')} delivered`, have);
   }
-  if (hands && !inReach(st, sub.x, sub.y, sub.size)) return no('walk closer to the substation', have);   // RI-05: `hands` false asks about the site alone (a project's "ready")
-  if (hands && st.engineer.down >= 0) return no('the engineer is down', have);
-  return { ok: true, reason: '', need, have };
+  if (H) { const hc = heartCheck(st); if (!hc.ok) return no(hc.reason, got); }
+  if (hands && !inReach(st, sub.x, sub.y, sub.size)) return no('walk closer to the substation', got);   // RI-05: `hands` false asks about the site alone (a project's "ready")
+  if (hands && st.engineer.down >= 0) return no('the engineer is down', got);
+  return { ok: true, reason: '', need, have: got };
 }
 /** The explicit Activate (plan §4.1): one commissioning id per attempt. A refusal is an `activate-rejected` event
  *  naming the missing prerequisite and charges nothing. Success consumes the delivered materials once — into the block
@@ -1845,11 +1865,16 @@ export function activate(st: SimState, bx: number, by: number): ActivateCheck {
   const f = ensureFlow(st), id = ++f.commissionSeq;
   const chk = activationCheck(st, bx, by);
   if (!chk.ok) { st.events.push({ type: 'activate-rejected', t: st.t, x: bx, y: by, id, reason: chk.reason }); return chk; }
-  const bi = idxOf(st, bx, by), got = f.delivered[bi] ?? { steel: 0, copper: 0 };
-  st.stats.spentSteel = (st.stats.spentSteel ?? 0) + got.steel; st.stats.spentCopper = (st.stats.spentCopper ?? 0) + got.copper;
-  projectActivated(st, bi, id, got);   // RI-05: the site's project records the attempt and what it consumed
+  const bi = idxOf(st, bx, by), got = f.delivered[bi] ?? { steel: 0, copper: 0 }, H = heartAt(st, bi);
+  // RI-06 (plan §9.2 default 10): the Heart's installation is charged on the first Start only — a retry consumes nothing
+  const paid = H?.charged ? { ...H.charge } : got;
+  if (!H?.charged) { st.stats.spentSteel = (st.stats.spentSteel ?? 0) + got.steel; st.stats.spentCopper = (st.stats.spentCopper ?? 0) + got.copper; }
+  if (H && !H.charged) { H.charged = true; H.charge = { steel: got.steel, copper: got.copper }; }
+  projectActivated(st, bi, id, paid);   // RI-05: the site's project records the attempt and what it consumed
   delete f.delivered[bi];
-  startContested(st, bi, 'activate', id);
+  // RI-06: the Heart's commissioning wakes no bloom (its packets are its reinforcements) and has no burn-off — heart.ts ends it
+  startContested(st, bi, 'activate', id, H ? { bloom: false, until: Number.MAX_SAFE_INTEGER } : undefined);
+  if (H) heartStarted(st, id);
   syncProjects(st);
   return chk;
 }
@@ -2027,9 +2052,11 @@ handHook.current = (st, c) => {
     // RI-01: the scene's T on an Assembler as a command (within reach, a known recipe)
     case 'setRecipe': { const m = machineAt(st, c.x, c.y); if (m && isRecipeId(c.recipe) && inReach(st, m.x, m.y, m.size)) setRecipe(st, c.x, c.y, c.recipe); break; }
     // RI-03: physical commissioning — materials into the installation and the explicit Activate (both check reach of it)
-    case 'deliver': deliverTo(st, c.bx, c.by, c.item, c.n); break;
+    case 'deliver': deliverTo(st, c.bx, c.by, c.item, c.n, c.cabinet ?? -1); break;
     case 'activate': activate(st, c.bx, c.by); break;
     case 'commission': commission(st, c.id); break;   // RI-05: the supply depot's commissioning (checks reach of its chest)
+    case 'repairCabinet': repairCabinet(st, c.cabinet); break;   // RI-06: a knocked-out feeder cabinet (reach, REPAIR_COPPER)
+    case 'abort': abortHeart(st); break;   // RI-06: the explicit abort of the Heart's commissioning (plan §9.2 default 9)
     default: break;
   }
   syncProjects(st);   // RI-05: a placement, pick-up or transfer may move a project's stage

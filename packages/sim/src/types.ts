@@ -198,11 +198,14 @@ export type Command =
   // installation (its substation, within reach); `activate` is the explicit Activate on it — the only thing that
   // starts Contested on the tile layer. Block coordinates (bx, by), unlike the tile commands above. The block-level
   // `claim` above is the legacy map claim (the lattice bots, the snapshot fixture, the labelled legacy E-hour run).
-  | { type: 'deliver'; bx: number; by: number; item: string; n: number }
+  | { type: 'deliver'; bx: number; by: number; item: string; n: number; cabinet?: number }   // RI-06: `cabinet` k → the Heart's feeder cabinet k, not the substation
   | { type: 'activate'; bx: number; by: number }
   // RI-05 (plan §5): commission a ready non-claim project (project.ts) — the supply depot on a Held block; the
   // rail-yard project commissions through `activate` above (its site's claim is its commissioning)
-  | { type: 'commission'; id: string };
+  | { type: 'commission'; id: string }
+  // RI-06 (plan §9): repair a knocked-out feeder cabinet (E on it, REPAIR_COPPER); abort the running commissioning explicitly (plan §9.2 default 9)
+  | { type: 'repairCabinet'; cabinet: number }
+  | { type: 'abort' };
 
 /** RI-05 (plan §5.1): a neighbourhood project's stage, derived from the site's real prerequisites (project.ts). */
 export type ProjectStage = 'discovered' | 'preparing' | 'ready' | 'commissioning' | 'restored' | 'interrupted';
@@ -241,7 +244,9 @@ export type SimEvent =
   | { type: 'well-dead'; t: number; x: number; y: number }
   | { type: 'project'; t: number; id: string; stage: ProjectStage; site: number; attempt: number }   // RI-05: a project changed stage (site = its block index; attempt = the commissioning id, -1 none)
   | { type: 'stalker'; t: number; id: number; what: 'guard' | 'investigate' | 'pursue' | 'attack' | 'return' | 'spawn' | 'hit' | 'dodged' | 'dead' | 'retired'; x: number; y: number; site: number }   // RI-04: a Stalker changed mode, swung, died or retired (x,y its tile; site its block index)
-  | { type: 'hour'; t: number; row: HourRow };
+  | { type: 'hour'; t: number; row: HourRow }
+  // RI-06: the Junction Heart's transitions and packets (plan §9.2: "save all transitions deterministically") — one event per fact
+  | { type: 'heart'; t: number; what: 'start' | 'packet' | 'born' | 'knockout' | 'repair' | 'interrupted' | 'destroyed' | 'aborted'; attempt: number; x: number; y: number; threshold?: number; cabinet?: number; n?: number; why?: string };
 
 /** D5: the engineer. One body on the tile grid; the harness moves it block to block along the streets. */
 export interface Engineer {

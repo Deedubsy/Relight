@@ -22,9 +22,10 @@ import { HQ_PATCHES, P_STEEL, DEPOT_LOT, DEPOT_TILES } from './tiles';
 import {
   Kind, Dir, Item, Machine, depotRect, chestCount, turretEdge, placeable, canPlace, canPickUp, rubbleAt, outputTile, machineAt, DX, DY, DIR_NAMES,
   MACHINE_SIZE, MACHINE_COST, GENERATOR_COAL_CAP, survivorJoined, advanceFlow, TILE_DT, TILE_TPS, ensureFlow, SHOT, START_TURRETS,
-  polePlan, claimNeed, deliveredTo, activationCheck, faceSub, lockReason, tramAt, poolStr,
+  polePlan, polePlanTo, claimNeed, deliveredTo, activationCheck, faceSub, lockReason, tramAt, poolStr,
 } from './flow';
 import { projectOf, commissionCheck, describeProject, RAIL_YARD_PROJECT, SUPPLY_DEPOT_PROJECT, SUPPLY_DEPOT_NEED } from './project';
+import { heartOf, heartAt, describeHeart, cabinetRepairCheck } from './heart';   // RI-06
 import { threatActive, threatOf } from './threat';
 import { HOUR_CLAIM_MIN, HOUR_GENERATOR_MIN, HOUR_SHOT_LINE_MIN, HOUR_STEEL2_MIN, HOUR_COPPER2_MIN, HOUR_ASM3_MIN, HOUR_MINUTES } from './constants';
 
@@ -99,6 +100,10 @@ export interface HourBot {
   /** RI-05: how the rail yard's coal reaches the Depot — `belt` (E-hour's line, the benchmark) or `tram` (E-project:
    *  the restoration's reward laid as one track, two stops and one tram, and the local depot supplied by it). */
   route: 'belt' | 'tram';
+  /** RI-06 (E-heart): the west claim is the Junction Heart's encounter when the state carries the layer (`enableHeart`): the
+   *  installation and both feeder cabinets supplied and strung, a turret by each cabinet, the Start, then the patrol that
+   *  answers a knocked-out feeder (repair), an interruption (retry at the substation) and a low turret (feed). */
+  heart: boolean;
   /** RI-05: the tram route as laid (`tramLine`), for the depot-supply step and the report. */
   tram: TramPlan | null;
 }
@@ -643,6 +648,7 @@ function physicalClaimStep(bot: HourBot, dir: HourDir): Task[] {
       const b = st.blocks[i], sub = faceSub(st, i);
       if (!sub) { refused(bot, st, `claim ${dir}`, 'no substation to deliver to (the outskirts need a Substation first)'); return; }
       bot.claimed[dir] = i;
+      if (bot.heart && heartAt(st, i)) return heartClaimTasks(bot, dir, i, st);   // RI-06: the Heart's claim
       const need = claimNeed(st), poles = polePlan(st, i).length, spare = poles + 2;
       note(bot, st, `${dir} = block ${i} (${b.name}, d ${b.d.toFixed(2)}, burn-off ${burnOffS(b.d).toFixed(0)} s): ${poles} pole(s) to string, ${need.steel} steel + ${need.copper} Cu to deliver`);
       const deliver = (st2: SimState, out: Command[], item: 'steel' | 'copper'): void => {
@@ -711,6 +717,147 @@ function stringTask(bot: HourBot, i: number, dir: HourDir, n: number): Task {
         return [stringTask(bot, i, dir, n + 1)];
       }),
     ];
+  });
+}
+
+// ------------------------------------------------------------------ RI-06: the Junction Heart's claim (E-heart)
+
+/** RI-06: string a pole run to any tile on block `i` (a feeder cabinet), one pole at a time, as `stringTask` does. */
+function stringToTask(bot: HourBot, i: number, label: string, tx: number, ty: number, n: number): Task {
+  return act(n === 0 ? `string ${label}` : `next pole to ${label}`, st => {
+    const plan = polePlanTo(st, i, tx, ty, 1);
+    if (!plan.length) { note(bot, st, n > 0 ? `${n} pole(s) strung to ${label}` : `${label} is already on the grid`); return; }
+    if (n >= 20) { refused(bot, st, `string ${label}`, `${n} poles placed and the run still does not reach`); return; }
+    const [px, py] = plan[0];
+    return [
+      goto('pole', px, py, 1, n === 0 ? `string ${label}` : undefined),
+      act('place pole', (st2, out) => {
+        const chk = canPlace(st2, 'pole', px, py);
+        if (!chk.ok) { refused(bot, st2, `pole at (${px},${py}) for ${label}`, chk.reason); return; }
+        out.push({ type: 'place', item: 'pole', x: px, y: py, dir: 0 });
+        return [stringToTask(bot, i, label, tx, ty, n + 1)];
+      }),
+    ];
+  });
+}
+/** The nearest tile within ring 3 of (tx, ty) a turret may stand on now, or null. */
+function turretSpot(st: SimState, tx: number, ty: number): [number, number] | null {
+  for (let ring = 1; ring <= 3; ring++) for (let oy = -ring; oy <= ring; oy++) for (let ox = -ring; ox <= ring; ox++) {
+    if (Math.max(Math.abs(ox), Math.abs(oy)) !== ring) continue;
+    if (placeable(st, 'turret', tx + ox, ty + oy) === '') return [tx + ox, ty + oy];
+  }
+  return null;
+}
+/** RI-06 (plan §9.3, §9.4): the Heart's claim as the bot plays it — a prepared factory, rifle off. One chest trip carries
+ *  the installation's materials, both cabinets' materials, the poles, two turrets and their magazines: the installation
+ *  is strung and supplied as any claim's, then each feeder cabinet is strung (`polePlanTo`), supplied (`deliver` with
+ *  `cabinet`) and guarded by one turret placed within reach of it and fed by hand; the kits; the Start at the
+ *  substation; then the patrol (`heartPatrol`) until the yard is Held, and the ordinary walk-over and kit wait. */
+function heartClaimTasks(bot: HourBot, dir: HourDir, i: number, st: SimState): Task[] {
+  const H = heartAt(st, i)!, b = st.blocks[i], sub = faceSub(st, i)!, need = claimNeed(st), cab = H.cand.cabinet, nC = H.cabinets.length;
+  const poles = polePlan(st, i).length + nC * 3, spare = poles + 2, C = MACHINE_COST;
+  note(bot, st, `${dir} = block ${i} (${b.name}, d ${b.d.toFixed(2)}): the Junction Heart — ${nC} feeder cabinets at ${H.cabinets.map(c => `(${c.x},${c.y})`).join(' and ')}, ${cab.steel} steel + ${cab.copper} Cu each; the installation ${need.steel} steel + ${need.copper} Cu; ${H.cand.productiveS} s productive, ${H.cand.stallS} s stall, packets at ${H.cand.thresholds.join('/')} %`);
+  const deliverSub = (st2: SimState, out: Command[], item: 'steel' | 'copper'): void => {
+    const got = deliveredTo(st2, i), n = item === 'steel' ? need.steel - got.steel : need.copper - got.copper;
+    if (n > 0) out.push({ type: 'deliver', bx: b.x, by: b.y, item, n });
+  };
+  const tasks: Task[] = [
+    takeTask(bot, {
+      steel: need.steel + nC * cab.steel + spare * C.pole.steel + nC * C.turret.steel,
+      copper: need.copper + nC * cab.copper + spare * C.pole.copper + nC * C.turret.copper + 2 * nC,   // + REPAIR_COPPER a knock-out, two a cabinet
+      magazine: Math.ceil(nC * TURRET_HOPPER / SHOT.count),
+    }),
+    stringTask(bot, i, dir, 0),
+    goto(`${dir}'s substation`, sub.x, sub.y, sub.size, `deliver ${dir}`),
+    act(`deliver to ${dir}`, (st2, out) => { deliverSub(st2, out, 'steel'); deliverSub(st2, out, 'copper'); }),
+    act(`${dir} delivered`, st2 => {
+      const got = deliveredTo(st2, i);
+      note(bot, st2, `${got.steel} steel + ${got.copper} Cu delivered to the installation (needs ${need.steel} + ${need.copper})`);
+      if (got.steel < need.steel || got.copper < need.copper) refused(bot, st2, `deliver ${dir}'s materials`, `${got.steel} of ${need.steel} steel, ${got.copper} of ${need.copper} Cu delivered`);
+      else mark(bot, st2, `deliver-${dir}`);
+    }),
+  ];
+  H.cabinets.forEach((c, k) => {
+    const label = `cabinet ${k + 1}`;
+    tasks.push(
+      stringToTask(bot, i, label, c.x, c.y, 0),
+      ...within(bot, `deliver to ${label}`, c.x, c.y, 1, (st2, out) => {
+        const cc = heartOf(st2)!.cabinets[k];
+        for (const item of ['steel', 'copper'] as const) { const n = cab[item] - cc.delivered[item]; if (n > 0) out.push({ type: 'deliver', bx: b.x, by: b.y, item, n, cabinet: k }); }
+      }),
+      act(`${label} delivered`, st2 => {
+        const cc = heartOf(st2)!.cabinets[k];
+        if (cc.delivered.steel < cab.steel || cc.delivered.copper < cab.copper) refused(bot, st2, `deliver ${label}'s materials`, `${cc.delivered.steel} of ${cab.steel} steel, ${cc.delivered.copper} of ${cab.copper} Cu delivered`);
+        else mark(bot, st2, `cabinet-${k + 1}-supplied`);
+      }),
+      act(`a turret by ${label}`, st2 => {
+        const spot = turretSpot(st2, c.x, c.y);
+        if (!spot) { refused(bot, st2, `turret by ${label}`, 'no tile within three of the cabinet takes a turret'); return; }
+        return [...putAt(bot, 'turret', spot[0], spot[1], 0, `turret by ${label}`), feedTask('turret', spot[0], spot[1]),
+          act(`${label} guarded`, st3 => { if (machineAt(st3, spot[0], spot[1])?.kind === 'turret') mark(bot, st3, `turret-${k + 1}`); })];
+      }),
+    );
+  });
+  tasks.push(
+    chest(`back for ${dir}'s kits`, st),
+    ...kitsTask(bot),
+    goto(`${dir}'s substation`, sub.x, sub.y, sub.size, `activate ${dir}`),
+    until(`${dir} ready to start`, st2 => activationCheck(st2, b.x, b.y).ok, 60),
+    act(`start commissioning ${dir}`, (st2, out) => {
+      const chk = activationCheck(st2, b.x, b.y);
+      if (!chk.ok) { refused(bot, st2, `start commissioning ${dir}`, chk.reason); return [chest(`back from ${dir}`, st2)]; }
+      out.push({ type: 'activate', bx: b.x, by: b.y });
+      mark(bot, st2, `claim-${dir}`); mark(bot, st2, 'heart-start');
+      const Hn = heartOf(st2)!, deadline = st2.t + Hn.cand.productiveS + 3 * Hn.cand.stallS + 300, t0 = st2.t;
+      const [sx, sy] = blockStand(st2, i);
+      return [
+        heartPatrol(bot, dir, i, deadline),
+        goto(`${dir}'s lot`, sx, sy, 1, `walk-over ${dir}`),
+        act(`arrived on ${dir}`, st3 => {
+          mark(bot, st3, `arrive-${dir}`);
+          if (!bot.log.walks.some(w => w.name === `walk-over ${dir}`)) bot.log.walks.push({ name: `walk-over ${dir}`, t0, t1: st3.t, tiles: 0 });
+        }),
+        until(`${dir} Held and kitted`, st3 => kitted(st3, i), 180),
+        act(`${dir} kitted`, st3 => kittedNote(bot, st3, dir, i)),
+        chest(`back from ${dir}`, st2),
+      ];
+    }),
+  );
+  return tasks;
+}
+/** The patrol: every two seconds read the encounter and answer its active problem — a knocked-out feeder (walk to it,
+ *  repair), an interrupted attempt (the substation, Start again), a low turret (feed) — until the yard is Held, the
+ *  Heart is destroyed, or the deadline passes (a refusal naming the encounter's line). Rifle off throughout. */
+function heartPatrol(bot: HourBot, dir: HourDir, i: number, deadline: number): Task {
+  return act(`Heart patrol ${dir}`, st => {
+    const H = heartOf(st), b = st.blocks[i], sub = faceSub(st, i)!;
+    if (!H) return;
+    if (H.destroyed || b.state === HELD) { mark(bot, st, 'heart-destroyed'); return; }
+    if (st.t >= deadline) { refused(bot, st, `the Heart at ${dir}`, `not destroyed by the patrol's deadline — ${describeHeart(st)}`); return; }
+    const t0 = st.t, again = (): Task[] => [until('watching the Heart', s => s.t >= t0 + 2 || s.blocks[i].state === HELD, 10), heartPatrol(bot, dir, i, deadline)];
+    const k = H.cabinets.findIndex(c => c.down);
+    if (k >= 0) {
+      const c = H.cabinets[k];
+      mark(bot, st, 'cabinet-down');
+      return [...within(bot, `repair cabinet ${k + 1}`, c.x, c.y, 1, (s2, out) => {
+        const chk = cabinetRepairCheck(s2, k);
+        if (!chk.ok) refused(bot, s2, `repair cabinet ${k + 1}`, chk.reason);
+        else { out.push({ type: 'repairCabinet', cabinet: k }); mark(bot, s2, 'cabinet-repaired'); }
+      }), ...again()];
+    }
+    if (H.attempt < 0 && b.state === DARK) {
+      mark(bot, st, 'heart-interrupted');
+      return [goto(`${dir}'s substation`, sub.x, sub.y, sub.size, `retry ${dir}`), until(`${dir} ready to retry`, s2 => activationCheck(s2, b.x, b.y).ok, 60),
+        act(`retry ${dir}`, (s2, out) => {
+          const chk = activationCheck(s2, b.x, b.y);
+          if (!chk.ok) { refused(bot, s2, `retry ${dir}`, chk.reason); return; }
+          out.push({ type: 'activate', bx: b.x, by: b.y }); mark(bot, s2, 'heart-retry');
+        }), ...again()];
+    }
+    const e = st.engineer, low = st.flow!.machines.filter(m => m.kind === 'turret' && blockOfTile(st, m.x, m.y) === i && (m.inv.rounds ?? 0) <= TURRET_HOPPER / 2)
+      .sort((p, q) => Math.hypot(p.x - e.x, p.y - e.y) - Math.hypot(q.x - e.x, q.y - e.y));
+    if (low.length && (e.inv.magazine ?? 0) > 0) return [goto('turret', low[0].x, low[0].y, low[0].size, 'Heart feed'), feedTask('turret', low[0].x, low[0].y), ...again()];
+    return again();
   });
 }
 
@@ -995,9 +1142,9 @@ function depotSupply(bot: HourBot, st: SimState): Task[] {
 
 // ------------------------------------------------------------------ the bot
 
-export function createHourBot(rifle = false, coalPlan: 'chest' | 'wait' = 'chest', northAt = HOUR_CLAIM_AT.north, claimPath: 'physical' | 'map' = 'physical', route: 'belt' | 'tram' = 'belt'): HourBot {
+export function createHourBot(rifle = false, coalPlan: 'chest' | 'wait' = 'chest', northAt = HOUR_CLAIM_AT.north, claimPath: 'physical' | 'map' = 'physical', route: 'belt' | 'tram' = 'belt', heart = false): HourBot {
   const bot: HourBot = { rifle, log: { entries: [], marks: {}, walks: [], refused: [] }, steps: [], next: 0, queue: [], claimed: {}, lastRun: HOUR_RUN_FROM - HOUR_RUN_GAP, aiming: false, fellWhy: {}, handsOff: false, ticks: 0, fedAtFeedDone: -1,
-    coalPlan, claimPath, lastFeed: -Infinity, stock: [], steelMin: Infinity, steelMinAt: -1, copperMin: Infinity, coalMin: Infinity, northAt, atFirstRed: null, coalZeroAt: -1, route, tram: null };
+    coalPlan, claimPath, lastFeed: -Infinity, stock: [], steelMin: Infinity, steelMinAt: -1, copperMin: Infinity, coalMin: Infinity, northAt, atFirstRed: null, coalZeroAt: -1, route, tram: null, heart };
   bot.steps = hourSteps(bot).sort((a, b) => a.at - b.at);
   return bot;
 }
@@ -1040,6 +1187,16 @@ function watch(st: SimState, bot: HourBot): void {
   if (dp?.stage === 'ready' || dp?.stage === 'restored') mark(bot, st, 'depot-supplied');
   if (dp?.stage === 'restored') mark(bot, st, 'depot-restored');
   if (f.stats.delivered.coal > f.stats.minedOf.coal - f.stats.handMinedOf.coal - f.stats.railCoal) mark(bot, st, 'rail-coal-arrived');
+  // RI-06: the Heart's moments — the first body born, each threshold's packet (once per attempt: the mark keeps the first), a feeder down / repaired, an interruption, the destruction
+  const Hs = f.heart;
+  if (Hs) {
+    if (Hs.stats.born > 0) mark(bot, st, 'heart-first-body');
+    for (const key in Hs.requested) mark(bot, st, `packet-${key.split(':')[1]}`, Hs.requested[key]);
+    if (Hs.stats.knockouts > 0) mark(bot, st, 'cabinet-down');
+    if (Hs.stats.repairs > 0) mark(bot, st, 'cabinet-repaired');
+    if (Hs.stats.interrupted > 0) mark(bot, st, 'heart-interrupted');
+    if (Hs.destroyed) mark(bot, st, 'heart-destroyed', Hs.destroyedAt);
+  }
   if (f.tick % TILE_TPS === 0) {
     for (const ed of st.ring) {
       if (ed.born === st.t || ed.kit === false) continue;

@@ -32,6 +32,7 @@ import { hash01 } from './prng';
 import { moveTo, stepToward, NX, NY, NC, headingWord } from './move';
 import { Stalker, StalkerLayer, newStalkerLayer, spawnStalkers, damageStalker, tickStalkers } from './stalker';
 import { CANDIDATES, StalkerCandidate } from './candidates';
+import { heartAt, cabinetAt, knockOutCabinet } from './heart';   // RI-06
 import { hurt, threatHooks, RETALIATE_HP_PER_S, RIFLE_RANGE, RIFLE_HIT_RADIUS, rifleRate } from './engineer';
 import { ENEMIES } from './enemies';
 import { TURRET_RANGE, TURRET_ROUNDS_PER_S } from './recipes';
@@ -57,6 +58,8 @@ export interface Crawler {
   stuck: number;             // seconds without progress
   /** RI-04: the emergence point it was born at (emergence.ts id; absent on a body placed by hand or before RI-04). */
   origin?: number;
+  /** RI-06: the Heart packet this body belongs to (`${attempt}:${threshold}`); such a body has no ring edge (`edge` -1). */
+  packet?: string;
   /** RI-04: unit direction of its last move, for the world view's heading tick. */
   dir?: [number, number];
   /** RI-04 (shades): the last TRACE_N tiles it crossed and when — its trace on unlit ground (`shadeTraces`). */
@@ -118,6 +121,21 @@ function spawn(st: SimState, edgeId: number, cr: number, sh: number, escaped: bo
   while (acc[1] >= 1 - 1e-9) { acc[1] -= 1; birth('shade'); }
   return true;
 }
+/** RI-06: one Crawler of a Heart packet (heart.ts), born on the approach's frontage facing the Heart's block — its
+ *  emergence point, the same seeded birth tile as a wake's — with no ring edge: it walks the encounter's targets (a
+ *  standing feeder cabinet, then the installation) and is shot, counted and cleaned up like any other body. False
+ *  without an emergence point that way. */
+export function heartBirth(st: SimState, from: number, to: number, packet: string): boolean {
+  if (!threatActive(st)) return false;
+  const f = st.flow!, T = threatOf(f), pt = emergencePoint(st, from, to);
+  if (!pt) return false;
+  T.born ??= {};
+  const [tx, ty] = birthTile(st, pt, hash01(st.seed, st.t, from * 7919 + to, T.next));
+  T.crawlers.push({ id: T.next++, kind: 'crawler', x: tx + 0.5, y: ty + 0.5, hp: HP.crawler, edge: -1, from, to, cls: 2, onPlayer: false, escaped: false, born: st.t, stuck: 0, origin: pt.id, dir: [0, 0], packet });
+  T.born[pt.id] = (T.born[pt.id] ?? 0) + 1;
+  T.stats.spawned++;
+  return true;
+}
 
 // ------------------------------------------------------------------ the per-face flow field
 
@@ -137,6 +155,10 @@ function targetsOf(st: SimState, to: number, cls: Cls): { tiles: number[]; cls: 
     } else if (c === 1) {
       for (const m of f.machines) if (m.kind === 'turret' && G.near[m.y * G.tw + m.x] === to) footprint(G, m.x, m.y, m.size, tiles);
     } else {
+      // RI-06: while the Heart stands its feeder cabinets are the target (a standing one — a knocked-out cabinet is passed over), then the installation
+      const H = heartAt(st, to);
+      if (H) for (const cb of H.cabinets) if (!cb.down && inGround(G, cb.x, cb.y)) tiles.push(cb.y * G.tw + cb.x);
+      if (tiles.length) return { tiles, cls: 2 };
       const s = faceSub(st, to);
       if (s) footprint(G, s.x, s.y, s.size, tiles);
       else { const p = G.blocks[to].pole; tiles.push(p[1] * G.tw + p[0]); }   // GAME-ASSUMPTION: no substation (outskirts) → the block's pole tile
@@ -195,7 +217,9 @@ function fieldFor(st: SimState, c: Crawler): Field {
 
 // RI-02: the turret's firing cooldown lives on the Machine (`cool`), so a saved state reloads mid-cooldown and replays
 // identically; before RI-02 it sat in a WeakMap outside the state and a load reset it to 0.
-const isCrawlerHeld = (st: SimState, c: Crawler): boolean => st.blocks[c.to].state === HELD;
+const isCrawlerHeld = (st: SimState, c: Crawler): boolean =>
+  // RI-06: a packet body (no ring edge) lives while the Heart stands — Dark between attempts too — or the block is Held
+  c.edge < 0 ? !!heartAt(st, c.to) || st.blocks[c.to].state === HELD : st.blocks[c.to].state === HELD;
 
 function tick(st: SimState, dt: number): void {
   if (!threatActive(st)) return;
@@ -343,6 +367,13 @@ function arrive(st: SimState, T: ThreatState, c: Crawler, fld: Field): void {
     return;   // the field rebuilds without that light; the next lit lamp, then the turrets
   }
   if (fld.cls === 1) { c.cls = 2; return; }   // GAME-ASSUMPTION: crawlers do not harm a turret (§7 gives them no such attack); it is the chain's waypoint
+  // RI-06: at a feeder cabinet the arrival knocks the feeder out (repaired for REPAIR_COPPER); at the Heart's installation
+  // before it is destroyed the body is spent — a block that is not Held has nothing to starve
+  if (heartAt(st, c.to)) {
+    const tt = nearestTarget(fld.targets, tw, c.x, c.y), k = tt >= 0 ? cabinetAt(st, tt % tw, Math.floor(tt / tw)) : -1;
+    if (k >= 0) knockOutCabinet(st, k);
+    if (k >= 0 || b.state !== HELD) { c.hp = 0; return; }
+  }
   // the substation: an unfed arrival, counted by the block model's 40-arrival rule (§11)
   T.stats.arrivals++;
   if (c.kind === 'shade') T.stats.shadeArrivals++;
@@ -370,6 +401,7 @@ function fightFor(T: ThreatState, st: SimState, edge: number): Fight {
 function hit(st: SimState, T: ThreatState, e: Engineer, c: Target): void {
   T.shotAt = st.t;
   if (c.kind === 'stalker') { if (damage(st, T, c)) e.kills++; return; }   // RI-04: no engagement, no retaliation — it is already on you
+  if (c.edge < 0) { turn(st, T, c, 'shot'); if (damage(st, T, c)) { e.kills++; T.stats.rifleKills++; } return; }   // RI-06: a packet body has no edge engagement to charge
   const fg = fightFor(T, st, c.edge);
   fg.rounds++;
   turn(st, T, c, 'shot');
@@ -393,7 +425,7 @@ function fire(st: SimState, e: Engineer, ax: number, ay: number): boolean {
     bestAlong = along; best = c;
   }
   if (best) hit(st, T, e, best);
-  else { const c = nearest(st, T, e.x, e.y, RIFLE_RANGE); if (c && c.kind !== 'stalker') { fightFor(T, st, c.edge).rounds++; T.shotAt = st.t; } }
+  else { const c = nearest(st, T, e.x, e.y, RIFLE_RANGE); if (c && c.kind !== 'stalker' && c.edge >= 0) { fightFor(T, st, c.edge).rounds++; T.shotAt = st.t; } }
   return true;
 }
 
@@ -439,21 +471,21 @@ export function crawlerAt(st: SimState, x: number, y: number, r = 0.8): Crawler 
 }
 /** RI-04: a crawler's current target as a tile — the engineer once it has turned, else the nearest footprint tile
  *  of its chain link on the block it walks into — and the word for it. */
-export function crawlerTarget(st: SimState, c: Crawler): { tx: number; ty: number; what: 'you' | 'lamp' | 'turret' | 'substation' } | null {
+export function crawlerTarget(st: SimState, c: Crawler): { tx: number; ty: number; what: 'you' | 'lamp' | 'turret' | 'substation' | 'cabinet' } | null {
   if (c.onPlayer) { const e = st.engineer; return { tx: Math.floor(e.x), ty: Math.floor(e.y), what: 'you' }; }
   if (!threatActive(st)) return null;
   const tw = ground(st).tw, { tiles, cls } = targetsOf(st, c.to, c.cls);
   const t = tiles.length ? nearestTarget(tiles, tw, c.x, c.y) : -1;
   if (t < 0) return null;
-  return { tx: t % tw, ty: Math.floor(t / tw), what: cls === 0 ? 'lamp' : cls === 1 ? 'turret' : 'substation' };
+  return { tx: t % tw, ty: Math.floor(t / tw), what: cls === 0 ? 'lamp' : cls === 1 ? 'turret' : cabinetAt(st, t % tw, Math.floor(t / tw)) >= 0 ? 'cabinet' : 'substation' };   // RI-06: a feeder cabinet
 }
 export function describeCrawler(st: SimState, c: Crawler): string {
   const b = st.blocks[c.to], tg = crawlerTarget(st, c);
-  const goal = c.onPlayer ? 'turned on you' : c.cls === 0 ? 'toward the nearest lit lamp' : c.cls === 1 ? 'toward a turret' : 'toward the substation';
+  const goal = c.onPlayer ? 'turned on you' : c.cls === 0 ? 'toward the nearest lit lamp' : c.cls === 1 ? 'toward a turret' : tg?.what === 'cabinet' ? 'toward a feeder cabinet' : 'toward the substation';
   // RI-04: heading, the target's tile and the emergence point it came from (plan §7: "direction and current target are inspectable")
   const heading = c.dir ? ` · heading ${headingWord(c.dir)}` : '';
   const at = tg && !c.onPlayer ? ` at (${tg.tx},${tg.ty})` : '';
-  const from = c.origin !== undefined ? ` · from emergence point ${c.origin}` : '';
+  const from = (c.origin !== undefined ? ` · from emergence point ${c.origin}` : '') + (c.packet !== undefined ? ` · Heart reinforcement ${c.packet}` : '');   // RI-06
   return `${c.kind === 'shade' ? 'Shade' : 'Crawler'} · ${Math.max(0, c.hp)}/${HP[c.kind]} HP${heading} · ${goal}${at} on (${b.x},${b.y})${from}`;
 }
 /** RI-04: every shade's trace — the tiles it crossed within TRACE_S, with their age — the world view draws these on

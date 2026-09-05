@@ -4,7 +4,7 @@ import {
   SimState, SimEvent, Command, SimConfig, DEFAULT_CONFIG, generateMap, createState, advance, takeEvents,
   Bot, createBot, botCommands, Policy, POLICIES, protoCalibrated, ensureFlow, advanceFlow, botHands, citySpec, CityPreset, CITY_PRESETS,
   HourBot, createHourBot, hourCommands, LoggedCommand, replay, replayVerdict, ReplayVerdict,
-  SaveFile, makeSave, loadState, isSaveFile, stateHash, enableStalkers,
+  SaveFile, makeSave, loadState, isSaveFile, stateHash, enableStalkers, enableHeart,
 } from '@relight/sim';
 import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } from './telemetry';
 
@@ -15,7 +15,7 @@ import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } fro
 /** M6: `autoplay=hour` runs §11's hour bot on the tile layer (hour.ts; a dev aid, never a player control); `rifle=1`
  *  gives it the rifle reflex. Every command of a session is logged (`Session.log`) so a played hour replays without
  *  the rifle for Gate B's "did it matter?" row (`replaySession`). */
-export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | 'hour' | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean; map: 'lattice' | CityPreset; rifle: boolean; stalker: boolean }
+export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | 'hour' | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean; map: 'lattice' | CityPreset; rifle: boolean; stalker: boolean; heart: boolean }
 
 export function parseUrl(search: string): UrlParams {
   const q = new URLSearchParams(search);
@@ -33,6 +33,7 @@ export function parseUrl(search: string): UrlParams {
     map: mapParam(q.get('map')),
     rifle: q.get('rifle') === '1',
     stalker: q.get('stalker') === '1',   // RI-04 (D-RI-5): the Stalker candidate — a switch, never the benchmark's default
+    heart: q.get('heart') === '1',   // RI-06 (D-RI-5): the Junction Heart candidate — the rail yard's claim as the first boss
   };
 }
 
@@ -54,6 +55,7 @@ export function shareUrl(p: UrlParams): string {
   if (p.autoplay) q.set('autoplay', p.autoplay);
   if (p.rifle) q.set('rifle', '1');
   if (p.stalker) q.set('stalker', '1');
+  if (p.heart) q.set('heart', '1');
   const u = new URL(location.href);
   u.search = q.toString();
   return u.toString();
@@ -154,6 +156,8 @@ export function createSession(params: UrlParams, snapshot: Loaded | null = null)
   // RI-04 (D-RI-5): `?stalker=1` fields the Stalker candidate (candidates.ts) on this session's threat layer — a
   // candidate configuration outside SimConfig, so the config hash and the benchmark are untouched
   if (params.flow && params.stalker) enableStalkers(state);
+  // RI-06 (D-RI-5): `?heart=1` puts the Junction Heart (candidates.ts) on the rail yard — the same rule: a switch beside the benchmark
+  if (params.flow && params.heart) enableHeart(state);
   const scenario = snapshot ? 'B' : 'A';
   const tel = createTelemetry(state, location.href, params.player, scenario, snapshot ? params.state : null);
   tel.speeds.push({ t: state.t, realTime: 0, speed: state.speed });
@@ -258,6 +262,7 @@ export function replaySession(s: Session, opts: { rifleOff?: boolean } = {}): { 
   Object.assign(st.config, { power: true, supply: 'generators', draw: 'half' });
   ensureFlow(st);
   if (s.params.stalker) enableStalkers(st);   // RI-04: the candidate is part of what the log was played against
+  if (s.params.heart) enableHeart(st);   // RI-06: likewise
   replay(st, s.log, s.state.flow.tick, { dropAim: opts.rifleOff ?? true });
   return { verdict: replayVerdict(s.state, st), state: st };
 }

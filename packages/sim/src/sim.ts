@@ -681,17 +681,20 @@ export function claim(st: SimState, x: number, y: number): boolean {
  *  configured response), the burn-off timer (§5 step 4), the claim counters and the `claim` event. The caller has
  *  checked the prerequisites and taken the payment; `id` is an activation's commissioning id, stamped on the claim
  *  event and its wake bloom so telemetry shows one response per attempt and never a bloom and an encounter twice. */
-export function startContested(st: SimState, i: number, via: 'map' | 'activate', id?: number): void {
+/** RI-06: `opts.bloom === false` wakes no bloom (the Heart's reinforcements are its packets, heart.ts); `opts.until`
+ *  replaces the ordinary burn-off — the Heart's commissioning ends when heart.ts says so (GDD §28.8). */
+export function startContested(st: SimState, i: number, via: 'map' | 'activate', id?: number, opts?: { bloom?: boolean; until?: number }): void {
   const t = st.t, b = st.blocks[i], x = b.x, y = b.y;
   const F = frontage(st), I = interior(st);
   // GAME-ASSUMPTION: the claim event's F/I "after" are projections at claim time (as if the block were Held now),
   // not the values when it actually turns Held; the brief's telemetry does not say which.
   const fAfter = frontageIf(st, i, F), iAfter = interiorIf(st, i, I);
   catchUp(st, b, t);
-  const [cr, sh, hu] = wakeBloom(st, b.d, x, y);
+  const bloom = opts?.bloom !== false;
+  const [cr, sh, hu] = bloom ? wakeBloom(st, b.d, x, y) : [0, 0, 0];
   const dBefore = b.d;
-  recordBloom(st, i, cr, sh, hu, true, id);
-  b.state = CONTESTED; b.contestUntil = t + burnOffS(b.d);   // §5 step 4: 20 + 60·d s of burn-off [sim: B-M5-light]
+  if (bloom) recordBloom(st, i, cr, sh, hu, true, id);
+  b.state = CONTESTED; b.contestUntil = opts?.until ?? t + burnOffS(b.d);   // §5 step 4: 20 + 60·d s of burn-off [sim: B-M5-light]
   b.awake = false;
   const retake = st.fallen[i];
   if (retake) st.stats.retakes++;
@@ -701,6 +704,19 @@ export function startContested(st: SimState, i: number, via: 'map' | 'activate',
                          fBefore: F, fAfter, iBefore: I, iAfter, retake, cr, sh, hu, via };
   if (id !== undefined) ev.id = id;
   st.events.push(ev);
+}
+
+/** RI-06 (plan §9.2 default 10): a boss commissioning that stalled or was aborted — the block goes back to Dark with
+ *  its darkness, machines, pole run and deliveries intact; the retry is the same Activate. Nothing fell: no `lost`
+ *  count, no fall event, no darkness reset (a fall sets d 0.3 — this keeps d, the block was never Held). Only
+ *  heart.ts calls it; the ordinary burn-off never does. */
+export function interruptContested(st: SimState, i: number): boolean {
+  const b = st.blocks[i];
+  if (b.state !== CONTESTED) return false;
+  b.state = DARK; b.contestUntil = -1; b.timer = -1; b.upto = st.t + 1; b.awake = false;
+  stateChange(st, i);
+  if (st.config.production) syncEdges(st);
+  return true;
 }
 
 function reject(st: SimState, x: number, y: number, reason: string): boolean {

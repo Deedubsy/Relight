@@ -3,6 +3,7 @@ import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queu
   hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
   projectOf, projectTitle, describeProject, RAIL_ROUTE_REWARD, LOCAL_DEPOT_REWARD,   // RI-05
   idxOf, LIGHT_SEQ_PER_S, REPAIR_COPPER, hourReport, blockLabel, stateHash, currentGoal, clockOf,
+  heartAt, heartOf, CANDIDATES,   // RI-06
 } from '@relight/sim';
 import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue, record, replaySession, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
 import { MapScene, MapView, SceneHooks, MAP_W, MAP_H } from './mapScene';
@@ -75,11 +76,13 @@ function describe(events: SimEvent[]): void {
       case 'claim': {
         if (!session.state.flow) break;
         const kits = session.state.engineer.inv.kit ?? 0;
-        const burn = Math.round(session.state.blocks[idxOf(session.state, ev.x, ev.y)].contestUntil - ev.t);
+        const bi = idxOf(session.state, ev.x, ev.y), H = heartAt(session.state, bi);
+        // RI-06: the Heart's block has no burn-off timer — its commissioning is the encounter (§28.8)
+        const burn = Math.round(session.state.blocks[bi].contestUntil - ev.t), burnTxt = H && H.attempt >= 0 ? `${H.cand.productiveS} s of productive commissioning (both feeders powered)` : `${burn} s`;
         // M5 (§5 step 3–4, §6): the streetlights come on now, in sequence; the rot burns off over 20 + 60·d s.
         // RI-03: the game's claim is the Activate at the substation (materials spent once, there); the map path's
         // wording stays for the legacy bot / a replay of an old log
-        panel.toast(`${ev.via === 'activate' ? `${at(ev.x, ev.y)} activated — its claim materials spent at the substation` : `Poles strung to ${at(ev.x, ev.y)}`} — its streetlights come on now, ${LIGHT_SEQ_PER_S} a second from the substation out; the rot burns off in ${burn} s${kits ? '' : '. Its edges wait for a kit: take kits from the Depot chest (I) and walk there'}`);
+        panel.toast(`${ev.via === 'activate' ? `${at(ev.x, ev.y)} activated — its claim materials spent at the substation` : `Poles strung to ${at(ev.x, ev.y)}`} — its streetlights come on now, ${LIGHT_SEQ_PER_S} a second from the substation out; the rot burns off in ${burnTxt}${kits ? '' : '. Its edges wait for a kit: take kits from the Depot chest (I) and walk there'}`);
         break;
       }
       case 'kitted': panel.toast(`Kits laid on ${at(ev.x, ev.y)} — ${ev.edges} edge${ev.edges === 1 ? '' : 's'} armed`, 'good'); break;
@@ -92,6 +95,20 @@ function describe(events: SimEvent[]): void {
         else if (ev.what === 'retired') panel.toast(`The Stalker from ${at2(ev.site)} withdrew — its site is restored`, 'good');
         else if (ev.what === 'spawn' && ev.t > 0) panel.toast(`A Stalker guards ${at2(ev.site)} again`);
         break;
+      // RI-06 (rule 8, plan §9.4): the Junction Heart's rules surface as toasts — the Start, each reinforcement packet's
+      // approach, a feeder knocked out / repaired, the interruption, the abort, the destruction
+      case 'heart': {
+        const hc = heartOf(session.state)?.cand ?? CANDIDATES.heart, cab = ev.cabinet !== undefined ? `feeder cabinet ${ev.cabinet + 1}` : 'a feeder cabinet';
+        if (ev.what === 'start') panel.toast(`Commissioning the Junction Heart at ${at(ev.x, ev.y)} (attempt ${ev.attempt}): ${hc.productiveS} s with both feeder cabinets powered; ${hc.stallS} s without and it is interrupted. Reinforcements at ${hc.thresholds.join(' / ')} %. X aborts.`);
+        else if (ev.what === 'packet') panel.toast(`${ev.threshold} % — the Heart calls a packet toward ${cab}: ${ev.n ?? ''} crawler${ev.n === 1 ? '' : 's'} in ${hc.approachS} s from the far kerb`, 'bad');
+        else if (ev.what === 'born') panel.toast(`Reinforcements on the kerb toward ${cab}`, 'bad');
+        else if (ev.what === 'knockout') panel.toast(`${cab} knocked out — commissioning pauses until it is repaired (E on it, ${REPAIR_COPPER} Cu) — ${hc.stallS} s to interruption`, 'bad');
+        else if (ev.what === 'repair') panel.toast(`${cab} repaired`, 'good');
+        else if (ev.what === 'interrupted') panel.toast(`Commissioning interrupted (${ev.why ?? 'stalled'}): the block is Dark again; the installation keeps its materials and the cabinets their deliveries — repair, then Start again at the substation`, 'bad');
+        else if (ev.what === 'aborted') panel.toast('Commissioning aborted — the installation keeps its materials; Start again at the substation when ready');
+        else if (ev.what === 'destroyed') panel.toast(`The Junction Heart at ${at(ev.x, ev.y)} is destroyed — the switching installation is operational; the rail kit unlocks with the yard`, 'good');
+        break;
+      }
       // M4 (rule 8): the tile threat's rules surface as toasts — retaliation only (D5), lamps eaten, the 40-arrival count
       case 'engineer-up': panel.toast('Back on your feet at the HQ workbench — pockets intact, no other penalty', 'good'); break;
       case 'retaliate': panel.toast(ev.cause === 'shot' ? 'A crawler turned on you: you shot it. It bites at arm\'s reach (5 HP/s) — finish it (3 rounds) or step back' : 'A crawler turned on you: you are standing in its path. Step aside, or shoot it', 'bad'); break;

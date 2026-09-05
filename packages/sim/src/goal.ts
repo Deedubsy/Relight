@@ -25,6 +25,7 @@ import { COAL_MJ, GENERATOR_KW, TURRET_HOPPER } from './recipes';
 import { EXCAVATOR_PER_S } from './constants';
 import { HOUR_MINE_STEEL, HOUR_CRAFT_MAGS, HOUR_END } from './hour';
 import { blockName, hqNeighbourToward, streetName } from './names';
+import { heartAt, describeHeart } from './heart';   // RI-06
 
 export type GoalDir = 'east' | 'west' | 'north';
 export type GoalId =
@@ -133,6 +134,10 @@ function frontWhy(st: SimState): string {
 function claimLine(st: SimState, dir: GoalDir, i: number): GoalLine | null {
   const b = st.blocks[i], name = blockName(st, i);
   if (b.state === CONTESTED) {
+    // RI-06: the Heart's commissioning is the encounter's line (objective, active failure condition, next action), not a burn-off clock
+    const H = heartAt(st, i);
+    if (H && H.attempt >= 0) return { id: `contest-${dir}`, block: i, text: `Commission ${name}: ${describeHeart(st)}`,
+      why: 'the Junction Heart: both feeder cabinets powered for the whole productive time; a knocked-out or unpowered feeder pauses it and interrupts it after the stall time — everything on the block is kept for the retry' };
     const left = Math.max(0, b.contestUntil - st.t);
     return { id: `contest-${dir}`, block: i,
              text: `Hold ${name}: Held in ${n(left)} s`,

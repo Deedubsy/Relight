@@ -921,3 +921,145 @@ choice, not this task's. RI-05's sizes, caps and prices, listed above as default
 
 **Next.** RI-06, ready (blocked by RI-04 and RI-05, both done); T12b and T12c runnable
 behind it in list order.
+
+## RI-06 — The Junction Heart (2026-09-05) — code only, unverified
+
+**Authorisation.** The plan's RI-06 row (§9: "**Direction:** prototype this encounter
+first"; §9.2's state machine and twelve implementation defaults; §9.3; §9.4's acceptance)
+and `PROGRESS.md`'s, executed on "Whole plan" (D-RI-1, recorded at RI-00). Blocked by
+RI-04 and RI-05, both done. The hybrid's third task (D-RI-4). The direction is GDD §28.8;
+every number and shape this task chose is an implementation default under D-RI-6 —
+reversible, not a historical approval, no earlier gate credited with any of it. The
+encounter is a candidate configuration (D-RI-5): `CANDIDATES.heart` in `candidates.ts`,
+outside `SimConfig` (hash unchanged), switched on per state by `enableHeart` and in the
+game by `?heart=1`, reported as `E-heart` (run name RI-06-cand-heart) beside `E-hour`, which
+keeps its configuration. Plan §2 holds: no loot, no random drop, no health bar to shoot
+(the Heart is destroyed by commissioning, never by damage); belts and machines stay
+indestructible (the cabinets are knocked out and repaired, never destroyed); §8 holds: no
+new roaming rule, no density change — the packets are the only spawning the encounter adds
+and they stay under the global population budget and their own cap.
+
+**The user's instruction for this task.** After eight hours of verification passes on the
+earlier tasks the user said: *"Ok don't worry about running tests or simulations, just
+write the code."* So this task **ran no test, experiment, snapshot, docsync, freshness or
+browser check**. `npx tsc --noEmit` on sim, harness and game and eslint on sim and harness
+were run and are green; nothing else. `E-heart` and `heart.test.ts` are written and unrun;
+`docs/EXPERIMENTS.md` still holds RI-05's runs. Every claim below about what the code does
+is a reading of the code, not a measurement. The verification pass is scheduled
+separately; a red result there is fixed under RI-06 before RI-07's evidence is claimed.
+
+**What the repository was (inspected before any edit).** HEAD `60d9f3f` on `ri-pass-1`
+(RI-05's commit). The rail yard's restoration was a claim like any other: the Activate at
+its substation, a wake bloom, a burn-off of 20 + 60·d s, then Held and the project
+record's reward. No boss site, no cabinet, no encounter state anywhere (§28.7, §28.8
+direction only). `deliver` carried no target but the block; `startContested` always
+bloomed and always set the burn-off timer; a crawler targeted the substation, streetlights
+or the ring; the hour bot's west claim was RI-03's physical claim step.
+
+**What was built.**
+
+- *The layer (`packages/sim/src/heart.ts`, new; `candidates.ts`).* `HeartState` on
+  `FlowState.heart`: the site (the rail yard's block), two `HeartCabinet`s, the attempt
+  id, productive progress and stall seconds, the once-only charge, the requested packets
+  (`attempt:threshold` → the second requested), the pending packets, `destroyed` and the
+  stats. `enableHeart(st)` (idempotent, requires the flow layer and a rail yard) places
+  one cabinet toward each of the yard's first two Dark neighbours in block-index order:
+  the yard's emergence point toward that neighbour moved `MARGIN_TILES + 1` inward along
+  the dominant axis, then the nearest passable lot tile the yard owns with no rubble,
+  machine or substation (ring ≤ 4). The candidate: 90 s productive, 60 s stall, thresholds
+  25 / 50 / 75 %, 5 s approach, packets of 2 / 3 / 4 Crawlers, 8 live at most, 4 steel +
+  2 Cu a cabinet.
+- *Deliveries and power.* `deliver` gained `cabinet`; `deliverToCabinet` moves what the
+  cabinet still needs from the pockets within reach; a charged installation refuses a
+  second delivery. `cabinetConnected` = not knocked out, supply above zero and a pole run
+  reaching the tile (`polePlanTo` strings a run to any tile; `placeable` refuses the
+  cabinet's tile). The ledger counts the cabinets' stock as committed.
+- *The Start and the encounter.* `activationCheck` on the Heart's block adds
+  `heartCheck` (each cabinet supplied, up and on the live grid — the reason names the
+  cabinet and the corrective action) and reads the charge instead of the store when the
+  installation is already charged. `activate` charges once (`H.charged`, the spent
+  counters once), starts the block Contested with `bloom: false` and `until:
+  Number.MAX_SAFE_INTEGER` (no burn-off — §28.8's sentence built; `contestProgress` and
+  `blockLights` read the productive fraction), then `heartStarted`. `heartTick` each
+  flow tick: productive while both cabinets are connected (progress and the threshold
+  requests, keyed to the attempt and threshold, the packet born `approachS` later on the
+  approach's emergence point via `heartBirth`, bounded by `maxAlive`); otherwise the stall
+  counts; `productiveS` reached → `complete` (the cabinets' materials spent, the Heart
+  destroyed, `contestUntil` = now so the block turns Held on its normal path and the
+  project record grants the kit once); `stallS` reached, the explicit `abort`, or the
+  block no longer Contested → `interruptHeart` (`interruptContested` turns the block Dark
+  with no fall; the pending packets dropped; the deliveries and the charge kept;
+  progress reset; the stats).
+- *The bodies (`threat.ts`).* `heartBirth` makes a Crawler with `edge: -1`, `cls: 2`, its
+  packet key and the point's id (the born-count and the spawned stat as any crawler);
+  `targetsOf` on the Heart's block puts the live cabinets first; on arrival at a cabinet
+  the body knocks it out (`knockOutCabinet`) and dies; a Heart body is Held-side for the
+  field (`isCrawlerHeld`), the rifle hits it as any crawler, the turret rules are the
+  ring's. `describeCrawler` names the packet and the cabinet.
+- *The bot (`hour.ts`).* `createHourBot(…, heart = true)`; `physicalClaimStep` hands the
+  Heart's block to `heartClaimTasks`: one chest trip for the installation's, the cabinets',
+  the poles' and two turrets' materials plus the magazines; the run to the substation and
+  the delivery as any claim's; per cabinet `stringToTask` (a pole run to the tile), the
+  delivery, one turret within three tiles fed by hand; the kits; the Start; then
+  `heartPatrol` every two seconds (a cabinet down → walk and `repairCabinet`; an
+  interruption → the substation and the Start again; a turret at half → feed) until the
+  yard is Held, with the walk-over and the kit wait after. Marks: `cabinet-N-supplied`,
+  `turret-N`, `heart-start`, `packet-25/50/75`, `heart-first-body`, `cabinet-down`,
+  `cabinet-repaired`, `heart-interrupted`, `heart-retry`, `heart-destroyed`.
+- *`E-heart` (`packages/harness/src/experiments/eheart.ts`, the 15th experiment).* Per
+  seed: the Heart's hour (the bot above, rifle off); the timeline; the end (attempts,
+  packets, bodies, knock-outs, repairs, productive / stalled, the charge, the record);
+  the cabinets; the replay on a fresh city with the layer, the heart and project events
+  counted every tick (one destruction, one restoration, no duplicate packet key, the
+  starts equal to the attempts); a 30:00 save reloaded and replayed (goalcheck.ts); the
+  ledger; `E-hour`'s benchmark beside it. Ten checks on §9.4: destroyed with no shot on
+  every seed, packets once, charged and rewarded once, an interruption preserving the
+  deliveries, one readable line, the replay and save hashes, conservation, the HQ held, no
+  refusal.
+- *`heart.test.ts` (six tests).* The layer's geometry on seeds 3 / 4 / 5 and its
+  idempotence; deliveries by hand and the Activate refused until both cabinets are
+  supplied and powered (a labelled scenario: injected stock); the bot's encounter to the
+  destruction with the once-only facts; a scripted stall (`knockOutCabinet` standing in
+  for the arrival, 60 s to interrupted, the deliveries and the charge kept, the repair,
+  the retry with no second charge and its packets keyed anew); a save mid-attempt and the
+  abort; a pole removed from a cabinet's run pausing the commissioning without a
+  knock-out.
+- *The game.* `?heart=1` (session.ts, kept in the save's params); the cabinets drawn as
+  squares (green on the grid, amber supplied, red knocked out, grey empty), a pulsing
+  ring on the Heart's substation, a requested packet's approach on its emergence point
+  with a line to the cabinet it comes for; E on a cabinet delivers from the pockets or
+  repairs it; E on the substation reads `describeHeart` while it is commissioned; X
+  aborts; the `heart` toasts (the Start with the rules, each packet, born, a knock-out,
+  a repair, the interruption, the abort, the destruction); the claim toast names the
+  productive commissioning instead of a burn-off; the goal line's `claimLine` and the
+  Projects list's line read `describeHeart` (the objective, the active failure condition
+  and the next action in one line — §9.4).
+
+**Implementation defaults chosen here (D-RI-6, all reversible, none validated).** The
+cabinet geometry and recipe; the Activate as the Start; no wake bloom; the far-future
+`contestUntil`; Crawler-only packets and their counts, the alternating approaches, the
+5 s approach and the cap of 8; the knock-out on arrival and the body's death there;
+`REPAIR_COPPER` as the repair price; the charge kept through interruptions; the
+cabinets' materials spent at the destruction; the bot's preparation (one turret a cabinet,
+a 20-pole limit a run, the patrol's two-second beat and its deadline of 90 + 3·60 + 300 s).
+`describeHeart`'s wording. Anything the plan lists as a Tuning candidate stays one.
+
+**Not decided by this task.** Whether the Heart ever joins the benchmark (D-RI-5). §9.3's
+"two materially different workable preparations" — the bot plays one; the second is a
+human's or a later bot variant's. Stalkers in the packets (the plan allows a small number;
+none are fielded — the Stalker is its own candidate layer). What §9.4's "representative
+recoverable problem" is in play: the code offers the knocked-out feeder and the
+interruption; a human names the representative one.
+
+**Next.** RI-07, ready in list order (blocked by RI-06, done — unverified). The
+verification pass first, ideally: `npm test`, `npm run experiments` (`E-heart` beside the
+14), `snapshot:check`, `freshness:check`, `docsync:check`, `npm run typecheck` with the
+Vite build, and a browser check with `?heart=1`.
+
+**Files.** New: `packages/sim/src/heart.ts`, `packages/harness/src/experiments/eheart.ts`,
+`packages/sim/test/heart.test.ts`. Edited: `packages/sim/src/{candidates,types,sim,flow,
+threat,project,engineer,ledger,index,goal,hour}.ts`, `packages/harness/src/experiments/
+index.ts`, `packages/game/src/{session,main,worldScene,panel}.ts`, `docs/RELIGHT-design.md`
+(§28.8 and its changelog), `docs/PROGRESS.md`, `docs/PROGRAMME_STATE.md`,
+`docs/DECISIONS.md` (D-RI-4 / D-RI-5 / D-RI-6 annotations), `CLAUDE.md` (the command
+table's last-run cells), this report.

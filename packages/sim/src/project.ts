@@ -25,6 +25,7 @@ import {
 } from './flow';
 import { ground, blockOfTile, inReach } from './ground';
 import { blockName } from './names';
+import { heartAt, describeHeart } from './heart';   // RI-06
 
 export const RAIL_YARD_PROJECT = 'rail-yard', SUPPLY_DEPOT_PROJECT = 'supply-depot';
 export const RAIL_ROUTE_REWARD = 'rail-route', LOCAL_DEPOT_REWARD = 'local-depot';
@@ -162,7 +163,9 @@ export function commission(st: SimState, id: string): CommissionCheck {
 /** One line for the UI and the harness: title, stage, what is still short, what to do next. */
 export function describeProject(st: SimState, r: ProjectRecord): string {
   const s = short(r), need = s.length ? ` · needs ${s.join(', ')}` : '';
-  const next = r.stage === 'ready' ? (r.projectId === RAIL_YARD_PROJECT ? ' · Activate at the substation' : ' · commission it at the chest')
+  // RI-06: while the Heart stands, the yard's restoration is its encounter — the objective, the active failure condition, the next action
+  const next = r.projectId === RAIL_YARD_PROJECT && heartAt(st, r.siteId) ? ` · ${describeHeart(st)}`
+    : r.stage === 'ready' ? (r.projectId === RAIL_YARD_PROJECT ? ' · Activate at the substation' : ' · commission it at the chest')
     : r.stage === 'restored' ? (projectOperational(st, r) ? ' · operational' : ' · restored, not operational (block lost or chest gone)')
     : r.stage === 'commissioning' ? ' · burning off' : '';
   const reward = r.rewardId === RAIL_ROUTE_REWARD ? ` · unlocked ${RAIL_ROUTE_KINDS.join(', ')}` : r.rewardId === LOCAL_DEPOT_REWARD ? ' · hands out kits' : '';

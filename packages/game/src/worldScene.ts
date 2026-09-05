@@ -31,6 +31,7 @@ import {
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
   crawlerTarget, shadeTraces, shadeNear, TRACE_S, activeEmergencePoints, stalkersOf, stalkerAt, describeStalker, stalkerHp,
   lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
+  heartOf, heartAt, cabinetAt, describeCabinet, describeHeart, cabinetConnected, cabinetRepairCheck, emergencePoint,   // RI-06
   blockLabel, machineStatus, MachineState,
   activationCheck, claimNeed, deliveredTo, deliverTo,
 } from '@relight/sim';
@@ -407,6 +408,12 @@ export class WorldScene extends Phaser.Scene {
       return true;
     }
     if (lower === 'e') { this.interact(); return true; }
+    if (lower === 'x') {
+      // RI-06 (§9.2 default 9): the explicit abort of the Heart's commissioning; nothing else on X
+      const H = heartOf(st);
+      if (H && H.attempt >= 0) queue(this.session, { type: 'abort' }); else if (H && !H.destroyed) this.hooks.onToast('Nothing to abort — the Heart is not being commissioned');
+      return true;
+    }
     return false;
   }
 
@@ -449,13 +456,35 @@ export class WorldScene extends Phaser.Scene {
     // from the pockets into it (a legitimate inventory interaction, logged as `deliver`) and, when every prerequisite
     // holds, sends the explicit Activate; otherwise the toast names the missing prerequisite. A built outskirts
     // Substation is a machine too, so this comes before the machine report.
+    // RI-06: E on a feeder cabinet — repair it when it is knocked out (REPAIR_COPPER from the pockets), else move what
+    // it still needs from the pockets into it (a `deliver` with `cabinet`); the toast names what it lacks
+    const kc = h && st.flow ? cabinetAt(st, h.tx, h.ty) : -1;
+    if (kc >= 0) {
+      const H = heartOf(st)!, c = H.cabinets[kc], bs = st.blocks[H.site];
+      if (!this.reachable(c.x, c.y, 1, true)) return;
+      if (c.down) {
+        const chk = cabinetRepairCheck(st, kc);
+        if (chk.ok) queue(this.session, { type: 'repairCabinet', cabinet: kc }); else this.hooks.onToast(`Feeder cabinet ${kc + 1} · ${chk.reason}`, 'bad');
+        return;
+      }
+      const moved: string[] = [];
+      for (const item of ['steel', 'copper'] as const) {
+        const short = H.cand.cabinet[item] - c.delivered[item];
+        if (short <= 0 || (e.inv[item] ?? 0) <= 0) continue;
+        const r = deliverTo(st, bs.x, bs.y, item, short, kc);
+        record(this.session, { type: 'deliver', bx: bs.x, by: bs.y, item, n: short, cabinet: kc });
+        if (r.ok) moved.push(`${r.moved} ${item === 'copper' ? 'Cu' : 'steel'}`);
+      }
+      this.hooks.onToast(`${moved.length ? `${moved.join(' + ')} delivered · ` : ''}${describeCabinet(st, kc)}`, moved.length ? 'good' : undefined);
+      return;
+    }
     if (h && isSubstationTile(st, h.tx, h.ty)) {
       const bi = blockOfTile(st, h.tx, h.ty), b = bi >= 0 ? st.blocks[bi] : null;
       if (b && (b.state === DARK || b.state === CONTESTED)) {
         const sub = substationAt(st, b.x, b.y);
         if (!sub || !this.reachable(sub.tx, sub.ty, sub.size, true)) return;
         const name = blockLabel(st, bi, debugView.coords);
-        if (b.state === CONTESTED) { this.hooks.onToast(`${name} · commissioning — burn-off ${Math.round(100 * contestProgress(st, bi))} %`); return; }
+        if (b.state === CONTESTED) { this.hooks.onToast(heartAt(st, bi) ? `${name} · ${describeHeart(st)}` : `${name} · commissioning — burn-off ${Math.round(100 * contestProgress(st, bi))} %`); return; }
         const need = claimNeed(st), moved: string[] = [];
         for (const item of ['steel', 'copper'] as const) {
           const short = need[item] - deliveredTo(st, bi)[item];
@@ -620,9 +649,12 @@ export class WorldScene extends Phaser.Scene {
     // RI-02: the tile coordinates are debug coordinates — shown only behind the ` toggle
     const groundLine = describeGround(st, tx, ty), lines = [(debugView.coords ? groundLine : groundLine.replace(/^tile \(-?\d+,-?\d+\) · /, '')) + unlit];
     if (bi >= 0) lines.push(this.blockLine(bi));
+    const kc = st.flow ? cabinetAt(st, tx, ty) : -1;
+    if (kc >= 0) lines.unshift(describeCabinet(st, kc));   // RI-06: a feeder cabinet under the cursor
     if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
     else if (st.flow && isSubstationTile(st, tx, ty)) {
       const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
+      if (sub && heartAt(st, bi)) lines.unshift(`The Junction Heart · ${describeHeart(st)}`);   // RI-06: the objective, the active failure condition, the next action
       if (sub && st.blocks[bi].state === DARK) {
         // RI-03: the installation UI — what is delivered, and the prerequisite the Activate still lacks
         const chk = activationCheck(st, st.blocks[bi].x, st.blocks[bi].y), need = claimNeed(st), got = deliveredTo(st, bi);
@@ -1033,6 +1065,33 @@ export class WorldScene extends Phaser.Scene {
       g.lineStyle(1.5 / zoom, 0xc06ae0, 0.35 + 0.4 * pulse); g.strokeCircle(px, py, 7 + 4 * pulse);
       g.fillStyle(0xc06ae0, 0.9); g.fillCircle(px, py, 2.5);
       g.lineStyle(2 / zoom, 0xc06ae0, 0.7); g.lineBetween(px, py, px + dx / L * 12, py + dy / L * 12);
+    }
+    // RI-06: the Junction Heart — a pulsing ring on the yard's substation while it stands; each feeder cabinet as a
+    // square (green on the live grid, amber supplied but unpowered, red knocked out, grey empty); a requested packet's
+    // approach shown on its emergence point before the bodies are born (§9.2 default 6: "show the approach")
+    const H = heartOf(st);
+    if (H && !H.destroyed) {
+      const hb = st.blocks[H.site], hs = substationAt(st, hb.x, hb.y);
+      if (hs) {
+        const px = (hs.tx + hs.size / 2) * TILE_PX, py = (hs.ty + hs.size / 2) * TILE_PX, pulse = 0.5 + 0.5 * Math.sin(now / 300);
+        if (onScreen(px, py)) { g.lineStyle(2.5 / zoom, 0xe04a6a, 0.45 + 0.45 * pulse); g.strokeCircle(px, py, 14 + 6 * pulse); g.lineStyle(1 / zoom, 0xe04a6a, 0.3); g.strokeCircle(px, py, 26 + 10 * (1 - pulse)); }
+      }
+      H.cabinets.forEach((c, k) => {
+        const px = c.x * TILE_PX, py = c.y * TILE_PX;
+        if (!onScreen(px, py)) return;
+        const colour = c.down ? 0xe0483a : cabinetConnected(st, k) ? 0x5ad07a : (c.delivered.steel + c.delivered.copper > 0 ? 0xe0b04a : 0x8a8a8a);
+        g.fillStyle(colour, 0.85); g.fillRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
+        g.lineStyle(1.5 / zoom, 0x101010, 0.8); g.strokeRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
+        g.lineStyle(1 / zoom, colour, 0.5); g.strokeCircle(px + TILE_PX / 2, py + TILE_PX / 2, TILE_PX * 0.9);
+      });
+      for (const p of H.pending) {
+        const c = H.cabinets[p.cabinet], pt = c ? emergencePoint(st, c.approach, H.site) : undefined;
+        if (!pt) continue;
+        const px = (pt.tx + 0.5) * TILE_PX, py = (pt.ty + 0.5) * TILE_PX, pulse = 0.5 + 0.5 * Math.sin(now / 150);
+        if (!onScreen(px, py)) continue;
+        g.lineStyle(2 / zoom, 0xe04a6a, 0.5 + 0.5 * pulse); g.strokeCircle(px, py, 10 + 8 * pulse);
+        g.lineStyle(2 / zoom, 0xe04a6a, 0.8); g.lineBetween(px, py, c.x * TILE_PX + TILE_PX / 2, c.y * TILE_PX + TILE_PX / 2);
+      }
     }
     // a shade's trace: the tiles it crossed, fading over TRACE_S, on unlit ground only (a lit tile shows the shade itself)
     for (const tr of shadeTraces(st)) {
