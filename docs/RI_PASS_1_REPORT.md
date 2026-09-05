@@ -543,3 +543,173 @@ one new question.
 
 **Next.** RI-04, ready (blocked by RI-02 and RI-03, both done); T12b and T12c runnable
 behind it in list order.
+
+## RI-04 — Enemy origins, Crawler / Shade clarity and the Stalker prototype (2026-09-05)
+
+**Authorisation.** The plan's RI-04 row (§6, §7, §7.1, §7.2) and `PROGRESS.md`'s, executed
+on "Whole plan" (D-RI-1, recorded at RI-00). Blocked by RI-02 and RI-03, both done. The
+direction is GDD §28.5 and §28.6 (the plan's §6 and §7 verbatim in intent); the Stalker's
+state machine is a provisional default under D-RI-6 and its numbers are Tuning candidates
+under D-RI-5 — this task built them as a candidate configuration behind a switch and
+changed nothing in the benchmark's configuration (config hash `b95922d2` before and after).
+D-GB-4 (enemy density, a Gate B condition) is owned here and stays open: no density
+number was chosen, no roaming rule added, no combat made unavoidable (plan §8). Every
+default this task chose is named below as an implementation default: reversible, not a
+historical approval, and no earlier gate is credited with any of them.
+
+**What the repository was (inspected before any edit).** HEAD `9d6a172` on `ri-pass-1`
+(RI-03). `threat.ts` `spawn` bore every crawler and shade of an engagement's edge on the
+street segment's *ridge* (the centre line) at a seeded hash (`hash01`, a GAME-ASSUMPTION
+since M4), so a body could appear on either side of the street with no place a player
+could point at, and nothing recorded where a body came from. `describeCrawler` gave HP
+and the chain's three goals in the abstract ("nearest lamp, then turret, then the
+substation"), not the tile it was walking to or its heading; a shade was unseen off lit
+tiles until the substation went dark. No Stalker, no candidate configuration; the game's
+threat drawing was a dot per body. `Block.well` marked the well blocks (`st.wells`).
+
+**Built (code, `packages/sim`, `packages/harness`, `packages/game`).**
+
+- **Emergence points** (`emergence.ts`): one per (block, shared street) — the block's
+  frontage kerb on that street (`kerb`: the street tiles the block's watershed labels,
+  4-adjacent to a lot tile that faces the street), anchored at the kerb tile nearest the
+  street's midpoint; ids numbered in (block, neighbour) order from the geometry alone
+  (2052 on seed 3, twice the segments), cached per `Ground`, nothing saved. `emergencePoint`,
+  `emergencePointsOf`, `activeEmergencePoints` (a Dark block's points facing Held or
+  Contested), `birthTile(st, p, u)` (the kerb tile `u` picks, or the next passable one).
+  `threat.ts` `spawn` births on the *Dark* block's point with M4's seeded hash along the
+  kerb and stamps `origin`; `T.born[id]` counts a point's births.
+- **Crawler and Shade readability** (`move.ts`, `threat.ts`): every body keeps `dir`, the
+  direction of its last move (`headingWord`); `crawlerTarget(st, c)` returns the tile and
+  kind a crawler walks to (a lit lamp, a turret, the substation, or the engineer once
+  turned); `describeCrawler` reads "Crawler · 12/12 HP · heading NE · toward the nearest
+  lit lamp at (x,y) on (bx,by) · from emergence point N"; a shade keeps `trail`, the unlit
+  tiles it crossed with their times (`shadeTraces`, `shadeNear`, `TRACE_S` / `TRACE_N`
+  render constants). `litAt` and the shade's untargetable rule are untouched.
+- **The Stalker candidate** (`candidates.ts`, `stalker.ts`): `CANDIDATES.stalker` holds
+  §7.1's numbers in one object outside `SimConfig` — perception 8, leash 16, HP 2× a
+  Crawler, speed 1.2×, wind-up 0.8 s, one 5 HP swing (the retaliation value) a second —
+  plus the defaults below. `enableStalkers(st)` puts the layer on the flow (`stalk`);
+  without it nothing exists (the benchmark's state has no layer, no events, no field in
+  its config). One Stalker per Dark well block (`wellBlocks`, from `st.wells`) at its
+  **home**, the nearest passable tile to the substation, on `guard → investigate →
+  pursue → attack → return` with `dead`; cues are deterministic simulation events
+  (the engineer moved or fired within perception, a machine placed within it); a leash
+  from home ends a pursuit and it returns and guards again, cold; a wind-up precedes the
+  first strike; a strike during a valid dodge is a miss (`dodged`); nothing lands on a
+  downed engineer; it walks only passable ground (`moveTo` / `stepToward`); a Held site
+  retires its survivor once home (`retired`) and never refills; a dead one's site refills
+  after `respawnS` only while Dark and while the engineer is out of perception of the
+  home. Turrets and the rifle hit it as one more body (`Target = Crawler | Stalker`);
+  its kills count on the layer, not in `turretKills` / `rifleKills`. Events
+  `{type: 'stalker', what: spawn | investigate | pursue | attack | hit | dodged | return |
+  dead | retired}`. `describeStalker`, `stalkerAt`, `stalkersOf`. A save carries the
+  layer and its candidate (`loadState(makeSave(st))` keeps five Stalkers on seed 3).
+- **Tests**: `emergence.test.ts` (4) — the points (count, ids, placement, both ways of
+  every ring edge, identical on a rebuilt seed, different on another), the active set
+  (a Held neighbour silences its points), 60 s of births (every body on its point's
+  frontage kerb, never a Held tile, spread along a wide frontage, counted per point, a
+  heading and a target once moving), the shade trace (behind the shade, aged, `litAt`
+  unchanged, fading); `stalker.test.ts` (8) — the candidate's values and its absence
+  from the benchmark, five Stalkers on seed 3 at valid homes and the sweep, the approach
+  (investigate → pursue → attack, the first hit 0.7–0.85 s after contact, one a second,
+  5 HP each), the dodge (a strike during the dodge misses, HP unchanged, the next lands),
+  death and the engineer down (no attack after either, no instant respawn), the leash
+  (never beyond 16 tiles + one step from home, then home and guarding cold), the
+  restored site (return, retire, no respawn) and the respawn rules, turret and rifle
+  kills (24 HP = 6 rounds, counted on the layer).
+- **The harness** (`erifle.ts`): `E-rifle-cand-stalker` — the rifle-on hour with the
+  switch on, per seed: well sites, Stalkers fielded, pursuits, swings, hits, dodged,
+  contact seconds, kills, retired, and HP lost / downs / falls / Held / magazines against
+  the rifle-on hour above it; two bookkeeping checks (every swing lands or is dodged; one
+  Stalker fielded per site). Labelled a candidate run (D-RI-5): reported, not gated.
+- **The game**: `?stalker=1` switches the candidate on (`session.ts`, kept in a session's
+  parameters so a replay switches it on too); the world view draws the active emergence
+  points (a pulsing ring on the Dark kerb with a tick toward the block it feeds), a
+  crawler's heading tick and, under the cursor, its target tile and line, a shade's
+  fading trace on unlit tiles and a flicker on streetlight posts near a shade (drawing
+  only — the light layer is untouched), and a Stalker with its perception ring, home
+  mark, wind-up rim, pursuit / investigate rims and HP bar; the hover names an emergence
+  point ("rot from A comes out along this street toward B"), a crawler's description and
+  a Stalker's; toasts for a pursuit (with the dodge key), a kill, a retirement
+  (`main.ts`).
+
+**Implementation defaults (reversible, D-RI-6).** The emergence mouth is the Dark
+block's frontage kerb with M4's seeded hash along it — a first cut birthed every body of
+a point on the anchor tile alone and `E-rifle`'s tile rescue went red (the engineer, who
+stands on the street's midpoint there, knocked down on seed 5 at 90 s; the steady hour
+on seed 4 gained a down), a balance shift RI-04 does not own, so the spread stays. The
+occupied site is a Dark well block; its home is the nearest passable tile to its
+substation (a pole tile when the substation is the only one). Cues: the engineer moved or
+shot within perception, a machine placed within it; investigate times out after 6 s,
+pursuit keeps a 2-tile hysteresis beyond perception and is lost 2 s after sight; respawn
+120 s after a death, only while the block is Dark and unrestored and the engineer is out
+of perception of the home (a site never fielded because the engineer stood at the switch
+fills once they leave). Stalker kills count on the layer only. Sim time for the layer's
+timers is `st.t` (whole seconds), so timeouts and the respawn compare in seconds. The
+trace's length and age and the flicker are render constants. The map scene does not draw
+emergence points (the world view does).
+
+**Measured.** From the tests on seed 3 (site 377, home (645.5, 674.5), the engineer six
+tiles east walking in): investigate at 0.05 s, pursue at 0.10 s, contact at 0.60 s, the
+first hit 0.75 s after contact and then exactly one a second at 5 HP; the leash run
+peaks at 16.18 tiles from home (the leash plus one 0.05 s step) and ends guarding cold.
+`E-rifle-cand-stalker`, seeds 3 / 4 / 5: 5 well sites, 5 Stalkers fielded, **0 pursuits,
+0 swings, 0 contact seconds** — the hour bot never comes within perception of a well
+block (the nearest is six hops from the HQ), so the candidate's contact numbers on the
+benchmark hour are zero by geography and say nothing about the archetype; HP lost /
+downs / falls / Held / magazines equal the rifle-on hour's on every seed. The emergence
+geometry moved `E-rifle`'s numbers (rows in `EXPERIMENTS.md`, HEAD's JSON as the
+reference): the tile steady hour's rifle rounds 17 / 34 / 11 → 9 / 10 / 6 and shooting
+share 0.92 % → 0.25 % max; seed 4 gained one down (HP lost 102; a crawler that spotted
+the bot walking past at 25:12 followed it into Dark block 364, where the bot waits on a
+claim and the rifle sees nothing on unlit tiles — pre-existing behaviour on a new draw
+of the seeded hash; danger 0.58 %, inside D-B1-5's 5 %); the tile rescue's falls stay
+within 0.1–0.2 min of HEAD's and the rifle still saves what it saved (1/1 single-edge,
+2/6 ring), but the damage moved with the lane: seed 4's rescues lost 2 HP where they
+lost 50, seed 5's 600 s edge rescues ended at 8 and 2 HP where they ended at 53 and 55
+(the stance stands on the midpoint the stream now crosses; the "never knocked down"
+check holds, thinly). `E-hour` 19/19 on the same run: every check's detail identical but walking (4.67 → 4.57 % worst seed); the timeline and end state move by seconds (first shot 14:02 → 35:13 on seed 3, 5:37 → 8:24 on seed 4; rifle rounds 26 / 40 / 11 → 13 / 10 / 6; crawlers 519 → 517 on seed 3), 4 Held and no fall on every seed, the ledger conserved, the save hashes new as a changed state's must be.
+
+**Browser check.** Not run this task: the game build is green inside `npm run typecheck`
+and the world-view drawing, hover and toasts are typechecked, not viewed. The
+`?stalker=1` switch and the flicker are for T19's session or the human's next look.
+
+**Verified (commands actually run, 2026-09-05, after the code and before the records).**
+
+| command | result |
+|---|---|
+| `npm test` | 145 pass, 0 fail (133 + `emergence.test.ts`'s 4 + `stalker.test.ts`'s 8) |
+| `npm run typecheck` | green, including the Vite game build |
+| `npm run lint` | green |
+| `npm run docsync:check` | green — both messages (the enemies table is generated from `ENEMIES`; the Stalker is not in it) |
+| `npm run experiments -- --only E-rifle --seeds 3,4,5` | red once (14/16: the single-tile mouth — the engineer knocked down in seed 5's rescue, the single-edge fall no longer saved), then 16/16 with the frontage spread, 109 s |
+| `npm run experiments` | 13 experiments, 296 s, **0 failing checks**; `E-hour` 19/19, 72.3 s; `E-rifle` 16/16 (14 + RI-04's 2), 112 s; `E-variance` 4/4, `E-walk` 3/3, E1–E9 green as at RI-03 |
+| `npm run freshness:check` | green — every generated file made on an ancestor of HEAD with the current config (the experiments are stamped `9d6a172`, RI-03's commit, because the run preceded this commit) |
+| `npm run snapshot:check` | green, unchanged (`held 28 front 11 interior 18 lost 0 claims 27`) |
+
+**Fixtures, expected results and generated files.** No fixture regenerated, no expected
+result edited, no source stamp rewritten. `docs/EXPERIMENTS.md` and
+`docs/experiments/E-*.json` are the run's output (the `--only` run rewrote
+`E-rifle.json` alone; the full run rewrote them all). The compact snapshot is unchanged
+(no threat state in it). The enemies table in the design doc is unchanged (generated;
+the Stalker is a candidate, not an `ENEMIES` row).
+
+**Not built, and where it goes.** The Conductor and the Breaker display name (RI-10; the
+name stays "Hulk" in the generated table until then). Emergence points on the map scene
+and any discovered-site marker for a project (RI-05 owns the project record; the world
+view's active points are the local-activity cue plan §6 asks for). The hour bot never
+dodges, so `E-rifle-cand-stalker`'s "dodged" is zero by construction and the dodge
+counterplay is only unit-tested; a bot that walks to a well block is what would make the
+candidate's contact numbers mean something — a harness scenario for the human to ask
+for, not a benchmark change. Sound stays deferred (RI-02); the bot's turrets stay
+`DEFERRED.md` (RI-03).
+
+**Not decided by this task (for the human, no blocker).** D-GB-4 stays an open gate
+condition: the candidate exists and is measurable, no density number was chosen. The
+Stalker candidate's promotion into the benchmark (D-RI-5: a decided row). Whether the
+tile rescue's legacy stance — the street midpoint — should move to the engineer's own
+kerb now that the mouth is readable across the street (its configuration is preserved
+as plan §14 asks; the thinner seed-5 margins are reported, not fixed).
+
+**Next.** RI-05, ready (blocked by RI-03, done); T12b and T12c runnable behind it in list
+order.

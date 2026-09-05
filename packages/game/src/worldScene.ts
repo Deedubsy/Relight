@@ -29,6 +29,7 @@ import {
   lockReason, KIND_LABEL, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH,
   setRecipe, RECIPE_IDS, recipeOf, recipeOutput,
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
+  crawlerTarget, shadeTraces, shadeNear, TRACE_S, activeEmergencePoints, stalkersOf, stalkerAt, describeStalker, stalkerHp,
   lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
   blockLabel, machineStatus, MachineState,
   activationCheck, claimNeed, deliveredTo, deliverTo,
@@ -636,6 +637,11 @@ export class WorldScene extends Phaser.Scene {
     }
     const cw = st.flow ? crawlerAt(st, tx + 0.5, ty + 0.5) : null;   // M4: a crawler under the cursor (shades only on lit tiles)
     if (cw) lines.unshift(describeCrawler(st, cw));
+    // RI-04: a Stalker under the cursor; an active emergence point says whose rot comes out of it and where it goes
+    const sk = st.flow ? stalkerAt(st, tx + 0.5, ty + 0.5) : null;
+    if (sk) lines.unshift(describeStalker(st, sk));
+    const ep = st.flow ? activeEmergencePoints(st).find(q => q.tx === tx && q.ty === ty) : undefined;
+    if (ep) lines.unshift(`Emergence point ${ep.id} · rot from ${blockLabel(st, ep.block, debugView.coords)} comes out along this street toward ${blockLabel(st, ep.other, debugView.coords)}`);
     // the "walk closer" cursor: something to do here, out of reach
     const actionable = this.onFoot && (this.tool !== 'hand' || !!m || !!rubbleAt(st, tx, ty) || !!(light && light.l.why)
       || (!!st.flow && bi >= 0 && st.blocks[bi].state === DARK && isSubstationTile(st, tx, ty)));
@@ -1001,12 +1007,37 @@ export class WorldScene extends Phaser.Scene {
   /** M4: the crawlers on the tile layer — a dark disc with an HP bar once hurt, a red rim while it has turned on the
    *  engineer (D5 retaliation), a birth ring for its first second at the ridge; shades are faint and drawn only on
    *  lit tiles (§7: untargetable, and unseen, off them). GAME-ASSUMPTION: code-drawn discs stand in for the crawler
-   *  and shade sprites until the art pass. */
+   *  and shade sprites until the art pass.
+   *  RI-04 (plan §6, §7): the active emergence points pulse on the Dark kerbs the rot comes out of; a crawler carries
+   *  a heading tick and, under the cursor, a line to its target tile; a shade leaves a fading trace on the unlit tiles
+   *  it crossed (a trace is drawn on unlit ground and never implies the tile is lit); a Stalker is a triangle along its
+   *  heading with its perception ring round its home, a yellow wind-up rim before its first strike, red while on you. */
   private drawThreat(): void {
     const g = this.gThreat, st = this.st, th = st.flow?.threat;
     g.clear();
     if (!th || !threatActive(st)) return;
     const cam = this.cameras.main, zoom = cam.zoom, wv = cam.worldView;
+    const onScreen = (px: number, py: number, pad = 48) => px >= wv.x - pad && px <= wv.right + pad && py >= wv.y - pad && py <= wv.bottom + pad;
+    const now = performance.now();
+    // the emergence points: a pulsing ring on the kerb tile, a tick toward the block the rot walks into
+    for (const p of activeEmergencePoints(st)) {
+      const px = (p.tx + 0.5) * TILE_PX, py = (p.ty + 0.5) * TILE_PX;
+      if (!onScreen(px, py)) continue;
+      const o = st.blocks[p.other], b = st.blocks[p.block], dx = o.x - b.x, dy = o.y - b.y, L = Math.hypot(dx, dy) || 1;
+      const pulse = 0.5 + 0.5 * Math.sin(now / 400 + p.id);
+      g.lineStyle(1.5 / zoom, 0xc06ae0, 0.35 + 0.4 * pulse); g.strokeCircle(px, py, 7 + 4 * pulse);
+      g.fillStyle(0xc06ae0, 0.9); g.fillCircle(px, py, 2.5);
+      g.lineStyle(2 / zoom, 0xc06ae0, 0.7); g.lineBetween(px, py, px + dx / L * 12, py + dy / L * 12);
+    }
+    // a shade's trace: the tiles it crossed, fading over TRACE_S, on unlit ground only (a lit tile shows the shade itself)
+    for (const tr of shadeTraces(st)) {
+      if (litAt(st, tr.tx, tr.ty)) continue;
+      const px = (tr.tx + 0.5) * TILE_PX, py = (tr.ty + 0.5) * TILE_PX;
+      if (!onScreen(px, py)) continue;
+      const a = 0.4 * (1 - tr.age / TRACE_S);
+      g.fillStyle(0x9a7ab0, a); g.fillPoints([{ x: px, y: py - 5 }, { x: px + 5, y: py }, { x: px, y: py + 5 }, { x: px - 5, y: py }], true);
+    }
+    const hov = this.hoverTile && st.flow ? crawlerAt(st, this.hoverTile.tx + 0.5, this.hoverTile.ty + 0.5) : null;
     // Layout pass (ROADMAP §2 "distinct crawler / shade shapes"): both were discs a pixel apart in radius. The
     // crawler keeps the disc; the shade is a diamond, which reads at a glance and at 0.5×. GAME-ASSUMPTION:
     // drawing only — the hitbox, the rifle and §7's lit-tile rule are unchanged.
@@ -1030,6 +1061,41 @@ export class WorldScene extends Phaser.Scene {
       else { g.lineStyle(1.5 / zoom, 0x9a7ab0, 0.6); rim(r); }
       if (age < 1) { g.lineStyle(2 / zoom, 0xd0a0ff, 1 - age); g.strokeCircle(px, py, r + 4 + age * 10); }
       if (c.hp < maxHp) { g.fillStyle(0x1a1d26, 1); g.fillRect(px - 10, py - r - 7, 20, 3); g.fillStyle(0xe05a5a, 1); g.fillRect(px - 10, py - r - 7, 20 * Math.max(0, c.hp) / maxHp, 3); }
+      // RI-04: the heading tick (§7 "direction and current target are inspectable"); the target line under the cursor
+      if (c.dir && (c.dir[0] || c.dir[1])) { g.lineStyle(2 / zoom, c.onPlayer ? 0xe05a5a : 0xd0b0e0, 0.9); g.lineBetween(px + c.dir[0] * r, py + c.dir[1] * r, px + c.dir[0] * (r + 7), py + c.dir[1] * (r + 7)); }
+      if (c === hov) {
+        const tg = crawlerTarget(st, c);
+        if (tg) {
+          const qx = tg.tx * TILE_PX, qy = tg.ty * TILE_PX;
+          g.lineStyle(1.5 / zoom, 0xe0c0ff, 0.8); g.strokeRect(qx + 1, qy + 1, TILE_PX - 2, TILE_PX - 2);
+          g.lineStyle(1 / zoom, 0xe0c0ff, 0.5); g.lineBetween(px, py, qx + TILE_PX / 2, qy + TILE_PX / 2);
+        }
+      }
+    }
+    // RI-04: the Stalkers (the candidate is on) — a triangle along the heading, an HP bar once hurt, the perception ring
+    // and a mark on the home tile so the territory reads before the first contact, the wind-up rim, red while on you
+    const S = th.stalk;
+    if (S) {
+      const per = S.cand.perception * TILE_PX, maxHp = stalkerHp(S.cand);
+      for (const s of stalkersOf(st)) {
+        const px = s.x * TILE_PX, py = s.y * TILE_PX, hx = s.hx * TILE_PX, hy = s.hy * TILE_PX;
+        if (onScreen(hx, hy, per + 48)) {
+          g.lineStyle(1.5 / zoom, 0xc06060, s.mode === 'guard' ? 0.35 : 0.18); g.strokeCircle(hx, hy, per);
+          g.lineStyle(1.5 / zoom, 0xc06060, 0.7); g.lineBetween(hx - 5, hy - 5, hx + 5, hy + 5); g.lineBetween(hx - 5, hy + 5, hx + 5, hy - 5);
+        }
+        if (!onScreen(px, py)) continue;
+        const r = 11, [dx, dy] = s.dir[0] || s.dir[1] ? s.dir : [0, -1];
+        const tri = (cxp: number, cyp: number, rr: number): Phaser.Types.Math.Vector2Like[] =>
+          [{ x: cxp + dx * rr, y: cyp + dy * rr }, { x: cxp - dy * rr * 0.7 - dx * rr * 0.6, y: cyp + dx * rr * 0.7 - dy * rr * 0.6 }, { x: cxp + dy * rr * 0.7 - dx * rr * 0.6, y: cyp - dx * rr * 0.7 - dy * rr * 0.6 }];
+        g.fillStyle(0x0b0e1a, 0.7); g.fillPoints(tri(px + 2, py + 3, r), true);
+        g.fillStyle(0x5a2430, 1); g.fillPoints(tri(px, py, r), true);
+        const onYou = s.mode === 'pursue' || s.mode === 'attack';
+        if (s.mode === 'attack' && !s.warmed) { g.lineStyle(3 / zoom, 0xffcc44, 1); g.strokeCircle(px, py, r + 2 + 8 * (1 - s.windup / S.cand.windupS)); }
+        else if (onYou) { g.lineStyle(3 / zoom, 0xe05a5a, 0.95); g.strokeCircle(px, py, r + 2); }
+        else { g.lineStyle(1.5 / zoom, s.mode === 'investigate' ? 0xe0a060 : 0xc06060, 0.7); g.strokeCircle(px, py, r); }
+        if (s.mode === 'investigate') { g.lineStyle(1 / zoom, 0xe0a060, 0.5); g.lineBetween(px, py, s.px * TILE_PX, s.py * TILE_PX); }
+        if (s.hp < maxHp) { g.fillStyle(0x1a1d26, 1); g.fillRect(px - 12, py - r - 8, 24, 3); g.fillStyle(0xe05a5a, 1); g.fillRect(px - 12, py - r - 8, 24 * Math.max(0, s.hp) / maxHp, 3); }
+      }
     }
   }
 
@@ -1093,12 +1159,16 @@ export class WorldScene extends Phaser.Scene {
     // (warm when lit, dark with a cross when broken or eaten — E repairs those), then each block's substation slab,
     // then the pole wires
     const lit = new Set<number>();
+    // RI-04 (§7 "an approaching Shade has an identifiable trace or flicker"): a lit post within three tiles of a shade
+    // flickers — its glyph only; the light layer and the lit/unlit rule are untouched
+    const shades = !!st.flow?.threat?.crawlers.some(c => c.kind === 'shade'), flick = Math.floor(now / 90) % 3 === 0;
     for (const bi of vis) {
       for (const l of blockLights(st, bi)) {
         const lx = (l.tx + 0.5) * TILE_PX, ly = (l.ty + 0.5) * TILE_PX;
         if (l.kind !== 'streetlight') { if (l.lit) lit.add(Math.floor(l.tx) * 4096 + Math.floor(l.ty)); continue; }
-        g.fillStyle(l.broken ? 0x2a2d36 : l.lit ? 0xfff3b0 : 0x8a8f9a, 1); g.fillCircle(lx, ly, 4);
-        if (l.lit) { g.fillStyle(LIGHT_COL, 0.35); g.fillCircle(lx, ly, 7); }
+        const dim = l.lit && shades && flick && shadeNear(st, l.tx, l.ty);
+        g.fillStyle(l.broken ? 0x2a2d36 : dim ? 0xb0a070 : l.lit ? 0xfff3b0 : 0x8a8f9a, 1); g.fillCircle(lx, ly, 4);
+        if (l.lit) { g.fillStyle(LIGHT_COL, dim ? 0.12 : 0.35); g.fillCircle(lx, ly, 7); }
         if (l.broken) { g.lineStyle(1.5, l.why === 'eaten' ? 0xc06ae0 : 0xe05a5a, 0.9); g.lineBetween(lx - 4, ly - 4, lx + 4, ly + 4); g.lineBetween(lx - 4, ly + 4, lx + 4, ly - 4); }
       }
       const b = st.blocks[bi], sub = substationAt(st, b.x, b.y);
@@ -1141,10 +1211,11 @@ export class WorldScene extends Phaser.Scene {
         }
         case 'lamp': {
           const on = lit.has(m.x * 4096 + m.y);
+          const dim = on && shades && flick && shadeNear(st, m.x, m.y);   // RI-04: the same flicker on a lamp near a shade
           g.fillStyle(0x05070d, 0.5); g.fillRect(cx - 6, py + 6, 12, TILE_PX - 8);
           g.fillStyle(MACHINE_COL.lamp, 1); g.fillRect(cx - 3, py + 8, 6, TILE_PX - 12);
-          g.fillStyle(on ? 0xfff3b0 : 0x3a3a40, 1); g.fillCircle(cx, py + 9, 6);
-          if (on) { g.fillStyle(LIGHT_COL, 0.35); g.fillCircle(cx, py + 9, 9); }
+          g.fillStyle(dim ? 0xb0a070 : on ? 0xfff3b0 : 0x3a3a40, 1); g.fillCircle(cx, py + 9, 6);
+          if (on) { g.fillStyle(LIGHT_COL, dim ? 0.12 : 0.35); g.fillCircle(cx, py + 9, 9); }
           break;
         }
         case 'pole': {

@@ -34,6 +34,7 @@ else if (session.scenario === 'B') panel.toast(`${params.state?.startsWith('loca
 
 /** RI-02: a block by its stable name (names.ts), with the coordinates only behind the ` toggle. */
 const at = (x: number, y: number): string => blockLabel(session.state, idxOf(session.state, x, y), debugView.coords);
+const at2 = (bi: number): string => blockLabel(session.state, bi, debugView.coords);   // RI-04: a block by index (a Stalker's site)
 
 function describe(events: SimEvent[]): void {
   for (const ev of events) {
@@ -72,6 +73,14 @@ function describe(events: SimEvent[]): void {
       }
       case 'kitted': panel.toast(`Kits laid on ${at(ev.x, ev.y)} — ${ev.edges} edge${ev.edges === 1 ? '' : 's'} armed`, 'good'); break;
       case 'engineer-down': panel.toast('The engineer is down — back at the HQ workbench in 10 s', 'bad'); break;
+      // RI-04 (rule 8): the Stalker candidate's rules surface as toasts — on you (a wind-up before its first strike, a
+      // dodge breaks one), dead, withdrawn when its site is restored; guard / investigate / return stay on the world view
+      case 'stalker':
+        if (ev.what === 'pursue') panel.toast(`A Stalker from ${at2(ev.site)} is on you — it winds up 0.8 s before its first strike; a dodge (Space) breaks a strike; it gives up 16 tiles from its home`, 'bad');
+        else if (ev.what === 'dead') panel.toast(`Stalker from ${at2(ev.site)} down`, 'good');
+        else if (ev.what === 'retired') panel.toast(`The Stalker from ${at2(ev.site)} withdrew — its site is restored`, 'good');
+        else if (ev.what === 'spawn' && ev.t > 0) panel.toast(`A Stalker guards ${at2(ev.site)} again`);
+        break;
       // M4 (rule 8): the tile threat's rules surface as toasts — retaliation only (D5), lamps eaten, the 40-arrival count
       case 'engineer-up': panel.toast('Back on your feet at the HQ workbench — pockets intact, no other penalty', 'good'); break;
       case 'retaliate': panel.toast(ev.cause === 'shot' ? 'A crawler turned on you: you shot it. It bites at arm\'s reach (5 HP/s) — finish it (3 rounds) or step back' : 'A crawler turned on you: you are standing in its path. Step aside, or shoot it', 'bad'); break;

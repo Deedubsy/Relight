@@ -6,9 +6,9 @@ now. The per-milestone history lives in the phase reports (`PHASE_0_REPORT.md` �
 `archive/pre-phase-5-cleanup/PROGRAMME_STATE-2026-09-05.md`. Rules: `CONSTITUTION.md`.
 Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 
-## Now (2026-09-05, after RI-03 built physical commissioning and the field kit)
+## Now (2026-09-05, after RI-04 built emergence points, Crawler / Shade readability and the Stalker candidate)
 
-- **The revised development plan is in execution: RI-00, RI-01, RI-02 and RI-03 are done.**
+- **The revised development plan is in execution: RI-00 … RI-04 are done.**
   Daniel authorised the plan with "Whole plan" (D-RI-1); it is
   `REVISED_DEVELOPMENT_PLAN.md`, verbatim, and its tasks RI-00 … RI-13 are in
   `PROGRESS.md`. RI-01 built the real opening economy (`RI_PASS_1_REPORT.md` "RI-01"):
@@ -31,17 +31,25 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
   Held, on real pole power, never marking a block Held; the outskirts Substation before
   activation (D-CU-3 (b)); the hour bot on the physical path with the map claim beside it.
   `E-hour` 19/19: every claim an Activate, the claims 8–18 s after the map click's, 4 Held
-  and no fall on every seed.
-- **Next task: RI-04 — enemy origins, Crawler / Shade clarity and the Stalker
-  prototype** (plan §6, §7; D-GB-4 owned there): emergence points with stable ids and
-  valid placement, no spawn inside a secured interior; a Crawler's target and direction
-  and a Shade's trace inspectable; the Stalker (`guard → investigate → pursue → attack →
-  return`) tied to an occupied site, its §7.1 candidates in one candidate configuration
-  and never in the benchmark (D-RI-5); `E-rifle` rerun and reported. **Ready**: blocked
-  by RI-02 and RI-03, both done. Branch `ri-pass-1` on top of `phase-4`. The order after
-  it: RI-05 → RI-06 → RI-07 → RI-08 (whose played session is **T19**, human) → RI-09
-  (T13 → T17, T18) → RI-10 → RI-11 → RI-12 → RI-13; T12b and T12c are runnable behind
-  RI-04 in list order.
+  and no fall on every seed. RI-04 built enemy origins, Crawler / Shade clarity and the
+  Stalker prototype ("RI-04"): emergence points, one per block and shared street on the
+  Dark block's frontage kerb, ids from the geometry, births along the kerb and never
+  inside a Held block; a crawler's heading and target tile and a shade's trace readable
+  in the sim and the world view; the Stalker candidate (`guard → investigate → pursue →
+  attack → return`, one per Dark well block, §7.1's numbers in `candidates.ts`) behind
+  `enableStalkers` / `?stalker=1`, outside the benchmark's configuration (D-RI-5).
+  `E-rifle` 16/16 with `E-rifle-cand-stalker` beside the benchmark rows (0 contacts on
+  the hour — the bot never nears a well block); `E-hour` 19/19; 145 tests.
+- **Next task: RI-05 — neighbourhood project framework and the rail-yard reward** (plan
+  §5; the minimal part of T16): the project record and its stages; deliveries by hand
+  and by belt; the rail-yard restoration as the first project, deliverable before trams;
+  one minimal transport route (one track, two stops, one tram) that makes a real
+  follow-on delivery; a local supply depot as a named chest; stages and deliveries
+  surviving save / load and replay, ordinary items only, no circular unlock. **Ready**:
+  blocked by RI-03, done. Branch `ri-pass-1` on top of `phase-4`. The order after it:
+  RI-06 → RI-07 → RI-08 (whose played session is **T19**, human) → RI-09 (T13 → T17,
+  T18) → RI-10 → RI-11 → RI-12 → RI-13; T12b and T12c are runnable behind RI-05 in list
+  order.
 - **Phase 5 — the factory, complete — is open; RI-01 built its first pieces** (the
   per-machine recipe, coal rubble, the ledger) and the rest is not built. The plan
   interleaves the phases (`PHASES.md` top note): the hybrid of D-GB-1 moved from Phase 6
@@ -51,7 +59,7 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
   calibration and the smoke test. **Gate B** (2026-09-05, `GATE_B.md`) is `proceed — with
   conditions`: one hour played by the owner, only minutes 0–10 recorded, no telemetry
   read; the conditions are D-GB-2 (provisional (a), built at RI-02, T19 tests it), D-GB-3 (rifle range,
-  RI-08's candidate) and D-GB-4 (enemy density, RI-04 / RI-10) — none blocks RI-01.
+  RI-08's candidate) and D-GB-4 (enemy density, still open after RI-04 built the Stalker candidate; RI-10) — none blocks RI-01.
 - Branch `ri-pass-1` on `phase-4`; PR #5 (`phase-4`) open, #1–#4 merged (checked read-only on
   2026-09-05). Nothing
   is pushed by a task unless the human asks.
@@ -59,7 +67,7 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 ## What is built, what is a stand-in
 
 **Implemented and measured** (`docs/EXPERIMENTS.md`, 13 experiments GREEN on 2026-09-05
-at RI-03, stamped `38ec158` + RI-03's tree, config b95922d2; `SLICE_REPORT.md`):
+at RI-04, stamped `9d6a172` + RI-04's tree, config b95922d2; `SLICE_REPORT.md`):
 
 - The block sim: §5's front rule, wake bloom and burn-off, the 40-unshot-arrival fall,
   proportional brownout (D-B3-4), wells, the 25-hour compact / spike / quiet-block
@@ -74,13 +82,15 @@ at RI-03, stamped `38ec158` + RI-03's tree, config b95922d2; `SLICE_REPORT.md`):
   (RI-01); Generators on coal; claims by the physical path — poles, a delivery, an
   Activate (RI-03); the
   Electricians' unlocks (Floodlight, Big pole, craftable Substation); crawlers, shades,
-  hulks; the conservation ledger (`ledger.ts`).
+  hulks, born on emergence points (one per block and shared street, on the Dark block's
+  frontage kerb, never inside a Held block) with a readable heading, target tile and
+  shade trace (RI-04); the conservation ledger (`ledger.ts`).
 - The hour-one bot (`E-hour`): no block lost on seeds 3 / 4 / 5 at 75 minutes, rifle off
   and on; north claimed at 65:00 is Held from 65:29–65:34 to 75:00 on every run; the rail
   yard's coal at the Depot at 27:02–27:04, 47.9 min before the hour ends; every item
   conserved (`E-hour-ledger`). `E-rifle` at
-  tile scale: the rifle decides a rescue (48 runs) and the bot spends 0.50 / 0.69 / 0.06 %
-  of the hour shooting, 0.00 % in danger.
+  tile scale: the rifle decides a rescue (48 runs) and the bot spends 0.19 / 0.25 / 0.17 %
+  of the hour shooting, 0.00 / 0.58 / 0.00 % in danger (RI-04's run).
 - The game (`packages/game`): world view and map view, HUD corners, the telemetry panel,
   the current-goal line with its reason and support, machine status marks, stable block
   names with debug coordinates behind the toggle, save / load to a local slot and a
@@ -117,8 +127,16 @@ at RI-03, stamped `38ec158` + RI-03's tree, config b95922d2; `SLICE_REPORT.md`):
   a download, a state hash and the command log so a load replays; no slot list, no
   autosave, no naming. (Before RI-02 this line said none existed — wrong: a download and a
   `?state=<url>` load had existed since Phase 4 without a hash, a validation or a log;
-  corrected 2026-09-05.) No project record, emergence points, Stalker, Conductor or boss
-  site exist (§28.4–28.8) — RI-04 … RI-06, RI-10, RI-12.
+  corrected 2026-09-05.) No project record, Conductor or boss site exist (§28.4, §28.7,
+  §28.8) — RI-05, RI-06, RI-10, RI-12.
+- **The Stalker is a candidate, not a benchmark enemy** (RI-04; §28.6, D-RI-5): §7.1's
+  numbers sit in `packages/sim/src/candidates.ts` outside `SimConfig`, switched on by
+  `enableStalkers` (the game's `?stalker=1`) and reported as `E-rifle-cand-stalker`
+  beside the benchmark rows; without the switch no Stalker exists. Its promotion is a
+  decided row. The hour bot never nears a well block, so the candidate's contact numbers
+  on the hour are zero by geography, not evidence. The emergence points (§28.5) are the
+  benchmark's: every crawler and shade is born on one. The Conductor and the Breaker
+  display name are RI-10.
 - Turrets are unharmed waypoints in the crawler chain (D-B4-3, provisional) while §22
   says they can be chewed; the barricade chain is Phase 6.
 - The hour bot hand-feeds 69–150 magazines and walks 928–932 coal from the chest to the
@@ -135,7 +153,7 @@ at RI-03, stamped `38ec158` + RI-03's tree, config b95922d2; `SLICE_REPORT.md`):
 
 | kind | where | state |
 |---|---|---|
-| simulation | `docs/EXPERIMENTS.md`, `docs/experiments/*.json`, `calibration.md` | 13 experiments GREEN at RI-02 (2026-09-05, 267 s, 0 failing; `E-hour` 18/18 with the goal-line and save checks; stamped `9a47430` + RI-02's tree); every generated file fresh (`freshness:check`, 2026-09-05) |
+| simulation | `docs/EXPERIMENTS.md`, `docs/experiments/*.json`, `calibration.md` | 13 experiments GREEN at RI-04 (2026-09-05, 296 s, 0 failing; `E-hour` 19/19, `E-rifle` 16/16 with the candidate rows; stamped `9d6a172` + RI-04's tree); every generated file fresh (`freshness:check`, 2026-09-05) |
 | snapshot | `packages/game/public/snapshots/b-compact-seed3.json` | matches (compact seed 3 at 3:00:00, config 0176f61d); regenerated by RI-01 for five new stats counters, the state otherwise identical |
 | human approval | `TEST_RESULTS.md` (Gate A), `GATE_B.md` (Gate B) | both passed by the owner alone; no outside tester has played |
 | human play | `GATE_B.md` §19 table | minutes 0–10 only; 10–30 and 30–60 unrecorded; walking, first shade, burn-off, first pip unrecorded |
@@ -144,12 +162,14 @@ at RI-03, stamped `38ec158` + RI-03's tree, config b95922d2; `SLICE_REPORT.md`):
 ## Counters
 
 - Untagged numbers in the design doc: **33** (21 tile-scale, 12 design inputs), unchanged
-  since Phase 4 M3; the cleanup, RI-01, RI-02 and RI-03 added none (RI-01's and RI-03's numbers
-  carry `[sim: E-hour-…]` tags or a decision id).
+  since Phase 4 M3; the cleanup and RI-01 … RI-04 added none (RI-01's and RI-03's numbers
+  carry `[sim: E-hour-…]` tags or a decision id; RI-04's are candidates in
+  `candidates.ts` and named as such in §7, not written into the doc).
 - §26: **three systems, complexity 5 / 10**, a reported count since D-RI-3 (the stop
   condition never fired and no longer exists; rule 2's scope test admits features).
-  Recounted at RI-03: still three (commissioning is §5's claim made physical, not a
-  fourth system); next at RI-04 … RI-06.
+  Recounted at RI-04: still three (commissioning is §5's claim made physical; the
+  Stalker is §7's roster and the emergence points are the threat system's, not a fourth
+  system); next at RI-05 / RI-06.
 - `STANDARDS.md`: **closed 1 of 46** (A.7, the hand-lamp sentence, at Gate B). Phase 5's
   fifteen build-with rows are listed on `PHASES.md` Phase 5.
 - Engineer guards (shooting ≤ 10 %, danger ≤ 5 %, walking): every number is the bot's; no
@@ -158,16 +178,21 @@ at RI-03, stamped `38ec158` + RI-03's tree, config b95922d2; `SLICE_REPORT.md`):
 ## Open items
 
 - **Questions for the human** (`DECISIONS.md` "Outstanding questions"): D-GB-3 rifle
-  range and D-GB-4 enemy density (gate conditions; RI-04 / RI-08 / RI-10 own them, no
-  blocker); D-CU-2 the Chemist and Polymer (RI-11, not a blocker); D-P4-11 the idle steel
+  range and D-GB-4 enemy density (gate conditions; RI-08 / RI-10 own them — RI-04 built
+  the Stalker candidate and chose no density number, no blocker); D-CU-2 the Chemist and Polymer (RI-11, not a blocker); D-P4-11 the idle steel
   and the hand-feed (RI-01 explained the hand-fed total as transfers the ledger balances
   and split it; T12b measures the share); a sink for stone (RI-01 surfaced it: a new
   mechanic, nobody's task yet); the hour bot laying a claim's turrets from stock
   (D-P4-9's other half: RI-03 built the field turret and left the benchmark's balance to
-  the human, `DEFERRED.md`).
+  the human, `DEFERRED.md`); the Stalker candidate's promotion into the benchmark
+  (D-RI-5, a decided row — `E-rifle-cand-stalker` measured no contact on the hour,
+  geography, not evidence); whether `E-rifle`'s tile-rescue stance should leave the
+  street midpoint now that the emergence mouth crosses it (RI-04 kept the legacy
+  configuration, plan §14, and reported seed 5's thinner margins).
 - **Provisional rows on the plan's defaults** (D-RI-6; sign or reverse by name, any time):
   D-GB-2 (a) the goal line (RI-02); D-CU-1 (a) production on any Held lot (kept at
-  RI-03); D-CU-3 (b) the outskirts Substation before activation (built at RI-03).
+  RI-03); D-CU-3 (b) the outskirts Substation before activation (built at RI-03); the
+  Stalker's §7.1 state machine (built at RI-04 as the candidate, `stalker.ts`).
 - **Provisional rows a task will embody**: D-P4-5 (every assembler physical — built by
   RI-01, unsigned);
   D-B4-3 (the turret in the chain, RI-10 reconciles); D-SA-2 (the string table, T13 in

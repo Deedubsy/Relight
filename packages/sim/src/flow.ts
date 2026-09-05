@@ -1090,6 +1090,8 @@ export interface FlowSummary {
   supplyKw: number; demandKw: number; loadKw: number; brownoutS: number; fired: number; coalBurned: number; handFed: number; throttle: number;   // throttle: D-B3-4, 1 = every machine at full speed
   /** M4: crawlers and shades on the tiles now, and the hour's tallies. */
   crawlers: number; shades: number; onPlayer: number; lampsEaten: number; arrivals: number; turretKills: number; rifleKills: number;
+  /** RI-04: the Stalker candidate layer, all zero on a state without it. */
+  stalkers: number; stalkerHits: number; stalkerKills: number;
 }
 export function flowSummary(st: SimState): FlowSummary {
   const f = st.flow;
@@ -1097,11 +1099,12 @@ export function flowSummary(st: SimState): FlowSummary {
                            magsMade: 0, magsDelivered: 0, mined: 0, coal: 0, craftsQueued: 0,
                            turrets: 0, lamps: 0, lampsLit: 0, poles: 0, polesConnected: 0, generators: 0, generatorsBurning: 0, turretRounds: 0, turretCap: 0, genCoal: 0, beltAmmo: 0,
                            supplyKw: 0, demandKw: 0, loadKw: 0, brownoutS: 0, fired: 0, coalBurned: 0, handFed: 0, throttle: 1,
-                           crawlers: 0, shades: 0, onPlayer: 0, lampsEaten: 0, arrivals: 0, turretKills: 0, rifleKills: 0 };
+                           crawlers: 0, shades: 0, onPlayer: 0, lampsEaten: 0, arrivals: 0, turretKills: 0, rifleKills: 0, stalkers: 0, stalkerHits: 0, stalkerKills: 0 };
   if (!f) return s;
   if (f.threat) {
     for (const c of f.threat.crawlers) { if (c.kind === 'shade') s.shades++; else s.crawlers++; if (c.onPlayer) s.onPlayer++; }
     s.lampsEaten = f.threat.stats.lampsEaten; s.arrivals = f.threat.stats.arrivals; s.turretKills = f.threat.stats.turretKills; s.rifleKills = f.threat.stats.rifleKills;
+    if (f.threat.stalk) { s.stalkers = f.threat.stalk.stalkers.length; s.stalkerHits = f.threat.stalk.stats.hits; s.stalkerKills = f.threat.stalk.stats.kills; }
   }
   for (const m of f.machines) {
     if (m.kind === 'excavator') s.excavators++;

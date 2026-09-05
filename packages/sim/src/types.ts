@@ -232,6 +232,7 @@ export type SimEvent =
   | { type: 'lamp-eaten'; t: number; x: number; y: number; tx: number; ty: number }    // M4: a crawler put a lit lamp out on block (x,y)
   | { type: 'arrival'; t: number; x: number; y: number; n: number; of: number; shade: boolean }   // M4: the 1st and every 10th unshot arrival at a block's substation (n of the 40)
   | { type: 'well-dead'; t: number; x: number; y: number }
+  | { type: 'stalker'; t: number; id: number; what: 'guard' | 'investigate' | 'pursue' | 'attack' | 'return' | 'spawn' | 'hit' | 'dodged' | 'dead' | 'retired'; x: number; y: number; site: number }   // RI-04: a Stalker changed mode, swung, died or retired (x,y its tile; site its block index)
   | { type: 'hour'; t: number; row: HourRow };
 
 /** D5: the engineer. One body on the tile grid; the harness moves it block to block along the streets. */

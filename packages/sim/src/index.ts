@@ -20,6 +20,10 @@ export * from './city';
 export * from './ground';
 export * from './walk';
 export * from './threat';
+export * from './candidates';   // RI-04
+export * from './emergence';
+export * from './stalker';
+export { headingWord, type Body } from './move';
 export * from './light';
 export * from './hour';
 export * from './ledger';

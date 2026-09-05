@@ -10,7 +10,7 @@ import {
 } from '@relight/sim';
 import { CANON, DEFAULT_MAP } from '../run';
 import { hourCity } from './ehour';
-import { createHourBot, runHour, hourReport, hourCommands, rescueStance, advanceFlow, cityGeomOf, segBetween, turretEdge, TILE_DT, Command as TileCommand, ENGINEER_HP as HP0 } from '@relight/sim';
+import { createHourBot, runHour, hourReport, hourCommands, rescueStance, advanceFlow, cityGeomOf, segBetween, turretEdge, TILE_DT, Command as TileCommand, ENGINEER_HP as HP0, HourReport, enableStalkers, wellBlocks, StalkerStats, CANDIDATES } from '@relight/sim';
 
 /** E-rifle at tile scale (ROADMAP §0 line 2). The hour bot plays §11 to `at` on the river city (flow + power on), then
  *  the most threatened Held block (the most rot on its Dark neighbours) runs dry: 'edge' = the turrets and hopper of
@@ -63,6 +63,18 @@ function tileRescue(seed: number, at: number, rifle: boolean, scope: 'ring' | 'e
 }
 
 const mmssOf = (t: number | undefined) => t === undefined ? 'never' : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+
+/** RI-04 (D-RI-5): §11's hour with the rifle on and the Stalker candidate switched on (`enableStalkers`, candidates.ts —
+ *  outside SimConfig, so the hour's config hash is the benchmark's). A candidate run: its rows report the candidate's
+ *  contact numbers for the tuning decision (plan §7.1 "test contact frequency and useful counterplay before changing
+ *  them"); they are not benchmark checks. The hour bot never dodges, so "dodged" measures nothing here. */
+export interface CandStalkerHour { seed: number; sites: number; stats: StalkerStats; hurt: number; downs: number; report: HourReport }
+export function candStalkerHour(seed: number, seconds = 3600): CandStalkerHour {
+  const st = hourCity(seed), bot = createHourBot(true);
+  const S = enableStalkers(st)!;
+  runHour(st, bot, seconds);
+  return { seed, sites: wellBlocks(st).length, stats: { ...S.stats }, hurt: st.engineer.hurt, downs: st.engineer.downs, report: hourReport(st, bot) };
+}
 
 interface Rescue { seed: number; at: number; block: number; scope: 'ring' | 'edge'; rifle: boolean; fell: boolean; fellAt: number; reason: string; unfed: number; kills: number; fired: number; hurt: number; downs: number; downAt: number; hpMin: number }
 
@@ -170,12 +182,14 @@ export const ERIFLE: Experiment = {
     // steady: the hour with the rifle off and on — the magazine bill, falls, rounds fired, HP lost
     const tsRows: (string | number)[][] = [], tsDiff: number[] = [], tsFell: number[] = [], tsFired: number[] = [];
     const tsShoot: number[] = [], tsDanger: number[] = [];   // §19's two guards at tile scale (D-B1-5), the shares the block-scale rows measure on the compact bot
+    const tsOn: Record<number, { r: HourReport; hurt: number; downs: number }> = {};   // RI-04: the rifle-on hour per seed, the candidate row's reference
     for (const seed of seeds) {
       const runs = [false, true].map(rifle => { const st = hourCity(seed), bot = createHourBot(rifle); ctx.log(`E-rifle-tile-steady seed ${seed} rifle ${rifle ? 'on' : 'off'}`); runHour(st, bot, 3600); return { st, r: hourReport(st, bot) }; });
       const [off, on] = runs;
       const diff = off.r.magsMade > 0 ? 100 * (on.r.magsMade - off.r.magsMade) / off.r.magsMade : 0;
       const shootPct = 100 * on.st.engineer.shootS / 3600, dangerPct = 100 * on.st.engineer.danger / 3600;
       tsDiff.push(diff); tsFell.push(off.r.fell + on.r.fell); tsFired.push(on.r.fired); tsShoot.push(shootPct); tsDanger.push(dangerPct);
+      tsOn[seed] = { r: on.r, hurt: on.st.engineer.hurt, downs: on.st.engineer.downs };
       tsRows.push([seed, off.r.magsMade, on.r.magsMade, diff.toFixed(2) + ' %', off.r.handFed, on.r.handFed, off.r.fell, on.r.fell, on.r.fired, on.r.rifleKills, on.r.turretKills, mmssOf(on.r.marks['first-shot']), on.st.engineer.hurt.toFixed(0), on.st.engineer.downs, shootPct.toFixed(2) + ' %', dangerPct.toFixed(2) + ' %']);
     }
     sections.push({ title: 'E-rifle-tile-steady: §11\'s hour on the tile layer (the hour bot), rifle off vs on — the reflex fires at the nearest crawler in range while the bot walks its script',
@@ -187,6 +201,22 @@ export const ERIFLE: Experiment = {
     // §19's two caps, measured where the rifle actually is: the block-scale rows above run the 5 h compact bot, this one runs §11's hour on the tile layer.
     checks.push(within('tile §19: shooting time ≤ 10 % of the hour (max over seeds)', Math.max(...tsShoot), 0, 10, ' %'));
     checks.push(within('tile §19 (D-B1-5): time in danger ≤ 5 % of the hour (max over seeds)', Math.max(...tsDanger), 0, 5, ' %'));
+    // RI-04 (D-RI-5): the Stalker candidate on the same hour — reported, not gated (a candidate configuration, not the benchmark)
+    const csRows: (string | number)[][] = [], cs: CandStalkerHour[] = [];
+    for (const seed of seeds) {
+      ctx.log(`E-rifle-cand-stalker seed ${seed}`);
+      const c = candStalkerHour(seed), ref = tsOn[seed], k = c.stats;
+      cs.push(c);
+      csRows.push([seed, c.sites, k.spawned, k.pursuits, k.attacks, k.hits, k.dodged, k.contactS.toFixed(1), k.kills, k.retired,
+                   `${c.hurt.toFixed(0)} / ${ref.hurt.toFixed(0)}`, `${c.downs} / ${ref.downs}`, `${c.report.fell} / ${ref.r.fell}`, `${c.report.held} / ${ref.r.held}`, `${c.report.magsMade} / ${ref.r.magsMade}`]);
+    }
+    const cand = CANDIDATES.stalker;
+    sections.push({ title: `E-rifle-cand-stalker: the rifle-on hour with the Stalker candidate switched on (candidates.ts: perception 8, leash 16, HP 2× a Crawler, speed 1.2×, wind-up 0.8 s, one 5 HP swing a second) — one Stalker guarding each Dark well block's home; "x / y" = with the candidate / the rifle-on row above`,
+      note: `D-RI-5: a candidate run, not a benchmark row — these numbers are for the tuning decision (plan §7.1: contact frequency and useful counterplay before the candidates move), and the checks below only hold the bookkeeping. The hour bot never dodges. Contact = seconds a Stalker stood within reach of the engineer; perception ${cand.perception} tiles, leash ${cand.leash}, respawn ${cand.respawnS} s after a kill while its site stays Dark and the engineer is out of perception of the home.`,
+      header: ['seed', 'well sites', 'Stalkers fielded', 'pursuits', 'swings', 'hits', 'dodged', 'contact (s)', 'Stalkers killed', 'retired (site restored)', 'HP lost', 'downs', 'falls', 'held at the hour', 'line magazines'], rows: csRows });
+    data.candStalker = { candidate: cand, runs: cs.map(c => ({ seed: c.seed, sites: c.sites, stats: c.stats, hurt: c.hurt, downs: c.downs, fell: c.report.fell, held: c.report.held, magsMade: c.report.magsMade })) };
+    checks.push(isTrue('cand-stalker (D-RI-5, bookkeeping only): every swing either lands or is dodged', cs.every(c => c.stats.hits + c.stats.dodged === c.stats.attacks), cs.map(c => `${c.stats.hits}+${c.stats.dodged}=${c.stats.attacks}`).join(' / ')));
+    checks.push(isTrue('cand-stalker (D-RI-5, bookkeeping only): one Stalker fielded per well site at the switch', cs.every(c => c.stats.spawned >= c.sites), cs.map(c => `${c.stats.spawned} fielded for ${c.sites} sites`).join(' / ')));
     // rescue at tile scale: at 20:00 (HQ + east Held, front 4) and 35:00 (HQ + east + west, front 5)
     const trRows: (string | number)[][] = [], tr: TileRescue[] = [];
     for (const belt of [90, 600]) for (const scope of ['edge', 'ring'] as const) for (const seed of seeds) for (const at of [20 * 60, 35 * 60]) {
@@ -210,7 +240,7 @@ export const ERIFLE: Experiment = {
       ringFalls.every(r => !pair(r).fell || pair(r).fellAt >= r.fellAt),
       `${ringFalls.filter(r => !pair(r).fell).length}/${ringFalls.length} ring falls saved, the rest delayed by ${ringFalls.filter(r => pair(r).fell).map(r => ((pair(r).fellAt - r.fellAt) / 60).toFixed(1)).join('/')} min`));
     checks.push(isTrue('tile: the engineer is never knocked down in a rescue', trYes.every(r => r.downs === 0), `HP lost ${Math.min(...trYes.map(r => r.hurt)).toFixed(0)}–${Math.max(...trYes.map(r => r.hurt)).toFixed(0)}, HP min ${Math.min(...trYes.map(r => r.hpMin)).toFixed(0)}`));
-    return { id: 'E-rifle', title: ERIFLE.title, pyNames: [], docRefs: ['§4', '§11', '§13', 'D5'],
-      setup: `compact; ${DEFAULT_MAP} map; engineer walking with the rifle; rescue at 2 h and 4 h; tile scale: the hour bot on the river city, rescue at 20:00 and 35:00`, sections, checks, data };
+    return { id: 'E-rifle', title: ERIFLE.title, pyNames: [], docRefs: ['§4', '§6', '§7', '§11', '§13', 'D5'],
+      setup: `compact; ${DEFAULT_MAP} map; engineer walking with the rifle; rescue at 2 h and 4 h; tile scale: the hour bot on the river city, rescue at 20:00 and 35:00; the Stalker candidate on the rifle-on hour (D-RI-5)`, sections, checks, data };
   },
 };
