@@ -27,6 +27,7 @@ import {
   handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
   POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST, segBetween, cityGeomOf, CityGeom, pipOf, edgeCap,
   lockReason, KIND_LABEL, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH,
+  setRecipe, RECIPE_IDS, recipeOf, recipeOutput,
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
   lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
 } from '@relight/sim';
@@ -51,16 +52,17 @@ const HALF = TILE_PX / 2;
 /** Camera follow: the fraction of the gap to the engineer closed per second (the sim moves them 20× a second). */
 const FOLLOW_PER_S = 14;
 
-// tileset frames: street, ground, inert, river, then rubble (stone/copper/steel × 5 variants), then deposits (iron/coal × 5),
-// then the HQ patches (steel, copper, coal)
-const F_STREET = 0, F_GROUND = 1, F_INERT = 2, F_RIVER = 3, F_RUBBLE = 4, F_DEPOSIT = F_RUBBLE + 3 * RUBBLE_VARIANTS, F_PATCH = F_DEPOSIT + 2 * RUBBLE_VARIANTS, F_COUNT = F_PATCH + 3;
-const RUBBLE_IDX: Record<string, number> = { stone: 0, copper: 1, steel: 2 };
+// tileset frames: street, ground, inert, river, then rubble (stone/copper/steel/coal × 5 variants — coal is the rail
+// yard's heap, RI-01), then deposits (iron/coal × 5), then the HQ patches (steel, copper, coal)
+const F_STREET = 0, F_GROUND = 1, F_INERT = 2, F_RIVER = 3, F_RUBBLE = 4, F_DEPOSIT = F_RUBBLE + 4 * RUBBLE_VARIANTS, F_PATCH = F_DEPOSIT + 2 * RUBBLE_VARIANTS, F_COUNT = F_PATCH + 3;
+const RUBBLE_IDX: Record<string, number> = { stone: 0, copper: 1, steel: 2, coal: 3 };
 const DEPOSIT_IDX: Record<string, number> = { iron: 0, coal: 1 };
-const RUBBLE_COL = ['#b9bfc9', '#c0682b', '#5f83bd'];
-const RUBBLE_DARK = ['#7d848f', '#7d4119', '#3a5580'];
+const RUBBLE_COL = ['#b9bfc9', '#c0682b', '#5f83bd', '#2a2b31'];
+const RUBBLE_DARK = ['#7d848f', '#7d4119', '#3a5580', '#141519'];
 const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
-/** GAME-ASSUMPTION: flat item colours (steel blue, copper orange, stone grey, coal black, magazine brass) until the art pass. */
-const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a };
+/** GAME-ASSUMPTION: flat item colours (steel blue, copper orange, stone grey, coal black, magazine brass; RI-01's wire
+ *  a paler copper, frame a paler steel, board green) until the art pass. */
+const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a, wire: 0xf0a86a, frame: 0xb4c6e8, board: 0x5fae6a };
 const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a,
   turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a };
 const LIGHT_COL = 0xffe9a0;
@@ -80,14 +82,14 @@ const BOX_MACHINE = new Set(['turret', 'floodlight', 'generator', 'excavator', '
 const HAND_LAMP_R = 2;
 
 export type Tool = 'hand' | 'rifle' | Exclude<Kind, 'depot'>;
-/** D-B1-5: the hotbar. GAME-ASSUMPTION: 1 belt, 2 inserter, 3 Excavator, 4 Shot assembler, 5 turret, 6 lamp, 7 pole,
+/** D-B1-5: the hotbar. GAME-ASSUMPTION: 1 belt, 2 inserter, 3 Excavator, 4 Assembler, 5 turret, 6 lamp, 7 pole,
  *  8 Generator, 9 the rifle — the rifle is a hotbar item like any building, and while it is in hand you cannot mine
  *  or place until you clear it (Q, or pick something else). Prompt B M3: the Electricians' unlocks sit after the
  *  digits — 0 Floodlight, [ Big pole, ] Substation — and answer with why they are locked until the group joins. */
 export const HOTBAR: readonly Tool[] = ['belt', 'inserter', 'excavator', 'assembler', 'turret', 'lamp', 'pole', 'generator', 'rifle'];
 /** GAME-ASSUMPTION: the Electricians' unlocks sit on 0, [ and ] (§4 gives the hotbar 1–9; - and = are the speed keys). */
 export const UNLOCK_KEYS: Readonly<Record<string, Tool>> = { '0': 'floodlight', '[': 'bigpole', ']': 'substation' };
-export const TOOL_KEY_LINE = '1 belt · 2 inserter · 3 Excavator · 4 Shot assembler · 5 turret · 6 lamp · 7 pole · 8 Generator · 9 rifle · 0 / [ / ] Floodlight / Big pole / Substation (Electricians) · B build menu · R rotate · Q pipette / clear hand · E interact · right-click removes (empty hand) or clears the hand';
+export const TOOL_KEY_LINE = '1 belt · 2 inserter · 3 Excavator · 4 Assembler · 5 turret · 6 lamp · 7 pole · 8 Generator · 9 rifle · 0 / [ / ] Floodlight / Big pole / Substation (Electricians) · B build menu · R rotate · T recipe (on an Assembler) · Q pipette / clear hand · E interact · right-click removes (empty hand) or clears the hand';
 
 export interface WorldHooks {
   onHoverText(text: string | null, px: number, py: number): void;
@@ -239,7 +241,7 @@ export class WorldScene extends Phaser.Scene {
         ctx.fillStyle = i % 3 === 2 ? dark : col; ctx.fillRect(Math.round(f * TILE_PX + x), Math.round(y), s, s);
       }
     };
-    for (let t = 0; t < 3; t++) for (let v = 0; v < RUBBLE_VARIANTS; v++) {
+    for (let t = 0; t < RUBBLE_COL.length; t++) for (let v = 0; v < RUBBLE_VARIANTS; v++) {
       const f = F_RUBBLE + t * RUBBLE_VARIANTS + v;
       rect(f, '#463d33'); rect(f, '#4c4338', 2, 2, TILE_PX - 4, TILE_PX - 4);
       chunk(f, t * 10 + v, RUBBLE_COL[t], RUBBLE_DARK[t], 3 + v * 3, 3 + v);
@@ -376,6 +378,18 @@ export class WorldScene extends Phaser.Scene {
     if (lower === 'r') {
       const h = this.hoverTile, m = h && this.tool === 'hand' ? machineAt(st, h.tx, h.ty) : undefined;
       if (m && m.kind !== 'depot') { if (this.reachable(m.x, m.y, m.size, true)) { rotate(st, m.x, m.y); record(this.session, { type: 'rotate', x: m.x, y: m.y }); } } else this.dir = ((this.dir + 1) % 4) as Dir;
+      return true;
+    }
+    if (lower === 't') {
+      // RI-01: cycle the Assembler under the cursor through the recipes its machine can run (D-B2-1 (b)); the sim's
+      // refusal (out of reach, full pockets) is the toast
+      const h = this.hoverTile, m = h ? machineAt(st, h.tx, h.ty) : undefined;
+      if (!m || m.kind !== 'assembler') { this.hooks.onToast('T sets the recipe of the Assembler under the cursor', 'bad'); return true; }
+      if (!this.reachable(m.x, m.y, m.size, true)) return true;
+      const cur = m.recipe ?? 'shot', next = RECIPE_IDS[(RECIPE_IDS.indexOf(cur) + 1) % RECIPE_IDS.length];
+      const why = setRecipe(st, m.x, m.y, next);
+      if (why) this.hooks.onToast(`Assembler: ${why}`, 'bad');
+      else { record(this.session, { type: 'setRecipe', x: m.x, y: m.y, recipe: next }); this.hooks.onToast(`Assembler → ${recipeOf(m).name}`, 'good'); }
       return true;
     }
     if (lower === 'e') { this.interact(); return true; }
@@ -1137,13 +1151,13 @@ export class WorldScene extends Phaser.Scene {
           g.fillStyle(MACHINE_COL.assembler, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
           g.lineStyle(2, 0x33293d, 1); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12);
           this.arrow(g, cx, cy, m.dir, sz / 2 - 2, 0xd8d0e8, 0.7);
-          // progress bar and the input/output counts as item squares
-          const prog = m.busy ? Math.min(1, m.timer / SHOT.seconds) : 0;
+          // progress bar and the input/output counts as item squares, in the recipe's own items (RI-01: one row an input)
+          const r = recipeOf(m), o = recipeOutput(r);
+          const prog = m.busy ? Math.min(1, m.timer / r.seconds) : 0;
           g.fillStyle(0x1e1826, 1); g.fillRect(px + 10, py + sz - 16, sz - 20, 8);
-          g.fillStyle(0xe6d45a, 1); g.fillRect(px + 10, py + sz - 16, (sz - 20) * prog, 8);
-          for (let k = 0; k < Math.min(8, m.inv.steel ?? 0); k++) { g.fillStyle(ITEM_COL.steel, 1); g.fillRect(px + 10 + k * 9, py + 10, 7, 7); }
-          for (let k = 0; k < Math.min(4, m.inv.copper ?? 0); k++) { g.fillStyle(ITEM_COL.copper, 1); g.fillRect(px + 10 + k * 9, py + 20, 7, 7); }
-          for (let k = 0; k < Math.min(5, m.out); k++) { g.fillStyle(ITEM_COL.magazine, 1); g.fillRect(px + sz - 18, py + 10 + k * 9, 7, 7); }
+          g.fillStyle(ITEM_COL[o] ?? 0xe6d45a, 1); g.fillRect(px + 10, py + sz - 16, (sz - 20) * prog, 8);
+          Object.keys(r.inputs).forEach((k, row) => { for (let n = 0; n < Math.min(8, m.inv[k] ?? 0); n++) { g.fillStyle(ITEM_COL[k] ?? 0xffffff, 1); g.fillRect(px + 10 + n * 9, py + 10 + row * 10, 7, 7); } });
+          for (let k = 0; k < Math.min(5, m.out); k++) { g.fillStyle(ITEM_COL[o] ?? 0xe6d45a, 1); g.fillRect(px + sz - 18, py + 10 + k * 9, 7, 7); }
           break;
         }
         case 'depot': {

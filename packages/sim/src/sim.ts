@@ -178,7 +178,8 @@ export function createState(spec: MapSpec, config: SimConfig, seed: number): Sim
     stats: { lost: 0, retakes: 0, claims: 0, firstInterior: -1, firstFall: -1, firstUnfed: -1, unfedTotal: 0,
              lostLog: [], ringReorders: 0, assemblersAdded: 0, claimsRejected: 0, magsMade: 0,
              machinesLost: 0, ranDry: 0, dryLog: [],
-             firstBrownout: -1, brownoutS: 0, throttleMin: 1, lostInWindow: 0, lostAfterWindow: 0, wellsDead: 0 },
+             firstBrownout: -1, brownoutS: 0, throttleMin: 1, lostInWindow: 0, lostAfterWindow: 0, wellsDead: 0,
+             ringDraw: 0, ringFired: 0, spentSteel: 0, spentCopper: 0, roundsLost: 0 },
     stock: { ...config.eco.startStock },
     patch: { steel: config.eco.startPatch.steel, copper: config.eco.startPatch.copper ?? 0 },
     power: { supply: 300, throttle: 1, short: false, shortAt: -1, okAt: -999, asmActive: 0, demandKw: [], supplyKw: [] },
@@ -666,6 +667,7 @@ export function claim(st: SimState, x: number, y: number): boolean {
     const c = st.config.eco.claimCost;
     if (st.stock.copper < c.copper || st.stock.steel < c.steel) return reject(st, x, y, 'cannot afford 10 wire, 5 frames');
     st.stock.copper -= c.copper; st.stock.steel -= c.steel;
+    st.stats.spentCopper = (st.stats.spentCopper ?? 0) + c.copper; st.stats.spentSteel = (st.stats.spentSteel ?? 0) + c.steel;   // ?? 0: a pre-RI-01 snapshot
   }
   const b = st.blocks[i];
   const F = frontage(st), I = interior(st);
@@ -712,12 +714,16 @@ export function setRingOrder(st: SimState, ids: number[]): void {
 /** §5: an assembler needs an empty machine slot, and only Interior blocks have one (a front block's slot is its
  *  defence ring; the HQ's holds the Mk1). The slot rule is a doc rule, not an economy rule: it applies with economy=0 too. */
 export function addAssembler(st: SimState): boolean {
+  // RI-01 (D-P4-5): on a city with the tile layer every Assembler is a placed machine (flow.ts `place`); the
+  // block-level stand-in that made abstract magazines from a slot is refused there. Block-only runs keep it.
+  if (st.flow) { st.events.push({ type: 'assembler-rejected', t: st.t, reason: 'place an Assembler on the tiles (RI-01, D-P4-5)' }); return false; }
   const i = freeSlot(st);
   if (i < 0) { st.events.push({ type: 'assembler-rejected', t: st.t, reason: 'no free interior slot' }); return false; }
   if (st.config.economy) {
     const c = st.config.eco.assemblerCost;
     if (st.stock.copper < c.copper || st.stock.steel < c.steel) { st.events.push({ type: 'assembler-rejected', t: st.t, reason: 'cannot afford' }); return false; }
     st.stock.copper -= c.copper; st.stock.steel -= c.steel;
+    st.stats.spentCopper = (st.stats.spentCopper ?? 0) + c.copper; st.stats.spentSteel = (st.stats.spentSteel ?? 0) + c.steel;
   }
   const b = st.blocks[i];
   b.machines++;
@@ -830,7 +836,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       }
       const need = cfg.hopper - e.hopper;
       const give = Math.min(need, avail);
-      if (give > 0) { e.hopper += give; avail -= give; }
+      if (give > 0) { e.hopper += give; avail -= give; st.stats.ringDraw = (st.stats.ringDraw ?? 0) + give; }
     }
     if (cfg.economy && made > 0) {
       const unmade = Math.min(made, Math.max(0, avail - cfg.bufferCap));   // rounds with nowhere to go: not made, not paid
@@ -838,6 +844,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       st.stock.steel -= mags * cfg.eco.magazineCost.steel; st.stock.copper -= mags * cfg.eco.magazineCost.copper;
       st.stats.magsMade += mags;
     }
+    if (avail - made > cfg.bufferCap) st.stats.roundsLost = (st.stats.roundsLost ?? 0) + avail - made - cfg.bufferCap;   // RI-01 ledger: buffer rounds over the cap are gone (production over the cap was never made)
     st.buffer = Math.min(cfg.bufferCap, avail);
     // engagements: crawlers arrive over 15 s; fed ones die, unfed ones proceed
     const eng = st.engagements;
@@ -872,6 +879,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       if (un > 1e-9 && e.a === player.block && player.down < 0 && !thr) dangerNow = true;
       const fedS = Math.min(s_, budget / 10.0); e.hopper -= fedS * 10.0;
       if (fired) fired[ri] += fed * 3.0 + fedS * 10.0;
+      if (!e.turrets) st.stats.ringFired = (st.stats.ringFired ?? 0) + fed * 3.0 + fedS * 10.0;   // RI-01 ledger: a stand-in edge's rounds leave the game here
       let unS = s_ - fedS;
       if (thr && (un > 1e-9 || unS > 1e-9) && thr.spawn(st, en.id, un, unS, true)) { un = 0; unS = 0; }   // past the stand-in: they walk to the substation
       if (un > 1e-9 || unS > 1e-9) {
@@ -996,12 +1004,14 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       st.patch.copper -= take; st.stock.copper += take;
     }
     // §12: rubble is finite. The flat yield draws the block's pool down; at zero the block yields nothing.
+    // RI-01 (D-P4-2, D-P4-5): on a city with the tile layer no block yields flat — every unit is dug from a tile by
+    // an Excavator or the hands (flow.ts `mineUnit`, which draws the pool down a tile's share as each tile is dug
+    // out). Before RI-01 only the start lot was exempt and a claim's copper or coal arrived in the chest abstractly.
+    // Block-only runs (the fixtures, E1–E9) keep the flat yield.
     const per = cfg.eco.yieldPerMin / 60;
-    const startIdx = idxOf(st, st.start[0], st.start[1]);
-    for (let i = 0; i < B.length; i++) {
+    for (let i = 0; i < B.length && !st.flow; i++) {
       const b = B[i];
       if (b.state !== HELD || b.pool <= 0) continue;
-      if (st.flow && i === startIdx) continue;   // M2: the start lot's rubble is dug by its machines, not yielded flat
       const r = rubbleOf(b.name);
       if (!r) continue;
       const take = Math.min(per, b.pool);

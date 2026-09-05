@@ -90,8 +90,24 @@ export function streetlights(seed: number, b: Pick<Block, 'x' | 'y'>): Streetlig
   }
   return out;
 }
-export type RubbleType = 'stone' | 'copper' | 'steel';
+export type RubbleType = 'stone' | 'copper' | 'steel' | 'coal';
 export type DepositType = 'iron' | 'coal';
+/** D-P4-12 (a), decided 2026-09-05, and C5: a fourth rubble kind, coal, on the rail yard only — RAIL_YARD_COAL units
+ *  a lot, the HQ coal patch's size (START_COAL_PATCH), because west's claim replaces the patch rather than ending coal
+ *  for the game. This overrides §12's untagged "~30k a block". The heap is one RAIL_YARD_HEAP × RAIL_YARD_HEAP
+ *  square (implementation default, RI-01 2026-09-05: the HQ coal patch's 3×3 density, so an Excavator standing on
+ *  it reaches every tile); the block carries no other rubble. The city generator has no rail-yard district: the rail
+ *  yard is the HQ's most westward claimable neighbour (ground.ts `railYardOf`), the block the hour bot claims as
+ *  "west" (constants.HOUR "claim west (rail yard)", D-HOUR-1). */
+export const RAIL_YARD_HEAP = 3, RAIL_YARD_COAL_TILES = RAIL_YARD_HEAP * RAIL_YARD_HEAP;
+/** 78 a tile × 9 = 702: D-P4-12's ~700 as a whole number of units a tile, so the heap yields exactly what it holds
+ *  (flow.ts `mineUnit` counts a tile's last fraction as a whole unit — the HQ coal patch, 700 over 9 tiles, yields 702). */
+export const RAIL_YARD_COAL_PER_TILE = 78, RAIL_YARD_COAL = RAIL_YARD_COAL_PER_TILE * RAIL_YARD_COAL_TILES;
+/** D-P4-2 (decided): a district rubble tile holds RUBBLE_UNITS_PER_TILE units (§12: 300 a tile, so a 250–350-tile
+ *  block holds 75–105k), dug by machines and hands on the tile layer (RI-01 2026-09-05: before it a tile held the
+ *  block's pool over its tile count, 257–360). The block sim's pool (the block-only runs' flat-yield stock) drops
+ *  one tile's share when a tile is dug out, so `standing` and the map's pool strip agree with the tiles. */
+export const RUBBLE_UNITS_PER_TILE = 300;
 
 /** §12: a block holds 250–350 rubble tiles. GAME-ASSUMPTION: the count is uniform in that range per cell and does
  *  not vary with district or depth; only the density variant does. */

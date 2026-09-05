@@ -17,7 +17,7 @@ import {
   HQ_PATCHES, hqReserved, HQ_RUBBLE_TILES, HQ_CLEAR_ROWS, SUBSTATION_TILES, HQ_SUBSTATION, substationLot,
   STREETLIGHT_BROKEN, Streetlight, streetlights, RUBBLE_TILES_MIN, RUBBLE_TILES_MAX, RUBBLE_VARIANTS,
   DEPOSIT_CELL_FRACTION, DEPOSIT_TILES, DEPOSIT_IRON_FRACTION, CLUSTERS, SIGMA, RubbleType, DepositType, rubbleOf,
-  depthFrac, lotLayout, isMargin, TILE_NAMES, PATCH_NAMES,
+  depthFrac, lotLayout, isMargin, TILE_NAMES, PATCH_NAMES, RAIL_YARD_HEAP, RAIL_YARD_COAL, RUBBLE_UNITS_PER_TILE,
 } from './tiles';
 
 export const CHUNK = 32;    // renderer chunk side in tiles (a lattice cell exactly)
@@ -63,6 +63,9 @@ export interface Ground {
   cw: number; ch: number;
   /** Per chunk (cy * cw + cx): the blocks with tiles inside it. */
   chunks: Int32Array[];
+  /** D-P4-12: the rail yard — the block whose rubble is coal (`railYardOf`); -1 on the lattice and when the HQ has
+   *  no claimable neighbour. */
+  railYard: number;
 }
 
 const NONE: readonly number[] = [];
@@ -86,7 +89,7 @@ function alloc(tw: number, th: number, lattice: boolean): Ground {
   return {
     tw, th, lattice, base: new Uint8Array(n), owner: new Int32Array(n).fill(-2), near: new Int32Array(n).fill(-1),
     rank: new Int32Array(n).fill(-1), variant: new Uint8Array(n), patch: new Uint8Array(n), blocks: [], hqOrigin: [0, 0],
-    cw: Math.ceil(tw / CHUNK), ch: Math.ceil(th / CHUNK), chunks: [],
+    cw: Math.ceil(tw / CHUNK), ch: Math.ceil(th / CHUNK), chunks: [], railYard: -1,
   };
 }
 
@@ -144,6 +147,7 @@ function cityGround(st: SimState): Ground {
   }
   const hqb = cg.blocks[cg.hq];
   G.hqOrigin = [hqb.sqx, hqb.sqy];
+  G.railYard = railYardOf(cg, st);
   for (let i = 0; i < cg.blocks.length; i++) {
     const cb = cg.blocks[i], b = st.blocks[i], hq = i === cg.hq;
     const inert = cb.inert || b.state === INERT || b.state === VOID;
@@ -259,7 +263,56 @@ const PACK = 4194304;   // 2^22: room for a face's local tile index under the qu
 /** Rubble on a face: the lattice recipe (tiles.ts `lotLayout`) over the face's own tiles. Three clusters (one on
  *  the HQ lot, below its clear rows), 250–350 tiles scaled by area over the lattice lot's 576, typed by district;
  *  outskirts faces carry a deposit (a quarter of them) or nothing. Reserved tiles never carry rubble. */
+/** D-P4-12: the rail yard is the HQ's most westward claimable neighbour by bounding-box centre — the same scoring
+ *  the hour bot's `neighbourToward('west')` uses, so it is the block constants.HOUR's "claim west (rail yard)" lands
+ *  on (D-HOUR-1). State-free: inert and void blocks are never claimable; every other neighbour is Dark at the start.
+ *  GAME-ASSUMPTION (RI-01): the city generator has no rail-yard district, so geometry designates it. */
+function railYardOf(cg: CityGeom, st: SimState): number {
+  const hq = cg.hq, a = cg.blocks[hq];
+  const ax = (a.x0 + a.x1) / 2, ay = (a.y0 + a.y1) / 2;
+  let best = -1, bs = -Infinity;
+  for (const j of st.nb[hq] ?? []) {
+    const cb = cg.blocks[j], b = st.blocks[j];
+    if (cb.inert || b.state === INERT || b.state === VOID) continue;
+    const dx = (cb.x0 + cb.x1) / 2 - ax, dy = (cb.y0 + cb.y1) / 2 - ay, L = Math.hypot(dx, dy) || 1;
+    const s = -dx / L;
+    if (s > bs) { bs = s; best = j; }
+  }
+  return best;
+}
+
+/** D-P4-12: the rail yard's rubble is one RAIL_YARD_HEAP-square coal heap, RAIL_YARD_COAL units in all, on the lot
+ *  spot nearest the face's pole whose surroundings (the heap plus two clear tiles each way, for the Excavator that
+ *  digs it and the belt it feeds) are all lot tiles and none reserved; failing that, the pole itself. */
+function railYardLayout(G: Ground, i: number, bg: BlockGround): void {
+  const tw = G.tw, h = RAIL_YARD_HEAP, half = (h - 1) / 2, ring = half + 2;
+  const [px, py] = bg.pole;
+  let cx = px, cy = py, bd = Infinity;
+  for (let k = 0; k < bg.tiles.length; k++) {
+    const t = bg.tiles[k], tx = t % tw, ty = (t - tx) / tw;
+    const d = Math.hypot(tx - px, ty - py);
+    if (d >= bd) continue;
+    let ok = true;
+    for (let y = ty - ring; y <= ty + ring && ok; y++) for (let x = tx - ring; x <= tx + ring && ok; x++) {
+      if (!inGround(G, x, y)) { ok = false; break; }
+      const u = y * tw + x;
+      if (G.owner[u] !== i || G.rank[u] === RESERVED) ok = false;
+    }
+    if (ok) { bd = d; cx = tx; cy = ty; }
+  }
+  const order: number[] = [];
+  for (let y = cy - half; y <= cy + half; y++) for (let x = cx - half; x <= cx + half; x++) {
+    if (!inGround(G, x, y)) continue;
+    const t = y * tw + x;
+    if (G.owner[t] !== i || G.rank[t] === RESERVED) continue;
+    order.push(t);
+  }
+  bg.rubble = 'coal'; bg.deposit = null; bg.count = order.length; bg.order = Int32Array.from(order);
+  for (let r = 0; r < order.length; r++) { G.rank[order[r]] = r; G.variant[order[r]] = RUBBLE_VARIANTS; }
+}
+
 function faceLayout(G: Ground, st: SimState, i: number, b: Block, bg: BlockGround): void {
+  if (i === G.railYard) { railYardLayout(G, i, bg); return; }
   const seed = st.seed, tw = G.tw, tiles = bg.tiles, n = tiles.length, scale = n / LATTICE_AREA;
   const rubble = rubbleOf(b.name);
   let deposit: DepositType | null = null, count = 0, centres = CLUSTERS;
@@ -373,6 +426,13 @@ export function hqLot(st: SimState, lx: number, ly: number): [number, number] {
 export function poolCap(st: SimState, b: Block): number {
   const pm = poolMax(st, b.name);
   return st.lattice ? pm : pm * b.area / LATTICE_AREA;
+}
+
+/** Units a fresh district rubble tile holds (D-P4-2: RUBBLE_UNITS_PER_TILE; the rail yard's heap shares
+ *  RAIL_YARD_COAL over its tiles, D-P4-12). The HQ patches carry their own sizes (HQ_PATCHES). */
+export function tileUnits(G: Ground, bi: number): number {
+  const bg = G.blocks[bi];
+  return bi === G.railYard ? RAIL_YARD_COAL / Math.max(1, bg.count) : RUBBLE_UNITS_PER_TILE;
 }
 
 /** Rubble tiles still standing by the pool: the block's pool fraction, rounded. Deposits and blocks with no pool

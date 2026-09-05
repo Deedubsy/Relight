@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_CONFIG, protoCalibrated, createState, citySpec, ensureFlow, advanceFlow, SimState, HELD, LoggedCommand, Command,
   createHourBot, hourCommands, runHour, hourReport, replay, replayVerdict, neighbourToward, dirOf, hqIdx, hqLot, machineAt, place, handFeed,
-  HOUR_MINE_STEEL, HOUR_CLAIM_AT, TILE_TPS, engineerCommand, TURRET_HOPPER,
+  HOUR_MINE_STEEL, HOUR_CLAIM_AT, HOUR_S, TILE_TPS, engineerCommand, TURRET_HOPPER,
 } from '../src/index';
 
 function city(seed = 3): SimState {
@@ -40,7 +40,7 @@ test('hour bot, minute 10: the three Excavators, the Shot line and Generator 2 s
   for (const r of bot.log.refused) assert.ok(r.reason.length > 0);
 });
 
-test('hour bot, minute 45: east and west claimed at constants.HOUR\'s minutes (15:00, 25:00 — D-HOUR-1), walked over and kitted, north not claimed inside the hour (D-P4-10 (a): 65:00); the bot never teleports', () => {
+test('hour bot, minute 45: east and west claimed at constants.HOUR\'s minutes (15:00, 25:00 — D-HOUR-1), walked over and kitted, north (65:00, D-P4-10 (a)) inside the 75-minute hour (D-HOUR-3) but not yet claimed at 45:00; the bot never teleports', () => {
   const st = city(), bot = createHourBot(false);
   let maxStep = 0, px = st.engineer.x, py = st.engineer.y;
   const f = ensureFlow(st), cmds: Command[] = [];
@@ -51,7 +51,7 @@ test('hour bot, minute 45: east and west claimed at constants.HOUR\'s minutes (1
     const d = Math.hypot(st.engineer.x - px, st.engineer.y - py); if (d > maxStep) maxStep = d; px = st.engineer.x; py = st.engineer.y;
   }
   const m = bot.log.marks;
-  assert.ok(HOUR_CLAIM_AT.north > 3600, `north's claim is past the hour (constants.HOUR: ${HOUR_CLAIM_AT.north / 60}:00, D-P4-10)`);
+  assert.ok(HOUR_CLAIM_AT.north > 45 * 60 && HOUR_CLAIM_AT.north < HOUR_S, `north's claim is after 45:00 and inside the ${HOUR_S / 60}-minute hour (constants.HOUR: ${HOUR_CLAIM_AT.north / 60}:00, D-P4-10, D-HOUR-3)`);
   assert.equal(m['claim-north'], undefined, `north not claimed by 45:00 (${m['claim-north']})`);
   for (const dir of ['east', 'west'] as const) {
     assert.ok(m[`claim-${dir}`] !== undefined && m[`claim-${dir}`] >= HOUR_CLAIM_AT[dir] && m[`claim-${dir}`] < HOUR_CLAIM_AT[dir] + 120, `${dir} claimed near ${HOUR_CLAIM_AT[dir] / 60}:00 (${m[`claim-${dir}`]})`);

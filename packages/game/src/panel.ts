@@ -124,7 +124,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const buildList = el('ul', 'plain');
   const BUILD: { kind: BuildKind; key: string; what: string }[] = [
     { kind: 'belt', key: '1', what: '7.5 items/s' }, { kind: 'inserter', key: '2', what: 'one item a second across a tile' },
-    { kind: 'excavator', key: '3', what: '3×3, 0.5/s onto the belt it faces' }, { kind: 'assembler', key: '4', what: `Shot assembler Mk1, ${SHOT.seconds} s a magazine (${Math.round(60 / SHOT.seconds)}/min); the Mk2 (3 s) is the purchase` },
+    { kind: 'excavator', key: '3', what: '3×3, 0.5/s onto the belt it faces' }, { kind: 'assembler', key: '4', what: `Assembler (3×3): Shot magazine ${SHOT.seconds} s (${Math.round(60 / SHOT.seconds)}/min), or Wire / Frame / Board — T on it sets the recipe; the Mk2 (3 s) is the purchase` },
     { kind: 'turret', key: '5', what: `2×2, range ${TURRET_RANGE}, ${TURRET_HOPPER}-round hopper` }, { kind: 'lamp', key: '6', what: `lights a ${LAMP_RADIUS}-tile radius` },
     { kind: 'pole', key: '7', what: 'carries power, claims across the street' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
     { kind: 'floodlight', key: '0', what: '2×2, 40 kW, a 12-tile cone along its facing (R rotates)' }, { kind: 'bigpole', key: '[', what: '2×2, reach 12' },
@@ -172,6 +172,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     : `Each assembler adds ${st.config.asmRate} magazines per minute`;
   btnAsm.onclick = () => queue(session, { type: 'addAssembler' });
   asmRow.append(btnAsm);
+  // RI-01 (D-P4-5): under the tile line every Assembler is placed by hand; the block-level purchase is refused by the sim
+  asmRow.hidden = flow;
   stockSec.append(asmRow);
   if (eco) stockSec.append(el('p', 'hint', `A claim costs ${st.config.eco.claimCost.copper} Cu (10 wire) and ${st.config.eco.claimCost.steel} steel (5 frames). A magazine costs ${st.config.eco.magazineCost.steel} steel + ${st.config.eco.magazineCost.copper} Cu (§12); assemblers stop when the stock runs out. Held blocks yield their district's rubble: civic stone, residential copper, industrial steel.`));
   debug.append(stockSec);
@@ -187,7 +189,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     lineSec.append(el('h2', undefined, 'Line on the HQ lot (world view)'));
     const lineList = el('ul', 'plain');
     const li2 = (label: string) => { const l = el('li'); const a = el('span', undefined, label); const v = el('span', 'mono', '0'); l.append(a, v); lineList.append(l); return v; };
-    vMach = li2('Excavators / belts / inserters / Shot assemblers'); vBeltItems = li2('Items on belts'); vLineRate = li2('Line mag/min (assemblers crafting now)');
+    vMach = li2('Excavators / belts / inserters / Assemblers'); vBeltItems = li2('Items on belts'); vLineRate = li2('Line mag/min (assemblers crafting now)');
     vLineMade = li2('Magazines made by the line'); vHand = li2('Mined / crafted by hand'); vBuffer = li2('Magazines in the line buffer'); vCoal = li2('Coal (Depot + Generators)'); vCrafts = li2('Hand crafts queued');
     // M3: power as one number (§14), the Generators, the turrets' hoppers, the lights
     vPower = li2('Power: load / supply kW (demand)'); vGens = li2('Generators burning / built'); vTurrets = li2('Turret rounds / capacity · on belts');

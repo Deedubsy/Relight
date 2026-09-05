@@ -2,15 +2,17 @@
  *  walking and real pockets — to the steel patch and back to the workbench, the turrets hand-fed on the first red pip
  *  (D-P4-8), the line placed from the pockets in trips to the chest, a second steel Excavator into the chest at 15:00
  *  (D-P4-7), east / west / north claimed at constants.HOUR's minutes (D-HOUR-1, D-P4-10: 15 / 25 / 65, the same
- *  minutes firsthour.ts reads) with the kit walked over — north's is past the hour, so the scored hour is two claims
- *  — the hands running magazines and coal every five minutes, and writes down when each thing happened. Through
+ *  minutes firsthour.ts reads) with the kit walked over — the scored hour is HOUR_MINUTES (75, D-HOUR-3), so north's
+ *  claim is inside it and the hour is three claims — the rail-yard coal line placed on west's lot once it holds
+ *  (RI-01: the real coal §11 puts on west, an Excavator on the rail-yard heap belted into the Depot), the hands
+ *  running magazines and coal every five minutes, and writes down when each thing happened. Through
  *  Gate B a claim's edges keep the block sim's ring-fed hopper and no turret is carried to them (D-P4-9).
  *  `hourReport` turns the log into findings against §11's prose and the calibration timeline. Every command goes
  *  through `Command` (types.ts), so a session under the bot replays like a played one (`replay`, Gate B's "did the
  *  rifle matter" row). The bot is a dev aid: not a player control, never on by default (`?autoplay=hour`). */
 import { SimState, Command, HELD, DARK } from './types';
 import { hqIdx, RIFLE_RANGE, INV_STACKS, KIT_STACKS, invStacks, invCap } from './engineer';
-import { ground, hqLot, inReach } from './ground';
+import { ground, hqLot, inReach, Ground } from './ground';
 import { LOT_TILES } from './tiles';
 import { findPath, passable } from './walk';
 import { burnOffS, isCandidate } from './sim';
@@ -18,11 +20,11 @@ import { pipOf, edgeCap } from './queries';
 import { TURRET_HOPPER } from './recipes';
 import { HQ_PATCHES, P_STEEL, DEPOT_LOT, DEPOT_TILES } from './tiles';
 import {
-  Kind, Dir, Machine, depotRect, chestCount, turretEdge, placeable, canPlace, rubbleAt,
+  Kind, Dir, Item, Machine, depotRect, chestCount, turretEdge, placeable, canPlace, canPickUp, rubbleAt, outputTile, machineAt, DX, DY, DIR_NAMES,
   MACHINE_SIZE, MACHINE_COST, GENERATOR_COAL_CAP, survivorJoined, advanceFlow, TILE_DT, TILE_TPS, ensureFlow, SHOT, START_TURRETS,
 } from './flow';
 import { threatActive, threatOf } from './threat';
-import { HOUR_CLAIM_MIN, HOUR_GENERATOR_MIN, HOUR_SHOT_LINE_MIN, HOUR_STEEL2_MIN, HOUR_COPPER2_MIN, HOUR_ASM3_MIN } from './constants';
+import { HOUR_CLAIM_MIN, HOUR_GENERATOR_MIN, HOUR_SHOT_LINE_MIN, HOUR_STEEL2_MIN, HOUR_COPPER2_MIN, HOUR_ASM3_MIN, HOUR_MINUTES } from './constants';
 
 // ------------------------------------------------------------------ the log
 
@@ -107,11 +109,16 @@ export const HOUR_RUN_MAGS = 20, HOUR_RUN_COAL = 50, HOUR_FEED_GAP = 60;
  *  chest at 46:00 — the chest's 100 copper is 8 short of the hour's machines and claims, and a copper line into the
  *  chest from minute 12 would mine the 1,200-unit patch out under the ammo line by minute 40. */
 export const HOUR_STEEL2_AT = HOUR_STEEL2_MIN * 60, HOUR_COPPER2_AT = HOUR_COPPER2_MIN * 60, HOUR_ASM3_AT = HOUR_ASM3_MIN * 60;
-/** §11's end state the report checks: four Generators, seven Excavators (steel ×2, copper ×2, coal, two E4 stand-ins),
- *  three Assemblers, the six start turrets (none carried to a claim — D-P4-9 keeps the block-level hopper through
- *  Gate B), three blocks Held: the HQ and the two claims constants.HOUR puts inside the hour (east 15, west 25 —
- *  D-HOUR-1; north's 65 is past it, D-P4-10). */
-export const HOUR_END = { generators: 4, excavators: 7, assemblers: 3, turrets: START_TURRETS, held: 3 } as const;
+/** §11's end state the report checks at HOUR_MINUTES (75, D-HOUR-3): four Generators (E4-doc's 0/6/15/45, all on the
+ *  HQ lot — the rail yard's coal is belted into the Depot, not burnt beside the heap), seven Excavators (steel ×2,
+ *  copper ×2, the HQ coal patch's, east's own rubble, the rail yard's coal — every one a real machine, D-P4-5; six
+ *  where east is an outskirts face with nothing to dig, `HourReport.endWant`), three
+ *  Assemblers (all real: Shot, Wire, and a third — D-P4-5), the six start turrets (none carried to a claim — D-P4-9
+ *  keeps the block-level hopper through Gate B), four blocks Held: the HQ and the three claims constants.HOUR puts
+ *  inside the 75-minute hour (east 15, west 25, north 65 — D-HOUR-1, D-P4-10, D-HOUR-3). */
+export const HOUR_END = { generators: 4, excavators: 7, assemblers: 3, turrets: START_TURRETS, held: 4 } as const;
+/** The scored hour in seconds (HOUR_MINUTES, D-HOUR-3). */
+export const HOUR_S = HOUR_MINUTES * 60;
 /** The claim minutes and the Generator minutes, from constants.HOUR (D-HOUR-1, D-P4-7). */
 export const HOUR_CLAIM_AT: Record<HourDir, number> = { east: HOUR_CLAIM_MIN.east * 60, west: HOUR_CLAIM_MIN.west * 60, north: HOUR_CLAIM_MIN.north * 60 };
 export const HOUR_GEN_AT = HOUR_GENERATOR_MIN.map(m => m * 60);
@@ -228,7 +235,7 @@ function takeTask(bot: HourBot, wants: Partial<Record<'steel' | 'copper' | 'coal
 function kitsTask(bot: HourBot): Task[] {
   return [
     act('the pockets into the chest, then the kits', (st, out) => {
-      for (const item of ['steel', 'copper', 'stone', 'coal', 'magazine'] as const) {
+      for (const item of ['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board'] as const) {
         const n = st.engineer.inv[item] ?? 0;
         if (n > 0) out.push({ type: 'chestPut', item, n });
       }
@@ -253,6 +260,213 @@ function put(bot: HourBot, kind: Kind, lx: number, ly: number, dir: Dir): Task[]
     })];
   })];
 }
+
+/** RI-01: `put` at an absolute tile — a claim's lot or the street between it and the HQ. */
+function putAt(bot: HourBot, kind: Kind, tx: number, ty: number, dir: Dir, label = `${kind} at (${tx},${ty})`): Task[] {
+  return [goto(label, tx, ty, MACHINE_SIZE[kind]), act(`place ${label}`, (st2, out) => {
+    const chk = canPlace(st2, kind, tx, ty);
+    if (!chk.ok) { refused(bot, st2, label, chk.reason); return; }
+    out.push({ type: 'place', item: kind, x: tx, y: ty, dir });
+  })];
+}
+function dirBetween(x: number, y: number, nx: number, ny: number): Dir {
+  for (let d = 0; d < 4; d++) if (x + DX[d] === nx && y + DY[d] === ny) return d as Dir;
+  return 0;
+}
+export interface BeltStep { x: number; y: number; dir: Dir }
+/** RI-01: the belt routes into the Depot from everywhere a belt may stand now (`placeable`: a Held lot or its street,
+ *  no machine, no rubble; §14 lets belts run on streets), within a box round block `bi` and the HQ. One reverse
+ *  breadth-first search from the goal tiles: a tile next to the Depot, or next to a belt that already runs into it
+ *  (M4's HQ layout and the patches' undug rubble wall the Depot in — a claim's run joins the coal or steel line's last
+ *  belts, which take items from any side). `dist` is belts to the Depot (0 = unreachable), `next` the tile after,
+ *  `entry` the last belt's direction. `avoid` tiles (the lot the hour's later lines take) count as blocked; `free`
+ *  tiles count as open whatever stands there (a turret the bot is about to move). */
+export interface BeltRoutes { x0: number; y0: number; w: number; h: number; dist: Int32Array; next: Int32Array; entry: Int8Array }
+function feedsDepot(st: SimState, m: Machine, d: { x: number; y: number; size: number }): boolean {
+  let cur: Machine | undefined = m;
+  for (let n = 0; cur && n < 400; n++) {
+    const [ox, oy] = outputTile(cur);
+    if (ox >= d.x && ox < d.x + d.size && oy >= d.y && oy < d.y + d.size) return true;
+    cur = machineAt(st, ox, oy);
+    if (!cur || cur.kind !== 'belt') return false;
+  }
+  return false;
+}
+export function beltRoutes(st: SimState, bi: number, avoid: ReadonlySet<number> = new Set(), free: ReadonlySet<number> = new Set()): BeltRoutes {
+  const G = ground(st), d = depotRect(st), bg = G.blocks[bi], hb = G.blocks[hqIdx(st)], pad = 12;
+  const x0 = Math.max(0, Math.min(bg.x0, hb.x0) - pad), y0 = Math.max(0, Math.min(bg.y0, hb.y0) - pad);
+  const x1 = Math.min(G.tw - 1, Math.max(bg.x1, hb.x1) + pad), y1 = Math.min(G.th - 1, Math.max(bg.y1, hb.y1) + pad);
+  const w = x1 - x0 + 1, h = y1 - y0 + 1, n = w * h;
+  const dist = new Int32Array(n), next = new Int32Array(n).fill(-1), entry = new Int8Array(n).fill(-1);
+  const ok = new Uint8Array(n);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const t = y * G.tw + x;
+    ok[(y - y0) * w + (x - x0)] = !avoid.has(t) && (free.has(t) || placeable(st, 'belt', x, y) === '') ? 1 : 0;
+  }
+  const inDepot = (x: number, y: number) => x >= d.x && x < d.x + d.size && y >= d.y && y < d.y + d.size;
+  const feeder = new Set<number>();
+  for (const m of st.flow!.machines) if (m.kind === 'belt' && feedsDepot(st, m, d)) feeder.add(m.y * G.tw + m.x);
+  const q: number[] = [];
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const k = (y - y0) * w + (x - x0);
+    if (!ok[k]) continue;
+    for (let dir = 0; dir < 4; dir++) {
+      const nx = x + DX[dir], ny = y + DY[dir];
+      if (inDepot(nx, ny) || feeder.has(ny * G.tw + nx)) { dist[k] = 1; entry[k] = dir; q.push(k); break; }
+    }
+  }
+  for (let hd = 0; hd < q.length; hd++) {
+    const k = q[hd], lx = k % w, ly = (k - lx) / w;
+    for (let dir = 0; dir < 4; dir++) {
+      const nx = lx + DX[dir], ny = ly + DY[dir];
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      const nk = ny * w + nx;
+      if (!ok[nk] || dist[nk] > 0) continue;
+      dist[nk] = dist[k] + 1; next[nk] = k; q.push(nk);
+    }
+  }
+  return { x0, y0, w, h, dist, next, entry };
+}
+/** The belt run from (sx,sy) along `routes`, in placement order, each belt's direction toward the next tile; null when
+ *  (sx,sy) has no route (a rubble or machine tile, or walled off). */
+export function beltPath(routes: BeltRoutes, sx: number, sy: number): BeltStep[] | null {
+  const { x0, y0, w, h, dist, next, entry } = routes;
+  if (sx < x0 || sy < y0 || sx >= x0 + w || sy >= y0 + h) return null;
+  let k = (sy - y0) * w + (sx - x0);
+  if (dist[k] <= 0) return null;
+  const out: BeltStep[] = [];
+  for (let n = 0; n < dist.length; n++) {
+    const lx = k % w, ly = (k - lx) / w, nk = next[k];
+    if (nk < 0) { out.push({ x: lx + x0, y: ly + y0, dir: entry[k] as Dir }); return out; }
+    const nx = nk % w, ny = (nk - nx) / w;
+    out.push({ x: lx + x0, y: ly + y0, dir: dirBetween(lx, ly, nx, ny) });
+    k = nk;
+  }
+  return null;
+}
+/** The 3×3 lot spots on block `i` an Excavator may stand on with rubble of `type` in reach (its footprint plus one
+ *  tile each way, flow.ts `findRubble`), richest first, ties nearest the Depot. */
+function rubbleSpots(st: SimState, i: number, type: Item): { x: number; y: number; n: number }[] {
+  const G = ground(st), bg = G.blocks[i], tw = G.tw, d = depotRect(st), cx = d.x + d.size / 2, cy = d.y + d.size / 2;
+  const out: { x: number; y: number; n: number; dist: number }[] = [];
+  for (const t of bg.tiles) {
+    const tx = t % tw, ty = (t - tx) / tw;
+    if (placeable(st, 'excavator', tx, ty)) continue;
+    let n = 0;
+    for (let y = ty - 1; y <= ty + 3; y++) for (let x = tx - 1; x <= tx + 3; x++) { const r = rubbleAt(st, x, y); if (r && r.type === type && r.bi === i) n++; }
+    if (n > 0) out.push({ x: tx, y: ty, n, dist: Math.hypot(tx + 1.5 - cx, ty + 1.5 - cy) });
+  }
+  return out.sort((a, b) => b.n - a.n || a.dist - b.dist);
+}
+/** D-P4-12: the rail yard's coal heap (ground.ts `railYardLayout`, RAIL_YARD_HEAP square) as the Excavator's spot —
+ *  exactly on it, so every heap tile is in reach. Null when block `i` is not the rail yard or the spot is taken. */
+function heapSpot(st: SimState, i: number): [number, number] | null {
+  const G = ground(st), bg = G.blocks[i];
+  if (i !== G.railYard || bg.count <= 0) return null;
+  let x0 = Infinity, y0 = Infinity;
+  for (let k = 0; k < bg.count; k++) { const t = bg.order[k], tx = t % G.tw; x0 = Math.min(x0, tx); y0 = Math.min(y0, (t - tx) / G.tw); }
+  return placeable(st, 'excavator', x0, y0) ? null : [x0, y0];
+}
+/** The HQ lot the hour's later fixed steps take (copperToChest's Excavator and belts, the third Assembler), as
+ *  [lx, ly, w, h]: a claim's belt run is routed round them so those steps still find their tiles. */
+const HOUR_LATER_LOT: readonly [number, number, number, number][] = [[4, 14, 3, 3], [5, 13, 4, 1], [15, 0, 3, 3]];
+/** The HQ lot's west corridor, [lx, ly, w, h]: the two rows between the steel patch (lot y 7–11) and the copper patch
+ *  (y 14–16), from the lot's west edge to the Depot's west face. M4's layout walls the Depot in on every other side
+ *  (the steel line along row 6, the copper line along row 17, the Shot line down the east), so a claim's belt run
+ *  comes in here; a start turret standing on it (`startTurrets` puts the west face's turret on the nearest lot tile —
+ *  seed 5) is picked up and put down beside the run. */
+const HOUR_CORRIDOR: readonly [number, number, number, number] = [0, 12, 9, 2];
+const lotRectTiles = (st: SimState, rects: readonly (readonly [number, number, number, number])[]): Set<number> => {
+  const G = ground(st), out = new Set<number>();
+  for (const [lx, ly, w, h] of rects) for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const [ax, ay] = hqLot(st, lx + x, ly + y); out.add(ay * G.tw + ax); }
+  return out;
+};
+const footprint = (G: Ground, m: Machine): number[] => {
+  const out: number[] = [];
+  for (let y = m.y; y < m.y + m.size; y++) for (let x = m.x; x < m.x + m.size; x++) out.push(y * G.tw + x);
+  return out;
+};
+/** The shortest run into the Depot from one of a spot's four output tiles, over every spot in order (a spot deep in
+ *  the rubble has no free output tile and drops out at once), so the first spot with a route wins. */
+function bestLine(routes: BeltRoutes, spots: readonly { x: number; y: number }[]): { x: number; y: number; d: Dir; path: BeltStep[] } | null {
+  for (const sp of spots) {
+    let best: { x: number; y: number; d: Dir; path: BeltStep[] } | null = null;
+    for (let d = 0; d < 4; d++) {
+      const [ox, oy] = outputTile({ x: sp.x, y: sp.y, dir: d as Dir, size: 3 } as Machine);
+      if (ox >= sp.x && ox < sp.x + 3 && oy >= sp.y && oy < sp.y + 3) continue;
+      const path = beltPath(routes, ox, oy);
+      if (path && (!best || path.length < best.path.length)) best = { x: sp.x, y: sp.y, d: d as Dir, path };
+    }
+    if (best) return best;
+  }
+  return null;
+}
+/** RI-01: the Excavator on a claimed block and its belt run into the Depot (§11's "west's coal", east's own rubble —
+ *  D-P4-5: a real machine on the claim's rubble, replacing the E4 stand-in on the HQ lot). The spot is the coal
+ *  heap on the rail yard, else the richest 3×3 that has a route from one of its four output tiles; the facing is
+ *  the side with the shortest run. When nothing routes and a start turret stands on the corridor, the run is planned
+ *  with that turret's tiles open and the turret is moved first (picked up, put down on the nearest free 2×2 off the
+ *  corridor and the run, its magazines fed back). Steel for it all comes from the chest in one trip; a refusal
+ *  anywhere is logged, never forced. */
+function blockLine(bot: HourBot, dir: HourDir, want: 'coal' | 'own', st: SimState): Task[] {
+  const i = bot.claimed[dir];
+  if (i === undefined || st.blocks[i].state !== HELD) { refused(bot, st, `${dir}'s line`, i === undefined ? `${dir} was never claimed` : `${dir} is not Held`); return []; }
+  const G = ground(st), own = G.blocks[i].rubble;
+  // D-P4-2: a block's rubble is its district's, so east's line digs whatever east has (stone, copper …); an outskirts
+  // face with no rubble (its deposit is D-P4-3's placeholder) gets no line, and the report's end state expects one fewer
+  if (want === 'own' && !own) { note(bot, st, `${dir} (block ${i}) has no rubble to dig (an outskirts face, D-P4-3): no ${dir} line`); return []; }
+  const type: Item = want === 'coal' ? 'coal' : own!, what = `${dir}'s ${type} line`;
+  const heap = type === 'coal' ? heapSpot(st, i) : null;
+  if (type === 'coal' && !heap) note(bot, st, i === G.railYard ? 'the rail yard\'s heap spot is taken' : `${dir} (block ${i}) is not the rail yard (block ${G.railYard}) — the richest coal spot instead`);
+  const spots = heap ? [{ x: heap[0], y: heap[1], n: 0 }] : rubbleSpots(st, i, type);
+  if (spots.length === 0) { refused(bot, st, what, `no lot spot on block ${i} with ${type} rubble in an Excavator's reach`); return []; }
+  const avoid = lotRectTiles(st, HOUR_LATER_LOT);
+  let best = bestLine(beltRoutes(st, i, avoid), spots);
+  let move: Machine | null = null;
+  if (!best) {
+    const corridor = lotRectTiles(st, [HOUR_CORRIDOR]), hq = hqIdx(st);
+    for (const m of st.flow!.machines) {
+      if (m.kind !== 'turret' || G.owner[m.y * G.tw + m.x] !== hq || !footprint(G, m).some(t => corridor.has(t))) continue;
+      best = bestLine(beltRoutes(st, i, avoid, new Set(footprint(G, m))), spots);
+      if (best) { move = m; break; }
+    }
+  }
+  if (!best) { refused(bot, st, what, `no belt route to the Depot from any of ${spots.length} spots on block ${i}`); return []; }
+  const { x: ex, y: ey } = best;
+  note(bot, st, `${what}: Excavator at (${ex},${ey}) facing ${DIR_NAMES[best.d]}, ${best.path.length} belts to the Depot`);
+  const steel = MACHINE_COST.excavator.steel + best.path.length * MACHINE_COST.belt.steel;
+  const t: Task[] = [chest('to the chest', st), act('the pockets\' rubble and magazines into the chest', (st2, out) => {
+    for (const item of ['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board'] as const) {
+      const n = st2.engineer.inv[item] ?? 0;
+      if (n > 0) out.push({ type: 'chestPut', item, n });
+    }
+  }), takeTask(bot, { steel })];
+  if (move) {
+    const m = move, taken = new Set<number>([...corridorTiles(st), ...best.path.map(b => b.y * G.tw + b.x), ...avoid]);
+    let spot: [number, number] | null = null;
+    for (let d = 1; d <= 6 && !spot; d++) for (let dy = -d; dy <= d && !spot; dy++) for (let dx = -d; dx <= d && !spot; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
+      const tx = m.x + dx, ty = m.y + dy;
+      if (placeable(st, 'turret', tx, ty)) continue;
+      let clear = true;
+      for (let y = ty; y < ty + m.size && clear; y++) for (let x = tx; x < tx + m.size; x++) if (taken.has(y * G.tw + x)) { clear = false; break; }
+      if (clear) spot = [tx, ty];
+    }
+    if (!spot) { refused(bot, st, what, `the start turret at (${m.x},${m.y}) stands on the corridor and has no free 2×2 within 6 tiles to move to`); return []; }
+    const [nx, ny] = spot;
+    note(bot, st, `the start turret at (${m.x},${m.y}) stands on the HQ lot's west corridor: moved to (${nx},${ny}) for ${what}`);
+    t.push(goto('the turret on the corridor', m.x, m.y, m.size), act('pick up the turret', (st2, out) => {
+      const chk = canPickUp(st2, m.x, m.y);
+      if (!chk.ok) { refused(bot, st2, `pick up the turret at (${m.x},${m.y})`, chk.reason); return; }
+      out.push({ type: 'pickUp', x: m.x, y: m.y });
+    }), ...putAt(bot, 'turret', nx, ny, m.dir, 'the moved turret'), feedTask('moved turret', nx, ny));
+  }
+  t.push(...putAt(bot, 'excavator', ex, ey, best.d, `${dir}'s ${type} Excavator`));
+  for (const b of best.path) t.push(...putAt(bot, 'belt', b.x, b.y, b.dir));
+  t.push(act(`${what} placed`, st2 => { mark(bot, st2, `${dir}-line`); }));
+  return t;
+}
+const corridorTiles = (st: SimState): Set<number> => lotRectTiles(st, [HOUR_CORRIDOR]);
 
 /** Like `put`, but the spot is the nearest placeable one to lot (lx,ly) within `r` (Chebyshev rings, west-to-east then
  *  north-to-south inside a ring), so the E4 stand-ins and the 45:00 machines find room on every seed: a start turret,
@@ -414,6 +628,19 @@ export function hourSteps(bot: HourBot): HourStep[] {
     for (const [k, lx, ly] of kinds) t.push(...putNear(bot, k, lx, ly, 0));
     return t;
   } });
+  const wireAssembler = (at: number, lx: number, ly: number): HourStep => ({ at, name: 'the Wire Assembler (RI-01: a real machine on the Wire recipe, D-B2-1 (b))', tasks: st => {
+    let n0 = 0;
+    const count = (s: SimState) => s.flow!.machines.filter(m => m.kind === 'assembler').length;
+    return [chest('to the chest', st), takeTask(bot, { steel: MACHINE_COST.assembler.steel, copper: MACHINE_COST.assembler.copper }),
+      act('count Assemblers', s => { n0 = count(s); }), ...putNear(bot, 'assembler', lx, ly, 0),
+      act('the Wire recipe', (s, out) => {
+        const asms = s.flow!.machines.filter(m => m.kind === 'assembler');
+        if (asms.length <= n0) return;
+        const m = asms[asms.length - 1];
+        out.push({ type: 'setRecipe', x: m.x, y: m.y, recipe: 'wire' });
+        mark(bot, s, 'wire-assembler');
+      })];
+  } });
   const claimMin = (dir: HourDir): number => dir === 'north' ? bot.northAt : HOUR_CLAIM_AT[dir];
   const claimAt = (dir: HourDir): HourStep => ({ at: claimMin(dir), name: `§11 ${claimMin(dir) / 60}:00 — claim ${dir}`, tasks: st => [
     chest('to the chest for kits', st), ...kitsTask(bot), ...claimStep(bot, dir)] });
@@ -455,10 +682,13 @@ export function hourSteps(bot: HourBot): HourStep[] {
       chest('to the chest', st), takeTask(bot, { steel: MACHINE_COST.excavator.steel + 2 * MACHINE_COST.belt.steel }), ...steelToChest(bot)] },
     gen(3, 22, 3),
     claimAt('east'),
-    standIn(HOUR_CLAIM_AT.east + burnE + 60, 'stand-in Excavator for east\'s copper (E4, D-P4-5)', [['excavator', 7, 1]]),
-    standIn(HOUR_CLAIM_AT.east + burnE + 120, 'stand-in Assembler (E4\'s wire recipe, D-P4-5)', [['assembler', 11, 1]]),
+    // RI-01 (D-P4-5): east's rubble and west's coal are real Excavators on the claims, belted into the Depot — the
+    // E4 stand-ins on the HQ lot at (7,1) and (3,1) are gone; the Wire Assembler at (11,1) runs the Wire recipe
+    // (unfed: nothing belts copper to it in the hour, so it is the line's load and no more — the report says so)
+    { at: HOUR_CLAIM_AT.east + burnE + 60, name: 'east\'s Excavator on its own rubble, belted into the Depot (RI-01, D-P4-5)', tasks: st => blockLine(bot, 'east', 'own', st) },
+    wireAssembler(HOUR_CLAIM_AT.east + burnE + 120, 11, 1),
     claimAt('west'),
-    standIn(HOUR_CLAIM_AT.west + burnE + 60, 'stand-in Excavator for west\'s coal (E4, D-P4-5)', [['excavator', 3, 1]]),
+    { at: HOUR_CLAIM_AT.west + burnE + 60, name: 'the rail yard\'s coal Excavator, belted into the Depot (RI-01, D-P4-12)', tasks: st => blockLine(bot, 'west', 'coal', st) },
     gen(4, 15, 3),
     // the second copper Excavator waits for Generator 4: three Generators carry 900 kW and the line plus the stand-ins
     // already draw 890, so a seventh Excavator before the fourth Generator is the 38:00 brownout E-hour found
@@ -508,6 +738,12 @@ function watch(st: SimState, bot: HourBot): void {
   const gens = f.machines.filter(m => m.kind === 'generator');
   if (gens.length && gens.every(m => (m.inv.coal ?? 0) <= 0)) mark(bot, st, 'generators-dry');
   if (f.stats.magsMade > 0) mark(bot, st, 'first-line-magazine');
+  if (f.stats.made.wire > 0) mark(bot, st, 'first-wire');
+  // RI-01 (D-P4-12): the rail yard's first coal unit dug, and the first to reach the Depot by belt — read as the
+  // Depot having taken more coal by machine than the HQ patch's Excavator ever dug (hand-mined coal goes to the
+  // pockets, never by belt), so the mark lags the true arrival by the patch coal still on its belt at the time.
+  if (f.stats.railCoal > 0) mark(bot, st, 'rail-coal-mined');
+  if (f.stats.delivered.coal > f.stats.minedOf.coal - f.stats.handMinedOf.coal - f.stats.railCoal) mark(bot, st, 'rail-coal-arrived');
   if (f.tick % TILE_TPS === 0) {
     for (const ed of st.ring) {
       if (ed.born === st.t || ed.kit === false) continue;
@@ -626,6 +862,14 @@ export interface HourReport {
   /** D-P4-4: the chest's steel curve by the minute and its minimum; copper and coal minima; whether any block fell. */
   stock: HourBot['stock']; steelMin: number; steelMinAt: number; copperMin: number; coalMin: number; fell: number; fellWhy: Partial<Record<HourDir, string>>;
   atFirstRed: HourBot['atFirstRed']; coalZeroAt: number;
+  /** RI-01 (D-P4-12, M6's check (a)): the rail yard's coal units dug; when the first reached the Depot (`rail-coal-arrived`,
+   *  -1 never); when the chest's coal ran out for good (-1: it had coal at the last sample); the margin between them in
+   *  seconds (the run's end stands in for a chest that never ran out; -Infinity when the coal never arrived). */
+  railCoal: number; railArrival: number; coalOut: number; railMargin: number;
+  /** RI-01: what reached the Depot by machine and what the recipes made, by item; the hand-feeds split (D-P4-11). */
+  delivered: Record<Item, number>; made: Record<Item, number>; handFedMags: number; handFedCoal: number;
+  /** HOUR_END for this city: one Excavator fewer where east has no rubble (D-P4-2 / D-P4-3). */
+  endWant: { generators: number; excavators: number; assemblers: number; turrets: number; held: number };
   /** Findings: every divergence from §11's prose and from the calibration timeline, one line each. */
   findings: string[];
 }
@@ -665,10 +909,27 @@ export function hourReport(st: SimState, bot: HourBot): HourReport {
   if (wo) { const s = wo.t1 - wo.t0; if (s < 2 || s > 8) findings.push(`the walk over to east took ${s.toFixed(0)} s (§11: 2–8 s)`); }
   expect('generator-3', 12 * 60, 20 * 60, 'the third Generator (E4-doc: minute 15)');
   expect('claim-west', 15 * 60, 30 * 60, 'west claimed');
-  // §11 30–60 min. North's claim, the HQ's white border (its third neighbour Held) and the Electricians walking out
-  // of civic north all wait on north (D-P4-10 (a): minute 65), so a 3,600 s run reaches none of them — that is the
-  // shape of the hour, two claims, not a divergence. None is expected until north has been claimed.
+  // RI-01: the claims' real lines (D-P4-5) and the rail yard's coal against the chest's (D-P4-12, M6 (a))
+  const burnE = burnOffS(0.22);
+  const eastRubble = bot.claimed.east === undefined ? null : ground(st).blocks[bot.claimed.east].rubble;
+  const endWant = { ...HOUR_END, excavators: HOUR_END.excavators - (bot.claimed.east !== undefined && !eastRubble ? 1 : 0) };
+  if (eastRubble) expect('east-line', HOUR_CLAIM_AT.east + burnE, HOUR_CLAIM_AT.east + burnE + 6 * 60, `east's ${eastRubble} Excavator and belt to the Depot`);
+  expect('wire-assembler', HOUR_CLAIM_AT.east + burnE, HOUR_CLAIM_AT.east + burnE + 8 * 60, 'the Wire Assembler on its recipe');
+  expect('west-line', HOUR_CLAIM_AT.west + burnE, HOUR_CLAIM_AT.west + burnE + 6 * 60, 'the rail yard\'s coal Excavator and belt to the Depot');
+  expect('rail-coal-mined', HOUR_CLAIM_AT.west + burnE, HOUR_CLAIM_AT.west + burnE + 8 * 60, 'the rail yard\'s first coal unit dug');
+  let lastWith = -1; bot.stock.forEach((x, k) => { if (x.coal > 0) lastWith = k; });
+  const coalOut = lastWith + 1 < bot.stock.length ? bot.stock[lastWith + 1].t : -1;
+  const railArrival = m['rail-coal-arrived'] ?? -1;
+  const railMargin = railArrival < 0 ? -Infinity : (coalOut < 0 ? Math.max(st.t, HOUR_S) : coalOut) - railArrival;
+  if (st.t >= HOUR_S - 1) {
+    if (railArrival < 0) findings.push('the rail yard\'s coal never reached the Depot (RI-01: at the Generators ≥ 10 min before the Depot\'s coal is gone)');
+    else if (railMargin < 600) findings.push(`the rail yard's coal reached the Depot at ${mm(railArrival)}, ${(railMargin / 60).toFixed(1)} min before the chest's coal ran out for good at ${mm(coalOut)} (RI-01: ≥ 10 min)`);
+  }
+  // §11 30–75 min. North's claim, the HQ's white border (its third neighbour Held) and the Electricians walking out
+  // of civic north all wait on north (D-P4-10 (a): minute 65, inside the 75-minute hour — D-HOUR-3). They are scored
+  // once the run has passed north's minute; a shorter run (the 45:00 unit test) reaches none of them.
   if (st.t >= bot.northAt + 60) {
+    expect('held-north', bot.northAt, bot.northAt + 8 * 60, 'north Held (D-HOUR-3: inside the hour)');
     expect('claim-north', bot.northAt, bot.northAt + 5 * 60, `north claimed (${bot.northAt === HOUR_CLAIM_AT.north ? `constants.HOUR: minute ${HOUR_CLAIM_AT.north / 60}, D-P4-10` : `the variant's ${bot.northAt / 60}:00`})`);
     expect('enclosure', bot.northAt, bot.northAt + 10 * 60, 'the HQ interior (§11: the white border when north holds)');
     expect('electricians', 0, bot.northAt + 10 * 60, 'the Electricians in the Depot');
@@ -677,9 +938,9 @@ export function hourReport(st: SimState, bot: HourBot): HourReport {
   expect('generator-4', 42 * 60, 50 * 60, 'the fourth Generator (E4-doc: minute 45)');
   expect('copper-2', HOUR_COPPER2_AT, HOUR_COPPER2_AT + 3 * 60, 'the second copper Excavator (after Generator 4, so no brownout)');
   const gens = count('generator'), exc = count('excavator'), asm = count('assembler'), tur = count('turret');
-  if (st.t >= 3600 - 1) {
+  if (st.t >= HOUR_S - 1) {
     if (gens !== HOUR_END.generators) findings.push(`${gens} Generators at the hour (§11: ${HOUR_END.generators})`);
-    if (exc !== HOUR_END.excavators) findings.push(`${exc} Excavators at the hour (§11: ${HOUR_END.excavators})`);
+    if (exc !== endWant.excavators) findings.push(`${exc} Excavators at the hour (§11: ${endWant.excavators}${endWant.excavators !== HOUR_END.excavators ? ', east has nothing to dig' : ''})`);
     if (asm !== HOUR_END.assemblers) findings.push(`${asm} Assemblers at the hour (§11: ${HOUR_END.assemblers})`);
     if (tur !== HOUR_END.turrets) findings.push(`${tur} turrets at the hour (§11: ${HOUR_END.turrets})`);
     if (f.power.overS > 0) findings.push(`${f.power.overS.toFixed(0)} s of brownout (§11: none)`);
@@ -694,7 +955,7 @@ export function hourReport(st: SimState, bot: HourBot): HourReport {
   expect('first-amber', 2 * 60, 6 * 60, 'the first amber pip (D-P4-8: the north bloom at about minute 3; the calibration\'s 16–31 was the lattice)');
   expect('first-red', 4 * 60, 10 * 60, 'the first red pip (D-P4-8: the ~6-minute hand-feed beat)');
   const held = st.blocks.filter(b => b.state === HELD).length;
-  if (st.t >= 3600 - 1 && held !== HOUR_END.held) findings.push(`${held} blocks Held at the hour (§11: ${HOUR_END.held})`);
+  if (st.t >= HOUR_S - 1 && held !== HOUR_END.held) findings.push(`${held} blocks Held at the hour (§11: ${HOUR_END.held})`);
   if (m['hq-fell'] !== undefined) findings.push(`the HQ fell at ${mm(m['hq-fell'])}`);
   let fell = m['hq-fell'] !== undefined ? 1 : 0;
   for (const dir of DIRS) if (m[`fell-${dir}`] !== undefined) { fell++; findings.push(`${dir} fell at ${mm(m[`fell-${dir}`])} (${bot.fellWhy[dir] ?? '?'})`); }
@@ -707,6 +968,8 @@ export function hourReport(st: SimState, bot: HourBot): HourReport {
     rifleKills: T?.stats.rifleKills ?? 0, fired: e.fired, magsMade: f.stats.magsMade, findings,
     stock: bot.stock.slice(), steelMin: bot.steelMin, steelMinAt: bot.steelMinAt, copperMin: bot.copperMin, coalMin: bot.coalMin, fell, fellWhy: { ...bot.fellWhy },
     atFirstRed: bot.atFirstRed, coalZeroAt: bot.coalZeroAt,
+    railCoal: f.stats.railCoal, railArrival, coalOut, railMargin, delivered: { ...f.stats.delivered }, made: { ...f.stats.made },
+    handFedMags: f.stats.handFedMags, handFedCoal: f.stats.handFedCoal, endWant,
   };
 }
 

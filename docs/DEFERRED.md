@@ -25,12 +25,13 @@ twenty-four "Re-read at …" sections) is `archive/pre-phase-5-cleanup/DEFERRED-
   lit tiles, the burn-off question ("did the lights coming on land?"), copper for repairs,
   repair-by-E, light on the map view. T19's opening part stops at minute 20; its RI-08 session runs longer
   and can record them (`PROGRESS.md` T19).
+- A sink for stone (RI-01, 2026-09-05): rubble is finite typed ore and east's line digs
+  1,750 stone in the 75-minute hour on seeds 3 and 5 with nothing to spend it on
+  (`E-hour-ledger`); a stone-consuming use is a new mechanic — a separate, visible
+  decision, nobody's task yet (`RI_PASS_1_REPORT.md` "RI-01").
 
 ## Scheduled — link only
 
-- M6's two unrun checks (rail-yard coal margin ≥ 10 min; the arrival count at the first
-  red pip) → `PROGRESS.md` **RI-01** acceptance (T12's scope, absorbed 2026-09-05).
-- West's coal, rubble sinks for stone, D-P4-3's placeholder tripwire → **RI-01**.
 - Every front edge physical (restore from commit 6694b71) → **RI-03** (field deployment); the rest of T13 → **RI-09**.
 - D-P4-11 (the idle steel, the Mk2 purchase, the hand-feed) → measured by **T12b**, then
   the human's row.

@@ -1,11 +1,12 @@
 /**
  * docsync — the §7 district and enemy tables, the §12 recipe and Assembler tables, the §11 minute table and the §13
- * constants table in docs/RELIGHT-design.md are generated from packages/sim (districts.ts, enemies.ts, recipes.ts,
- * constants.ts) plus the E3-block steady state in docs/experiments/E3.json. `npm run docsync` rewrites them;
+ * machines and constants tables in docs/RELIGHT-design.md are generated from packages/sim (districts.ts, enemies.ts,
+ * recipes.ts, flow.ts, constants.ts) plus the E3-block steady state in docs/experiments/E3.json. `npm run docsync` rewrites them;
  * `npm run docsync:check` (CI) fails if the doc differs from what the code says, or if the calibration config, the
  * block sim, firsthour.ts, hour.ts or the doc's prose carry a number that differs from constants.ts (the
  * `disagreements` list). Edit the .ts files, never the tables. PROTO_CALIBRATED (types.ts) is prototype-era, frozen
- * at Gate A, and is not compared (D-B1-1).
+ * at Gate A, and is not compared (D-B1-1). RI-01 adds the `[play: <gate>]` check: every play tag in the doc names a
+ * gate whose record exists (PLAY_GATES); a placeholder or an unknown gate is red (constitution rule 11).
  *
  * The §18 map-view and lot drawings (section18, section18lot) were retired in the D5/D6 rework: §18 is redrawn as
  * rendered map-view images at rework Step 5 (docs/), not as generated text.
@@ -19,7 +20,7 @@ import {
   SHOT_MAGAZINE, SHOT_MAGAZINE_MK2_SECONDS, ASSEMBLER_TIERS, ASSEMBLER_MAG_PER_MIN, ASSEMBLER_MK1_MAG_PER_MIN, START_TURRETS, STREETLIGHT_RADIUS, EXCAVATOR_PER_S, BELT_PER_S, FAST_BELT_PER_S, INSERTER_PER_S, TURRET,
   TURRET_PER_TILES, LAMP_STEP_TILES, SUBSTATION_KW, BROWNOUT_RULE, START_CHEST, HOUR, HOUR_GENERATOR_MIN, HOUR_CLAIM_MIN, EDGE_TURRETS,
   DEFAULT_CONFIG, protoCalibrated, ROUNDS_PER_MAG, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, ROUND_DMG,
-  FACE_LIGHT_STEP, STREETLIGHT_STEP, FIRST_HOUR_DEFAULTS, FIRST_HOUR_CLAIMS, HOUR_GEN_AT, HOUR_CLAIM_AT, SHOT,
+  FACE_LIGHT_STEP, STREETLIGHT_STEP, FIRST_HOUR_DEFAULTS, FIRST_HOUR_CLAIMS, HOUR_GEN_AT, HOUR_CLAIM_AT, SHOT, MACHINE_RECIPES,
 } from '@relight/sim';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -82,6 +83,33 @@ function recipesTable(): string {
     lines.push(`| ${r.name} | ${inputs} | ${out} | ${r.seconds} s | ${r.at} |`);
   }
   return lines.join('\n');
+}
+
+/** RI-01 (D-B2-1 (b)): the §13 machine → recipe table, from flow.ts MACHINE_RECIPES — which machine makes what in
+ *  the build, and which recipes are still data. */
+function machinesTable(): string {
+  const lines = ['| Machine | Makes | In the build |', '|---|---|---|'];
+  for (const m of MACHINE_RECIPES) lines.push(`| ${m.machine} | ${m.recipes} | ${m.state} |`);
+  return lines.join('\n');
+}
+
+/** RI-01: the gates a `[play: <gate>]` tag may name, each with the record that holds its observations (constitution
+ *  rule 11: Gate A's tags are approval locks, Gate B's support the sentence they sit on). A new played session gets a
+ *  row here when its record is written; until then its tag is red. */
+const PLAY_GATES: Record<string, string> = { 'Gate A': 'docs/TEST_RESULTS.md', 'Gate B': 'docs/GATE_B.md' };
+function playTags(doc: string): string[] {
+  const out: string[] = [];
+  const re = /(`?)\[play: ([^\]]*)\]/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(doc))) {
+    if (m[1] === '`') continue; // a quoted mention of the tag form, not a tag
+    const gate = m[2].trim(), line = doc.slice(0, m.index).split('\n').length;
+    const rec = PLAY_GATES[gate];
+    if (!gate || gate === '…' || gate === '...' || /^<.*>$/.test(gate)) out.push(`line ${line}: [play: ${m[2]}] is a placeholder — name the gate whose record holds the observation`);
+    else if (!rec) out.push(`line ${line}: [play: ${gate}] names no gate in PLAY_GATES (${Object.keys(PLAY_GATES).join(', ')})`);
+    else if (!existsSync(join(root, rec))) out.push(`line ${line}: [play: ${gate}]'s record ${rec} is missing`);
+  }
+  return out;
 }
 
 /** D-P4-4 (economy-fix task Step 2, item 1): the §12 Assembler ladder, one row a tier, from constants.ts. */
@@ -195,7 +223,7 @@ function disagreements(doc: string): string[] {
   return out;
 }
 
-const GENERATORS: Record<string, () => string> = { districts: districtsTable, enemies: enemiesTable, recipes: recipesTable, assemblers: assemblersTable, hour: hourTable, constants: constantsTable };
+const GENERATORS: Record<string, () => string> = { districts: districtsTable, enemies: enemiesTable, recipes: recipesTable, assemblers: assemblersTable, machines: machinesTable, hour: hourTable, constants: constantsTable };
 const RE = /(<!-- docsync:(\w+)[^\n]*-->\n)([\s\S]*?)(<!-- \/docsync:\2 -->)/g;
 
 function render(doc: string): { out: string; changed: string[] } {
@@ -221,6 +249,12 @@ if (bad.length) {
   console.error(`docsync: ${bad.length} constant${bad.length === 1 ? '' : 's'} disagree with packages/sim/src/constants.ts (recorded in GUARDRAILS_REPORT.md §5; a DECISIONS.md row settles each):`);
   for (const b of bad) console.error(`  - ${b}`);
 }
+const tags = playTags(doc);
+if (tags.length) {
+  console.error(`docsync: ${tags.length} [play: <gate>] tag${tags.length === 1 ? '' : 's'} name no recorded gate (RI-01 check; constitution rule 11):`);
+  for (const t of tags) console.error(`  - ${t}`);
+  bad.push(...tags);
+} else console.log(`docsync: every [play: <gate>] tag names a recorded gate (${Object.keys(PLAY_GATES).join(', ')})`);
 if (changed.length === 0 && bad.length) {
   console.log('docsync: doc tables match packages/sim');
   if (check) process.exit(1);

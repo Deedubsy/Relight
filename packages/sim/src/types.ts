@@ -148,6 +148,11 @@ export interface SimStats {
   throttleMin: number;   // the lowest supply ÷ demand seen (1 = never short)
   lostInWindow: number; lostAfterWindow: number;   // blocks lost during / after the shortfall window
   wellsDead: number;
+  // RI-01's resource accounting (ledger.ts). The block sim's abstract flows in rounds and rubble units:
+  ringDraw: number;      // rounds the line buffer put in ring hoppers (a transfer; the ledger holds both sides)
+  ringFired: number;     // rounds a ring hopper with no physical turret spent on arrivals (D-P4-9's stand-in edges; every edge on a block-only run)
+  spentSteel: number; spentCopper: number;   // stock a claim (§5's 10 wire, 5 frames as rubble) or a block-level assembler took
+  roundsLost: number;    // rounds a full line buffer could not take back (a turret's loose rounds on pick-up, a stand-in hopper's on its first turret, the block tick's cap)
 }
 
 /** Power-model state. D-B3-4 (§14): one pool, no shedding; while demand exceeds supply every machine runs at
@@ -186,7 +191,8 @@ export type Command =
   // M6: the scene's remaining direct calls as commands, so a played session's log replays whole (hour.ts `replay`)
   | { type: 'feed'; x: number; y: number }          // E on a turret / Generator: magazines / coal from the pockets
   | { type: 'repair'; x: number; y: number }        // E on an eaten lamp: 1 Cu from the pockets
-  | { type: 'rotate'; x: number; y: number };       // R on a machine
+  | { type: 'rotate'; x: number; y: number }        // R on a machine
+  | { type: 'setRecipe'; x: number; y: number; recipe: string };   // RI-01: T on an Assembler — one of flow.ts RECIPE_IDS
 
 export type SimEvent =
   | { type: 'claim'; t: number; x: number; y: number; district: District; well: boolean; d: number;

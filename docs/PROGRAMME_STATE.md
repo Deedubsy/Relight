@@ -6,21 +6,28 @@ now. The per-milestone history lives in the phase reports (`PHASE_0_REPORT.md` �
 `archive/pre-phase-5-cleanup/PROGRAMME_STATE-2026-09-05.md`. Rules: `CONSTITUTION.md`.
 Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 
-## Now (2026-09-05, after RI-00 adopted the revised development plan)
+## Now (2026-09-05, after RI-01 built the real opening economy)
 
-- **The revised development plan is adopted and RI-00 is done.** Daniel pasted "Revised
-  development plan, Version 1.0 · 2026-09-05" and authorised it with "Whole plan"
-  (D-RI-1); the plan is `REVISED_DEVELOPMENT_PLAN.md`, verbatim, and its tasks RI-00 …
-  RI-13 are in `PROGRESS.md` with the T → RI mapping recorded once there. RI-00 was
-  doc-only: nothing was built and no gameplay number moved (`RI_PASS_1_REPORT.md` "RI-00").
-- **Next task: RI-01 — the real opening economy and resource accounting** (T12's scope:
-  recipes by real machines, rubble as finite ore, rail-yard coal at ~700 a lot, the
-  75-minute hour, every assembler physical, a conservation check, the hand-fed total
-  explained or removed). **Ready**: its only blocker was RI-00. It opens branch
-  `ri-pass-1` on top of `phase-4`. The order after it: RI-02 → RI-03 → RI-04 → RI-05 →
-  RI-06 → RI-07 → RI-08 (whose played session is **T19**, human) → RI-09 (T13 → T17,
-  T18) → RI-10 → RI-11 → RI-12 → RI-13.
-- **Phase 5 — the factory, complete — is open and nothing of it is built.** The plan
+- **The revised development plan is in execution: RI-00 and RI-01 are done.** Daniel
+  authorised the plan with "Whole plan" (D-RI-1); it is `REVISED_DEVELOPMENT_PLAN.md`,
+  verbatim, and its tasks RI-00 … RI-13 are in `PROGRESS.md`. RI-01 built the real
+  opening economy (`RI_PASS_1_REPORT.md` "RI-01"): the placed Assembler runs Shot, Wire,
+  Frame or Board chosen per machine (D-B2-1 (b)); a district tile holds 300 units and the
+  map's pool follows the tiles (D-P4-2); the rail yard is a 3×3 heap of 702 coal
+  (D-P4-12) that the hour bot belts into the Depot from 26:39–26:44; `HOUR_MINUTES` is 75
+  and north's claim is scored (D-HOUR-3); every Assembler is a placed machine (D-P4-5);
+  `ledger.ts` balances every item on every `E-hour` run; the hand-feed count is split
+  into 69–150 magazines and 928–932 coal (D-P4-11).
+- **Next task: RI-02 — opening guidance and essential presentation** (T12a's line: the
+  goal line from the sim's state with the reason it matters, machine states readable,
+  place / remove / invalid-action feedback, stable destination names, a save / load
+  baseline after verifying none exists, two viewport sizes; rule 8 kept). **Ready**: its
+  only blocker was RI-01. Branch `ri-pass-1` on top of `phase-4`. The order after it:
+  RI-03 → RI-04 → RI-05 → RI-06 → RI-07 → RI-08 (whose played session is **T19**, human)
+  → RI-09 (T13 → T17, T18) → RI-10 → RI-11 → RI-12 → RI-13; T12b and T12c are runnable
+  behind RI-02 in list order.
+- **Phase 5 — the factory, complete — is open; RI-01 built its first pieces** (the
+  per-machine recipe, coal rubble, the ledger) and the rest is not built. The plan
   interleaves the phases (`PHASES.md` top note): the hybrid of D-GB-1 moved from Phase 6
   into RI-03 / RI-05 / RI-06 (D-RI-4); the three-systems stop became rule 2's scope test
   (D-RI-3); D-GB-2, D-CU-1 and D-CU-3 are provisional on the plan's defaults (D-RI-6).
@@ -29,13 +36,14 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
   conditions`: one hour played by the owner, only minutes 0–10 recorded, no telemetry
   read; the conditions are D-GB-2 (now provisional (a), RI-02), D-GB-3 (rifle range,
   RI-08's candidate) and D-GB-4 (enemy density, RI-04 / RI-10) — none blocks RI-01.
-- Branch `phase-4`; PR #5 open, #1–#4 merged (checked read-only on 2026-09-05). Nothing
+- Branch `ri-pass-1` on `phase-4`; PR #5 (`phase-4`) open, #1–#4 merged (checked read-only on
+  2026-09-05). Nothing
   is pushed by a task unless the human asks.
 
 ## What is built, what is a stand-in
 
-**Implemented and measured** (`docs/EXPERIMENTS.md`, GREEN at commit 2f1b016, config
-b95922d2; `SLICE_REPORT.md`):
+**Implemented and measured** (`docs/EXPERIMENTS.md`, 13 experiments GREEN on 2026-09-05
+at RI-01, stamped `5f49691` + RI-01's tree, config b95922d2; `SLICE_REPORT.md`):
 
 - The block sim: §5's front rule, wake bloom and burn-off, the 40-unshot-arrival fall,
   proportional brownout (D-B3-4), wells, the 25-hour compact / spike / quiet-block
@@ -44,12 +52,16 @@ b95922d2; `SLICE_REPORT.md`):
   are the regression set) with substations and streetlights placed by face geometry
   (D-B1-4; 3 in 8 streetlights start broken).
 - The tile layer with the engineer on foot (D5): WASD, sprint, dodge, reach, pockets,
-  the rifle; hand-mining and the workbench; the physical Shot line on the HQ lot
-  (Excavators, Mk1 / Mk2 Assembler, one-lane belts, one inserter, turrets with hoppers);
-  Generators on coal; claims from the map paid from the Depot chest; the Electricians'
-  unlocks (Floodlight, Big pole, craftable Substation); crawlers, shades, hulks.
-- The hour-one bot (`E-hour`): no block lost on seeds 3 / 4 / 5 at 60 minutes, rifle off
-  and on; `E-hour-north` holds north from 65:29–65:34 to 75:00 on every seed. `E-rifle` at
+  the rifle; hand-mining and the workbench; the physical line on the HQ lot and the
+  claims (Excavators, the placed Assembler on Shot / Wire / Frame / Board, one-lane belts,
+  one inserter, turrets with hoppers); rubble at 300 a tile, the rail yard's coal heap
+  (RI-01); Generators on coal; claims from the map paid from the Depot chest; the
+  Electricians' unlocks (Floodlight, Big pole, craftable Substation); crawlers, shades,
+  hulks; the conservation ledger (`ledger.ts`).
+- The hour-one bot (`E-hour`): no block lost on seeds 3 / 4 / 5 at 75 minutes, rifle off
+  and on; north claimed at 65:00 is Held from 65:29–65:34 to 75:00 on every run; the rail
+  yard's coal at the Depot at 27:02–27:04, 47.9 min before the hour ends; every item
+  conserved (`E-hour-ledger`). `E-rifle` at
   tile scale: the rifle decides a rescue (48 runs) and the bot spends 0.50 / 0.69 / 0.06 %
   of the hour shooting, 0.00 % in danger.
 - The game (`packages/game`): world view and map view, HUD corners, the telemetry panel,
@@ -57,17 +69,19 @@ b95922d2; `SLICE_REPORT.md`):
 
 **Stand-ins and approved-not-built changes** (each labelled where it sits in the doc):
 
-- The eight non-Shot recipes are data only (`recipes.ts`); no machine makes them — RI-01
-  (those whose machines are start-unlocked; the rest stay data).
+- The §12 recipes with no machine (Shell, Concrete, Fuel, Polymer, the Mk2's 3 s Shot)
+  are data (`recipes.ts`; the generated §13 machines table says which) — Shell at RI-10,
+  the rest later. Wire, Frame and Board are made but have no hour-one consumer; the hour
+  bot's Wire Assembler is placed and never fed (`made.wire` 0), the load stand-in §11's
+  "wire recipe on a second Assembler" was.
 - Machines are paid in rubble at placement (D-B2-1 (a)); the workbench recipe with a craft
-  time is RI-01 / RI-09 (T13).
-- The block-level "Build assembler" stand-in still exists beside the physical line
-  (D-P4-5, provisional; removed by RI-01); slots are `floor(area / 600)` (D-B2-2,
+  time — (b)'s other half — is RI-09 (T13). Slots are `floor(area / 600)` (D-B2-2,
   provisional).
-- Outskirts deposits are placeholders (D-P4-3); coal rubble on rail-yard lots at ~700 a
-  lot (D-P4-12) is decided and not built — RI-01.
-- `constants.ts` `HOUR` ends at 60 minutes; the 75-minute hour (D-HOUR-3) is decided and
-  not built, so §11's "30–60 min" prose describes minute 65 until RI-01 regenerates it.
+- Outskirts deposits are placeholders (D-P4-3): a claimed face with no rubble gets no
+  line and the hour bot notes it (the tripwire); no seed in three hits it.
+- Stone has no sink: east's line digs 1,750 stone in the hour on seeds 3 and 5 and it
+  sits in the chest (`E-hour-ledger`); a stone-consuming use is a new mechanic and a
+  separate decision (`RI_PASS_1_REPORT.md` "RI-01").
 - **Claims are made from the map and paid from the Depot chest** (`sim.ts` `claim`,
   `flow.ts` laying the poles); the intended rule is physical commissioning (D-RI-2, §28.2)
   and the field kit on adjacent Dark ground (§28.3) — RI-03. The craftable Substation
@@ -79,8 +93,10 @@ b95922d2; `SLICE_REPORT.md`):
   exist (§28.4–28.8) — RI-04 … RI-06, RI-10, RI-12.
 - Turrets are unharmed waypoints in the crawler chain (D-B4-3, provisional) while §22
   says they can be chewed; the barricade chain is Phase 6.
-- The hour bot hand-feeds 790–860 magazines an hour against the line's 519 (B-M6-hour)
-  while §19 says hand-feeding ends by minute 10 (D-P4-11, open; measured next by T12b).
+- The hour bot hand-feeds 69–150 magazines and walks 928–932 coal from the chest to the
+  Generators in the 75-minute hour against the line's 669 (`E-hour-end`; the 60-minute
+  hour's "790–860 magazines" was both counts together) while §19 says hand-feeding ends
+  by minute 10 (D-P4-11, open; measured next by T12b).
 - The hybrid expedition loop (D-GB-1) is decided and not built; its definition is
   `REVISED_DEVELOPMENT_PLAN.md` §4–§9 (§28) and its tasks are RI-03 / RI-05 / RI-06
   (D-RI-4).
@@ -91,8 +107,8 @@ b95922d2; `SLICE_REPORT.md`):
 
 | kind | where | state |
 |---|---|---|
-| simulation | `docs/EXPERIMENTS.md`, `docs/experiments/*.json`, `calibration.md` | 13 experiments GREEN at 2f1b016; every generated file fresh at HEAD (`freshness:check`, 2026-09-05) |
-| snapshot | `packages/game/public/snapshots/b-compact-seed3.json` | matches (compact seed 3 at 3:00:00, config 0176f61d) |
+| simulation | `docs/EXPERIMENTS.md`, `docs/experiments/*.json`, `calibration.md` | 13 experiments GREEN at RI-01 (2026-09-05, 244 s, 0 failing; stamped `5f49691` + RI-01's tree); every generated file fresh (`freshness:check`, 2026-09-05) |
+| snapshot | `packages/game/public/snapshots/b-compact-seed3.json` | matches (compact seed 3 at 3:00:00, config 0176f61d); regenerated by RI-01 for five new stats counters, the state otherwise identical |
 | human approval | `TEST_RESULTS.md` (Gate A), `GATE_B.md` (Gate B) | both passed by the owner alone; no outside tester has played |
 | human play | `GATE_B.md` §19 table | minutes 0–10 only; 10–30 and 30–60 unrecorded; walking, first shade, burn-off, first pip unrecorded |
 | waivers | `PROGRESS.md` T5, T6, T7, T12, T12a | T5–T7 waived by Daniel 2026-09-05 (T6 returns as T18, the walkthrough's four STANDARDS rows ride on T19); T12 and T12a waived on "Whole plan" into RI-01 / RI-03 and RI-02 |
@@ -100,7 +116,8 @@ b95922d2; `SLICE_REPORT.md`):
 ## Counters
 
 - Untagged numbers in the design doc: **33** (21 tile-scale, 12 design inputs), unchanged
-  since Phase 4 M3; the cleanup added none.
+  since Phase 4 M3; the cleanup and RI-01 added none (RI-01's numbers carry `[sim: E-hour-…]`
+  tags or a decision id).
 - §26: **three systems, complexity 5 / 10**, a reported count since D-RI-3 (the stop
   condition never fired and no longer exists; rule 2's scope test admits features).
   Recounted when RI-03 … RI-06 land.
@@ -114,11 +131,14 @@ b95922d2; `SLICE_REPORT.md`):
 - **Questions for the human** (`DECISIONS.md` "Outstanding questions"): D-GB-3 rifle
   range and D-GB-4 enemy density (gate conditions; RI-04 / RI-08 / RI-10 own them, no
   blocker); D-CU-2 the Chemist and Polymer (RI-11, not a blocker); D-P4-11 the idle steel
-  and the hand-feed (RI-01 explains or removes the hand-fed total; T12b measures the share).
+  and the hand-feed (RI-01 explained the hand-fed total as transfers the ledger balances
+  and split it; T12b measures the share); a sink for stone (RI-01 surfaced it: a new
+  mechanic, nobody's task yet).
 - **Provisional rows on the plan's defaults** (D-RI-6; sign or reverse by name, any time):
   D-GB-2 (a) the goal line (RI-02); D-CU-1 (a) production on any Held lot (RI-03);
   D-CU-3 (b) the outskirts Substation before activation (RI-03).
-- **Provisional rows a task will embody**: D-P4-5 (every assembler physical, RI-01);
+- **Provisional rows a task will embody**: D-P4-5 (every assembler physical — built by
+  RI-01, unsigned);
   D-B4-3 (the turret in the chain, RI-10 reconciles); D-SA-2 (the string table, T13 in
   RI-09); C3 / D-B2-2 (slots, T13 / T17); D-R1 (rifle vs shade). The full list is
   `DECISIONS.md`.

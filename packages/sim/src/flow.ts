@@ -10,16 +10,17 @@
  *  Rates (all measured by test/flow.test.ts, run name M2-rates): Excavator 0.5 items/s onto the tile it faces,
  *  belt 7.5 items/s (4 items a tile at 1.875 tiles/s), inserter 1 item/s, Mk1 Shot assembler 6 s a magazine (10/min, D-P4-4). */
 import { SimState, Block, HELD, CONTESTED, DARK, INERT, Command, Engineer } from './types';
+import { openLedger } from './ledger';
 import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing, burnOffS } from './sim';
 import { edgeId, edgeFrom, edgeTo } from './graph';
-import { RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH, FLOODLIGHT_KW, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH } from './recipes';
+import { Recipe, RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH, FLOODLIGHT_KW, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH } from './recipes';
 import { BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, START_CHEST, START_TURRETS, STREETLIGHT_RADIUS } from './constants';
 import {
   CELL_TILES, P_STEEL, P_COPPER, P_COAL, HQ_PATCHES, DEPOT_LOT, DEPOT_TILES, SUBSTATION_TILES,
   T_STREET, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
   cellTiles,
 } from './tiles';
-import { ground, inGround, hqLot, blockOfTile, goneOf, poolCap, substationOwner, blocksNear, inReach, cityGeomOf, segAxis, segLength } from './ground';
+import { ground, inGround, hqLot, blockOfTile, goneOf, poolCap, substationOwner, blocksNear, inReach, cityGeomOf, segAxis, segLength, tileUnits } from './ground';
 import { tickEngineerTiles, workbenchTile } from './walk';
 import { take as pocketTake, drop as pocketDrop, invStacks, invCap, handHook, hqIdx as hqIndex, upgradeEngineer, threatHooks } from './engineer';
 import type { ThreatState } from './threat';
@@ -39,7 +40,7 @@ export const KINDS: readonly Kind[] = ['excavator', 'belt', 'inserter', 'assembl
  *  Depot"); the other groups' unlocks are not in the slice. */
 export const SURVIVOR_UNLOCKS: Record<string, readonly Kind[]> = { Electricians: ['floodlight', 'bigpole', 'substation'] };
 export const KIND_LABEL: Record<Kind, string> = {
-  excavator: 'Excavator', belt: 'belt', inserter: 'inserter', assembler: 'Shot assembler', depot: 'Depot', turret: 'Gun turret', lamp: 'Lamp',
+  excavator: 'Excavator', belt: 'belt', inserter: 'inserter', assembler: 'Assembler', depot: 'Depot', turret: 'Gun turret', lamp: 'Lamp',
   pole: 'pole', generator: 'Generator', floodlight: 'Floodlight', bigpole: 'Big pole', substation: 'Substation',
 };
 export function unlockedBy(kind: Kind): string | null {
@@ -65,7 +66,17 @@ export function isKind(s: string): s is Kind { return (KINDS as readonly string[
 /** Flow directions (N E S W) to the block sim's edge directions (+x −x +y −y) and back. */
 export const SIM_DIR: readonly number[] = [3, 0, 2, 1], FLOW_DIR: readonly Dir[] = [1, 3, 2, 0];
 export const SIM_DIR_NAMES = ['east', 'west', 'south', 'north'];
-export type Item = 'steel' | 'copper' | 'stone' | 'coal' | 'magazine';
+/** What a belt, an inserter, a pocket stack or a machine's hand can hold: the four rubbles, the magazine, and (RI-01,
+ *  D-B2-1 (b)) the three §12 intermediates the placed Assembler makes. */
+export type Item = 'steel' | 'copper' | 'stone' | 'coal' | 'magazine' | 'wire' | 'frame' | 'board';
+export const ITEMS: readonly Item[] = ['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board'];
+export function isItem(s: string): s is Item { return (ITEMS as readonly string[]).includes(s); }
+/** A zero count of every item (the stats ledgers). */
+export function zeroItems(): Record<Item, number> { const o = {} as Record<Item, number>; for (const k of ITEMS) o[k] = 0; return o; }
+/** Items the Depot keeps outside the block sim's stock (§14's stock is steel / copper / stone): coal and the intermediates. */
+export type StoreItem = 'coal' | 'wire' | 'frame' | 'board';
+export const STORE_ITEMS: readonly StoreItem[] = ['coal', 'wire', 'frame', 'board'];
+export function isStoreItem(s: string): s is StoreItem { return (STORE_ITEMS as readonly string[]).includes(s); }
 
 /** Constitution M2: belts carry 7.5 items/s (§13/§14 said 8; D-P4-6). GAME-ASSUMPTION: four items a tile, so the
  *  belt moves 1.875 tiles/s; belts are one lane, a side feed joins at the tile's start like a corner. */
@@ -75,6 +86,32 @@ export const BELT_SPACING = 0.25, BELT_SPEED = BELT_PER_S * BELT_SPACING;
 /** §13: inserter 1 item/s. GAME-ASSUMPTION: half a second each way; it waits with the item if the target is full. */
 export const INSERTER_SWING = 0.5 / INSERTER_PER_S;
 export const SHOT = RECIPES.find(r => r.name === 'Shot magazine')!;
+/** RI-01 (D-B2-1 (b), 2026-09-05): the recipes a placed Assembler can be set to — the §12 rows whose machine is the
+ *  start-unlocked Assembler: Shot magazine (the default, §11's line), Wire, Frame and Board. The other RECIPES rows
+ *  (Shell: the Arsenal recipe; Concrete: the Mixer; Fuel and Polymer: the Refinery) stay data until their machine or
+ *  unlock exists (RI-10 adds the Cannon / Shell chain). `MACHINE_RECIPES` is the doc's table (docsync:machines). */
+export type RecipeId = 'shot' | 'wire' | 'frame' | 'board';
+export const RECIPE_IDS: readonly RecipeId[] = ['shot', 'wire', 'frame', 'board'];
+export function isRecipeId(s: string): s is RecipeId { return (RECIPE_IDS as readonly string[]).includes(s); }
+export const ASSEMBLER_RECIPES: Readonly<Record<RecipeId, Recipe>> = {
+  shot: SHOT, wire: RECIPES.find(r => r.name === 'Wire')!, frame: RECIPES.find(r => r.name === 'Frame')!, board: RECIPES.find(r => r.name === 'Board')!,
+};
+/** The doc's machine → recipe table: what each §13 machine makes in the build as of RI-01 (docsync:machines). */
+export const MACHINE_RECIPES: readonly { machine: string; recipes: string; state: string }[] = [
+  { machine: 'Assembler (placed, 3×3, 100 kW)', recipes: 'Shot magazine (default), Wire, Frame, Board — chosen per machine (T on it in the world view; the `setRecipe` command)', state: 'built (RI-01, D-B2-1 (b))' },
+  { machine: 'Assembler Mk2', recipes: 'Shot magazine at 3 s', state: 'data only (D-P4-4: a §12 row, not placed)' },
+  { machine: 'Assembler (Arsenal recipe)', recipes: 'Shell', state: 'data only until RI-10' },
+  { machine: 'Mixer', recipes: 'Concrete', state: 'data only (no machine)' },
+  { machine: 'Refinery', recipes: 'Fuel, Polymer', state: 'data only (no machine)' },
+  { machine: 'Workbench (the Depot)', recipes: 'Shot magazine by hand (E, from the pockets)', state: 'built (prompt B M2)' },
+];
+/** The recipe a placed Assembler runs (`recipe` absent on a pre-RI-01 save = the Shot magazine). */
+export function recipeOf(m: Machine): Recipe { return ASSEMBLER_RECIPES[m.recipe ?? 'shot']; }
+/** The item a recipe's craft puts in the Assembler's output slot: the Shot magazine's ten rounds are one magazine. */
+export function recipeOutput(r: Recipe): Item { return r.output === 'rounds' ? 'magazine' : r.output as Item; }
+/** Output items per craft as the Assembler counts them (one magazine, two wire, one frame, one board). */
+export function recipeYield(r: Recipe): number { return r.output === 'rounds' ? 1 : r.count; }
+function recipeNeed(r: Recipe, k: string): number | undefined { return r.inputs[k]; }
 /** GAME-ASSUMPTION: an assembler holds four crafts' worth of each input and five finished magazines, then stops. */
 export const ASM_INPUT_MULT = 4, ASM_OUTPUT_CAP = 5;
 /** GAME-ASSUMPTION: hand-mining takes one unit a second straight into the Depot; hand-crafting a magazine takes the
@@ -114,6 +151,8 @@ export interface Machine {
    *  Turret (M3): `inv.rounds` in the hopper, `out` rounds fired last second, `timer` flash left, `busy` = covers a live edge.
    *  Generator: `inv.coal`, `timer` the fraction of a coal burned, `busy` while burning. */
   inv: Record<string, number>; out: number; busy: boolean;
+  /** Assembler (RI-01): which of ASSEMBLER_RECIPES it runs; absent = the Shot magazine. */
+  recipe?: RecipeId;
 }
 export interface FlowState {
   version: 1;
@@ -130,17 +169,30 @@ export interface FlowState {
   dug: Record<number, number[]>;
   /** "block:tile" → units left in a partly dug tile. */
   units: Record<string, number>;
-  /** Items with no home in the block sim's stock. §11: the start's 40 coal (the Generator is M3). */
-  store: { coal: number };
+  /** Items with no home in the block sim's stock. §11: the start's 40 coal (the Generator is M3); RI-01: the three
+   *  intermediates the placed Assembler makes (wire, frame, board) until something consumes them. */
+  store: Record<StoreItem, number>;
   /** M1 (prompt B): `full` is raised when the pockets refused a mined unit (the game toasts it and clears it). */
   hand: { mine: [number, number] | null; prog: number; crafts: number; crafting: boolean; craftProg: number; full: boolean;
           /** M4 telemetry: the engineer has been out of the Depot's reach since the last chest transaction (a "trip"). */
           away: boolean };
-  stats: { magsMade: number; magsDelivered: number; mined: number; handMined: number; handCrafted: number; delivered: Record<Item, number>;
-           /** M3: rounds the turrets fired, coal the Generators burned, magazines and coal fed by hand. */
-           fired: number; coalBurned: number; handFed: number;
+  stats: { magsMade: number; magsDelivered: number; mined: number; handMined: number; handCrafted: number;
+           /** Items that reached the Depot by machine (belts, inserters, an Excavator facing it); `putBack` is what the
+            *  pockets put in the chest by hand (RI-01: the two were one count before, and a put of n counted 1). */
+           delivered: Record<Item, number>; putBack: Record<Item, number>;
+           /** M3: rounds the turrets fired, coal the Generators burned, magazines and coal fed by hand (`handFed` is
+            *  the two together, as M3 counted it; RI-01 splits it: `handFedMags` magazines into turret hoppers and
+            *  `handFedCoal` coal into Generators, both from the pockets or, for the bot's hands, from the Depot). */
+           fired: number; coalBurned: number; handFed: number; handFedMags: number; handFedCoal: number;
            /** M4 telemetry (§19): trips to the chest, placements the reach refused. */
-           chestTrips: number; reachRefused: number };
+           chestTrips: number; reachRefused: number;
+           /** RI-01's resource accounting (ledger.ts): units mined by type (machines and hands together) and by hand
+            *  alone; the rail yard's coal units among them (D-P4-12); items a recipe made and consumed (Assemblers
+            *  and the workbench); magazines inserters put in turret hoppers and coal machines put in Generators;
+            *  steel and copper machine placements took from the pockets. */
+           minedOf: Record<Item, number>; handMinedOf: Record<Item, number>; railCoal: number;
+           made: Record<Item, number>; consumed: Record<Item, number>; turretFed: number; genFed: number;
+           placed: { steel: number; copper: number } };
   /** M3: commands the tile layer raises for the block map (a pole run reaching a Dark block's substation claims it). */
   pending: Command[];
   /** M3: the grid as of the last block tick — kW supplied, demanded, delivered; seconds demand exceeded supply. */
@@ -154,19 +206,24 @@ export interface FlowState {
   repaired?: number[];
   /** M5 telemetry: lights repaired by hand (both kinds). */
   repairs?: number;
+  /** RI-01: the opening stock the conservation check (ledger.ts) reads from — recorded when the flow layer is created,
+   *  or when a save from before RI-01 is upgraded (its `tick` says which). */
+  ledger?: { tick: number; base: Record<Item, number> };
 }
 
 /** The flow layer, created on first use: the Depot goes on the start lot, the block-level Mk1 stand-in retires
  *  (§12 C9: Phase 4 places the real machine), and from here the HQ patch is dug by machines and hands, not drained. */
 export function ensureFlow(st: SimState): FlowState {
   upgradeEngineer(st.engineer);   // D-B1-5: a snapshot from before the body fields
-  if (st.flow) return upgrade(st.flow);
+  if (st.flow) { const f = upgrade(st.flow); f.ledger ??= openLedger(st); return f; }
   const f: FlowState = {
     version: 1, tick: 0, next: 1, rev: 0, tw: ground(st).tw, machines: [], occ: {}, dug: {}, units: {},
-    store: { coal: 0 },
+    store: { coal: 0, wire: 0, frame: 0, board: 0 },
     hand: { mine: null, prog: 0, crafts: 0, crafting: false, craftProg: 0, full: false, away: false },
-    stats: { magsMade: 0, magsDelivered: 0, mined: 0, handMined: 0, handCrafted: 0, delivered: { steel: 0, copper: 0, stone: 0, coal: 0, magazine: 0 },
-             fired: 0, coalBurned: 0, handFed: 0, chestTrips: 0, reachRefused: 0 },
+    stats: { magsMade: 0, magsDelivered: 0, mined: 0, handMined: 0, handCrafted: 0, delivered: zeroItems(), putBack: zeroItems(),
+             fired: 0, coalBurned: 0, handFed: 0, handFedMags: 0, handFedCoal: 0, chestTrips: 0, reachRefused: 0,
+             minedOf: zeroItems(), handMinedOf: zeroItems(), railCoal: 0, made: zeroItems(), consumed: zeroItems(), turretFed: 0, genFed: 0,
+             placed: { steel: 0, copper: 0 } },
     pending: [],
     power: { supply: 0, demand: 0, load: 0, overS: 0, throttle: 1 },
   };
@@ -198,6 +255,7 @@ export function ensureFlow(st: SimState): FlowState {
   f.store.coal = START_CHEST.coal;
   const [wx, wy] = workbenchTile(st);
   st.engineer.x = wx + 0.5; st.engineer.y = wy + 0.5; st.engineer.block = hqIndex(st); st.engineer.dest = -1; st.engineer.remaining = 0;
+  f.ledger = openLedger(st);   // RI-01: the opening stock the conservation check counts from
   return f;
 }
 
@@ -325,6 +383,14 @@ function upgrade(f: FlowState): FlowState {
   f.stats.fired ??= 0; f.stats.coalBurned ??= 0; f.stats.handFed ??= 0;
   f.hand.full ??= false; f.hand.away ??= false;
   f.stats.chestTrips ??= 0; f.stats.reachRefused ??= 0;
+  // RI-01: the intermediates' store and the accounting counters (a pre-RI-01 save starts them at zero — its history
+  // is not reconstructed, so `conservation` on such a save reports the gap as unexplained, by design)
+  for (const k of STORE_ITEMS) f.store[k] ??= 0;
+  for (const k of ITEMS) f.stats.delivered[k] ??= 0;
+  f.stats.putBack ??= zeroItems(); f.stats.handFedMags ??= 0; f.stats.handFedCoal ??= 0;
+  f.stats.minedOf ??= zeroItems(); f.stats.handMinedOf ??= zeroItems(); f.stats.railCoal ??= 0;
+  f.stats.made ??= zeroItems(); f.stats.consumed ??= zeroItems(); f.stats.turretFed ??= 0; f.stats.genFed ??= 0;
+  f.stats.placed ??= { steel: 0, copper: 0 };
   for (const m of f.machines) delete (m as { shed?: boolean }).shed;   // pre-D-B3-4 snapshots carried a shed flag
   return f;
 }
@@ -440,25 +506,28 @@ export function rubbleAt(st: SimState, tx: number, ty: number): TileRubble | nul
   if (!bg.rubble) return null;
   const r = G.rank[t];
   if (r < 0 || r < goneOf(st, bi)) return null;
-  const cap = poolCap(st, b);
-  const units = f.units[key] ?? (cap > 0 ? cap / bg.count : 1);
+  const units = f.units[key] ?? tileUnits(G, bi);   // D-P4-2: 300 a tile; the rail yard's 700 over its heap (D-P4-12)
   if (units <= 0) return null;
   return { type: bg.rubble, units, bi, tile: t, patch: 0 };
 }
 
-/** Take one unit out of a tile: the block's pool (or the HQ steel patch) drops with it; an emptied tile is dug. */
+/** Take one unit out of a tile (the HQ steel patch drops with it); an emptied tile is dug, and a dug district tile
+ *  takes one tile's share out of the block sim's pool so `standing` and the map's pool strip agree with the tiles
+ *  (D-P4-2; before RI-01 the pool dropped a unit at a time and a half-dug tile made the thinnest edge tile flicker). */
 function mineUnit(st: SimState, r: TileRubble): Item {
   const f = st.flow!;
   const key = `${r.bi}:${r.tile}`;
   const left = r.units - 1;
   const b = st.blocks[r.bi];
   if (r.patch === P_STEEL) st.patch.steel = Math.max(0, st.patch.steel - 1);
-  else if (r.patch === 0) b.pool = Math.max(0, b.pool - 1);
   if (left <= 1e-9) {
     delete f.units[key];
     (f.dug[r.bi] ??= []).push(r.tile);
+    if (r.patch === 0) { const cap = poolCap(st, b), n = ground(st).blocks[r.bi].count; b.pool = Math.max(0, b.pool - (n > 0 ? cap / n : 0)); }
   } else f.units[key] = left;
   f.stats.mined++;
+  f.stats.minedOf[r.type] = (f.stats.minedOf[r.type] ?? 0) + 1;
+  if (r.bi === ground(st).railYard) f.stats.railCoal++;
   return r.type;
 }
 
@@ -472,7 +541,7 @@ export function deliver(st: SimState, k: Item): boolean {
     if (st.buffer + SHOT.count > st.config.bufferCap + 1e-9) return false;
     st.buffer += SHOT.count;
     f.stats.magsDelivered++;
-  } else if (k === 'coal') f.store.coal += 1;
+  } else if (isStoreItem(k)) f.store[k] += 1;
   else st.stock[k] += 1;
   f.stats.delivered[k]++;
   return true;
@@ -498,7 +567,7 @@ export function accepts(st: SimState, m: Machine, k: Item, p = 0): boolean {
   switch (m.kind) {
     case 'belt': return beltRoom(m, p);
     case 'depot': return k !== 'magazine' || st.buffer + SHOT.count <= st.config.bufferCap + 1e-9;
-    case 'assembler': { const need = SHOT.inputs[k]; return need !== undefined && (m.inv[k] ?? 0) < need * ASM_INPUT_MULT; }
+    case 'assembler': { const need = recipeNeed(recipeOf(m), k); return need !== undefined && (m.inv[k] ?? 0) < need * ASM_INPUT_MULT; }
     case 'turret': return k === 'magazine' && (m.inv.rounds ?? 0) + SHOT.count <= TURRET_HOPPER + 1e-9;
     case 'generator': return k === 'coal' && (m.inv.coal ?? 0) < GENERATOR_COAL_CAP;
     default: return false;
@@ -508,7 +577,7 @@ export function accepts(st: SimState, m: Machine, k: Item, p = 0): boolean {
 export function wants(m: Machine, k: Item): boolean {
   switch (m.kind) {
     case 'belt': case 'depot': return true;
-    case 'assembler': return SHOT.inputs[k] !== undefined;
+    case 'assembler': return recipeNeed(recipeOf(m), k) !== undefined;
     case 'turret': return k === 'magazine';
     case 'generator': return k === 'coal';
     default: return false;
@@ -518,8 +587,8 @@ export function giveItem(st: SimState, m: Machine, k: Item, p = 0): boolean {
   if (!accepts(st, m, k, p)) return false;
   if (m.kind === 'belt') beltInsert(m, k, p);
   else if (m.kind === 'depot') return deliver(st, k);
-  else if (m.kind === 'turret') m.inv.rounds = (m.inv.rounds ?? 0) + SHOT.count;   // a magazine is ten rounds in the hopper
-  else m.inv[k] = (m.inv[k] ?? 0) + 1;
+  else if (m.kind === 'turret') { m.inv.rounds = (m.inv.rounds ?? 0) + SHOT.count; st.flow!.stats.turretFed++; }   // a magazine is ten rounds in the hopper
+  else { m.inv[k] = (m.inv[k] ?? 0) + 1; if (m.kind === 'generator') st.flow!.stats.genFed++; }
   return true;
 }
 
@@ -606,7 +675,7 @@ function tickInserter(st: SimState, m: Machine, dt: number): void {
       // GAME-ASSUMPTION: an inserter takes the front-most item its target could ever use and, if the target is full
       // right now, swings over and waits holding it (the Factorio behaviour); it never picks an item the target has no use for.
       for (let i = src.items.length - 1; i >= 0; i--) if (wants(dst, src.items[i].k)) { k = src.items[i].k; src.items.splice(i, 1); break; }
-    } else if (src.kind === 'assembler' && src.out > 0 && wants(dst, 'magazine')) { src.out--; k = 'magazine'; }
+    } else if (src.kind === 'assembler' && src.out > 0) { const o = recipeOutput(recipeOf(src)); if (wants(dst, o)) { src.out--; k = o; } }
     if (!k) return;
     m.hold = k; m.phase = 1; m.timer = INSERTER_SWING + Math.min(0, m.timer);
   }
@@ -636,25 +705,48 @@ function tickExcavator(st: SimState, m: Machine, dt: number): void {
 }
 
 function asmCanStart(m: Machine): boolean {
+  const r = recipeOf(m);
   if (m.out >= ASM_OUTPUT_CAP) return false;
-  for (const k in SHOT.inputs) if ((m.inv[k] ?? 0) < SHOT.inputs[k]) return false;
+  for (const k in r.inputs) if ((m.inv[k] ?? 0) < r.inputs[k]) return false;
   return true;
 }
-function asmStart(m: Machine): void {
-  for (const k in SHOT.inputs) m.inv[k] -= SHOT.inputs[k];
+function asmStart(st: SimState, m: Machine): void {
+  const r = recipeOf(m), c = st.flow!.stats.consumed;
+  for (const k in r.inputs) { m.inv[k] -= r.inputs[k]; if (isItem(k)) c[k] += r.inputs[k]; }
   m.busy = true;
 }
 function tickAssembler(st: SimState, m: Machine, dt: number): void {
+  const r = recipeOf(m);
   if (!m.busy) {
     if (!asmCanStart(m)) return;
-    asmStart(m); m.timer = 0;
+    asmStart(st, m); m.timer = 0;
   }
   m.timer += dt;
-  if (m.timer < SHOT.seconds - EPS) return;
-  m.out++; m.busy = false;
-  st.flow!.stats.magsMade++; st.stats.magsMade++;
-  const rem = m.timer - SHOT.seconds;
-  if (asmCanStart(m)) { asmStart(m); m.timer = rem; } else m.timer = 0;
+  if (m.timer < r.seconds - EPS) return;
+  const n = recipeYield(r), o = recipeOutput(r);
+  m.out += n; m.busy = false;
+  st.flow!.stats.made[o] += n;
+  if (o === 'magazine') { st.flow!.stats.magsMade += n; st.stats.magsMade += n; }
+  const rem = m.timer - r.seconds;
+  if (asmCanStart(m)) { asmStart(st, m); m.timer = rem; } else m.timer = 0;
+}
+
+/** RI-01: set a placed Assembler's recipe (T on it in the world view; the `setRecipe` command). Returns '' or the
+ *  refusal. A craft in progress gives its inputs back; finished items of the old output go to the pockets first, and
+ *  full pockets refuse the change (nothing is ever dropped). Inputs the new recipe does not take stay in the machine
+ *  and come back on pick-up. */
+export function setRecipe(st: SimState, tx: number, ty: number, id: RecipeId): string {
+  const m = machineAt(st, tx, ty);
+  if (!st.flow || !m || m.kind !== 'assembler') return 'no Assembler there';
+  if ((m.recipe ?? 'shot') === id) return '';
+  const old = recipeOf(m), o = recipeOutput(old);
+  if (m.out > 0) {
+    if (pocketTake(st.engineer, o, m.out) < m.out) return `the pockets are full (${m.out} ${o} to take out first)`;
+    m.out = 0;
+  }
+  if (m.busy) { const c = st.flow.stats.consumed; for (const k in old.inputs) { m.inv[k] = (m.inv[k] ?? 0) + old.inputs[k]; if (isItem(k)) c[k] -= old.inputs[k]; } m.busy = false; }
+  m.timer = 0; m.recipe = id;
+  return '';
 }
 
 function tickHand(st: SimState, f: FlowState, dt: number): void {
@@ -669,7 +761,7 @@ function tickHand(st: SimState, f: FlowState, dt: number): void {
         // Prompt B M1: hand-mined units go to the pockets (engineer.ts stacks), never straight to the Depot; full
         // pockets stop the hands with the tile untouched.
         if (pocketTake(st.engineer, r.type, 1) === 0) { h.mine = null; h.prog = 0; h.full = true; }
-        else { h.prog -= 1; mineUnit(st, r); f.stats.handMined++; }
+        else { h.prog -= 1; const k = mineUnit(st, r); f.stats.handMined++; f.stats.handMinedOf[k]++; }
       }
     }
   }
@@ -683,11 +775,12 @@ function tickHand(st: SimState, f: FlowState, dt: number): void {
     if (!h.crafting) {
       if ((e.inv.steel ?? 0) >= SHOT.inputs.steel && (e.inv.copper ?? 0) >= SHOT.inputs.copper) {
         pocketDrop(e, 'steel', SHOT.inputs.steel); pocketDrop(e, 'copper', SHOT.inputs.copper); h.crafting = true; h.craftProg = 0;
+        f.stats.consumed.steel += SHOT.inputs.steel; f.stats.consumed.copper += SHOT.inputs.copper;
       } else { h.crafts = 0; return; }
     }
     h.craftProg += dt;
     if (h.craftProg >= SHOT.seconds - EPS && pocketTake(e, 'magazine', 1) === 1) {
-      h.crafting = false; h.crafts--; h.craftProg = 0; f.stats.handCrafted++; st.stats.magsMade++;
+      h.crafting = false; h.crafts--; h.craftProg = 0; f.stats.handCrafted++; f.stats.made.magazine++; st.stats.magsMade++;
     } else if (h.craftProg >= SHOT.seconds - EPS) h.full = true;
   }
 }
@@ -839,7 +932,7 @@ export function place(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir
   const chk = canPlace(st, kind, tx, ty);
   if (!chk.ok) return null;
   if (chk.carried) pocketDrop(st.engineer, kind, 1);
-  else { pocketDrop(st.engineer, 'steel', chk.cost.steel); pocketDrop(st.engineer, 'copper', chk.cost.copper); }
+  else { pocketDrop(st.engineer, 'steel', chk.cost.steel); pocketDrop(st.engineer, 'copper', chk.cost.copper); st.flow!.stats.placed.steel += chk.cost.steel; st.flow!.stats.placed.copper += chk.cost.copper; }
   const m = addMachine(st, kind, tx, ty, dir);
   if (kind === 'pole' || kind === 'bigpole') poleClaims(st, m);
   return m;
@@ -856,7 +949,7 @@ export function pickUpItems(m: Machine): Record<string, number> {
   if (m.hold) add(m.hold, 1);
   if (m.kind === 'turret') add('magazine', Math.floor((m.inv.rounds ?? 0) / SHOT.count));
   else if (m.kind === 'generator') add('coal', Math.floor(m.inv.coal ?? 0));
-  else { for (const k in m.inv) add(k, Math.floor(m.inv[k])); add('magazine', m.out); }
+  else { for (const k in m.inv) add(k, Math.floor(m.inv[k])); add(m.kind === 'assembler' ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
   return out;
 }
 export interface PickUpCheck { ok: boolean; reason: string; m: Machine | null; stacks: number; items: Record<string, number> }
@@ -885,7 +978,10 @@ export function remove(st: SimState, tx: number, ty: number): Machine | null {
   const f = st.flow, chk = canPickUp(st, tx, ty), m = chk.m;
   if (!f || !m || !chk.ok) return null;
   for (const k in chk.items) pocketTake(st.engineer, k, chk.items[k]);
-  if (m.kind === 'turret') st.buffer = Math.min(st.config.bufferCap, st.buffer + (m.inv.rounds ?? 0) % SHOT.count);   // the loose rounds back to the line buffer
+  if (m.kind === 'turret') {   // the loose rounds back to the line buffer; what a full buffer cannot take is counted as lost (RI-01 ledger)
+    const loose = (m.inv.rounds ?? 0) % SHOT.count, give = Math.min(loose, Math.max(0, st.config.bufferCap - st.buffer));
+    st.buffer += give; st.stats.roundsLost = (st.stats.roundsLost ?? 0) + loose - give;
+  }
   for (let y = m.y; y < m.y + m.size; y++) for (let x = m.x; x < m.x + m.size; x++) delete f.occ[y * f.tw + x];
   f.machines.splice(f.machines.indexOf(m), 1);
   f.rev++;
@@ -925,6 +1021,8 @@ export function queueCraft(st: SimState, n = 1): string {
 
 export interface FlowSummary {
   excavators: number; belts: number; inserters: number; assemblers: number;
+  /** RI-01: of the Assemblers, those on the Shot recipe (the line's magazine capacity counts only these). */
+  shotAssemblers: number;
   beltItems: number; assemblersBusy: number;
   /** Capacity: magazines a minute the tile assemblers make when fed (20 each), the block-level summary's meaning too. */
   productionMagPerMin: number;
@@ -940,7 +1038,7 @@ export interface FlowSummary {
 }
 export function flowSummary(st: SimState): FlowSummary {
   const f = st.flow;
-  const s: FlowSummary = { excavators: 0, belts: 0, inserters: 0, assemblers: 0, beltItems: 0, assemblersBusy: 0, productionMagPerMin: 0,
+  const s: FlowSummary = { excavators: 0, belts: 0, inserters: 0, assemblers: 0, shotAssemblers: 0, beltItems: 0, assemblersBusy: 0, productionMagPerMin: 0,
                            magsMade: 0, magsDelivered: 0, mined: 0, coal: 0, craftsQueued: 0,
                            turrets: 0, lamps: 0, lampsLit: 0, poles: 0, polesConnected: 0, generators: 0, generatorsBurning: 0, turretRounds: 0, turretCap: 0, genCoal: 0, beltAmmo: 0,
                            supplyKw: 0, demandKw: 0, loadKw: 0, brownoutS: 0, fired: 0, coalBurned: 0, handFed: 0, throttle: 1,
@@ -954,13 +1052,13 @@ export function flowSummary(st: SimState): FlowSummary {
     if (m.kind === 'excavator') s.excavators++;
     else if (m.kind === 'belt') { s.belts++; s.beltItems += m.items.length; for (const it of m.items) if (it.k === 'magazine') s.beltAmmo++; }
     else if (m.kind === 'inserter') s.inserters++;
-    else if (m.kind === 'assembler') { s.assemblers++; if (m.busy) s.assemblersBusy++; }
+    else if (m.kind === 'assembler') { s.assemblers++; if (m.busy) s.assemblersBusy++; if ((m.recipe ?? 'shot') === 'shot') s.shotAssemblers++; }
     else if (m.kind === 'turret') { s.turrets++; s.turretRounds += m.inv.rounds ?? 0; s.turretCap += TURRET_HOPPER; }
     else if (m.kind === 'lamp' || m.kind === 'floodlight') { s.lamps++; if (running(st, m)) s.lampsLit++; }   // a Floodlight counts as a lamp here
     else if (m.kind === 'pole' || m.kind === 'bigpole') s.poles++;
     else if (m.kind === 'generator') { s.generators++; s.genCoal += m.inv.coal ?? 0; if (m.busy) s.generatorsBurning++; }
   }
-  s.productionMagPerMin = s.assemblers * 60 / SHOT.seconds;
+  s.productionMagPerMin = s.shotAssemblers * 60 / SHOT.seconds;   // RI-01: only the Assemblers on the Shot recipe make magazines
   s.magsMade = f.stats.magsMade; s.magsDelivered = f.stats.magsDelivered; s.mined = f.stats.mined; s.coal = f.store.coal + s.genCoal; s.craftsQueued = f.hand.crafts;
   s.supplyKw = f.power.supply; s.demandKw = f.power.demand; s.loadKw = f.power.load; s.brownoutS = f.power.overS; s.throttle = st.config.power ? f.power.throttle : 1;
   s.fired = f.stats.fired; s.coalBurned = f.stats.coalBurned; s.handFed = f.stats.handFed;
@@ -968,6 +1066,7 @@ export function flowSummary(st: SimState): FlowSummary {
   return s;
 }
 
+function plural(item: Item, n: number): string { return n === 1 || item === 'wire' ? item : `${item}s`; }
 /** One line for a tooltip. */
 export function describeMachine(st: SimState, m: Machine): string {
   const on = stopReason(st, m);
@@ -987,8 +1086,12 @@ export function describeMachine(st: SimState, m: Machine): string {
     case 'belt': return `belt → ${DIR_NAMES[m.dir]} · ${m.items.length} item${m.items.length === 1 ? '' : 's'}${on}`;
     case 'inserter': return `inserter → ${DIR_NAMES[m.dir]} · ${m.hold ? `carrying ${m.hold}` : 'empty'}${on}`;
     case 'excavator': { const r = findRubble(st, m); return `Excavator → ${DIR_NAMES[m.dir]} · ${r ? `digging ${r.type} (${Math.ceil(r.units)} left in the tile)` : 'nothing in reach'}${m.hold ? ` · output blocked (${m.hold})` : ''}${on}`; }
-    case 'assembler': return `Shot assembler → ${DIR_NAMES[m.dir]} · steel ${m.inv.steel ?? 0} · Cu ${m.inv.copper ?? 0} · ${m.out} magazine${m.out === 1 ? '' : 's'} out${m.busy ? ` · ${Math.round(m.timer / SHOT.seconds * 100)} %` : ''}${on}`;
-    case 'depot': return `Depot · steel ${Math.floor(st.stock.steel)} · Cu ${Math.floor(st.stock.copper)} · stone ${Math.floor(st.stock.stone)} · coal ${Math.floor(st.flow!.store.coal)} · ${Math.floor(st.buffer / SHOT.count)} magazines in the line buffer`;
+    case 'assembler': {
+      const r = recipeOf(m), o = recipeOutput(r);
+      const ins = Object.keys(r.inputs).map(k => `${k === 'copper' ? 'Cu' : k} ${m.inv[k] ?? 0}`).join(' · ');
+      return `${r.name === 'Shot magazine' ? 'Shot' : r.name} assembler → ${DIR_NAMES[m.dir]} · ${ins} · ${m.out} ${plural(o, m.out)} out${m.busy ? ` · ${Math.round(m.timer / r.seconds * 100)} %` : ''}${on}`;
+    }
+    case 'depot': { const s = st.flow!.store, mid = (['wire', 'frame', 'board'] as const).filter(k => s[k] > 0).map(k => ` · ${k} ${Math.floor(s[k])}`).join(''); return `Depot · steel ${Math.floor(st.stock.steel)} · Cu ${Math.floor(st.stock.copper)} · stone ${Math.floor(st.stock.stone)} · coal ${Math.floor(s.coal)}${mid} · ${Math.floor(st.buffer / SHOT.count)} magazines in the line buffer`; }
   }
 }
 
@@ -1056,7 +1159,13 @@ function hookSyncEdges(st: SimState): void {
   for (const e of ring) {
     const ts = edgeTurrets(st, e.id);
     if (!ts.length) continue;
-    if (e.turrets === undefined) { e.turrets = 0; e.fire = 0; e.hopper = 0; }
+    if (e.turrets === undefined) {
+      // RI-01 ledger: a stand-in edge's ring-drawn rounds go back to the line buffer when its first turret arrives (the
+      // rule sim.ts syncEdges applies when a stand-in edge leaves the ring); before, they were dropped here
+      const give = Math.min(e.hopper, Math.max(0, st.config.bufferCap - st.buffer));
+      st.buffer += give; st.stats.roundsLost = (st.stats.roundsLost ?? 0) + e.hopper - give;
+      e.turrets = 0; e.fire = 0; e.hopper = 0;
+    }
     for (const m of ts) {
       const rounds = m.inv.rounds ?? 0;
       e.turrets!++; e.fire! += Math.min(rounds, TURRET_ROUNDS_PER_S); e.hopper += rounds;
@@ -1402,12 +1511,12 @@ export function handFeed(st: SimState, tx: number, ty: number): HandFed | null {
   if (m.kind === 'turret') {
     const room = Math.floor((TURRET_HOPPER - (m.inv.rounds ?? 0)) / SHOT.count), have = Math.floor(inv.magazine ?? 0);
     const mags = Math.max(0, Math.min(room, have));
-    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * SHOT.count; pocketDrop(st.engineer, 'magazine', mags); f.stats.handFed += mags; }
+    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * SHOT.count; pocketDrop(st.engineer, 'magazine', mags); f.stats.handFed += mags; f.stats.handFedMags += mags; }
     return { kind: 'turret', moved: mags, reason: mags ? '' : room <= 0 ? 'the hopper is full' : 'no magazines in the pockets (take them from the Depot chest with I, or craft at the workbench with E)' };
   }
   if (m.kind === 'generator') {
     const n = Math.max(0, Math.min(GENERATOR_COAL_CAP - (m.inv.coal ?? 0), Math.floor(inv.coal ?? 0)));
-    if (n > 0) { m.inv.coal = (m.inv.coal ?? 0) + n; pocketDrop(st.engineer, 'coal', n); f.stats.handFed += n; }
+    if (n > 0) { m.inv.coal = (m.inv.coal ?? 0) + n; pocketDrop(st.engineer, 'coal', n); f.stats.handFed += n; f.stats.handFedCoal += n; }
     return { kind: 'generator', moved: n, reason: n ? '' : (m.inv.coal ?? 0) >= GENERATOR_COAL_CAP ? 'the Generator is full' : 'no coal in the pockets (take it from the Depot chest with I, or dig the coal patch)' };
   }
   return null;
@@ -1417,11 +1526,11 @@ function depotFeed(st: SimState, m: Machine): number {
   const f = st.flow!;
   if (m.kind === 'turret') {
     const mags = Math.max(0, Math.min(Math.floor((TURRET_HOPPER - (m.inv.rounds ?? 0)) / SHOT.count), Math.floor(st.buffer / SHOT.count)));
-    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * SHOT.count; st.buffer -= mags * SHOT.count; f.stats.handFed += mags; }
+    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * SHOT.count; st.buffer -= mags * SHOT.count; f.stats.handFed += mags; f.stats.handFedMags += mags; }
     return mags;
   }
   const n = Math.max(0, Math.min(GENERATOR_COAL_CAP - (m.inv.coal ?? 0), Math.floor(f.store.coal)));
-  if (n > 0) { m.inv.coal = (m.inv.coal ?? 0) + n; f.store.coal -= n; f.stats.handFed += n; }
+  if (n > 0) { m.inv.coal = (m.inv.coal ?? 0) + n; f.store.coal -= n; f.stats.handFed += n; f.stats.handFedCoal += n; }
   return n;
 }
 
@@ -1448,8 +1557,8 @@ export function isDepotTile(lx: number, ly: number): boolean {
 
 // ------------------------------------------------------------------ Prompt B M1: pockets and the chest
 
-export type ChestItem = 'steel' | 'copper' | 'stone' | 'coal' | 'magazine' | 'kit';
-export const CHEST_ITEMS: readonly ChestItem[] = ['steel', 'copper', 'stone', 'coal', 'magazine', 'kit'];
+export type ChestItem = Item | 'kit';
+export const CHEST_ITEMS: readonly ChestItem[] = ['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board', 'kit'];
 export function isChestItem(s: string): s is ChestItem { return (CHEST_ITEMS as readonly string[]).includes(s); }
 
 /** The Depot's footprint: the chest and workbench on the HQ lot. */
@@ -1466,7 +1575,7 @@ export function nearDepot(st: SimState): boolean {
  *  free to draw (engineer.ts `restock`'s GAME-ASSUMPTION: the claim paid for them). */
 export function chestCount(st: SimState, item: ChestItem): number {
   if (item === 'magazine') return Math.floor(st.buffer / SHOT.count);
-  if (item === 'coal') return Math.floor(st.flow?.store.coal ?? 0);
+  if (isStoreItem(item)) return Math.floor(st.flow?.store[item] ?? 0);
   if (item === 'kit') return Infinity;
   return Math.floor(st.stock[item]);
 }
@@ -1482,7 +1591,7 @@ export function chestTake(st: SimState, item: ChestItem, n: number): { moved: nu
   if (got <= 0) return { moved: 0, reason: 'the pockets are full' };
   chestTrip(f);
   if (item === 'magazine') st.buffer -= got * SHOT.count;
-  else if (item === 'coal') f.store.coal -= got;
+  else if (isStoreItem(item)) f.store[item] -= got;
   else if (item !== 'kit') st.stock[item] -= got;
   return { moved: got, reason: '' };
 }
@@ -1497,9 +1606,9 @@ export function chestPut(st: SimState, item: ChestItem, n: number): { moved: num
   const put = pocketDrop(st.engineer, item, want);
   chestTrip(f);
   if (item === 'magazine') { st.buffer += put * SHOT.count; f.stats.magsDelivered += put; }
-  else if (item === 'coal') f.store.coal += put;
+  else if (isStoreItem(item)) f.store[item] += put;
   else if (item !== 'kit') st.stock[item] += put;
-  if (item !== 'kit') f.stats.delivered[item]++;
+  if (item !== 'kit') f.stats.putBack[item] += put;   // RI-01: by hand, apart from `delivered` (machines), and all of it
   return { moved: put, reason: '' };
 }
 
@@ -1517,6 +1626,8 @@ handHook.current = (st, c) => {
     case 'feed': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) handFeed(st, c.x, c.y); break; }
     case 'repair': if (inReach(st, c.x, c.y, 1)) repairLight(st, c.x, c.y); break;   // a street light is a tile, not a machine
     case 'rotate': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) rotate(st, c.x, c.y); break; }
+    // RI-01: the scene's T on an Assembler as a command (within reach, a known recipe)
+    case 'setRecipe': { const m = machineAt(st, c.x, c.y); if (m && isRecipeId(c.recipe) && inReach(st, m.x, m.y, m.size)) setRecipe(st, c.x, c.y, c.recipe); break; }
     default: break;
   }
 };
