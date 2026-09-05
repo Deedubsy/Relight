@@ -61,7 +61,7 @@ unblocked.**
 | T7 | Stranger test: eight questions, a person who has not seen the game | human | done (waived) | T3 | `docs/GATE_B.md` section "Stranger test" |  2026-09-05 |
 | T8 | Gate B: play the §11 hour on seed 3 and fill the §19 table | human | **done** | T2, T5 | `docs/GATE_B.md` section "Gate B" |  2026-09-05 |
 | T9 | Absorb Gate B: fold the played hour and D-GB-1's hybrid into code and doc, tag `[play: Gate B]`, and carry D-GB-2/3/4 into Phase 5 as conditions | claude | **done** (doc only — no code; see the log) | | `docs/PROGRAMME_STATE.md` section "Absorb Gate B" | 2026-09-05 |
-| T10 | Open Phase 5 (the factory, complete) | claude | todo | | `docs/PHASE_5_REPORT.md` | |
+| T10 | Open Phase 5 (the factory, complete) | claude | doing | | `docs/PHASE_5_REPORT.md` | |
 
 ## Waiting on the human
 
