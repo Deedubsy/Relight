@@ -304,7 +304,7 @@ The Assembler ladder (D-P4-4): the start Assembler is the Mk1; the Mk2 is a sepa
 | Pole | 1×1 | — | reach 8 **[sim: M3-rates]**, supplies 7×7 (in M3 a substation powers its whole cell, so a pole only links) | start |
 | Big pole | 2×2 | — | reach 12 **[sim: B-M3-unlocks]**, supplies 3×3 (in the slice it links, as a Pole does) | Electricians |
 | Belt / Fast belt | 1×1 | — | 7.5/s **[sim: M2-rates]** · 15/s | start / Foundry |
-| Inserter | 1×1 | 10 kW | 1 item/s **[sim: M2-rates]** | start |
+| Inserter | 1×1 | 10 kW | 1 item/s **[sim: M2-rates]**; one inserter and no tier ladder — a faster one is added later as found tech only if the chain-throughput experiment shows a chain that cannot reach its §12 rate (D-INSERTERS-1) | start |
 | Splitter | 1×2 | — | with priority side | start |
 | Underground pair | 1×1 ×2 | — | span 4 | start |
 | Chest | 1×1 | — | 400 items | start |
@@ -786,3 +786,4 @@ Each edit as `§N — what changed — why — run name`. Run names before Phase
 - §25 — three open questions added (19 knowing what to do next, 20 rifle range, 21 enemy density at the player): the three conditions the Gate B verdict attaches to Phase 5 — D-GB-2, D-GB-3, D-GB-4 — Gate B (no run)
 - Changelog — what `[play: Gate B]` means, beside `[play: Gate A]`: a witnessed statement from one played hour, never a measured share — Gate B
 - §19 — "a player's [walking] share is M6's number" → still unmeasured: M6 measured the bot (4.6–5.2 % at tile scale) and Gate B read no telemetry, so the walking row has no human number and the doc no longer implies one — Gate B, B-M6-hour
+- §13 — the Inserter row carries D-INSERTERS-1's answer: one inserter, no tier ladder, and a faster one only as found tech if the chain-throughput experiment finds a chain that cannot reach its §12 rate — D-INSERTERS-1 decided by the human 2026-09-04 — Phase 5 opening (no run)

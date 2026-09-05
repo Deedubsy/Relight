@@ -45,8 +45,17 @@ recorded **D-GB-1's hybrid in §10 as decided and not built**, added the three g
 conditions to §25 as open questions 19–21, and attached the gate's evidence to D-R1,
 D-P4-5, C1 and C2 without deciding any of them. **No code file changed**: the gate produced
 no constant, and D-GB-2/3/4 are open, so building them would breach constitution rule 12.
-**Phase 4's task list is finished. T10, which opens Phase 5, is the next task and is
-unblocked.**
+**Phase 4's task list is finished. T10 is done 2026-09-05 and Phase 5 is open**
+(`docs/PHASE_5_REPORT.md`). The opening is a constitution rule 12 read: Phase 5's line in
+`PHASES.md` carries **seven rules that neither the design doc nor a decided row settles**,
+so they are listed and **not built** — the brownout's map-view read (§14 says lights do not
+dim), which §13 machines are Phase 5's, one belt lane or §14's two, what "blueprints from
+minute one" means against Phases 7 and 8, where the filter lives, the tram route on the map
+view, and the experiments' names. They are **D-P5-1 … D-P5-7**, and **T11 — a human task —
+is the next task**: every Phase 5 build task (T12–T17) is blocked on it. Two other Phase 5
+sentences were plainly settled by the doc and were corrected in `PHASES.md` rather than
+asked ("up to six inserters a stop", and crude's source), and D-INSERTERS-1's sentence
+landed in §13 where its own row said it would.
 
 ## Tasks
 
@@ -61,22 +70,50 @@ unblocked.**
 | T7 | Stranger test: eight questions, a person who has not seen the game | human | done (waived) | T3 | `docs/GATE_B.md` section "Stranger test" |  2026-09-05 |
 | T8 | Gate B: play the §11 hour on seed 3 and fill the §19 table | human | **done** | T2, T5 | `docs/GATE_B.md` section "Gate B" |  2026-09-05 |
 | T9 | Absorb Gate B: fold the played hour and D-GB-1's hybrid into code and doc, tag `[play: Gate B]`, and carry D-GB-2/3/4 into Phase 5 as conditions | claude | **done** (doc only — no code; see the log) | | `docs/PROGRAMME_STATE.md` section "Absorb Gate B" | 2026-09-05 |
-| T10 | Open Phase 5 (the factory, complete) | claude | doing | | `docs/PHASE_5_REPORT.md` | |
+| T10 | Open Phase 5 (the factory, complete) | claude | **done** | | `docs/PHASE_5_REPORT.md` | 2026-09-05 |
+| T11 | Decide the seven rows Phase 5 cannot start without: D-P5-1 … D-P5-7 (`PHASE_5_REPORT.md` §2c), and the rows M1 and M2 need — D-P4-2, D-P4-3, D-P4-12, C5, D-B2-1 | human | todo | T10 | `docs/DECISIONS.md` rows D-P5-1…D-P5-7 (`decided by` / `on` / `via` filled in) | |
+| T12 | Phase 5 M1 — recipes and rubble: the eight non-Shot recipes made by real machines; rubble as finite typed ore with visible depletion; the outskirts deposits real; the HQ patches sized; the `[play: <gate>]` check in docsync | claude | blocked | T11 (D-P4-2, D-P4-3, D-P4-12, C5) | `docs/PHASE_5_REPORT.md` section "M1" | |
+| T13 | Phase 5 M2 — placement and the command layer: every Phase 5 §13 machine with its footprint; undo / redo (1.10); drag placement taking a path (1.3); the hotbar as references (1.16); one binding table (1.17); one string table (8.5) | claude | blocked | T11 (D-P5-2, D-B2-1, D-SA-2) | `docs/PHASE_5_REPORT.md` section "M2" | |
+| T14 | Phase 5 M3 — belts complete: undergrounds with the span shown (1.4), splitters with priority (2.3), the filter (2.5), side-loading, chests, the Depot's item list | claude | blocked | T11 (D-P5-3, D-P5-5) | `docs/PHASE_5_REPORT.md` section "M3" | |
+| T15 | Phase 5 M4 — power and the panels: power complete on the tile layer; the machine status enum (2.6), rates (2.7), alt-mode (2.9), per-item counters (3.1); the brownout's map-view read; **D-GB-2's next-objective line** | claude | blocked | T11 (D-P5-1), D-GB-2's form | `docs/PHASE_5_REPORT.md` section "M4" | |
+| T16 | Phase 5 M5 — trams and the driven truck: track, stops, trams, the truck driven (2.11 / 7.4 / A.9), the route on the map view | claude | blocked | T11 (D-P5-6) | `docs/PHASE_5_REPORT.md` section "M5" | |
+| T17 | Phase 5 M6 — slots, the blueprint file and the DoD: slots as real lot geometry; the bot's blueprint file; copy / paste (1.11); the three experiments; then the bot's 5 h §18 territory | claude | blocked | T11 (C3 / D-B2-2, D-P5-4, D-P5-7) | `docs/PHASE_5_REPORT.md` section "M6" | |
+| T18 | Build a two-assembler ammo line in the world view, unaided, in under ten minutes — Phase 5's DoD, and T6 returning from its waiver | human | blocked | T17 | `docs/PHASE_5_REPORT.md` section "The DoD, played" | |
 
 ## Waiting on the human
 
-- **Nothing blocks a task.** D-P4-9, D-HOUR-2 and D-P4-10 were decided by Daniel
-  on 2026-09-05 ("Do the blockers") and built; with the eight rows of T1's
-  original `blocked by` cell they are all `decided`.
-- Decision row **D-P4-12** — the rail yard's coal. Added 2026-09-05 by the half
-  of D-P4-10 (a) that could not be built: the tile layer has no coal rubble kind
-  and no quantity for west's lot, so a physical Excavator there digs steel.
-  **Blocks nothing** — the hour is green without it. What it buys back is the
-  Generators running dry at 67:51–68:01 in the 75-minute variant.
-- **§11's enclosure and the Electricians are now outside the hour.**
-  `HOUR_END.held` is 3, so the HQ's white border and the Electricians walking out
-  of civic north are beats a 3,600 s run never reaches. Phase 5's opening should
-  say whether that is the shape of hour one or a hole in it.
+- **T11 blocks the whole of Phase 5.** Seven `open` rows — **D-P5-1 … D-P5-7** — were
+  added by the Phase 5 opening under constitution rule 12, because Phase 5's line asks
+  for seven things the design doc does not say. Nothing is built from them until they
+  are decided: the brownout's map-view read (**D-P5-1** — §14 says lights do not dim, in
+  two places), which §13 machines are Phase 5's (**D-P5-2** — six rows unlock in Phases
+  6–8), one belt lane or §14's two (**D-P5-3** — the row STANDARDS 2.1 routed here by
+  name, and the one that decides how much of M3 exists), what "blueprints from minute
+  one" means (**D-P5-4** — §14 / §19 say minute one, Phase 7 makes it a found unlock,
+  Phase 8 builds it; the phase's own DoD needs a blueprint file), where the filter lives
+  (**D-P5-5** — STANDARDS 2.5 asks for one and §13 has no filter sentence), the tram
+  route on the map view (**D-P5-6** — not in §4's fixed vocabulary), and the experiments'
+  names (**D-P5-7** — `E10` already names the retired bloom run cited four times).
+  Each carries a recommendation; none is decided. `docs/PHASE_5_REPORT.md` §2 is the read.
+- **Five more rows M1 and M2 wait on**, all `provisional` or `recommended` and all listed
+  in T11: **D-P4-2** (units per rubble tile — §12's 300 against the sim's pool),
+  **D-P4-3** (the outskirts deposits, still inert), **D-P4-12** (the rail yard's coal),
+  **C5** (the HQ steel patch), **D-B2-1** (is a machine a crafted item or paid at
+  placement). **C3 / D-B2-2** (slots as real lot geometry) gates M6 and with it the DoD.
+- Decision row **D-P4-12** — the rail yard's coal — had its **premise corrected** by the
+  Phase 5 read, not its answer. The row said "neither constant is in the design doc";
+  §12's raws table in fact reads *"Coal | rail-yard rubble (direct, ~30k per block)"*,
+  which is the row's own option (a) with a quantity **43× its recommended ~700**. Taking
+  §12's number makes west's claim the answer to coal for the rest of the game rather than
+  a top-up for hour two, so it is still the human's row — now against a number, not a blank.
+- **§11's enclosure and the Electricians: answered by the Phase 5 opening — it is the
+  shape of hour one, not a hole in it.** Both beats are gated on north, north is at 65
+  by D-P4-10, and §11 says so in the same paragraph ("north claimed at minute 65 — past
+  the hour on purpose"). Two things follow and both are the human's: §11's "30–60 min"
+  heading now describes minute 65, so either the beats get their own heading or **the
+  hour is re-scoped to 75 minutes** — `E-hour-north` already holds to 75:00 on every
+  seed, and re-scoping turns the enclosure, the Electricians and the burn-off payoff
+  from promises into scored beats. `PHASE_5_REPORT.md` §6.
 - **The first shade never happens in the bot's hour**, and Gate B closed without
   contradicting it. §11 and E3 put it at minute 32–47; six runs of E-hour print
   "never"; no shade kills anything in 48 tile rescue runs and none is born in six
@@ -120,10 +157,13 @@ unblocked.**
   (constitution rule 12, the same rule the gate invoked when it refused them).
 - **Two `[play: Gate B]` tags were in the design doc before Gate B was played**
   (commits `27cc9b0`, `906044c`), and one of them — §19's 10 % shooting cap — was never
-  earned; T9 removed it and narrowed the other. Nothing in the repo would have caught
-  either: `docsync` cannot check a tag that names a gate that has not happened. Whether
-  Phase 5 adds a check for that, or accepts it and re-reads tags at every gate, is a
-  human's call. Blocks nothing.
+  earned; T9 removed it and narrowed the other. **The Phase 5 opening answers the "what
+  check" half**: `docsync:check` learns one rule in M1 — every `[play: <gate>]` tag must
+  name a gate whose evidence file exists and carries a verdict — which is a dozen lines
+  and the only class of provenance error the repo cannot currently see. It is the one
+  piece of Phase 5 work with no rule-12 question in front of it, because it invents no
+  game rule. Whether that is enough, or tags are re-read by hand at every gate as well,
+  is still a human's word. Blocks nothing.
 - **D-GB-2, D-GB-3 and D-GB-4 are gate conditions, not blockers.** They ride into
   Phase 5 by the verdict. D-GB-2 (the next-objective problem) is the one that
   touches a standing rule — constitution rule 8, "no tutorial screens" — and the
@@ -297,3 +337,31 @@ unblocked.**
   complete.** Evidence: `docs/PROGRAMME_STATE.md` B.31 / B.32; also `SLICE_REPORT.md`
   "Absorb Gate B", `RELIGHT-design.md` (seven edits, seven changelog lines),
   `DECISIONS.md`, `DEFERRED.md` re-read, `ROADMAP.md` §1 / §2 / §6 / §7.
+- 2026-09-05 — T10 **done**, doc only. **Phase 5 is open** and nothing is built. The
+  opening is the comparison constitution rule 12 requires, and it found **seven rules in
+  Phase 5's line that neither `RELIGHT-design.md` nor a decided row carries**: the
+  dimming on the map view (§14 says "lights do not dim" and §4's vocabulary has no
+  throttle state), "the §13 machine list and nothing outside it" (six of its rows unlock
+  in Phases 6–8), §14's two-lane belts against `flow.ts`'s one (STANDARDS 2.1 routed this
+  here by name), the DoD's blueprint file against Phase 7's found unlock and Phase 8's
+  build, the filter STANDARDS 2.5 asks for and §13 does not mention, the tram route on
+  the map view, and the E10 name — already taken by the retired bloom-cadence run cited
+  in §25, C8, D-P3-5 and D-P3-11. All seven are **listed and not built**, as rows
+  **D-P5-1 … D-P5-7**, and **T11** is the human task that closes them. **Two sentences
+  the doc plainly settles were corrected in `PHASES.md`** instead of asked, on the
+  guardrails task's precedent: "six inserters per stop" → "up to six inserters a stop"
+  (§13 and §14 both say *up to* 6, and a fixed six pre-answers E12), and "oil from the
+  Refinery only" → crude from the Pumpjack, the Refinery its unlock and its only consumer
+  (§12). **One design-doc edit**: §13's Inserter row now carries D-INSERTERS-1's answer,
+  which that row said would land "when Phase 5 opens" — one inserter, no tier ladder, a
+  faster one only as found tech if the chain experiment finds a chain that cannot reach
+  its rate. **D-P4-12's premise was corrected**: §12's raws table does carry the rail-yard
+  coal kind and a quantity (~30k a block, 43× the row's recommended ~700); the row stays
+  the human's. **§11's enclosure and the Electricians** — the question `PROGRESS.md`
+  addressed to this opening — are **the shape of hour one, not a hole in it**: both beats
+  are gated on north, north is at 65 by D-P4-10, and §11 says so; what is left is whether
+  the hour is re-scoped to 75 minutes, which `E-hour-north` already measures as green.
+  Cheap checks green. Evidence: `docs/PHASE_5_REPORT.md`; also `DECISIONS.md` (seven rows
+  added, D-P4-12 corrected), `PHASES.md` (two corrections, four `[open: …]` tags, a
+  footnote), `RELIGHT-design.md` §13 + changelog, `PROGRAMME_STATE.md` 5.1 / 5.2,
+  `DEFERRED.md` re-read, `ROADMAP.md`.
