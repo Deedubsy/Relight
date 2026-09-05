@@ -1276,9 +1276,54 @@ new is parked.
    rifle's whole justification under §24 risk 10 rests on it, and at 90 s the experiment cannot tell
    an armed engineer from an unarmed one.
 
-## Gate B
+## Gate B — **proceed, with conditions** (2026-09-05, `docs/GATE_B.md`)
 
-verdict:
+verdict: **proceed — with conditions.** Recorded for Daniel on 2026-09-05.
+
+**The evidence is one partial hands-on session, not a scored hour**, and the file
+says so. Minutes 0–10 of §19's first-hour table are filled; **10–30 and 30–60 were
+not reached and stay empty**; no minute markers or telemetry were taken. The
+controls walkthrough, the two-assembler line and the stranger test remain **waived,
+not passed**.
+
+**What it closed.** **STANDARDS row A.7**, the hand-lamp sentence, played dark:
+*"Yea the dark is pretty good so far."* The dark reads as **the claim's price, not
+as a missing flashlight**, so **D-B5-1 does not reopen and now has play behind it**
+— the first of `STANDARDS.md`'s 46 rows to close (`closed: 1 of 46`).
+
+**What it found.** §19 expects minutes 0–10 to teach two rules (blocks bloom; ammo
+is made from rubble). **Neither was named back.** What came back was *"movement is
+good … but needs more development time"* and, as the hour's one problem, *"knowing
+what to do next"*. The memorable moment §19 expects by minute 50 was not reached
+(*"nothing yet"*). The rifle was fired without mattering — *"I was just shooting at
+things"* — which is the play-side half of what **D-R1** has been waiting for and
+agrees with `E-rifle` at both scales. **No shade was seen**, but the session did
+not pass minute 30, so §11's minute 32–47 is neither confirmed nor contradicted and
+the first-shade question stays open.
+
+**What it opened — four rows, D-GB-1 to D-GB-4**, three of which asked for
+something the doc does not contain (constitution rule 12: listed, not built).
+
+**D-GB-1 is decided, as the hybrid (option c)** — Daniel, 2026-09-05. The claim
+still burns off its block, so §5's rule, §11's hour and every measured number in
+this report stand; **powering and lighting the next area becomes a physical
+expedition the engineer walks**, and an area lighting up becomes a threat trigger
+beside the wake bloom. It is Phase 5 / 6 work; the doc sentences it moves (§5, §10,
+§11, §19) move on the milestone that builds it, with a changelog line.
+
+**D-GB-2 (knowing what to do next, against constitution rule 8's "no tutorial
+screens"), D-GB-3 (rifle range) and D-GB-4 (enemy density) are `open (gate
+condition)`** — the gate passed *with* them, so they are resolved inside Phase 5.
+D-GB-4 needs no permission: §19 caps player shooting at 10 % of an hour and the
+measured hour is **0.50 / 0.69 / 0.06 %**, with danger **0.00 %** against a 5 %
+cap, so density has twenty-fold headroom inside the design's own limits.
+
+**The standing tension, named once.** D-GB-1, D-GB-3 and D-GB-4 all pull toward a
+game in which the player fights, explores and lights the world personally. §19 caps
+the player's shooting at a tenth of an hour on purpose, because the doc's game is
+one in which turrets fight and the engineer builds the thing that fights. The
+hybrid is the answer taken; if Phase 5's work finds it does not hold, this is the
+sentence to come back to.
 
 ---
 
