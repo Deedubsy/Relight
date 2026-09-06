@@ -31,6 +31,8 @@ import type { HeartState } from './heart';
 import { heartAt, heartCheck, heartStarted, heartTick, cabinetAt, deliverToCabinet, repairCabinet, abortHeart } from './heart';
 import { segBetween, frontTiles, CitySeg } from './city';
 import { type StationRules, type FreightReservation, setStationRules, transferFreight } from './freight';
+import { campaignGrid, campaignThrottle } from './campaignPower';
+import { deliverSite, restoreSite, collectTramKit, campaignSiteAt } from './expansion';
 import { isCampaign } from './rules';
 
 export const TILE_TPS = 20;                    // constitution: fixed 20 ticks/s at tile level
@@ -92,6 +94,10 @@ export function unlockedByProject(kind: Kind): string | null {
 /** Why a kind cannot be placed yet ('' when it can): the group that unlocks it has not joined, or (RI-05) the
  *  project that grants it is not restored — owning the reward, not the facility being operational now. */
 export function lockReason(st: SimState, kind: Kind): string {
+  if (isCampaign(st)) {
+    if (RAIL_ROUTE_KINDS.includes(kind)) return st.campaign?.expansion?.station.restoredAt === undefined || st.campaign.expansion.station.restoredAt < 0 ? 'restore the second-area tram station' : '';
+    if (kind === 'substation') return '';
+  }
   const who = unlockedBy(kind);
   if (who && !survivorJoined(st, who)) return `the ${who} unlock it — hold their block`;
   const pid = unlockedByProject(kind);
@@ -542,6 +548,7 @@ function blockIdxOf(st: SimState, m: Machine): number { return blockOfTile(st, m
  *  block sim has not switched it off (unfed, shade), and the grid has any supply at all. GAME-ASSUMPTION: a
  *  grid with no Generator burning is dead, not browned out — everything on it stops at once. */
 export function subPowered(st: SimState, b: Block): boolean {
+  if (isCampaign(st)) return b.state === HELD && campaignThrottle(st, st.blocks.indexOf(b)) > 0;
   if (b.state !== HELD && b.state !== CONTESTED) return false;
   if (!b.subOn || st.t < b.shadeOff) return false;
   if (st.config.power && effectiveSupply(st) <= 0) return false;
@@ -553,6 +560,7 @@ export function subPowered(st: SimState, b: Block): boolean {
 export function powered(st: SimState, m: Machine): boolean {
   if (MACHINE_KW[m.kind] === 0) return true;
   const bi = blockIdxOf(st, m);
+  if (isCampaign(st)) return campaignThrottle(st, bi) > 0;
   if (bi >= 0 && fieldBlock(st, bi)) return fieldPowered(st, m);
   return subPowered(st, blockOf(st, m));
 }
@@ -580,6 +588,7 @@ export function throttle(st: SimState): number {
 function running(st: SimState, m: Machine): boolean {
   const bi = blockIdxOf(st, m);
   if (bi < 0) return false;
+  if (isCampaign(st)) return powered(st, m);
   if (st.blocks[bi].state === HELD) return powered(st, m);
   return isFieldKind(m.kind) && fieldBlock(st, bi) && powered(st, m);
 }
@@ -587,6 +596,7 @@ function running(st: SimState, m: Machine): boolean {
 export const machineRunning = running;
 function stopReason(st: SimState, m: Machine): string {
   const bi = blockIdxOf(st, m), field = bi >= 0 && isFieldKind(m.kind) && fieldBlock(st, bi);
+  if (isCampaign(st)) return powered(st, m) ? '' : ' · no local or connected power';
   if (bi < 0 || (blockOf(st, m).state !== HELD && !field)) return ' · stopped (block not Held)';
   if (MACHINE_KW[m.kind] === 0) return '';
   if (!powered(st, m)) return field ? ' · no connected pole in reach' : ' · no power';
@@ -952,6 +962,8 @@ function tickGenerator(st: SimState, m: Machine, dt: number, shareKw: number): v
 export function stepFlow(st: SimState, dt = TILE_DT): void {
   const f = st.flow;
   if (!f) return;
+  const cg = isCampaign(st) ? campaignGrid(st) : null;
+  if (cg) Object.assign(f.power, { supply: cg.supply, demand: cg.demand, load: cg.load, throttle: cg.demand ? cg.load / cg.demand : 1 });
   tickEngineerTiles(st, dt);   // D5: the engineer moves (and lays kits) ahead of the machines and the block tick
   threatHooks.current?.tick(st, dt);   // M4: crawlers walk, turrets and the bots' rifle shoot, arrivals count
   heartTick(st, dt);   // RI-06: the Junction Heart's commissioning — a no-op on every state without the layer
@@ -965,13 +977,14 @@ export function stepFlow(st: SimState, dt = TILE_DT): void {
   const thr = st.config.power ? f.power.throttle : 1, mdt = dt * thr;
   for (const m of f.machines) {
     if (m.kind === 'turret') { m.timer = Math.max(0, m.timer - dt); continue; }
-    if (m.kind === 'generator') { if (running(st, m)) tickGenerator(st, m, dt, share); continue; }
+    if (m.kind === 'generator') { if (running(st, m)) tickGenerator(st, m, dt, cg ? cg.generation.get(m.id) ?? 0 : share); continue; }
     if (m.kind === 'tram') { tickTram(st, m, dt); continue; }   // RI-05: draws nothing and rides its track whatever the grid does; the stops need power to transfer
     if (m.kind === 'belt' || m.kind === 'depot' || m.kind === 'lamp' || m.kind === 'pole' || m.kind === 'floodlight' || m.kind === 'bigpole' || m.kind === 'substation'
       || m.kind === 'chest' || m.kind === 'track' || m.kind === 'tramstop' || !running(st, m)) continue;
-    if (m.kind === 'inserter') tickInserter(st, m, mdt);
-    else if (m.kind === 'excavator') tickExcavator(st, m, mdt);
-    else tickAssembler(st, m, mdt);
+    const localDt = cg ? dt * campaignThrottle(st, blockIdxOf(st, m)) : mdt;
+    if (m.kind === 'inserter') tickInserter(st, m, localDt);
+    else if (m.kind === 'excavator') tickExcavator(st, m, localDt);
+    else tickAssembler(st, m, localDt);
   }
   tickHand(st, f, dt);
 }
@@ -1155,10 +1168,12 @@ export function placeable(st: SimState, kind: Kind, tx: number, ty: number): str
     const margin = o === -1, bi = margin ? G.near[t] : o;
     if (bi < 0) return 'outside the city';
     const b = st.blocks[bi];
-    if (b.state !== HELD) {
+    if (isCampaign(st) && b.state !== HELD && b.state !== DARK) return 'not buildable ground';
+    if (!isCampaign(st) && b.state !== HELD) {
       if (!isFieldKind(kind)) return 'the block is not Held';
       if (!fieldBlock(st, bi)) return b.state === DARK || b.state === CONTESTED ? 'not next to Held ground' : 'the block is not Held';
     }
+    if (campaignSiteAt(st, x, y) === 'radio') return 'the radio installation is there';
     if (f.occ[t] !== undefined) return 'another machine is there';
     if (cabinetAt(st, x, y) >= 0) return 'the feeder cabinet is there';   // RI-06
     if (margin && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && kind !== 'chest' && kind !== 'track' && kind !== 'tramstop' && !post) return 'not on the street';
@@ -1509,6 +1524,7 @@ function hookDemandKw(st: SimState, all: boolean): number {
   return kw;
 }
 function hookSetLoad(st: SimState, supply: number, demand: number, load: number, throttle: number): void {
+  if (isCampaign(st)) { const c = campaignGrid(st); supply = c.supply; demand = c.demand; load = c.load; throttle = demand ? load / demand : 1; }
   const f = st.flow!;
   f.power.supply = supply; f.power.demand = demand; f.power.load = load; f.power.throttle = throttle;
   if (throttle < 1 - 1e-9) f.power.overS++;
@@ -2064,6 +2080,9 @@ export function chestPut(st: SimState, item: ChestItem, n: number, at?: [number,
 // the engineer's hand commands (types.ts) land here when the flow layer is loaded
 handHook.current = (st, c) => {
   switch (c.type) {
+    case 'deliverSite': if (c.site === 'station' || c.site === 'radio') deliverSite(st, c.site); break;
+    case 'restoreSite': if (c.site === 'station' || c.site === 'radio') restoreSite(st, c.site); break;
+    case 'collectTramKit': collectTramKit(st); break;
     case 'mineAt': setHandMine(st, [c.x, c.y]); break;
     case 'craft': queueCraft(st, c.count ?? 1); break;
     case 'chestTake': if (isChestItem(c.item)) chestTake(st, c.item, c.n, c.x !== undefined && c.y !== undefined ? [c.x, c.y] : undefined); break;

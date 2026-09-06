@@ -11,7 +11,7 @@
 import { execSync } from 'node:child_process';
 import { DEFAULT_CONFIG, SimConfig, configHash, protoCalibrated, CityPreset } from '@relight/sim';
 import { CANON } from './run';
-import { campaignConfig, CAMPAIGN_RULESET, LEGACY_RULESET, CAMPAIGN_RULES, OPENING_LAYOUT, canonicalJson, fnv1a, type Ruleset, rulesetOf } from '@relight/sim';
+import { campaignConfig, CAMPAIGN_RULESET, LEGACY_RULESET, CAMPAIGN_RULES, OPENING_LAYOUT, canonicalJson, fnv1a, type Ruleset, rulesetOf, EXPANSION, CAMPAIGN_POWER } from '@relight/sim';
 
 export type ConfigRef =
   | { kind: 'campaign'; ruleset: typeof CAMPAIGN_RULESET; opening: typeof CAMPAIGN_RULES.opening }
@@ -56,7 +56,7 @@ export function evidenceRuleset(ref: ConfigRef): Ruleset { configOf(ref); return
 /** Preserve every legacy hash; campaign evidence also fingerprints its rules and geometry. */
 export function evidenceHash(ref: ConfigRef): string {
   const config = configOf(ref);
-  return ref.kind === 'campaign' ? fnv1a(canonicalJson({ config, ruleset: ref.ruleset, rules: CAMPAIGN_RULES, opening: OPENING_LAYOUT })) : configHash(config);
+  return ref.kind === 'campaign' ? fnv1a(canonicalJson({ config, ruleset: ref.ruleset, rules: CAMPAIGN_RULES, opening: OPENING_LAYOUT, expansion: EXPANSION, power: CAMPAIGN_POWER })) : configHash(config);
 }
 export function evidenceProfileProblem(ref: ConfigRef, file: string, payload?: unknown): string {
   const profile = evidenceRuleset(ref), campaignPath = file.replace(/\\/g, '/').includes('/campaign/');

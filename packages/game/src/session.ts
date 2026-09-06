@@ -106,7 +106,10 @@ export async function loadSnapshot(ref: string): Promise<Loaded> {
   let state: SimState;
   try { state = loadState(json); } catch (e) { throw new Error(`${ref}: ${(e as Error).message}`); }
   const saved = isSaveFile(json) ? json : undefined;
-  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete, ref, saved };
+  const original = (saved?.state ?? (json as { finalState?: SimState })?.finalState ?? json) as SimState;
+  const upgradedHome = original.ruleset === CAMPAIGN_RULESET && original.campaign?.version === 1;
+  // The old log predates station geometry and local circuits: resume the save, but do not claim a new-factory replay of that history.
+  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && !upgradedHome, ref, saved };
 }
 
 export interface Session {

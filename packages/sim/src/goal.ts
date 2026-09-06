@@ -11,6 +11,7 @@
  *  running / starved / blocked / idle / off word of the same section. E-hour samples `currentGoal` at 1 Hz through
  *  the logged hour and checks every id against the state it claims (packages/harness goalcheck.ts). */
 import { SimState, HELD, DARK, CONTESTED, Edge } from './types';
+import { describeSite } from './expansion';
 import { isCampaign } from './rules';
 import {
   Machine, MACHINE_COST, MACHINE_KW, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
@@ -238,6 +239,14 @@ function supportOf(st: SimState): GoalLine | null {
 export function currentGoal(st: SimState): Goal {
   if (isCampaign(st)) {
     const factory = st.flow?.machines.some(m => m.kind === 'excavator' || m.kind === 'assembler');
+    const ex = st.campaign?.expansion;
+    if (ex && ex.radio.restoredAt >= 0) {
+      const linked = ex.route.every(t => machineAt(st, t % st.flow!.tw, Math.floor(t / st.flow!.tw))?.kind === 'track')
+        && ex.stops.every(([x,y]) => { const m = machineAt(st,x,y); return m?.kind === 'tramstop' && powered(st,m); })
+        && !!st.flow?.machines.some(m => m.kind === 'tram' && tramRoute(st,m).includes(ex.route[0]));
+      if (!linked) return { goal: { id: 'home-explore', text: 'Lay the supplied tram route and power both stops', why: 'Blue survey squares mark track and stop positions. Collect any remaining kit at the station; place the tram on the completed line.' }, support: null };
+    }
+    if (ex && (factory || ex.station.restoredAt >= 0)) return { goal: { id: 'home-explore', block: ex.station.block, text: ex.station.restoredAt < 0 ? `Explore to ${blockName(st, ex.station.block)} and restore its tram station` : ex.radio.restoredAt < 0 ? 'Connect the tram line and restore the nearby radio tower' : 'Build factories around your connected station', why: describeSite(st, ex.station.restoredAt < 0 ? 'station' : 'radio') }, support: null };
     return { goal: { id: factory ? 'home-explore' : 'home-factory', text: factory ? 'Explore beyond Home Court through its single entrance' : 'Build your first production line in Home Court',
       why: factory ? 'Your house and factory remain here when you return.' : 'E at the house opens your supplies; B opens building. Steel and copper patches are inside the court.' }, support: null };
   }
@@ -252,7 +261,7 @@ export interface MachineStatus { state: MachineState; reason: string }
 export function machineStatus(st: SimState, m: Machine): MachineStatus {
   const bi = blockOfTile(st, m.x, m.y), b = bi >= 0 ? st.blocks[bi] : null;
   const field = bi >= 0 && isFieldKind(m.kind) && fieldBlock(st, bi);   // RI-03: the field kit runs on the claim front
-  if (!b || (b.state !== HELD && !field)) return { state: 'off', reason: 'block not Held' };
+  if (!b || (!isCampaign(st) && b.state !== HELD && !field)) return { state: 'off', reason: 'block not Held' };
   if (MACHINE_KW[m.kind] > 0 && !powered(st, m)) return { state: 'off', reason: field ? 'no connected pole in reach' : 'no power' };
   switch (m.kind) {
     case 'turret': {

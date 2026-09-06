@@ -37,3 +37,6 @@ export * from './freight';
 export * from './rules';
 export * from './city/opening';
 export * from './campaign';
+
+export * from './expansion';
+export * from './campaignPower';

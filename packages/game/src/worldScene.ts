@@ -37,6 +37,7 @@ import {
 } from '@relight/sim';
 import { Session, queue, record } from './session';
 import { View, debugView, hudInset } from './view';
+import { campaignSiteAt, campaignSite, describeSite } from '@relight/sim';
 import { drawUrban } from './urbanDraw';
 
 /** RI-02 (§11.2 "machine purpose and working / starved / blocked state", never colour alone): the state word's
@@ -454,6 +455,13 @@ export class WorldScene extends Phaser.Scene {
     const st = this.st, h = this.hoverTile;
     if (!st.flow || !this.onFoot) return;
     const e = st.engineer;
+    const site = h ? campaignSiteAt(st, h.tx, h.ty) : null;
+    if (site) {
+      const s = campaignSite(st, site)!; if (!this.reachable(s.x, s.y, s.size, true)) return;
+      if (s.restoredAt >= 0 && site === 'station') queue(this.session, { type: 'collectTramKit' });
+      else { queue(this.session, { type: 'deliverSite', site }); queue(this.session, { type: 'restoreSite', site }); }
+      this.hooks.onToast(describeSite(st, site)); return;
+    }
     const wb = workbenchTile(st);
     if (h && h.tx >= wb[0] && h.tx < wb[0] + 2 && h.ty >= wb[1] && h.ty < wb[1] + 2) {
       if (!this.reachable(wb[0], wb[1], 2, true)) return;
@@ -673,7 +681,9 @@ export class WorldScene extends Phaser.Scene {
     if (bi >= 0) lines.push(this.blockLine(bi));
     const kc = st.flow ? cabinetAt(st, tx, ty) : -1;
     if (kc >= 0) lines.unshift(describeCabinet(st, kc));   // RI-06: a feeder cabinet under the cursor
-    if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
+    const campaignInstallation = campaignSiteAt(st, tx, ty);
+    if (campaignInstallation) lines.unshift(describeSite(st, campaignInstallation));
+    else if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
     else if (st.flow && isSubstationTile(st, tx, ty)) {
       const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
       if (sub && heartAt(st, bi)) lines.unshift(`The Junction Heart · ${describeHeart(st)}`);   // RI-06: the objective, the active failure condition, the next action
@@ -715,7 +725,7 @@ export class WorldScene extends Phaser.Scene {
    *  yard) and its state; the block coordinates only behind the ` toggle. */
   private blockLine(i: number): string {
     const st = this.st, b = st.blocks[i];
-    if (st.ruleset === 'exploration-v2') return `${blockLabel(st, i, debugView.coords)} · ${i === st.campaign?.homeBlock ? 'Home base' : 'Unrestored'}`;
+    if (st.ruleset === 'exploration-v2') return `${blockLabel(st, i, debugView.coords)} · ${i === st.campaign?.homeBlock ? 'Home base' : b.state === HELD ? 'Station base' : 'Unrestored'}`;
     const river = st.lattice ? b.y === st.h - 1 : false;
     const state = river ? 'river' : b.state === DARK ? `Dark · rot ${Math.round(b.d * 100)} %` : b.state === CONTESTED ? 'Contested' : b.state === HELD ? (isInterior(st, i) ? 'Held · interior' : 'Held · front') : b.state === INERT || b.state === VOID ? 'inert' : '?';
     return `${blockLabel(st, i, debugView.coords)} · ${state}`;
@@ -883,6 +893,14 @@ export class WorldScene extends Phaser.Scene {
       t.setText(G.urban && !debugView.coords ? place?.name ?? '' : this.blockLine(i))
         .setPosition((place ? place.pad.x : p[0]) * TILE_PX + 6, (place ? place.pad.y - 1 : p[1]) * TILE_PX + 6).setScale(1 / cam.zoom).setVisible(true);
       li++;
+    }
+    if (st.campaign?.expansion) {
+      const ex = st.campaign.expansion;
+      for (const [name, site] of [['TRAM STATION / E', ex.station], ['RADIO TOWER / E', ex.radio]] as const) {
+        if (site.x < tx0 || site.x > tx1 || site.y < ty0 || site.y > ty1) continue;
+        let label = this.labels[li]; if (!label) { label = this.add.text(0, 0, '', { fontSize: '12px', color: '#f2d38b', backgroundColor: '#0b0e1aaa', padding: { x: 4, y: 2 } }).setDepth(5); this.labels.push(label); }
+        label.setText(name).setPosition(site.x * TILE_PX, (site.y - 1) * TILE_PX).setScale(1 / cam.zoom).setVisible(true); li++;
+      }
     }
     for (let k = li; k < this.labels.length; k++) this.labels[k].setVisible(false);
     if (!st.flow) {

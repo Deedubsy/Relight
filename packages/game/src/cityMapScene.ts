@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import {
   SimState, SimEvent, DARK, CONTESTED, HELD, INERT, VOID, idxOf, isCandidate, rotOf, rotTier, frontList, FrontEdgeView,
   claimInfo, heldInfo, nearestHeld, facilityList, survivorList, isInterior, poolMax, CityGeom,
-  STREET, WATER, segKey, activationCheck, claimNeed, blockNameAt, ground, cityGeomOf,
+  STREET, WATER, segKey, activationCheck, claimNeed, blockNameAt, ground, cityGeomOf, isCampaign, passable,
 } from '@relight/sim';
 import { Session, queue } from './session';
 import { SceneHooks, MapView, C } from './mapScene';
@@ -163,6 +163,11 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     const st = this.session.state, g = this.geom;
     const tx = Math.floor((p.x - this.ox) / this.ppt), ty = Math.floor((p.y - this.oy) / this.ppt);
     const onMap = tx >= 0 && ty >= 0 && tx < g.tw && ty < g.th;
+    if (st.flow && onMap && isCampaign(st)) {
+      if (passable(st, tx, ty)) queue(this.session, { type: 'move', x: tx + 0.5, y: ty + 0.5 });
+      else this.hooks.onToast('That spot is blocked. Choose nearby open ground to walk there.');
+      return;
+    }
     const owner = onMap ? g.owner[ty * g.tw + tx] : -2;
     // D-B1-5: a click on a street tile or a Held block's tile sets a walk-here target (the A* in walk.ts) — the only
     // auto-walk the player has; any WASD input cancels it. A Dark block previews (RI-03: nothing is claimed here).

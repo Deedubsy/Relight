@@ -18,6 +18,19 @@ export function drawUrban(g: Phaser.GameObjects.Graphics, st: SimState, G: Groun
       g.fillStyle(0xc49a59, 0.65); g.fillRect((t % G.tw) * P, Math.floor(t / G.tw) * P, P, P);
     }
   }
+  const ex = st.campaign?.expansion;
+  if (ex) {
+    const path = ex.route;
+    // Survey paint identifies the supplied route; it is not laid track or free transport.
+    if (ex.station.restoredAt >= 0) for (const t of path) { const bi = G.near[t]; if (!vis.has(bi)) continue; const x = (t % G.tw) * P, y = Math.floor(t / G.tw) * P; g.lineStyle(1 / zoom, 0x8fcad1, 0.6); g.strokeRect(x + P * 0.3, y + P * 0.3, P * 0.4, P * 0.4); }
+    if (vis.has(ex.station.block)) {
+      const s = ex.station; g.lineStyle(3 / zoom, s.restoredAt >= 0 ? 0x88d5b0 : 0xf1c36b, 0.95); g.strokeRect(s.x * P, s.y * P, s.size * P, s.size * P);
+      const r = ex.radio, x = (r.x + 0.5) * P, y = (r.y + 0.5) * P;
+      g.fillStyle(0x243640, 1); g.fillRect(r.x * P, r.y * P, P, P);
+      g.lineStyle(2 / zoom, r.restoredAt >= 0 ? 0x88d5b0 : 0xc9a773, 1); g.lineBetween(x, y - P * 0.45, x - P * 0.35, y + P * 0.35); g.lineBetween(x, y - P * 0.45, x + P * 0.35, y + P * 0.35); g.lineBetween(x - P * 0.3, y - P * 0.1, x + P * 0.3, y - P * 0.1);
+    }
+    if (ex.station.restoredAt >= 0) for (const [x,y] of ex.stops) { if (!vis.has(G.near[y * G.tw + x])) continue; g.lineStyle(2 / zoom, 0x8fcad1, 0.8); g.strokeRect(x * P, y * P, P * 2, P * 2); }
+  }
   for (const place of city.places) {
     if (!vis.has(place.block)) continue;
     const { x, y, w, h } = place.pad, held = st.blocks[place.block].state === HELD;

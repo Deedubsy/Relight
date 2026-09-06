@@ -2,7 +2,7 @@
 
 Adopted direction and opening contracts: 2026-09-06, D-EX-01–11. The owner confirmed that **Phase 4 has just finished**. Phase 5 is the next incomplete phase; forward-built RI features do not mean later phases are complete.
 
-This plan replaces the executable direction of [Version 1](REVISED_DEVELOPMENT_PLAN.md). [RELIGHT-design.md](RELIGHT-design.md) defines gameplay, [DECISIONS.md](DECISIONS.md) records authority and open choices, and [PROGRESS.md](PROGRESS.md) alone owns task order/status. This plan supplies task definitions, not a second tracker. The owner subsequently authorised baseline integration and the first tram increment (D-EX-12); D-EX-13 then authorises campaign separation and the home opening; subsequent coding follows that scope and PROGRESS.
+This plan replaces the executable direction of [Version 1](REVISED_DEVELOPMENT_PLAN.md). [RELIGHT-design.md](RELIGHT-design.md) defines gameplay, [DECISIONS.md](DECISIONS.md) records authority and open choices, and [PROGRESS.md](PROGRESS.md) alone owns task order/status. This plan supplies task definitions, not a second tracker. The owner subsequently authorised baseline integration and the first tram increment (D-EX-12); D-EX-13 authorises campaign separation and the home opening, followed by D-EX-14 for the second area; subsequent coding follows that scope and PROGRESS.
 
 ## 1. Direction and implementation boundaries
 
@@ -38,7 +38,7 @@ Retain movement, inventories, machine recipes/production, belts, power, light qu
 
 EX-06A is the independently reviewable freight subset of EX-06 brought forward under D-EX-12: multiple stops, reserved deliveries, return exports and save/UI support on the retained baseline. It does not complete EX-03 profiles, EX-04 opening, or EX-06 specialised factories/workshops. PROGRESS owns its status.
 
-EX-04A is the home-only subset of EX-04 authorised by D-EX-13: house inventory, one physical entrance, reachable starter patches, factory space and ordinary paid placement, with save/replay and goal support. Its static boundary is provisional geometry; destructible/player-built defences require EX-05. This subset does not complete the second-area station reward, radio opportunity or new campaign loop.
+EX-04A is the home-only subset of EX-04 authorised by D-EX-13: house inventory, one physical entrance, reachable starter patches, factory space and ordinary paid placement, with save/replay and goal support. Its static boundary is provisional geometry; destructible/player-built defences require EX-05. The subsequent EX-04 station/radio increment completes those opening capabilities; EX-04A alone does not. The wider defence loop remains EX-05–08.
 
 ## 4. Migration of existing work
 

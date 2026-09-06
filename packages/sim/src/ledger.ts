@@ -55,6 +55,7 @@ export function heldItems(st: SimState): { total: Record<Item, number>; where: R
   for (const e of st.ring) if (!e.turrets) add('ring', 'magazine', e.hopper / ROUNDS);   // a stand-in edge's hopper; a turret edge's mirrors its turrets
   for (const k in st.engineer.inv) add('pockets', k, st.engineer.inv[k]);
   for (const bi in f.delivered ?? {}) { add('committed', 'steel', f.delivered[bi].steel); add('committed', 'copper', f.delivered[bi].copper); }
+  for (const site of Object.values(st.campaign?.expansion ? { station: st.campaign.expansion.station, radio: st.campaign.expansion.radio } : {})) { add('committed', 'steel', site.delivered.steel); add('committed', 'copper', site.delivered.copper); }
   for (const cb of f.heart?.cabinets ?? []) { add('committed', 'steel', cb.delivered.steel); add('committed', 'copper', cb.delivered.copper); }   // RI-06: the feeder cabinets' materials until the Heart is destroyed
   for (const m of f.machines) {
     for (const it of m.items) add('belts', it.k, 1);

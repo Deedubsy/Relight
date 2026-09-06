@@ -187,6 +187,8 @@ export type Command =
   | { type: 'fire'; edge: number }                    // -1 = cease fire
   | { type: 'enterTruck' }
   // RI-05: `x`/`y` name a supply chest or a tram stop within reach (plan §5.2's named installation); absent = the Depot
+  | { type: 'deliverSite' | 'restoreSite'; site: 'station' | 'radio' }
+  | { type: 'collectTramKit' }
   | { type: 'chestTake'; item: string; n: number; x?: number; y?: number }
   | { type: 'chestPut'; item: string; n: number; x?: number; y?: number }
   // M6: the scene's remaining direct calls as commands, so a played session's log replays whole (hour.ts `replay`)

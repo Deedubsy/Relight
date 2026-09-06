@@ -9,6 +9,7 @@
 import { SimState } from './types';
 import type { LoggedCommand } from './hour';
 import { freightProblem } from './freight';
+import { initExpansion } from './expansion';
 import { rulesetProblem } from './rules';
 
 export const SAVE_TRANSIENT: readonly (keyof SimState)[] = ['events', 'acc', 'speed'];
@@ -84,6 +85,7 @@ export function loadState(raw: unknown): SimState {
   const st = JSON.parse(JSON.stringify(src)) as SimState;
   st.events = []; st.acc = 0; st.speed = 0;
   st.survivors ??= [];
+  if (st.flow) initExpansion(st);
   return st;
 }
 

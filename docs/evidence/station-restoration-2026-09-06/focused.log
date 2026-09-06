@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+ok 1 - legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+  ---
+  duration_ms: 635.698114
+  type: 'test'
+  ...
+# Subtest: campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+ok 2 - campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+  ---
+  duration_ms: 1441.660664
+  type: 'test'
+  ...
+# Subtest: cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+ok 3 - cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+  ---
+  duration_ms: 3224.602982
+  type: 'test'
+  ...
+# Subtest: campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+ok 4 - campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+  ---
+  duration_ms: 868.691698
+  type: 'test'
+  ...
+# Subtest: second area is reachable across seeds; restoration costs, local power, radio and once-only kit survive saves
+ok 5 - second area is reachable across seeds; restoration costs, local power, radio and once-only kit survive saves
+  ---
+  duration_ms: 3295.261167
+  type: 'test'
+  ...
+# Subtest: fresh paid expedition lays its generated kit and moves reserved freight between independently powered bases
+ok 6 - fresh paid expedition lays its generated kit and moves reserved freight between independently powered bases
+  ---
+  duration_ms: 1401.280417
+  type: 'test'
+  ...
+# Subtest: old home preview upgrades deterministically without granting a kit; malformed expansion metadata is rejected
+ok 7 - old home preview upgrades deterministically without granting a kit; malformed expansion metadata is rejected
+  ---
+  duration_ms: 667.259715
+  type: 'test'
+  ...
+# Subtest: physical pole links power a remote installation and picking them up disconnects it
+ok 8 - physical pole links power a remote installation and picking them up disconnects it
+  ---
+  duration_ms: 350.653504
+  type: 'test'
+  ...
+# Subtest: upgrading a home-only save preserves the save but labels its old log as incomplete for the new campaign factory
+ok 9 - upgrading a home-only save preserves the save but labels its old log as incomplete for the new campaign factory
+  ---
+  duration_ms: 391.19117
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16117.744001

@@ -7,6 +7,7 @@ import { Session, setSpeed, queue, shareUrl, record, saveSlot, slotUrl, hasSlot,
 import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
+import { campaignSite, describeSite, EXPANSION } from '@relight/sim';
 import { ITEMS, StationRules, freightInbound, isCampaign, rulesetOf, CAMPAIGN_RULESET, LEGACY_RULESET, campaignClock } from '@relight/sim';
 
 /** M6: what the export carries beside the telemetry — the command log (the replay's input) and, under the hour bot, its log and report. */
@@ -91,7 +92,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const saveNote = el('span', 'hint', '');
   saveRow.append(btnSave, btnLoad, saveNote);
   header.append(saveRow);
-  header.append(el('p', 'hint', campaign ? 'Home Court opening preview: build from the house supplies, explore through the single entrance, and return to your factory. Station restoration and assaults are not available in this preview.' : 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
+  header.append(el('p', 'hint', campaign ? 'Explore from Home Court to the tram station. Carry materials and build local power to restore it, collect its tram kit, then restore the radio tower. Attacks are not implemented yet.' : 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
   root.append(header);
   function saveGame(): void {
     try {
@@ -107,12 +108,21 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   }
   if (hasSlot('1', rulesetOf(st))) saveNote.textContent = 'this campaign has a save';
 
+  const campaignStatus = campaign ? el('p', 'hint') : null;
+  const siteButtons: { id: 'station' | 'radio'; button: HTMLButtonElement }[] = [];
+  if (campaignStatus) {
+    const section = el('section'); section.append(el('h2', undefined, 'Station restoration'), campaignStatus);
+    section.append(el('p', 'hint', `Station: ${EXPANSION.station.steel} steel + ${EXPANSION.station.copper} copper. Radio: ${EXPANSION.radio.steel} steel + ${EXPANSION.radio.copper} copper. Build and fuel a generator on the site or run poles to its substation. Commissioning registers this neighbourhood as a base. Its street boundaries are shown in the world and map views.`));
+    for (const id of ['station','radio'] as const) { const button = el('button', undefined, `Deliver and restore ${id}`); button.onclick = () => { const s = campaignSite(session.state, id); if (s && s.restoredAt >= 0 && id === 'station') queue(session,{type:'collectTramKit'}); else {queue(session,{type:'deliverSite',site:id});queue(session,{type:'restoreSite',site:id});} }; section.append(button);siteButtons.push({id,button}); }
+    section.append(el('p', 'hint', 'After restoration, blue survey squares mark the suggested track and stop positions. They place nothing: collect the kit at the station, then lay and power the line yourself. The kit stays there if your pockets are full.'));
+    root.append(section);
+  }
   // HUD
   const hudSec = el('section');
   hudSec.append(el('h2', undefined, campaign ? 'Home and production' : 'Territory'));
   const stats = el('div', 'stats');
   const mk = (label: string) => { const s = el('div', 'stat'); const b = el('b', 'mono', '0'); s.append(b, el('span', undefined, label)); stats.append(s); return { s, b }; };
-  const sHeld = mk(campaign ? 'Home base' : 'Held'), sFront = mk('Front edges'), sInt = mk('Interior');
+  const sHeld = mk(campaign ? 'Bases' : 'Held'), sFront = mk('Front edges'), sInt = mk('Interior');
   const sProd = mk(campaign ? 'mag/min capacity' : 'mag/min made'), sDem = mk('mag/min demanded'), sStock = mk('magazines in stock');
   const sLost = mk('blocks lost'), sEmpty = mk('empty hoppers'), sClock = mk('sim clock');
   if (campaign) for (const stat of [sFront, sInt, sDem, sLost, sEmpty]) stat.s.remove();
@@ -187,7 +197,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   };
   let freightKey = '';
   pocketSec.append(freightForm);
-  pocketSec.append(el('p', 'hint', campaign ? 'Take supplies from the house within reach. Build from carried steel and copper; right-click a machine to recover it and its contents. Station restoration is not available yet.' : `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's steel and copper go from the pockets into the block's substation (E on it) and are spent at Activate; its edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
+  pocketSec.append(el('p', 'hint', campaign ? 'Take supplies from the house within reach. Build from carried steel and copper; right-click a machine to recover it and its contents. Restoration uses carried materials and local or connected power.' : `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's steel and copper go from the pockets into the block's substation (E on it) and are spent at Activate; its edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
   root.append(pocketSec);
 
   // D-B1-5: the build menu (B). The hotbar (1–8) is its shortcut; 9 is the rifle. Prompt B M3: the Electricians'
@@ -424,6 +434,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     lastUpdate = nowMs;
     const s: SimState = session.state;
     updateGoal(s);
+    if (campaignStatus) { const ex = s.campaign?.expansion; campaignStatus.textContent = ex ? `${blockNameAt(s, s.blocks[ex.station.block].x, s.blocks[ex.station.block].y)}: ${describeSite(s, 'station')} ${ex.station.restoredAt >= 0 ? describeSite(s, 'radio') : ''}` : ''; }
+    for (const row of siteButtons) { const site = campaignSite(s, row.id); row.button.disabled = !site || !inReach(s, site.x, site.y, site.size) || (row.id === 'radio' && (campaignSite(s, 'station')?.restoredAt ?? -1) < 0); row.button.textContent = site && site.restoredAt >= 0 ? row.id === 'station' ? 'Collect tram kit' : 'Radio restored' : `Deliver and restore ${row.id}`; if (row.id === 'radio' && site && site.restoredAt >= 0) row.button.disabled = true; }
     const h = hud(s);
     sHeld.b.textContent = String(h.held); sFront.b.textContent = String(h.front); sInt.b.textContent = String(h.interior);
     const fs = flowSummary(s);
@@ -533,7 +545,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   function tooltip(info: ClaimInfo | HeldInfo | null, px: number, py: number): void {
     if (!info) { tip.hidden = true; return; }
     if (campaign) {
-      tooltipText(`${blockLabel(session.state, idxOf(session.state, info.x, info.y), debugView.coords)}\n${'held' in info ? 'Home base: build with supplies from the house.' : 'Explore on foot. Station restoration is coming in a later increment.'}`, px, py);
+      tooltipText(`${blockLabel(session.state, idxOf(session.state, info.x, info.y), debugView.coords)}\n${'held' in info ? 'Home base: build with supplies from the house.' : 'Explore on foot. Restore the tram installation with carried materials and power.'}`, px, py);
       return;
     }
     if ('held' in info) {
