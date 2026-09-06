@@ -1,0 +1,230 @@
+TAP version 13
+# Subtest: names: every block has a stable, unique, state-free name; the HQ is "HQ"; the rail yard is named; the §11 directions are three distinct HQ neighbours
+ok 1 - names: every block has a stable, unique, state-free name; the HQ is "HQ"; the rail yard is named; the §11 directions are three distinct HQ neighbours
+  ---
+  duration_ms: 4069.911764
+  type: 'test'
+  ...
+# Subtest: goal: a fresh city asks for hand-mined steel; a block-only state asks for the front; every id shown in 20 minutes is a §11 row in schedule order and never wrong against the state
+ok 2 - goal: a fresh city asks for hand-mined steel; a block-only state asks for the front; every id shown in 20 minutes is a §11 row in schedule order and never wrong against the state
+  ---
+  duration_ms: 1118.267296
+  type: 'test'
+  ...
+# Subtest: machineStatus: one of five words with a reason; the line at minute 10 has running Excavators, and an unpowered block reads off
+ok 3 - machineStatus: one of five words with a reason; the line at minute 10 has running Excavators, and an unpowered block reads off
+  ---
+  duration_ms: 532.199894
+  type: 'test'
+  ...
+# Subtest: save: the hash ignores only the transients, a load validates and deep-copies, and a save at 1:30 replays to the unbroken run's hash at 3:00
+ok 4 - save: the hash ignores only the transients, a load validates and deep-copies, and a save at 1:30 replays to the unbroken run's hash at 3:00
+  ---
+  duration_ms: 383.155608
+  type: 'test'
+  ...
+# Subtest: RI-06: enableHeart puts the Heart on the rail yard with two feeder cabinets on the lot toward two Dark approaches, once
+ok 5 - RI-06: enableHeart puts the Heart on the rail yard with two feeder cabinets on the lot toward two Dark approaches, once
+  ---
+  duration_ms: 1032.030701
+  type: 'test'
+  ...
+# Subtest: RI-06: the cabinets take deliveries from the pockets and the installation refuses the Activate until both are supplied and powered
+not ok 6 - RI-06: the cabinets take deliveries from the pockets and the installation refuses the Activate until both are supplied and powered
+  ---
+  duration_ms: 66.64401
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/heart.test.ts:65:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'discovered'
+    - 'preparing'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'preparing'
+  actual: 'discovered'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/heart.test.ts:80:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: RI-06 (plan §9.4): the hour bot, rifle off, prepares the yard, starts the Heart and destroys it once; the reward is granted once
+not ok 7 - RI-06 (plan §9.4): the hour bot, rifle off, prepares the yard, starts the Heart and destroys it once; the reward is granted once
+  ---
+  duration_ms: 1667.40488
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/heart.test.ts:83:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    no refusal on the Heart step
+    + actual - expected
+    
+    + [
+    +   'pole at (384,625) for cabinet 2: not enough in the pockets (1 steel + 1 Cu)'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'pole at (384,625) for cabinet 2: not enough in the pockets (1 steel + 1 Cu)'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/heart.test.ts:87:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: RI-06 (§9.2 defaults 9–11): a knocked-out feeder stalls the commissioning, 60 s stalls it to interrupted; deliveries and the charge stay, the retry charges nothing twice and keys its packets anew
+not ok 8 - RI-06 (§9.2 defaults 9–11): a knocked-out feeder stalls the commissioning, 60 s stalls it to interrupted; deliveries and the charge stay, the retry charges nothing twice and keys its packets anew
+  ---
+  duration_ms: 1398.710849
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/heart.test.ts:117:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   {
+    +     reason: 'not enough in the pockets (1 steel + 1 Cu)',
+    +     t: 1506,
+    +     what: 'pole at (384,625) for cabinet 2'
+    +   }
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0:
+      t: 1506
+      what: 'pole at (384,625) for cabinet 2'
+      reason: 'not enough in the pockets (1 steel + 1 Cu)'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/heart.test.ts:120:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: RI-06: a save mid-attempt reloads to the same hash and runs on to the same hash; the explicit abort works only while commissioning
+not ok 9 - RI-06: a save mid-attempt reloads to the same hash and runs on to the same hash; the explicit abort works only while commissioning
+  ---
+  duration_ms: 1745.88658
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/heart.test.ts:171:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    the same hash 45 s on
+    + actual - expected
+    
+    + '5eec72de'
+    - 'f7d407d2'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'f7d407d2'
+  actual: '5eec72de'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/heart.test.ts:182:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: RI-06: a pole run reaching a cabinet is what "connected" means — removing it pauses the commissioning (no knock-out)
+not ok 10 - RI-06: a pole run reaching a cabinet is what "connected" means — removing it pauses the commissioning (no knock-out)
+  ---
+  duration_ms: 1154.930735
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/heart.test.ts:194:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   {
+    +     reason: '4 of 4 steel, 1 of 2 Cu delivered',
+    +     t: 1507,
+    +     what: "deliver cabinet 2's materials"
+    +   },
+    +   {
+    +     reason: 'not enough in the pockets (15 steel + 5 Cu)',
+    +     t: 1507,
+    +     what: 'turret by cabinet 2'
+    +   }
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0:
+      t: 1507
+      what: "deliver cabinet 2's materials"
+      reason: '4 of 4 steel, 1 of 2 Cu delivered'
+    1:
+      t: 1507
+      what: 'turret by cabinet 2'
+      reason: 'not enough in the pockets (15 steel + 5 Cu)'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/heart.test.ts:197:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: the rail-yard project: discovered → preparing (the pole run) → ready (materials by hand and off a belt) → commissioning (Activate, its id) → restored (Held) once; the reward unlocks the rail kit, which was locked before; a later loss keeps stage and reward and makes it non-operational; the retake re-grants nothing
+ok 11 - the rail-yard project: discovered → preparing (the pole run) → ready (materials by hand and off a belt) → commissioning (Activate, its id) → restored (Held) once; the reward unlocks the rail kit, which was locked before; a later loss keeps stage and reward and makes it non-operational; the retake re-grants nothing
+  ---
+  duration_ms: 1145.186419
+  type: 'test'
+  ...
+# Subtest: the local supply depot: a supply chest on the restored (Held) site, stocked by hand with ordinary items, commissioned within reach — the record alone changes: no claim, no charge, the stock stays; the restored depot hands out kits; a pre-RI-05 save discovers its projects on load
+ok 12 - the local supply depot: a supply chest on the restored (Held) site, stocked by hand with ordinary items, commissioned within reach — the record alone changes: no claim, no charge, the stock stays; the restored depot hands out kits; a pre-RI-05 save discovers its projects on load
+  ---
+  duration_ms: 820.751833
+  type: 'test'
+  ...
+# Subtest: a supply chest on the front feeds an inserter and takes from one; the tram shuttle: track on the street only, a stop at each end, one tram — items put on the platform ride to the far stop's arrivals (hand and inserter take them there), the ledger balances, and a save mid-run advances to the same hash
+ok 13 - a supply chest on the front feeds an inserter and takes from one; the tram shuttle: track on the street only, a stop at each end, one tram — items put on the platform ride to the far stop's arrivals (hand and inserter take them there), the ledger balances, and a save mid-run advances to the same hash
+  ---
+  duration_ms: 717.323768
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 8
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 23012.070033

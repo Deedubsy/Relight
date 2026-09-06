@@ -1,3 +1,5 @@
+> **Historical Version 1 — superseded for new implementation on 2026-09-06 by D-EX-09.** The active successor is [EXPLORATION_DEFENCE_PLAN.md](EXPLORATION_DEFENCE_PLAN.md); [PROGRESS.md](PROGRESS.md) alone orders tasks. The adopted body below is preserved verbatim as provenance. Its task order and conflicting rules do not govern Version 2 work.
+
 <!-- Provenance (added by RI-00, 2026-09-05; everything below the rule is the user's plan, verbatim).
      Received as a pasted chat message on 2026-09-05 ("Revised development plan, Version 1.0").
      Execution authorised by the user's next message on 2026-09-05: "Whole plan" (DECISIONS.md D-RI-1).

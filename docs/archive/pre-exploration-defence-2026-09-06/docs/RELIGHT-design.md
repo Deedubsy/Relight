@@ -1,234 +1,4 @@
-# RELIGHT — game design
-
-Version 2 · 2026-09-06 · exploration, tram expansion and base defence.
-
-**Authority:** D-EX-01 through D-EX-11 in [DECISIONS.md](DECISIONS.md) record the owner's direction and documentation authorisation. This is the current intended game, largely not yet implemented. The [successor development plan](EXPLORATION_DEFENCE_PLAN.md) defines migration and delivery; [PROGRESS.md](PROGRESS.md) alone orders tasks. D-EX-Q01–06 are adopted; Q07 remains open for later progression. Missing tuning details are not permission to change the adopted core rules.
-
-Existing simulation numbers and generated tables are retained in the explicitly labelled legacy reference at the end because the documentation tools still read this file. They describe the existing implementation, not balance targets or acceptance criteria for Version 2. The original document is preserved in [the migration archive](archive/pre-exploration-defence-2026-09-06/docs/RELIGHT-design.md).
-
-## 1. Name
-
-**Relight.** Reclaiming the city means making its places useful again and connecting them to a working network.
-
-## 2. One-sentence hook
-
-Explore a dark city, restore its workshops and tram stations, and build a network of factories and defended homes that can survive the next assault.
-
-## 3. Core fantasy
-
-The player is an engineer on foot, with a house, equipment and a small factory in a defensible cul-de-sac. Beyond it is a city worth exploring freely: useful buildings, distinctive threats, concentrated resources and rare discoveries. Preparation at home supports expeditions; discoveries give the factory a new purpose.
-
-Expansion follows a tram route and branches into neighbourhoods. Older factories continue supplying newer settlements. Restoring a place grants a practical capability, and defending it tests the supply network and the player's preparations. Personal fighting and automated defence both contribute. The game retains civic restoration and the payoff of lights returning to a street.
-
-## 4. Top-down presentation
-
-Retain the 2D top-down view, embodied movement, world/map relationship, readable street geometry, machinery and item flows. Reuse main's city structures, factory yards, landmarks and rail reservation after baseline reconciliation (EX-01); their presence on fetched main is not their presence in this checkout.
-
-Days and nights are planning units. The adopted initial cycle is 20 minutes, split into 15 daylight and 5 night; the visual sun does not change mechanical lamp coverage or Shade targeting (D-EX-Q02). Important warnings and machine states use words/shapes as well as colour; audio supplements visible information. Map information must respect discovery and radio capability rather than reveal hidden attack targets early.
-
-## 5. The front — exact rules
-
-**Adopted contract: D-EX-Q01, via D-EX-11.**
-
-The starting house contains the first base core. Each later station project can commission one further core associated with a named, fixed neighbourhood. A workshop or loose turret does not independently register another base. The player sees the boundary and hostile approaches before commissioning.
-
-Exploration and temporary construction are allowed ahead of ownership, within normal reach and inventory rules. Temporary machinery needs actual local power. A connected or locally powered core, supplied with the restoration materials, establishes the base; no continuous chain of Held blocks is required. Ownership protects/organises a base but does not create free electricity or a global inventory.
-
-Track and freight corridors do not themselves accumulate per-edge assault demand. Site creatures remain in uncleared locations; major targets are registered bases. Retire ordinary frontier blooms from the new profile. Keep rot as site condition and atmosphere initially; preserve wells as candidate dangerous sites, but do not import their old constant pressure or enclosure kill rule automatically.
-
-**Adopted failure:** the core is disabled, its service stops, and the assault ends once surviving attackers leave along valid routes. The site is recoverable with a visible repair kit. Contents and factory layout remain. Define the disabled core as ineligible for further major targeting until recommissioned, which uses the shared rest schedule. Fighting early waves still consumes ammunition and damages defences, so failure has a cost without routinely erasing a factory.
-
-## 6. The payoff moment
-
-The first payoff is a useful restoration early in the opening, rather than waiting for a large enclosure. After establishing the cul-de-sac, the player reaches the second area and gains tram access. A radio tower there is a visible restoration opportunity, not an assumed free warning service.
-
-A restored station subsequently carries real goods. A restored workshop repairs nearby defences between attacks using delivered materials and power (§13); exact rates, range and costs remain tuning work. Lights, machinery, signs and delivery activity show the change. No restoration claims a benefit that the sim has not actually enabled.
-
-## 7. Threat
-
-**Adopted contracts: D-EX-Q02/03, via D-EX-11.** Three layers operate: site creatures guard discoveries without continuously marching home; small raids test supplied automated defences; major assaults are planned occasions with one target base at a time.
-
-### Days, major assaults and small raids
-
-**Adopted initial clock:** 20 real minutes at normal speed: 15 daylight, 5 night. Pause freezes the world and scheduler. The initial setting is approved; a different day length or a range for tuning it needs a recorded later decision. Initially leave mechanical lamp coverage and Shade vulnerability independent of the visual sun; a daylight rendering effect must not pretend an unlit tile is mechanically safe.
-
-**Illustrative opening schedule:** Days 1 and 2 have no major assault. The first starts at dusk on Day 3, about 55 minutes after a dawn start. Days 4 and 5 remain free of major assaults; the next begins on Night 6. The tram restoration should provide the earlier payoff; the first major battle is not the opening's first reward.
-
-A major attack lasts through its finite roster, with an initial target of 3–5 minutes of prepared defence, not an endless spawn until daylight. Measure actual duration and losses. The next attack window follows two complete quiet day/night cycles after the previous assault finishes; if a fight overruns, postpone the next window. After the later progression milestone, use one complete quiet cycle instead. Adopted milestone: the third commissioned station base with working automated resupply, rather than elapsed time alone.
-
-At dawn on an attack day, select and lock one eligible target. Before that lock, a major restoration can nominate its base for the next eligible assault. Multiple restorations coalesce into one response: at lock-in choose among restored eligible bases deterministically, with priority to the most recently commissioned and a stable tie-break. Pending nominations are consumed by that response. A restoration after lock-in belongs to a later eligible window. No accumulated backlog creates attacks on consecutive protected days. The commissioning preview explains whether restoration affects this window or a later one.
-
-**Minor raids:** begin with two opportunities per day across the whole network, each choosing one base and bringing roughly 8–12 ordinary enemies. Introduce the opening with a smaller group if the initial defence needs it; that is a separate candidate. Do not run minor raids during a major assault or immediately after it, and do not stack a deferred backlog. A supplied, established base should normally handle these without the player.
-
-### Radio and attack intelligence
-
-Before radio restoration, the cul-de-sac remains the only eligible major-assault target; background raids and ruin creatures still matter elsewhere. Warn players of the coming assault day and coarse approach cues. This keeps the first defence learnable while the second area introduces attack intelligence.
-
-Restoring the first tower makes subsequent commissioned bases eligible and identifies the locked target at dawn, leaving the initial 15 daylight minutes to travel and prepare. A later upgrade adds approach direction and broad composition, not a perfect list of every spawn. The basic warning should already be actionable; precision is a benefit rather than relief from guessing which distant factory is about to fail.
-
-For the first slice, one powered tower covers the existing network. Coverage expansion can become a later regional requirement once distances justify it. A warning already received remains in the journal/HUD if power fails. An outage before the next warning blocks new precision and is visibly reported; it does not reroll a committed target. The known assault day remains visible. Target eligibility is unlocked permanently by the first restoration so turning the tower off cannot protect outposts from targeting.
-
-## 8. Found tech
-
-Exploration is organic: landmarks, visible structures and local clues make destinations interesting without requiring an always-visible checklist. Important progression must have reachable sources; optional discoveries can reward detours. The seeded, once-only reward and guaranteed essential progression contract is adopted under D-EX-Q05; exact reveal ranges and placement parameters remain tuning work.
-
-Rare finds should provide useful equipment or capabilities that change preparation, production or defence. A following searchlight and ammunition recycling were illustrative ideas, not approved items. The adopted first optional reward is the field-repair-tool schematic from the workshop guardian site (§13). No enemy-loot farming, rarity ladder, random equipment-drop system or experience economy is implied.
-
-The second area's hand-supplied restoration unlocks track/stops/trams and grants a once-only kit of one tram, two stops and route-derived track; the player lays and powers it (§14). It also offers radio restoration. The old Heart gate at the rail yard cannot automatically delay this new opening reward.
-
-Existing facilities and survivor unlocks are a reusable catalogue subject to revised placement, costs and dependencies. Survivors need no newly invented hunger, housing or social simulation.
-
-## 9. Why the front creates interesting layouts
-
-The revised spatial decisions concern where to establish a base, how to defend its approaches, which resource district to connect, what to manufacture locally and what to ship. Concentrated production and a branching tram route give route choice lasting consequences.
-
-Ordinary blocks can still provide space, access, local resources or better approach geometry. A major restored site provides a tangible service or unlock. Compact enclosure can remain useful where its revised rules justify it, but old compact-versus-spike ammo ratios are not Version 2 design targets.
-
-## 10. Core gameplay loop
-
-**Moment to moment:** move, inspect, build, handle goods, explore a ruin, evade or fight a creature, and solve local production or defence problems.
-
-**Expedition:** prepare at a supplied base, choose a direction, discover a useful site or rare find, decide whether to investigate or return, and bring back resources, equipment or knowledge.
-
-**Expansion:** establish the next station, connect freight, build a local factory, restore a service and distribute its output through branches.
-
-**Defence cycle:** receive the information available through the current warning system, stock and improve the targeted base, defend a major assault, recover, and use the protected interval for exploration. Minor raids test routine preparedness without requiring constant personal intervention.
-
-## 11. First hour in three windows
-
-The old minute schedule is a legacy benchmark, not the new tutorial. The opening combines the outcomes below with the adopted 20-minute cycle and first major assault at dusk on Day 3 (about 55 minutes from a dawn start). Early tram access supplies the first payoff before that battle.
-
-1. **Home:** a house and small production space in a cul-de-sac. Learn one approach, ammunition supply, basic walls/turrets and personal equipment. Starting stock, availability of walls and kit costs must support this sequence.
-2. **First outward discovery:** freely explore toward the second area, gain early tram access, and recognise the radio restoration opportunity. The first payoff must be visibly used, not only announced.
-3. **Connected defence:** use the station to move goods to another productive site, restore a useful service, and experience the first correctly warned/prepared major defence with the initial rest policy.
-
-The first slice includes home, two outlying stations, specialised goods moving between sites, one optional discovery and a distinctive encounter. This is a representative sample of the full game; the first workshop guardian and repair-tool schematic are adopted (§13), while additional encounters and detailed balance remain future work. Guidance is derived from actual state and does not force one universal exploration route.
-
-## 12. Resources
-
-**Adopted contract: D-EX-Q05, via D-EX-11.**
-
-Keep the existing item catalogue for the slice. Concentrate steady steel/copper/coal sources in distinct neighbourhoods, with enough finite loose salvage at home to start production and reach the second area. A resource should not appear everywhere merely to compensate for transport that is not working yet.
-
-Persistent extraction sites have finite throughput and consume operating resources/power; their total resource pool does not run out in the first implementation. They remain strategically useful without requiring a fully renewable scavenging economy. Difficulty comes from capacity, distance, protection and competing supply needs. Define later campaign exhaustion only if it serves the intended old-base usefulness.
-
-Optional caches and unique discoveries are one-off, seeded and saved. Critical transport/power/production unlocks have guaranteed reachable sources. Prefer a distinctive item or blueprint at an identifiable site over low-probability repeated enemy drops.
-
-The existing item catalogue is retained for the slice. The owner's iron example established geographic specialisation, not an additional iron-to-steel recipe chain. Exact extraction rates and starting quantities remain explicit tuning work; the persistent-source model itself is settled.
-
-## 13. Machines with tile footprints
-
-**Adopted contract: D-EX-Q06, via D-EX-11.** Reuse existing machine footprints/recipes where they fit; the legacy tables are implementation data. New costs and rates must be specified before claiming balance.
-
-Use one early wall type, the existing gun turret/ammunition chain and aimed rifle as the first defence kit. Walls physically shape hostile paths; enemies can attack a blocking wall rather than fail pathfinding. Turrets remain useful without the player, and manual fighting helps a weak point or deals with a distinctive enemy.
-
-Walls and turrets can be disabled by damage. A damaged structure keeps its place and remaining contents; replacing/repairing costs normal materials. Belts, track, poles, factory machines and tram cargo remain recoverable and are not routine assault targets. Core defeat follows the adopted rule above. Keep the existing knockdown/inventory-retention model initially; no hunger, armour-tier or corpse-retrieval system is added.
-
-A restored workshop automatically repairs nearby defences between attacks using supplied ordinary materials and power. No free repair and no healing through an active major assault in the first version. The player can repair in reach during a fight at a slower explicit rate with the same material cost. This lets the workshop and tram supplies reduce repetitive maintenance while preparation still matters.
-
-**Adopted first rare reward:** a recovered workshop schematic for a portable field-repair tool that speeds the engineer's repair action while still consuming materials. It opens a battlefield support option without replacing turret/ammunition production. The tool is approved; exact rates and inventory slot behaviour remain implementation/tuning details to specify for its task.
-
-**Adopted distinctive site encounter:** adapt the existing Stalker into a visible guardian of that workshop ruin, with a readable wind-up, a leash and routes to avoid or fight it. A prepared turret approach remains viable. The schematic is a once-only site reward, not a random drop each time the creature respawns. The Heart can serve a later restoration defence after early trams are established.
-
-## 14. Logistics
-
-**Adopted contract: D-EX-Q04, via D-EX-11.**
-
-The second area's physical restoration costs materials carried by the player. Completion grants the ability to build track/stops/trams and a once-only starter kit containing one tram, two stops and enough track for the generated home-to-station route. The required amount is derived from that route, with grant and delivery recorded through ordinary inventories. The player still lays and powers the line. This is an approved reward grant recorded in ordinary inventories, never untracked debug stock.
-
-Start with one tram on a multi-stop out-and-back main line. Local belts/chests/inserters form the first branches. Later track branches use explicitly selected routes and a reviewed junction model; signals and vehicle traffic are not required in the opening slice. This is a staged implementation of the full network idea, not a final prohibition on tram branches.
-
-Each station has a small table of items it requests up to a target stock and exports above a local reserve. A route manifest assigns cargo amounts to destination stops. Loading commits items to those destinations; earlier stops cannot unload them. The UI shows short supply rather than promising nonexistent goods. Return trips carry designated surplus toward home or another stop on the route.
-
-If a destination is full or unpowered, its cargo stays onboard and the tram continues after bounded dwell. Other reservations remain protected. At its origin, repeatedly undeliverable goods can return to storage, releasing capacity. Track removal stops movement with a visible reason; it never deletes the vehicle or contents. Stuck destinations and any starvation of later allocations must be inspectable.
-
-Example: home loads distinct ammunition allotments for the workshop and northern station. The workshop takes only its allotment. The northern station receives its own and loads local metal for home. No transfer changes the total item ledger.
-
-## 15. Progression
-
-Home defence leads to early tram access and radio restoration, then specialised stations, useful workshops, improved equipment and more ambitious projects. Exploration and restoration determine what the player can build and where. The later reduction to one complete quiet day follows the third commissioned station base with working automated resupply; it does not follow elapsed time alone.
-
-Multiple project orders should be worthwhile. Completing a major project can bring a major assault, subject to the shared schedule and rest interval. The commissioning preview shows whether restoration affects this eligible assault window or a later one; target lock and nomination rules are specified in §7. Later encounters must offer materially different decisions rather than just more health.
-
-## 16. Endgame megaproject: the Relight
-
-Restoring the city remains the campaign destination. Reuse the existing Relight project concept, but review required facilities, regions, deliveries and final defence against the new network and resource economy. Old kit quantities, transformer enclosure requirements and completion-hour ranges are legacy, not promises for Version 2. Full endgame acceptance follows the representative-loop playtest and progression contract (EX-09).
-
-## 17. Replayability
-
-The city combines a reliable opening structure with varied district resources, accessible transport opportunities, useful sites, optional discoveries and distinctive encounters. Reuse the street graph and newer urban geometry; adjust placement constraints to produce the cul-de-sac, second-area station and viable routes.
-
-Seed fairness measures reachability, costs and viable choices, not an old requirement to enclose the HQ at a fixed minute. Rare discoveries need deterministic identity and persistence so save/load cannot duplicate rewards. Exact discovery distribution is open.
-
-## 18. Example territory at 10 minutes, 5 hours, 25 hours
-
-Those fixed legacy milestones are retained only in the reference below. New illustrations should show the cul-de-sac, the first connected station, and a branching network with complementary factories once implemented. Do not create simulated screenshots or territory claims as if they were observations of a completed build.
-
-## 19. Fun checks
-
-The new [play protocol](EXPLORATION_DEFENCE_PLAYTEST.md) assesses the whole cycle. A human should notice and use the early reward, choose to explore, understand station flows, respond to warnings, contribute during defence, and find reasons to maintain older factories. Record interruptions, repetitive handling, travel and repair burden, unmet expectations and required observer help.
-
-Automation checks scheduling invariants, bounded raid frequency, valid spawns/paths, inventory conservation, reachable unlocks and save/replay consistency. A bot succeeding does not establish that discovery is surprising, combat enjoyable or the days long enough. The old shooting-share cap, enclosure timing and ignore test do not define success for the revised loop.
-
-## 20. Prior art
-
-The owner cited the anticipation, preparation and personal/automated base defence of 7 Days to Die as inspiration. Relight's interpretation combines those qualities with city restoration, free roaming and tram-supported production. This is the owner's stated reference, not new comparative research or a claim of identical mechanics.
-
-## 21. Why a Factorio fan or a Mindustry player would buy it
-
-The proposed appeal is a factory that enables exploration and keeps a growing city network alive, with discoveries that change production and defence occasions that make supplies matter. This is a design hypothesis, to be evaluated through play rather than asserted from old benchmarks.
-
-## 22. What is deliberately not simulated
-
-No new survival-needs, settlement happiness, dialogue-tree, money/trade, fluid-pipe, enemy-loot farming, experience or rarity-tier system is introduced by this revision. Multi-stop trams do not imply train signals. Personal equipment and repairs must stay within their eventual explicit contract.
-
-The old prohibitions on day/night planning and timed assaults are superseded. The old restriction of the rifle to emergency rescue is superseded by meaningful personal participation. The adopted initial daylight does not change mechanical light coverage. Walls/turrets and the core can be disabled; normal production infrastructure and cargo remain recoverable (§13).
-
-## 23. Rejected alternatives
-
-Continuous pressure on every exposed street is no longer the governing loop. Adding scheduled hordes on top of the unchanged legacy pressure would defeat the exploration interval and needs no implementation. Simultaneous major assaults at several bases and restoration attacks that erase the protected rest interval conflict with the adopted direction.
-
-Unrelated survival systems, unrestricted loot farming and mandatory reflex-heavy progression gates remain outside scope. Historical rejections in the legacy reference explain past choices; they cannot veto D-EX decisions. Any new alternative is assessed against the current loop and its implementation/testing cost.
-
-## 24. Biggest development risks
-
-The largest risk is combining both threat models accidentally. Others are ambiguous base boundaries; travel times exceeding useful warning; raids scaling with every settlement; stations draining onward cargo; scarce resources making a seed unwinnable; depleted early districts becoming pointless; and new combat/repair handling recreating repetitive maintenance.
-
-Integration also risks losing newer main-branch city/Heart work or loading an old save into incompatible rules. EX-01 establishes the code baseline and EX-03 must specify versioned profile/save behaviour before mutation of those systems.
-
-## 25. Open questions
-
-**Settled opening contracts:** D-EX-Q01–06 are decided through D-EX-11. Base/route rules are in §5; day/schedule/radio in §7; resources/discoveries in §12; defence/repair/rewards in §13; tram access/freight in §14. Do not request these same core decisions again.
-
-**Still open:** D-EX-Q07, full campaign progression and endgame requirements, needed for EX-09/10.
-
-**Remaining specification/tuning:** exact kit/recipe costs, site yields and throughput, core/defence HP, repair rates/radii, equipment slot behaviour, target weighting/tie-break details and the duration represented by a minor raid occurring immediately after a major assault. The adopted 20-minute cycle, two-to-one quiet-day progression and recommended contract are not open alternatives. Task-level proposals should use the actual economy and explain their candidate values; approval of the package does not authorise changing fixed starting values or inventing measured results.
-
-Core approval is complete for the representative opening. Baseline compatibility and integration remain separate technical work. Unspecified values block only their dependent implementation, not independent analysis or agreed mechanics.
-
-## 26. Complexity score
-
-The previous three-system count describes the former design. Version 2 expands interactions among exploration, restoration, transport, territory and threat scheduling. No numeric complexity or completion score is asserted until the feature inventory is reconciled. Scope is controlled by explicit contracts and a representative playable slice before content expansion.
-
-## 27. Fun confidence
-
-The owner reported repetition and wants organic exploration, useful restoration, rare finds and planned defence. This motivates the revision; it is not evidence that the revised game is already fun. New confidence must come from the new play protocol. The owner's approximate 40% implementation estimate is not a verified remaining-work calculation.
-
-## 28. The adopted development plan: approved and not yet built (2026-09-06)
-
-The [Version 2 plan](EXPLORATION_DEFENCE_PLAN.md) supersedes the executable direction of Version 1. This documentation revision is authorised; it does not claim the new systems have been coded or tested. Existing work is reused through the mapping in [PROGRESS.md](PROGRESS.md), and the actual checkout/fetched-main distinction is recorded in [PROGRAMME_STATE.md](PROGRAMME_STATE.md).
-
-## Changelog
-
-- 2026-09-06 — D-EX-11: owner adopted all recommended opening contracts; integrated the base, clock, radio, freight, resource and repair/discovery rules. Q01–06 decided, Q07 and unspecified tuning remain separate. No code or play evidence changed.
-
-- 2026-09-06 — D-EX-01–09: replaced the active specification with the owner's exploration, tram and defence direction; identified open core contracts; retained the former document below as a labelled implementation/tooling reference and in the archive. No code constants, generated tables or historical evidence changed.
-
-## Legacy implementation reference — not Version 2 rules
-
-The following is the pre-revision document, preserved for existing code, historical citations and the current docsync parser. Statements of intent, prohibitions, task order, tuning and approval below apply to the former design only. Version 2 sections above and D-EX decisions govern new work. Generated tables describe current code, not new-game acceptance. EX-03 will make documentation tooling profile-aware before revised constants are introduced.
-
-### Legacy reference: RELIGHT — design concept
+# RELIGHT — design concept
 
 *2D top-down factory-automation game. Reclaim a dead city block by block; every block you take is front your factory has to feed.*
 
@@ -236,25 +6,25 @@ All numbers below are first-pass tuning targets. Where a number was checked agai
 
 ---
 
-### Legacy reference: 1. Name
+## 1. Name
 
 **Relight.**
 
 The verb is the whole game: you are not conquering the city, you are switching it back on. The title is also the name of the endgame event (section 16).
 
-### Legacy reference: 2. One-sentence hook
+## 2. One-sentence hook
 
 **"Factorio in a dead city: every block you take back adds front your factory has to feed, until you close the ring and the inside is yours for free."**
 
 Refinement of the brief's line: it keeps "block by block" and "extends the front you have to feed", and adds the release valve (closing the ring) so the sentence contains both the cost and the reason to pay it.
 
-### Legacy reference: 3. Core fantasy
+## 3. Core fantasy
 
 You are the engineer who came back, on foot, with a toolbelt and a rifle you would rather not use (D5). The city fell a long time ago; nobody is fighting over it, it is simply dark and something lives in the dark. You hold one lit block on the river with a generator, two turrets and a pile of rubble. You walk to the rubble and dig it, carry it to the workbench and turn it into wire and frames and bullets, and walk those to the next block's substation and power it. When its streetlights come on, the block is yours, and the block after it wakes up and starts sending things at you.
 
 The fantasy is civic, not military. Turrets are plumbing. The thing you are proud of is a district where every lamp works and no turret has fired in an hour because there is nothing dark left to fire at. The picture the game is built around: a black block on the map, a substation you just powered, and a line of streetlights coming on one after another down the street you are standing in, while the rot on the pavement burns away around your boots. The rifle is for the minute the belt is late; the game is finished by people who never fire it.
 
-### Legacy reference: 4. Top-down presentation
+## 4. Top-down presentation
 
 **Grid.** 32 px tiles, orthographic, no elevation. The city is generated **streets first** (D6, §17): curved arterials, a bending river, one diagonal avenue and secondary streets that branch and dead-end are drawn as splines, 6–12 tiles wide, and every **block** is a face of that street graph: an irregular polygon of ≈ 20–50 tiles across with 3–7 neighbours, rasterised to tiles, whose buildable **lot** is the face's tiles inside the street edges. Two blocks are neighbours when they share a **street segment** (the stretch of street between them), and that segment is the front edge between them **[sim: rework-graph]**. A standard city is ≈ 500–600 blocks over ≈ 768×768 tiles, the river along one side; the 24×24 lattice of Phases 1–4 (32×32-tile cells, 8-tile streets, four neighbours each) is the *lattice era* and its runs are kept only as the baseline the rework's numbers are compared against (`REWORK_REPORT.md`). Roughly 8–10 % of faces are **inert**: river, embankment, collapsed overpass, plazas and parks. Inert faces cannot be built on and cannot hold rot.
 
@@ -285,7 +55,7 @@ The fantasy is civic, not military. Turrets are plumbing. The thing you are prou
 
 **Art scope.** One 32 px tile pass, ~40 machine sprites, 4 rubble tilesets × 5 variants, 1 rot overlay set, 3 enemy sprites with 4-direction walk, the engineer with a 4-direction walk, a knocked-down frame and a rifle pose, the truck, ~12 facility silhouettes, 1 light-map shader. Buildable by one artist and one technical artist over the project.
 
-### Legacy reference: 5. The front — exact rules
+## 5. The front — exact rules
 
 These are the rules the player learns by watching. Each is one sentence a player could say out loud after the first hour.
 
@@ -337,13 +107,13 @@ A held block touching three dark blocks costs three edges of turrets and ammo bu
 
 **Start.** The HQ always sits against the river, so it has 3–4 land neighbours and the first enclosure is three or four claims, not a ring of eight; the generator's validator (§17) rejects a seed whose HQ has five.
 
-### Legacy reference: 6. The payoff moment
+## 6. The payoff moment
 
 You have just linked a pole to the substation of a residential block north of the HQ. The map square flickers amber. In world view the substation hums, and the block's streetlights come on in sequence down the street at three per second [sim: B-M5-light], each one pushing back a circle of desaturation. Rot mottling on the pavement fades outward from every lamp. The wake bloom arrives at the same moment — eighteen crawlers streaming across the north street into your two turrets — so the lamps come on *while* the guns are firing, and the crawlers that reach a lit tile are visible for the first time. Forty seconds later the mottling is gone, the "Contested" flicker stops, and the lot turns from navy to amber on the map.
 
 Ten minutes later you power the block to the north-east, the HQ's last dark neighbour. The HQ square gets a thin white border. Its two north turrets show "no targets" and you pick them up. The 8-tile street between the HQ and the new block, which for the last forty minutes had a turret line and a lamp line along it, is now just a street with a belt on it. That is the moment the game is selling: not the fight, the *afterwards*.
 
-### Legacy reference: 7. Threat
+## 7. Threat
 
 **Model chosen: creeping spread, not hordes.** Threat is a field (rot density per block) that the player's lights suppress locally and the player's expansion wakes. It is never on a clock. The rejected horde/timed-wave model is in section 23.
 
@@ -390,7 +160,7 @@ Wake blooms cap at 40 crawlers so the ammo maths stays bounded: the biggest sing
 
 **What threat scaling feels like.** Civic blocks are the soft way in; residential is the default; industrial is where the steel is and where shades become constant (deep industrial blocks sit at d ≥ 0.3 and shade on every bloom; the first shades come from residential blocks that have slept past d = 0.3; hulks belong to wells and outskirts, 30–41 % of their blooms over 25 hours (10 % in the first five, while the wells are shallow) against 17 % of deep industrial **[sim: E3-compact-shade0.3-hulk0.5, E3-spike-shade0.3-hulk0.5, E9-district]**); outskirts are where the deposits are and they cost 3–4× a residential edge to hold **[sim: E3-block]**; wells are the boss blocks. The sim's spike policy (straight line toward a target) paid 2.4× the ammo of the compact policy at five hours on the city, for 33 blocks (19–48) against compact's 52 (17,142 vs 7,119 magazines; 2.2× over a thousand seeds) **[sim: E6-shape, E7, E-variance]**. That ratio is the number the whole game is tuned around: shape is worth about two and a half times your ammo budget. On the street graph the price is the front's own length, not free walls: with every plaza buildable the ratio is the same 2.4×, and making the plazas inert saves compact play only 3 % of its ammo (0.97×) where the lattice era's scattered inert cells saved half of it **[sim: E6-plazas]**.
 
-### Legacy reference: 8. Found tech
+## 8. Found tech
 
 There is no research menu. Everything that is not in your starting toolbar is unlocked by reaching a **facility** or a **survivor group**, both procedurally placed under distance and direction constraints. Scouting: from any Held block you see the skyline silhouettes of facilities up to 6 blocks away; a block's contents (survivors, rubble type, well) are revealed when any neighbour across a street segment is Held.
 
@@ -426,7 +196,7 @@ Foundry, Arsenal, Tram depot, Turbine hall, Refinery and Power station are **unc
 
 **Distribution rules.** Near (≤ 4 blocks): Electricians, Concrete crew, Foundry direction hinted by skyline. Mid (5–12): Foundry, Arsenal, Tram depot, Turbine hall, Gunsmith, Rail crew, Foreman. Far (≥ 15): Power station, oil field and Refinery, Chemist. Optional groups are placed in dead-end pockets so a player who never turns that way still finishes. The generator guarantees that Foundry and Arsenal are in different directions so the first big decision (steel first or Cannons first) is real.
 
-### Legacy reference: 9. Why the front creates interesting layouts
+## 9. Why the front creates interesting layouts
 
 Every problem below is a decision with a visible cost on the HUD, not a puzzle with an answer.
 
@@ -440,7 +210,7 @@ Every problem below is a decision with a visible cost on the HUD, not a puzzle w
 
 Each of these is the same rule (F counts pairs; each pair costs supply) seen from a different building.
 
-### Legacy reference: 10. Core gameplay loop
+## 10. Core gameplay loop
 
 One loop at three time scales. All three are the same verbs: dig, make, feed, light.
 
@@ -456,7 +226,7 @@ The loop never changes verbs. It changes what one edge costs (district, depth, w
 
 *RI-00, 2026-09-05 (D-RI-4):* the hybrid above is defined in full by `REVISED_DEVELOPMENT_PLAN.md` §4–§9 and built by RI-03 (physical commissioning and field deployment), RI-05 (neighbourhood projects and the rail-yard reward) and RI-06 (the Junction Heart), not by Phase 6; §28 lists the rules. The ten-minute loop's "walk a pole line out" becomes the claim itself once RI-03 lands.
 
-### Legacy reference: 11. First hour in three windows
+## 11. First hour in three windows
 
 The minute table below is generated from `packages/sim/src/constants.ts` (`HOUR`) and is the rule (D-HOUR-1); the three windows after it are the prose around it, and where a minute in the prose and the table differ the table wins. This hour is the **benchmark**: RI-01 re-scoped it to 75 minutes (D-HOUR-3, built 2026-09-05) and every later task keeps it as the regression run; the plan's shorter **opening candidate** (§28.9, RI-07) lives in a candidate configuration beside it and never replaces it without a decided row (D-RI-5).
 <!-- docsync:hour (generated from packages/sim/src/constants.ts HOUR; edit the .ts, then `npm run docsync`) -->
@@ -485,7 +255,7 @@ The minute table below is generated from `packages/sim/src/constants.ts` (`HOUR`
 
 **30–75 min.** *(D-HOUR-3, decided 2026-09-05 and built by RI-01 the same day: hour one is 75 minutes (`constants.ts` `HOUR_MINUTES`), the minute table above ends at north's 65, and north's claim and the enclosure are inside the scored run.)* North is the cap, and hour one does not afford it: the coal left after the patch is the chest's 40 and whatever west delivers, and a third claim at minute 40 fell on every seed (45:34–58:27) with the Generators dry **[sim: B-M6-hour]** — so this window is the fourth Generator at minute 45, a second copper Excavator into the chest at 46 (copper's minimum is 17), the third Assembler at 50, and north claimed at minute 65 — the last ten minutes of the 75-minute hour, so hour one is three claims and ends with four blocks Held (D-P4-10 (a), D-HOUR-3 (a); `constants.HOUR`), with west's coal the rail yard's heap on a belt (D-P4-12, RI-01). Claimed at 65:00 north is Held at 65:29–65:34 and **stands to 75:00 on every seed**, the Generators never dry and no brownout, on the block sim's ring-fed hopper **[sim: E-hour-north]** (before the rail yard's coal it stood through the Generators running dry at 67:51–68:01 and a 510–557 s brownout **[sim: B-M6-hour-north]**); it fell at 72:45–74:38 while §11 carried two turrets onto it, because a turret standing on a claim takes its edge off the ring feed and swaps a 100-round hopper filled from a buffer for a hand-fed 50 (D-P4-9, decided 2026-09-05). North was a coal problem, not an ammo one, until the rail yard's line: the chest holds 472–476 coal at 75:00 **[sim: E-hour-m6checks]**. When it holds, the HQ polygon gets its white border and the Electricians walk into the Depot (through Gate B nothing is carried onto a claim: a claimed block's edges keep the block sim's ring-fed hopper and no turret stands on them — D-P4-9; laying a claim's turrets from stock comes after Gate B): Floodlight, Big pole, Substation appear on the toolbar (they appear when the block turns Held, minutes earlier, and stay if it falls **[sim: B-M3-unlocks]**). Front is 7. The first shade comes with a residential bloom at minute 32–47, from a block that slept past d = 0.3, and is the lamp rule's first lesson **[sim: E3-first]** (none came in the bot's two-claim hour on seeds 3 / 4 / 5, nor in the three-claim 75-minute hour **[sim: E-hour-findings]**; reported, `SLICE_REPORT.md`). Somewhere in this window a belt is late, an edge goes red, and you either run six magazines to its turrets (from the pockets, E on the turret; the Depot chest is never drawn on **[sim: B-M3-hands]**) or stand on the segment, put the rifle in hand (hotbar 9) and hold the mouse on the crawlers for the first time (≈ 2 s a crawler; the turret beside you does it in 0.6), then clear it with Q to go back to placing belts; Gate B records the minute and whether it mattered. At tile scale a late belt (90 s) holds without the rifle; one dry edge whose belt never comes is the rifle's fight — the block that falls unfed at +7 min holds with the engineer beside its turrets — and a whole dry ring is beyond one rifle at one edge (it saves the block on one seed in three and delays the fall 0.1–2.8 min on the others); the engineer is never knocked down, and loses 0–120 HP **[sim: E-rifle-tile]**. At 75:00 you have 3 Assemblers (one on Shot: hour-one demand is 8–9 mag/min against the Mk1's 10 — the line makes 669 magazines in the 75 minutes and the hands carry 69–150 of them to the hoppers, and 928–932 coal from the chest to the Generators; the 60-minute hour's "790–860 magazines" was both counts together, split by RI-01's accounting **[sim: E5-compact-1-shot-asm-h1, E-hour-end, E-hour-ledger]**), 4 Generators (three carry the front to minute 45; the fourth comes with the second copper Excavator and third Assembler; no brownout; the chest holds 472–476 coal at 75:00 with the rail yard's line feeding the Depot from 27:02–27:04 **[sim: E4h-gen@0,6,15,25, E-hour-m6checks]**), 7 Excavators (one fewer where east has nothing to dig — no seed in three), 6 turrets, 4 Held (the HQ, east, west, north), steel never below 23 (at 17:35 on seed 3, where east's line at ~16:50 is the extra draw; 30 at 12:01–12:02 on seeds 4 and 5) and above 1,600 at 75:00 **[sim: E-hour]**, and the first thing you say out loud is "if I take north next, east and west go interior too." You are now playing the game. The walking the sim can count (block to block, for claims) is under a minute of hour one and two to four minutes an hour by hour three, with the truck found at 91–146 minutes **[sim: E-walk]**; the trips across the lot that this hour is made of are the slice's to count (Gate B's tedium row). The hour-one lesson is ammo, not power (D-P3-1, locked at Gate A): at the 100/20 kW draw with four Generators no hour-one run browns out, while the Shot line's 8–9 mag/min against the Mk1's 10 is the number the player watches, the first pip leaves green at about 3 minutes and goes red at about 6, and the first shade comes at minute 32–47 **[sim: E4h-gen@0,6,15,25, E5-compact-1-shot-asm-h1, E3-first, B-M6-hour] [play: Gate A]**.
 
-### Legacy reference: 12. Resources
+## 12. Resources
 
 **Raws (5, all finite except river power).**
 | Raw | Source | Notes |
@@ -536,7 +306,7 @@ The Assembler ladder (D-P4-4): the start Assembler is the Mk1; the Mk2 is a sepa
 | Ammo demand (compact play) | 8–48 mag/min **[sim: E5-compact-base]** | 43–85 mag/min + 0–20 shells/min at four assemblers, which the front outgrows at hour 15–20 **[sim: E9-hourly]** | 80–115 mag/min + ~20 shells/min (four assemblers plateau at ~84 because blocks fall; eight from hour 4 never run short on the city, whose 25-hour front is 23–33 edges against the lattice's 43) **[sim: E9-hourly, E9-hold]** |
 | Power | 1.0–2.0 MW **[sim: E4h-gen@0,6,15,25, E2-demand]** | 2.0–5.2 MW **[sim: E2-demand]** | 5.2–9.4 MW **[sim: E2-demand]**, then 40 MW for the Relight |
 
-### Legacy reference: 13. Machines with tile footprints
+## 13. Machines with tile footprints
 
 | Machine | Tiles | Power | Rate / notes | Unlock |
 |---|---|---|---|---|
@@ -605,7 +375,7 @@ Twenty-eight things with a footprint, twenty-six of them placeable: the workbenc
 | §11 minute list | the generated §11 table (constants.ts HOUR, 15 rows) | §11 | D-HOUR-1 |
 <!-- /docsync:constants -->
 
-### Legacy reference: 14. Logistics
+## 14. Logistics
 
 **Belts.** One lane (D-P5-3, decided 2026-09-05: `flow.ts` has had one lane since M2 and the doc followed it, not the other way round), 7.5/s and 15/s (four items a tile; 8/16 until Phase 4 M2 fixed the tile tick at 20/s, D-P4-6), inserters at 1/s **[sim: M2-rates]**, splitters with priority, undergrounds of span 4. Belts run on lots and on streets; streets are 8 wide **[sim: M1-tiles]**, which is room for two belts, a track and a lamp line — and two inputs to one machine are two belts and two inserters, not two lanes on one belt.
 
@@ -621,7 +391,7 @@ Twenty-eight things with a footprint, twenty-six of them placeable: the workbenc
 
 **Not present:** fluids, robots, trains with signals, item quality, circuits. See section 22.
 
-### Legacy reference: 15. Progression
+## 15. Progression
 
 Progression is territory. There is no tech tree to read, so the pull is always a silhouette on the horizon and a number on the HUD.
 
@@ -633,7 +403,7 @@ Progression is territory. There is no tech tree to read, so the pull is always a
 
 **Endgame, 20–40 h.** Section 16.
 
-### Legacy reference: 16. Endgame megaproject: the Relight
+## 16. Endgame megaproject: the Relight
 
 **Goal.** Restore the Power station and switch the whole city back on.
 
@@ -646,14 +416,14 @@ Progression is territory. There is no tech tree to read, so the pull is always a
 
 **After.** Free play continues with no rot growth anywhere. The front is gone; you can build across the whole city. Optimisation targets (section 17) keep score.
 
-### Legacy reference: 17. Replayability
+## 17. Replayability
 
 - **Procedural city, streets first (D6).** The generator (`packages/sim/src/city/`) draws the streets and takes the blocks as what is left: a bending river spline along one side; three to five curved arterials across the city; one diagonal avenue; secondary streets by recursive subdivision of the faces with jitter, some of them dead-ending; plazas and parks as inert faces. Street widths are 6–12 tiles, blocks are the faces of that graph, 3–7 neighbours and ≈ 20–50 tiles across, rasterised to tiles. Districts are regions of the graph by band from the HQ (civic 0–30 %, residential to 45 %, industrial to 60 %, outskirts beyond, by graph distance), and the district layout, river course, inert faces, well positions, facility and survivor positions all reroll with the seed. About 8–10 % of faces are inert, and every headline ratio in this document refers to that map; the lattice-era figures are kept in `REWORK_REPORT.md` as the baseline. The generator uses rejection sampling against a validator, on the graph: the HQ is river-adjacent with 3–4 land neighbours, no block has fewer than 2 neighbours unless it touches the river, the outskirts are reachable from the HQ without crossing more than two outskirt edges, no facility sits behind a well (the sim's rule is local: no facility within one hop of a well and farther out than it, GA-R8), Foundry at graph distance 5–9, Arsenal in a different octant, Power station ≥ 15 opposite, every district with at least three blocks, 4–6 wells. A seed browser (`npm run seeds`) draws any seed's map view for the human.
 - **Strategy space.** Compact vs spike vs skirting: the sim shows a 2.4× ammo spread between compact and spike (2.2× over a thousand seeds); "always take the quietest block" costs 1.27× compact (1.36× over a thousand seeds), because long shallow frontage closes no edges **[sim: E6-shape, E7]**. Steel-first (Foundry) vs Cannons-first (Arsenal). Coal-for-power vs coal-for-shells. Kill wells early vs wall them off.
 - **Scenario presets (5), as generator parameter sets.** *River city* (default); *Ring road* (an arterial ring at band 30 % with an inert verge makes a natural first enclosure); *One giant industrial district* (steel everywhere, shades everywhere); *No outskirts* (deposits are inside the city, wells are more numerous); *Canals* (a second and third river spline: many inert strips, enclosure is cheap, fronts are short and dense).
 - **Optimisation targets** on the score screen and a global stats panel: blocks per hour, magazines per frontage-edge-hour, time to first enclosure, coal per MW, Relight time. No loot, no unlock persistence between runs, no RPG layer.
 
-### Legacy reference: 18. Example territory at 10 minutes, 5 hours, 25 hours
+## 18. Example territory at 10 minutes, 5 hours, 25 hours
 
 Three rendered map-view images (`npm run section18`, `packages/tools/src/section18.ts`): the compact bot on the street-first city, seed 3 (River city), at the locked cadence (one claim per 15 min in hour one, then one per 5 min, D-P3-6), production off as in E8, 800 × 800 tiles at one pixel a tile. Colours are the game's city map: Dark by rot tier (navy, lighter as rot deepens), Held amber, interior a brighter amber with a white rim, plazas grey, streets near-black, the river slate, and every front edge painted red along the whole street segment the two blocks share. The white square is the HQ.
 
@@ -664,7 +434,7 @@ Three rendered map-view images (`npm run section18`, `packages/tools/src/section
 
 At 10 minutes the HQ stands alone with its four street edges red. At 5 hours the territory is a blob of ≈ 50 irregular lots with the front running along whole street segments, and about three quarters of it is already interior (the §5 white rim). At 25 hours the compact bot holds about half the city's buildable faces with a front of ≈ 30 edges: the lattice caption said 292 held / 43 front / 253 interior at 25 h, the city's three-seed mean is 292 / 23 / 276 **[sim: E8-cadence]**. Same territory, a shorter front: irregular faces with 3–7 neighbours enclose more per claim than squares with four, and that is the D6 number the rest of the doc's ammo figures ride on. The lattice's three drawings and its HQ-lot sketch are archived with the lattice fixtures (`packages/sim/fixtures/lattice/`, `REWORK_REPORT.md`).
 
-### Legacy reference: 19. Fun checks
+## 19. Fun checks
 
 **Hands test (what is the player physically doing most of the time?).** Walking the engineer to the next thing and placing belts and machines on a lot within reach in world view, and clicking blocks in map view. Measured by the loop in section 10: roughly 60 % of input is belt/inserter/machine placement inside held blocks, 15 % is walking or driving (the harness bot walks 2.6–4.1 % of the §11 hour [sim: B-M4-hour], 4.6–5.2 % at tile scale [sim: B-M6-hour]; **a player's share is still unmeasured** — Gate B read no telemetry panel, so the next played session with it open is where this number comes from), 15 % is map-view claiming, pole-dragging and blueprint stamping, 10 % is looking at supply pips and following a dashed belt to a jam. Hand-feeding turrets exists only in the first 10 minutes and returns only when a line breaks — the intended rule; *current limitation:* the hour bot hand-feeds 69–150 magazines to the hoppers in the 75-minute hour against the line's 669, and walks 928–932 coal from the chest to the Generators (RI-01's accounting splits the two; the "790–860 magazines an hour" the 60-minute hour reported was both counts together) **[sim: E-hour-end, E-hour-ledger]**, and whether that is the hour's rhythm or the line's shortfall is D-P4-11, measured next on the 75-minute hour (§25 item 22). Shooting is capped by design at 10 % of an hour's input: the rifle is a rescue, and if a playtest shows more, the turret rules are wrong, not the rifle **[sim: E-rifle]**. The tile-scale hour spends 0.50 / 0.69 / 0.06 % of its input shooting and 0.00 % of it in danger on seeds 3 / 4 / 5 **[sim: E-rifle-tile]**, which is the bot's share: **Gate B read no telemetry panel, so no player share exists and this cap carries no `[play: …]` tag**. What the played hour asked for is the opposite of the cap — more enemies at the player, "so the player's weapons mean something" (**D-GB-4**, open as a Phase 5 condition). At a fifteenth to a two-hundredth of the cap in use, that ask is a §7 density number and a run, not a rule change; if density ever pushes the share past 10 %, this paragraph's own sentence is what scores it. A second telemetry guard, **time in danger** (seconds per hour with a crawler targeting the player), is capped at 5 %: over it, either retaliation is too eager (the danger comes without the player shooting) or the rifle is too tempting (most danger seconds are ones the player fired in), and the report says which **[sim: E-rifle]**. Walking is a real cost (D5) and is measured: the sim's bots walk the streets at the engineer's speed, and the walking minutes per hour at hours 1, 3 and 5, before and after the truck, are the E-walk number; if more than 20 % of hour 3 is walking, reach or the truck moves **[sim: E-walk]**.
 
@@ -705,7 +475,7 @@ At 10 minutes the HQ stands alone with its four street edges red. At 5 hours the
 
 **"One more thing" test.** Every claim's tooltip shows `front +N · closes N`. The game keeps handing the player a claim that closes something: "one more block and east goes interior." Facilities are visible 6 blocks out, so there is always a silhouette you are two claims from. And each interior block you close hands back 2–4 turrets, which is exactly enough to take the next block. The chain is short, visible and free of timers. This is the strongest of the eleven checks and it comes straight from the one rule.
 
-### Legacy reference: 20. Prior art
+## 20. Prior art
 
 - **Mindustry.** Closest cousin: tile grid, conveyor logistics, turrets fed by belts, enemy waves. Differences that matter: Mindustry's map is a fixed sector with a spawn point and a wave timer, so shape does not matter beyond choke points, and expansion is not a cost. Relight's front makes shape the primary decision, has no timer, and has no research (Mindustry's research tree is where its 200-hour depth lives; Relight trades that for territory).
 - **They Are Billions.** The origin of "the map wakes as you expand" and of "a breach is a collapse". Relight takes the wake-on-approach and drops the collapse: a fallen block is mothballed, not eaten, because TAB's run-ending cascade is the reason its players save-scum. TAB also has population and housing, which Relight explicitly excludes.
@@ -714,7 +484,7 @@ At 10 minutes the HQ stands alone with its four street edges red. At 5 hours the
 - **Kingdom Two Crowns.** Expansion as "the next wall out", with the inside becoming safe. That is the interior rule, seen from the side.
 - **Rimworld / Frostpunk** are the thing Relight is *not*: no colonists, no morale, no cold.
 
-### Legacy reference: 21. Why a Factorio fan or a Mindustry player would buy it
+## 21. Why a Factorio fan or a Mindustry player would buy it
 
 **Factorio fan.** The belts, inserters, splitters, poles and assembler recipes are the ones they know; there is nothing to relearn and the first 10 minutes feel like home. What is new is that the map has an opinion: every expansion is priced and shaped, so the layout question they love (where does the trunk go) is joined by a second one (what shape is the base). Biters were never that; you walled them off and forgot them. And there is no research tree, so a 25-hour run is a run, not a 60-hour one.
 
@@ -722,7 +492,7 @@ At 10 minutes the HQ stands alone with its four street edges red. At 5 hours the
 
 **Both.** Two to four people can ship it because it is one mechanic; the pitch survives a screenshot of map view with 40 red edges and 12 amber interiors, and anyone who has played either game reads that screenshot in five seconds.
 
-### Legacy reference: 22. What is deliberately not simulated
+## 22. What is deliberately not simulated
 
 - **People.** Survivors are recipe unlocks with a sprite. No food, housing, morale, headcount, death.
 - **Fluids.** Water and oil are handled by pre-placed riverside facilities and a Crude drum item. No pipes, no pumps, no tanks.
@@ -735,7 +505,7 @@ At 10 minutes the HQ stands alone with its four street edges red. At 5 hours the
 - **Economy.** No money, no trade, no contracts.
 - **Player combat as a system.** The engineer walks and carries (D5), but there is no player-side combat layer: the rifle uses the turret's damage rules with a slower fire rate and a generous hit radius, there is no hit chance, no cover, no ammo types beyond Shot, one upgrade. Being knocked down costs a walk from the HQ and nothing else: no hunger, no cold, no darkness damage, no death penalty, no dropped inventory, no armour, no healing items. Stamina exists and is movement only (sprint and dodge, §4): it is never a survival meter.
 
-### Legacy reference: 23. Rejected alternatives
+## 23. Rejected alternatives
 
 - **Horde / timed waves (the enemy model not picked).** A global timer with escalating waves at the front is TAB's model and it is easier to tune. Rejected because it makes the front a *place* rather than a *cost*: with a timer, shape only matters as choke points and the "every block extends the front you have to feed" sentence stops being true. It also puts the player on a clock, which kills the ignore test. Kept: bloom size caps and interleaved timers, borrowed from wave design so that the creeping model still has legible fights.
 - **Player without a weapon.** Considered when the engineer came in (D5): an unarmed avatar keeps the fights purely the turrets'. Rejected because the rescue in §5 (an edge red, the belt 90 s away) would then be a walk to watch a block fall; a weak rifle at turret rules gives the player one thing to do in that minute and no way to make it the game. The lattice-era rejection of any avatar ("travel time is dead time") is reversed at D5: the walk is the cost that makes reach, the chest and the truck mean something.
@@ -755,7 +525,7 @@ At 10 minutes the HQ stands alone with its four street edges red. At 5 hours the
 - **Unit-based capture (send a squad to clear a block).** Player-controlled units. Rejected.
 - **Pollution-driven threat.** Makes the factory, not the territory, the cause; it is the Factorio model and it does not produce a front.
 
-### Legacy reference: 24. Biggest development risks
+## 24. Biggest development risks
 
 **Design risks.**
 1. *Re-fronting is tedious before the Foreman.* Mitigation as a design change: the "kit" concept is available as a manual stamp from the start, and blueprints when the survivor brings them (D-P5-4 — they are no longer the first-hour answer); if playtests still show fatigue at hour 2, the Line truck moves into the starting toolbar and the Foreman becomes an upgrade (4 kits → 8, auto-restore).
@@ -777,7 +547,7 @@ At 10 minutes the HQ stands alone with its four street edges red. At 5 hours the
 4. *Procedural city validity.* Rejection sampling with the validator in section 17. Each attempt is an independent jitter stream and the validator rejects 26 % of them, so 74 % of seeds are accepted on the first attempt, the mean seed costs 0.35 rejected ones, and an accepted seed costs 0.23 s end to end at 800×800, rejections included — inside the 1 s target. The budget is 16 attempts: at the 8 the rework first shipped, one seed in 10,000 (3767, "no well site: west riverside") ran out of streams and the game would have started on a map its own validator rejects; 16 puts that at one seed in 2.3 billion and costs nothing for the rest, because the generator stops at the first stream that validates (D-R4) **[sim: E-variance]**.
 5. *Light-map overlay on integrated GPUs.* One 768×768 single-channel texture updated per changed tile; trivially cheap.
 
-### Legacy reference: 25. Open questions
+## 25. Open questions
 
 1. **Bloom cadence.** Is `T = 120/(0.5+d)` with a 10 % drop per bloom the right rhythm, or do fights need to be rarer and bigger? *Prototype first, headless.* The front simulation (`packages/sim`, the street-first city since D6 and a 24×24 lattice before it, six claim policies; the Python `frontsim.py` it was ported from was retired in Phase 3) has an ammo ring with hoppers and a power model with a proportional brownout (D-B3-4); belt latency is still not modelled. The cadence was varied on the scattered map: doubling the timer to `240/(0.5+d)` halves fights on a 20-edge front from 6.8 to 3.6 a minute and cuts ammo per edge 30 % (1.37 → 0.97 mag/edge/min); a 20 % drop per bloom instead of 10 % keeps 6.1 fights a minute and cuts ammo 24 % **[sim: E10-bloom-cadence, Python only; not re-run in Phase 1]**. Which rhythm is right is a feel question for the prototype, not a sim question. Locked at Gate A at the doc's values without a feel verdict (C8, D-P3-5) **[play: Gate A]**; Phase 4's playtests are the first place it can move, and E10 is ported to the harness if a number is wanted first (DEFERRED.md).
 2. **Diagonal leaks.** Closed at D6: on the street graph two blocks are adjacent only when they share a street segment, so there are no diagonals and the question does not arise; the validator's "no block with fewer than 2 neighbours except river-adjacent" rule (§17) is the graph's version of the inert-square assertion. The lattice-era answer stands as history: with 4-adjacency, can a player build a checkerboard that is all "interior"? No: each held block needs all four neighbours held, so a checkerboard is all front. But a diagonal seam of inert cells may create degenerate free enclosures. A validator rejecting 2×2 inert squares or runs of three changed nothing on three scattered seeds (0–1 such squares occur and ammo totals were identical with and without it) **[sim: E6-validators]**; keep it as a map-generator assertion, not a rule. Counting scattered inert as Dark for enclosure (the other reading of §5) changes nothing for compact or cheapest play — same claims, same ammo — and costs the river-hugging policy 26–28 % more ammo (its front-to-held ratio 0.40 against compact's 0.37); §5 stands **[sim: E6-river]**.
@@ -813,7 +583,7 @@ At 10 minutes the HQ stands alone with its four street edges red. At 5 hours the
 
 Prototype order: (1) headless front + ammo-line sim, two days; (2) a map-view-only prototype with claim, poles, pips and bloom rings and no world view, two weeks; (3) the world view with belts, one machine chain and turrets, eight weeks. The bet is settled by step 2: if choosing blocks on a map with a front count is not interesting on its own, no amount of belt fidelity saves it.
 
-### Legacy reference: 26. Complexity score
+## 26. Complexity score
 
 **5 / 10.** (The count below is a reported number, recounted at every phase report; since D-RI-3, 2026-09-05, it is no longer a stop condition — a feature is admitted by constitution rule 2's scope test. The plan's additions — physical commissioning, projects, emergence points, two archetypes, one boss — are recounted here when their tasks land, with §28 saying which ones are in.)
 
@@ -823,7 +593,7 @@ Cuts made during design to keep it at 5: fluids (→ drums and pre-placed facili
 
 Every feature, one sentence each: *Claim tool* is the mechanic. *Substations* make claiming one action. *Streetlights and lamps* are the shade rule and the payoff. *Turrets* are the ammo sink. *Cannons* make frontage length matter for one enemy. *Barricades* buy 4 s per tile against hulks and nothing else. *Excavators* are the miner. *Assembler/Mixer* are the recipes. *Generators/Turbine/Power station* are the power curve. *Belts/splitters/undergrounds/inserters/chests* are Factorio. *The engineer* is where you are and what you carry. *Depot chest* is where the stock is. *The rifle* is the minute the belt is late. *Trams* are distance. *The truck* removes carrying, then re-fronting. *Blueprints* remove repetition. *Facilities/survivors* are the progression. *Wells* are bosses. *Street-first blocks and inert faces* make enclosure geometry vary. *Map view* is where the front is played. *Presets and targets* are replay.
 
-### Legacy reference: 27. Fun confidence
+## 27. Fun confidence
 
 **7 / 10.**
 
@@ -833,7 +603,7 @@ What would raise it to 8: the map-view-only prototype (section 25, step 2) showi
 
 What would drop it to 5: (a) testers treat the front as a tax, i.e. they always take the cheapest block and never talk about shape (the quiet-block risk); (b) the patter of small fights reads as noise rather than information, meaning pips are watched but blooms are not; (c) hour 2–4 re-fronting fatigue before the Foreman. Each has a named mitigation in section 24 and none requires a new system.
 
-### Legacy reference: 28. The adopted development plan: approved and not yet built (2026-09-05)
+## 28. The adopted development plan: approved and not yet built (2026-09-05)
 
 `REVISED_DEVELOPMENT_PLAN.md` was adopted on 2026-09-05 by the user's message "Whole plan" (D-RI-1); `PROGRESS.md` RI-00 … RI-13 carry its work and their statuses. Every rule in this section is **approved-not-built** until the task named beside it lands and moves the rule into its own section; until then §5, §7, §10 and §11 stay the built rule and every measured number was taken against them (28.2 and 28.3 moved into §5 and §13 at RI-03; 28.5 and the Crawler / Shade / Stalker half of 28.6 into §7 at RI-04; 28.4's record, first project and reward into §5, §13 and §14 at RI-05, its catalogue's rest staying here for RI-11; 28.10's line into the game at RI-02). The labels are the plan's own: **direction** (decided, D-RI-1), **default** (provisional under constitution rule 14, D-RI-6 — reversible, not a validated design fact), **candidate** (a number kept in a candidate configuration and never in the benchmark until a decided row promotes it, D-RI-5), **later** (not built ahead of its task). No number here carries a `[sim: …]` or `[play: …]` tag because none has been measured.
 
@@ -863,7 +633,7 @@ What would drop it to 5: (a) testers treat the front as a tax, i.e. they always 
 
 ---
 
-### Legacy reference: Appendix: veteran self-review
+## Appendix: veteran self-review
 
 *As a sceptical Factorio veteran.* "Where's my factory after containment?" The answer is that the front never ends until the Relight, and the Relight needs 40 MW and a four-item kit that is the largest build in the game; the factory grows for the whole run and interiors are the factory. "Is this Mindustry with a city skin?" The city skin is doing work: blocks are the unit of cost, and Mindustry has no unit of cost. "Hidden fourth system?" Power is the candidate; it is kept to one number with one failure mode (front dims first) and no distribution puzzle inside a block. "Degenerate strategy?" Quiet-block greed, named and mitigated. "Waiting?" Burn-off is 20–80 s and you are not made to watch it; the only wait is the ten-minute hold, once.
 
@@ -871,7 +641,7 @@ What would drop it to 5: (a) testers treat the front as a tax, i.e. they always 
 
 Neither review found a system to cut; both found the same risk (greedy quiet-block play), which is why it is open question 7 and the first playtest question.
 
-### Legacy reference: Changelog
+## Changelog
 
 Each edit as `§N — what changed — why — run name`. Run names before Phase 1 were lines of the Python `frontsim.py --experiments` output (retired in Phase 3; the fixtures it exported are frozen in `packages/sim/fixtures`). Entries from the map-view prototype brief onward are `§N — what changed — why`. From Phase 1 on, every run name is a section or row of `docs/EXPERIMENTS.md`, written by `npm run experiments` (packages/harness, TypeScript sim, config hash in the file's header); `calibration` is `docs/experiments/calibration.md`. The §7 district and enemy tables, the §12 recipe table and the §18 map-view drawings are generated from packages/sim by `npm run docsync`, and CI fails if they drift. `[play: Gate A]` marks a constant locked at Gate A (2026-09-03, `docs/TEST_RESULTS.md`): the owner passed the gate on the bot calibration and the smoke test with no tester sessions, so a `[play: Gate A]` number is a deliberate lock, not a measurement, and Phase 4's human hour is the first place it can move. `[play: Gate B]` marks a sentence one played hour spoke to (Daniel, 2026-09-05, `docs/GATE_B.md`): that gate returned first-contact impressions and read no telemetry, so a `[play: Gate B]` tag is a **witnessed statement, never a measured share** — every hour share in this doc stays the bot's `[sim: …]`.
 

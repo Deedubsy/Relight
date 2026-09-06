@@ -1,30 +1,30 @@
 # Relight
 
-A 2D city-reclamation factory game. The design doc defines the intent, the code implements
-it, the headless sim measures the implementation under stated conditions, and human play
-assesses the experience (`docs/CONSTITUTION.md` rule 1).
+A 2D city-reclamation factory game: explore, restore useful places, connect station factories by tram, and defend a growing network of bases.
 
-Start with `CLAUDE.md` (the read order), then:
+**Phase 4 is complete.** The current documentation defines the revised direction adopted on 2026-09-06; most revised mechanics are not built. Individual later features exist, and the local branch differs from fetched main. Start with the handoff before coding.
 
-- `docs/PROGRAMME_STATE.md` — where the programme is, two pages. Read first.
-- `docs/PROGRESS.md` — the only task list; the current task is the first runnable row.
-- `docs/CONSTITUTION.md` — the rules, decision authority, the verification policy.
-- `docs/DECISIONS.md` — every decision with provenance, and the outstanding questions.
-- `docs/RELIGHT-design.md` — the spec. Every number carries `[sim: run]` or `[play: session]`.
-- `docs/PHASES.md` — the fourteen phases, scope and exit criteria.
-- `docs/REVISED_DEVELOPMENT_PLAN.md` — the adopted development plan (2026-09-05): the RI-00 … RI-13 task definitions and the direction; statuses live in `PROGRESS.md`.
-- `docs/DEFERRED.md` — unscheduled obligations only.
-- `docs/PHASE_N_REPORT.md`, `docs/GATE_B.md`, `docs/EXPERIMENTS.md` — history and evidence.
-- `docs/archive/` — superseded documents, with a README mapping old paths to new.
-- `packages/sim` — the game, pure TypeScript, `step(state, commands) → state'`.
-- `packages/harness` — node runners: experiments, calibration, bots.
-- `packages/game` — Phaser renderer: the map view and the world view.
-- `packages/tools` — docsync, freshness, §18 and seed images.
+- [Programme state](docs/PROGRAMME_STATE.md) — actual checkout, reusable work and next task.
+- [Progress](docs/PROGRESS.md) — the only executable task list.
+- [Constitution](docs/CONSTITUTION.md) and [decisions](docs/DECISIONS.md) — authority, validation and open contracts.
+- [Game design](docs/RELIGHT-design.md) — current intended rules, separate from legacy implementation tables.
+- [Version 2 development plan](docs/EXPLORATION_DEFENCE_PLAN.md) and [phases](docs/PHASES.md) — migration, remaining scope and exit criteria.
+- [Play protocol](docs/EXPLORATION_DEFENCE_PLAYTEST.md) — human evidence needed for the revised loop.
+- [Coding-agent guide](CLAUDE.md) — read order and task workflow.
+- [Migration report](docs/EXPLORATION_DEFENCE_MIGRATION_REPORT.md) — what this documentation pass changed and checked.
 
-```
+The [Version 1 plan](docs/REVISED_DEVELOPMENT_PLAN.md) and [migration archive](docs/archive/pre-exploration-defence-2026-09-06/INDEX.md) preserve historical direction and evidence. Do not execute both plans.
+
+Packages: sim is pure TypeScript gameplay; game is Phaser rendering/input; harness supplies experiments and bots; tools supplies documentation/evidence checks.
+
+```sh
 npm install
-npm test               # fixture regression + unit tests
-npm run docsync:check  # doc tables match packages/sim
-npm run experiments    # E1–E9, E-hour, E-rifle … → docs/EXPERIMENTS.md
-npm run dev            # the game
+npm run dev
+npm test
+npm run typecheck
+npm run lint
+npm run docsync:check
+npm run freshness:check
 ```
+
+Use dependencies installed for the operating system running the commands. The currently present esbuild dependency is Linux-specific and cannot run the documentation tools under Windows; this is recorded in the migration report.

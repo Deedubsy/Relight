@@ -1,25 +1,4 @@
-# STANDARDS — current Relight acceptance and historical comparisons
-
-Version 2, 2026-09-06. The following Relight requirements supersede conflicting Relight status/"never" cells in the historical comparison below. External research is retained as historical evidence, not refreshed research. EX-01 verifies implementation states; EX-09 reconciles remaining controls/logistics/accessibility obligations.
-
-| Area | Current requirement | State / owner |
-|---|---|---|
-| B.1 planning clock and assault warning | A day/assault rhythm and information matching radio capability; the old timer prohibition is superseded. | Intended; Q02/03, EX-05 |
-| B.2/B.3 target/composition/origin | Valid origins and legible attacks; show only warning intelligence actually available. | Legacy components reusable; revised behaviour unbuilt |
-| B.4 alerts | Distinguish small raids from major assaults; name a meaningful place, support response without constant interruption; visual alternative to sound. | EX-05/08 |
-| B.5–B.9 defence feedback | Range, ammunition, damage, targets and loss/recovery reasons tied to real state. | Reconcile existing components; EX-04/05/09 |
-| 2 / 7 logistics and map | Multiple stations, selected cargo, onward supply, return freight and clear blocked-transfer explanations. | Existing two-stop route only; EX-06 |
-| 4 opening | One-approach home, early useful second-area tram access, discoverable radio opportunity and self-directed roaming. | Version 2 unbuilt; EX-04/08 |
-| A body/equipment | Meaningful personal defence and exploration decisions; no rescue-only shooting quota. | Q06, EX-05/07/08 |
-| C.1/C.2/C.7 city identity | Recognisable home, stations, useful landmarks and differentiated resource districts. | Names locally built; newer main urban work to reuse; human judgement still owed |
-| C.3–C.6 wayfinding/discovery | Support roaming, returning to the threatened base and retaining discovered information without prematurely revealing hidden targets. | EX-04/05/07/08 |
-| Meta/accessibility/performance | Retain remapping, UI scale, saves, compatibility, audio controls and real-machine scale criteria. | EX-09/10; no waiver |
-
-The representative-loop human protocol is EXPLORATION_DEFENCE_PLAYTEST.md. Original row numbers remain reference handles; original "built" statements apply only to their recorded build. Do not use historical comparison statuses as a live task list.
-
-## Historical comparison baseline — retained sources and prior Relight status
-
-### Pre-Version-2 comparison
+# STANDARDS — the modern 2D factory-game baseline, and where Relight stands
 
 **Run on 2026-09-04** against `phase-4` at b666c68 (plus the Step 0 roadmap corrections). Brief: `docs/archive/pre-phase-5-cleanup/relight-standards-audit.md` (archived 2026-09-05). Report and verdicts: `docs/STANDARDS_REPORT.md`. Evidence per game, with the URLs each claim came from: `docs/standards/` (`factorio.md`, `shapez2.md`, `mindustry.md`, `captain-of-industry.md`, `foundry.md`, `oni.md`, `recent-indie.md` = Sandustry, `extra-categories.md` = body / threat / city, `reception.md` = what players punish and forgive; `relight-scoring.md` = the Relight column as read from the code and the doc).
 

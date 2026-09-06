@@ -1,22 +1,5 @@
 # Relight — deferred obligations
 
-Updated 2026-09-06 for Version 2. PROGRESS.md alone schedules work. Historical outstanding details are retained below, with the following routing taking precedence over their old task names/timings.
-
-| Obligation | Current treatment |
-|---|---|
-| Reference-machine soak, human city recognition and stranger/cold-player checks | Retained for EX-08 preparation where relevant and EX-10 / Phases 11–12; these human observations are not fabricated from main's AI review. |
-| Warning readability, old pip-band observations and unrecorded Gate B behaviours | New warning/defence observations belong to EX-08H. Old timed pip/shade observations remain legacy debts, not Version 2 acceptance. |
-| Basic sound and volume/mute | EX-05 needs visible truthful warning first; EX-09/10 retains sound/settings delivery, with no essential information audio-only. |
-| Out-of-reach refusal and placement feedback | EX-04's real opening and retained T13 work in EX-09. |
-| Stone sink, tram power/copper margin, stock/yield questions | D-EX-Q04/05, then EX-04/06; old benchmark quantities remain legacy evidence. |
-| Hour bot laying old claim turrets and compact-enclosure variants | Legacy reproduction only pending EX-03 evidence policy; EX-08 bots must exercise Version 2 commands and costs. |
-| Soak script ownership and useful tooling debts | EX-01 inventories; EX-09/10 places retained technical obligations without inventing a human waiver. |
-| Old scheduled tools, benchmark deletions and evidence removal | EX-09 reconciliation first. Old deletion wording is not current authorisation to delete fixtures/results. |
-
-## Preserved obligation details — earlier task references superseded above
-
-### Earlier deferred register
-
 Only things the programme still owes and no task carries yet. When an item gets a task,
 its line becomes a link to that task and is removed at the next phase exit. The history
 of every item that was parked, kept or deleted since Phase 0 (twelve original items and

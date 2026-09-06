@@ -1,0 +1,100 @@
+TAP version 13
+# Subtest: names: every block has a stable, unique, state-free name; the HQ is "HQ"; the rail yard is named; the §11 directions are three distinct HQ neighbours
+ok 1 - names: every block has a stable, unique, state-free name; the HQ is "HQ"; the rail yard is named; the §11 directions are three distinct HQ neighbours
+  ---
+  duration_ms: 3918.599277
+  type: 'test'
+  ...
+# Subtest: goal: a fresh city asks for hand-mined steel; a block-only state asks for the front; every id shown in 20 minutes is a §11 row in schedule order and never wrong against the state
+ok 2 - goal: a fresh city asks for hand-mined steel; a block-only state asks for the front; every id shown in 20 minutes is a §11 row in schedule order and never wrong against the state
+  ---
+  duration_ms: 973.253031
+  type: 'test'
+  ...
+# Subtest: machineStatus: one of five words with a reason; the line at minute 10 has running Excavators, and an unpowered block reads off
+ok 3 - machineStatus: one of five words with a reason; the line at minute 10 has running Excavators, and an unpowered block reads off
+  ---
+  duration_ms: 403.969886
+  type: 'test'
+  ...
+# Subtest: save: the hash ignores only the transients, a load validates and deep-copies, and a save at 1:30 replays to the unbroken run's hash at 3:00
+ok 4 - save: the hash ignores only the transients, a load validates and deep-copies, and a save at 1:30 replays to the unbroken run's hash at 3:00
+  ---
+  duration_ms: 349.240521
+  type: 'test'
+  ...
+# Subtest: RI-06: enableHeart puts the Heart on the rail yard with two feeder cabinets on the lot toward two Dark approaches, once
+ok 5 - RI-06: enableHeart puts the Heart on the rail yard with two feeder cabinets on the lot toward two Dark approaches, once
+  ---
+  duration_ms: 971.54507
+  type: 'test'
+  ...
+# Subtest: RI-06: the cabinets take deliveries from the pockets and the installation refuses the Activate until both are supplied and powered
+ok 6 - RI-06: the cabinets take deliveries from the pockets and the installation refuses the Activate until both are supplied and powered
+  ---
+  duration_ms: 55.946905
+  type: 'test'
+  ...
+# Subtest: RI-06 (plan §9.4): the hour bot, rifle off, prepares the yard, starts the Heart and destroys it once; the reward is granted once
+ok 7 - RI-06 (plan §9.4): the hour bot, rifle off, prepares the yard, starts the Heart and destroys it once; the reward is granted once
+  ---
+  duration_ms: 1682.699908
+  type: 'test'
+  ...
+# Subtest: RI-06 (§9.2 defaults 9–11): a knocked-out feeder stalls the commissioning, 60 s stalls it to interrupted; deliveries and the charge stay, the retry charges nothing twice and keys its packets anew
+ok 8 - RI-06 (§9.2 defaults 9–11): a knocked-out feeder stalls the commissioning, 60 s stalls it to interrupted; deliveries and the charge stay, the retry charges nothing twice and keys its packets anew
+  ---
+  duration_ms: 1454.51146
+  type: 'test'
+  ...
+# Subtest: RI-06: a save mid-attempt reloads to the same hash and runs on to the same hash; the explicit abort works only while commissioning
+ok 9 - RI-06: a save mid-attempt reloads to the same hash and runs on to the same hash; the explicit abort works only while commissioning
+  ---
+  duration_ms: 1356.352916
+  type: 'test'
+  ...
+# Subtest: RI-06: a pole run reaching a cabinet is what "connected" means — removing it pauses the commissioning (no knock-out)
+ok 10 - RI-06: a pole run reaching a cabinet is what "connected" means — removing it pauses the commissioning (no knock-out)
+  ---
+  duration_ms: 1136.84298
+  type: 'test'
+  ...
+# Subtest: the rail-yard project: discovered → preparing (the pole run) → ready (materials by hand and off a belt) → commissioning (Activate, its id) → restored (Held) once; the reward unlocks the rail kit, which was locked before; a later loss keeps stage and reward and makes it non-operational; the retake re-grants nothing
+ok 11 - the rail-yard project: discovered → preparing (the pole run) → ready (materials by hand and off a belt) → commissioning (Activate, its id) → restored (Held) once; the reward unlocks the rail kit, which was locked before; a later loss keeps stage and reward and makes it non-operational; the retake re-grants nothing
+  ---
+  duration_ms: 1313.013096
+  type: 'test'
+  ...
+# Subtest: the local supply depot: a supply chest on the restored (Held) site, stocked by hand with ordinary items, commissioned within reach — the record alone changes: no claim, no charge, the stock stays; the restored depot hands out kits; a pre-RI-05 save discovers its projects on load
+ok 12 - the local supply depot: a supply chest on the restored (Held) site, stocked by hand with ordinary items, commissioned within reach — the record alone changes: no claim, no charge, the stock stays; the restored depot hands out kits; a pre-RI-05 save discovers its projects on load
+  ---
+  duration_ms: 705.256593
+  type: 'test'
+  ...
+# Subtest: a supply chest on the front feeds an inserter and takes from one; the tram shuttle: track on the street only, a stop at each end, one tram — items put on the platform ride to the far stop's arrivals (hand and inserter take them there), the ledger balances, and a save mid-run advances to the same hash
+ok 13 - a supply chest on the front feeds an inserter and takes from one; the tram shuttle: track on the street only, a stop at each end, one tram — items put on the platform ride to the far stop's arrivals (hand and inserter take them there), the ledger balances, and a save mid-run advances to the same hash
+  ---
+  duration_ms: 699.487502
+  type: 'test'
+  ...
+# Subtest: RI-02A: saved urban geometry preserves resources, routes and solid placement restrictions
+ok 14 - RI-02A: saved urban geometry preserves resources, routes and solid placement restrictions
+  ---
+  duration_ms: 2734.192774
+  type: 'test'
+  ...
+# Subtest: RI-02A: retry cache respects budgets and playable specs reject invalid generation
+ok 15 - RI-02A: retry cache respects budgets and playable specs reject invalid generation
+  ---
+  duration_ms: 200.972587
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 15
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 26129.024974

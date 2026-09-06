@@ -1,184 +1,59 @@
 # Relight — programme constitution
 
-The stable rules of the programme: what the game is, who decides what, what counts as
-evidence, how work is verified, and what the status words mean. Operational steps are in
-the root `CLAUDE.md`; the phases and their exit criteria are `PHASES.md`; the task list is
-`PROGRESS.md`; the current state is `PROGRAMME_STATE.md`; decisions and open questions are
-`DECISIONS.md`; the game itself is `RELIGHT-design.md`.
-
-Rule numbers are stable because every phase report cites them ("rule 12", "rule 14"). The
-wording was revised on 2026-09-05 by the pre-Phase-5 cleanup (`PROGRESS.md` T11a); the
-previous text is `archive/pre-phase-5-cleanup/CONSTITUTION-2026-09-05.md`. It was revised
-again the same day by `PROGRESS.md` RI-00, which adopted `REVISED_DEVELOPMENT_PLAN.md`
-(D-RI-1) and replaced the three-systems stop with a scope test (D-RI-3); the T11a wording
-is `git show d778018:docs/CONSTITUTION.md`. Where an old report quotes a rule, it quotes
-the old wording, and the old wording was the rule then.
+Current version: 2026-09-06, D-EX-01–11. The owner has confirmed Phase 4 complete and authorised the documentation revision. The previous constitution is preserved in [the archive](archive/pre-exploration-defence-2026-09-06/docs/CONSTITUTION.md). Rule numbers remain stable for historical citations.
 
 ## Scope
 
-Relight is the full game `RELIGHT-design.md` describes: a 2D city-reclamation factory game
-whose loop is claim → power → produce → defend → relight, built through the fourteen
-phases of `PHASES.md` to a Steam release, in the order `REVISED_DEVELOPMENT_PLAN.md`
-gives (adopted 2026-09-05, D-RI-1; `PROGRESS.md` owns its task statuses). The programme's
-ambition and identity are the design doc's; the phases build toward that game, never
-toward a smaller one. Content is seeds, presets and facilities; a proposed feature passes
-rule 2's scope test and §23's rejected-alternatives test before anything else.
+Relight is a 2D city-reclamation factory game whose revised loop is explore → restore → connect → produce → defend → relight. Free roaming, useful discoveries, specialised districts, a multi-station tram network and intermittent base defence are the adopted direction. [RELIGHT-design.md](RELIGHT-design.md) holds the rules; [EXPLORATION_DEFENCE_PLAN.md](EXPLORATION_DEFENCE_PLAN.md) defines delivery; [PROGRESS.md](PROGRESS.md) alone orders tasks. Phase 4 is the last completed phase; selected later features already exist.
 
 ## The rules
 
-1. **Design, code and evidence.** The design doc states the intended rules. Code implements
-   them. A simulation measures one implementation under stated conditions (scenario, seed,
-   duration, config, commit). A human playtest assesses the experience. When any two of
-   these disagree, the disagreement is diagnosed and recorded before anything moves: a
-   sim can show the doc's number is unreachable, that the code is wrong, or that the
-   scenario was wrong, and the report says which. The design doc labels three kinds of
-   statement so a reader can tell them apart: the **current intended rule**; a **current
-   implementation limitation** (`GAME-ASSUMPTION`, "the slice pays … as a stand-in"); and an
-   **approved future change** ("decided … not yet built", with its decision id). Tables
-   generated into the doc by `docsync` carry the code's constants; they never silently
-   redefine a player-facing acceptance criterion, and a generated change that moves one is
-   a rules change and is reported as one.
+1. **Design, code and evidence.** The GDD states intended rules, code implements them, simulations measure named implementations under stated conditions, and humans judge the experience. Label intended/unbuilt behaviour, existing implementation, tuning proposals and observations separately. Generated tables never silently redefine the game. The GDD's legacy appendix describes old code and measurements only.
 
-2. **The scope test.** §26 counts the systems (three on 2026-09-05: belts/inserters/
-   machines; the front rule; found tech as a map) and every phase report recounts it as a
-   reported number. A feature is added only if it strengthens the loop (claim, power,
-   produce, defend, relight), has a clear implementation boundary, and justifies its
-   interaction and testing cost, inside `REVISED_DEVELOPMENT_PLAN.md` §2's boundaries (no
-   enemy loot, experience, random drops, survival needs, settlement happiness or dialogue
-   trees; no automatic world-wide escalation; no compulsory reflex-heavy boss fights;
-   belts and machinery not routinely destructible). This is not permission to add
-   unrelated systems. D-RI-3 (2026-09-05) replaced the earlier "a recount of four or more
-   is a stop condition" with this test. The engineer's body (rifle, sprint, dodge, reach,
-   pockets) is presence, not a system, unless it grows rules of its own.
+2. **The scope test.** A feature strengthens the revised loop, has a clear implementation boundary and justifies its interaction/testing cost. No inferred survival needs, settlement happiness, dialogue trees, XP, loot-tier system, random enemy equipment drops, mandatory reflex-heavy progression gates or railway signals. Rare site discoveries and personal defence participation are in scope, with their catalogue and damage/repair rules explicit. The historical rejection of timed assaults and day/night planning is superseded by D-EX-03/04. Daylight's mechanical effects are still open.
 
-3. **Headless first.** `packages/sim` is pure TypeScript with no renderer dependency;
-   `step(state, commands)` returns the next state. Every rule exists there before it is
-   drawn. A red experiment is a red build.
+3. **Headless first.** Pure TypeScript simulation owns gameplay through step(state, commands). The renderer draws state and submits commands. A red check is recorded and investigated within its declared profile; legacy behaviour and revised gameplay have separate acceptance.
 
-4. **Gameplay rules live in the design doc, not here.** This file holds no game rule. (The
-   old rule 4 stated one — "only interior blocks (plus the HQ) host production" — that the
-   D6 rework's §5 and the built sim no longer say; it is now `DECISIONS.md` D-CU-1, a
-   question for the human, and §5 is the current intended rule until it is answered.)
+4. **Gameplay rules live in the GDD.** This file defines authority and process, not a second set of gameplay constants. Decisions record approvals and supersessions; the GDD incorporates their current meaning.
 
-5. **Bots are the instrument; people judge the experience.** Harness bots and experiments
-   issue the same commands a player can (`packages/sim` `Command`), from the same
-   inventories, at the same reach. A run that bypasses gameplay commands, or gives the bot
-   stock, power or placements a player cannot have, is labelled a scenario in its report
-   and is never evidence for a player-facing claim. Whether something is fun, legible or
-   tedious is a human observation and is recorded as one (rule 11).
+5. **Bots are instruments; people judge experience.** Bots use ordinary player commands, inventories and reach. Debug stock or bypassed commands make a run a labelled scenario. Bot success does not establish enjoyable exploration, warning comprehension or reduced repetition.
 
-6. **Assumptions are tagged.** A value or rule the code needs that the doc does not state
-   carries a `GAME-ASSUMPTION` comment at its definition and a row in `DECISIONS.md` if a
-   human should choose it. Untagged numbers in the design doc are counted
-   (`PROGRAMME_STATE.md`) and the count is meant to fall.
+6. **Assumptions are tagged.** Distinguish owner-approved direction, approved values, authorised tuning ranges, recommendations and implementation assumptions. D-EX-Q01–06 are adopted through D-EX-11; Q07 owns the unresolved later campaign contract. Unspecified tuning is task-level work. Routine reversible implementation choices may proceed within agreed scope.
 
-7. **Decision authority.** Core rules, progression, scope, phase go/no-go and player-facing
-   acceptance criteria are human decisions. Claude chooses routine implementation details
-   without asking, and may tune a constant only within bounds a decided row or the design
-   doc states. A number or rule a task needs that no decided row or design-doc sentence
-   supplies becomes a `DECISIONS.md` row with a recommendation; the task that needs it is
-   `blocked` on that row and every task that does not need it proceeds. **An unresolved
-   question blocks dependent work, not every unrelated task.** Claude can record a human's
-   direct authorisation (quoting the message, dated) and cannot originate an approval,
-   sign on a human's behalf, or infer that a test was performed.
+7. **Decision authority.** The owner decides core rules, progression, scope, player-facing acceptance and phase gates. Current user instructions supersede older records. Record direct authorisation accurately; do not invent names, quotes, approvals or earlier playtests. An unresolved contract blocks only work that depends on it. The documentation request authorises documentation, not every illustrative feature or an external merge/push.
 
-8. **No tutorial screens.** §11 is the tutorial; every rule surfaces as a toast, a tooltip, a
-   pip, a HUD line driven by the sim's own state, or a thing happening on screen. The
-   current-goal line (D-GB-2 (a), provisional; built by RI-02) is this rule's form, not an
-   exception; a quest or dialogue system would be, and is the human's to move.
+8. **Teach through the game.** Use state-driven guidance, tooltips, maps, warnings and visible results. No new quest/dialogue framework or tutorial-screen system is implied. Guidance should support self-directed roaming and reflect actual radio/discovery information.
 
-9. **Phase exit.** A phase ends with: its report (built / assumed / measured with
-   provenance / where it disagrees with the doc / open questions — as many as there are,
-   no fixed number); the full verification of the policy below, green or with every
-   failure named; `PROGRAMME_STATE.md` rewritten to the new state; `PHASES.md`'s exit
-   criteria checked one by one, including the `STANDARDS.md` rows for the phase; and the
-   §26 recount. Human gates (`PHASES.md`) are passed by a named person on a dated record.
+9. **Phase exit.** Record implementation, automated checks, human decision and human observations separately; check current acceptance and retained cross-cutting obligations. Preserve completed Phase 0–4 history. Forward-built features do not complete their later phase. Revise future acceptance explicitly rather than treating an old gate as evidence for a new requirement.
 
-10. **Stop conditions.** Stop and ask when: a core rule, progression, scope or go/no-go
-    decision is needed for the current task; a change would move a fixture, a `[play: …]`
-    lock, a decided constant or an expected result; a check is red for a reason outside
-    the task; a mechanic or benchmark change the adopted plan does not name
-    (`REVISED_DEVELOPMENT_PLAN.md` §1: a separate, visible decision); or the action is
-    destructive or outward-facing
-    (push, merge, deploy, deleting evidence, an external tracker). Otherwise proceed and
-    record what was chosen.
+10. **Stop conditions.** Seek a decision only when a necessary core choice is unresolved or scope genuinely changes. Complete independent authorised work first. Do not infer permission for destructive operations, evidence deletion, pushes, merges, deployment or external messages. An environment-blocked check is a validation limitation, not permission to falsify success or silently revise expectations.
 
-11. **Provenance.** A decision is `decided` only with `decided by` (a person), `on` (a date)
-    and `via` (a message quote, commit or report section). Every claim of evidence names
-    its kind — a **design approval** (a human said so), a **simulation measurement** (run
-    name, seed, duration, config hash, commit) or a **human observation** (who, when, what
-    was recorded and what was not) — and the kind travels with the claim. Gate A's
-    `[play: Gate A]` tags are approval locks, not measurements; a `[play: Gate B]` tag must
-    support the specific sentence it sits on. Generated files carry `source_commit` and
-    `config_hash` stamps (`npm run freshness:check`); freshness depends on the inputs the
-    file actually reads, and stamps, fixtures and expected results are never rewritten or
-    regenerated to make a check green.
+11. **Provenance.** Every decided row names the owner/person as actually known, date and authorising conversation/report. Distinguish design approval, implementation measurement and human observation. Preserve historical reports and stamps; never regenerate them merely to turn checks green. Old decision counts and old acceptance statements are historical once superseded.
 
-12. **Undecided numbers.** If a task's inputs contain a number, rate, size, cost or rule
-    that is in neither the design doc nor a decided row, list each one as a `DECISIONS.md`
-    row with a recommendation, mark the task `blocked` on those rows, and carry on with the
-    work that does not depend on them. This is not a blanket stop: a doc-only task, a
-    refactor, a harness change or a task whose own inputs are decided is never held by a
-    number some other task needs.
+12. **Undecided numbers.** List required missing values under their contract with recommendations. The 20-minute cycle and other stated starting values are adopted through D-EX-11; initial duration/raid-strength targets still need validation. Do not invent an unspecified radio range, kit cost, HP or repair rate as a locked value or alter adopted settings without the relevant recorded decision. Numerical uncertainty does not block document migration or independent technical analysis.
 
-13. **"Built" is four separate claims.** *Implementation complete* (the code exists and the
-    cheap checks pass); *automated validation* (`not_run` / `passed` / `failed` /
-    `partial`, naming the run); *human approval* (a named person, a date, a record); and
-    *human play evidence* (an observation from a played session). A report names which of
-    the four it has. A file existing is not a pass; a gate stays passed when an observation
-    it hoped for went unmeasured, and the unmeasured observation is listed as owed.
+13. **Four separate completion claims.** Report implementation complete, automated validation (not_run/passed/failed/partial with evidence), human approval, and human play evidence independently. A documentation task can complete its editorial scope while reporting environment-blocked validation; it cannot claim all checks passed. Old code and revised gameplay never share an unlabeled completion claim.
 
-14. **Provisional decisions.** When a task needs a row that has a recommendation and no
-    human answer, Claude may act on the recommendation, set the row `provisional` with the
-    date and the commit, and list it in the report and in `PROGRAMME_STATE.md`. A human
-    confirms or reverses it; until then it is a choice the code embodies, not a rule the
-    game has. Human waivers (a task marked `waived` by a person) are preserved as written.
+14. **Provisional technical choices.** Within approved scope, reversible technical defaults can be recorded as provisional with their origin and limits. This is not authority to decide open core contracts, secretly promote candidates, change locks or attribute an assistant proposal to the owner. Unaffected work proceeds while dependent decisions remain open.
 
-## Verification policy (the one policy)
+## Verification policy
 
-- **Cheap checks after every meaningful code change**: `npm test`, `npm run typecheck`,
-  `npm run lint`, `npm run docsync:check` (about two minutes together).
-- **Focused experiments when a change touches what they measure**: `E-hour` for `hour.ts`
-  and `constants.ts` `HOUR`; `E-rifle` for the engineer and the enemies; `npm run
-  snapshot:check` for any sim rule; `E-chain` / `E-coal` / `E-tram` once they exist.
-- **Full verification** — `npm run experiments`, calibration, `freshness:check`,
-  `snapshot:check` and the Playwright soak — at phase exit, before a human gate, or when the
-  human asks for it. Until it has run on a milestone, that milestone's numbers are
-  *unverified*.
-- **Doc-only changes** run `docsync:check`, `freshness:check` and a link check on the paths
-  they touch; they do not run unrelated simulations.
-- **Baseline failures** (red before the task started) are recorded separately from the
-  task's own results and never hidden by the task.
+For meaningful code changes: npm test, npm run typecheck, npm run lint and npm run docsync:check, plus focused experiments for changed behaviour. Full profile-appropriate verification is required at phase gates or when requested. Choose tests that exercise the actual changed contract.
 
-Candidate configurations (the plan's Tuning candidates: enemy numbers, the Junction Heart's
-timers, the opening windows, rifle range) run beside the 75-minute benchmark and never in
-place of it; the legacy reproduction runs keep their original configuration and are labelled
-by scope (D-RI-5, `REVISED_DEVELOPMENT_PLAN.md` §14.4). Promotion into the benchmark is a
-`decided` row.
+For documentation changes: docsync:check, freshness:check and local referenced-path/consistency checks. Record environment failures separately from content failures. No unrelated simulation is required for prose edits.
 
-## Status vocabulary
+EX-03 establishes explicit legacy and Version 2 profile routing for fixtures, snapshots, generated tables, experiments and save state before changing gameplay constants. Existing 75-minute and frontage measurements remain reproducibility evidence of the old game. They neither veto adopted Version 2 rules nor become new-game acceptance through relabelling. Profile promotion and deliberate expected-result changes require a recorded decision and fresh evidence. Preserve old data.
 
-- Tasks (`PROGRESS.md`): `todo`, `in_progress`, `blocked` (names what it waits for), `done`
-  (its evidence exists and holds the result), `waived` (a named person waived it, with the
-  date). Only a human closes a `human` task.
-- Validation: `not_run`, `passed`, `failed`, `partial` (some checks ran; the report says
-  which).
-- Decisions (`DECISIONS.md`): `open`, `recommended`, `provisional`, `decided`, `superseded`;
-  `open (gate condition)` is kept for the rows a passed gate attached as conditions.
+## Authority and status vocabulary
 
-## Engine and layout
+Current user instruction → relevant current decided row → active GDD → current successor plan. PROGRESS owns executable task order; PROGRAMME_STATE owns the current handoff. Legacy appendices and archives never override the active documents.
 
-TypeScript throughout: `packages/sim` (headless), `packages/game` (Phaser 3 + Vite),
-`packages/harness` (experiments, calibration, snapshot, replay), `packages/tools`
-(docsync, freshness, section 18, seeds); `apps/steam` is planned for Phase 14. The engine
-gate is Phase 11: if the performance targets fail in TypeScript, the port is a human
-decision.
+Task states: todo, in_progress, blocked (named dependency), done, waived (explicit human authority). Decision states: open, recommended, provisional, decided, superseded. Human tasks are completed only by the human. Supersession can be partial: record precisely which rule changed and which old decision remains relevant to legacy reproduction.
 
-## Cross-cutting
+## Engine and cross-cutting obligations
 
-Telemetry is a sim concern (walking, shooting and danger shares come from the same
-counters for bots and people). `npm run docsync` keeps the design doc's generated tables
-equal to the code and `docsync:check` fails when prose the constants table repeats has
-drifted. `DECISIONS.md` holds one row per decision; `PROGRESS.md` is the only task list;
-`PROGRAMME_STATE.md` is replaced, not appended. Two human gates have passed (A, B); the
-engine gate in Phase 11 is the one left.
+Retain TypeScript, the simulation/renderer boundary, item conservation, deterministic replay, accessible feedback, performance and release obligations. No engine migration is implied. PROGRESS remains the only task list, DECISIONS the decision registry, and PROGRAMME_STATE a replacement handoff rather than an accumulating log.
+
+## Changelog
+
+- 2026-09-06 — D-EX-01–09: aligned scope and authority with the revised direction, preserved numbered evidence rules, clarified legacy profiles and owner-confirmed Phase 4 completion.
