@@ -1,27 +1,28 @@
 # Relight — programme state
 
-Current handoff: 2026-09-06, authorised baseline integration and first station-freight increment. PROGRESS.md owns task status; DECISIONS.md and the active RELIGHT-design.md own rules.
+Current handoff: 2026-09-06, campaign separation and first home opening (D-EX-13). PROGRESS.md owns task status; DECISIONS.md and the active RELIGHT-design.md own rules.
 
 ## Now
 
-- **Phase 4 complete**, as confirmed by the owner (D-EX-10). Phase 5 and the revised representative loop remain incomplete; forward-built RI features do not complete later phases.
-- **EX-01 complete:** the baseline comparison reproduced failures on the old checkout and passing focused checks on newer main. See [BASELINE_INTEGRATION_REPORT.md](BASELINE_INTEGRATION_REPORT.md).
-- **Integration authorised and performed (D-EX-12):** branch `codex/tram-expansion` retains the adopted documentation in `f20208a`, then merges tested main `b32e4c3` in `0fdbb67`. City geometry, shared collision masks, inventory and Heart fixes are now in this checkout. No push occurred.
-- **First freight increment EX-06A:** station request targets, explicit exports above reserves, destination-reserved cargo, return freight, in-flight capacity accounting across trams, parked loaded trams on disconnected routes, UI and versioned save metadata. See [TRAM_INTEGRATION_REPORT.md](TRAM_INTEGRATION_REPORT.md) for actual verification and limitations.
-- **EX-03 remains in progress:** schema compatibility for freight is implemented; separate campaign/evidence profiles must still precede replacing continuous frontage or introducing new campaign constants.
+- **Phase 4 complete**, confirmed by the owner. Phase 5 and the revised representative loop remain incomplete.
+- **Integrated baseline:** branch `codex/tram-expansion` retains adopted documentation in `f20208a`, merges tested main in `0fdbb67`, and includes reserved station freight in `f0220a3`. See [TRAM_INTEGRATION_REPORT.md](TRAM_INTEGRATION_REPORT.md).
+- **EX-03 complete:** explicit legacy/new campaign identity, schema 3 for new games, separate browser slots, matching save/replay factories, and separate evidence/document profiles. Existing schema 1/2 saves remain legacy.
+- **EX-04A complete:** a house in a court with one physical entrance, reachable starter resources, actual supply transfers and paid factory placements. **EX-04 remains in progress** for second-area tram access and radio restoration. See [CAMPAIGN_OPENING_REPORT.md](CAMPAIGN_OPENING_REPORT.md).
 
 ## What the game currently does
 
-Existing unconfigured tram routes keep their legacy transfer behaviour. At a powered tram stop, E opens station controls; applying requests opts that route into selective loading. Configure supply and receiving stations explicitly. Local belts/hands put exports on the platform and take deliveries from arrivals. Save schema 2 preserves the new metadata; it does not identify a completed Version 2 campaign. Existing untouched saves remain schema 1. Older builds reject schema 2 rather than silently ignoring ownership metadata.
+The default URL still opens the legacy game. Its header links to the new Home Court preview; `?rules=exploration-v2&view=world` starts that profile explicitly. It reuses production, power, inventory and walking, with no frontier ammo ring, automatic bloom attacks, contiguous claims, enclosure rewards, passive territory loss or legacy candidate encounters. Its clock uses the adopted 20-minute cycle; major assaults and day/night lighting effects are not implemented.
 
-The new cul-de-sac, station base registration, remote construction semantics, day/night assaults, radio progression, concentrated persistent extraction, workshops and discoveries are still unbuilt. Legacy frontier pressure still runs. No new-game playtest, balance or fun claim is made.
+The home is a provisional static enclosure around the retained factory frame. Its collision walls are not player-built or destructible defences. The initial stock, finite patches and machine prices are retained for this preview; they are not validated campaign balance or persistent regional extraction. The home core is identified, but station base registration and remote construction rules are pending.
+
+Station restoration, radio, assaults/raids, site creatures, persistent extraction, workshops and discoveries are still unbuilt in the new campaign. The tested freight system remains available in the legacy profile until the second-area unlock is connected. No new-game balance or human fun claim is made.
 
 ## Next runnable work
 
-Complete EX-03's gameplay/evidence profile routing and explicit new-session contract, then EX-04's cul-de-sac and second-area restoration. EX-06A contributes transport to EX-06; specialised factories and workshops remain within the latter's unfinished acceptance. The six core contracts are already adopted (D-EX-11); Q07 is the later endgame decision. Further task-level tuning must retain its provenance.
+Continue EX-04 with hand-supplied second-area station restoration, transport-kit access and the radio opportunity, using the adopted contracts. Then EX-05 supplies actual defence/damage, threats and scheduling. Q07 remains the later endgame decision.
 
 ## Verification and workspace
 
-The working test runtime is WSL Ubuntu-24.04 with Node 22.18.0 and the existing Linux dependencies. Windows-native dependencies were not repaired. Required checks and logs are in the integration report; old generated evidence is preserved. The GDD is pinned to LF so its generated-block parser remains stable on checkout.
+The working runtime is WSL Ubuntu-24.04 with Node 22.18.0 and existing Linux dependencies. Required checks, browser observations and limitations are in the campaign report. Historical generated blocks, benchmarks and completed task evidence remain unchanged. New generated constants live in [CAMPAIGN_RULES.md](CAMPAIGN_RULES.md).
 
-Untracked `.serena/` and `docs.zip` predate this work and remain intact. Integration work is local. Human play validation is still outstanding.
+Untracked `.serena/` and `docs.zip` predate this work and remain intact. Integration is local; no push or human play gate is implied.

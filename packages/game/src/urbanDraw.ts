@@ -7,6 +7,17 @@ export function drawUrban(g: Phaser.GameObjects.Graphics, st: SimState, G: Groun
   const city = G.urban;
   if (!city) return;
   const vis = new Set(visible);
+  if (G.opening && st.campaign && vis.has(st.campaign.homeBlock)) {
+    for (const t of G.opening.walls) {
+      const x = (t % G.tw) * P, y = Math.floor(t / G.tw) * P;
+      g.fillStyle(0x18262b, 1); g.fillRect(x + 4, y + 6, P, P);
+      g.fillStyle(0x76817a, 1); g.fillRect(x, y, P, P);
+      g.lineStyle(1, 0xb1b8a5, 0.9); g.strokeRect(x + 2, y + 2, P - 4, P - 4);
+    }
+    for (const t of G.opening.gate) {
+      g.fillStyle(0xc49a59, 0.65); g.fillRect((t % G.tw) * P, Math.floor(t / G.tw) * P, P, P);
+    }
+  }
   for (const place of city.places) {
     if (!vis.has(place.block)) continue;
     const { x, y, w, h } = place.pad, held = st.blocks[place.block].state === HELD;

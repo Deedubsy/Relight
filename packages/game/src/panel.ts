@@ -7,7 +7,7 @@ import { Session, setSpeed, queue, shareUrl, record, saveSlot, slotUrl, hasSlot,
 import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
-import { ITEMS, StationRules, freightInbound } from '@relight/sim';
+import { ITEMS, StationRules, freightInbound, isCampaign, rulesetOf, CAMPAIGN_RULESET, LEGACY_RULESET, campaignClock } from '@relight/sim';
 
 /** M6: what the export carries beside the telemetry — the command log (the replay's input) and, under the hour bot, its log and report. */
 export function exportExtra(session: Session): Record<string, unknown> {
@@ -56,6 +56,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const st = session.state;
   const eco = st.config.economy;
   const flow = !!st.flow;
+  const campaign = isCampaign(st);
   root.innerHTML = '';
 
   // header
@@ -76,6 +77,9 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   btnView.onclick = () => hooks.onToggleView();
   head.append(btnView, btnLink);
   header.append(head);
+  const newSession = el('a', 'hint', campaign ? 'Open the legacy game in a new tab' : 'Try the cul-de-sac opening in a new tab');
+  newSession.href = shareUrl({ ...session.params, state: null, autoplay: null, heart: false, stalker: false, flow: true, ruleset: campaign ? LEGACY_RULESET : CAMPAIGN_RULESET });
+  newSession.target = '_blank'; newSession.rel = 'noopener'; header.append(newSession);
   // RI-02 (§11.2): the save / load baseline — slot 1 in this browser (Ctrl+S / Ctrl+O), beside the download below
   const saveRow = el('div', 'row');
   const btnSave = el('button', undefined, 'Save (Ctrl+S)');
@@ -87,7 +91,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const saveNote = el('span', 'hint', '');
   saveRow.append(btnSave, btnLoad, saveNote);
   header.append(saveRow);
-  header.append(el('p', 'hint', 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
+  header.append(el('p', 'hint', campaign ? 'Home Court opening preview: build from the house supplies, explore through the single entrance, and return to your factory. Station restoration and assaults are not available in this preview.' : 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
   root.append(header);
   function saveGame(): void {
     try {
@@ -97,20 +101,21 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     } catch (e) { toast(`Could not save: ${(e as Error).message}`, 'bad'); }
   }
   function loadGame(): void {
-    if (!hasSlot('1')) { toast('Slot 1 is empty in this browser — Ctrl+S saves to it', 'bad'); return; }
+    if (!hasSlot('1', rulesetOf(st))) { toast('This campaign has no save yet — Ctrl+S saves it', 'bad'); return; }
     if (!window.confirm('Reload from slot 1? Unsaved progress is lost.')) return;
     location.href = slotUrl(session, '1');
   }
-  if (hasSlot('1')) saveNote.textContent = session.params.state === 'local:1' ? 'loaded from slot 1' : 'slot 1 has a save';
+  if (hasSlot('1', rulesetOf(st))) saveNote.textContent = 'this campaign has a save';
 
   // HUD
   const hudSec = el('section');
-  hudSec.append(el('h2', undefined, 'Territory'));
+  hudSec.append(el('h2', undefined, campaign ? 'Home and production' : 'Territory'));
   const stats = el('div', 'stats');
   const mk = (label: string) => { const s = el('div', 'stat'); const b = el('b', 'mono', '0'); s.append(b, el('span', undefined, label)); stats.append(s); return { s, b }; };
-  const sHeld = mk('Held'), sFront = mk('Front edges'), sInt = mk('Interior');
-  const sProd = mk('mag/min made'), sDem = mk('mag/min demanded'), sStock = mk('magazines in stock');
+  const sHeld = mk(campaign ? 'Home base' : 'Held'), sFront = mk('Front edges'), sInt = mk('Interior');
+  const sProd = mk(campaign ? 'mag/min capacity' : 'mag/min made'), sDem = mk('mag/min demanded'), sStock = mk('magazines in stock');
   const sLost = mk('blocks lost'), sEmpty = mk('empty hoppers'), sClock = mk('sim clock');
+  if (campaign) for (const stat of [sFront, sInt, sDem, sLost, sEmpty]) stat.s.remove();
   hudSec.append(stats);
   const speedRow = el('div', 'row');
   const speeds: [number, string][] = [[0, 'Pause'], [1, '1×'], [4, '4×'], [16, '16×']];
@@ -182,7 +187,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   };
   let freightKey = '';
   pocketSec.append(freightForm);
-  pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's steel and copper go from the pockets into the block's substation (E on it) and are spent at Activate; its edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
+  pocketSec.append(el('p', 'hint', campaign ? 'Take supplies from the house within reach. Build from carried steel and copper; right-click a machine to recover it and its contents. Station restoration is not available yet.' : `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's steel and copper go from the pockets into the block's substation (E on it) and are spent at Activate; its edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
   root.append(pocketSec);
 
   // D-B1-5: the build menu (B). The hotbar (1–8) is its shortcut; 9 is the rifle. Prompt B M3: the Electricians'
@@ -428,6 +433,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     sStock.b.textContent = f1(h.ammo.stockMags); sLost.b.textContent = String(h.lost);
     sEmpty.b.textContent = String(h.ammo.emptyHoppers); sEmpty.s.classList.toggle('warn', h.ammo.emptyHoppers > 0);
     sClock.b.textContent = h.clock;
+    if (campaign) { const clock = campaignClock(s); sClock.b.textContent = `Day ${clock.day} · ${clock.night ? 'night' : 'daylight'}`; }
     for (const { m, b } of speedBtns) b.classList.toggle('active', s.speed === m);
     projList.replaceChildren(...projectList(s).map(r => el('li', undefined, describeProject(s, r))));   // RI-05
     if (!pocketSec.hidden) {
@@ -526,6 +532,10 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
 
   function tooltip(info: ClaimInfo | HeldInfo | null, px: number, py: number): void {
     if (!info) { tip.hidden = true; return; }
+    if (campaign) {
+      tooltipText(`${blockLabel(session.state, idxOf(session.state, info.x, info.y), debugView.coords)}\n${'held' in info ? 'Home base: build with supplies from the house.' : 'Explore on foot. Station restoration is coming in a later increment.'}`, px, py);
+      return;
+    }
     if ('held' in info) {
       const slot = info.slot === 'free' ? 'machine slot free' : info.slot === 'assembler' ? 'assembler here' : info.slot === 'Mk1' ? 'HQ: Mk1 assembler'
         : info.slot === 'at risk' ? 'assembler AT RISK: block is back on the front' : 'front block: slot taken by the defence ring';

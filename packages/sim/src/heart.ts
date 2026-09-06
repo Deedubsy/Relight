@@ -102,6 +102,7 @@ function cabinetTile(st: SimState, site: number, kx: number, ky: number): [numbe
  *  of the yard's first two Dark neighbours (block order). Idempotent. Null off the tile layer, without a yard, or when
  *  two approaches cannot be found. Never called by the benchmark, the snapshot or the hour bot's default. */
 export function enableHeart(st: SimState, cand: HeartCandidate = CANDIDATES.heart): HeartState | null {
+  if (st.ruleset === 'exploration-v2') return null;
   const f = st.flow;
   if (!f || st.lattice) return null;
   if (f.heart) return f.heart;

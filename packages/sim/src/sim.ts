@@ -10,6 +10,7 @@ import { districtBase } from './districts';
 import { latticeGraph, bfsHops, edgeId, LATTICE_AREA } from './graph';
 import { createEngineer, tickEngineer, rifle, rifleHits, engineerCommand, bornFed, threatHooks } from './engineer';
 import { SURVIVOR_UNLOCK_NAMES } from './map';
+import { type Ruleset, LEGACY_RULESET, CAMPAIGN_RULESET, CAMPAIGN_RULES, isRuleset, isCampaign } from './rules';
 import { ASSEMBLER_MAG_PER_MIN, SHOT_MAGAZINE, SUBSTATION_KW, TURRET, EDGE_TURRETS } from './constants';
 
 // ------------------------------------------------------------------ config
@@ -115,7 +116,9 @@ const tiles = (st: SimState): TileHooks | null => (st.flow ? tileHooks.current :
 
 // ------------------------------------------------------------------ state construction
 
-export function createState(spec: MapSpec, config: SimConfig, seed: number): SimState {
+export function createState(spec: MapSpec, config: SimConfig, seed: number, ruleset: Ruleset = LEGACY_RULESET): SimState {
+  if (!isRuleset(ruleset)) throw new Error('unknown campaign ruleset');
+  if (ruleset === CAMPAIGN_RULESET && !spec.city) throw new Error('campaign requires a city');
   const { w, h } = spec;
   const lattice = !spec.graph;
   const graph = spec.graph ?? latticeGraph(w, h);
@@ -151,7 +154,8 @@ export function createState(spec: MapSpec, config: SimConfig, seed: number): Sim
   const deg = Math.max(1, ...graph.nb.map(ns => ns.length));
   const wellIdx = spec.wells.map(([x, y]) => (lattice ? x * h + y : blocks.findIndex(b => b.x === x && b.y === y)));
   const st: SimState = {
-    version: 1, seed, t: 0, rng: seedRng(seed), speed: 1, acc: 0,
+    version: ruleset === CAMPAIGN_RULESET ? 3 : 1, seed, t: 0, rng: seedRng(seed), speed: 1, acc: 0,
+    ...(ruleset === CAMPAIGN_RULESET ? { ruleset, campaign: { version: 1 as const, opening: CAMPAIGN_RULES.opening, homeBlock: startIdx } } : {}),
     w, h, start: [spec.start[0], spec.start[1]], target: [spec.target[0], spec.target[1]],
     wells: spec.wells.map(p => [p[0], p[1]] as [number, number]),
     facilities: spec.facilities.map(f => ({ ...f })),
@@ -161,7 +165,7 @@ export function createState(spec: MapSpec, config: SimConfig, seed: number): Sim
     nb: graph.nb, deg, len: graph.len, lattice, tileScale: graph.pitch,
     hops: Array.from(bfsHops(graph.nb, startIdx)), hopsT: Array.from(bfsHops(graph.nb, targetIdx)),
     wellHops: wellIdx.map(i => Array.from(bfsHops(graph.nb, i))),
-    city: spec.city ? { ...spec.city } : undefined,
+    city: spec.city ? { ...spec.city, ...(ruleset === CAMPAIGN_RULESET ? { profile: 'riverside-v1' as const } : {}) } : undefined,
     engineer: null as unknown as Engineer,
     ring: [], edgeAt: new Array(n * deg).fill(-1),
     engagements: [],
@@ -289,6 +293,7 @@ export function interiorIf(st: SimState, i: number, I: number): number {
 
 /** Dark blocks with a Held 4-neighbour, in grid order. Writes into `out`, returns count. */
 export function candidates(st: SimState, out: number[]): number {
+  if (isCampaign(st)) { out.length = 0; return 0; }
   const B = st.blocks;
   out.length = 0;
   for (let i = 0; i < B.length; i++) {
@@ -300,6 +305,7 @@ export function candidates(st: SimState, out: number[]): number {
 }
 
 export function isCandidate(st: SimState, i: number): boolean {
+  if (isCampaign(st)) return false;
   const B = st.blocks;
   if (B[i].state !== DARK) return false;
   const ns = st.nb[i];
@@ -457,6 +463,7 @@ function rebuildEdgeAt(st: SimState): void {
 /** Bring the ring in line with the map: drop edges that no longer face a hostile block (hopper back to the
  *  buffer), add new ones in sorted position order at the end of the ring. */
 export function syncEdges(st: SimState): void {
+  if (isCampaign(st)) return;
   const B = st.blocks, sc = scratch(st), mark = sc.mark, deg = st.deg;
   const stamp = ++sc.stamp;
   for (let i = 0; i < B.length; i++) {
@@ -664,6 +671,7 @@ function rubbleOf(name: District): 'stone' | 'copper' | 'steel' | null {
  *  sends it. RI-03 (plan §4.1): the tile layer's one claim path is `activate` (flow.ts) — the game's map view no
  *  longer sends `claim`; selecting a Dark block there charges nothing. Both paths end in `startContested`. */
 export function claim(st: SimState, x: number, y: number): boolean {
+  if (isCampaign(st)) return reject(st, x, y, 'territory claims belong to the legacy campaign');
   if (!inBounds(st, x, y)) return reject(st, x, y, 'out of bounds');
   const i = idxOf(st, x, y);
   if (!isCandidate(st, i)) return reject(st, x, y, st.blocks[i].state === DARK ? 'not adjacent to a Held block' : 'not Dark');
@@ -684,6 +692,7 @@ export function claim(st: SimState, x: number, y: number): boolean {
 /** RI-06: `opts.bloom === false` wakes no bloom (the Heart's reinforcements are its packets, heart.ts); `opts.until`
  *  replaces the ordinary burn-off — the Heart's commissioning ends when heart.ts says so (GDD §28.8). */
 export function startContested(st: SimState, i: number, via: 'map' | 'activate', id?: number, opts?: { bloom?: boolean; until?: number }): void {
+  if (isCampaign(st)) return;
   const t = st.t, b = st.blocks[i], x = b.x, y = b.y;
   const F = frontage(st), I = interior(st);
   // GAME-ASSUMPTION: the claim event's F/I "after" are projections at claim time (as if the block were Held now),
@@ -805,7 +814,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
   const relight = inRelight(st);
   for (let i = 0; i < B.length; i++) {
     const b = B[i];
-    if (b.state !== DARK || !b.awake) continue;
+    if (isCampaign(st) || b.state !== DARK || !b.awake) continue;
     catchUp(st, b, t + 1);
     if (b.timer < 0) b.timer = interleaved(st, i, t + cfg.bloomT / (0.5 + b.d));
     if (t >= b.timer) {
@@ -829,10 +838,10 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
         b.exposed = ex;
       }
     }
-    if (cfg.wellDeath) wellEnclosure(st);
+    if (cfg.wellDeath && !isCampaign(st)) wellEnclosure(st);
     if (prod) syncEdges(st);
   }
-  if (cfg.wellDeath) wellDeaths(st);
+  if (cfg.wellDeath && !isCampaign(st)) wellDeaths(st);
 
   // D5: the engineer walks (and lays kits) before the ring fills, so an edge kitted this second is filled this second
   // and never reads red for the one tick between the kit landing and the fill (D-R2). The tile layer ticks the
@@ -1003,7 +1012,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
   }
 
   // ---- creep and fall (substation off for any reason) ----
-  if (prod || cfg.power) {
+  if (!isCampaign(st) && (prod || cfg.power)) {
     for (let i = 0; i < B.length; i++) {
       const b = B[i];
       if (b.state !== HELD) continue;

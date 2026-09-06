@@ -9,6 +9,7 @@
 import { SimState } from './types';
 import type { LoggedCommand } from './hour';
 import { freightProblem } from './freight';
+import { rulesetProblem } from './rules';
 
 export const SAVE_TRANSIENT: readonly (keyof SimState)[] = ['events', 'acc', 'speed'];
 
@@ -39,7 +40,7 @@ export function stateHash(st: SimState): string {
 }
 
 export interface SaveFile {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   kind: 'relight-save';
   savedAt: string;
   seed: number;
@@ -57,20 +58,20 @@ export interface SaveFile {
 
 export function isSaveFile(v: unknown): v is SaveFile {
   const o = v as Partial<SaveFile> | null;
-  return !!o && typeof o === 'object' && o.kind === 'relight-save' && (o.version === 1 || o.version === 2) && !!o.state && typeof o.state === 'object';
+  return !!o && typeof o === 'object' && o.kind === 'relight-save' && [1, 2, 3].includes(o.version!) && !!o.state && typeof o.state === 'object';
 }
 
 /** Why a value is not a Relight state, or '' when it is one. */
 export function stateProblem(v: unknown): string {
   const st = v as Partial<SimState> | null;
   if (!st || typeof st !== 'object') return 'not an object';
-  if (st.version !== 1 && st.version !== 2) return `version ${String(st.version)} is unsupported (expected 1 or 2)`;
+  if (st.version !== 1 && st.version !== 2 && st.version !== 3) return `version ${String(st.version)} is unsupported (expected 1, 2 or 3)`;
   if (!Array.isArray(st.blocks)) return 'no blocks';
   if (!st.config || typeof st.config !== 'object') return 'no config';
   if (!Array.isArray(st.ring)) return 'no ring';
   if (!st.engineer || typeof st.engineer !== 'object') return 'no engineer';
   if (st.city?.profile && st.city.profile !== 'riverside-v1') return `unsupported city profile ${st.city.profile}`;
-  return freightProblem(st as SimState);
+  return rulesetProblem(st as SimState) || freightProblem(st as SimState);
 }
 
 /** A validated deep copy of a saved state — a SaveFile, a telemetry export (its `finalState`) or a raw SimState —

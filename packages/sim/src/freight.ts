@@ -23,7 +23,7 @@ export function setStationRules(st: SimState, x: number, y: number, rules: Stati
   const stop = machineAt(st, x, y);
   if (stop?.kind !== 'tramstop' || !inReach(st, stop.x, stop.y, stop.size) || !validStationRules(rules)) return false;
   stop.freight = Object.fromEntries(Object.entries(rules).map(([k, r]) => [k, { ...r }]));
-  st.version = 2;
+  if (st.version === 1) st.version = 2;
   return true;
 }
 
@@ -93,7 +93,7 @@ export function transferFreight(st: SimState, tram: Machine, stop: Machine, rout
 export function freightProblem(st: SimState): string {
   for (const m of st.flow?.machines ?? []) {
     if (m.freight === undefined && m.manifest === undefined) continue;
-    if (st.version !== 2) return 'station freight requires save version 2';
+    if (st.version !== 2 && st.version !== 3) return 'station freight requires save version 2 or 3';
     if (m.freight !== undefined && (m.kind !== 'tramstop' || !validStationRules(m.freight))) return 'invalid station freight rules';
     if (m.manifest !== undefined) {
       if (m.kind !== 'tram' || !Array.isArray(m.manifest)) return 'invalid tram manifest';

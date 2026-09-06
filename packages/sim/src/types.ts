@@ -286,7 +286,9 @@ export interface Engineer {
 }
 
 export interface SimState {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
+  ruleset?: import('./rules').Ruleset;
+  campaign?: import('./rules').CampaignState;
   seed: number;
   t: number;
   rng: number;

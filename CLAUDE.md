@@ -16,7 +16,7 @@ README.md and AGENTS.md point to the same documents. REVISED_DEVELOPMENT_PLAN.md
 
 Follow the user's requested execution scope. Current user instructions take precedence. For a next-task request, choose the first runnable PROGRESS row, inspect its actual dependencies, implement only authorised scope, verify, update its evidence and handoff, and report. Ask only for genuinely missing core decisions; proceed with independent work. A documentation revision is not permission to implement every discussed example.
 
-Do not infer a completed later phase from a completed RI feature. EX-01 reconciled the baseline, and authorised integration retained newer main's city/Heart work. EX-03 still separates campaign/evidence profiles; preserve both the tested baseline and the adopted design. No merge, push or destructive evidence operation without user authorisation.
+Do not infer a completed later phase from a completed RI feature. EX-01 reconciled the baseline, and authorised integration retained newer main's city/Heart work. EX-03 separates campaign/evidence profiles; preserve both the tested baseline and the adopted design. No merge, push or destructive evidence operation without user authorisation.
 
 The sim alone mutates gameplay through commands. Bots use player inventories and reach. Renderer-only effects cannot imply mechanics the sim does not implement. Record code, automated validation, design approval and human play separately.
 
@@ -24,7 +24,7 @@ The sim alone mutates gameplay through commands. Bots use player inventories and
 
 Code: npm test, npm run typecheck, npm run lint, npm run docsync:check and focused checks required by the task. Phase gates require the constitution's broader policy. Docs: docsync:check, freshness:check and referenced-path/consistency checks. Report baseline failures and environment blockers, including unrun checks, without rewriting expectations to pass.
 
-Current documentation compatibility: the GDD keeps original generated blocks and guarded legacy prose intact. EX-03 makes evidence/document tooling profile-aware before new constants are introduced. Do not regenerate old evidence into the new game.
+Current documentation compatibility: the GDD keeps original generated blocks and guarded legacy prose intact. EX-03 routes campaign constants to docs/CAMPAIGN_RULES.md and campaign evidence to explicit campaign subdirectories; docsync checks both profiles by default. Do not regenerate old evidence into the new game.
 
 ## Handoff
 

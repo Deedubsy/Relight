@@ -715,6 +715,7 @@ export class WorldScene extends Phaser.Scene {
    *  yard) and its state; the block coordinates only behind the ` toggle. */
   private blockLine(i: number): string {
     const st = this.st, b = st.blocks[i];
+    if (st.ruleset === 'exploration-v2') return `${blockLabel(st, i, debugView.coords)} · ${i === st.campaign?.homeBlock ? 'Home base' : 'Unrestored'}`;
     const river = st.lattice ? b.y === st.h - 1 : false;
     const state = river ? 'river' : b.state === DARK ? `Dark · rot ${Math.round(b.d * 100)} %` : b.state === CONTESTED ? 'Contested' : b.state === HELD ? (isInterior(st, i) ? 'Held · interior' : 'Held · front') : b.state === INERT || b.state === VOID ? 'inert' : '?';
     return `${blockLabel(st, i, debugView.coords)} · ${state}`;
@@ -1472,7 +1473,7 @@ export class WorldScene extends Phaser.Scene {
           g.fillStyle(frac > 0.5 ? 0x6fe08a : frac > 0 ? 0xe8a93a : 0xe05a5a, 1); g.fillRect(px + 12, py + sz - 24, (sz - 24) * frac, 12);
           if (mags <= 0 && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 3, py + 3, sz - 6, sz - 6); }
           const urban = !!ground(st).urban;
-          const label = urban ? 'HQ  /  DEPOT' : `Depot\n${mags} / ${Math.floor(cap / SHOT.count)} mag`;
+          const label = st.campaign ? 'HOME  /  SUPPLIES' : urban ? 'HQ  /  DEPOT' : `Depot\n${mags} / ${Math.floor(cap / SHOT.count)} mag`;
           if (label !== this.depotLabel) { this.depotLabel = label; this.depotText.setText(label); }
           this.depotText.setFontFamily('Segoe UI, sans-serif').setFontSize(urban ? 15 : 20).setPosition(cx, urban ? py + 25 : cy - 6).setScale(1 / zoom).setVisible(true);
           break;

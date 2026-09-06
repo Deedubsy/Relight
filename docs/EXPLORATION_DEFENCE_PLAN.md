@@ -2,7 +2,7 @@
 
 Adopted direction and opening contracts: 2026-09-06, D-EX-01–11. The owner confirmed that **Phase 4 has just finished**. Phase 5 is the next incomplete phase; forward-built RI features do not mean later phases are complete.
 
-This plan replaces the executable direction of [Version 1](REVISED_DEVELOPMENT_PLAN.md). [RELIGHT-design.md](RELIGHT-design.md) defines gameplay, [DECISIONS.md](DECISIONS.md) records authority and open choices, and [PROGRESS.md](PROGRESS.md) alone owns task order/status. This plan supplies task definitions, not a second tracker. The owner subsequently authorised baseline integration and the first tram increment (D-EX-12); subsequent coding follows that scope and PROGRESS.
+This plan replaces the executable direction of [Version 1](REVISED_DEVELOPMENT_PLAN.md). [RELIGHT-design.md](RELIGHT-design.md) defines gameplay, [DECISIONS.md](DECISIONS.md) records authority and open choices, and [PROGRESS.md](PROGRESS.md) alone owns task order/status. This plan supplies task definitions, not a second tracker. The owner subsequently authorised baseline integration and the first tram increment (D-EX-12); D-EX-13 then authorises campaign separation and the home opening; subsequent coding follows that scope and PROGRESS.
 
 ## 1. Direction and implementation boundaries
 
@@ -27,7 +27,7 @@ Retain movement, inventories, machine recipes/production, belts, power, light qu
 | EX-00 — documentation migration | Current GDD, decisions, constitution, phase criteria, tracker, handoff and agent entry points aligned; old records preserved; verification limitations reported. No game code. |
 | EX-01 — baseline and contract preparation | Read-only comparison of checkout and fetched main; reusable/changed/unbuilt inventory; existing failures separated from revision effects; concrete recommended answers and tradeoffs for D-EX-Q01–06. Establish the proposed integration and save/profile plan without applying a merge or inventing approval. |
 | EX-02 — opening contracts | Record the owner's approval of Q01–06 through D-EX-11. The approved recommended package and initial settings are incorporated in the GDD; unspecified tuning and Q07 remain separate. A decision record is not play evidence. |
-| EX-03 — implementation and evidence profiles | Following the selected baseline and contracts, define versioned state, compatibility and legacy/new experiment scopes. Update docsync/freshness routing as necessary before changing profile constants; keep old benchmark expectations for their old rules. Verify no mixed-profile save and deterministic scheduling state. |
+| EX-03 — implementation and evidence profiles | Following the selected baseline and contracts, define versioned state, compatibility and legacy/new experiment scopes. Update docsync/freshness routing as necessary before changing profile constants; keep old benchmark expectations for their old rules. Verify no mixed-profile save and deterministic clock state; the actual assault schedule is EX-05. |
 | EX-04 — cul-de-sac and useful second area | Reuse city geometry; create the one-approach home and small factory space, early tram-access event and reachable radio project. Real costs, valid placement, reachable resources, no circular transport unlock. Guidance names current state and opportunity; it does not force all roaming. |
 | EX-05 — three threat layers and radio | Implement site encounters, shared small raids and the major-assault schedule per contract, with single major target, rest interval, restoration-event arbitration and warning rules. Opening wall/turret/damage support and personal combat must be real before defence acceptance. |
 | EX-06 — station supply network and district economy | Multiple stops, selected cargo, onward reservations, return freight and local factories using real inventories. Verify two complementary resource/production sites, route interruption/recovery and continued utility of the older site. Include a workshop's approved practical service. |
@@ -37,6 +37,8 @@ Retain movement, inventories, machine recipes/production, belts, power, light qu
 | EX-10 — full campaign, performance and release | Remaining Phases 10–14 obligations, seed fairness, save migration, accessibility, long-run play, production art/audio, performance and release preparation; re-estimate after the new loop. Existing phase gates are not silently waived. |
 
 EX-06A is the independently reviewable freight subset of EX-06 brought forward under D-EX-12: multiple stops, reserved deliveries, return exports and save/UI support on the retained baseline. It does not complete EX-03 profiles, EX-04 opening, or EX-06 specialised factories/workshops. PROGRESS owns its status.
+
+EX-04A is the home-only subset of EX-04 authorised by D-EX-13: house inventory, one physical entrance, reachable starter patches, factory space and ordinary paid placement, with save/replay and goal support. Its static boundary is provisional geometry; destructible/player-built defences require EX-05. This subset does not complete the second-area station reward, radio opportunity or new campaign loop.
 
 ## 4. Migration of existing work
 

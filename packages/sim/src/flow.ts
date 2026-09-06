@@ -31,6 +31,7 @@ import type { HeartState } from './heart';
 import { heartAt, heartCheck, heartStarted, heartTick, cabinetAt, deliverToCabinet, repairCabinet, abortHeart } from './heart';
 import { segBetween, frontTiles, CitySeg } from './city';
 import { type StationRules, type FreightReservation, setStationRules, transferFreight } from './freight';
+import { isCampaign } from './rules';
 
 export const TILE_TPS = 20;                    // constitution: fixed 20 ticks/s at tile level
 export const TILE_DT = 1 / TILE_TPS;
@@ -328,7 +329,7 @@ export function ensureFlow(st: SimState): FlowState {
   // fourth segment uncovered and the HQ fell at minute 20). The lattice keeps M3's six (two a side on its three
   // street sides, the north pair at the §18 sketch's lot columns 3 and 16) — the lattice fixtures are its record.
   if (st.lattice) for (const [lx, ly, d] of [[3, 0, 0], [16, 0, 0], [0, 3, 3], [0, 16, 3], [22, 3, 1], [22, 16, 1]] as [number, number, Dir][]) addMachine(st, 'turret', ...lot(lx, ly), d);
-  else startTurrets(st);
+  else if (!isCampaign(st)) startTurrets(st);
   // §11: one Generator (300 kW) with 40 coal. GAME-ASSUMPTION: the 40 coal is in the Generator's hopper, not the
   // Depot (§18: "coal by hand, 40 left"); it stands at lot (19,8), where the §18 sketch draws it.
   const g = addMachine(st, 'generator', ...lot(19, 8), 0);
@@ -776,6 +777,7 @@ function tickBelt(st: SimState, m: Machine, dt: number): void {
  *  substation of a Dark block on the claim front commits the steel or copper it carries to that claim — the same
  *  committed store `deliverTo` fills by hand (ledger `committed`), up to what the claim still needs. */
 function beltDeliver(st: SimState, m: Machine, k: Item): boolean {
+  if (isCampaign(st)) return false;
   if (k !== 'steel' && k !== 'copper') return false;
   const f = st.flow!, nx = m.x + DX[m.dir], ny = m.y + DY[m.dir];
   const sm = machineAt(st, nx, ny);
@@ -1827,6 +1829,7 @@ export interface DeliverCheck { ok: boolean; reason: string; moved: number }
  *  the claim still needs. They sit committed there (ledger `committed`), neither in the pockets nor spent, until
  *  `activate` consumes them; a legitimate inventory interaction, never a charge from the map or the Depot. */
 export function deliverTo(st: SimState, bx: number, by: number, item: string, n: number, cabinet = -1): DeliverCheck {
+  if (isCampaign(st)) return { ok: false, moved: 0, reason: 'station restoration is not available in this opening preview' };
   if (cabinet >= 0) return deliverToCabinet(st, cabinet, item, n);   // RI-06: a feeder cabinet's materials (heart.ts)
   const f = ensureFlow(st), bi = idxOf(st, bx, by);
   if (bi < 0) return { ok: false, reason: 'out of bounds', moved: 0 };
@@ -1854,6 +1857,7 @@ export interface ActivateCheck { ok: boolean; reason: string; need: { steel: num
 export function activationCheck(st: SimState, bx: number, by: number, hands = true): ActivateCheck {
   const need = claimNeed(st);
   const no = (reason: string, have = { steel: 0, copper: 0 }): ActivateCheck => ({ ok: false, reason, need, have });
+  if (isCampaign(st)) return no('station restoration is not available in this opening preview');
   const bi = idxOf(st, bx, by);
   if (bi < 0) return no('out of bounds');
   const b = st.blocks[bi];

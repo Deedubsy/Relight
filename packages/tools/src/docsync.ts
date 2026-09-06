@@ -14,6 +14,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { syncCampaignDocs } from './campaign-docsync';
 import {
   DISTRICTS, RAIL_YARD, ENEMIES, RECIPES, WELL_RANGE, WELL_CAP_BONUS, WELL_G_MULT,
   // the source of truth (packages/sim/src/constants.ts, guardrails Step 5) and its readers
@@ -24,6 +25,10 @@ import {
 } from '@relight/sim';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const profile = process.argv.find(a => a.startsWith('--profile='))?.slice('--profile='.length) ?? 'all';
+if (!['all', 'legacy-v1', 'exploration-v2'].includes(profile)) throw new Error('docsync: unknown profile');
+if (profile !== 'legacy-v1') syncCampaignDocs(join(root, 'docs', 'CAMPAIGN_RULES.md'), process.argv.includes('--check'));
+if (profile === 'exploration-v2') process.exit(0);
 const docPath = join(root, 'docs', 'RELIGHT-design.md');
 const e3Path = join(root, 'docs', 'experiments', 'E3.json');
 
@@ -244,7 +249,9 @@ function render(doc: string): { out: string; changed: string[] } {
 const check = process.argv.includes('--check');
 const doc = readFileSync(docPath, 'utf8');
 const { out, changed } = render(doc);
-const bad = disagreements(doc);
+const legacyStart = doc.indexOf('## Legacy implementation reference — not Version 2 rules');
+if (legacyStart < 0) throw new Error('docsync: missing legacy boundary');
+const bad = disagreements(doc.slice(legacyStart));
 if (bad.length) {
   console.error(`docsync: ${bad.length} constant${bad.length === 1 ? '' : 's'} disagree with packages/sim/src/constants.ts (recorded in GUARDRAILS_REPORT.md §5; a DECISIONS.md row settles each):`);
   for (const b of bad) console.error(`  - ${b}`);

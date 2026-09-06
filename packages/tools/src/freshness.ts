@@ -16,8 +16,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { join, resolve, basename } from 'node:path';
-import { configHash } from '@relight/sim';
-import { configOf, parseStampLine, Stamp } from '@relight/harness/src/provenance';
+import { evidenceHash, evidenceProfileProblem, parseStampLine, Stamp } from '@relight/harness/src/provenance';
 
 const ROOT = resolve(process.env.INIT_CWD ?? process.cwd());
 const ARCHIVES = ['docs/experiments/lattice'];   // frozen records: ancestry checked, config hash reported only
@@ -29,9 +28,12 @@ const files: { file: string; kind: Row['kind'] }[] = [
   { file: 'docs/EXPERIMENTS.md', kind: 'md' },
   ...ls('docs/experiments', /\.md$/).map(file => ({ file, kind: 'md' as const })),
   ...ls('docs/experiments', /\.json$/).map(file => ({ file, kind: 'json' as const })),
+  ...ls('docs/experiments/campaign', /\.json$/).map(file => ({ file, kind: 'json' as const })),
+  ...ls('docs/experiments/campaign', /\.md$/).map(file => ({ file, kind: 'md' as const })),
   ...ls('docs/experiments/lattice', /\.md$/).map(file => ({ file, kind: 'md' as const })),
   ...ls('docs/experiments/lattice', /\.json$/).map(file => ({ file, kind: 'json' as const })),
   ...ls('packages/game/public/snapshots', /\.json$/).map(file => ({ file, kind: 'json' as const })),
+  ...ls('packages/game/public/snapshots/campaign', /\.json$/).map(file => ({ file, kind: 'json' as const })),
   ...ls('docs', /^section18-.*\.png$/).map(file => ({ file, kind: 'png' as const })),
   ...ls('docs/seeds', /\.png$/).map(file => ({ file, kind: 'png' as const })),
 ];
@@ -66,7 +68,12 @@ const rows: Row[] = files.map(({ file, kind }) => {
   const row: Row = { file, kind, archive, stamp, problems: problem ? [problem] : [] };
   if (!stamp) return row;
   if (!isAncestor(stamp.source_commit)) row.problems.push(`source_commit ${stamp.source_commit.slice(0, 7)} is not an ancestor of HEAD`);
-  try { row.expected = configHash(configOf(stamp.config_ref)); } catch (e) { row.problems.push(`config_ref not understood: ${(e as Error).message}`); return row; }
+  try {
+    row.expected = evidenceHash(stamp.config_ref);
+    const payload = kind === 'json' ? JSON.parse(readFileSync(join(ROOT, file), 'utf8')) : undefined;
+    const problem = evidenceProfileProblem(stamp.config_ref, file, payload);
+    if (problem) row.problems.push(problem);
+  } catch (e) { row.problems.push(`config_ref not understood: ${(e as Error).message}`); return row; }
   if (!archive && row.expected !== stamp.config_hash) row.problems.push(`config_hash ${stamp.config_hash} ≠ current ${row.expected} (${stamp.config_ref.kind})`);
   return row;
 });

@@ -511,6 +511,7 @@ export function shadeNear(st: SimState, tx: number, ty: number, r = 3): boolean 
  *  state, one Stalker is fielded at every Dark well block. Never called by the benchmark, the snapshot or the hour
  *  bot; `?stalker=1` and E-rifle-cand-stalker call it. Returns the layer, or null off the tile threat. */
 export function enableStalkers(st: SimState, cand: StalkerCandidate = CANDIDATES.stalker): StalkerLayer | null {
+  if (st.ruleset === 'exploration-v2') return null;
   if (!threatActive(st)) return null;
   const T = threatOf(st.flow!);
   T.stalk ??= newStalkerLayer(st, cand);

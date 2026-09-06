@@ -7,6 +7,7 @@ import {
   SaveFile, makeSave, loadState, isSaveFile, stateHash, enableStalkers, enableHeart,
 } from '@relight/sim';
 import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } from './telemetry';
+import { type Ruleset, isRuleset, rulesetOf, isCampaign, CAMPAIGN_RULESET, LEGACY_RULESET, createCampaign } from '@relight/sim';
 
 /** `state` names a snapshot: a bare name resolves to /snapshots/<name>.json (shipped with the proto), a path or URL
  *  is fetched as is. A snapshot is a raw SimState, or a telemetry export (whose `finalState` is taken). */
@@ -15,14 +16,17 @@ import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } fro
 /** M6: `autoplay=hour` runs §11's hour bot on the tile layer (hour.ts; a dev aid, never a player control); `rifle=1`
  *  gives it the rifle reflex. Every command of a session is logged (`Session.log`) so a played hour replays without
  *  the rifle for Gate B's "did it matter?" row (`replaySession`). */
-export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | 'hour' | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean; map: 'lattice' | CityPreset; rifle: boolean; stalker: boolean; heart: boolean; cityProfile?: 'riverside-v1' | 'legacy' }
+export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | 'hour' | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean; map: 'lattice' | CityPreset; rifle: boolean; stalker: boolean; heart: boolean; cityProfile?: 'riverside-v1' | 'legacy'; ruleset?: Ruleset }
 
 export function parseUrl(search: string): UrlParams {
   const q = new URLSearchParams(search);
   const seed = Number(q.get('seed') ?? '3');
   const auto = q.get('autoplay');
+  const ruleset = q.get('rules');
+  if (ruleset !== null && !isRuleset(ruleset)) throw new Error('Unknown campaign rules');
   return {
     seed: Number.isFinite(seed) ? seed : 3,
+    ...(ruleset ? { ruleset } : {}),
     economy: q.get('economy') !== '0',
     scatter: q.get('scatter') !== '0',
     autoplay: auto === 'hour' ? 'hour' : auto && (POLICIES as string[]).includes(auto) ? (auto as Policy) : null,
@@ -45,6 +49,7 @@ function mapParam(v: string | null): 'lattice' | CityPreset {
 
 export function shareUrl(p: UrlParams): string {
   const q = new URLSearchParams();
+  if (p.ruleset) q.set('rules', p.ruleset);
   if (p.state) q.set('state', p.state);
   else {
     q.set('seed', String(p.seed));
@@ -73,8 +78,9 @@ export function snapshotUrl(ref: string): string {
  *  default (RI-02): one named slot in `localStorage` under `relight.save.<slot>`; the download and URL paths stay. */
 export const LOCAL_PREFIX = 'local:';
 export const saveKey = (slot: string): string => `relight.save.${slot}`;
-export function hasSlot(slot: string): boolean {
-  try { return localStorage.getItem(saveKey(slot)) !== null; } catch { return false; }
+export function profileSlot(slot: string, ruleset: Ruleset = LEGACY_RULESET): string { return ruleset === CAMPAIGN_RULESET ? `${CAMPAIGN_RULESET}:${slot}` : slot; }
+export function hasSlot(slot: string, ruleset: Ruleset = LEGACY_RULESET): boolean {
+  try { return localStorage.getItem(saveKey(profileSlot(slot, ruleset))) !== null; } catch { return false; }
 }
 
 /** What a `state` reference resolves to: the validated state (a deep copy, transients reset) and, from a save file,
@@ -139,13 +145,20 @@ export function createSession(params: UrlParams, snapshot: Loaded | null = null)
   let state: SimState;
   if (snapshot) {
     state = loadState(snapshot.state);   // RI-02: the validated deep copy (save.ts), transients reset, paused
-    params = { ...params, seed: state.seed, economy: state.config.economy, scatter: state.config.scatter, map: state.city ? (state.city.preset as CityPreset) : 'lattice', cityProfile: state.city?.profile ?? 'legacy' };
+    if (params.ruleset && params.ruleset !== rulesetOf(state)) throw new Error('Saved campaign rules do not match the selected campaign');
+    params = { ...params, ruleset: rulesetOf(state), seed: state.seed, economy: state.config.economy, scatter: state.config.scatter, map: state.city ? (state.city.preset as CityPreset) : 'lattice', cityProfile: state.city?.profile ?? 'legacy' };
+  } else if (params.ruleset === CAMPAIGN_RULESET) {
+    state = createCampaign(params.seed);
   } else {
     // D6: the map is the street-first city unless ?map=lattice; M1 put the tile layer on its faces, so flow is on there too
     const config = protoConfig(params);
     const spec = params.map === 'lattice' ? generateMap(params.seed, config) : citySpec(params.seed, params.map, config);
     if (spec.city && params.cityProfile === 'riverside-v1') spec.city.profile = 'riverside-v1';
     state = createState(spec, config, params.seed);
+  }
+  if (isCampaign(state)) {
+    if (params.autoplay || params.heart || params.stalker || !params.flow) throw new Error('Legacy bots, encounters and block-only mode cannot run in the exploration campaign');
+    params = { ...params, map: 'river', ruleset: CAMPAIGN_RULESET, cityProfile: 'riverside-v1', flow: true, economy: true, scatter: true };
   }
   // GAME-ASSUMPTION (M2): the tile flow layer is on for every session unless ?flow=0 (bot comparisons against the
   // block-only calibration runs). Turning it on retires the HQ's Mk1 stand-in: hour one's magazines come from the
@@ -175,20 +188,20 @@ export function createSession(params: UrlParams, snapshot: Loaded | null = null)
 /** RI-02: the session as a save file — the state, the command log (complete or not) and the URL parameters. */
 export function makeSessionSave(s: Session): SaveFile {
   const p = s.params;
-  return makeSave(s.state, { log: s.log, logComplete: s.logComplete, params: { seed: p.seed, economy: p.economy, scatter: p.scatter, map: p.map, flow: p.flow, view: p.view, player: p.player, from: p.state } });
+  return makeSave(s.state, { log: s.log, logComplete: s.logComplete, params: { seed: p.seed, economy: p.economy, scatter: p.scatter, map: p.map, flow: p.flow, view: p.view, player: p.player, from: p.state, ruleset: rulesetOf(s.state) } });
 }
 
 /** RI-02: write the session to a browser save slot. Returns the save's hash and clock; throws when the browser
  *  refuses (private mode, quota). The state is untouched — saving is not a command and is not logged. */
 export function saveSlot(s: Session, slot = '1'): SaveFile {
   const save = makeSessionSave(s);
-  localStorage.setItem(saveKey(slot), JSON.stringify(save));
+  localStorage.setItem(saveKey(profileSlot(slot, rulesetOf(s.state))), JSON.stringify(save));
   return save;
 }
 
 /** RI-02: the URL that reloads the page from a browser save slot (`?state=local:<slot>`, the other parameters kept). */
 export function slotUrl(s: Session, slot = '1'): string {
-  return shareUrl({ ...s.params, state: `${LOCAL_PREFIX}${slot}` });
+  return shareUrl({ ...s.params, state: `${LOCAL_PREFIX}${profileSlot(slot, rulesetOf(s.state))}` });
 }
 
 export { stateHash };
@@ -262,7 +275,7 @@ export function replaySession(s: Session, opts: { rifleOff?: boolean } = {}): { 
   const config = protoConfig(s.params);
   const spec = s.params.map === 'lattice' ? generateMap(s.params.seed, config) : citySpec(s.params.seed, s.params.map, config);
   if (spec.city && s.state.city?.profile) spec.city.profile = s.state.city.profile;
-  const st = createState(spec, config, s.params.seed);
+  const st = isCampaign(s.state) ? createCampaign(s.params.seed) : createState(spec, config, s.params.seed);
   Object.assign(st.config, { power: true, supply: 'generators', draw: 'half' });
   ensureFlow(st);
   if (s.params.stalker) enableStalkers(st);   // RI-04: the candidate is part of what the log was played against

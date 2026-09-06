@@ -26,6 +26,7 @@ import {
 import { ground, blockOfTile, inReach } from './ground';
 import { blockName } from './names';
 import { heartAt, describeHeart } from './heart';   // RI-06
+import { isCampaign } from './rules';
 
 export const RAIL_YARD_PROJECT = 'rail-yard', SUPPLY_DEPOT_PROJECT = 'supply-depot';
 export const RAIL_ROUTE_REWARD = 'rail-route', LOCAL_DEPOT_REWARD = 'local-depot';
@@ -92,6 +93,7 @@ export function projectActivated(st: SimState, bi: number, attempt: number, got:
 
 /** Recompute every record's stage from the site's real state. Called after each block tick and each hand command. */
 export function syncProjects(st: SimState): void {
+  if (isCampaign(st)) return;
   const f = st.flow;
   if (!f) return;
   f.projects ??= {};

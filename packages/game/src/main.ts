@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { rulesetOf } from '@relight/sim';
 import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
   hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
   projectOf, projectTitle, describeProject, RAIL_ROUTE_REWARD, LOCAL_DEPOT_REWARD,   // RI-05
@@ -13,15 +14,24 @@ import { View, debugView, hudInset } from './view';
 import { createPanel, exportExtra } from './panel';
 import { exportJson, summarise } from './telemetry';
 
-const params = parseUrl(location.search);
-let loadError: string | null = null;
 let session: Session;
 try {
+  const params = parseUrl(location.search);
   session = createSession(params, params.state ? await loadSnapshot(params.state) : null);
 } catch (e) {
-  loadError = (e as Error).message;
-  session = createSession({ ...params, state: null });
+  // Fail closed: a rejected save/profile must never silently become a different campaign.
+  const panel = document.getElementById('panel')!;
+  const title = document.createElement('h2'), reason = document.createElement('p');
+  title.textContent = 'This session could not be opened';
+  reason.textContent = `${(e as Error).message}. Your saved games have not been changed.`;
+  panel.replaceChildren(title, reason);
+  for (const [label, rules] of [['Start Home Court preview', 'exploration-v2'], ['Start legacy game', 'legacy-v1']]) {
+    const line = document.createElement('p'), link = document.createElement('a');
+    link.textContent = label; link.href = `?rules=${rules}&view=world`; line.append(link); panel.append(line);
+  }
+  throw e;
 }
+const params = session.params;
 /** Both views share one block. M1 (D5): on foot the block is the engineer's — map → world lands the camera on the
  *  engineer, world → map marks the block they stand in. Without the flow layer (?flow=0) the old hand-off stays: the
  *  block under the map cursor, the block under the world camera's centre. */
@@ -31,8 +41,7 @@ const panel = createPanel(session, document.getElementById('panel')!, {
   onSelectEdge(id) { mapScene.selectEdge(id); },
   onToggleView() { toggleView(); },
 });
-if (loadError) panel.toast(`Could not load the save (${loadError}); started a fresh seed ${session.state.seed} instead`, 'bad');
-else if (session.scenario === 'B') panel.toast(`${params.state?.startsWith('local:') ? 'Save' : 'Snapshot'} loaded at ${clockOf(session.startT)} (state ${stateHash(session.state)}) — paused. Press P or a speed to begin.`, 'good');
+if (session.scenario === 'B') panel.toast(`${params.state?.startsWith('local:') ? 'Save' : 'Snapshot'} loaded at ${clockOf(session.startT)} (state ${stateHash(session.state)}) — paused. Press P or a speed to begin.`, 'good');
 
 /** RI-02: a block by its stable name (names.ts), with the coordinates only behind the ` toggle. */
 const at = (x: number, y: number): string => blockLabel(session.state, idxOf(session.state, x, y), debugView.coords);
@@ -207,7 +216,7 @@ window.addEventListener('keydown', ev => {
   }
   if ((ev.ctrlKey || ev.metaKey) && (k === 'o' || k === 'O')) {
     ev.preventDefault();
-    if (!hasSlot('1')) { panel.toast('Slot 1 is empty in this browser — Ctrl+S saves to it', 'bad'); return; }
+    if (!hasSlot('1', rulesetOf(session.state))) { panel.toast('This campaign has no save yet — Ctrl+S saves it', 'bad'); return; }
     if (window.confirm('Reload from slot 1? Unsaved progress is lost.')) location.href = slotUrl(session, '1');
     return;
   }

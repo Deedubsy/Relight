@@ -28,3 +28,5 @@ npm run freshness:check
 ```
 
 Use dependencies installed for the operating system running the commands. The currently present esbuild dependency is Linux-specific and cannot run the documentation tools under Windows; this is recorded in the migration report.
+
+To try the first home opening after starting the dev server, open `?rules=exploration-v2&view=world` or use the header link in the legacy game. This preview has a house, one entrance, starter resources and normal factory building. Station restoration and attacks are still pending. Saves use separate campaign slots; old saves keep their legacy rules. See [the campaign report](docs/CAMPAIGN_OPENING_REPORT.md).

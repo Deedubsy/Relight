@@ -1,0 +1,13 @@
+{
+  "check": "focused",
+  "exit": 0,
+  "seconds": 7.62,
+  "runtime": "WSL Ubuntu-24.04, Node 22.18.0",
+  "command": [
+    "/home/deedub/.nvm/versions/node/v22.18.0/bin/node",
+    "node_modules/tsx/dist/cli.mjs",
+    "--test",
+    "--test-concurrency=1",
+    "packages/sim/test/campaign.test.ts"
+  ]
+}

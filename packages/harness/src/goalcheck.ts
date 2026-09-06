@@ -7,7 +7,7 @@
  *  save / load baseline: the state at `saveAt` is hashed, round-tripped through `makeSave` → JSON → `loadState`,
  *  and both copies replay the rest of the log to the same hash at the end. */
 import {
-  SimState, LoggedCommand, HELD, DARK, CONTESTED, Goal, GoalId, SupportId, currentGoal, GOAL_ORDER, replay, TILE_TPS,
+  SimState, LoggedCommand, HELD, DARK, CONTESTED, Goal, LegacyGoalId, SupportId, currentGoal, GOAL_ORDER, replay, TILE_TPS, isCampaign,
   generators, assemblers, shotAssemblers, excavatorsOn, patchExcavators, patchLeft, railCoalLeft, hqNeighbourToward, hqIdx, blockOfTile,
   throttle, edgeCap, stateHash, makeSave, loadState, SHOT, HOUR_MINE_STEEL, HOUR_CRAFT_MAGS, HOUR_END, HOUR, mmss,
 } from '@relight/sim';
@@ -17,7 +17,7 @@ const dirBlock = (st: SimState, d: Dir) => { const i = hqNeighbourToward(st, d);
 const dirIdx = (st: SimState, d: Dir) => hqNeighbourToward(st, d);
 
 /** "This row is still unmet" per goal id. The ids with no row of their own (front, hq-fell, hold) are handled in `goalProblem`. */
-const UNMET: Record<Exclude<GoalId, 'front' | 'hq-fell' | 'hold'>, (st: SimState) => boolean> = {
+const UNMET: Record<Exclude<LegacyGoalId, 'front' | 'hq-fell' | 'hold'>, (st: SimState) => boolean> = {
   mine: st => { const f = st.flow!; return shotAssemblers(st).length === 0 && f.stats.handCrafted < HOUR_CRAFT_MAGS && f.stats.handMined < HOUR_MINE_STEEL
                   && (st.engineer.inv.steel ?? 0) < SHOT.inputs.steel * (HOUR_CRAFT_MAGS - f.stats.handCrafted); },
   craft: st => shotAssemblers(st).length === 0 && st.flow!.stats.handCrafted < HOUR_CRAFT_MAGS,
@@ -53,7 +53,8 @@ const SUPPORT: [SupportId, (st: SimState) => boolean][] = [
 ];
 
 /** The id the state must show: the first unmet §11 row, `hold` when none is. */
-export function expectedGoal(st: SimState): GoalId {
+export function expectedGoal(st: SimState): LegacyGoalId {
+  if (isCampaign(st)) throw new Error('The legacy goal oracle cannot evaluate an exploration campaign');
   if (st.blocks[hqIdx(st)].state !== HELD) return 'hq-fell';
   if (!st.flow) return 'front';
   for (const id of GOAL_ORDER) if (id !== 'front' && id !== 'hq-fell' && id !== 'hold' && UNMET[id](st)) return id;

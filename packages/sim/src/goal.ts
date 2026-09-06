@@ -11,6 +11,7 @@
  *  running / starved / blocked / idle / off word of the same section. E-hour samples `currentGoal` at 1 Hz through
  *  the logged hour and checks every id against the state it claims (packages/harness goalcheck.ts). */
 import { SimState, HELD, DARK, CONTESTED, Edge } from './types';
+import { isCampaign } from './rules';
 import {
   Machine, MACHINE_COST, MACHINE_KW, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
   recipeOf, recipeOutput, subPowered, poleGrid, inputTile, outputTile, findRubble, asmCanStart, costStr, Item,
@@ -29,12 +30,14 @@ import { heartAt, describeHeart } from './heart';   // RI-06
 
 export type GoalDir = 'east' | 'west' | 'north';
 export type GoalId =
+  | 'home-factory' | 'home-explore'
   | 'hq-fell' | 'front' | 'mine' | 'craft' | 'coal-line' | 'gen-2' | 'steel-line' | 'copper-line' | 'shot-line' | 'steel-2' | 'gen-3'
   | 'claim-east' | 'contest-east' | 'retake-east' | 'claim-west' | 'contest-west' | 'retake-west' | 'rail-coal'
   | 'gen-4' | 'copper-2' | 'assembler-3' | 'claim-north' | 'contest-north' | 'retake-north' | 'hold';
 export type SupportId = 'down' | 'gen-dry' | 'kit' | 'feed' | 'brownout';
+export type LegacyGoalId = Exclude<GoalId, 'home-factory' | 'home-explore'>;
 /** §11's row order: the goal ids a state can show, first to last. */
-export const GOAL_ORDER: readonly GoalId[] = [
+export const GOAL_ORDER: readonly LegacyGoalId[] = [
   'hq-fell', 'front', 'mine', 'craft', 'coal-line', 'gen-2', 'steel-line', 'copper-line', 'shot-line', 'steel-2', 'gen-3',
   'claim-east', 'contest-east', 'retake-east', 'claim-west', 'contest-west', 'retake-west', 'rail-coal',
   'gen-4', 'copper-2', 'assembler-3', 'claim-north', 'contest-north', 'retake-north', 'hold',
@@ -233,6 +236,11 @@ function supportOf(st: SimState): GoalLine | null {
 
 /** The current goal and its support line. Pure; cheap enough for a HUD to call once a second. */
 export function currentGoal(st: SimState): Goal {
+  if (isCampaign(st)) {
+    const factory = st.flow?.machines.some(m => m.kind === 'excavator' || m.kind === 'assembler');
+    return { goal: { id: factory ? 'home-explore' : 'home-factory', text: factory ? 'Explore beyond Home Court through its single entrance' : 'Build your first production line in Home Court',
+      why: factory ? 'Your house and factory remain here when you return.' : 'E at the house opens your supplies; B opens building. Steel and copper patches are inside the court.' }, support: null };
+  }
   return { goal: goalOf(st), support: supportOf(st) };
 }
 

@@ -7,6 +7,8 @@
  *  geometry, never on time. */
 import { SimState, Block, INERT, VOID } from './types';
 import { buildUrban, UrbanCity } from './city/urban';
+import { isCampaign } from './rules';
+import { buildOpening, type OpeningGeometry } from './city/opening';
 import { LAMP_STEP_TILES } from './constants';
 import { hash01 } from './prng';
 import { LATTICE_AREA } from './graph';
@@ -45,6 +47,7 @@ export interface BlockGround {
 
 export interface Ground {
   urban?: UrbanCity;
+  opening?: OpeningGeometry;
   tw: number; th: number;
   lattice: boolean;
   /** T_STREET | T_GROUND | T_RIVER per tile, state-free. */
@@ -177,6 +180,7 @@ function cityGround(st: SimState): Ground {
   for (let t = 0; t < tw * th; t++) if (G.rank[t] === RESERVED) G.rank[t] = -1;
   if (st.city?.profile === 'riverside-v1') {
     G.urban = buildUrban(st, G, cg);
+    if (isCampaign(st)) G.opening = buildOpening(G);
     // Structures precede the final resource placement. Relocate only covered rubble tiles,
     // preserving count, depletion rank and type; HQ patches and rail coal are untouched.
     for (const bg of G.blocks) {
