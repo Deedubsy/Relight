@@ -216,7 +216,9 @@ export class WorldScene extends Phaser.Scene {
     cam.setZoom(this.fitZoom());
     cam.setRoundPixels(false); // Fractional zoom must not round every ground tile into visible seams.
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT,SHIFT,SPACE') as WorldScene['keys'];
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
+    // Clicking back into the world leaves station inputs, restoring game keyboard controls.
+    this.game.canvas.tabIndex = 0;
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { this.game.canvas.focus({ preventScroll: true }); this.onDown(p); });
     this.input.on('pointerup', () => this.onUp());
     this.input.on('gameout', () => { this.onUp(); this.hoverTile = null; this.hooks.onHoverText(null, 0, 0); });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));

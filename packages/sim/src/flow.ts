@@ -30,6 +30,7 @@ import type { HeartState } from './heart';
 // RI-06: the Junction Heart (function-only, like project.ts: the modules import each other)
 import { heartAt, heartCheck, heartStarted, heartTick, cabinetAt, deliverToCabinet, repairCabinet, abortHeart } from './heart';
 import { segBetween, frontTiles, CitySeg } from './city';
+import { type StationRules, type FreightReservation, setStationRules, transferFreight } from './freight';
 
 export const TILE_TPS = 20;                    // constitution: fixed 20 ticks/s at tile level
 export const TILE_DT = 1 / TILE_TPS;
@@ -206,6 +207,9 @@ export interface Machine {
   cargo?: Record<string, number>;
   /** RI-05, Tram: heading along its route (`tramRoute` order) and the stop it last served (-1 none). */
   run?: { fwd: boolean; stop: number };
+  /** EX-06A: optional selective station contracts and cargo ownership metadata. */
+  freight?: StationRules;
+  manifest?: FreightReservation[];
 }
 /** RI-05 (plan §5.1): a neighbourhood project record — see project.ts. */
 export interface ProjectRecord {
@@ -1048,6 +1052,11 @@ export function stopAt(st: SimState, tx: number, ty: number): Machine | undefine
 /** RI-05: the stop's cranes — the tram's arrival is unloaded into the stop's arrivals and its platform boards, each
  *  up to its cap, at once; nothing moves at an unpowered stop. */
 function tramTransfer(st: SimState, m: Machine, stop: Machine): void {
+  const stops = routeStops(st, tramRoute(st, m));
+  if (stops.some(s => s.freight !== undefined) || m.manifest !== undefined) {
+    transferFreight(st, m, stop, stops, running(st, stop));
+    return;
+  }
   if (!running(st, stop)) return;
   const f = st.flow!, cargo = (m.cargo ??= {}), arrivals = (stop.cargo ??= {});
   for (const k of Object.keys(cargo)) {
@@ -1062,6 +1071,9 @@ function tramTransfer(st: SimState, m: Machine, stop: Machine): void {
     cargo[k] = (cargo[k] ?? 0) + n; stop.inv[k] -= n; if (stop.inv[k] <= 0) delete stop.inv[k];
   }
 }
+function routeStops(st: SimState, path: number[]): Machine[] {
+  return [...new Set(path.map(t => stopAt(st, t % st.flow!.tw, Math.floor(t / st.flow!.tw))).filter((s): s is Machine => !!s))];
+}
 /** The tram shuttles end to end along its route at TRAM_TPS, dwelling TRAM_DWELL_S at each stop it passes (once a
  *  visit — a 2×2 stop touches two track tiles). `timer` is its progress to the next tile; `phase` 1 while dwelling,
  *  2 parked with no route. It moves without power (the stops need it to transfer). */
@@ -1070,6 +1082,15 @@ function tickTram(st: SimState, m: Machine, dt: number): void {
   if (m.phase === 1) { m.timer -= dt; if (m.timer > EPS) return; m.phase = 0; m.timer = 0; }
   const path = tramRoute(st, m);
   if (path.length < 2) { m.phase = 2; m.timer = 0; return; }
+  // A severed line must not turn a loaded delivery into a shorter shuttle route.
+  // Park until reconnected. A removed destination, however, can return to origin.
+  if (m.manifest?.length) {
+    const connected = new Set(routeStops(st, path).map(s => s.id));
+    if (m.manifest.some(r => {
+      const target = r.returning ? r.origin : r.destination;
+      return !connected.has(target) && f.machines.some(s => s.id === target && s.kind === 'tramstop');
+    })) { m.phase = 2; m.timer = 0; return; }
+  }
   m.phase = 0;
   m.timer += dt * TRAM_TPS;
   while (m.timer >= 1 - EPS) {
@@ -2052,6 +2073,7 @@ handHook.current = (st, c) => {
     case 'rotate': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) rotate(st, c.x, c.y); break; }
     // RI-01: the scene's T on an Assembler as a command (within reach, a known recipe)
     case 'setRecipe': { const m = machineAt(st, c.x, c.y); if (m && isRecipeId(c.recipe) && inReach(st, m.x, m.y, m.size)) setRecipe(st, c.x, c.y, c.recipe); break; }
+    case 'setStationRules': setStationRules(st, c.x, c.y, c.rules); break;
     // RI-03: physical commissioning — materials into the installation and the explicit Activate (both check reach of it)
     case 'deliver': deliverTo(st, c.bx, c.by, c.item, c.n, c.cabinet ?? -1); break;
     case 'activate': activate(st, c.bx, c.by); break;

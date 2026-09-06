@@ -194,6 +194,7 @@ export type Command =
   | { type: 'repair'; x: number; y: number }        // E on an eaten lamp: 1 Cu from the pockets
   | { type: 'rotate'; x: number; y: number }        // R on a machine
   | { type: 'setRecipe'; x: number; y: number; recipe: string }    // RI-01: T on an Assembler — one of flow.ts RECIPE_IDS
+  | { type: 'setStationRules'; x: number; y: number; rules: import('./freight').StationRules }
   // RI-03 (plan §4.1): physical commissioning. `deliver` moves claim materials from the pockets into a Dark block's
   // installation (its substation, within reach); `activate` is the explicit Activate on it — the only thing that
   // starts Contested on the tile layer. Block coordinates (bx, by), unlike the tile commands above. The block-level
@@ -285,7 +286,7 @@ export interface Engineer {
 }
 
 export interface SimState {
-  version: 1;
+  version: 1 | 2;
   seed: number;
   t: number;
   rng: number;

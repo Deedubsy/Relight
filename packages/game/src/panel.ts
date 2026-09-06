@@ -7,6 +7,7 @@ import { Session, setSpeed, queue, shareUrl, record, saveSlot, slotUrl, hasSlot,
 import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
+import { ITEMS, StationRules, freightInbound } from '@relight/sim';
 
 /** M6: what the export carries beside the telemetry — the command log (the replay's input) and, under the hour bot, its log and report. */
 export function exportExtra(session: Session): Record<string, unknown> {
@@ -146,6 +147,41 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const pocketMach = el('li'); const pocketMachV = el('span', 'mono', 'none');
   pocketMach.append(el('span', undefined, 'machines carried (one stack each)'), pocketMachV); pocketList.append(pocketMach);
   pocketSec.append(pocketList);
+  const freightForm = el('form', 'station-freight');
+  freightForm.hidden = true;
+  // Keep arrow keys and Space available to form controls instead of the game's keyboard capture.
+  freightForm.addEventListener('keydown', event => event.stopPropagation());
+  freightForm.append(el('h3', undefined, 'Station supply requests'));
+  const freightStatus = el('p', 'hint');
+  freightForm.append(freightStatus, el('p', 'hint', 'Request fills local stock up to a target. Export sends platform stock above Keep to other configured stations. Arrivals feed local belts. Configure both ends of a delivery.'));
+  const freightTable = el('table'), freightHeader = el('tr');
+  for (const label of ['Item', 'Request', 'Keep', 'Export']) freightHeader.append(el('th', undefined, label));
+  freightTable.append(freightHeader);
+  const freightRows = ITEMS.map(item => {
+    const row = el('tr'); row.append(el('th', undefined, item));
+    const request = el('input'), reserve = el('input'), exporting = el('input');
+    for (const [input, label] of [[request, 'Request'], [reserve, 'Keep']] as const) {
+      input.type = 'number'; input.min = '0'; input.max = String(STOP_CAP); input.step = '1'; input.required = true;
+      input.setAttribute('aria-label', `${label} ${item}`);
+    }
+    exporting.type = 'checkbox'; exporting.setAttribute('aria-label', `Export ${item}`);
+    for (const input of [request, reserve, exporting]) { const cell = el('td'); cell.append(input); row.append(cell); }
+    freightTable.append(row);
+    return { item, request, reserve, exporting };
+  });
+  const freightApply = el('button', undefined, 'Apply station requests'); freightApply.type = 'submit';
+  freightForm.append(freightTable, freightApply);
+  freightForm.onsubmit = event => {
+    event.preventDefault();
+    const target = pocketTarget();
+    if (target?.kind !== 'tramstop' || !inReach(session.state, target.x, target.y, target.size) || !freightForm.reportValidity()) return;
+    const rules: StationRules = {};
+    for (const r of freightRows) rules[r.item] = { request: Number(r.request.value), reserve: Number(r.reserve.value), export: r.exporting.checked };
+    queue(session, { type: 'setStationRules', x: target.x, y: target.y, rules });
+    toast('Station requests queued', 'good');
+  };
+  let freightKey = '';
+  pocketSec.append(freightForm);
   pocketSec.append(el('p', 'hint', `Pockets: ${INV_STACKS} stacks (a kit is ${KIT_STACKS}). The chest answers within ${REACH} tiles of the Depot. A claim's steel and copper go from the pockets into the block's substation (E on it) and are spent at Activate; its edges wait for a kit the engineer carries there. Machines are placed from the pockets: a carried one, else its price in carried steel and copper; right-click picks a machine up into the pockets with what it holds.`));
   root.append(pocketSec);
 
@@ -401,12 +437,26 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       const e = s.engineer, near = pocketAt && tgt ? inReach(s, tgt.x, tgt.y, MACHINE_SIZE[tgt.kind]) : nearDepot(s), where = pocketWhere();
       pocketHead.textContent = `${invStacks(e.inv)} / ${INV_STACKS} stacks · ${near ? `at ${where}` : `walk to ${where} to transfer (${REACH} tiles)`}${pocketAt && tgt ? ` · ${tgt.kind === 'tramstop' ? `platform ${Object.values(tgt.inv).reduce((a, b) => a + b, 0)} / ${STOP_CAP}` : `${Object.values(tgt.inv).reduce((a, b) => a + b, 0)} / ${SUPPLY_CHEST_CAP}`}` : ''} · HP ${Math.round(e.hp)}`;
       for (const r of pocketRows) {
-        const c = pocketAt && tgt ? (tgt.inv[r.item] ?? 0) : chestCount(s, r.item);
-        r.v.textContent = `pockets ${e.inv[r.item] ?? 0} · ${pocketAt ? 'there' : 'chest'} ${c === Infinity ? '∞' : c}`;
+        const c = pocketAt && tgt ? ((tgt.kind === 'tramstop' ? tgt.cargo : tgt.inv)?.[r.item] ?? 0) : chestCount(s, r.item);
+        r.v.textContent = `pockets ${e.inv[r.item] ?? 0} · ${pocketAt && tgt?.kind === 'tramstop' ? `platform ${tgt.inv[r.item] ?? 0} · arrivals` : pocketAt ? 'there' : 'chest'} ${c === Infinity ? '∞' : c}`;
         r.take.disabled = !near || c <= 0; r.put.disabled = !near || !(e.inv[r.item] > 0);
       }
       const mach = KINDS.filter(k => (e.inv[k] ?? 0) > 0).map(k => `${e.inv[k]} ${k}`);
       pocketMachV.textContent = mach.length ? mach.join(', ') : 'none';
+      freightForm.hidden = !pocketAt || tgt?.kind !== 'tramstop';
+      if (!freightForm.hidden && tgt) {
+        const key = `${tgt.id}:${JSON.stringify(tgt.freight)}`;
+        if (key !== freightKey) {
+          freightKey = key;
+          for (const r of freightRows) {
+            r.request.value = String(tgt.freight?.[r.item]?.request ?? 0);
+            r.reserve.value = String(tgt.freight?.[r.item]?.reserve ?? 0);
+            r.exporting.checked = tgt.freight?.[r.item]?.export ?? false;
+          }
+        }
+        freightStatus.textContent = `${tgt.freight ? 'Requests active' : 'Not configured — applying requests enables selective freight on this line'} · ${freightInbound(s, tgt.id)} items reserved in transit`;
+        freightApply.disabled = !near;
+      } else freightKey = '';
     }
     if (!buildSec.hidden) for (const b of buildCarried) {
       const n = s.engineer.inv[b.kind] ?? 0; b.v.textContent = n > 0 ? `· ${n} carried` : '';

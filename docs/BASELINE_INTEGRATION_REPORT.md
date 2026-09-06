@@ -52,3 +52,7 @@ Overlapping files include CLAUDE, phases, programme state, progress and GDD; AGE
 Save migration needs separate schema and gameplay identity. Mid-encounter main saves are covered by the reproduced tests, but old saves cannot yet be converted into the new base/assault economy. Preserve legacy play/replay and begin the revised gameplay in a new explicitly identified profile. No automatic conversion is included in this audit.
 
 The technical runtime blocker is resolved by using the existing Linux environment. Native Windows dependencies are still Linux-built; do not claim a Windows-native install was repaired. No outside service, plugin or dependency download was required.
+
+## Subsequent authorised integration
+
+The owner authorised the proposed integration and tram work (D-EX-12). Adopted docs were checkpointed in f20208a; tested origin/main b32e4c3 was merged in 0fdbb67 on codex/tram-expansion. Conflicting handoff/workflow docs retained the adopted design; main code, tests and historical evidence were kept. The comparison above records the pre-merge audit. TRAM_INTEGRATION_REPORT.md records the integrated result and validation.

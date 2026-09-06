@@ -8,6 +8,7 @@
  *  to decide anything. A pre-RI-02 raw state file and a telemetry export (`finalState`) still load. */
 import { SimState } from './types';
 import type { LoggedCommand } from './hour';
+import { freightProblem } from './freight';
 
 export const SAVE_TRANSIENT: readonly (keyof SimState)[] = ['events', 'acc', 'speed'];
 
@@ -38,7 +39,7 @@ export function stateHash(st: SimState): string {
 }
 
 export interface SaveFile {
-  version: 1;
+  version: 1 | 2;
   kind: 'relight-save';
   savedAt: string;
   seed: number;
@@ -56,25 +57,26 @@ export interface SaveFile {
 
 export function isSaveFile(v: unknown): v is SaveFile {
   const o = v as Partial<SaveFile> | null;
-  return !!o && typeof o === 'object' && o.kind === 'relight-save' && o.version === 1 && !!o.state && typeof o.state === 'object';
+  return !!o && typeof o === 'object' && o.kind === 'relight-save' && (o.version === 1 || o.version === 2) && !!o.state && typeof o.state === 'object';
 }
 
 /** Why a value is not a Relight state, or '' when it is one. */
 export function stateProblem(v: unknown): string {
   const st = v as Partial<SimState> | null;
   if (!st || typeof st !== 'object') return 'not an object';
-  if (st.version !== 1) return `version ${String(st.version)} is not 1`;
+  if (st.version !== 1 && st.version !== 2) return `version ${String(st.version)} is unsupported (expected 1 or 2)`;
   if (!Array.isArray(st.blocks)) return 'no blocks';
   if (!st.config || typeof st.config !== 'object') return 'no config';
   if (!Array.isArray(st.ring)) return 'no ring';
   if (!st.engineer || typeof st.engineer !== 'object') return 'no engineer';
   if (st.city?.profile && st.city.profile !== 'riverside-v1') return `unsupported city profile ${st.city.profile}`;
-  return '';
+  return freightProblem(st as SimState);
 }
 
 /** A validated deep copy of a saved state — a SaveFile, a telemetry export (its `finalState`) or a raw SimState —
  *  with the transients reset (no events, no accumulated fraction, paused). Throws with the reason otherwise. */
 export function loadState(raw: unknown): SimState {
+  if (isSaveFile(raw) && raw.version !== raw.state.version) throw new Error('not a Relight state: save and state versions differ');
   const src = isSaveFile(raw) ? raw.state : ((raw as { finalState?: unknown } | null)?.finalState ?? raw);
   const bad = stateProblem(src);
   if (bad) throw new Error(`not a Relight state: ${bad}`);
@@ -87,7 +89,7 @@ export function loadState(raw: unknown): SimState {
 /** A save of `st` now. The state is deep-copied with its transients reset so the file equals what a load gives. */
 export function makeSave(st: SimState, opts: { log?: LoggedCommand[]; logComplete?: boolean; params?: SaveFile['params']; savedAt?: string } = {}): SaveFile {
   const state = loadState(st);
-  const out: SaveFile = { version: 1, kind: 'relight-save', savedAt: opts.savedAt ?? new Date().toISOString(), seed: st.seed, tick: st.flow?.tick ?? -1, t: st.t, hash: stateHash(state), state };
+  const out: SaveFile = { version: st.version, kind: 'relight-save', savedAt: opts.savedAt ?? new Date().toISOString(), seed: st.seed, tick: st.flow?.tick ?? -1, t: st.t, hash: stateHash(state), state };
   if (opts.params) out.params = opts.params;
   if (opts.log) { out.log = opts.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })); out.logComplete = opts.logComplete ?? false; }
   return out;

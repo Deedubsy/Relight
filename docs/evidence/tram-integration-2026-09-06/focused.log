@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: three stations reserve only their own deliveries; stock and in-flight reservations prevent double ordering across trams; exports return upstream
+ok 1 - three stations reserve only their own deliveries; stock and in-flight reservations prevent double ordering across trams; exports return upstream
+  ---
+  duration_ms: 407.738762
+  type: 'test'
+  ...
+# Subtest: capacity is reserved across all items and trams; partial refusal returns the remainder without losing it
+ok 2 - capacity is reserved across all items and trams; partial refusal returns the remainder without losing it
+  ---
+  duration_ms: 93.642787
+  type: 'test'
+  ...
+# Subtest: unpowered stops retain cargo with bounded service; a refused destination returns home, and removal of either endpoint remains recoverable
+ok 3 - unpowered stops retain cargo with bounded service; a refused destination returns home, and removal of either endpoint remains recoverable
+  ---
+  duration_ms: 49.181491
+  type: 'test'
+  ...
+# Subtest: a mid-shipment save resumes to the same hash; old saves stay version one and invalid manifests are rejected
+ok 4 - a mid-shipment save resumes to the same hash; old saves stay version one and invalid manifests are rejected
+  ---
+  duration_ms: 159.197043
+  type: 'test'
+  ...
+# Subtest: EX-06A: placed three-stop railway uses reach-checked commands, resumes in transit and parks intact across a broken track
+ok 5 - EX-06A: placed three-stop railway uses reach-checked commands, resumes in transit and parks intact across a broken track
+  ---
+  duration_ms: 1578.850092
+  type: 'test'
+  ...
+# Subtest: the rail-yard project: discovered → preparing (the pole run) → ready (materials by hand and off a belt) → commissioning (Activate, its id) → restored (Held) once; the reward unlocks the rail kit, which was locked before; a later loss keeps stage and reward and makes it non-operational; the retake re-grants nothing
+ok 6 - the rail-yard project: discovered → preparing (the pole run) → ready (materials by hand and off a belt) → commissioning (Activate, its id) → restored (Held) once; the reward unlocks the rail kit, which was locked before; a later loss keeps stage and reward and makes it non-operational; the retake re-grants nothing
+  ---
+  duration_ms: 746.773691
+  type: 'test'
+  ...
+# Subtest: the local supply depot: a supply chest on the restored (Held) site, stocked by hand with ordinary items, commissioned within reach — the record alone changes: no claim, no charge, the stock stays; the restored depot hands out kits; a pre-RI-05 save discovers its projects on load
+ok 7 - the local supply depot: a supply chest on the restored (Held) site, stocked by hand with ordinary items, commissioned within reach — the record alone changes: no claim, no charge, the stock stays; the restored depot hands out kits; a pre-RI-05 save discovers its projects on load
+  ---
+  duration_ms: 622.950098
+  type: 'test'
+  ...
+# Subtest: a supply chest on the front feeds an inserter and takes from one; the tram shuttle: track on the street only, a stop at each end, one tram — items put on the platform ride to the far stop's arrivals (hand and inserter take them there), the ledger balances, and a save mid-run advances to the same hash
+ok 8 - a supply chest on the front feeds an inserter and takes from one; the tram shuttle: track on the street only, a stop at each end, one tram — items put on the platform ride to the far stop's arrivals (hand and inserter take them there), the ledger balances, and a save mid-run advances to the same hash
+  ---
+  duration_ms: 677.615866
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9238.181124

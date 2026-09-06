@@ -1,0 +1,1023 @@
+
+> relight-prototype@0.1.0 test
+> npm test -w packages/sim
+
+
+> @relight/sim@0.1.0 test
+> tsx --test --test-concurrency=1 test/*.test.ts
+
+TAP version 13
+# Subtest: sprint runs at 1.6× walk, drains the bar to one dodge's worth and never below; releasing Shift refills it
+ok 1 - sprint runs at 1.6× walk, drains the bar to one dodge's worth and never below; releasing Shift refills it
+  ---
+  duration_ms: 564.285319
+  type: 'test'
+  ...
+# Subtest: the dodge is 3 tiles in 0.25 s in the movement direction (or the facing), on a 1 s cooldown, costing a quarter of the bar
+ok 2 - the dodge is 3 tiles in 0.25 s in the movement direction (or the facing), on a 1 s cooldown, costing a quarter of the bar
+  ---
+  duration_ms: 116.936012
+  type: 'test'
+  ...
+# Subtest: a walk-here target survives a key release and is cancelled by any WASD input; a dodge cancels it too
+ok 3 - a walk-here target survives a key release and is cancelled by any WASD input; a dodge cancels it too
+  ---
+  duration_ms: 59.873679
+  type: 'test'
+  ...
+# Subtest: the rifle aimed at empty street spends a round a shot and hits nothing; aimed at an engaged edge it kills what the turrets missed, draws retaliation and counts as danger
+ok 4 - the rifle aimed at empty street spends a round a shot and hits nothing; aimed at an engaged edge it kills what the turrets missed, draws retaliation and counts as danger
+  ---
+  duration_ms: 222.915946
+  type: 'test'
+  ...
+# Subtest: every preset validates on seeds 3–5 within the attempt budget
+ok 5 - every preset validates on seeds 3–5 within the attempt budget
+  ---
+  duration_ms: 4146.541503
+  type: 'test'
+  ...
+# Subtest: geometry invariants: lots are land, fronts face a street, neighbours are symmetric, segments match adjacency
+ok 6 - geometry invariants: lots are land, fronts face a street, neighbours are symmetric, segments match adjacency
+  ---
+  duration_ms: 29.486287
+  type: 'test'
+  ...
+# Subtest: city seed 3: generator summary matches the fixture
+ok 7 - city seed 3: generator summary matches the fixture
+  ---
+  duration_ms: 1.076732
+  type: 'test'
+  ...
+# Subtest: city seed 3 compact: 5-hour run matches the fixture
+ok 8 - city seed 3 compact: 5-hour run matches the fixture
+  ---
+  duration_ms: 252.540701
+  type: 'test'
+  ...
+# Subtest: city seed 3 balanced: 5-hour run matches the fixture
+ok 9 - city seed 3 balanced: 5-hour run matches the fixture
+  ---
+  duration_ms: 166.547792
+  type: 'test'
+  ...
+# Subtest: city seed 3 spike: 5-hour run matches the fixture
+ok 10 - city seed 3 spike: 5-hour run matches the fixture
+  ---
+  duration_ms: 124.503087
+  type: 'test'
+  ...
+# Subtest: city seed 3 cheapest: 5-hour run matches the fixture
+ok 11 - city seed 3 cheapest: 5-hour run matches the fixture
+  ---
+  duration_ms: 84.674624
+  type: 'test'
+  ...
+# Subtest: city seed 3 compact-walk: 5-hour run matches the fixture
+ok 12 - city seed 3 compact-walk: 5-hour run matches the fixture
+  ---
+  duration_ms: 194.953489
+  type: 'test'
+  ...
+# Subtest: city seed 4: generator summary matches the fixture
+ok 13 - city seed 4: generator summary matches the fixture
+  ---
+  duration_ms: 0.583585
+  type: 'test'
+  ...
+# Subtest: city seed 4 compact: 5-hour run matches the fixture
+ok 14 - city seed 4 compact: 5-hour run matches the fixture
+  ---
+  duration_ms: 76.002466
+  type: 'test'
+  ...
+# Subtest: city seed 4 balanced: 5-hour run matches the fixture
+ok 15 - city seed 4 balanced: 5-hour run matches the fixture
+  ---
+  duration_ms: 81.572639
+  type: 'test'
+  ...
+# Subtest: city seed 4 spike: 5-hour run matches the fixture
+ok 16 - city seed 4 spike: 5-hour run matches the fixture
+  ---
+  duration_ms: 85.476265
+  type: 'test'
+  ...
+# Subtest: city seed 4 cheapest: 5-hour run matches the fixture
+ok 17 - city seed 4 cheapest: 5-hour run matches the fixture
+  ---
+  duration_ms: 113.702265
+  type: 'test'
+  ...
+# Subtest: city seed 4 compact-walk: 5-hour run matches the fixture
+ok 18 - city seed 4 compact-walk: 5-hour run matches the fixture
+  ---
+  duration_ms: 135.015304
+  type: 'test'
+  ...
+# Subtest: city seed 5: generator summary matches the fixture
+ok 19 - city seed 5: generator summary matches the fixture
+  ---
+  duration_ms: 0.846087
+  type: 'test'
+  ...
+# Subtest: city seed 5 compact: 5-hour run matches the fixture
+ok 20 - city seed 5 compact: 5-hour run matches the fixture
+  ---
+  duration_ms: 83.07534
+  type: 'test'
+  ...
+# Subtest: city seed 5 balanced: 5-hour run matches the fixture
+ok 21 - city seed 5 balanced: 5-hour run matches the fixture
+  ---
+  duration_ms: 75.191803
+  type: 'test'
+  ...
+# Subtest: city seed 5 spike: 5-hour run matches the fixture
+ok 22 - city seed 5 spike: 5-hour run matches the fixture
+  ---
+  duration_ms: 82.329981
+  type: 'test'
+  ...
+# Subtest: city seed 5 cheapest: 5-hour run matches the fixture
+ok 23 - city seed 5 cheapest: 5-hour run matches the fixture
+  ---
+  duration_ms: 96.57415
+  type: 'test'
+  ...
+# Subtest: city seed 5 compact-walk: 5-hour run matches the fixture
+ok 24 - city seed 5 compact-walk: 5-hour run matches the fixture
+  ---
+  duration_ms: 119.939785
+  type: 'test'
+  ...
+# Subtest: one path: the map previews and charges nothing; a pole run claims nothing; the materials are delivered once and consumed once at Activate; one claim event and one wake bloom carry the attempt's id; a second Activate is refused; the ledger balances
+ok 25 - one path: the map previews and charges nothing; a pole run claims nothing; the materials are delivered once and consumed once at Activate; one claim event and one wake bloom carry the attempt's id; a second Activate is refused; the ledger balances
+  ---
+  duration_ms: 1444.017922
+  type: 'test'
+  ...
+# Subtest: prerequisites: the installation names the missing one, in order — adjacency, the substation, the pole run, a substation that is off, the grid's supply, the materials, reach, the engineer down
+ok 26 - prerequisites: the installation names the missing one, in order — adjacency, the substation, the pole run, a substation that is off, the grid's supply, the materials, reach, the engineer down
+  ---
+  duration_ms: 930.973708
+  type: 'test'
+  ...
+# Subtest: the outskirts: the Substation is field kit — refused until a neighbour is Held, then stands on the unheld outskirts lot (paid from the pockets, D-B3-1), the block stays Dark, and it is the installation the claim delivers to
+ok 27 - the outskirts: the Substation is field kit — refused until a neighbour is Held, then stands on the unheld outskirts lot (paid from the pockets, D-B3-1), the block stays Dark, and it is the installation the claim delivers to
+  ---
+  duration_ms: 788.165972
+  type: 'test'
+  ...
+# Subtest: field kit: a Lamp on the Dark front is off until a connected pole reaches it, then lit on real demand; a turret there is not off; an Assembler is refused; a belt on a far Dark block is refused; nothing marks the block Held
+ok 28 - field kit: a Lamp on the Dark front is off until a connected pole reaches it, then lit on real demand; a turret there is not off; an Assembler is refused; a belt on a far Dark block is refused; nothing marks the block Held
+  ---
+  duration_ms: 662.799102
+  type: 'test'
+  ...
+# Subtest: save / replay: the hour bot's physical claim (poles, deliver, Activate) logged at 14:00 replays from a save to the unbroken run's hash at 16:00, with east commissioned by the physical path
+ok 29 - save / replay: the hour bot's physical claim (poles, deliver, Activate) logged at 14:00 replays from a save to the unbroken run's hash at 16:00, with east commissioned by the physical path
+  ---
+  duration_ms: 1289.510877
+  type: 'test'
+  ...
+# Subtest: HQ start (D-P4-8): six turrets with full hoppers, a Generator with 40 coal and 40 more in the chest, 20 magazines in the chest; every pip green from the first tick
+ok 30 - HQ start (D-P4-8): six turrets with full hoppers, a Generator with 40 coal and 40 more in the chest, 20 magazines in the chest; every pip green from the first tick
+  ---
+  duration_ms: 167.173387
+  type: 'test'
+  ...
+# Subtest: feeding: an inserter fills a turret from a belt of magazines to its 50-round hopper and waits; hand-feeding fills it from the pockets at once (prompt B M3); the pip follows
+ok 31 - feeding: an inserter fills a turret from a belt of magazines to its 50-round hopper and waits; hand-feeding fills it from the pockets at once (prompt B M3); the pip follows
+  ---
+  duration_ms: 64.688739
+  type: 'test'
+  ...
+# Subtest: engagement: crawlers drain the turrets fullest-first at 5 rounds/s each; a rush past the rate goes unfed; the hopper-empty event fires on the same tick the pip turns red
+ok 32 - engagement: crawlers drain the turrets fullest-first at 5 rounds/s each; a rush past the rate goes unfed; the hopper-empty event fires on the same tick the pip turns red
+  ---
+  duration_ms: 31.874607
+  type: 'test'
+  ...
+# Subtest: Generator: 300 kW, 4 MJ a coal — the start's 40 coal last 533 s at full load; a dry Generator kills the grid until hand-fed
+ok 33 - Generator: 300 kW, 4 MJ a coal — the start's 40 coal last 533 s at full load; a dry Generator kills the grid until hand-fed
+  ---
+  duration_ms: 163.07621
+  type: 'test'
+  ...
+# Subtest: D-B3-4 proportional brownout: short of supply every machine runs at supply ÷ demand — the Excavator mines that much slower, the Lamp stays lit, the substation stays on, nothing switches off — and full speed returns the second the supply covers demand
+ok 34 - D-B3-4 proportional brownout: short of supply every machine runs at supply ÷ demand — the Excavator mines that much slower, the Lamp stays lit, the substation stays on, nothing switches off — and full speed returns the second the supply covers demand
+  ---
+  duration_ms: 86.86748
+  type: 'test'
+  ...
+# Subtest: lamps and streetlights: radius 4, lit while the substation powers; three in eight streetlights are broken; a Lamp fills a dark spot
+ok 35 - lamps and streetlights: radius 4, lit while the substation powers; three in eight streetlights are broken; a Lamp fills a dark spot
+  ---
+  duration_ms: 42.473932
+  type: 'test'
+  ...
+# Subtest: poles: reach 8 from a claimed substation; RI-03: a connected run that reaches a Dark neighbour's substation claims nothing — the block waits for its materials and an explicit Activate; a map claim still strings its own poles (legacy)
+ok 36 - poles: reach 8 from a claimed substation; RI-03: a connected run that reaches a Dark neighbour's substation claims nothing — the block waits for its materials and an explicit Activate; a map claim still strings its own poles (legacy)
+  ---
+  duration_ms: 46.601229
+  type: 'test'
+  ...
+# Subtest: a flow layer saved before M3 loads with the M3 fields; placement refuses the substation footprint
+ok 37 - a flow layer saved before M3 loads with the M3 fields; placement refuses the substation footprint
+  ---
+  duration_ms: 38.393545
+  type: 'test'
+  ...
+# Subtest: the bot's hands: every turret at or under half and every Generator at or under half is hand-fed from the Depot
+ok 38 - the bot's hands: every turret at or under half and every Generator at or under half is hand-fed from the Depot
+  ---
+  duration_ms: 17.234947
+  type: 'test'
+  ...
+# Subtest: city HQ (D-B1-4): the start turrets are derived from the HQ's segments — one per 16 tiles, at least one a segment, a corner sliver served by the turrets that reach it — so every live segment is a covered turret edge on seeds 3, 4 and 5, and the HQ holds three minutes with no hopper empty
+ok 39 - city HQ (D-B1-4): the start turrets are derived from the HQ's segments — one per 16 tiles, at least one a segment, a corner sliver served by the turrets that reach it — so every live segment is a covered turret edge on seeds 3, 4 and 5, and the HQ holds three minutes with no hopper empty
+  ---
+  duration_ms: 1745.815838
+  type: 'test'
+  ...
+# Subtest: unlocks: the Electricians' Floodlight, Big pole and Substation are locked until their block turns Held, the held event names them, and losing the block later keeps them
+ok 40 - unlocks: the Electricians' Floodlight, Big pole and Substation are locked until their block turns Held, the held event names them, and losing the block later keeps them
+  ---
+  duration_ms: 224.335171
+  type: 'test'
+  ...
+# Subtest: Floodlight: 2×2, 40 kW, lights a 12-tile 60° cone along its facing while the face is powered, and nothing behind or beside it
+ok 41 - Floodlight: 2×2, 40 kW, lights a 12-tile 60° cone along its facing while the face is powered, and nothing behind or beside it
+  ---
+  duration_ms: 72.539592
+  type: 'test'
+  ...
+# Subtest: Big pole: 2×2, reach 12 — it hangs from a substation a pole at the same distance cannot reach, and claims through poleClaims like a pole
+ok 42 - Big pole: 2×2, reach 12 — it hangs from a substation a pole at the same distance cannot reach, and claims through poleClaims like a pole
+  ---
+  duration_ms: 64.723404
+  type: 'test'
+  ...
+# Subtest: craftable Substation: an outskirts face has none (§7) — no slab, no streetlights, no pole anchor — until the Electricians' 3×3 is built on it; one a face; picked up, the face is bare again
+ok 43 - craftable Substation: an outskirts face has none (§7) — no slab, no streetlights, no pole anchor — until the Electricians' 3×3 is built on it; one a face; picked up, the face is bare again
+  ---
+  duration_ms: 76.869224
+  type: 'test'
+  ...
+# Subtest: every street segment has an emergence point per direction: a walkable kerb tile of the emerging block (a street tile facing it), ids 1..N in (block, other) order, identical on a rebuilt state, one for every ring edge
+ok 44 - every street segment has an emergence point per direction: a walkable kerb tile of the emerging block (a street tile facing it), ids 1..N in (block, other) order, identical on a rebuilt state, one for every ring edge
+  ---
+  duration_ms: 984.992475
+  type: 'test'
+  ...
+# Subtest: active points are the Dark blocks' points facing a Held or contested block: at the start the HQ's dark neighbours, never a Held block's own; a block turning Held goes quiet
+ok 45 - active points are the Dark blocks' points facing a Held or contested block: at the start the HQ's dark neighbours, never a Held block's own; a block turning Held goes quiet
+  ---
+  duration_ms: 57.823046
+  type: 'test'
+  ...
+# Subtest: births: every crawler is born at its emergence point's birth tile on the Dark block's kerb — never on a tile the Held block owns or faces — with its origin id; once moving it has a heading and an inspectable target on the block it walks into; a shade leaves a trace
+ok 46 - births: every crawler is born at its emergence point's birth tile on the Dark block's kerb — never on a tile the Held block owns or faces — with its origin id; once moving it has a heading and an inspectable target on the block it walks into; a shade leaves a trace
+  ---
+  duration_ms: 285.640765
+  type: 'test'
+  ...
+# Subtest: a shade's trace: the tiles it crossed within TRACE_S, aged, at most TRACE_N; shadeNear finds it for the lamp flicker; the light layer is untouched by a trace
+ok 47 - a shade's trace: the tiles it crossed within TRACE_S, aged, at most TRACE_N; shadeNear finds it for the lamp flicker; the light layer is untouched by a trace
+  ---
+  duration_ms: 70.129886
+  type: 'test'
+  ...
+# Subtest: the HQ lot: §11 patches, a clear Depot footprint, the Depot placed by ensureFlow, the Mk1 stand-in retired
+ok 48 - the HQ lot: §11 patches, a clear Depot footprint, the Depot placed by ensureFlow, the Mk1 stand-in retired
+  ---
+  duration_ms: 141.368571
+  type: 'test'
+  ...
+# Subtest: Excavator: 0.5 units/s onto the belt it faces, one tile at a time; the steel patch and the tile go with it
+ok 49 - Excavator: 0.5 units/s onto the belt it faces, one tile at a time; the steel patch and the tile go with it
+  ---
+  duration_ms: 89.225896
+  type: 'test'
+  ...
+# Subtest: belt: 7.5 items/s through a 12-tile run with a corner; items keep their spacing; a head-on belt does not feed
+ok 50 - belt: 7.5 items/s through a 12-tile run with a corner; items keep their spacing; a head-on belt does not feed
+  ---
+  duration_ms: 89.470179
+  type: 'test'
+  ...
+# Subtest: inserter: 1 item/s from a belt into the Depot; it waits with the item when the target is full
+ok 51 - inserter: 1 item/s from a belt into the Depot; it waits with the item when the target is full
+  ---
+  duration_ms: 25.623123
+  type: 'test'
+  ...
+# Subtest: Shot assembler: 3 s a magazine (20/min) from 2 steel + 1 Cu, out through an inserter into the Depot
+ok 52 - Shot assembler: 3 s a magazine (20/min) from 2 steel + 1 Cu, out through an inserter into the Depot
+  ---
+  duration_ms: 33.229117
+  type: 'test'
+  ...
+# Subtest: a whole line: two Excavators → belt → assembler ← copper; magazines to the Depot at the doc rate
+ok 53 - a whole line: two Excavators → belt → assembler ← copper; magazines to the Depot at the doc rate
+  ---
+  duration_ms: 69.045012
+  type: 'test'
+  ...
+# Subtest: time: 20 tile ticks a block tick; 1 h at 4× is 72,000 tile ticks; determinism across frame sizes; JSON round trip
+ok 54 - time: 20 tile ticks a block tick; 1 h at 4× is 72,000 tile ticks; determinism across frame sizes; JSON round trip
+  ---
+  duration_ms: 396.423264
+  type: 'test'
+  ...
+# Subtest: placement: Held cells only, streets for belts and inserters, no rubble under anything but an Excavator, costs and refunds
+ok 55 - placement: Held cells only, streets for belts and inserters, no rubble under anything but an Excavator, costs and refunds
+  ---
+  duration_ms: 32.086827
+  type: 'test'
+  ...
+# Subtest: the block map stays the judge: a machine on a block that stops being Held stands still
+ok 56 - the block map stays the judge: a machine on a block that stops being Held stands still
+  ---
+  duration_ms: 10.456609
+  type: 'test'
+  ...
+# Subtest: hands: mining a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in the recipe's time (Mk1, 6 s) from the pockets into the pockets
+ok 57 - hands: mining a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in the recipe's time (Mk1, 6 s) from the pockets into the pockets
+  ---
+  duration_ms: 15.792704
+  type: 'test'
+  ...
+# Subtest: three stations reserve only their own deliveries; stock and in-flight reservations prevent double ordering across trams; exports return upstream
+ok 58 - three stations reserve only their own deliveries; stock and in-flight reservations prevent double ordering across trams; exports return upstream
+  ---
+  duration_ms: 542.466692
+  type: 'test'
+  ...
+# Subtest: capacity is reserved across all items and trams; partial refusal returns the remainder without losing it
+ok 59 - capacity is reserved across all items and trams; partial refusal returns the remainder without losing it
+  ---
+  duration_ms: 101.837407
+  type: 'test'
+  ...
+# Subtest: unpowered stops retain cargo with bounded service; a refused destination returns home, and removal of either endpoint remains recoverable
+ok 60 - unpowered stops retain cargo with bounded service; a refused destination returns home, and removal of either endpoint remains recoverable
+  ---
+  duration_ms: 50.612719
+  type: 'test'
+  ...
+# Subtest: a mid-shipment save resumes to the same hash; old saves stay version one and invalid manifests are rejected
+ok 61 - a mid-shipment save resumes to the same hash; old saves stay version one and invalid manifests are rejected
+  ---
+  duration_ms: 114.957285
+  type: 'test'
+  ...
+# Subtest: names: every block has a stable, unique, state-free name; the HQ is "HQ"; the rail yard is named; the §11 directions are three distinct HQ neighbours
+ok 62 - names: every block has a stable, unique, state-free name; the HQ is "HQ"; the rail yard is named; the §11 directions are three distinct HQ neighbours
+  ---
+  duration_ms: 4348.882283
+  type: 'test'
+  ...
+# Subtest: goal: a fresh city asks for hand-mined steel; a block-only state asks for the front; every id shown in 20 minutes is a §11 row in schedule order and never wrong against the state
+ok 63 - goal: a fresh city asks for hand-mined steel; a block-only state asks for the front; every id shown in 20 minutes is a §11 row in schedule order and never wrong against the state
+  ---
+  duration_ms: 1108.245459
+  type: 'test'
+  ...
+# Subtest: machineStatus: one of five words with a reason; the line at minute 10 has running Excavators, and an unpowered block reads off
+ok 64 - machineStatus: one of five words with a reason; the line at minute 10 has running Excavators, and an unpowered block reads off
+  ---
+  duration_ms: 444.653804
+  type: 'test'
+  ...
+# Subtest: save: the hash ignores only the transients, a load validates and deep-copies, and a save at 1:30 replays to the unbroken run's hash at 3:00
+not ok 65 - save: the hash ignores only the transients, a load validates and deep-copies, and a save at 1:30 replays to the unbroken run's hash at 3:00
+  ---
+  duration_ms: 59.251249
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/goal.test.ts:119:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /not a Relight state: version/. Input:
+    
+    'Error: not a Relight state: unsupported version undefined'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: 'not a Relight state: unsupported version undefined'
+  stack: |-
+    loadState (/mnt/e/Factorio2/packages/sim/src/save.ts:82:18)
+    <anonymous> (/mnt/e/Factorio2/packages/sim/test/goal.test.ts:125:23)
+    getActual (node:assert:530:5)
+    Function.throws (node:assert:676:24)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/goal.test.ts:125:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/goal.test.ts:125:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: RI-06: enableHeart puts the Heart on the rail yard with two feeder cabinets on the lot toward two Dark approaches, once
+ok 66 - RI-06: enableHeart puts the Heart on the rail yard with two feeder cabinets on the lot toward two Dark approaches, once
+  ---
+  duration_ms: 1202.67048
+  type: 'test'
+  ...
+# Subtest: RI-06: the cabinets take deliveries from the pockets and the installation refuses the Activate until both are supplied and powered
+ok 67 - RI-06: the cabinets take deliveries from the pockets and the installation refuses the Activate until both are supplied and powered
+  ---
+  duration_ms: 55.160336
+  type: 'test'
+  ...
+# Subtest: RI-06 (plan §9.4): the hour bot, rifle off, prepares the yard, starts the Heart and destroys it once; the reward is granted once
+ok 68 - RI-06 (plan §9.4): the hour bot, rifle off, prepares the yard, starts the Heart and destroys it once; the reward is granted once
+  ---
+  duration_ms: 2165.90273
+  type: 'test'
+  ...
+# Subtest: RI-06 (§9.2 defaults 9–11): a knocked-out feeder stalls the commissioning, 60 s stalls it to interrupted; deliveries and the charge stay, the retry charges nothing twice and keys its packets anew
+ok 69 - RI-06 (§9.2 defaults 9–11): a knocked-out feeder stalls the commissioning, 60 s stalls it to interrupted; deliveries and the charge stay, the retry charges nothing twice and keys its packets anew
+  ---
+  duration_ms: 1533.582491
+  type: 'test'
+  ...
+# Subtest: RI-06: a save mid-attempt reloads to the same hash and runs on to the same hash; the explicit abort works only while commissioning
+ok 70 - RI-06: a save mid-attempt reloads to the same hash and runs on to the same hash; the explicit abort works only while commissioning
+  ---
+  duration_ms: 1567.825462
+  type: 'test'
+  ...
+# Subtest: RI-06: a pole run reaching a cabinet is what "connected" means — removing it pauses the commissioning (no knock-out)
+ok 71 - RI-06: a pole run reaching a cabinet is what "connected" means — removing it pauses the commissioning (no knock-out)
+  ---
+  duration_ms: 1131.315095
+  type: 'test'
+  ...
+# Subtest: hour bot, minutes 0–8: walks to the steel patch, hand-mines, crafts at the workbench, walks magazines to the turrets on the ~6-minute red pip (D-P4-8)
+ok 72 - hour bot, minutes 0–8: walks to the steel patch, hand-mines, crafts at the workbench, walks magazines to the turrets on the ~6-minute red pip (D-P4-8)
+  ---
+  duration_ms: 835.116802
+  type: 'test'
+  ...
+# Subtest: hour bot, minute 10: the three Excavators, the Shot line and Generator 2 stand on the HQ lot; every refusal is in the log with a reason
+ok 73 - hour bot, minute 10: the three Excavators, the Shot line and Generator 2 stand on the HQ lot; every refusal is in the log with a reason
+  ---
+  duration_ms: 648.38467
+  type: 'test'
+  ...
+# Subtest: hour bot, minute 45: east and west claimed at constants.HOUR's minutes (15:00, 25:00 — D-HOUR-1), walked over and kitted, north (65:00, D-P4-10 (a)) inside the 75-minute hour (D-HOUR-3) but not yet claimed at 45:00; the bot never teleports
+ok 74 - hour bot, minute 45: east and west claimed at constants.HOUR's minutes (15:00, 25:00 — D-HOUR-1), walked over and kitted, north (65:00, D-P4-10 (a)) inside the 75-minute hour (D-HOUR-3) but not yet claimed at 45:00; the bot never teleports
+  ---
+  duration_ms: 3103.944705
+  type: 'test'
+  ...
+# Subtest: hour report: the findings name every §11 moment that never happened, and the walking row is there
+ok 75 - hour report: the findings name every §11 moment that never happened, and the walking row is there
+  ---
+  duration_ms: 89.1806
+  type: 'test'
+  ...
+# Subtest: feed / repair / rotate commands: E and R by command, within reach only
+ok 76 - feed / repair / rotate commands: E and R by command, within reach only
+  ---
+  duration_ms: 41.439152
+  type: 'test'
+  ...
+# Subtest: replay: a logged hour-bot run replays to the same state, and the rifle-off replay yields a verdict per hand-fired fight
+ok 77 - replay: a logged hour-bot run replays to the same state, and the rifle-off replay yields a verdict per hand-fired fight
+  ---
+  duration_ms: 1617.248035
+  type: 'test'
+  ...
+# Subtest: hour bot: place and handFeed by hand agree with the bot's feed task on the same turret
+ok 78 - hour bot: place and handFeed by hand agree with the bot's feed task on the same turret
+  ---
+  duration_ms: 39.294011
+  type: 'test'
+  ...
+# Subtest: conservation: the hour bot's first twenty minutes reconcile on seed 3 — and an injected item is reported
+ok 79 - conservation: the hour bot's first twenty minutes reconcile on seed 3 — and an injected item is reported
+  ---
+  duration_ms: 1771.54436
+  type: 'test'
+  ...
+# Subtest: conservation: a hand-played sequence — chest, craft, place, feed, pick-up, recipe change, hand mining — reconciles
+ok 80 - conservation: a hand-played sequence — chest, craft, place, feed, pick-up, recipe change, hand mining — reconciles
+  ---
+  duration_ms: 86.003083
+  type: 'test'
+  ...
+# Subtest: conservation: rounds a full line buffer cannot take back are counted lost, not dropped (stats.roundsLost)
+ok 81 - conservation: rounds a full line buffer cannot take back are counted lost, not dropped (stats.roundsLost)
+  ---
+  duration_ms: 60.206302
+  type: 'test'
+  ...
+# Subtest: light map: the HQ face's street is lit by its kerb streetlights, its lot is unlit beyond them, and the mask agrees with litAt everywhere
+ok 82 - light map: the HQ face's street is lit by its kerb streetlights, its lot is unlit beyond them, and the mask agrees with litAt everywhere
+  ---
+  duration_ms: 589.75653
+  type: 'test'
+  ...
+# Subtest: a Lamp lights its radius on the lot; a Floodlight its cone
+ok 83 - a Lamp lights its radius on the lot; a Floodlight its cone
+  ---
+  duration_ms: 72.31194
+  type: 'test'
+  ...
+# Subtest: burn-off: the claimed block's streetlights come on from the substation out at three a second; progress runs 0 → 1 over 20 + 60·d s and then the block is Held
+ok 84 - burn-off: the claimed block's streetlights come on from the substation out at three a second; progress runs 0 → 1 over 20 + 60·d s and then the block is Held
+  ---
+  duration_ms: 73.396296
+  type: 'test'
+  ...
+# Subtest: repair: E on a broken streetlight costs one copper and lights it; an eaten Lamp leaves the broken list; no copper refuses
+ok 85 - repair: E on a broken streetlight costs one copper and lights it; an eaten Lamp leaves the broken list; no copper refuses
+  ---
+  duration_ms: 56.980524
+  type: 'test'
+  ...
+# Subtest: seed 3 power doc-substations: 5-hour compact run matches the Python fixture
+ok 86 - seed 3 power doc-substations: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 197.713658
+  type: 'test'
+  ...
+# Subtest: seed 3 power doc-machines-first: 5-hour compact run matches the Python fixture
+ok 87 - seed 3 power doc-machines-first: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 116.569188
+  type: 'test'
+  ...
+# Subtest: seed 3 power half-substations: 5-hour compact run matches the Python fixture
+ok 88 - seed 3 power half-substations: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 133.98865
+  type: 'test'
+  ...
+# Subtest: seed 3 power half-machines-first-grace300: 5-hour compact run matches the Python fixture
+ok 89 - seed 3 power half-machines-first-grace300: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 89.379075
+  type: 'test'
+  ...
+# Subtest: seed 3 power schedule-doc: 5-hour compact run matches the Python fixture
+ok 90 - seed 3 power schedule-doc: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 130.612302
+  type: 'test'
+  ...
+# Subtest: seed 4 power doc-substations: 5-hour compact run matches the Python fixture
+ok 91 - seed 4 power doc-substations: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 111.106827
+  type: 'test'
+  ...
+# Subtest: seed 4 power doc-machines-first: 5-hour compact run matches the Python fixture
+ok 92 - seed 4 power doc-machines-first: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 96.719615
+  type: 'test'
+  ...
+# Subtest: seed 4 power half-substations: 5-hour compact run matches the Python fixture
+ok 93 - seed 4 power half-substations: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 86.575972
+  type: 'test'
+  ...
+# Subtest: seed 4 power half-machines-first-grace300: 5-hour compact run matches the Python fixture
+ok 94 - seed 4 power half-machines-first-grace300: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 90.383427
+  type: 'test'
+  ...
+# Subtest: seed 4 power schedule-doc: 5-hour compact run matches the Python fixture
+ok 95 - seed 4 power schedule-doc: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 92.368088
+  type: 'test'
+  ...
+# Subtest: seed 5 power doc-substations: 5-hour compact run matches the Python fixture
+ok 96 - seed 5 power doc-substations: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 103.958994
+  type: 'test'
+  ...
+# Subtest: seed 5 power doc-machines-first: 5-hour compact run matches the Python fixture
+ok 97 - seed 5 power doc-machines-first: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 100.683894
+  type: 'test'
+  ...
+# Subtest: seed 5 power half-substations: 5-hour compact run matches the Python fixture
+ok 98 - seed 5 power half-substations: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 92.942122
+  type: 'test'
+  ...
+# Subtest: seed 5 power half-machines-first-grace300: 5-hour compact run matches the Python fixture
+ok 99 - seed 5 power half-machines-first-grace300: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 92.138839
+  type: 'test'
+  ...
+# Subtest: seed 5 power schedule-doc: 5-hour compact run matches the Python fixture
+ok 100 - seed 5 power schedule-doc: 5-hour compact run matches the Python fixture
+  ---
+  duration_ms: 103.063376
+  type: 'test'
+  ...
+# Subtest: EX-06A: placed three-stop railway uses reach-checked commands, resumes in transit and parks intact across a broken track
+ok 101 - EX-06A: placed three-stop railway uses reach-checked commands, resumes in transit and parks intact across a broken track
+  ---
+  duration_ms: 1974.730608
+  type: 'test'
+  ...
+# Subtest: the rail-yard project: discovered → preparing (the pole run) → ready (materials by hand and off a belt) → commissioning (Activate, its id) → restored (Held) once; the reward unlocks the rail kit, which was locked before; a later loss keeps stage and reward and makes it non-operational; the retake re-grants nothing
+ok 102 - the rail-yard project: discovered → preparing (the pole run) → ready (materials by hand and off a belt) → commissioning (Activate, its id) → restored (Held) once; the reward unlocks the rail kit, which was locked before; a later loss keeps stage and reward and makes it non-operational; the retake re-grants nothing
+  ---
+  duration_ms: 684.204801
+  type: 'test'
+  ...
+# Subtest: the local supply depot: a supply chest on the restored (Held) site, stocked by hand with ordinary items, commissioned within reach — the record alone changes: no claim, no charge, the stock stays; the restored depot hands out kits; a pre-RI-05 save discovers its projects on load
+ok 103 - the local supply depot: a supply chest on the restored (Held) site, stocked by hand with ordinary items, commissioned within reach — the record alone changes: no claim, no charge, the stock stays; the restored depot hands out kits; a pre-RI-05 save discovers its projects on load
+  ---
+  duration_ms: 633.403791
+  type: 'test'
+  ...
+# Subtest: a supply chest on the front feeds an inserter and takes from one; the tram shuttle: track on the street only, a stop at each end, one tram — items put on the platform ride to the far stop's arrivals (hand and inserter take them there), the ledger balances, and a save mid-run advances to the same hash
+ok 104 - a supply chest on the front feeds an inserter and takes from one; the tram shuttle: track on the street only, a stop at each end, one tram — items put on the platform ride to the far stop's arrivals (hand and inserter take them there), the ledger balances, and a save mid-run advances to the same hash
+  ---
+  duration_ms: 703.636691
+  type: 'test'
+  ...
+# Subtest: hash01 matches frontsim.hash01
+ok 105 - hash01 matches frontsim.hash01
+  ---
+  duration_ms: 0.774118
+  type: 'test'
+  ...
+# Subtest: pyRound is half-to-even
+ok 106 - pyRound is half-to-even
+  ---
+  duration_ms: 0.184256
+  type: 'test'
+  ...
+# Subtest: districtBase() and wellInfluence() match the fixture cells bit for bit (24×22 fixture geometry)
+ok 107 - districtBase() and wellInfluence() match the fixture cells bit for bit (24×22 fixture geometry)
+  ---
+  duration_ms: 5.276513
+  type: 'test'
+  ...
+# Subtest: seed 3 open compact: 5-hour run matches the Python fixture
+ok 108 - seed 3 open compact: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 271.835924
+  type: 'test'
+  ...
+# Subtest: seed 3 open spike: 5-hour run matches the Python fixture
+ok 109 - seed 3 open spike: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 145.027295
+  type: 'test'
+  ...
+# Subtest: seed 3 open cheapest: 5-hour run matches the Python fixture
+ok 110 - seed 3 open cheapest: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 160.679108
+  type: 'test'
+  ...
+# Subtest: seed 3 open turtle: 5-hour run matches the Python fixture
+ok 111 - seed 3 open turtle: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 93.150882
+  type: 'test'
+  ...
+# Subtest: seed 3 scattered compact: 5-hour run matches the Python fixture
+ok 112 - seed 3 scattered compact: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 99.323755
+  type: 'test'
+  ...
+# Subtest: seed 3 scattered spike: 5-hour run matches the Python fixture
+ok 113 - seed 3 scattered spike: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 102.375391
+  type: 'test'
+  ...
+# Subtest: seed 3 scattered cheapest: 5-hour run matches the Python fixture
+ok 114 - seed 3 scattered cheapest: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 98.589106
+  type: 'test'
+  ...
+# Subtest: seed 3 scattered turtle: 5-hour run matches the Python fixture
+ok 115 - seed 3 scattered turtle: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 77.340772
+  type: 'test'
+  ...
+# Subtest: seed 4 open compact: 5-hour run matches the Python fixture
+ok 116 - seed 4 open compact: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 101.124479
+  type: 'test'
+  ...
+# Subtest: seed 4 open spike: 5-hour run matches the Python fixture
+ok 117 - seed 4 open spike: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 103.029577
+  type: 'test'
+  ...
+# Subtest: seed 4 open cheapest: 5-hour run matches the Python fixture
+ok 118 - seed 4 open cheapest: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 105.244608
+  type: 'test'
+  ...
+# Subtest: seed 4 open turtle: 5-hour run matches the Python fixture
+ok 119 - seed 4 open turtle: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 79.328196
+  type: 'test'
+  ...
+# Subtest: seed 4 scattered compact: 5-hour run matches the Python fixture
+ok 120 - seed 4 scattered compact: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 88.482277
+  type: 'test'
+  ...
+# Subtest: seed 4 scattered spike: 5-hour run matches the Python fixture
+ok 121 - seed 4 scattered spike: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 94.11279
+  type: 'test'
+  ...
+# Subtest: seed 4 scattered cheapest: 5-hour run matches the Python fixture
+ok 122 - seed 4 scattered cheapest: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 91.044905
+  type: 'test'
+  ...
+# Subtest: seed 4 scattered turtle: 5-hour run matches the Python fixture
+ok 123 - seed 4 scattered turtle: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 77.488122
+  type: 'test'
+  ...
+# Subtest: seed 5 open compact: 5-hour run matches the Python fixture
+ok 124 - seed 5 open compact: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 97.85022
+  type: 'test'
+  ...
+# Subtest: seed 5 open spike: 5-hour run matches the Python fixture
+ok 125 - seed 5 open spike: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 93.049163
+  type: 'test'
+  ...
+# Subtest: seed 5 open cheapest: 5-hour run matches the Python fixture
+ok 126 - seed 5 open cheapest: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 94.043208
+  type: 'test'
+  ...
+# Subtest: seed 5 open turtle: 5-hour run matches the Python fixture
+ok 127 - seed 5 open turtle: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 90.714734
+  type: 'test'
+  ...
+# Subtest: seed 5 scattered compact: 5-hour run matches the Python fixture
+ok 128 - seed 5 scattered compact: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 112.53047
+  type: 'test'
+  ...
+# Subtest: seed 5 scattered spike: 5-hour run matches the Python fixture
+ok 129 - seed 5 scattered spike: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 116.61696
+  type: 'test'
+  ...
+# Subtest: seed 5 scattered cheapest: 5-hour run matches the Python fixture
+ok 130 - seed 5 scattered cheapest: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 119.952493
+  type: 'test'
+  ...
+# Subtest: seed 5 scattered turtle: 5-hour run matches the Python fixture
+ok 131 - seed 5 scattered turtle: 5-hour run matches the Python fixture
+  ---
+  duration_ms: 85.995844
+  type: 'test'
+  ...
+# Subtest: state round-trips through JSON and continues identically
+ok 132 - state round-trips through JSON and continues identically
+  ---
+  duration_ms: 180.273726
+  type: 'test'
+  ...
+# Subtest: the candidate is one data configuration holding §7.1's values, outside SimConfig: the benchmark has no Stalker layer, no Stalkers, no stalker events
+ok 133 - the candidate is one data configuration holding §7.1's values, outside SimConfig: the benchmark has no Stalker layer, no Stalkers, no stalker events
+  ---
+  duration_ms: 382.80027
+  type: 'test'
+  ...
+# Subtest: switched on, one Stalker guards each Dark well block (seed 3: five) at a passable home tile inside its site; none is fielded within perception of the engineer, but that site fills once they leave; the layer survives a save round trip
+ok 134 - switched on, one Stalker guards each Dark well block (seed 3: five) at a passable home tile inside its site; none is fielded within perception of the engineer, but that site fills once they leave; the layer survives a save round trip
+  ---
+  duration_ms: 163.300033
+  type: 'test'
+  ...
+# Subtest: guard → investigate → pursue → attack: the engineer's movement inside perception draws it; the first hit lands one wind-up (0.8 s) after contact, then one hit a second for the retaliation value; it is inspectable throughout
+ok 135 - guard → investigate → pursue → attack: the engineer's movement inside perception draws it; the first hit lands one wind-up (0.8 s) after contact, then one hit a second for the retaliation value; it is inspectable throughout
+  ---
+  duration_ms: 64.988459
+  type: 'test'
+  ...
+# Subtest: a valid dodge: the swing that comes during the dash misses (no HP lost, a "dodged" event); the attack resumes after it
+ok 136 - a valid dodge: the swing that comes during the dash misses (no HP lost, a "dodged" event); the attack resumes after it
+  ---
+  duration_ms: 75.04667
+  type: 'test'
+  ...
+# Subtest: nothing after death: a Stalker killed mid-attack swings no more and its site remembers the time; the engineer down, it stops hitting and returns home
+ok 137 - nothing after death: a Stalker killed mid-attack swings no more and its site remembers the time; the engineer down, it stops hitting and returns home
+  ---
+  duration_ms: 125.126493
+  type: 'test'
+  ...
+# Subtest: the leash: pursuit never carries it past 16 tiles from home; it returns, reaches the home tile and guards again, warmed down
+ok 138 - the leash: pursuit never carries it past 16 tiles from home; it returns, reaches the home tile and guards again, warmed down
+  ---
+  duration_ms: 60.795321
+  type: 'test'
+  ...
+# Subtest: a restored site: the Stalker returns and retires at home; no respawn there ever after; elsewhere a dead Stalker returns respawnS later, and only with the engineer beyond perception of the home
+ok 139 - a restored site: the Stalker returns and retires at home; no respawn there ever after; elsewhere a dead Stalker returns respawnS later, and only with the engineer beyond perception of the home
+  ---
+  duration_ms: 210.759026
+  type: 'test'
+  ...
+# Subtest: turrets and the rifle hit it (4 HP a round, 24 HP); its kills count on the Stalker layer, not as turret or rifle kills
+ok 140 - turrets and the rifle hit it (4 HP a round, 24 HP); its kills count on the Stalker layer, not as turret or rifle kills
+  ---
+  duration_ms: 97.914659
+  type: 'test'
+  ...
+# Subtest: rot arrives as bodies on the segment ridge and walks the chain: lit lamps go out one by one, then the turret, then the substation; 40 unshot arrivals stop the substation and the block falls the block model's way; nothing ever leaves the two blocks; no hulks
+ok 141 - rot arrives as bodies on the segment ridge and walks the chain: lit lamps go out one by one, then the turret, then the substation; 40 unshot arrivals stop the substation and the block falls the block model's way; nothing ever leaves the two blocks; no hulks
+  ---
+  duration_ms: 631.744457
+  type: 'test'
+  ...
+# Subtest: fed turrets shoot the bodies at 3 rounds a crawler out of their own hoppers, the edge's hopper drains to the same hopper-empty pip, and no arrival reaches the substation
+ok 142 - fed turrets shoot the bodies at 3 rounds a crawler out of their own hoppers, the edge's hopper drains to the same hopper-empty pip, and no arrival reaches the substation
+  ---
+  duration_ms: 197.771867
+  type: 'test'
+  ...
+# Subtest: retaliation only (D5): a crawler ignores the engineer beside its path; shot, it turns and lands 5 HP/s at arm's reach; standing in its path turns it too; at zero HP the engineer is down and stands up at the workbench 10 s later with the pockets intact
+ok 143 - retaliation only (D5): a crawler ignores the engineer beside its path; shot, it turns and lands 5 HP/s at arm's reach; standing in its path turns it too; at zero HP the engineer is down and stands up at the workbench 10 s later with the pockets intact
+  ---
+  duration_ms: 79.147042
+  type: 'test'
+  ...
+# Subtest: the rifle: 1.5 rounds a second, three rounds a crawler (12 HP at 4 a round), no reach past 9 tiles; a shade off a lit tile cannot be hit by rifle or turret, on a lit one it can
+ok 144 - the rifle: 1.5 rounds a second, three rounds a crawler (12 HP at 4 a round), no reach past 9 tiles; a shade off a lit tile cannot be hit by rifle or turret, on a lit one it can
+  ---
+  duration_ms: 76.875869
+  type: 'test'
+  ...
+# Subtest: hand-fired engagements record whether the edge held; the fight the engineer left alone resolves when the block falls
+ok 145 - hand-fired engagements record whether the edge held; the fight the engineer left alone resolves when the block falls
+  ---
+  duration_ms: 246.141997
+  type: 'test'
+  ...
+# Subtest: the lattice keeps the block model: with the flow layer on a lattice map no tile threat is created and the engagement arithmetic is unchanged
+ok 146 - the lattice keeps the block model: with the flow layer on a lattice map no tile threat is created and the engagement arithmetic is unchanged
+  ---
+  duration_ms: 119.45527
+  type: 'test'
+  ...
+# Subtest: an M3 snapshot without the M4 fields loads: threat, chest trips and reach refusals appear on first use
+ok 147 - an M3 snapshot without the M4 fields loads: threat, chest trips and reach refusals appear on first use
+  ---
+  duration_ms: 113.342843
+  type: 'test'
+  ...
+# Subtest: geometry: a lot is a rasterised face, streets are the ridges between faces, the river is water; 800×800
+ok 148 - geometry: a lot is a rasterised face, streets are the ridges between faces, the river is water; 800×800
+  ---
+  duration_ms: 387.789318
+  type: 'test'
+  ...
+# Subtest: the river is river tiles and no block; plazas and parks are inert faces with no rubble, no substation, no lights; outskirts faces (§7) have neither a substation nor streetlights
+ok 149 - the river is river tiles and no block; plazas and parks are inert faces with no rubble, no substation, no lights; outskirts faces (§7) have neither a substation nor streetlights
+  ---
+  duration_ms: 90.355473
+  type: 'test'
+  ...
+# Subtest: rubble: 250–350 tiles scaled by area, typed by district, in clusters, five variants; outskirts carry deposits or nothing
+ok 150 - rubble: 250–350 tiles scaled by area, typed by district, in clusters, five variants; outskirts carry deposits or nothing
+  ---
+  duration_ms: 84.726513
+  type: 'test'
+  ...
+# Subtest: the density gradient: deeper faces (hops from the HQ) show heavier rubble on average
+ok 151 - the density gradient: deeper faces (hops from the HQ) show heavier rubble on average
+  ---
+  duration_ms: 62.706711
+  type: 'test'
+  ...
+# Subtest: block state is authoritative: the pool drains and rubble becomes ground in the layout order; a claim digs; the keys track it
+ok 152 - block state is authoritative: the pool drains and rubble becomes ground in the layout order; a claim digs; the keys track it
+  ---
+  duration_ms: 61.995609
+  type: 'test'
+  ...
+# Subtest: deterministic per seed; a different seed lays the rubble differently; a whole city derives under 100 ms cold
+ok 153 - deterministic per seed; a different seed lays the rubble differently; a whole city derives under 100 ms cold
+  ---
+  duration_ms: 775.460144
+  type: 'test'
+  ...
+# Subtest: RI-02A: saved urban geometry preserves resources, routes and solid placement restrictions
+ok 154 - RI-02A: saved urban geometry preserves resources, routes and solid placement restrictions
+  ---
+  duration_ms: 3534.591447
+  type: 'test'
+  ...
+# Subtest: RI-02A: retry cache respects budgets and playable specs reject invalid generation
+ok 155 - RI-02A: retry cache respects budgets and playable specs reject invalid generation
+  ---
+  duration_ms: 228.318511
+  type: 'test'
+  ...
+# Subtest: the engineer starts at the HQ workbench with empty pockets; the chest holds §11's start stock
+ok 156 - the engineer starts at the HQ workbench with empty pockets; the chest holds §11's start stock
+  ---
+  duration_ms: 372.819956
+  type: 'test'
+  ...
+# Subtest: walks 6 tiles/s to a clicked tile along a path that avoids water and machines, 8-connected without cutting corners
+ok 157 - walks 6 tiles/s to a clicked tile along a path that avoids water and machines, 8-connected without cutting corners
+  ---
+  duration_ms: 92.240235
+  type: 'test'
+  ...
+# Subtest: walking to a block ends on its pole; the engineer's block follows the tile under them; a Dark block is walkable and harmless
+ok 158 - walking to a block ends on its pole; the engineer's block follows the tile under them; a Dark block is walkable and harmless
+  ---
+  duration_ms: 68.073952
+  type: 'test'
+  ...
+# Subtest: the HQ to the Tram depot and back: a path exists both ways, and the walk takes the distance at 6 tiles/s
+ok 159 - the HQ to the Tram depot and back: a path exists both ways, and the walk takes the distance at 6 tiles/s
+  ---
+  duration_ms: 67.354532
+  type: 'test'
+  ...
+# Subtest: reach: 8 tiles to the nearest edge of the target; hands and chest refuse beyond it
+ok 160 - reach: 8 tiles to the nearest edge of the target; hands and chest refuse beyond it
+  ---
+  duration_ms: 72.589769
+  type: 'test'
+  ...
+# Subtest: the harness bot keeps its block-level walk: the block sim without a flow layer moves the engineer between blocks as before
+ok 161 - the harness bot keeps its block-level walk: the block sim without a flow layer moves the engineer between blocks as before
+  ---
+  duration_ms: 95.282517
+  type: 'test'
+  ...
+1..161
+# tests 161
+# suites 0
+# pass 160
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 95130.66757
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /mnt/e/Factorio2/packages/sim
+npm error workspace @relight/sim@0.1.0
+npm error location /mnt/e/Factorio2/packages/sim
+npm error command failed
+npm error command sh -c tsx --test --test-concurrency=1 test/*.test.ts

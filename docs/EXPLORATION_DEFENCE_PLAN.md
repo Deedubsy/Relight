@@ -2,7 +2,7 @@
 
 Adopted direction and opening contracts: 2026-09-06, D-EX-01–11. The owner confirmed that **Phase 4 has just finished**. Phase 5 is the next incomplete phase; forward-built RI features do not mean later phases are complete.
 
-This plan replaces the executable direction of [Version 1](REVISED_DEVELOPMENT_PLAN.md). [RELIGHT-design.md](RELIGHT-design.md) defines gameplay, [DECISIONS.md](DECISIONS.md) records authority and open choices, and [PROGRESS.md](PROGRESS.md) alone owns task order/status. This plan supplies task definitions, not a second tracker. The current request authorises documentation changes; subsequent coding follows the user's requested execution scope.
+This plan replaces the executable direction of [Version 1](REVISED_DEVELOPMENT_PLAN.md). [RELIGHT-design.md](RELIGHT-design.md) defines gameplay, [DECISIONS.md](DECISIONS.md) records authority and open choices, and [PROGRESS.md](PROGRESS.md) alone owns task order/status. This plan supplies task definitions, not a second tracker. The owner subsequently authorised baseline integration and the first tram increment (D-EX-12); subsequent coding follows that scope and PROGRESS.
 
 ## 1. Direction and implementation boundaries
 
@@ -12,11 +12,11 @@ Two days without major assaults initially allow exploration; a later defined mil
 
 The owner approved the full recommended opening package through D-EX-11. Q01–06 are settled: the 20-minute initial cycle and shared schedule, home/station bases, radio rules, multi-stop reserved freight, persistent regional extraction and the repair/discovery slice are in the active GDD. Alternatives were not selected. Q07 remains open for the later campaign. Missing costs, rates, HP/radii and detailed tuning still require explicit specification; they do not reopen approved core choices.
 
-Preserve physical inventories and deliveries, the pure simulation, replayability, clear state-driven feedback and human play evidence. Reuse proven components. No new survival-needs, happiness, dialogue, XP or loot-tier simulation is in scope. No automatic code merge, save conversion, benchmark regeneration or deletion of historical evidence is authorised by this documentation task.
+Preserve physical inventories and deliveries, the pure simulation, replayability, clear state-driven feedback and human play evidence. Reuse proven components. No new survival-needs, happiness, dialogue, XP or loot-tier simulation is in scope. D-EX-12 authorises integration and tram implementation. It does not authorise automatic campaign save conversion, regeneration of historical benchmarks or evidence deletion.
 
 ## 2. Actual baseline and reusable work
 
-Phase 4 is complete (owner confirmation, this conversation). This checkout has RI-01–06 work, with RI-06 locally documented as unverified. Fetched main adds urban geometry/presentation and Heart repairs with reported automated evidence. These are two different baselines. The next task inspects their ancestry, changes, checks and compatibility before choosing an integration approach; the documentation migration itself does not switch branches.
+Phase 4 is complete (owner confirmation). EX-01 compared the earlier RI checkout with newer main and reproduced the relevant Heart/project/city checks. D-EX-12 then authorised integration: newer main is merged with the adopted documentation preserved. See BASELINE_INTEGRATION_REPORT.md for the comparison and TRAM_INTEGRATION_REPORT.md for the resulting build and first freight increment.
 
 Retain movement, inventories, machine recipes/production, belts, power, light queries, project records, commissioning and save/replay foundations where suitable. Reuse main's urban structure/landmark work and corrected Heart implementation when integration is authorised. Existing tram and enemy code are starting components, not proof that network transport or scheduled base attacks exist.
 
@@ -35,6 +35,8 @@ Retain movement, inventories, machine recipes/production, belts, power, light qu
 | EX-08 — representative loop gate | Automated invariants, then the human session defined in EXPLORATION_DEFENCE_PLAYTEST.md. Record observations and revisions; do not claim fun from bot success. Expand content only after this loop is assessed. |
 | EX-09 — complete factory and wider progression | Retained Phase 5 machinery/UX obligations, remaining transport cases, more useful facilities/encounters, regional economy, automation of repeated handling, endgame contract D-EX-Q07. Map all retained RI/T obligations into delivery scope before completing the phase. |
 | EX-10 — full campaign, performance and release | Remaining Phases 10–14 obligations, seed fairness, save migration, accessibility, long-run play, production art/audio, performance and release preparation; re-estimate after the new loop. Existing phase gates are not silently waived. |
+
+EX-06A is the independently reviewable freight subset of EX-06 brought forward under D-EX-12: multiple stops, reserved deliveries, return exports and save/UI support on the retained baseline. It does not complete EX-03 profiles, EX-04 opening, or EX-06 specialised factories/workshops. PROGRESS owns its status.
 
 ## 4. Migration of existing work
 

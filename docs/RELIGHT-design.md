@@ -6,6 +6,8 @@ Version 2 · 2026-09-06 · exploration, tram expansion and base defence.
 
 Existing simulation numbers and generated tables are retained in the explicitly labelled legacy reference at the end because the documentation tools still read this file. They describe the existing implementation, not balance targets or acceptance criteria for Version 2. The original document is preserved in [the migration archive](archive/pre-exploration-defence-2026-09-06/docs/RELIGHT-design.md).
 
+**Implementation increment (EX-06A, D-EX-12):** selective station freight is implemented on the retained legacy campaign. Request targets count both platform and arrivals stock plus reserved incoming shipments; export reserves apply to outbound platform stock. Existing 200-item buffers and 4-second dwell remain. A refused shipment returns to its origin; a disconnected, still-existing destination parks the loaded tram until repair. Station/item allocation follows stable route/catalogue order, with no configurable priority yet. These are reversible implementation defaults, not new campaign balance approvals. Save schema 2 protects freight metadata; full Version 2 campaign profiles remain EX-03. See [the integration report](TRAM_INTEGRATION_REPORT.md).
+
 ## 1. Name
 
 **Relight.** Reclaiming the city means making its places useful again and connecting them to a working network.
@@ -22,7 +24,7 @@ Expansion follows a tram route and branches into neighbourhoods. Older factories
 
 ## 4. Top-down presentation
 
-Retain the 2D top-down view, embodied movement, world/map relationship, readable street geometry, machinery and item flows. Reuse main's city structures, factory yards, landmarks and rail reservation after baseline reconciliation (EX-01); their presence on fetched main is not their presence in this checkout.
+Retain the 2D top-down view, embodied movement, world/map relationship, readable street geometry, machinery and item flows. Main's city structures, factory yards, landmarks and rail reservation are integrated after EX-01 and D-EX-12. The cul-de-sac and new campaign rules still need implementation.
 
 Days and nights are planning units. The adopted initial cycle is 20 minutes, split into 15 daylight and 5 night; the visual sun does not change mechanical lamp coverage or Shade targeting (D-EX-Q02). Important warnings and machine states use words/shapes as well as colour; audio supplements visible information. Map information must respect discovery and radio capability rather than reveal hidden attack targets early.
 

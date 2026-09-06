@@ -13,6 +13,7 @@ import {
   syncProjects, projectOf, projectList, projectOperational, commission, commissionCheck, describeProject, projectTitle, installOf,
   RAIL_YARD_PROJECT, SUPPLY_DEPOT_PROJECT, RAIL_ROUTE_REWARD, LOCAL_DEPOT_REWARD, SUPPLY_DEPOT_NEED, SUPPLY_CHEST_CAP,
   stateHash, makeSave, loadState, createHourBot, runHour, applyCommands, MARGIN_TILES, Dir,
+  StationRules, tramRoute,
 } from '../src/index';
 
 function city(seed = 3): SimState {
@@ -22,6 +23,56 @@ function city(seed = 3): SimState {
   ensureFlow(st);
   return st;
 }
+
+test('EX-06A: placed three-stop railway uses reach-checked commands, resumes in transit and parks intact across a broken track', () => {
+  const st = powered(3), f = st.flow!, G = ground(st), ry = G.railYard, b = st.blocks[ry], hq = hqIdx(st);
+  applyCommands(st, [{ type: 'claim', x: b.x, y: b.y }]); run(st, b.contestUntil - st.t + 2);
+  st.engineer.inv.steel = 400; st.engineer.inv.copper = 100;
+  const len = 18;
+  let line: { x: number; y: number } | undefined;
+  outer: for (let y = 2; y < G.th; y++) for (let x = 0; x + len < G.tw; x++) {
+    if (!Array.from({ length: len }, (_, k) => {
+      const t = y * G.tw + x + k;
+      return G.owner[t] === -1 && (G.near[t] === hq || G.near[t] === ry) && canPlace(st, 'track', x + k, y).ok;
+    }).every(Boolean)) continue;
+    if ([0, 8, 16].every(k => canPlace(st, 'tramstop', x + k, y - 2).ok)) { line = { x, y }; break outer; }
+  }
+  assert.ok(line, 'a legal street with three stop sites');
+  const { x, y } = line;
+  const [a, middle, end] = [0, 8, 16].map(k => place(st, 'tramstop', x + k, y - 2)!);
+  for (let k = 0; k < len; k++) assert.ok(place(st, 'track', x + k, y));
+  const tram = place(st, 'tram', x, y)!;
+  const rules: StationRules = { coal: { request: 0, reserve: 20, export: true }, copper: { request: 15, reserve: 0, export: false } };
+  farFrom(st, a); applyCommands(st, [{ type: 'setStationRules', x: a.x, y: a.y, rules }]);
+  assert.equal(Boolean(a.freight), false); assert.equal(st.version, 1);
+  standAt(st, a);
+  applyCommands(st, [{ type: 'setStationRules', x: a.x, y: a.y, rules: { coal: { ...rules.coal!, request: NaN } } }]);
+  assert.equal(Boolean(a.freight), false);
+  applyCommands(st, [{ type: 'setStationRules', x: a.x, y: a.y, rules }]);
+  assert.equal(st.version, 2); assert.deepEqual(a.freight, rules);
+  rules.coal!.reserve = 0; assert.equal(a.freight!.coal!.reserve, 20, 'command input cannot mutate installed rules afterwards');
+  standAt(st, middle); applyCommands(st, [{ type: 'setStationRules', x: middle.x, y: middle.y, rules: { coal: { request: 10, reserve: 0, export: false }, copper: { request: 0, reserve: 5, export: true } } }]);
+  standAt(st, end); applyCommands(st, [{ type: 'setStationRules', x: end.x, y: end.y, rules: { coal: { request: 30, reserve: 0, export: false } } }]);
+  a.inv = { coal: 80 }; middle.inv = { copper: 20 }; // injected scenario stock, accounted from here
+  const initial = conservation(st).unexplained;
+  advanceFlow(st, 2, []);
+  assert.equal(tram.cargo!.coal, 40);
+  const saved = makeSave(st), resumed = loadState(saved); resumed.speed = st.speed;
+  advanceFlow(st, 40, []); advanceFlow(resumed, 40, []);
+  assert.equal(stateHash(st), stateHash(resumed));
+  assert.equal(middle.cargo!.coal, 10); assert.equal(end.cargo!.coal, 30); assert.equal(a.cargo!.copper, 15);
+  assert.deepEqual(conservation(st).unexplained, initial);
+  // Dispatch again, then remove a remote piece of track. No path teleport or cargo deletion.
+  end.cargo = {}; tram.x = x; tram.y = y; tram.run = { fwd: true, stop: -1 }; tram.phase = 0; tram.timer = 0;
+  advanceFlow(st, 1, []); assert.ok((tram.cargo!.coal ?? 0) > 0);
+  const carried = { ...tram.cargo };
+  assert.ok(remove(st, x + 4, y));
+  advanceFlow(st, 20, []);
+  assert.deepEqual(tram.cargo, carried); assert.ok(tramRoute(st, tram).length < len);
+  assert.ok(place(st, 'track', x + 4, y));
+  advanceFlow(st, 40, []); assert.ok((end.cargo.coal ?? 0) > 0, 'repair reconnects the line and retries delivery');
+  assert.ok(f.machines.includes(tram));
+});
 /** The hour bot's first ten minutes: Generators burning, nothing claimed yet. */
 function powered(seed = 3): SimState {
   const st = city(seed);

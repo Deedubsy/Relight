@@ -28,6 +28,11 @@ button.active { background: var(--amber); color: #1a1200; border-color: var(--am
 button:disabled { opacity: 0.45; cursor: default; }
 button:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
 .mono { font-variant-numeric: tabular-nums; }
+.station-freight table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+.station-freight th { font-weight: 500; text-align: left; }
+.station-freight td, .station-freight th { padding: 3px 2px; }
+.station-freight input[type=number] { width: 54px; padding: 4px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 3px; }
+.station-freight input:focus-visible { outline: 2px solid var(--amber); }
 ol.ring { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; max-height: 260px; overflow-y: auto; }
 ol.ring li { display: grid; grid-template-columns: 22px 12px 1fr 52px; align-items: center; gap: 8px; padding: 4px 6px; background: var(--panel-2); border: 1px solid transparent; border-radius: 4px; cursor: grab; font-variant-numeric: tabular-nums; }
 ol.ring li.selected { border-color: #fff; }
