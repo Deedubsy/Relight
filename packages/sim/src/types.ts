@@ -108,7 +108,7 @@ export interface GraphSpec {
   pitch: number;       // tiles per unit of the block (x,y) coordinates: 32 on the lattice, 1 for a city (x,y = centroid tile)
 }
 /** D6: how to rebuild the city's tile geometry (packages/sim/src/city) from the spec's seed. */
-export interface CityKey { seed: number; preset: string; tw: number; th: number }
+export interface CityKey { seed: number; preset: string; tw: number; th: number; profile?: 'riverside-v1' }
 export interface Facility { name: string; x: number; y: number }
 /** A survivor group (§8) on a block; `tag` is the §18 map letter (E, N, G, K, M). */
 export interface Survivor { name: string; tag: string; x: number; y: number }

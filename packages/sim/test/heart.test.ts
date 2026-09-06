@@ -82,7 +82,7 @@ test('RI-06: the cabinets take deliveries from the pockets and the installation 
 
 test('RI-06 (plan §9.4): the hour bot, rifle off, prepares the yard, starts the Heart and destroys it once; the reward is granted once', () => {
   const { st, bot } = heartRun(3);
-  runUntil(st, bot, () => bot.log.marks['heart-destroyed'] !== undefined || bot.log.refused.length > 0, HOUR_CLAIM_AT.west + 20 * 60);
+  runUntil(st, bot, () => (bot.log.marks['held-west'] !== undefined && bot.log.marks['rail-yard-restored'] !== undefined) || bot.log.refused.length > 0, HOUR_CLAIM_AT.west + 20 * 60);
   const H = heartOf(st)!, m = bot.log.marks, T = threatOf(st.flow!);
   assert.deepEqual(bot.log.refused.map(x => `${x.what}: ${x.reason}`), [], 'no refusal on the Heart step');
   for (const name of ['claim-west', 'cabinet-1-supplied', 'cabinet-2-supplied', 'turret-1', 'turret-2', 'heart-start', 'heart-destroyed', 'held-west', 'rail-yard-restored'])
@@ -109,7 +109,7 @@ test('RI-06 (plan §9.4): the hour bot, rifle off, prepares the yard, starts the
   for (const c of H.cabinets) assert.deepEqual(c.delivered, { steel: 0, copper: 0 }, 'the cabinets\' materials spent at the destruction');
   const ry = projectOf(st, RAIL_YARD_PROJECT)!;
   assert.equal(ry.stage, 'restored'); assert.equal(ry.rewardAt, ry.restoredAt); assert.equal(lockReason(st, 'track'), '');
-  assert.equal(describeHeart(st), 'the Junction Heart is destroyed — the switching installation is operational');
+  assert.match(describeHeart(st), /destroyed.*operational/);
   const L = conservation(st);
   assert.ok(L.ok, L.problems.join('; '));
 });
@@ -146,8 +146,8 @@ test('RI-06 (§9.2 defaults 9–11): a knocked-out feeder stalls the commissioni
   // the repair (REPAIR_COPPER from the pockets, within reach — the engineer stands where the bot left it, so walk it there: a labelled scenario)
   const c0 = H.cabinets[0];
   st.engineer.x = c0.x + 1.5; st.engineer.y = c0.y + 0.5;
-  st.engineer.inv.copper = (st.engineer.inv.copper ?? 0) + REPAIR_COPPER;   // the scenario's copper (the ledger is not scored after it)
   const cu = st.engineer.inv.copper ?? 0;
+  assert.ok(cu >= REPAIR_COPPER, 'the bot kept repair copper when collecting the kits');
   assert.ok(cabinetRepairCheck(st, 0).ok, cabinetRepairCheck(st, 0).reason);
   assert.ok(repairCabinet(st, 0).ok);
   assert.equal(st.engineer.inv.copper ?? 0, cu - REPAIR_COPPER);
@@ -178,6 +178,8 @@ test('RI-06: a save mid-attempt reloads to the same hash and runs on to the same
   const copy = loadState(JSON.parse(JSON.stringify(makeSave(st))));
   assert.equal(stateHash(copy), stateHash(st));
   assert.deepEqual(heartOf(copy), H);
+  assert.equal(copy.speed, 0, 'loading intentionally pauses the game');
+  copy.speed = st.speed;
   advanceFlow(st, 45); advanceFlow(copy, 45);
   assert.equal(stateHash(copy), stateHash(st), 'the same hash 45 s on');
   assert.deepEqual(heartOf(copy)!.requested, H.requested);

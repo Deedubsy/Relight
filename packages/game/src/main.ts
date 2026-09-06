@@ -266,6 +266,7 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
              stamina: e.stamina, dash: e.dash, fired: e.fired, kills: e.kills, hurt: e.hurt, shootS: e.shootS, danger: e.danger, dangerShot: e.dangerShot };
   },
   ground: () => { const G = ground(session.state); return { tw: G.tw, th: G.th, blocks: G.blocks.length }; },
+  city: () => { const G = ground(session.state), u = G.urban; return u ? { profile: u.profile, places: u.places, structures: u.structures, rail: u.railReserve } : null; },
   /** Dev hook (D-B1-5 check): a street segment's ridge midpoint and the lot tile of block `a` nearest it. */
   edgeGeom: (a: number, b: number) => {
     const st = session.state, cg = cityGeomOf(st), G = ground(st), sg = segBetween(cg, a, b);

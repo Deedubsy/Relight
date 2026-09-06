@@ -1,0 +1,10217 @@
+{
+ "source_commit": "b3a3f6c8f42a09841102287ac195a424c1f05e1f",
+ "config_hash": "b95922d2",
+ "config_ref": {
+  "kind": "experiments"
+ },
+ "id": "E-heart",
+ "title": "RI-06 (cand-heart): the Junction Heart — the rail yard's claim as the first boss: two feeder cabinets, a 90 s commissioning, three reinforcement packets, the hour bot rifle off (candidate layer beside the benchmark)",
+ "pyNames": [],
+ "docRefs": [
+  "§9 (plan)",
+  "§28.8",
+  "§13",
+  "§14"
+ ],
+ "setup": "river city, seeds 3/4/5, the candidate Heart layer (candidates.ts) with economy=true so claims are paid; the hour bot on the physical claim path, hand-mining copper shortfalls and carrying patrol supplies, rifle off, 75 min; the replay, the 30:00 save, the ledger; E-hour's unchanged economy=false benchmark beside it; both configuration hashes in each seed's data",
+ "sections": [
+  {
+   "title": "E-heart-timeline: the encounter's moments (mm:ss) — the hour bot on the physical claim path, the candidate layer on, rifle off, river city",
+   "note": "packet-N: the reinforcement packet requested at N % of the first attempt that crossed it; heart-retry: a Start after an interruption.",
+   "header": [
+    "seed",
+    "claim-west",
+    "heart-start",
+    "packet-25",
+    "packet-50",
+    "packet-75",
+    "heart-first-body",
+    "cabinet-down",
+    "cabinet-repaired",
+    "heart-interrupted",
+    "heart-retry",
+    "heart-destroyed",
+    "held-west",
+    "rail-yard-restored",
+    "rail-kit-unlocked",
+    "claim-north",
+    "held-north"
+   ],
+   "rows": [
+    [
+     3,
+     "25:39",
+     "25:39",
+     "26:02",
+     "26:24",
+     "26:47",
+     "26:07",
+     "never",
+     "never",
+     "never",
+     "never",
+     "27:09",
+     "27:10",
+     "27:10",
+     "27:10",
+     "65:10",
+     "65:39"
+    ],
+    [
+     4,
+     "25:19",
+     "25:19",
+     "25:41",
+     "26:04",
+     "26:26",
+     "25:46",
+     "never",
+     "never",
+     "never",
+     "never",
+     "26:49",
+     "26:50",
+     "26:50",
+     "26:50",
+     "65:14",
+     "65:48"
+    ],
+    [
+     5,
+     "25:34",
+     "25:34",
+     "25:57",
+     "26:19",
+     "26:42",
+     "26:02",
+     "never",
+     "never",
+     "never",
+     "never",
+     "27:04",
+     "27:05",
+     "27:05",
+     "27:05",
+     "65:17",
+     "65:46"
+    ]
+   ]
+  },
+  {
+   "title": "E-heart-end: the encounter and the hour's end at 75:00",
+   "header": [
+    "seed",
+    "the Heart",
+    "attempts",
+    "interrupted",
+    "aborted",
+    "packets (attempt:threshold)",
+    "bodies born",
+    "knock-outs",
+    "repairs",
+    "productive / stalled s",
+    "charge",
+    "rail-yard record",
+    "held",
+    "HQ held",
+    "fell",
+    "chest S/Cu/coal/mag",
+    "refused",
+    "refusals"
+   ],
+   "rows": [
+    [
+     3,
+     "Junction Heart · destroyed after 1 attempt(s) · the rail yard is operational",
+     1,
+     0,
+     0,
+     "2:25 2:50 2:75",
+     9,
+     0,
+     0,
+     "90 / 0",
+     "10 steel + 5 Cu",
+     "restored · attempt 2 · reward rail-route @ 27:10",
+     4,
+     "yes",
+     0,
+     "1519/377/429/135",
+     0,
+     "-"
+    ],
+    [
+     4,
+     "Junction Heart · destroyed after 1 attempt(s) · the rail yard is operational",
+     1,
+     0,
+     0,
+     "2:25 2:50 2:75",
+     9,
+     0,
+     0,
+     "90 / 0",
+     "10 steel + 5 Cu",
+     "restored · attempt 2 · reward rail-route @ 26:50",
+     4,
+     "yes",
+     0,
+     "1535/2053/434/290",
+     0,
+     "-"
+    ],
+    [
+     5,
+     "Junction Heart · destroyed after 1 attempt(s) · the rail yard is operational",
+     1,
+     0,
+     0,
+     "2:25 2:50 2:75",
+     9,
+     0,
+     0,
+     "90 / 0",
+     "10 steel + 5 Cu",
+     "restored · attempt 2 · reward rail-route @ 27:05",
+     4,
+     "yes",
+     0,
+     "1563/378/431/211",
+     0,
+     "-"
+    ]
+   ]
+  },
+  {
+   "title": "E-heart-cabinets: the two feeder cabinets — the tile, the approach they face, the emergence point the packets use, what reached them",
+   "header": [
+    "seed",
+    "cabinet",
+    "tile",
+    "approach",
+    "point",
+    "delivered",
+    "state"
+   ],
+   "rows": [
+    [
+     3,
+     1,
+     "(390,622)",
+     "north-west civic (block 332)",
+     1818,
+     "0 steel + 0 Cu",
+     "up"
+    ],
+    [
+     3,
+     2,
+     "(380,625)",
+     "west civic 2 A (block 340)",
+     1861,
+     "0 steel + 0 Cu",
+     "up"
+    ],
+    [
+     4,
+     1,
+     "(429,653)",
+     "north-west civic 2 B (block 338)",
+     1878,
+     "0 steel + 0 Cu",
+     "up"
+    ],
+    [
+     4,
+     2,
+     "(425,671)",
+     "west civic 2 (block 369)",
+     2019,
+     "0 steel + 0 Cu",
+     "up"
+    ],
+    [
+     5,
+     1,
+     "(263,636)",
+     "north-west civic (block 324)",
+     1774,
+     "0 steel + 0 Cu",
+     "up"
+    ],
+    [
+     5,
+     2,
+     "(261,643)",
+     "west residential 2 (block 344)",
+     1858,
+     "0 steel + 0 Cu",
+     "up"
+    ]
+   ]
+  },
+  {
+   "title": "E-heart-replay: the logged hour replayed on a fresh city with the layer — the same state hash and Heart record; the heart / project events counted every tick",
+   "header": [
+    "seed",
+    "played hash",
+    "replay hash",
+    "same hash",
+    "same Heart",
+    "starts",
+    "packets",
+    "duplicate packets",
+    "destroyed events",
+    "restored events",
+    "once-only"
+   ],
+   "rows": [
+    [
+     3,
+     "3585433e",
+     "3585433e",
+     "yes",
+     "yes",
+     1,
+     3,
+     0,
+     1,
+     1,
+     "yes"
+    ],
+    [
+     4,
+     "dbb4555c",
+     "dbb4555c",
+     "yes",
+     "yes",
+     1,
+     3,
+     0,
+     1,
+     1,
+     "yes"
+    ],
+    [
+     5,
+     "1296ac07",
+     "1296ac07",
+     "yes",
+     "yes",
+     1,
+     3,
+     0,
+     1,
+     1,
+     "yes"
+    ]
+   ]
+  },
+  {
+   "title": "E-heart-save: the replay saved at 30:00 (save.ts makeSave → JSON → loadState), both copies replayed to 75:00 (goalcheck.ts)",
+   "header": [
+    "seed",
+    "saved at",
+    "hash at save",
+    "hash after load",
+    "same",
+    "end unbroken",
+    "end loaded",
+    "same",
+    "end played",
+    "same",
+    "goal-line disagreements",
+    "problems"
+   ],
+   "rows": [
+    [
+     3,
+     "30:00",
+     "37010ed8",
+     "37010ed8",
+     "yes",
+     "3585433e",
+     "3585433e",
+     "yes",
+     "3585433e",
+     "yes",
+     0,
+     "-"
+    ],
+    [
+     4,
+     "30:00",
+     "169d3d77",
+     "169d3d77",
+     "yes",
+     "dbb4555c",
+     "dbb4555c",
+     "yes",
+     "dbb4555c",
+     "yes",
+     0,
+     "-"
+    ],
+    [
+     5,
+     "30:00",
+     "be9fd304",
+     "be9fd304",
+     "yes",
+     "1296ac07",
+     "1296ac07",
+     "yes",
+     "1296ac07",
+     "yes",
+     0,
+     "-"
+    ]
+   ]
+  },
+  {
+   "title": "E-heart-ledger: resource conservation (ledger.ts) at the hour's end — opening + sources → held + sinks (the cabinets' materials as committed stock, then spent)",
+   "header": [
+    "seed",
+    "conserved",
+    "steel",
+    "copper",
+    "coal",
+    "magazines",
+    "problems"
+   ],
+   "rows": [
+    [
+     3,
+     "yes",
+     "200.0 + 3350.0 → 1651.0 + 1899.0",
+     "100.0 + 1191.0 → 475.0 + 816.0",
+     "80.0 + 1404.0 → 576.0 + 908.0",
+     "50.0 + 679.0 → 264.7 + 464.3",
+     "-"
+    ],
+    [
+     4,
+     "yes",
+     "200.0 + 3349.0 → 1666.0 + 1883.0",
+     "100.0 + 2918.0 → 2201.0 + 817.0",
+     "80.0 + 1404.0 → 588.0 + 896.0",
+     "50.0 + 679.0 → 399.0 + 330.0",
+     "-"
+    ],
+    [
+     5,
+     "yes",
+     "200.0 + 3349.0 → 1693.0 + 1856.0",
+     "100.0 + 1189.0 → 475.0 + 814.0",
+     "80.0 + 1404.0 → 588.0 + 896.0",
+     "50.0 + 679.0 → 358.5 + 370.5",
+     "-"
+    ]
+   ]
+  },
+  {
+   "title": "E-heart-beside: the candidate layer against E-hour's benchmark configuration (no Heart), the same seed and clock, rifle off",
+   "header": [
+    "seed",
+    "run",
+    "claim-west",
+    "held-west",
+    "west-line",
+    "rail coal at Depot",
+    "first brownout",
+    "brownout s",
+    "steel min",
+    "Cu min",
+    "coal min",
+    "chest S/Cu/coal/mag",
+    "held",
+    "fell",
+    "refused"
+   ],
+   "rows": [
+    [
+     3,
+     "cand-heart",
+     "25:39",
+     "27:10",
+     "27:19",
+     "27:41",
+     "never",
+     "0",
+     "9 @ 17:35",
+     0,
+     0,
+     "1519/377/429/135",
+     4,
+     0,
+     0
+    ],
+    [
+     3,
+     "benchmark",
+     "25:11",
+     "25:46",
+     "26:42",
+     "27:04",
+     "never",
+     "0",
+     "19 @ 17:35",
+     8,
+     0,
+     "1589/385/471/108",
+     4,
+     0,
+     0
+    ],
+    [
+     4,
+     "cand-heart",
+     "25:19",
+     "26:50",
+     "27:01",
+     "27:21",
+     "never",
+     "0",
+     "30 @ 12:02",
+     27,
+     0,
+     "1535/2053/434/290",
+     4,
+     0,
+     0
+    ],
+    [
+     4,
+     "benchmark",
+     "25:14",
+     "25:43",
+     "26:44",
+     "27:04",
+     "never",
+     "0",
+     "30 @ 12:02",
+     32,
+     0,
+     "1605/2084/469/279",
+     4,
+     0,
+     0
+    ],
+    [
+     5,
+     "cand-heart",
+     "25:34",
+     "27:05",
+     "27:14",
+     "27:37",
+     "never",
+     "0",
+     "30 @ 12:01",
+     0,
+     0,
+     "1563/378/431/211",
+     4,
+     0,
+     0
+    ],
+    [
+     5,
+     "benchmark",
+     "25:10",
+     "25:40",
+     "26:39",
+     "27:02",
+     "never",
+     "0",
+     "30 @ 12:01",
+     9,
+     0,
+     "1631/385/472/215",
+     4,
+     0,
+     0
+    ]
+   ]
+  }
+ ],
+ "checks": [
+  {
+   "name": "RI-06 (plan §9.4): a prepared factory completes the encounter without compulsory rifle use — the Heart destroyed and the yard Held on every seed, rifle off, no rifle kill, no shot",
+   "pass": true,
+   "detail": "3/3 seeds destroyed, 3/3 seeds without a shot"
+  },
+  {
+   "name": "RI-06 (§9.2 default 7): every reinforcement packet keyed to (attempt, threshold) and requested once — no duplicate in the replay's events, at most one per threshold per attempt",
+   "pass": true,
+   "detail": "3/3 seeds"
+  },
+  {
+   "name": "RI-06 (§9.2 defaults 10, 12): the installation's materials charged once and the reward granted once at the restoration's second (one destroyed event, one restored event)",
+   "pass": true,
+   "detail": "3/3 seeds charged, 3/3 seeds rewarded"
+  },
+  {
+   "name": "RI-06 (§9.4): an interruption preserves the cabinets' deliveries and the installation's charge (every interrupted seed; trivially true where none was interrupted)",
+   "pass": true,
+   "detail": "3/3 seeds"
+  },
+  {
+   "name": "RI-06 (§9.4): the objective, the active failure condition and the next action are one readable line (describeHeart) on every seed",
+   "pass": true,
+   "detail": "3/3 seeds"
+  },
+  {
+   "name": "RI-06: the logged hour replays to the played run's hash with the same Heart record (every seed)",
+   "pass": true,
+   "detail": "3/3 seeds"
+  },
+  {
+   "name": "RI-06: a save at 30:00 reloads to the same hash and replays to the unbroken run's hash at 75:00 (every seed)",
+   "pass": true,
+   "detail": "3/3 seeds"
+  },
+  {
+   "name": "RI-06: every item conserved with the cabinets' materials in the ledger (ledger.ts, tolerance 0.01)",
+   "pass": true,
+   "detail": "3 runs"
+  },
+  {
+   "name": "the hour still stands with the layer on: the HQ Held at 75:00 and no block falls (every seed)",
+   "pass": true,
+   "detail": "3/3 seeds HQ held, 0 falls"
+  },
+  {
+   "name": "the bot's Heart step is refused nowhere (every placement, delivery, repair and Start went through)",
+   "pass": true,
+   "detail": "no refusals"
+  }
+ ],
+ "data": {
+  "report-3": {
+   "heart": {
+    "marks": {
+     "mine-done": 20,
+     "craft-done": 80,
+     "first-crawler": 168,
+     "first-turret-fire": 168,
+     "first-amber": 195,
+     "generator-2": 361,
+     "line-excavators": 371,
+     "first-red": 372,
+     "first-hand-feed": 379,
+     "line-assembler": 481,
+     "first-line-magazine": 488,
+     "first-rounds-run": 602,
+     "steel-to-chest": 721,
+     "generator-3": 902,
+     "strung-east": 906,
+     "deliver-east": 908,
+     "claim-east": 917,
+     "arrive-east": 919,
+     "held-east": 948,
+     "kitted-east": 948,
+     "east-line": 1011,
+     "wire-assembler": 1054,
+     "copper-zero": 1526,
+     "strung-west": 1529,
+     "deliver-west": 1530,
+     "cabinet-1-supplied": 1530,
+     "turret-1": 1531,
+     "cabinet-2-supplied": 1532,
+     "turret-2": 1532,
+     "claim-west": 1539,
+     "heart-start": 1539,
+     "packet-25": 1562,
+     "heart-first-body": 1567,
+     "packet-50": 1584,
+     "packet-75": 1607,
+     "heart-destroyed": 1629,
+     "held-west": 1630,
+     "rail-yard-restored": 1630,
+     "rail-kit-unlocked": 1630,
+     "arrive-west": 1630,
+     "kitted-west": 1630,
+     "rail-coal-mined": 1638,
+     "west-line": 1639,
+     "rail-coal-arrived": 1661,
+     "generator-4": 2700,
+     "copper-2": 2761,
+     "strung-north": 3903,
+     "deliver-north": 3904,
+     "claim-north": 3910,
+     "arrive-north": 3911,
+     "held-north": 3939,
+     "kitted-north": 3939
+    },
+    "walks": [
+     {
+      "name": "hand-feed beat",
+      "t0": 372,
+      "t1": 374,
+      "tiles": 20
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 374,
+      "t1": 375,
+      "tiles": 13
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 375,
+      "t1": 376,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 376,
+      "t1": 379,
+      "tiles": 23
+     },
+     {
+      "name": "to the chest",
+      "t0": 480,
+      "t1": 480,
+      "tiles": 9
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 566,
+      "t1": 566,
+      "tiles": 9
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 566,
+      "t1": 567,
+      "tiles": 14
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 567,
+      "t1": 569,
+      "tiles": 15
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 569,
+      "t1": 571,
+      "tiles": 16
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 571,
+      "t1": 573,
+      "tiles": 15
+     },
+     {
+      "name": "to the chest",
+      "t0": 600,
+      "t1": 600,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 600,
+      "t1": 602,
+      "tiles": 18
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 768,
+      "t1": 768,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 768,
+      "t1": 770,
+      "tiles": 15
+     },
+     {
+      "name": "to the chest",
+      "t0": 900,
+      "t1": 900,
+      "tiles": 9
+     },
+     {
+      "name": "string east",
+      "t0": 902,
+      "t1": 902,
+      "tiles": 8
+     },
+     {
+      "name": "deliver east",
+      "t0": 907,
+      "t1": 908,
+      "tiles": 14
+     },
+     {
+      "name": "back for east's kits",
+      "t0": 908,
+      "t1": 912,
+      "tiles": 34
+     },
+     {
+      "name": "activate east",
+      "t0": 912,
+      "t1": 917,
+      "tiles": 31
+     },
+     {
+      "name": "walk-over east",
+      "t0": 917,
+      "t1": 919,
+      "tiles": 16
+     },
+     {
+      "name": "back from east",
+      "t0": 948,
+      "t1": 954,
+      "tiles": 48
+     },
+     {
+      "name": "rounds run",
+      "t0": 955,
+      "t1": 957,
+      "tiles": 21
+     },
+     {
+      "name": "rounds run",
+      "t0": 957,
+      "t1": 959,
+      "tiles": 21
+     },
+     {
+      "name": "rounds run",
+      "t0": 959,
+      "t1": 962,
+      "tiles": 19
+     },
+     {
+      "name": "rounds run",
+      "t0": 962,
+      "t1": 963,
+      "tiles": 14
+     },
+     {
+      "name": "rounds run",
+      "t0": 963,
+      "t1": 967,
+      "tiles": 26
+     },
+     {
+      "name": "rounds run",
+      "t0": 967,
+      "t1": 967,
+      "tiles": 7
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1202,
+      "t1": 1202,
+      "tiles": 8
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1202,
+      "t1": 1203,
+      "tiles": 18
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1204,
+      "t1": 1205,
+      "tiles": 15
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1205,
+      "t1": 1207,
+      "tiles": 19
+     },
+     {
+      "name": "to the chest",
+      "t0": 1255,
+      "t1": 1255,
+      "tiles": 10
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1500,
+      "t1": 1501,
+      "tiles": 12
+     },
+     {
+      "name": "string west",
+      "t0": 1525,
+      "t1": 1526,
+      "tiles": 9
+     },
+     {
+      "name": "deliver west",
+      "t0": 1529,
+      "t1": 1530,
+      "tiles": 10
+     },
+     {
+      "name": "string cabinet 2",
+      "t0": 1531,
+      "t1": 1531,
+      "tiles": 8
+     },
+     {
+      "name": "back for west's kits",
+      "t0": 1532,
+      "t1": 1536,
+      "tiles": 31
+     },
+     {
+      "name": "activate west",
+      "t0": 1536,
+      "t1": 1539,
+      "tiles": 23
+     },
+     {
+      "name": "walk-over west",
+      "t0": 1539,
+      "t1": 1630,
+      "tiles": 0
+     },
+     {
+      "name": "back from west",
+      "t0": 1630,
+      "t1": 1633,
+      "tiles": 28
+     },
+     {
+      "name": "to the chest",
+      "t0": 1639,
+      "t1": 1641,
+      "tiles": 17
+     },
+     {
+      "name": "rounds run",
+      "t0": 1641,
+      "t1": 1641,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 1642,
+      "t1": 1643,
+      "tiles": 16
+     },
+     {
+      "name": "rounds run",
+      "t0": 1643,
+      "t1": 1647,
+      "tiles": 27
+     },
+     {
+      "name": "rounds run",
+      "t0": 1647,
+      "t1": 1648,
+      "tiles": 14
+     },
+     {
+      "name": "rounds run",
+      "t0": 1648,
+      "t1": 1649,
+      "tiles": 6
+     },
+     {
+      "name": "rounds run",
+      "t0": 1649,
+      "t1": 1649,
+      "tiles": 12
+     },
+     {
+      "name": "to the chest for magazines",
+      "t0": 1879,
+      "t1": 1879,
+      "tiles": 7
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1879,
+      "t1": 1885,
+      "tiles": 46
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1886,
+      "t1": 1892,
+      "tiles": 45
+     },
+     {
+      "name": "to the chest",
+      "t0": 1939,
+      "t1": 1939,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 1939,
+      "t1": 1942,
+      "tiles": 18
+     },
+     {
+      "name": "rounds run",
+      "t0": 1942,
+      "t1": 1942,
+      "tiles": 10
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2060,
+      "t1": 2066,
+      "tiles": 44
+     },
+     {
+      "name": "to the chest",
+      "t0": 2239,
+      "t1": 2243,
+      "tiles": 34
+     },
+     {
+      "name": "rounds run",
+      "t0": 2243,
+      "t1": 2244,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 2244,
+      "t1": 2245,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 2245,
+      "t1": 2246,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 2246,
+      "t1": 2250,
+      "tiles": 30
+     },
+     {
+      "name": "rounds run",
+      "t0": 2250,
+      "t1": 2251,
+      "tiles": 17
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2497,
+      "t1": 2500,
+      "tiles": 26
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2500,
+      "t1": 2504,
+      "tiles": 33
+     },
+     {
+      "name": "to the chest",
+      "t0": 2539,
+      "t1": 2539,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 2539,
+      "t1": 2540,
+      "tiles": 7
+     },
+     {
+      "name": "to the chest",
+      "t0": 2700,
+      "t1": 2700,
+      "tiles": 8
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2772,
+      "t1": 2776,
+      "tiles": 33
+     },
+     {
+      "name": "to the chest",
+      "t0": 2839,
+      "t1": 2843,
+      "tiles": 34
+     },
+     {
+      "name": "rounds run",
+      "t0": 2843,
+      "t1": 2844,
+      "tiles": 13
+     },
+     {
+      "name": "rounds run",
+      "t0": 2844,
+      "t1": 2845,
+      "tiles": 13
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2967,
+      "t1": 2973,
+      "tiles": 47
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2973,
+      "t1": 2976,
+      "tiles": 19
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2976,
+      "t1": 2976,
+      "tiles": 9
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2976,
+      "t1": 2981,
+      "tiles": 35
+     },
+     {
+      "name": "to the chest",
+      "t0": 3000,
+      "t1": 3000,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 3139,
+      "t1": 3139,
+      "tiles": 8
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3330,
+      "t1": 3335,
+      "tiles": 40
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3335,
+      "t1": 3337,
+      "tiles": 19
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3337,
+      "t1": 3338,
+      "tiles": 9
+     },
+     {
+      "name": "to the chest",
+      "t0": 3439,
+      "t1": 3442,
+      "tiles": 24
+     },
+     {
+      "name": "rounds run",
+      "t0": 3442,
+      "t1": 3443,
+      "tiles": 13
+     },
+     {
+      "name": "rounds run",
+      "t0": 3443,
+      "t1": 3444,
+      "tiles": 13
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3705,
+      "t1": 3711,
+      "tiles": 47
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3711,
+      "t1": 3715,
+      "tiles": 30
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3716,
+      "t1": 3718,
+      "tiles": 21
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3718,
+      "t1": 3723,
+      "tiles": 34
+     },
+     {
+      "name": "to the chest",
+      "t0": 3739,
+      "t1": 3739,
+      "tiles": 11
+     },
+     {
+      "name": "string north",
+      "t0": 3900,
+      "t1": 3900,
+      "tiles": 11
+     },
+     {
+      "name": "deliver north",
+      "t0": 3903,
+      "t1": 3904,
+      "tiles": 12
+     },
+     {
+      "name": "back for north's kits",
+      "t0": 3904,
+      "t1": 3907,
+      "tiles": 24
+     },
+     {
+      "name": "activate north",
+      "t0": 3907,
+      "t1": 3910,
+      "tiles": 23
+     },
+     {
+      "name": "walk-over north",
+      "t0": 3910,
+      "t1": 3911,
+      "tiles": 9
+     },
+     {
+      "name": "back from north",
+      "t0": 3939,
+      "t1": 3943,
+      "tiles": 33
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 4002,
+      "t1": 4007,
+      "tiles": 40
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 4008,
+      "t1": 4012,
+      "tiles": 30
+     },
+     {
+      "name": "to the chest",
+      "t0": 4039,
+      "t1": 4039,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 4039,
+      "t1": 4039,
+      "tiles": 8
+     },
+     {
+      "name": "rounds run",
+      "t0": 4039,
+      "t1": 4040,
+      "tiles": 13
+     },
+     {
+      "name": "rounds run",
+      "t0": 4040,
+      "t1": 4044,
+      "tiles": 30
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 4283,
+      "t1": 4283,
+      "tiles": 10
+     },
+     {
+      "name": "to the chest",
+      "t0": 4339,
+      "t1": 4343,
+      "tiles": 34
+     },
+     {
+      "name": "rounds run",
+      "t0": 4344,
+      "t1": 4345,
+      "tiles": 16
+     }
+    ],
+    "refused": [],
+    "entries": [
+     {
+      "t": 0,
+      "what": "§11 0:00 — to the steel patch, hand-mine 20 steel"
+     },
+     {
+      "t": 20,
+      "what": "mine-done"
+     },
+     {
+      "t": 20,
+      "what": "20 steel in the pockets"
+     },
+     {
+      "t": 20,
+      "what": "§11 — back to the workbench: craft ten magazines, the chest's 20 into the pockets (20 s late)"
+     },
+     {
+      "t": 80,
+      "what": "craft-done"
+     },
+     {
+      "t": 80,
+      "what": "10 crafted, 10 magazines in the pockets"
+     },
+     {
+      "t": 168,
+      "what": "first-crawler"
+     },
+     {
+      "t": 168,
+      "what": "first-turret-fire"
+     },
+     {
+      "t": 195,
+      "what": "first-amber"
+     },
+     {
+      "t": 360,
+      "what": "§11 6:00 — the coal Excavator and its belt, Generator 2, the steel and copper Excavators and their belts"
+     },
+     {
+      "t": 361,
+      "what": "generator-2"
+     },
+     {
+      "t": 371,
+      "what": "line-excavators"
+     },
+     {
+      "t": 372,
+      "what": "first-red"
+     },
+     {
+      "t": 372,
+      "what": "hand-feed beat: 4 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 379,
+      "what": "first-hand-feed"
+     },
+     {
+      "t": 379,
+      "what": "54 magazines fed by hand so far"
+     },
+     {
+      "t": 480,
+      "what": "§11 8:00 — the Shot assembler, three inserters, the ammo belt"
+     },
+     {
+      "t": 481,
+      "what": "line-assembler"
+     },
+     {
+      "t": 488,
+      "what": "first-line-magazine"
+     },
+     {
+      "t": 566,
+      "what": "hand-feed beat: 5 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 566,
+      "what": "took 13 of 25 magazine (the chest had no more)"
+     },
+     {
+      "t": 573,
+      "what": "73 magazines fed by hand so far"
+     },
+     {
+      "t": 600,
+      "what": "rounds run: 0 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 600,
+      "what": "took 6 of 20 magazine (the chest had no more)"
+     },
+     {
+      "t": 602,
+      "what": "first-rounds-run"
+     },
+     {
+      "t": 720,
+      "what": "§11 12:00 — the second steel Excavator, belted into the chest (D-P4-7)"
+     },
+     {
+      "t": 721,
+      "what": "steel-to-chest"
+     },
+     {
+      "t": 768,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 770,
+      "what": "109 magazines fed by hand so far"
+     },
+     {
+      "t": 900,
+      "what": "§11 15:00 — Generator 3"
+     },
+     {
+      "t": 902,
+      "what": "generator-3"
+     },
+     {
+      "t": 902,
+      "what": "§11 15:00 — claim east"
+     },
+     {
+      "t": 902,
+      "what": "east = block 355 (civ, d 0.15, burn-off 29 s): 4 pole(s) to string, 10 steel + 5 Cu to deliver"
+     },
+     {
+      "t": 906,
+      "what": "strung-east"
+     },
+     {
+      "t": 906,
+      "what": "4 pole(s) strung to east's substation"
+     },
+     {
+      "t": 908,
+      "what": "10 steel + 5 Cu delivered to east's substation (needs 10 + 5)"
+     },
+     {
+      "t": 908,
+      "what": "deliver-east"
+     },
+     {
+      "t": 912,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 917,
+      "what": "claim-east"
+     },
+     {
+      "t": 919,
+      "what": "arrive-east"
+     },
+     {
+      "t": 948,
+      "what": "held-east"
+     },
+     {
+      "t": 948,
+      "what": "kitted-east"
+     },
+     {
+      "t": 955,
+      "what": "rounds run: 5 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 994,
+      "what": "east's Excavator on its own rubble, belted into the Depot (RI-01, D-P4-5)"
+     },
+     {
+      "t": 994,
+      "what": "east's stone line: Excavator at (453,641) facing east, 93 belts to the Depot"
+     },
+     {
+      "t": 1011,
+      "what": "east-line"
+     },
+     {
+      "t": 1054,
+      "what": "the Wire Assembler (RI-01: a real machine on the Wire recipe, D-B2-1 (b))"
+     },
+     {
+      "t": 1054,
+      "what": "wire-assembler"
+     },
+     {
+      "t": 1202,
+      "what": "hand-feed beat: 4 turret(s) at or under half, 2 on a red edge"
+     },
+     {
+      "t": 1207,
+      "what": "233 magazines fed by hand so far"
+     },
+     {
+      "t": 1255,
+      "what": "rounds run: 0 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 1500,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 1501,
+      "what": "275 magazines fed by hand so far"
+     },
+     {
+      "t": 1501,
+      "what": "§11 25:00 — claim west"
+     },
+     {
+      "t": 1501,
+      "what": "west = block 353 (res, d 0.22): the Junction Heart — 2 feeder cabinets at (390,622) and (380,625), 4 steel + 2 Cu each; the installation 10 steel + 5 Cu; 90 s productive, 60 s stall, packets at 25/50/75 %"
+     },
+     {
+      "t": 1501,
+      "what": "hand-mine 23 copper for the candidate's preparation"
+     },
+     {
+      "t": 1526,
+      "what": "copper-zero"
+     },
+     {
+      "t": 1529,
+      "what": "strung-west"
+     },
+     {
+      "t": 1529,
+      "what": "5 pole(s) strung to west's substation"
+     },
+     {
+      "t": 1530,
+      "what": "10 steel + 5 Cu delivered to the installation (needs 10 + 5)"
+     },
+     {
+      "t": 1530,
+      "what": "deliver-west"
+     },
+     {
+      "t": 1530,
+      "what": "1 pole(s) strung to cabinet 1"
+     },
+     {
+      "t": 1530,
+      "what": "cabinet-1-supplied"
+     },
+     {
+      "t": 1531,
+      "what": "turret-1"
+     },
+     {
+      "t": 1531,
+      "what": "1 pole(s) strung to cabinet 2"
+     },
+     {
+      "t": 1532,
+      "what": "cabinet-2-supplied"
+     },
+     {
+      "t": 1532,
+      "what": "turret-2"
+     },
+     {
+      "t": 1536,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 1539,
+      "what": "claim-west"
+     },
+     {
+      "t": 1539,
+      "what": "heart-start"
+     },
+     {
+      "t": 1562,
+      "what": "packet-25"
+     },
+     {
+      "t": 1567,
+      "what": "heart-first-body"
+     },
+     {
+      "t": 1584,
+      "what": "packet-50"
+     },
+     {
+      "t": 1607,
+      "what": "packet-75"
+     },
+     {
+      "t": 1629,
+      "what": "heart-destroyed"
+     },
+     {
+      "t": 1630,
+      "what": "held-west"
+     },
+     {
+      "t": 1630,
+      "what": "rail-yard-restored"
+     },
+     {
+      "t": 1630,
+      "what": "rail-kit-unlocked"
+     },
+     {
+      "t": 1630,
+      "what": "arrive-west"
+     },
+     {
+      "t": 1630,
+      "what": "kitted-west"
+     },
+     {
+      "t": 1634,
+      "what": "the rail yard's coal Excavator, belted into the Depot (RI-01, D-P4-12) (41 s late)"
+     },
+     {
+      "t": 1634,
+      "what": "west's coal line: Excavator at (386,627) facing east, 20 belts to the Depot"
+     },
+     {
+      "t": 1638,
+      "what": "rail-coal-mined"
+     },
+     {
+      "t": 1639,
+      "what": "west-line"
+     },
+     {
+      "t": 1639,
+      "what": "rounds run: 4 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 1661,
+      "what": "rail-coal-arrived"
+     },
+     {
+      "t": 1879,
+      "what": "hand-feed beat: 3 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 1892,
+      "what": "392 magazines fed by hand so far"
+     },
+     {
+      "t": 1939,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2060,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 2066,
+      "what": "448 magazines fed by hand so far"
+     },
+     {
+      "t": 2239,
+      "what": "rounds run: 4 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2497,
+      "what": "hand-feed beat: 4 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 2504,
+      "what": "559 magazines fed by hand so far"
+     },
+     {
+      "t": 2539,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2700,
+      "what": "§11 45:00 — Generator 4"
+     },
+     {
+      "t": 2700,
+      "what": "generator-4"
+     },
+     {
+      "t": 2760,
+      "what": "§11 46:00 — the second copper Excavator, belted into the chest"
+     },
+     {
+      "t": 2761,
+      "what": "copper-2"
+     },
+     {
+      "t": 2772,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 2777,
+      "what": "660 magazines fed by hand so far"
+     },
+     {
+      "t": 2839,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2967,
+      "what": "hand-feed beat: 4 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 2981,
+      "what": "758 magazines fed by hand so far"
+     },
+     {
+      "t": 3000,
+      "what": "§11 50:00 — the third Assembler (E4 stand-in)"
+     },
+     {
+      "t": 3139,
+      "what": "rounds run: 1 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 3330,
+      "what": "hand-feed beat: 3 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 3338,
+      "what": "837 magazines fed by hand so far"
+     },
+     {
+      "t": 3439,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 3705,
+      "what": "hand-feed beat: 5 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 3723,
+      "what": "934 magazines fed by hand so far"
+     },
+     {
+      "t": 3739,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 3900,
+      "what": "§11 65:00 — claim north"
+     },
+     {
+      "t": 3900,
+      "what": "north = block 334 (civ, d 0.13, burn-off 28 s): 3 pole(s) to string, 10 steel + 5 Cu to deliver"
+     },
+     {
+      "t": 3903,
+      "what": "strung-north"
+     },
+     {
+      "t": 3903,
+      "what": "3 pole(s) strung to north's substation"
+     },
+     {
+      "t": 3904,
+      "what": "10 steel + 5 Cu delivered to north's substation (needs 10 + 5)"
+     },
+     {
+      "t": 3904,
+      "what": "deliver-north"
+     },
+     {
+      "t": 3907,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 3910,
+      "what": "claim-north"
+     },
+     {
+      "t": 3911,
+      "what": "arrive-north"
+     },
+     {
+      "t": 3939,
+      "what": "held-north"
+     },
+     {
+      "t": 3939,
+      "what": "kitted-north"
+     },
+     {
+      "t": 4002,
+      "what": "hand-feed beat: 3 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 4012,
+      "what": "1027 magazines fed by hand so far"
+     },
+     {
+      "t": 4039,
+      "what": "rounds run: 1 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 4283,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 4283,
+      "what": "1114 magazines fed by hand so far"
+     },
+     {
+      "t": 4339,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     }
+    ],
+    "walkedS": 322.85000000003913,
+    "walkedPct": 7.174444444445315,
+    "chestTrips": 24,
+    "handFed": 1199,
+    "reachRefused": 0,
+    "claimWalkS": 94,
+    "held": 4,
+    "hqHeld": true,
+    "turrets": 8,
+    "generators": 4,
+    "excavators": 7,
+    "assemblers": 3,
+    "brownoutS": 0,
+    "crawlers": 738,
+    "shades": 0,
+    "turretKills": 738,
+    "rifleKills": 0,
+    "fired": 0,
+    "magsMade": 669,
+    "findings": [
+     "the HQ interior (§11: the white border when north holds): never happened (§11/calibration: 65:00–75:00)",
+     "the Electricians in the Depot: never happened (§11/calibration: 0:00–75:00)",
+     "the first shade (§11/E3: minute 32–47): never happened (§11/calibration: 32:00–47:00)",
+     "8 turrets at the hour (§11: 6)",
+     "the chest's copper touched zero at 25:26",
+     "the claim walk-overs took 94 s in all (rework: under a minute of hour one)"
+    ],
+    "stock": [
+     {
+      "t": 0,
+      "steel": 200,
+      "copper": 100,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 60,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 120,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 180,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 240,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 300,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 360,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 420,
+      "steel": 90,
+      "copper": 80,
+      "coal": 28,
+      "magazines": 0
+     },
+     {
+      "t": 480,
+      "steel": 90,
+      "copper": 80,
+      "coal": 58,
+      "magazines": 0
+     },
+     {
+      "t": 540,
+      "steel": 42,
+      "copper": 57,
+      "coal": 88,
+      "magazines": 9
+     },
+     {
+      "t": 600,
+      "steel": 42,
+      "copper": 57,
+      "coal": 118,
+      "magazines": 6
+     },
+     {
+      "t": 660,
+      "steel": 42,
+      "copper": 57,
+      "coal": 98,
+      "magazines": 10
+     },
+     {
+      "t": 720,
+      "steel": 42,
+      "copper": 57,
+      "coal": 128,
+      "magazines": 20
+     },
+     {
+      "t": 780,
+      "steel": 58,
+      "copper": 57,
+      "coal": 158,
+      "magazines": 30
+     },
+     {
+      "t": 840,
+      "steel": 88,
+      "copper": 57,
+      "coal": 188,
+      "magazines": 40
+     },
+     {
+      "t": 900,
+      "steel": 118,
+      "copper": 57,
+      "coal": 218,
+      "magazines": 50
+     },
+     {
+      "t": 960,
+      "steel": 104,
+      "copper": 38,
+      "coal": 169,
+      "magazines": 14
+     },
+     {
+      "t": 1020,
+      "steel": 31,
+      "copper": 38,
+      "coal": 209,
+      "magazines": 30
+     },
+     {
+      "t": 1080,
+      "steel": 21,
+      "copper": 18,
+      "coal": 239,
+      "magazines": 40
+     },
+     {
+      "t": 1140,
+      "steel": 51,
+      "copper": 18,
+      "coal": 269,
+      "magazines": 40
+     },
+     {
+      "t": 1200,
+      "steel": 81,
+      "copper": 18,
+      "coal": 299,
+      "magazines": 50
+     },
+     {
+      "t": 1260,
+      "steel": 111,
+      "copper": 18,
+      "coal": 279,
+      "magazines": 20
+     },
+     {
+      "t": 1320,
+      "steel": 141,
+      "copper": 18,
+      "coal": 309,
+      "magazines": 20
+     },
+     {
+      "t": 1380,
+      "steel": 171,
+      "copper": 18,
+      "coal": 339,
+      "magazines": 30
+     },
+     {
+      "t": 1440,
+      "steel": 201,
+      "copper": 18,
+      "coal": 369,
+      "magazines": 40
+     },
+     {
+      "t": 1500,
+      "steel": 231,
+      "copper": 18,
+      "coal": 399,
+      "magazines": 40
+     },
+     {
+      "t": 1560,
+      "steel": 206,
+      "copper": 11,
+      "coal": 443,
+      "magazines": 49
+     },
+     {
+      "t": 1620,
+      "steel": 236,
+      "copper": 11,
+      "coal": 473,
+      "magazines": 59
+     },
+     {
+      "t": 1680,
+      "steel": 236,
+      "copper": 15,
+      "coal": 414,
+      "magazines": 40
+     },
+     {
+      "t": 1740,
+      "steel": 266,
+      "copper": 15,
+      "coal": 474,
+      "magazines": 47
+     },
+     {
+      "t": 1800,
+      "steel": 296,
+      "copper": 15,
+      "coal": 518,
+      "magazines": 57
+     },
+     {
+      "t": 1860,
+      "steel": 326,
+      "copper": 15,
+      "coal": 548,
+      "magazines": 58
+     },
+     {
+      "t": 1920,
+      "steel": 356,
+      "copper": 15,
+      "coal": 578,
+      "magazines": 44
+     },
+     {
+      "t": 1980,
+      "steel": 386,
+      "copper": 15,
+      "coal": 558,
+      "magazines": 34
+     },
+     {
+      "t": 2040,
+      "steel": 416,
+      "copper": 15,
+      "coal": 588,
+      "magazines": 35
+     },
+     {
+      "t": 2100,
+      "steel": 446,
+      "copper": 15,
+      "coal": 618,
+      "magazines": 42
+     },
+     {
+      "t": 2160,
+      "steel": 476,
+      "copper": 15,
+      "coal": 648,
+      "magazines": 52
+     },
+     {
+      "t": 2220,
+      "steel": 506,
+      "copper": 15,
+      "coal": 678,
+      "magazines": 53
+     },
+     {
+      "t": 2280,
+      "steel": 536,
+      "copper": 15,
+      "coal": 608,
+      "magazines": 40
+     },
+     {
+      "t": 2340,
+      "steel": 566,
+      "copper": 15,
+      "coal": 638,
+      "magazines": 50
+     },
+     {
+      "t": 2400,
+      "steel": 596,
+      "copper": 15,
+      "coal": 668,
+      "magazines": 51
+     },
+     {
+      "t": 2460,
+      "steel": 626,
+      "copper": 15,
+      "coal": 698,
+      "magazines": 58
+     },
+     {
+      "t": 2520,
+      "steel": 656,
+      "copper": 15,
+      "coal": 728,
+      "magazines": 68
+     },
+     {
+      "t": 2580,
+      "steel": 686,
+      "copper": 15,
+      "coal": 708,
+      "magazines": 50
+     },
+     {
+      "t": 2640,
+      "steel": 716,
+      "copper": 15,
+      "coal": 738,
+      "magazines": 57
+     },
+     {
+      "t": 2700,
+      "steel": 746,
+      "copper": 15,
+      "coal": 768,
+      "magazines": 67
+     },
+     {
+      "t": 2760,
+      "steel": 746,
+      "copper": 5,
+      "coal": 748,
+      "magazines": 71
+     },
+     {
+      "t": 2820,
+      "steel": 762,
+      "copper": 33,
+      "coal": 778,
+      "magazines": 75
+     },
+     {
+      "t": 2880,
+      "steel": 792,
+      "copper": 63,
+      "coal": 708,
+      "magazines": 65
+     },
+     {
+      "t": 2940,
+      "steel": 822,
+      "copper": 93,
+      "coal": 738,
+      "magazines": 74
+     },
+     {
+      "t": 3000,
+      "steel": 852,
+      "copper": 123,
+      "coal": 768,
+      "magazines": 74
+     },
+     {
+      "t": 3060,
+      "steel": 842,
+      "copper": 133,
+      "coal": 798,
+      "magazines": 84
+     },
+     {
+      "t": 3120,
+      "steel": 872,
+      "copper": 163,
+      "coal": 799,
+      "magazines": 94
+     },
+     {
+      "t": 3180,
+      "steel": 902,
+      "copper": 193,
+      "coal": 699,
+      "magazines": 73
+     },
+     {
+      "t": 3240,
+      "steel": 932,
+      "copper": 223,
+      "coal": 699,
+      "magazines": 83
+     },
+     {
+      "t": 3300,
+      "steel": 962,
+      "copper": 253,
+      "coal": 699,
+      "magazines": 93
+     },
+     {
+      "t": 3360,
+      "steel": 992,
+      "copper": 283,
+      "coal": 699,
+      "magazines": 92
+     },
+     {
+      "t": 3420,
+      "steel": 1022,
+      "copper": 313,
+      "coal": 699,
+      "magazines": 102
+     },
+     {
+      "t": 3480,
+      "steel": 1052,
+      "copper": 343,
+      "coal": 599,
+      "magazines": 92
+     },
+     {
+      "t": 3540,
+      "steel": 1082,
+      "copper": 373,
+      "coal": 599,
+      "magazines": 93
+     },
+     {
+      "t": 3600,
+      "steel": 1112,
+      "copper": 385,
+      "coal": 599,
+      "magazines": 102
+     },
+     {
+      "t": 3660,
+      "steel": 1142,
+      "copper": 385,
+      "coal": 599,
+      "magazines": 112
+     },
+     {
+      "t": 3720,
+      "steel": 1172,
+      "copper": 385,
+      "coal": 599,
+      "magazines": 114
+     },
+     {
+      "t": 3780,
+      "steel": 1202,
+      "copper": 385,
+      "coal": 499,
+      "magazines": 101
+     },
+     {
+      "t": 3840,
+      "steel": 1232,
+      "copper": 385,
+      "coal": 499,
+      "magazines": 111
+     },
+     {
+      "t": 3900,
+      "steel": 1262,
+      "copper": 385,
+      "coal": 499,
+      "magazines": 118
+     },
+     {
+      "t": 3960,
+      "steel": 1279,
+      "copper": 377,
+      "coal": 629,
+      "magazines": 162
+     },
+     {
+      "t": 4020,
+      "steel": 1309,
+      "copper": 377,
+      "coal": 629,
+      "magazines": 151
+     },
+     {
+      "t": 4080,
+      "steel": 1339,
+      "copper": 377,
+      "coal": 529,
+      "magazines": 133
+     },
+     {
+      "t": 4140,
+      "steel": 1369,
+      "copper": 377,
+      "coal": 529,
+      "magazines": 132
+     },
+     {
+      "t": 4200,
+      "steel": 1399,
+      "copper": 377,
+      "coal": 529,
+      "magazines": 134
+     },
+     {
+      "t": 4260,
+      "steel": 1429,
+      "copper": 377,
+      "coal": 529,
+      "magazines": 144
+     },
+     {
+      "t": 4320,
+      "steel": 1459,
+      "copper": 377,
+      "coal": 529,
+      "magazines": 141
+     },
+     {
+      "t": 4380,
+      "steel": 1489,
+      "copper": 377,
+      "coal": 429,
+      "magazines": 126
+     },
+     {
+      "t": 4440,
+      "steel": 1519,
+      "copper": 377,
+      "coal": 429,
+      "magazines": 135
+     }
+    ],
+    "steelMin": 9,
+    "steelMinAt": 1055,
+    "copperMin": 0,
+    "coalMin": 0,
+    "fell": 0,
+    "fellWhy": {},
+    "atFirstRed": {
+     "t": 372,
+     "spawned": 64,
+     "arrivals": 0
+    },
+    "coalZeroAt": 361,
+    "railCoal": 702,
+    "railArrival": 1661,
+    "coalOut": -1,
+    "railMargin": 2839,
+    "delivered": {
+     "steel": 1888,
+     "copper": 400,
+     "stone": 1725,
+     "coal": 1404,
+     "magazine": 669,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "made": {
+     "steel": 0,
+     "copper": 0,
+     "stone": 0,
+     "coal": 0,
+     "magazine": 679,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "handFedMags": 219,
+    "handFedCoal": 980,
+    "endWant": {
+     "generators": 4,
+     "excavators": 7,
+     "assemblers": 3,
+     "turrets": 6,
+     "held": 4
+    }
+   },
+   "benchmark": {
+    "marks": {
+     "mine-done": 20,
+     "craft-done": 80,
+     "first-crawler": 168,
+     "first-turret-fire": 168,
+     "first-amber": 195,
+     "generator-2": 361,
+     "line-excavators": 371,
+     "first-red": 372,
+     "first-hand-feed": 379,
+     "line-assembler": 481,
+     "first-line-magazine": 488,
+     "first-rounds-run": 602,
+     "steel-to-chest": 721,
+     "generator-3": 902,
+     "strung-east": 906,
+     "deliver-east": 908,
+     "claim-east": 917,
+     "arrive-east": 919,
+     "held-east": 948,
+     "kitted-east": 948,
+     "east-line": 1011,
+     "wire-assembler": 1054,
+     "strung-west": 1505,
+     "deliver-west": 1505,
+     "claim-west": 1511,
+     "arrive-west": 1511,
+     "held-west": 1546,
+     "rail-yard-restored": 1546,
+     "rail-kit-unlocked": 1546,
+     "kitted-west": 1546,
+     "rail-coal-mined": 1601,
+     "west-line": 1602,
+     "rail-coal-arrived": 1624,
+     "generator-4": 2700,
+     "copper-2": 2761,
+     "strung-north": 3903,
+     "deliver-north": 3904,
+     "claim-north": 3910,
+     "arrive-north": 3910,
+     "held-north": 3939,
+     "kitted-north": 3939
+    },
+    "walks": [
+     {
+      "name": "hand-feed beat",
+      "t0": 372,
+      "t1": 374,
+      "tiles": 20
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 374,
+      "t1": 375,
+      "tiles": 13
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 375,
+      "t1": 376,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 376,
+      "t1": 379,
+      "tiles": 23
+     },
+     {
+      "name": "to the chest",
+      "t0": 480,
+      "t1": 480,
+      "tiles": 9
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 566,
+      "t1": 566,
+      "tiles": 9
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 566,
+      "t1": 567,
+      "tiles": 14
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 567,
+      "t1": 569,
+      "tiles": 15
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 569,
+      "t1": 571,
+      "tiles": 16
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 571,
+      "t1": 573,
+      "tiles": 15
+     },
+     {
+      "name": "to the chest",
+      "t0": 600,
+      "t1": 600,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 600,
+      "t1": 602,
+      "tiles": 18
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 768,
+      "t1": 768,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 768,
+      "t1": 770,
+      "tiles": 15
+     },
+     {
+      "name": "to the chest",
+      "t0": 900,
+      "t1": 900,
+      "tiles": 9
+     },
+     {
+      "name": "string east",
+      "t0": 902,
+      "t1": 902,
+      "tiles": 8
+     },
+     {
+      "name": "deliver east",
+      "t0": 907,
+      "t1": 908,
+      "tiles": 14
+     },
+     {
+      "name": "back for east's kits",
+      "t0": 908,
+      "t1": 912,
+      "tiles": 34
+     },
+     {
+      "name": "activate east",
+      "t0": 912,
+      "t1": 917,
+      "tiles": 31
+     },
+     {
+      "name": "walk-over east",
+      "t0": 917,
+      "t1": 919,
+      "tiles": 16
+     },
+     {
+      "name": "back from east",
+      "t0": 948,
+      "t1": 954,
+      "tiles": 48
+     },
+     {
+      "name": "rounds run",
+      "t0": 955,
+      "t1": 957,
+      "tiles": 21
+     },
+     {
+      "name": "rounds run",
+      "t0": 957,
+      "t1": 959,
+      "tiles": 21
+     },
+     {
+      "name": "rounds run",
+      "t0": 959,
+      "t1": 962,
+      "tiles": 19
+     },
+     {
+      "name": "rounds run",
+      "t0": 962,
+      "t1": 963,
+      "tiles": 14
+     },
+     {
+      "name": "rounds run",
+      "t0": 963,
+      "t1": 967,
+      "tiles": 26
+     },
+     {
+      "name": "rounds run",
+      "t0": 967,
+      "t1": 967,
+      "tiles": 7
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1202,
+      "t1": 1202,
+      "tiles": 8
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1202,
+      "t1": 1203,
+      "tiles": 18
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1204,
+      "t1": 1205,
+      "tiles": 15
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1205,
+      "t1": 1207,
+      "tiles": 19
+     },
+     {
+      "name": "to the chest",
+      "t0": 1255,
+      "t1": 1255,
+      "tiles": 10
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1500,
+      "t1": 1501,
+      "tiles": 12
+     },
+     {
+      "name": "deliver west",
+      "t0": 1505,
+      "t1": 1505,
+      "tiles": 10
+     },
+     {
+      "name": "back for west's kits",
+      "t0": 1505,
+      "t1": 1508,
+      "tiles": 22
+     },
+     {
+      "name": "activate west",
+      "t0": 1508,
+      "t1": 1510,
+      "tiles": 22
+     },
+     {
+      "name": "walk-over west",
+      "t0": 1511,
+      "t1": 1511,
+      "tiles": 0
+     },
+     {
+      "name": "back from west",
+      "t0": 1546,
+      "t1": 1549,
+      "tiles": 28
+     },
+     {
+      "name": "rounds run",
+      "t0": 1555,
+      "t1": 1556,
+      "tiles": 14
+     },
+     {
+      "name": "rounds run",
+      "t0": 1556,
+      "t1": 1556,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 1556,
+      "t1": 1558,
+      "tiles": 18
+     },
+     {
+      "name": "rounds run",
+      "t0": 1558,
+      "t1": 1560,
+      "tiles": 14
+     },
+     {
+      "name": "rounds run",
+      "t0": 1560,
+      "t1": 1560,
+      "tiles": 7
+     },
+     {
+      "name": "rounds run",
+      "t0": 1560,
+      "t1": 1561,
+      "tiles": 11
+     },
+     {
+      "name": "to the chest",
+      "t0": 1855,
+      "t1": 1855,
+      "tiles": 10
+     },
+     {
+      "name": "rounds run",
+      "t0": 1855,
+      "t1": 1856,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 1856,
+      "t1": 1857,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2108,
+      "t1": 2109,
+      "tiles": 15
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2109,
+      "t1": 2111,
+      "tiles": 17
+     },
+     {
+      "name": "to the chest",
+      "t0": 2155,
+      "t1": 2155,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 2455,
+      "t1": 2455,
+      "tiles": 8
+     },
+     {
+      "name": "rounds run",
+      "t0": 2455,
+      "t1": 2456,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 2456,
+      "t1": 2457,
+      "tiles": 10
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2694,
+      "t1": 2695,
+      "tiles": 15
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2695,
+      "t1": 2697,
+      "tiles": 17
+     },
+     {
+      "name": "to the chest",
+      "t0": 2700,
+      "t1": 2700,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 3055,
+      "t1": 3056,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 3056,
+      "t1": 3057,
+      "tiles": 10
+     },
+     {
+      "name": "rounds run",
+      "t0": 3355,
+      "t1": 3357,
+      "tiles": 15
+     },
+     {
+      "name": "rounds run",
+      "t0": 3357,
+      "t1": 3357,
+      "tiles": 7
+     },
+     {
+      "name": "rounds run",
+      "t0": 3357,
+      "t1": 3358,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3652,
+      "t1": 3652,
+      "tiles": 9
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3652,
+      "t1": 3654,
+      "tiles": 19
+     },
+     {
+      "name": "to the chest",
+      "t0": 3655,
+      "t1": 3655,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 3655,
+      "t1": 3656,
+      "tiles": 12
+     },
+     {
+      "name": "string north",
+      "t0": 3900,
+      "t1": 3900,
+      "tiles": 13
+     },
+     {
+      "name": "deliver north",
+      "t0": 3903,
+      "t1": 3904,
+      "tiles": 12
+     },
+     {
+      "name": "back for north's kits",
+      "t0": 3904,
+      "t1": 3907,
+      "tiles": 24
+     },
+     {
+      "name": "activate north",
+      "t0": 3907,
+      "t1": 3909,
+      "tiles": 23
+     },
+     {
+      "name": "walk-over north",
+      "t0": 3910,
+      "t1": 3910,
+      "tiles": 9
+     },
+     {
+      "name": "to the chest for magazines",
+      "t0": 3939,
+      "t1": 3943,
+      "tiles": 33
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3943,
+      "t1": 3944,
+      "tiles": 13
+     },
+     {
+      "name": "back from north",
+      "t0": 3944,
+      "t1": 3944,
+      "tiles": 8
+     },
+     {
+      "name": "rounds run",
+      "t0": 3955,
+      "t1": 3955,
+      "tiles": 11
+     }
+    ],
+    "refused": [],
+    "entries": [
+     {
+      "t": 0,
+      "what": "§11 0:00 — to the steel patch, hand-mine 20 steel"
+     },
+     {
+      "t": 20,
+      "what": "mine-done"
+     },
+     {
+      "t": 20,
+      "what": "20 steel in the pockets"
+     },
+     {
+      "t": 20,
+      "what": "§11 — back to the workbench: craft ten magazines, the chest's 20 into the pockets (20 s late)"
+     },
+     {
+      "t": 80,
+      "what": "craft-done"
+     },
+     {
+      "t": 80,
+      "what": "10 crafted, 10 magazines in the pockets"
+     },
+     {
+      "t": 168,
+      "what": "first-crawler"
+     },
+     {
+      "t": 168,
+      "what": "first-turret-fire"
+     },
+     {
+      "t": 195,
+      "what": "first-amber"
+     },
+     {
+      "t": 360,
+      "what": "§11 6:00 — the coal Excavator and its belt, Generator 2, the steel and copper Excavators and their belts"
+     },
+     {
+      "t": 361,
+      "what": "generator-2"
+     },
+     {
+      "t": 371,
+      "what": "line-excavators"
+     },
+     {
+      "t": 372,
+      "what": "first-red"
+     },
+     {
+      "t": 372,
+      "what": "hand-feed beat: 4 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 379,
+      "what": "first-hand-feed"
+     },
+     {
+      "t": 379,
+      "what": "54 magazines fed by hand so far"
+     },
+     {
+      "t": 480,
+      "what": "§11 8:00 — the Shot assembler, three inserters, the ammo belt"
+     },
+     {
+      "t": 481,
+      "what": "line-assembler"
+     },
+     {
+      "t": 488,
+      "what": "first-line-magazine"
+     },
+     {
+      "t": 566,
+      "what": "hand-feed beat: 5 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 566,
+      "what": "took 13 of 25 magazine (the chest had no more)"
+     },
+     {
+      "t": 573,
+      "what": "73 magazines fed by hand so far"
+     },
+     {
+      "t": 600,
+      "what": "rounds run: 0 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 600,
+      "what": "took 6 of 20 magazine (the chest had no more)"
+     },
+     {
+      "t": 602,
+      "what": "first-rounds-run"
+     },
+     {
+      "t": 720,
+      "what": "§11 12:00 — the second steel Excavator, belted into the chest (D-P4-7)"
+     },
+     {
+      "t": 721,
+      "what": "steel-to-chest"
+     },
+     {
+      "t": 768,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 770,
+      "what": "109 magazines fed by hand so far"
+     },
+     {
+      "t": 900,
+      "what": "§11 15:00 — Generator 3"
+     },
+     {
+      "t": 902,
+      "what": "generator-3"
+     },
+     {
+      "t": 902,
+      "what": "§11 15:00 — claim east"
+     },
+     {
+      "t": 902,
+      "what": "east = block 355 (civ, d 0.15, burn-off 29 s): 4 pole(s) to string, 0 steel + 0 Cu to deliver"
+     },
+     {
+      "t": 906,
+      "what": "strung-east"
+     },
+     {
+      "t": 906,
+      "what": "4 pole(s) strung to east's substation"
+     },
+     {
+      "t": 908,
+      "what": "0 steel + 0 Cu delivered to east's substation (needs 0 + 0)"
+     },
+     {
+      "t": 908,
+      "what": "deliver-east"
+     },
+     {
+      "t": 912,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 917,
+      "what": "claim-east"
+     },
+     {
+      "t": 919,
+      "what": "arrive-east"
+     },
+     {
+      "t": 948,
+      "what": "held-east"
+     },
+     {
+      "t": 948,
+      "what": "kitted-east"
+     },
+     {
+      "t": 955,
+      "what": "rounds run: 5 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 994,
+      "what": "east's Excavator on its own rubble, belted into the Depot (RI-01, D-P4-5)"
+     },
+     {
+      "t": 994,
+      "what": "east's stone line: Excavator at (453,641) facing east, 93 belts to the Depot"
+     },
+     {
+      "t": 1011,
+      "what": "east-line"
+     },
+     {
+      "t": 1054,
+      "what": "the Wire Assembler (RI-01: a real machine on the Wire recipe, D-B2-1 (b))"
+     },
+     {
+      "t": 1054,
+      "what": "wire-assembler"
+     },
+     {
+      "t": 1202,
+      "what": "hand-feed beat: 4 turret(s) at or under half, 2 on a red edge"
+     },
+     {
+      "t": 1207,
+      "what": "233 magazines fed by hand so far"
+     },
+     {
+      "t": 1255,
+      "what": "rounds run: 0 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 1500,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 1501,
+      "what": "275 magazines fed by hand so far"
+     },
+     {
+      "t": 1501,
+      "what": "§11 25:00 — claim west"
+     },
+     {
+      "t": 1501,
+      "what": "west = block 353 (res, d 0.22, burn-off 33 s): 5 pole(s) to string, 0 steel + 0 Cu to deliver"
+     },
+     {
+      "t": 1505,
+      "what": "strung-west"
+     },
+     {
+      "t": 1505,
+      "what": "5 pole(s) strung to west's substation"
+     },
+     {
+      "t": 1505,
+      "what": "0 steel + 0 Cu delivered to west's substation (needs 0 + 0)"
+     },
+     {
+      "t": 1505,
+      "what": "deliver-west"
+     },
+     {
+      "t": 1508,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 1511,
+      "what": "claim-west"
+     },
+     {
+      "t": 1511,
+      "what": "arrive-west"
+     },
+     {
+      "t": 1546,
+      "what": "held-west"
+     },
+     {
+      "t": 1546,
+      "what": "rail-yard-restored"
+     },
+     {
+      "t": 1546,
+      "what": "rail-kit-unlocked"
+     },
+     {
+      "t": 1546,
+      "what": "kitted-west"
+     },
+     {
+      "t": 1555,
+      "what": "rounds run: 4 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 1594,
+      "what": "the rail yard's coal Excavator, belted into the Depot (RI-01, D-P4-12)"
+     },
+     {
+      "t": 1594,
+      "what": "west's coal line: Excavator at (386,627) facing east, 20 belts to the Depot"
+     },
+     {
+      "t": 1601,
+      "what": "rail-coal-mined"
+     },
+     {
+      "t": 1602,
+      "what": "west-line"
+     },
+     {
+      "t": 1624,
+      "what": "rail-coal-arrived"
+     },
+     {
+      "t": 1855,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2108,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 2111,
+      "what": "415 magazines fed by hand so far"
+     },
+     {
+      "t": 2155,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2455,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2694,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 2697,
+      "what": "560 magazines fed by hand so far"
+     },
+     {
+      "t": 2700,
+      "what": "§11 45:00 — Generator 4"
+     },
+     {
+      "t": 2700,
+      "what": "generator-4"
+     },
+     {
+      "t": 2755,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2760,
+      "what": "§11 46:00 — the second copper Excavator, belted into the chest"
+     },
+     {
+      "t": 2761,
+      "what": "copper-2"
+     },
+     {
+      "t": 3000,
+      "what": "§11 50:00 — the third Assembler (E4 stand-in)"
+     },
+     {
+      "t": 3055,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 3355,
+      "what": "rounds run: 2 turrets, 3 Generators at or under half"
+     },
+     {
+      "t": 3652,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 2 on a red edge"
+     },
+     {
+      "t": 3654,
+      "what": "874 magazines fed by hand so far"
+     },
+     {
+      "t": 3655,
+      "what": "rounds run: 0 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 3900,
+      "what": "§11 65:00 — claim north"
+     },
+     {
+      "t": 3900,
+      "what": "north = block 334 (civ, d 0.13, burn-off 28 s): 3 pole(s) to string, 0 steel + 0 Cu to deliver"
+     },
+     {
+      "t": 3903,
+      "what": "strung-north"
+     },
+     {
+      "t": 3903,
+      "what": "3 pole(s) strung to north's substation"
+     },
+     {
+      "t": 3904,
+      "what": "0 steel + 0 Cu delivered to north's substation (needs 0 + 0)"
+     },
+     {
+      "t": 3904,
+      "what": "deliver-north"
+     },
+     {
+      "t": 3907,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 3910,
+      "what": "claim-north"
+     },
+     {
+      "t": 3910,
+      "what": "arrive-north"
+     },
+     {
+      "t": 3939,
+      "what": "held-north"
+     },
+     {
+      "t": 3939,
+      "what": "kitted-north"
+     },
+     {
+      "t": 3939,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 3944,
+      "what": "923 magazines fed by hand so far"
+     },
+     {
+      "t": 3955,
+      "what": "rounds run: 0 turrets, 3 Generators at or under half"
+     },
+     {
+      "t": 4255,
+      "what": "rounds run: 0 turrets, 1 Generators at or under half"
+     }
+    ],
+    "walkedS": 204.15000000001217,
+    "walkedPct": 4.536666666666937,
+    "chestTrips": 17,
+    "handFed": 1084,
+    "reachRefused": 0,
+    "claimWalkS": 2,
+    "held": 4,
+    "hqHeld": true,
+    "turrets": 6,
+    "generators": 4,
+    "excavators": 7,
+    "assemblers": 3,
+    "brownoutS": 0,
+    "crawlers": 517,
+    "shades": 0,
+    "turretKills": 517,
+    "rifleKills": 0,
+    "fired": 0,
+    "magsMade": 669,
+    "findings": [
+     "the HQ interior (§11: the white border when north holds): never happened (§11/calibration: 65:00–75:00)",
+     "the Electricians in the Depot: never happened (§11/calibration: 0:00–75:00)",
+     "the first shade (§11/E3: minute 32–47): never happened (§11/calibration: 32:00–47:00)"
+    ],
+    "stock": [
+     {
+      "t": 0,
+      "steel": 200,
+      "copper": 100,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 60,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 120,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 180,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 240,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 300,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 360,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 420,
+      "steel": 90,
+      "copper": 80,
+      "coal": 28,
+      "magazines": 0
+     },
+     {
+      "t": 480,
+      "steel": 90,
+      "copper": 80,
+      "coal": 58,
+      "magazines": 0
+     },
+     {
+      "t": 540,
+      "steel": 42,
+      "copper": 57,
+      "coal": 88,
+      "magazines": 9
+     },
+     {
+      "t": 600,
+      "steel": 42,
+      "copper": 57,
+      "coal": 118,
+      "magazines": 6
+     },
+     {
+      "t": 660,
+      "steel": 42,
+      "copper": 57,
+      "coal": 98,
+      "magazines": 10
+     },
+     {
+      "t": 720,
+      "steel": 42,
+      "copper": 57,
+      "coal": 128,
+      "magazines": 20
+     },
+     {
+      "t": 780,
+      "steel": 58,
+      "copper": 57,
+      "coal": 158,
+      "magazines": 30
+     },
+     {
+      "t": 840,
+      "steel": 88,
+      "copper": 57,
+      "coal": 188,
+      "magazines": 40
+     },
+     {
+      "t": 900,
+      "steel": 118,
+      "copper": 57,
+      "coal": 218,
+      "magazines": 50
+     },
+     {
+      "t": 960,
+      "steel": 114,
+      "copper": 43,
+      "coal": 169,
+      "magazines": 14
+     },
+     {
+      "t": 1020,
+      "steel": 41,
+      "copper": 43,
+      "coal": 209,
+      "magazines": 30
+     },
+     {
+      "t": 1080,
+      "steel": 31,
+      "copper": 23,
+      "coal": 239,
+      "magazines": 40
+     },
+     {
+      "t": 1140,
+      "steel": 61,
+      "copper": 23,
+      "coal": 269,
+      "magazines": 40
+     },
+     {
+      "t": 1200,
+      "steel": 91,
+      "copper": 23,
+      "coal": 299,
+      "magazines": 50
+     },
+     {
+      "t": 1260,
+      "steel": 121,
+      "copper": 23,
+      "coal": 279,
+      "magazines": 20
+     },
+     {
+      "t": 1320,
+      "steel": 151,
+      "copper": 23,
+      "coal": 309,
+      "magazines": 20
+     },
+     {
+      "t": 1380,
+      "steel": 181,
+      "copper": 23,
+      "coal": 339,
+      "magazines": 30
+     },
+     {
+      "t": 1440,
+      "steel": 211,
+      "copper": 23,
+      "coal": 369,
+      "magazines": 40
+     },
+     {
+      "t": 1500,
+      "steel": 241,
+      "copper": 23,
+      "coal": 399,
+      "magazines": 40
+     },
+     {
+      "t": 1560,
+      "steel": 266,
+      "copper": 18,
+      "coal": 343,
+      "magazines": 19
+     },
+     {
+      "t": 1620,
+      "steel": 266,
+      "copper": 18,
+      "coal": 400,
+      "magazines": 34
+     },
+     {
+      "t": 1680,
+      "steel": 296,
+      "copper": 18,
+      "coal": 459,
+      "magazines": 34
+     },
+     {
+      "t": 1740,
+      "steel": 326,
+      "copper": 18,
+      "coal": 519,
+      "magazines": 37
+     },
+     {
+      "t": 1800,
+      "steel": 356,
+      "copper": 18,
+      "coal": 563,
+      "magazines": 47
+     },
+     {
+      "t": 1860,
+      "steel": 386,
+      "copper": 18,
+      "coal": 543,
+      "magazines": 22
+     },
+     {
+      "t": 1920,
+      "steel": 416,
+      "copper": 18,
+      "coal": 573,
+      "magazines": 29
+     },
+     {
+      "t": 1980,
+      "steel": 446,
+      "copper": 18,
+      "coal": 603,
+      "magazines": 39
+     },
+     {
+      "t": 2040,
+      "steel": 476,
+      "copper": 18,
+      "coal": 633,
+      "magazines": 34
+     },
+     {
+      "t": 2100,
+      "steel": 506,
+      "copper": 18,
+      "coal": 663,
+      "magazines": 42
+     },
+     {
+      "t": 2160,
+      "steel": 536,
+      "copper": 18,
+      "coal": 593,
+      "magazines": 32
+     },
+     {
+      "t": 2220,
+      "steel": 566,
+      "copper": 18,
+      "coal": 623,
+      "magazines": 27
+     },
+     {
+      "t": 2280,
+      "steel": 596,
+      "copper": 18,
+      "coal": 653,
+      "magazines": 35
+     },
+     {
+      "t": 2340,
+      "steel": 626,
+      "copper": 18,
+      "coal": 683,
+      "magazines": 45
+     },
+     {
+      "t": 2400,
+      "steel": 656,
+      "copper": 18,
+      "coal": 713,
+      "magazines": 40
+     },
+     {
+      "t": 2460,
+      "steel": 686,
+      "copper": 18,
+      "coal": 693,
+      "magazines": 29
+     },
+     {
+      "t": 2520,
+      "steel": 716,
+      "copper": 18,
+      "coal": 723,
+      "magazines": 39
+     },
+     {
+      "t": 2580,
+      "steel": 746,
+      "copper": 18,
+      "coal": 753,
+      "magazines": 35
+     },
+     {
+      "t": 2640,
+      "steel": 776,
+      "copper": 18,
+      "coal": 783,
+      "magazines": 45
+     },
+     {
+      "t": 2700,
+      "steel": 806,
+      "copper": 18,
+      "coal": 813,
+      "magazines": 53
+     },
+     {
+      "t": 2760,
+      "steel": 806,
+      "copper": 8,
+      "coal": 693,
+      "magazines": 33
+     },
+     {
+      "t": 2820,
+      "steel": 822,
+      "copper": 36,
+      "coal": 723,
+      "magazines": 39
+     },
+     {
+      "t": 2880,
+      "steel": 852,
+      "copper": 66,
+      "coal": 753,
+      "magazines": 48
+     },
+     {
+      "t": 2940,
+      "steel": 882,
+      "copper": 96,
+      "coal": 783,
+      "magazines": 54
+     },
+     {
+      "t": 3000,
+      "steel": 912,
+      "copper": 126,
+      "coal": 813,
+      "magazines": 54
+     },
+     {
+      "t": 3060,
+      "steel": 902,
+      "copper": 136,
+      "coal": 776,
+      "magazines": 42
+     },
+     {
+      "t": 3120,
+      "steel": 932,
+      "copper": 166,
+      "coal": 776,
+      "magazines": 50
+     },
+     {
+      "t": 3180,
+      "steel": 962,
+      "copper": 196,
+      "coal": 776,
+      "magazines": 48
+     },
+     {
+      "t": 3240,
+      "steel": 992,
+      "copper": 226,
+      "coal": 776,
+      "magazines": 57
+     },
+     {
+      "t": 3300,
+      "steel": 1022,
+      "copper": 256,
+      "coal": 776,
+      "magazines": 66
+     },
+     {
+      "t": 3360,
+      "steel": 1052,
+      "copper": 286,
+      "coal": 626,
+      "magazines": 43
+     },
+     {
+      "t": 3420,
+      "steel": 1082,
+      "copper": 316,
+      "coal": 626,
+      "magazines": 53
+     },
+     {
+      "t": 3480,
+      "steel": 1112,
+      "copper": 346,
+      "coal": 626,
+      "magazines": 62
+     },
+     {
+      "t": 3540,
+      "steel": 1142,
+      "copper": 376,
+      "coal": 626,
+      "magazines": 58
+     },
+     {
+      "t": 3600,
+      "steel": 1172,
+      "copper": 388,
+      "coal": 626,
+      "magazines": 68
+     },
+     {
+      "t": 3660,
+      "steel": 1202,
+      "copper": 388,
+      "coal": 576,
+      "magazines": 57
+     },
+     {
+      "t": 3720,
+      "steel": 1232,
+      "copper": 388,
+      "coal": 576,
+      "magazines": 54
+     },
+     {
+      "t": 3780,
+      "steel": 1262,
+      "copper": 388,
+      "coal": 576,
+      "magazines": 63
+     },
+     {
+      "t": 3840,
+      "steel": 1292,
+      "copper": 388,
+      "coal": 576,
+      "magazines": 72
+     },
+     {
+      "t": 3900,
+      "steel": 1322,
+      "copper": 388,
+      "coal": 576,
+      "magazines": 74
+     },
+     {
+      "t": 3960,
+      "steel": 1349,
+      "copper": 385,
+      "coal": 521,
+      "magazines": 104
+     },
+     {
+      "t": 4020,
+      "steel": 1379,
+      "copper": 385,
+      "coal": 521,
+      "magazines": 112
+     },
+     {
+      "t": 4080,
+      "steel": 1409,
+      "copper": 385,
+      "coal": 521,
+      "magazines": 110
+     },
+     {
+      "t": 4140,
+      "steel": 1439,
+      "copper": 385,
+      "coal": 521,
+      "magazines": 110
+     },
+     {
+      "t": 4200,
+      "steel": 1469,
+      "copper": 385,
+      "coal": 521,
+      "magazines": 112
+     },
+     {
+      "t": 4260,
+      "steel": 1499,
+      "copper": 385,
+      "coal": 471,
+      "magazines": 98
+     },
+     {
+      "t": 4320,
+      "steel": 1529,
+      "copper": 385,
+      "coal": 471,
+      "magazines": 96
+     },
+     {
+      "t": 4380,
+      "steel": 1559,
+      "copper": 385,
+      "coal": 471,
+      "magazines": 101
+     },
+     {
+      "t": 4440,
+      "steel": 1589,
+      "copper": 385,
+      "coal": 471,
+      "magazines": 108
+     }
+    ],
+    "steelMin": 19,
+    "steelMinAt": 1055,
+    "copperMin": 8,
+    "coalMin": 0,
+    "fell": 0,
+    "fellWhy": {},
+    "atFirstRed": {
+     "t": 372,
+     "spawned": 64,
+     "arrivals": 0
+    },
+    "coalZeroAt": 361,
+    "railCoal": 702,
+    "railArrival": 1624,
+    "coalOut": -1,
+    "railMargin": 2876,
+    "delivered": {
+     "steel": 1888,
+     "copper": 400,
+     "stone": 1725,
+     "coal": 1404,
+     "magazine": 669,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "made": {
+     "steel": 0,
+     "copper": 0,
+     "stone": 0,
+     "coal": 0,
+     "magazine": 679,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "handFedMags": 150,
+    "handFedCoal": 934,
+    "endWant": {
+     "generators": 4,
+     "excavators": 7,
+     "assemblers": 3,
+     "turrets": 6,
+     "held": 4
+    }
+   },
+   "heartState": {
+    "cand": {
+     "productiveS": 90,
+     "stallS": 60,
+     "thresholds": [
+      25,
+      50,
+      75
+     ],
+     "approachS": 5,
+     "packets": [
+      2,
+      3,
+      4
+     ],
+     "maxAlive": 8,
+     "cabinet": {
+      "steel": 4,
+      "copper": 2
+     }
+    },
+    "site": 353,
+    "cabinets": [
+     {
+      "approach": 332,
+      "point": 1818,
+      "x": 390,
+      "y": 622,
+      "delivered": {
+       "steel": 0,
+       "copper": 0
+      },
+      "down": false
+     },
+     {
+      "approach": 340,
+      "point": 1861,
+      "x": 380,
+      "y": 625,
+      "delivered": {
+       "steel": 0,
+       "copper": 0
+      },
+      "down": false
+     }
+    ],
+    "attempt": -1,
+    "progress": 90,
+    "stall": 0,
+    "charged": true,
+    "charge": {
+     "steel": 10,
+     "copper": 5
+    },
+    "requested": {
+     "2:25": 1562,
+     "2:50": 1584,
+     "2:75": 1607
+    },
+    "pending": [],
+    "destroyed": true,
+    "destroyedAt": 1629,
+    "stats": {
+     "attempts": 1,
+     "interrupted": 0,
+     "aborted": 0,
+     "packets": 3,
+     "born": 9,
+     "knockouts": 0,
+     "repairs": 0,
+     "productiveS": 89.99999999999703,
+     "stalledS": 0
+    }
+   },
+   "candidateConfig": {
+    "production": true,
+    "asmSchedule": [],
+    "startAssemblers": 1,
+    "asmRate": 20,
+    "asmEarlyRate": null,
+    "startAsmRate": 10,
+    "hopper": 100,
+    "bufferCap": 4000,
+    "startRounds": 200,
+    "unfed": "substation",
+    "unfedN": 40,
+    "starveQuiet": false,
+    "scatter": true,
+    "scatterFrac": 0.09,
+    "validator": "none",
+    "shadeThr": 0.3,
+    "hulkThr": 0.5,
+    "wakeCap": true,
+    "bloomBase": 4,
+    "jitter": 0.1,
+    "fallTiles": 30,
+    "hulkRoll": "hash",
+    "bloomT": 120,
+    "bloomDrop": 0.9,
+    "relight": null,
+    "power": true,
+    "supply": "generators",
+    "headroom": 500,
+    "shortfall": null,
+    "draw": "half",
+    "interiorGrace": 0,
+    "asmTrack": 0,
+    "wellDeath": false,
+    "interleave": false,
+    "economy": true,
+    "walk": true,
+    "eco": {
+     "yieldPerMin": 32,
+     "claimCost": {
+      "copper": 5,
+      "steel": 10
+     },
+     "assemblerCost": {
+      "copper": 20,
+      "steel": 40
+     },
+     "startStock": {
+      "stone": 0,
+      "copper": 40,
+      "steel": 80
+     },
+     "startPatch": {
+      "steel": 7680,
+      "perMin": 64,
+      "copper": 3840,
+      "copperPerMin": 32
+     },
+     "magazineCost": {
+      "steel": 2,
+      "copper": 1
+     },
+     "pool": {
+      "civ": 3840,
+      "res": 3840,
+      "ind": 3840
+     }
+    }
+   },
+   "candidateConfigHash": "d51dfee0",
+   "benchmarkConfigHash": "e29c6c3f",
+   "matchedAttempts": true
+  },
+  "report-4": {
+   "heart": {
+    "marks": {
+     "mine-done": 20,
+     "craft-done": 80,
+     "first-crawler": 164,
+     "first-turret-fire": 164,
+     "first-amber": 175,
+     "first-red": 334,
+     "first-hand-feed": 337,
+     "generator-2": 362,
+     "line-excavators": 374,
+     "line-assembler": 481,
+     "first-line-magazine": 487,
+     "first-rounds-run": 606,
+     "steel-to-chest": 722,
+     "generator-3": 901,
+     "strung-east": 904,
+     "deliver-east": 905,
+     "claim-east": 909,
+     "arrive-east": 910,
+     "held-east": 944,
+     "kitted-east": 944,
+     "east-line": 1009,
+     "wire-assembler": 1054,
+     "strung-west": 1506,
+     "deliver-west": 1507,
+     "cabinet-1-supplied": 1508,
+     "turret-1": 1508,
+     "cabinet-2-supplied": 1510,
+     "turret-2": 1510,
+     "claim-west": 1519,
+     "heart-start": 1519,
+     "packet-25": 1541,
+     "heart-first-body": 1546,
+     "packet-50": 1564,
+     "packet-75": 1586,
+     "heart-destroyed": 1609,
+     "held-west": 1610,
+     "rail-yard-restored": 1610,
+     "rail-kit-unlocked": 1610,
+     "arrive-west": 1610,
+     "kitted-west": 1610,
+     "rail-coal-mined": 1620,
+     "west-line": 1621,
+     "rail-coal-arrived": 1641,
+     "generator-4": 2707,
+     "copper-2": 2761,
+     "strung-north": 3905,
+     "deliver-north": 3906,
+     "claim-north": 3914,
+     "arrive-north": 3915,
+     "held-north": 3948,
+     "enclosure": 3947,
+     "kitted-north": 3948
+    },
+    "walks": [
+     {
+      "name": "hand-feed beat",
+      "t0": 334,
+      "t1": 336,
+      "tiles": 22
+     },
+     {
+      "name": "to the chest",
+      "t0": 360,
+      "t1": 361,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 504,
+      "t1": 506,
+      "tiles": 23
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 506,
+      "t1": 507,
+      "tiles": 11
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 507,
+      "t1": 510,
+      "tiles": 21
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 510,
+      "t1": 514,
+      "tiles": 29
+     },
+     {
+      "name": "rounds run",
+      "t0": 600,
+      "t1": 602,
+      "tiles": 22
+     },
+     {
+      "name": "rounds run",
+      "t0": 602,
+      "t1": 604,
+      "tiles": 14
+     },
+     {
+      "name": "rounds run",
+      "t0": 604,
+      "t1": 606,
+      "tiles": 21
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 678,
+      "t1": 679,
+      "tiles": 14
+     },
+     {
+      "name": "to the chest",
+      "t0": 720,
+      "t1": 721,
+      "tiles": 12
+     },
+     {
+      "name": "string east",
+      "t0": 901,
+      "t1": 901,
+      "tiles": 8
+     },
+     {
+      "name": "deliver east",
+      "t0": 904,
+      "t1": 905,
+      "tiles": 10
+     },
+     {
+      "name": "back for east's kits",
+      "t0": 905,
+      "t1": 907,
+      "tiles": 22
+     },
+     {
+      "name": "activate east",
+      "t0": 907,
+      "t1": 909,
+      "tiles": 18
+     },
+     {
+      "name": "walk-over east",
+      "t0": 909,
+      "t1": 910,
+      "tiles": 6
+     },
+     {
+      "name": "back from east",
+      "t0": 944,
+      "t1": 947,
+      "tiles": 26
+     },
+     {
+      "name": "rounds run",
+      "t0": 947,
+      "t1": 948,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 948,
+      "t1": 951,
+      "tiles": 25
+     },
+     {
+      "name": "rounds run",
+      "t0": 951,
+      "t1": 953,
+      "tiles": 18
+     },
+     {
+      "name": "rounds run",
+      "t0": 953,
+      "t1": 956,
+      "tiles": 24
+     },
+     {
+      "name": "rounds run",
+      "t0": 1247,
+      "t1": 1248,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 1248,
+      "t1": 1250,
+      "tiles": 15
+     },
+     {
+      "name": "rounds run",
+      "t0": 1250,
+      "t1": 1250,
+      "tiles": 9
+     },
+     {
+      "name": "deliver west",
+      "t0": 1506,
+      "t1": 1507,
+      "tiles": 9
+     },
+     {
+      "name": "string cabinet 2",
+      "t0": 1509,
+      "t1": 1509,
+      "tiles": 11
+     },
+     {
+      "name": "back for west's kits",
+      "t0": 1510,
+      "t1": 1515,
+      "tiles": 36
+     },
+     {
+      "name": "activate west",
+      "t0": 1515,
+      "t1": 1519,
+      "tiles": 27
+     },
+     {
+      "name": "walk-over west",
+      "t0": 1519,
+      "t1": 1610,
+      "tiles": 0
+     },
+     {
+      "name": "back from west",
+      "t0": 1610,
+      "t1": 1614,
+      "tiles": 33
+     },
+     {
+      "name": "to the chest",
+      "t0": 1621,
+      "t1": 1623,
+      "tiles": 16
+     },
+     {
+      "name": "rounds run",
+      "t0": 1623,
+      "t1": 1627,
+      "tiles": 25
+     },
+     {
+      "name": "rounds run",
+      "t0": 1627,
+      "t1": 1632,
+      "tiles": 27
+     },
+     {
+      "name": "rounds run",
+      "t0": 1632,
+      "t1": 1633,
+      "tiles": 15
+     },
+     {
+      "name": "rounds run",
+      "t0": 1633,
+      "t1": 1635,
+      "tiles": 21
+     },
+     {
+      "name": "rounds run",
+      "t0": 1635,
+      "t1": 1637,
+      "tiles": 16
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1703,
+      "t1": 1709,
+      "tiles": 46
+     },
+     {
+      "name": "to the chest",
+      "t0": 1921,
+      "t1": 1925,
+      "tiles": 33
+     },
+     {
+      "name": "rounds run",
+      "t0": 1925,
+      "t1": 1928,
+      "tiles": 20
+     },
+     {
+      "name": "rounds run",
+      "t0": 1928,
+      "t1": 1928,
+      "tiles": 7
+     },
+     {
+      "name": "rounds run",
+      "t0": 1928,
+      "t1": 1936,
+      "tiles": 45
+     },
+     {
+      "name": "to the chest",
+      "t0": 2221,
+      "t1": 2226,
+      "tiles": 37
+     },
+     {
+      "name": "rounds run",
+      "t0": 2226,
+      "t1": 2230,
+      "tiles": 25
+     },
+     {
+      "name": "rounds run",
+      "t0": 2230,
+      "t1": 2236,
+      "tiles": 43
+     },
+     {
+      "name": "to the chest",
+      "t0": 2521,
+      "t1": 2525,
+      "tiles": 33
+     },
+     {
+      "name": "rounds run",
+      "t0": 2525,
+      "t1": 2528,
+      "tiles": 19
+     },
+     {
+      "name": "rounds run",
+      "t0": 2528,
+      "t1": 2534,
+      "tiles": 42
+     },
+     {
+      "name": "rounds run",
+      "t0": 2534,
+      "t1": 2537,
+      "tiles": 19
+     },
+     {
+      "name": "to the chest",
+      "t0": 2700,
+      "t1": 2705,
+      "tiles": 37
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2764,
+      "t1": 2768,
+      "tiles": 32
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2768,
+      "t1": 2775,
+      "tiles": 42
+     },
+     {
+      "name": "to the chest",
+      "t0": 2821,
+      "t1": 2822,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 2960,
+      "t1": 2965,
+      "tiles": 40
+     },
+     {
+      "name": "to the chest",
+      "t0": 3000,
+      "t1": 3004,
+      "tiles": 33
+     },
+     {
+      "name": "rounds run",
+      "t0": 3121,
+      "t1": 3122,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 3122,
+      "t1": 3122,
+      "tiles": 10
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3325,
+      "t1": 3331,
+      "tiles": 43
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3331,
+      "t1": 3337,
+      "tiles": 40
+     },
+     {
+      "name": "to the chest",
+      "t0": 3421,
+      "t1": 3422,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3704,
+      "t1": 3709,
+      "tiles": 40
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3709,
+      "t1": 3715,
+      "tiles": 40
+     },
+     {
+      "name": "to the chest",
+      "t0": 3721,
+      "t1": 3722,
+      "tiles": 12
+     },
+     {
+      "name": "string north",
+      "t0": 3900,
+      "t1": 3901,
+      "tiles": 14
+     },
+     {
+      "name": "deliver north",
+      "t0": 3905,
+      "t1": 3906,
+      "tiles": 11
+     },
+     {
+      "name": "back for north's kits",
+      "t0": 3906,
+      "t1": 3910,
+      "tiles": 24
+     },
+     {
+      "name": "activate north",
+      "t0": 3910,
+      "t1": 3914,
+      "tiles": 25
+     },
+     {
+      "name": "walk-over north",
+      "t0": 3914,
+      "t1": 3915,
+      "tiles": 9
+     },
+     {
+      "name": "back from north",
+      "t0": 3948,
+      "t1": 3954,
+      "tiles": 34
+     },
+     {
+      "name": "rounds run",
+      "t0": 4021,
+      "t1": 4022,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 4022,
+      "t1": 4028,
+      "tiles": 44
+     },
+     {
+      "name": "to the chest",
+      "t0": 4321,
+      "t1": 4325,
+      "tiles": 33
+     },
+     {
+      "name": "rounds run",
+      "t0": 4325,
+      "t1": 4327,
+      "tiles": 15
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 4477,
+      "t1": 4483,
+      "tiles": 43
+     }
+    ],
+    "refused": [],
+    "entries": [
+     {
+      "t": 0,
+      "what": "§11 0:00 — to the steel patch, hand-mine 20 steel"
+     },
+     {
+      "t": 20,
+      "what": "mine-done"
+     },
+     {
+      "t": 20,
+      "what": "20 steel in the pockets"
+     },
+     {
+      "t": 20,
+      "what": "§11 — back to the workbench: craft ten magazines, the chest's 20 into the pockets (20 s late)"
+     },
+     {
+      "t": 80,
+      "what": "craft-done"
+     },
+     {
+      "t": 80,
+      "what": "10 crafted, 10 magazines in the pockets"
+     },
+     {
+      "t": 164,
+      "what": "first-crawler"
+     },
+     {
+      "t": 164,
+      "what": "first-turret-fire"
+     },
+     {
+      "t": 175,
+      "what": "first-amber"
+     },
+     {
+      "t": 334,
+      "what": "first-red"
+     },
+     {
+      "t": 334,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 337,
+      "what": "first-hand-feed"
+     },
+     {
+      "t": 337,
+      "what": "5 magazines fed by hand so far"
+     },
+     {
+      "t": 360,
+      "what": "§11 6:00 — the coal Excavator and its belt, Generator 2, the steel and copper Excavators and their belts"
+     },
+     {
+      "t": 362,
+      "what": "generator-2"
+     },
+     {
+      "t": 374,
+      "what": "line-excavators"
+     },
+     {
+      "t": 480,
+      "what": "§11 8:00 — the Shot assembler, three inserters, the ammo belt"
+     },
+     {
+      "t": 481,
+      "what": "line-assembler"
+     },
+     {
+      "t": 487,
+      "what": "first-line-magazine"
+     },
+     {
+      "t": 504,
+      "what": "hand-feed beat: 4 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 514,
+      "what": "62 magazines fed by hand so far"
+     },
+     {
+      "t": 600,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 600,
+      "what": "took 19 of 20 magazine (the chest had no more)"
+     },
+     {
+      "t": 606,
+      "what": "first-rounds-run"
+     },
+     {
+      "t": 678,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 679,
+      "what": "105 magazines fed by hand so far"
+     },
+     {
+      "t": 720,
+      "what": "§11 12:00 — the second steel Excavator, belted into the chest (D-P4-7)"
+     },
+     {
+      "t": 722,
+      "what": "steel-to-chest"
+     },
+     {
+      "t": 900,
+      "what": "§11 15:00 — Generator 3"
+     },
+     {
+      "t": 901,
+      "what": "generator-3"
+     },
+     {
+      "t": 901,
+      "what": "§11 15:00 — claim east"
+     },
+     {
+      "t": 901,
+      "what": "east = block 361 (res, d 0.22, burn-off 33 s): 3 pole(s) to string, 10 steel + 5 Cu to deliver"
+     },
+     {
+      "t": 904,
+      "what": "strung-east"
+     },
+     {
+      "t": 904,
+      "what": "3 pole(s) strung to east's substation"
+     },
+     {
+      "t": 905,
+      "what": "10 steel + 5 Cu delivered to east's substation (needs 10 + 5)"
+     },
+     {
+      "t": 905,
+      "what": "deliver-east"
+     },
+     {
+      "t": 907,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 909,
+      "what": "claim-east"
+     },
+     {
+      "t": 910,
+      "what": "arrive-east"
+     },
+     {
+      "t": 944,
+      "what": "held-east"
+     },
+     {
+      "t": 944,
+      "what": "kitted-east"
+     },
+     {
+      "t": 947,
+      "what": "rounds run: 5 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 994,
+      "what": "east's Excavator on its own rubble, belted into the Depot (RI-01, D-P4-5)"
+     },
+     {
+      "t": 994,
+      "what": "east's copper line: Excavator at (492,666) facing west, 72 belts to the Depot"
+     },
+     {
+      "t": 1009,
+      "what": "east-line"
+     },
+     {
+      "t": 1054,
+      "what": "the Wire Assembler (RI-01: a real machine on the Wire recipe, D-B2-1 (b))"
+     },
+     {
+      "t": 1054,
+      "what": "wire-assembler"
+     },
+     {
+      "t": 1247,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 1500,
+      "what": "§11 25:00 — claim west"
+     },
+     {
+      "t": 1500,
+      "what": "west = block 364 (civ, d 0.14): the Junction Heart — 2 feeder cabinets at (429,653) and (425,671), 4 steel + 2 Cu each; the installation 10 steel + 5 Cu; 90 s productive, 60 s stall, packets at 25/50/75 %"
+     },
+     {
+      "t": 1506,
+      "what": "strung-west"
+     },
+     {
+      "t": 1506,
+      "what": "6 pole(s) strung to west's substation"
+     },
+     {
+      "t": 1507,
+      "what": "10 steel + 5 Cu delivered to the installation (needs 10 + 5)"
+     },
+     {
+      "t": 1507,
+      "what": "deliver-west"
+     },
+     {
+      "t": 1507,
+      "what": "1 pole(s) strung to cabinet 1"
+     },
+     {
+      "t": 1508,
+      "what": "cabinet-1-supplied"
+     },
+     {
+      "t": 1508,
+      "what": "turret-1"
+     },
+     {
+      "t": 1509,
+      "what": "1 pole(s) strung to cabinet 2"
+     },
+     {
+      "t": 1510,
+      "what": "cabinet-2-supplied"
+     },
+     {
+      "t": 1510,
+      "what": "turret-2"
+     },
+     {
+      "t": 1515,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 1519,
+      "what": "claim-west"
+     },
+     {
+      "t": 1519,
+      "what": "heart-start"
+     },
+     {
+      "t": 1541,
+      "what": "packet-25"
+     },
+     {
+      "t": 1546,
+      "what": "heart-first-body"
+     },
+     {
+      "t": 1564,
+      "what": "packet-50"
+     },
+     {
+      "t": 1586,
+      "what": "packet-75"
+     },
+     {
+      "t": 1609,
+      "what": "heart-destroyed"
+     },
+     {
+      "t": 1610,
+      "what": "held-west"
+     },
+     {
+      "t": 1610,
+      "what": "rail-yard-restored"
+     },
+     {
+      "t": 1610,
+      "what": "rail-kit-unlocked"
+     },
+     {
+      "t": 1610,
+      "what": "arrive-west"
+     },
+     {
+      "t": 1610,
+      "what": "kitted-west"
+     },
+     {
+      "t": 1614,
+      "what": "the rail yard's coal Excavator, belted into the Depot (RI-01, D-P4-12) (21 s late)"
+     },
+     {
+      "t": 1614,
+      "what": "west's coal line: Excavator at (430,662) facing east, 24 belts to the Depot"
+     },
+     {
+      "t": 1620,
+      "what": "rail-coal-mined"
+     },
+     {
+      "t": 1621,
+      "what": "west-line"
+     },
+     {
+      "t": 1621,
+      "what": "rounds run: 3 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 1641,
+      "what": "rail-coal-arrived"
+     },
+     {
+      "t": 1703,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 1709,
+      "what": "366 magazines fed by hand so far"
+     },
+     {
+      "t": 1921,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2221,
+      "what": "rounds run: 2 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2521,
+      "what": "rounds run: 3 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2700,
+      "what": "§11 45:00 — Generator 4"
+     },
+     {
+      "t": 2707,
+      "what": "generator-4"
+     },
+     {
+      "t": 2760,
+      "what": "§11 46:00 — the second copper Excavator, belted into the chest"
+     },
+     {
+      "t": 2761,
+      "what": "copper-2"
+     },
+     {
+      "t": 2764,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 2775,
+      "what": "626 magazines fed by hand so far"
+     },
+     {
+      "t": 2821,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2960,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 2965,
+      "what": "714 magazines fed by hand so far"
+     },
+     {
+      "t": 3000,
+      "what": "§11 50:00 — the third Assembler (E4 stand-in)"
+     },
+     {
+      "t": 3121,
+      "what": "rounds run: 1 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 3325,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 3337,
+      "what": "787 magazines fed by hand so far"
+     },
+     {
+      "t": 3421,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 3704,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 3715,
+      "what": "874 magazines fed by hand so far"
+     },
+     {
+      "t": 3721,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 3900,
+      "what": "§11 65:00 — claim north"
+     },
+     {
+      "t": 3900,
+      "what": "north = block 348 (res, d 0.21, burn-off 33 s): 4 pole(s) to string, 10 steel + 5 Cu to deliver"
+     },
+     {
+      "t": 3905,
+      "what": "strung-north"
+     },
+     {
+      "t": 3905,
+      "what": "4 pole(s) strung to north's substation"
+     },
+     {
+      "t": 3906,
+      "what": "10 steel + 5 Cu delivered to north's substation (needs 10 + 5)"
+     },
+     {
+      "t": 3906,
+      "what": "deliver-north"
+     },
+     {
+      "t": 3910,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 3914,
+      "what": "claim-north"
+     },
+     {
+      "t": 3915,
+      "what": "arrive-north"
+     },
+     {
+      "t": 3948,
+      "what": "held-north"
+     },
+     {
+      "t": 3948,
+      "what": "enclosure"
+     },
+     {
+      "t": 3948,
+      "what": "kitted-north"
+     },
+     {
+      "t": 4021,
+      "what": "rounds run: 2 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 4280,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 4280,
+      "what": "1043 magazines fed by hand so far"
+     },
+     {
+      "t": 4321,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 4477,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 4483,
+      "what": "1128 magazines fed by hand so far"
+     }
+    ],
+    "walkedS": 320.20000000003853,
+    "walkedPct": 7.115555555556412,
+    "chestTrips": 22,
+    "handFed": 1128,
+    "reachRefused": 0,
+    "claimWalkS": 93,
+    "held": 4,
+    "hqHeld": true,
+    "turrets": 8,
+    "generators": 4,
+    "excavators": 7,
+    "assemblers": 3,
+    "brownoutS": 0,
+    "crawlers": 508,
+    "shades": 0,
+    "turretKills": 505,
+    "rifleKills": 0,
+    "fired": 0,
+    "magsMade": 669,
+    "findings": [
+     "the walk over to east took 1 s (§11: 2–8 s)",
+     "the Electricians in the Depot: never happened (§11/calibration: 0:00–75:00)",
+     "the first shade (§11/E3: minute 32–47): never happened (§11/calibration: 32:00–47:00)",
+     "8 turrets at the hour (§11: 6)",
+     "the claim walk-overs took 93 s in all (rework: under a minute of hour one)"
+    ],
+    "stock": [
+     {
+      "t": 0,
+      "steel": 200,
+      "copper": 100,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 60,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 120,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 180,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 240,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 300,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 360,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 420,
+      "steel": 90,
+      "copper": 80,
+      "coal": 27,
+      "magazines": 0
+     },
+     {
+      "t": 480,
+      "steel": 90,
+      "copper": 80,
+      "coal": 57,
+      "magazines": 0
+     },
+     {
+      "t": 540,
+      "steel": 42,
+      "copper": 57,
+      "coal": 87,
+      "magazines": 9
+     },
+     {
+      "t": 600,
+      "steel": 42,
+      "copper": 57,
+      "coal": 117,
+      "magazines": 19
+     },
+     {
+      "t": 660,
+      "steel": 42,
+      "copper": 57,
+      "coal": 97,
+      "magazines": 10
+     },
+     {
+      "t": 720,
+      "steel": 42,
+      "copper": 57,
+      "coal": 127,
+      "magazines": 20
+     },
+     {
+      "t": 780,
+      "steel": 58,
+      "copper": 57,
+      "coal": 157,
+      "magazines": 30
+     },
+     {
+      "t": 840,
+      "steel": 88,
+      "copper": 57,
+      "coal": 187,
+      "magazines": 40
+     },
+     {
+      "t": 900,
+      "steel": 118,
+      "copper": 57,
+      "coal": 217,
+      "magazines": 50
+     },
+     {
+      "t": 960,
+      "steel": 105,
+      "copper": 39,
+      "coal": 168,
+      "magazines": 28
+     },
+     {
+      "t": 1020,
+      "steel": 53,
+      "copper": 39,
+      "coal": 209,
+      "magazines": 40
+     },
+     {
+      "t": 1080,
+      "steel": 43,
+      "copper": 39,
+      "coal": 239,
+      "magazines": 50
+     },
+     {
+      "t": 1140,
+      "steel": 73,
+      "copper": 69,
+      "coal": 269,
+      "magazines": 56
+     },
+     {
+      "t": 1200,
+      "steel": 103,
+      "copper": 99,
+      "coal": 299,
+      "magazines": 64
+     },
+     {
+      "t": 1260,
+      "steel": 133,
+      "copper": 129,
+      "coal": 279,
+      "magazines": 53
+     },
+     {
+      "t": 1320,
+      "steel": 163,
+      "copper": 159,
+      "coal": 309,
+      "magazines": 61
+     },
+     {
+      "t": 1380,
+      "steel": 193,
+      "copper": 189,
+      "coal": 339,
+      "magazines": 69
+     },
+     {
+      "t": 1440,
+      "steel": 223,
+      "copper": 219,
+      "coal": 369,
+      "magazines": 77
+     },
+     {
+      "t": 1500,
+      "steel": 253,
+      "copper": 249,
+      "coal": 399,
+      "magazines": 86
+     },
+     {
+      "t": 1560,
+      "steel": 227,
+      "copper": 248,
+      "coal": 443,
+      "magazines": 88
+     },
+     {
+      "t": 1620,
+      "steel": 223,
+      "copper": 282,
+      "coal": 473,
+      "magazines": 95
+     },
+     {
+      "t": 1680,
+      "steel": 253,
+      "copper": 312,
+      "coal": 424,
+      "magazines": 85
+     },
+     {
+      "t": 1740,
+      "steel": 283,
+      "copper": 342,
+      "coal": 484,
+      "magazines": 89
+     },
+     {
+      "t": 1800,
+      "steel": 313,
+      "copper": 372,
+      "coal": 529,
+      "magazines": 97
+     },
+     {
+      "t": 1860,
+      "steel": 343,
+      "copper": 402,
+      "coal": 559,
+      "magazines": 106
+     },
+     {
+      "t": 1920,
+      "steel": 373,
+      "copper": 432,
+      "coal": 589,
+      "magazines": 111
+     },
+     {
+      "t": 1980,
+      "steel": 403,
+      "copper": 462,
+      "coal": 569,
+      "magazines": 99
+     },
+     {
+      "t": 2040,
+      "steel": 433,
+      "copper": 492,
+      "coal": 599,
+      "magazines": 106
+     },
+     {
+      "t": 2100,
+      "steel": 463,
+      "copper": 522,
+      "coal": 629,
+      "magazines": 113
+     },
+     {
+      "t": 2160,
+      "steel": 493,
+      "copper": 552,
+      "coal": 659,
+      "magazines": 122
+     },
+     {
+      "t": 2220,
+      "steel": 523,
+      "copper": 582,
+      "coal": 689,
+      "magazines": 127
+     },
+     {
+      "t": 2280,
+      "steel": 553,
+      "copper": 612,
+      "coal": 619,
+      "magazines": 115
+     },
+     {
+      "t": 2340,
+      "steel": 583,
+      "copper": 642,
+      "coal": 649,
+      "magazines": 125
+     },
+     {
+      "t": 2400,
+      "steel": 613,
+      "copper": 672,
+      "coal": 679,
+      "magazines": 128
+     },
+     {
+      "t": 2460,
+      "steel": 643,
+      "copper": 702,
+      "coal": 709,
+      "magazines": 137
+     },
+     {
+      "t": 2520,
+      "steel": 673,
+      "copper": 732,
+      "coal": 739,
+      "magazines": 147
+     },
+     {
+      "t": 2580,
+      "steel": 703,
+      "copper": 762,
+      "coal": 719,
+      "magazines": 131
+     },
+     {
+      "t": 2640,
+      "steel": 733,
+      "copper": 792,
+      "coal": 749,
+      "magazines": 139
+     },
+     {
+      "t": 2700,
+      "steel": 763,
+      "copper": 822,
+      "coal": 779,
+      "magazines": 149
+     },
+     {
+      "t": 2760,
+      "steel": 763,
+      "copper": 842,
+      "coal": 759,
+      "magazines": 154
+     },
+     {
+      "t": 2820,
+      "steel": 779,
+      "copper": 900,
+      "coal": 789,
+      "magazines": 162
+     },
+     {
+      "t": 2880,
+      "steel": 809,
+      "copper": 960,
+      "coal": 719,
+      "magazines": 152
+     },
+     {
+      "t": 2940,
+      "steel": 839,
+      "copper": 1020,
+      "coal": 749,
+      "magazines": 157
+     },
+     {
+      "t": 3000,
+      "steel": 869,
+      "copper": 1080,
+      "coal": 779,
+      "magazines": 164
+     },
+     {
+      "t": 3060,
+      "steel": 859,
+      "copper": 1120,
+      "coal": 800,
+      "magazines": 174
+     },
+     {
+      "t": 3120,
+      "steel": 889,
+      "copper": 1180,
+      "coal": 800,
+      "magazines": 180
+     },
+     {
+      "t": 3180,
+      "steel": 919,
+      "copper": 1240,
+      "coal": 700,
+      "magazines": 167
+     },
+     {
+      "t": 3240,
+      "steel": 949,
+      "copper": 1300,
+      "coal": 700,
+      "magazines": 177
+     },
+     {
+      "t": 3300,
+      "steel": 979,
+      "copper": 1360,
+      "coal": 700,
+      "magazines": 183
+     },
+     {
+      "t": 3360,
+      "steel": 1009,
+      "copper": 1420,
+      "coal": 700,
+      "magazines": 189
+     },
+     {
+      "t": 3420,
+      "steel": 1039,
+      "copper": 1480,
+      "coal": 700,
+      "magazines": 199
+     },
+     {
+      "t": 3480,
+      "steel": 1069,
+      "copper": 1540,
+      "coal": 600,
+      "magazines": 188
+     },
+     {
+      "t": 3540,
+      "steel": 1099,
+      "copper": 1600,
+      "coal": 600,
+      "magazines": 192
+     },
+     {
+      "t": 3600,
+      "steel": 1129,
+      "copper": 1642,
+      "coal": 600,
+      "magazines": 201
+     },
+     {
+      "t": 3660,
+      "steel": 1159,
+      "copper": 1672,
+      "coal": 600,
+      "magazines": 210
+     },
+     {
+      "t": 3720,
+      "steel": 1189,
+      "copper": 1702,
+      "coal": 600,
+      "magazines": 215
+     },
+     {
+      "t": 3780,
+      "steel": 1219,
+      "copper": 1732,
+      "coal": 500,
+      "magazines": 203
+     },
+     {
+      "t": 3840,
+      "steel": 1249,
+      "copper": 1762,
+      "coal": 500,
+      "magazines": 213
+     },
+     {
+      "t": 3900,
+      "steel": 1279,
+      "copper": 1792,
+      "coal": 500,
+      "magazines": 219
+     },
+     {
+      "t": 3960,
+      "steel": 1295,
+      "copper": 1813,
+      "coal": 634,
+      "magazines": 295
+     },
+     {
+      "t": 4020,
+      "steel": 1325,
+      "copper": 1843,
+      "coal": 634,
+      "magazines": 305
+     },
+     {
+      "t": 4080,
+      "steel": 1355,
+      "copper": 1873,
+      "coal": 534,
+      "magazines": 282
+     },
+     {
+      "t": 4140,
+      "steel": 1385,
+      "copper": 1903,
+      "coal": 534,
+      "magazines": 288
+     },
+     {
+      "t": 4200,
+      "steel": 1415,
+      "copper": 1933,
+      "coal": 534,
+      "magazines": 290
+     },
+     {
+      "t": 4260,
+      "steel": 1445,
+      "copper": 1963,
+      "coal": 534,
+      "magazines": 294
+     },
+     {
+      "t": 4320,
+      "steel": 1475,
+      "copper": 1993,
+      "coal": 534,
+      "magazines": 301
+     },
+     {
+      "t": 4380,
+      "steel": 1505,
+      "copper": 2023,
+      "coal": 434,
+      "magazines": 284
+     },
+     {
+      "t": 4440,
+      "steel": 1535,
+      "copper": 2053,
+      "coal": 434,
+      "magazines": 290
+     }
+    ],
+    "steelMin": 30,
+    "steelMinAt": 722,
+    "copperMin": 27,
+    "coalMin": 0,
+    "fell": 0,
+    "fellWhy": {},
+    "atFirstRed": {
+     "t": 334,
+     "spawned": 45,
+     "arrivals": 0
+    },
+    "coalZeroAt": 362,
+    "railCoal": 702,
+    "railArrival": 1641,
+    "coalOut": -1,
+    "railMargin": 2859,
+    "delivered": {
+     "steel": 1888,
+     "copper": 2130,
+     "stone": 0,
+     "coal": 1404,
+     "magazine": 669,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "made": {
+     "steel": 0,
+     "copper": 0,
+     "stone": 0,
+     "coal": 0,
+     "magazine": 679,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "handFedMags": 159,
+    "handFedCoal": 969,
+    "endWant": {
+     "generators": 4,
+     "excavators": 7,
+     "assemblers": 3,
+     "turrets": 6,
+     "held": 4
+    }
+   },
+   "benchmark": {
+    "marks": {
+     "mine-done": 20,
+     "craft-done": 80,
+     "first-crawler": 164,
+     "first-turret-fire": 164,
+     "first-amber": 175,
+     "first-red": 334,
+     "first-hand-feed": 337,
+     "generator-2": 362,
+     "line-excavators": 374,
+     "line-assembler": 481,
+     "first-line-magazine": 487,
+     "first-rounds-run": 606,
+     "steel-to-chest": 722,
+     "generator-3": 901,
+     "strung-east": 904,
+     "deliver-east": 905,
+     "claim-east": 909,
+     "arrive-east": 910,
+     "held-east": 944,
+     "kitted-east": 944,
+     "east-line": 1009,
+     "wire-assembler": 1054,
+     "strung-west": 1506,
+     "deliver-west": 1507,
+     "claim-west": 1514,
+     "arrive-west": 1514,
+     "held-west": 1543,
+     "rail-yard-restored": 1543,
+     "rail-kit-unlocked": 1543,
+     "kitted-west": 1543,
+     "rail-coal-mined": 1603,
+     "west-line": 1604,
+     "rail-coal-arrived": 1624,
+     "generator-4": 2701,
+     "copper-2": 2763,
+     "strung-north": 3905,
+     "deliver-north": 3906,
+     "claim-north": 3914,
+     "arrive-north": 3915,
+     "held-north": 3948,
+     "enclosure": 3947,
+     "kitted-north": 3948
+    },
+    "walks": [
+     {
+      "name": "hand-feed beat",
+      "t0": 334,
+      "t1": 336,
+      "tiles": 22
+     },
+     {
+      "name": "to the chest",
+      "t0": 360,
+      "t1": 361,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 504,
+      "t1": 506,
+      "tiles": 23
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 506,
+      "t1": 507,
+      "tiles": 11
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 507,
+      "t1": 510,
+      "tiles": 21
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 510,
+      "t1": 514,
+      "tiles": 29
+     },
+     {
+      "name": "rounds run",
+      "t0": 600,
+      "t1": 602,
+      "tiles": 22
+     },
+     {
+      "name": "rounds run",
+      "t0": 602,
+      "t1": 604,
+      "tiles": 14
+     },
+     {
+      "name": "rounds run",
+      "t0": 604,
+      "t1": 606,
+      "tiles": 21
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 678,
+      "t1": 679,
+      "tiles": 14
+     },
+     {
+      "name": "to the chest",
+      "t0": 720,
+      "t1": 721,
+      "tiles": 12
+     },
+     {
+      "name": "string east",
+      "t0": 901,
+      "t1": 901,
+      "tiles": 8
+     },
+     {
+      "name": "deliver east",
+      "t0": 904,
+      "t1": 905,
+      "tiles": 10
+     },
+     {
+      "name": "back for east's kits",
+      "t0": 905,
+      "t1": 907,
+      "tiles": 22
+     },
+     {
+      "name": "activate east",
+      "t0": 907,
+      "t1": 909,
+      "tiles": 18
+     },
+     {
+      "name": "walk-over east",
+      "t0": 909,
+      "t1": 910,
+      "tiles": 6
+     },
+     {
+      "name": "back from east",
+      "t0": 944,
+      "t1": 947,
+      "tiles": 26
+     },
+     {
+      "name": "rounds run",
+      "t0": 947,
+      "t1": 948,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 948,
+      "t1": 951,
+      "tiles": 25
+     },
+     {
+      "name": "rounds run",
+      "t0": 951,
+      "t1": 953,
+      "tiles": 18
+     },
+     {
+      "name": "rounds run",
+      "t0": 953,
+      "t1": 956,
+      "tiles": 24
+     },
+     {
+      "name": "rounds run",
+      "t0": 1247,
+      "t1": 1248,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 1248,
+      "t1": 1250,
+      "tiles": 15
+     },
+     {
+      "name": "rounds run",
+      "t0": 1250,
+      "t1": 1250,
+      "tiles": 9
+     },
+     {
+      "name": "deliver west",
+      "t0": 1506,
+      "t1": 1507,
+      "tiles": 9
+     },
+     {
+      "name": "back for west's kits",
+      "t0": 1507,
+      "t1": 1510,
+      "tiles": 27
+     },
+     {
+      "name": "activate west",
+      "t0": 1510,
+      "t1": 1514,
+      "tiles": 27
+     },
+     {
+      "name": "walk-over west",
+      "t0": 1514,
+      "t1": 1514,
+      "tiles": 0
+     },
+     {
+      "name": "to the chest for magazines",
+      "t0": 1543,
+      "t1": 1547,
+      "tiles": 33
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1547,
+      "t1": 1551,
+      "tiles": 25
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1551,
+      "t1": 1556,
+      "tiles": 27
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 1556,
+      "t1": 1557,
+      "tiles": 15
+     },
+     {
+      "name": "back from west",
+      "t0": 1558,
+      "t1": 1558,
+      "tiles": 8
+     },
+     {
+      "name": "rounds run",
+      "t0": 1558,
+      "t1": 1559,
+      "tiles": 19
+     },
+     {
+      "name": "rounds run",
+      "t0": 1559,
+      "t1": 1561,
+      "tiles": 16
+     },
+     {
+      "name": "to the chest",
+      "t0": 1858,
+      "t1": 1858,
+      "tiles": 10
+     },
+     {
+      "name": "rounds run",
+      "t0": 1858,
+      "t1": 1862,
+      "tiles": 24
+     },
+     {
+      "name": "to the chest",
+      "t0": 2158,
+      "t1": 2159,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 2159,
+      "t1": 2159,
+      "tiles": 6
+     },
+     {
+      "name": "to the chest",
+      "t0": 2458,
+      "t1": 2459,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 2459,
+      "t1": 2459,
+      "tiles": 6
+     },
+     {
+      "name": "to the chest",
+      "t0": 2700,
+      "t1": 2701,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 2758,
+      "t1": 2759,
+      "tiles": 12
+     },
+     {
+      "name": "to the chest",
+      "t0": 2760,
+      "t1": 2760,
+      "tiles": 9
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3250,
+      "t1": 3250,
+      "tiles": 12
+     },
+     {
+      "name": "to the chest",
+      "t0": 3358,
+      "t1": 3359,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 3599,
+      "t1": 3600,
+      "tiles": 12
+     },
+     {
+      "name": "to the chest",
+      "t0": 3658,
+      "t1": 3659,
+      "tiles": 12
+     },
+     {
+      "name": "string north",
+      "t0": 3900,
+      "t1": 3901,
+      "tiles": 14
+     },
+     {
+      "name": "deliver north",
+      "t0": 3905,
+      "t1": 3906,
+      "tiles": 11
+     },
+     {
+      "name": "back for north's kits",
+      "t0": 3906,
+      "t1": 3910,
+      "tiles": 24
+     },
+     {
+      "name": "activate north",
+      "t0": 3910,
+      "t1": 3914,
+      "tiles": 25
+     },
+     {
+      "name": "walk-over north",
+      "t0": 3914,
+      "t1": 3915,
+      "tiles": 9
+     },
+     {
+      "name": "back from north",
+      "t0": 3948,
+      "t1": 3954,
+      "tiles": 34
+     },
+     {
+      "name": "rounds run",
+      "t0": 3958,
+      "t1": 3959,
+      "tiles": 12
+     },
+     {
+      "name": "to the chest",
+      "t0": 4258,
+      "t1": 4259,
+      "tiles": 12
+     }
+    ],
+    "refused": [],
+    "entries": [
+     {
+      "t": 0,
+      "what": "§11 0:00 — to the steel patch, hand-mine 20 steel"
+     },
+     {
+      "t": 20,
+      "what": "mine-done"
+     },
+     {
+      "t": 20,
+      "what": "20 steel in the pockets"
+     },
+     {
+      "t": 20,
+      "what": "§11 — back to the workbench: craft ten magazines, the chest's 20 into the pockets (20 s late)"
+     },
+     {
+      "t": 80,
+      "what": "craft-done"
+     },
+     {
+      "t": 80,
+      "what": "10 crafted, 10 magazines in the pockets"
+     },
+     {
+      "t": 164,
+      "what": "first-crawler"
+     },
+     {
+      "t": 164,
+      "what": "first-turret-fire"
+     },
+     {
+      "t": 175,
+      "what": "first-amber"
+     },
+     {
+      "t": 334,
+      "what": "first-red"
+     },
+     {
+      "t": 334,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 337,
+      "what": "first-hand-feed"
+     },
+     {
+      "t": 337,
+      "what": "5 magazines fed by hand so far"
+     },
+     {
+      "t": 360,
+      "what": "§11 6:00 — the coal Excavator and its belt, Generator 2, the steel and copper Excavators and their belts"
+     },
+     {
+      "t": 362,
+      "what": "generator-2"
+     },
+     {
+      "t": 374,
+      "what": "line-excavators"
+     },
+     {
+      "t": 480,
+      "what": "§11 8:00 — the Shot assembler, three inserters, the ammo belt"
+     },
+     {
+      "t": 481,
+      "what": "line-assembler"
+     },
+     {
+      "t": 487,
+      "what": "first-line-magazine"
+     },
+     {
+      "t": 504,
+      "what": "hand-feed beat: 4 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 514,
+      "what": "62 magazines fed by hand so far"
+     },
+     {
+      "t": 600,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 600,
+      "what": "took 19 of 20 magazine (the chest had no more)"
+     },
+     {
+      "t": 606,
+      "what": "first-rounds-run"
+     },
+     {
+      "t": 678,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 679,
+      "what": "105 magazines fed by hand so far"
+     },
+     {
+      "t": 720,
+      "what": "§11 12:00 — the second steel Excavator, belted into the chest (D-P4-7)"
+     },
+     {
+      "t": 722,
+      "what": "steel-to-chest"
+     },
+     {
+      "t": 900,
+      "what": "§11 15:00 — Generator 3"
+     },
+     {
+      "t": 901,
+      "what": "generator-3"
+     },
+     {
+      "t": 901,
+      "what": "§11 15:00 — claim east"
+     },
+     {
+      "t": 901,
+      "what": "east = block 361 (res, d 0.22, burn-off 33 s): 3 pole(s) to string, 0 steel + 0 Cu to deliver"
+     },
+     {
+      "t": 904,
+      "what": "strung-east"
+     },
+     {
+      "t": 904,
+      "what": "3 pole(s) strung to east's substation"
+     },
+     {
+      "t": 905,
+      "what": "0 steel + 0 Cu delivered to east's substation (needs 0 + 0)"
+     },
+     {
+      "t": 905,
+      "what": "deliver-east"
+     },
+     {
+      "t": 907,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 909,
+      "what": "claim-east"
+     },
+     {
+      "t": 910,
+      "what": "arrive-east"
+     },
+     {
+      "t": 944,
+      "what": "held-east"
+     },
+     {
+      "t": 944,
+      "what": "kitted-east"
+     },
+     {
+      "t": 947,
+      "what": "rounds run: 5 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 994,
+      "what": "east's Excavator on its own rubble, belted into the Depot (RI-01, D-P4-5)"
+     },
+     {
+      "t": 994,
+      "what": "east's copper line: Excavator at (492,666) facing west, 72 belts to the Depot"
+     },
+     {
+      "t": 1009,
+      "what": "east-line"
+     },
+     {
+      "t": 1054,
+      "what": "the Wire Assembler (RI-01: a real machine on the Wire recipe, D-B2-1 (b))"
+     },
+     {
+      "t": 1054,
+      "what": "wire-assembler"
+     },
+     {
+      "t": 1247,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 1500,
+      "what": "§11 25:00 — claim west"
+     },
+     {
+      "t": 1500,
+      "what": "west = block 364 (civ, d 0.14, burn-off 29 s): 6 pole(s) to string, 0 steel + 0 Cu to deliver"
+     },
+     {
+      "t": 1506,
+      "what": "strung-west"
+     },
+     {
+      "t": 1506,
+      "what": "6 pole(s) strung to west's substation"
+     },
+     {
+      "t": 1507,
+      "what": "0 steel + 0 Cu delivered to west's substation (needs 0 + 0)"
+     },
+     {
+      "t": 1507,
+      "what": "deliver-west"
+     },
+     {
+      "t": 1510,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 1514,
+      "what": "claim-west"
+     },
+     {
+      "t": 1514,
+      "what": "arrive-west"
+     },
+     {
+      "t": 1543,
+      "what": "held-west"
+     },
+     {
+      "t": 1543,
+      "what": "rail-yard-restored"
+     },
+     {
+      "t": 1543,
+      "what": "rail-kit-unlocked"
+     },
+     {
+      "t": 1543,
+      "what": "kitted-west"
+     },
+     {
+      "t": 1543,
+      "what": "hand-feed beat: 3 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 1558,
+      "what": "271 magazines fed by hand so far"
+     },
+     {
+      "t": 1558,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 1594,
+      "what": "the rail yard's coal Excavator, belted into the Depot (RI-01, D-P4-12)"
+     },
+     {
+      "t": 1594,
+      "what": "west's coal line: Excavator at (430,662) facing east, 24 belts to the Depot"
+     },
+     {
+      "t": 1603,
+      "what": "rail-coal-mined"
+     },
+     {
+      "t": 1604,
+      "what": "west-line"
+     },
+     {
+      "t": 1624,
+      "what": "rail-coal-arrived"
+     },
+     {
+      "t": 1858,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2158,
+      "what": "rounds run: 1 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2458,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2700,
+      "what": "§11 45:00 — Generator 4"
+     },
+     {
+      "t": 2701,
+      "what": "generator-4"
+     },
+     {
+      "t": 2758,
+      "what": "rounds run: 1 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2760,
+      "what": "§11 46:00 — the second copper Excavator, belted into the chest"
+     },
+     {
+      "t": 2763,
+      "what": "copper-2"
+     },
+     {
+      "t": 3000,
+      "what": "§11 50:00 — the third Assembler (E4 stand-in)"
+     },
+     {
+      "t": 3058,
+      "what": "rounds run: 0 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 3250,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 3251,
+      "what": "713 magazines fed by hand so far"
+     },
+     {
+      "t": 3358,
+      "what": "rounds run: 0 turrets, 3 Generators at or under half"
+     },
+     {
+      "t": 3599,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 1 on a red edge"
+     },
+     {
+      "t": 3600,
+      "what": "834 magazines fed by hand so far"
+     },
+     {
+      "t": 3658,
+      "what": "rounds run: 0 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 3900,
+      "what": "§11 65:00 — claim north"
+     },
+     {
+      "t": 3900,
+      "what": "north = block 348 (res, d 0.21, burn-off 33 s): 4 pole(s) to string, 0 steel + 0 Cu to deliver"
+     },
+     {
+      "t": 3905,
+      "what": "strung-north"
+     },
+     {
+      "t": 3905,
+      "what": "4 pole(s) strung to north's substation"
+     },
+     {
+      "t": 3906,
+      "what": "0 steel + 0 Cu delivered to north's substation (needs 0 + 0)"
+     },
+     {
+      "t": 3906,
+      "what": "deliver-north"
+     },
+     {
+      "t": 3910,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 3914,
+      "what": "claim-north"
+     },
+     {
+      "t": 3915,
+      "what": "arrive-north"
+     },
+     {
+      "t": 3948,
+      "what": "held-north"
+     },
+     {
+      "t": 3948,
+      "what": "enclosure"
+     },
+     {
+      "t": 3948,
+      "what": "kitted-north"
+     },
+     {
+      "t": 3958,
+      "what": "rounds run: 2 turrets, 3 Generators at or under half"
+     },
+     {
+      "t": 4258,
+      "what": "rounds run: 0 turrets, 1 Generators at or under half"
+     }
+    ],
+    "walkedS": 197.90000000001075,
+    "walkedPct": 4.397777777778017,
+    "chestTrips": 21,
+    "handFed": 1037,
+    "reachRefused": 0,
+    "claimWalkS": 2,
+    "held": 4,
+    "hqHeld": true,
+    "turrets": 6,
+    "generators": 4,
+    "excavators": 7,
+    "assemblers": 3,
+    "brownoutS": 0,
+    "crawlers": 358,
+    "shades": 0,
+    "turretKills": 358,
+    "rifleKills": 0,
+    "fired": 0,
+    "magsMade": 669,
+    "findings": [
+     "the walk over to east took 1 s (§11: 2–8 s)",
+     "the Electricians in the Depot: never happened (§11/calibration: 0:00–75:00)",
+     "the first shade (§11/E3: minute 32–47): never happened (§11/calibration: 32:00–47:00)"
+    ],
+    "stock": [
+     {
+      "t": 0,
+      "steel": 200,
+      "copper": 100,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 60,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 120,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 180,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 240,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 300,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 360,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 420,
+      "steel": 90,
+      "copper": 80,
+      "coal": 27,
+      "magazines": 0
+     },
+     {
+      "t": 480,
+      "steel": 90,
+      "copper": 80,
+      "coal": 57,
+      "magazines": 0
+     },
+     {
+      "t": 540,
+      "steel": 42,
+      "copper": 57,
+      "coal": 87,
+      "magazines": 9
+     },
+     {
+      "t": 600,
+      "steel": 42,
+      "copper": 57,
+      "coal": 117,
+      "magazines": 19
+     },
+     {
+      "t": 660,
+      "steel": 42,
+      "copper": 57,
+      "coal": 97,
+      "magazines": 10
+     },
+     {
+      "t": 720,
+      "steel": 42,
+      "copper": 57,
+      "coal": 127,
+      "magazines": 20
+     },
+     {
+      "t": 780,
+      "steel": 58,
+      "copper": 57,
+      "coal": 157,
+      "magazines": 30
+     },
+     {
+      "t": 840,
+      "steel": 88,
+      "copper": 57,
+      "coal": 187,
+      "magazines": 40
+     },
+     {
+      "t": 900,
+      "steel": 118,
+      "copper": 57,
+      "coal": 217,
+      "magazines": 50
+     },
+     {
+      "t": 960,
+      "steel": 115,
+      "copper": 44,
+      "coal": 168,
+      "magazines": 28
+     },
+     {
+      "t": 1020,
+      "steel": 63,
+      "copper": 44,
+      "coal": 209,
+      "magazines": 40
+     },
+     {
+      "t": 1080,
+      "steel": 53,
+      "copper": 44,
+      "coal": 239,
+      "magazines": 50
+     },
+     {
+      "t": 1140,
+      "steel": 83,
+      "copper": 74,
+      "coal": 269,
+      "magazines": 56
+     },
+     {
+      "t": 1200,
+      "steel": 113,
+      "copper": 104,
+      "coal": 299,
+      "magazines": 64
+     },
+     {
+      "t": 1260,
+      "steel": 143,
+      "copper": 134,
+      "coal": 279,
+      "magazines": 53
+     },
+     {
+      "t": 1320,
+      "steel": 173,
+      "copper": 164,
+      "coal": 309,
+      "magazines": 61
+     },
+     {
+      "t": 1380,
+      "steel": 203,
+      "copper": 194,
+      "coal": 339,
+      "magazines": 69
+     },
+     {
+      "t": 1440,
+      "steel": 233,
+      "copper": 224,
+      "coal": 369,
+      "magazines": 77
+     },
+     {
+      "t": 1500,
+      "steel": 263,
+      "copper": 254,
+      "coal": 399,
+      "magazines": 86
+     },
+     {
+      "t": 1560,
+      "steel": 287,
+      "copper": 278,
+      "coal": 343,
+      "magazines": 48
+     },
+     {
+      "t": 1620,
+      "steel": 283,
+      "copper": 308,
+      "coal": 399,
+      "magazines": 81
+     },
+     {
+      "t": 1680,
+      "steel": 313,
+      "copper": 338,
+      "coal": 458,
+      "magazines": 91
+     },
+     {
+      "t": 1740,
+      "steel": 343,
+      "copper": 368,
+      "coal": 518,
+      "magazines": 92
+     },
+     {
+      "t": 1800,
+      "steel": 373,
+      "copper": 398,
+      "coal": 563,
+      "magazines": 100
+     },
+     {
+      "t": 1860,
+      "steel": 403,
+      "copper": 428,
+      "coal": 543,
+      "magazines": 86
+     },
+     {
+      "t": 1920,
+      "steel": 433,
+      "copper": 458,
+      "coal": 573,
+      "magazines": 90
+     },
+     {
+      "t": 1980,
+      "steel": 463,
+      "copper": 488,
+      "coal": 603,
+      "magazines": 98
+     },
+     {
+      "t": 2040,
+      "steel": 493,
+      "copper": 518,
+      "coal": 633,
+      "magazines": 102
+     },
+     {
+      "t": 2100,
+      "steel": 523,
+      "copper": 548,
+      "coal": 663,
+      "magazines": 108
+     },
+     {
+      "t": 2160,
+      "steel": 553,
+      "copper": 578,
+      "coal": 593,
+      "magazines": 98
+     },
+     {
+      "t": 2220,
+      "steel": 583,
+      "copper": 608,
+      "coal": 623,
+      "magazines": 98
+     },
+     {
+      "t": 2280,
+      "steel": 613,
+      "copper": 638,
+      "coal": 653,
+      "magazines": 107
+     },
+     {
+      "t": 2340,
+      "steel": 643,
+      "copper": 668,
+      "coal": 683,
+      "magazines": 117
+     },
+     {
+      "t": 2400,
+      "steel": 673,
+      "copper": 698,
+      "coal": 713,
+      "magazines": 117
+     },
+     {
+      "t": 2460,
+      "steel": 703,
+      "copper": 728,
+      "coal": 693,
+      "magazines": 106
+     },
+     {
+      "t": 2520,
+      "steel": 733,
+      "copper": 758,
+      "coal": 723,
+      "magazines": 116
+     },
+     {
+      "t": 2580,
+      "steel": 763,
+      "copper": 788,
+      "coal": 753,
+      "magazines": 118
+     },
+     {
+      "t": 2640,
+      "steel": 793,
+      "copper": 818,
+      "coal": 783,
+      "magazines": 125
+     },
+     {
+      "t": 2700,
+      "steel": 823,
+      "copper": 848,
+      "coal": 813,
+      "magazines": 135
+     },
+     {
+      "t": 2760,
+      "steel": 823,
+      "copper": 868,
+      "coal": 693,
+      "magazines": 119
+     },
+     {
+      "t": 2820,
+      "steel": 839,
+      "copper": 925,
+      "coal": 723,
+      "magazines": 125
+     },
+     {
+      "t": 2880,
+      "steel": 869,
+      "copper": 985,
+      "coal": 753,
+      "magazines": 135
+     },
+     {
+      "t": 2940,
+      "steel": 899,
+      "copper": 1045,
+      "coal": 783,
+      "magazines": 140
+     },
+     {
+      "t": 3000,
+      "steel": 929,
+      "copper": 1105,
+      "coal": 813,
+      "magazines": 144
+     },
+     {
+      "t": 3060,
+      "steel": 919,
+      "copper": 1145,
+      "coal": 776,
+      "magazines": 134
+     },
+     {
+      "t": 3120,
+      "steel": 949,
+      "copper": 1205,
+      "coal": 776,
+      "magazines": 140
+     },
+     {
+      "t": 3180,
+      "steel": 979,
+      "copper": 1265,
+      "coal": 776,
+      "magazines": 144
+     },
+     {
+      "t": 3240,
+      "steel": 1009,
+      "copper": 1325,
+      "coal": 776,
+      "magazines": 154
+     },
+     {
+      "t": 3300,
+      "steel": 1039,
+      "copper": 1385,
+      "coal": 776,
+      "magazines": 160
+     },
+     {
+      "t": 3360,
+      "steel": 1069,
+      "copper": 1445,
+      "coal": 626,
+      "magazines": 144
+     },
+     {
+      "t": 3420,
+      "steel": 1099,
+      "copper": 1505,
+      "coal": 626,
+      "magazines": 154
+     },
+     {
+      "t": 3480,
+      "steel": 1129,
+      "copper": 1565,
+      "coal": 626,
+      "magazines": 162
+     },
+     {
+      "t": 3540,
+      "steel": 1159,
+      "copper": 1625,
+      "coal": 626,
+      "magazines": 164
+     },
+     {
+      "t": 3600,
+      "steel": 1189,
+      "copper": 1668,
+      "coal": 626,
+      "magazines": 173
+     },
+     {
+      "t": 3660,
+      "steel": 1219,
+      "copper": 1698,
+      "coal": 576,
+      "magazines": 162
+     },
+     {
+      "t": 3720,
+      "steel": 1249,
+      "copper": 1728,
+      "coal": 576,
+      "magazines": 164
+     },
+     {
+      "t": 3780,
+      "steel": 1279,
+      "copper": 1758,
+      "coal": 576,
+      "magazines": 172
+     },
+     {
+      "t": 3840,
+      "steel": 1309,
+      "copper": 1788,
+      "coal": 576,
+      "magazines": 182
+     },
+     {
+      "t": 3900,
+      "steel": 1339,
+      "copper": 1818,
+      "coal": 576,
+      "magazines": 184
+     },
+     {
+      "t": 3960,
+      "steel": 1365,
+      "copper": 1844,
+      "coal": 519,
+      "magazines": 270
+     },
+     {
+      "t": 4020,
+      "steel": 1395,
+      "copper": 1874,
+      "coal": 519,
+      "magazines": 280
+     },
+     {
+      "t": 4080,
+      "steel": 1425,
+      "copper": 1904,
+      "coal": 519,
+      "magazines": 275
+     },
+     {
+      "t": 4140,
+      "steel": 1455,
+      "copper": 1934,
+      "coal": 519,
+      "magazines": 279
+     },
+     {
+      "t": 4200,
+      "steel": 1485,
+      "copper": 1964,
+      "coal": 519,
+      "magazines": 282
+     },
+     {
+      "t": 4260,
+      "steel": 1515,
+      "copper": 1994,
+      "coal": 469,
+      "magazines": 266
+     },
+     {
+      "t": 4320,
+      "steel": 1545,
+      "copper": 2024,
+      "coal": 469,
+      "magazines": 270
+     },
+     {
+      "t": 4380,
+      "steel": 1575,
+      "copper": 2054,
+      "coal": 469,
+      "magazines": 273
+     },
+     {
+      "t": 4440,
+      "steel": 1605,
+      "copper": 2084,
+      "coal": 469,
+      "magazines": 279
+     }
+    ],
+    "steelMin": 30,
+    "steelMinAt": 722,
+    "copperMin": 32,
+    "coalMin": 0,
+    "fell": 0,
+    "fellWhy": {},
+    "atFirstRed": {
+     "t": 334,
+     "spawned": 45,
+     "arrivals": 0
+    },
+    "coalZeroAt": 362,
+    "railCoal": 702,
+    "railArrival": 1624,
+    "coalOut": -1,
+    "railMargin": 2876,
+    "delivered": {
+     "steel": 1888,
+     "copper": 2130,
+     "stone": 0,
+     "coal": 1404,
+     "magazine": 669,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "made": {
+     "steel": 0,
+     "copper": 0,
+     "stone": 0,
+     "coal": 0,
+     "magazine": 679,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "handFedMags": 105,
+    "handFedCoal": 932,
+    "endWant": {
+     "generators": 4,
+     "excavators": 7,
+     "assemblers": 3,
+     "turrets": 6,
+     "held": 4
+    }
+   },
+   "heartState": {
+    "cand": {
+     "productiveS": 90,
+     "stallS": 60,
+     "thresholds": [
+      25,
+      50,
+      75
+     ],
+     "approachS": 5,
+     "packets": [
+      2,
+      3,
+      4
+     ],
+     "maxAlive": 8,
+     "cabinet": {
+      "steel": 4,
+      "copper": 2
+     }
+    },
+    "site": 364,
+    "cabinets": [
+     {
+      "approach": 338,
+      "point": 1878,
+      "x": 429,
+      "y": 653,
+      "delivered": {
+       "steel": 0,
+       "copper": 0
+      },
+      "down": false
+     },
+     {
+      "approach": 369,
+      "point": 2019,
+      "x": 425,
+      "y": 671,
+      "delivered": {
+       "steel": 0,
+       "copper": 0
+      },
+      "down": false
+     }
+    ],
+    "attempt": -1,
+    "progress": 90,
+    "stall": 0,
+    "charged": true,
+    "charge": {
+     "steel": 10,
+     "copper": 5
+    },
+    "requested": {
+     "2:25": 1541,
+     "2:50": 1564,
+     "2:75": 1586
+    },
+    "pending": [],
+    "destroyed": true,
+    "destroyedAt": 1609,
+    "stats": {
+     "attempts": 1,
+     "interrupted": 0,
+     "aborted": 0,
+     "packets": 3,
+     "born": 9,
+     "knockouts": 0,
+     "repairs": 0,
+     "productiveS": 89.99999999999703,
+     "stalledS": 0
+    }
+   },
+   "candidateConfig": {
+    "production": true,
+    "asmSchedule": [],
+    "startAssemblers": 1,
+    "asmRate": 20,
+    "asmEarlyRate": null,
+    "startAsmRate": 10,
+    "hopper": 100,
+    "bufferCap": 4000,
+    "startRounds": 200,
+    "unfed": "substation",
+    "unfedN": 40,
+    "starveQuiet": false,
+    "scatter": true,
+    "scatterFrac": 0.09,
+    "validator": "none",
+    "shadeThr": 0.3,
+    "hulkThr": 0.5,
+    "wakeCap": true,
+    "bloomBase": 4,
+    "jitter": 0.1,
+    "fallTiles": 30,
+    "hulkRoll": "hash",
+    "bloomT": 120,
+    "bloomDrop": 0.9,
+    "relight": null,
+    "power": true,
+    "supply": "generators",
+    "headroom": 500,
+    "shortfall": null,
+    "draw": "half",
+    "interiorGrace": 0,
+    "asmTrack": 0,
+    "wellDeath": false,
+    "interleave": false,
+    "economy": true,
+    "walk": true,
+    "eco": {
+     "yieldPerMin": 32,
+     "claimCost": {
+      "copper": 5,
+      "steel": 10
+     },
+     "assemblerCost": {
+      "copper": 20,
+      "steel": 40
+     },
+     "startStock": {
+      "stone": 0,
+      "copper": 40,
+      "steel": 80
+     },
+     "startPatch": {
+      "steel": 7680,
+      "perMin": 64,
+      "copper": 3840,
+      "copperPerMin": 32
+     },
+     "magazineCost": {
+      "steel": 2,
+      "copper": 1
+     },
+     "pool": {
+      "civ": 3840,
+      "res": 3840,
+      "ind": 3840
+     }
+    }
+   },
+   "candidateConfigHash": "d51dfee0",
+   "benchmarkConfigHash": "e29c6c3f",
+   "matchedAttempts": true
+  },
+  "report-5": {
+   "heart": {
+    "marks": {
+     "mine-done": 20,
+     "craft-done": 80,
+     "first-crawler": 185,
+     "first-turret-fire": 186,
+     "first-amber": 197,
+     "generator-2": 361,
+     "line-excavators": 371,
+     "first-red": 376,
+     "first-hand-feed": 379,
+     "line-assembler": 483,
+     "first-line-magazine": 490,
+     "first-rounds-run": 601,
+     "steel-to-chest": 721,
+     "generator-3": 902,
+     "strung-east": 905,
+     "deliver-east": 905,
+     "claim-east": 910,
+     "arrive-east": 910,
+     "held-east": 940,
+     "kitted-east": 940,
+     "east-line": 1006,
+     "wire-assembler": 1055,
+     "copper-zero": 1523,
+     "strung-west": 1526,
+     "deliver-west": 1527,
+     "cabinet-1-supplied": 1527,
+     "turret-1": 1528,
+     "cabinet-2-supplied": 1528,
+     "turret-2": 1528,
+     "claim-west": 1534,
+     "heart-start": 1534,
+     "packet-25": 1557,
+     "heart-first-body": 1562,
+     "packet-50": 1579,
+     "packet-75": 1602,
+     "heart-destroyed": 1624,
+     "held-west": 1625,
+     "rail-yard-restored": 1625,
+     "rail-kit-unlocked": 1625,
+     "arrive-west": 1625,
+     "kitted-west": 1625,
+     "rail-coal-mined": 1633,
+     "west-line": 1634,
+     "rail-coal-arrived": 1657,
+     "generator-4": 2704,
+     "copper-2": 2761,
+     "strung-north": 3906,
+     "deliver-north": 3908,
+     "claim-north": 3917,
+     "arrive-north": 3919,
+     "held-north": 3946,
+     "enclosure": 3945,
+     "kitted-north": 3946
+    },
+    "walks": [
+     {
+      "name": "hand-feed beat",
+      "t0": 376,
+      "t1": 377,
+      "tiles": 18
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 378,
+      "t1": 379,
+      "tiles": 15
+     },
+     {
+      "name": "to the chest",
+      "t0": 480,
+      "t1": 480,
+      "tiles": 7
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 567,
+      "t1": 569,
+      "tiles": 19
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 569,
+      "t1": 569,
+      "tiles": 7
+     },
+     {
+      "name": "rounds run",
+      "t0": 600,
+      "t1": 601,
+      "tiles": 10
+     },
+     {
+      "name": "rounds run",
+      "t0": 601,
+      "t1": 601,
+      "tiles": 11
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 756,
+      "t1": 756,
+      "tiles": 7
+     },
+     {
+      "name": "to the chest",
+      "t0": 900,
+      "t1": 900,
+      "tiles": 7
+     },
+     {
+      "name": "deliver east",
+      "t0": 905,
+      "t1": 905,
+      "tiles": 10
+     },
+     {
+      "name": "back for east's kits",
+      "t0": 905,
+      "t1": 907,
+      "tiles": 20
+     },
+     {
+      "name": "activate east",
+      "t0": 907,
+      "t1": 909,
+      "tiles": 20
+     },
+     {
+      "name": "walk-over east",
+      "t0": 910,
+      "t1": 910,
+      "tiles": 8
+     },
+     {
+      "name": "to the chest for magazines",
+      "t0": 940,
+      "t1": 943,
+      "tiles": 28
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 943,
+      "t1": 944,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 944,
+      "t1": 944,
+      "tiles": 8
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 944,
+      "t1": 946,
+      "tiles": 17
+     },
+     {
+      "name": "rounds run",
+      "t0": 946,
+      "t1": 948,
+      "tiles": 15
+     },
+     {
+      "name": "rounds run",
+      "t0": 948,
+      "t1": 948,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 1246,
+      "t1": 1246,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 1246,
+      "t1": 1247,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 1247,
+      "t1": 1248,
+      "tiles": 15
+     },
+     {
+      "name": "to the chest for the claim",
+      "t0": 1500,
+      "t1": 1500,
+      "tiles": 9
+     },
+     {
+      "name": "string west",
+      "t0": 1522,
+      "t1": 1523,
+      "tiles": 9
+     },
+     {
+      "name": "deliver west",
+      "t0": 1526,
+      "t1": 1527,
+      "tiles": 11
+     },
+     {
+      "name": "string cabinet 1",
+      "t0": 1527,
+      "t1": 1527,
+      "tiles": 8
+     },
+     {
+      "name": "back for west's kits",
+      "t0": 1528,
+      "t1": 1532,
+      "tiles": 29
+     },
+     {
+      "name": "activate west",
+      "t0": 1532,
+      "t1": 1534,
+      "tiles": 21
+     },
+     {
+      "name": "walk-over west",
+      "t0": 1534,
+      "t1": 1625,
+      "tiles": 0
+     },
+     {
+      "name": "back from west",
+      "t0": 1625,
+      "t1": 1628,
+      "tiles": 27
+     },
+     {
+      "name": "to the chest",
+      "t0": 1634,
+      "t1": 1635,
+      "tiles": 16
+     },
+     {
+      "name": "rounds run",
+      "t0": 1635,
+      "t1": 1636,
+      "tiles": 18
+     },
+     {
+      "name": "rounds run",
+      "t0": 1636,
+      "t1": 1638,
+      "tiles": 16
+     },
+     {
+      "name": "rounds run",
+      "t0": 1638,
+      "t1": 1640,
+      "tiles": 19
+     },
+     {
+      "name": "to the chest",
+      "t0": 1934,
+      "t1": 1934,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 1934,
+      "t1": 1936,
+      "tiles": 19
+     },
+     {
+      "name": "rounds run",
+      "t0": 1936,
+      "t1": 1941,
+      "tiles": 35
+     },
+     {
+      "name": "to the chest",
+      "t0": 2234,
+      "t1": 2237,
+      "tiles": 29
+     },
+     {
+      "name": "rounds run",
+      "t0": 2238,
+      "t1": 2238,
+      "tiles": 13
+     },
+     {
+      "name": "rounds run",
+      "t0": 2239,
+      "t1": 2240,
+      "tiles": 13
+     },
+     {
+      "name": "rounds run",
+      "t0": 2534,
+      "t1": 2536,
+      "tiles": 21
+     },
+     {
+      "name": "rounds run",
+      "t0": 2536,
+      "t1": 2537,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 2537,
+      "t1": 2541,
+      "tiles": 32
+     },
+     {
+      "name": "to the chest",
+      "t0": 2700,
+      "t1": 2703,
+      "tiles": 29
+     },
+     {
+      "name": "rounds run",
+      "t0": 2834,
+      "t1": 2834,
+      "tiles": 14
+     },
+     {
+      "name": "rounds run",
+      "t0": 2834,
+      "t1": 2836,
+      "tiles": 16
+     },
+     {
+      "name": "rounds run",
+      "t0": 3134,
+      "t1": 3136,
+      "tiles": 21
+     },
+     {
+      "name": "rounds run",
+      "t0": 3136,
+      "t1": 3137,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 3137,
+      "t1": 3141,
+      "tiles": 32
+     },
+     {
+      "name": "rounds run",
+      "t0": 3141,
+      "t1": 3145,
+      "tiles": 28
+     },
+     {
+      "name": "rounds run",
+      "t0": 3734,
+      "t1": 3735,
+      "tiles": 14
+     },
+     {
+      "name": "rounds run",
+      "t0": 3735,
+      "t1": 3736,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 3736,
+      "t1": 3740,
+      "tiles": 32
+     },
+     {
+      "name": "rounds run",
+      "t0": 3740,
+      "t1": 3744,
+      "tiles": 28
+     },
+     {
+      "name": "string north",
+      "t0": 3900,
+      "t1": 3905,
+      "tiles": 36
+     },
+     {
+      "name": "deliver north",
+      "t0": 3906,
+      "t1": 3907,
+      "tiles": 13
+     },
+     {
+      "name": "back for north's kits",
+      "t0": 3908,
+      "t1": 3913,
+      "tiles": 30
+     },
+     {
+      "name": "activate north",
+      "t0": 3913,
+      "t1": 3917,
+      "tiles": 26
+     },
+     {
+      "name": "walk-over north",
+      "t0": 3917,
+      "t1": 3919,
+      "tiles": 12
+     },
+     {
+      "name": "back from north",
+      "t0": 3946,
+      "t1": 3952,
+      "tiles": 35
+     },
+     {
+      "name": "rounds run",
+      "t0": 4034,
+      "t1": 4034,
+      "tiles": 10
+     },
+     {
+      "name": "rounds run",
+      "t0": 4034,
+      "t1": 4034,
+      "tiles": 8
+     },
+     {
+      "name": "rounds run",
+      "t0": 4034,
+      "t1": 4035,
+      "tiles": 13
+     },
+     {
+      "name": "rounds run",
+      "t0": 4035,
+      "t1": 4040,
+      "tiles": 35
+     },
+     {
+      "name": "to the chest",
+      "t0": 4334,
+      "t1": 4337,
+      "tiles": 29
+     },
+     {
+      "name": "rounds run",
+      "t0": 4337,
+      "t1": 4339,
+      "tiles": 16
+     }
+    ],
+    "refused": [],
+    "entries": [
+     {
+      "t": 0,
+      "what": "§11 0:00 — to the steel patch, hand-mine 20 steel"
+     },
+     {
+      "t": 20,
+      "what": "mine-done"
+     },
+     {
+      "t": 20,
+      "what": "20 steel in the pockets"
+     },
+     {
+      "t": 20,
+      "what": "§11 — back to the workbench: craft ten magazines, the chest's 20 into the pockets (20 s late)"
+     },
+     {
+      "t": 80,
+      "what": "craft-done"
+     },
+     {
+      "t": 80,
+      "what": "10 crafted, 10 magazines in the pockets"
+     },
+     {
+      "t": 185,
+      "what": "first-crawler"
+     },
+     {
+      "t": 186,
+      "what": "first-turret-fire"
+     },
+     {
+      "t": 197,
+      "what": "first-amber"
+     },
+     {
+      "t": 360,
+      "what": "§11 6:00 — the coal Excavator and its belt, Generator 2, the steel and copper Excavators and their belts"
+     },
+     {
+      "t": 361,
+      "what": "generator-2"
+     },
+     {
+      "t": 371,
+      "what": "line-excavators"
+     },
+     {
+      "t": 376,
+      "what": "first-red"
+     },
+     {
+      "t": 376,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 379,
+      "what": "first-hand-feed"
+     },
+     {
+      "t": 379,
+      "what": "48 magazines fed by hand so far"
+     },
+     {
+      "t": 480,
+      "what": "§11 8:00 — the Shot assembler, three inserters, the ammo belt"
+     },
+     {
+      "t": 483,
+      "what": "line-assembler"
+     },
+     {
+      "t": 490,
+      "what": "first-line-magazine"
+     },
+     {
+      "t": 567,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 570,
+      "what": "55 magazines fed by hand so far"
+     },
+     {
+      "t": 600,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 600,
+      "what": "took 18 of 20 magazine (the chest had no more)"
+     },
+     {
+      "t": 601,
+      "what": "first-rounds-run"
+     },
+     {
+      "t": 720,
+      "what": "§11 12:00 — the second steel Excavator, belted into the chest (D-P4-7)"
+     },
+     {
+      "t": 721,
+      "what": "steel-to-chest"
+     },
+     {
+      "t": 756,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 756,
+      "what": "92 magazines fed by hand so far"
+     },
+     {
+      "t": 900,
+      "what": "§11 15:00 — Generator 3"
+     },
+     {
+      "t": 902,
+      "what": "generator-3"
+     },
+     {
+      "t": 902,
+      "what": "§11 15:00 — claim east"
+     },
+     {
+      "t": 902,
+      "what": "east = block 325 (civ, d 0.15, burn-off 29 s): 3 pole(s) to string, 10 steel + 5 Cu to deliver"
+     },
+     {
+      "t": 905,
+      "what": "strung-east"
+     },
+     {
+      "t": 905,
+      "what": "3 pole(s) strung to east's substation"
+     },
+     {
+      "t": 905,
+      "what": "10 steel + 5 Cu delivered to east's substation (needs 10 + 5)"
+     },
+     {
+      "t": 905,
+      "what": "deliver-east"
+     },
+     {
+      "t": 907,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 910,
+      "what": "claim-east"
+     },
+     {
+      "t": 910,
+      "what": "arrive-east"
+     },
+     {
+      "t": 940,
+      "what": "held-east"
+     },
+     {
+      "t": 940,
+      "what": "kitted-east"
+     },
+     {
+      "t": 940,
+      "what": "hand-feed beat: 4 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 946,
+      "what": "156 magazines fed by hand so far"
+     },
+     {
+      "t": 946,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 994,
+      "what": "east's Excavator on its own rubble, belted into the Depot (RI-01, D-P4-5)"
+     },
+     {
+      "t": 994,
+      "what": "east's stone line: Excavator at (302,612) facing south, 49 belts to the Depot"
+     },
+     {
+      "t": 994,
+      "what": "the start turret at (287,639) stands on the HQ lot's west corridor: moved to (284,639) for east's stone line"
+     },
+     {
+      "t": 1006,
+      "what": "east-line"
+     },
+     {
+      "t": 1054,
+      "what": "the Wire Assembler (RI-01: a real machine on the Wire recipe, D-B2-1 (b))"
+     },
+     {
+      "t": 1054,
+      "what": "assembler moved from lot (11,1) to (10,2): another machine is there"
+     },
+     {
+      "t": 1055,
+      "what": "wire-assembler"
+     },
+     {
+      "t": 1246,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 1500,
+      "what": "§11 25:00 — claim west"
+     },
+     {
+      "t": 1500,
+      "what": "west = block 348 (civ, d 0.14): the Junction Heart — 2 feeder cabinets at (263,636) and (261,643), 4 steel + 2 Cu each; the installation 10 steel + 5 Cu; 90 s productive, 60 s stall, packets at 25/50/75 %"
+     },
+     {
+      "t": 1500,
+      "what": "hand-mine 22 copper for the candidate's preparation"
+     },
+     {
+      "t": 1523,
+      "what": "copper-zero"
+     },
+     {
+      "t": 1526,
+      "what": "strung-west"
+     },
+     {
+      "t": 1526,
+      "what": "5 pole(s) strung to west's substation"
+     },
+     {
+      "t": 1527,
+      "what": "10 steel + 5 Cu delivered to the installation (needs 10 + 5)"
+     },
+     {
+      "t": 1527,
+      "what": "deliver-west"
+     },
+     {
+      "t": 1527,
+      "what": "1 pole(s) strung to cabinet 1"
+     },
+     {
+      "t": 1527,
+      "what": "cabinet-1-supplied"
+     },
+     {
+      "t": 1528,
+      "what": "turret-1"
+     },
+     {
+      "t": 1528,
+      "what": "cabinet 2 is already on the grid"
+     },
+     {
+      "t": 1528,
+      "what": "cabinet-2-supplied"
+     },
+     {
+      "t": 1528,
+      "what": "turret-2"
+     },
+     {
+      "t": 1532,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 1534,
+      "what": "claim-west"
+     },
+     {
+      "t": 1534,
+      "what": "heart-start"
+     },
+     {
+      "t": 1557,
+      "what": "packet-25"
+     },
+     {
+      "t": 1562,
+      "what": "heart-first-body"
+     },
+     {
+      "t": 1579,
+      "what": "packet-50"
+     },
+     {
+      "t": 1602,
+      "what": "packet-75"
+     },
+     {
+      "t": 1624,
+      "what": "heart-destroyed"
+     },
+     {
+      "t": 1625,
+      "what": "held-west"
+     },
+     {
+      "t": 1625,
+      "what": "rail-yard-restored"
+     },
+     {
+      "t": 1625,
+      "what": "rail-kit-unlocked"
+     },
+     {
+      "t": 1625,
+      "what": "arrive-west"
+     },
+     {
+      "t": 1625,
+      "what": "kitted-west"
+     },
+     {
+      "t": 1628,
+      "what": "the rail yard's coal Excavator, belted into the Depot (RI-01, D-P4-12) (35 s late)"
+     },
+     {
+      "t": 1628,
+      "what": "the rail yard's heap spot is taken"
+     },
+     {
+      "t": 1628,
+      "what": "west's coal line: Excavator at (266,636) facing east, 23 belts to the Depot"
+     },
+     {
+      "t": 1633,
+      "what": "rail-coal-mined"
+     },
+     {
+      "t": 1634,
+      "what": "west-line"
+     },
+     {
+      "t": 1634,
+      "what": "rounds run: 2 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 1657,
+      "what": "rail-coal-arrived"
+     },
+     {
+      "t": 1934,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2234,
+      "what": "rounds run: 1 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2534,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2700,
+      "what": "§11 45:00 — Generator 4"
+     },
+     {
+      "t": 2704,
+      "what": "generator-4"
+     },
+     {
+      "t": 2760,
+      "what": "§11 46:00 — the second copper Excavator, belted into the chest"
+     },
+     {
+      "t": 2761,
+      "what": "copper-2"
+     },
+     {
+      "t": 2834,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 3000,
+      "what": "§11 50:00 — the third Assembler (E4 stand-in)"
+     },
+     {
+      "t": 3000,
+      "what": "assembler moved from lot (15,0) to (13,0): another machine is there"
+     },
+     {
+      "t": 3134,
+      "what": "rounds run: 2 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 3434,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 3734,
+      "what": "rounds run: 2 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 3900,
+      "what": "§11 65:00 — claim north"
+     },
+     {
+      "t": 3900,
+      "what": "north = block 324 (civ, d 0.13, burn-off 28 s): 3 pole(s) to string, 10 steel + 5 Cu to deliver"
+     },
+     {
+      "t": 3906,
+      "what": "strung-north"
+     },
+     {
+      "t": 3906,
+      "what": "3 pole(s) strung to north's substation"
+     },
+     {
+      "t": 3908,
+      "what": "10 steel + 5 Cu delivered to north's substation (needs 10 + 5)"
+     },
+     {
+      "t": 3908,
+      "what": "deliver-north"
+     },
+     {
+      "t": 3913,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 3917,
+      "what": "claim-north"
+     },
+     {
+      "t": 3919,
+      "what": "arrive-north"
+     },
+     {
+      "t": 3946,
+      "what": "held-north"
+     },
+     {
+      "t": 3946,
+      "what": "enclosure"
+     },
+     {
+      "t": 3946,
+      "what": "kitted-north"
+     },
+     {
+      "t": 4034,
+      "what": "rounds run: 2 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 4334,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     }
+    ],
+    "walkedS": 205.75000000001253,
+    "walkedPct": 4.572222222222501,
+    "chestTrips": 17,
+    "handFed": 1065,
+    "reachRefused": 0,
+    "claimWalkS": 93,
+    "held": 4,
+    "hqHeld": true,
+    "turrets": 8,
+    "generators": 4,
+    "excavators": 7,
+    "assemblers": 3,
+    "brownoutS": 0,
+    "crawlers": 286,
+    "shades": 0,
+    "turretKills": 286,
+    "rifleKills": 0,
+    "fired": 0,
+    "magsMade": 669,
+    "findings": [
+     "the walk over to east took 0 s (§11: 2–8 s)",
+     "the Electricians in the Depot: never happened (§11/calibration: 0:00–75:00)",
+     "the first shade (§11/E3: minute 32–47): never happened (§11/calibration: 32:00–47:00)",
+     "8 turrets at the hour (§11: 6)",
+     "the chest's copper touched zero at 25:23",
+     "the claim walk-overs took 93 s in all (rework: under a minute of hour one)"
+    ],
+    "stock": [
+     {
+      "t": 0,
+      "steel": 200,
+      "copper": 100,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 60,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 120,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 180,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 240,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 300,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 360,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 420,
+      "steel": 90,
+      "copper": 80,
+      "coal": 28,
+      "magazines": 0
+     },
+     {
+      "t": 480,
+      "steel": 90,
+      "copper": 80,
+      "coal": 58,
+      "magazines": 0
+     },
+     {
+      "t": 540,
+      "steel": 42,
+      "copper": 57,
+      "coal": 88,
+      "magazines": 8
+     },
+     {
+      "t": 600,
+      "steel": 42,
+      "copper": 57,
+      "coal": 118,
+      "magazines": 18
+     },
+     {
+      "t": 660,
+      "steel": 42,
+      "copper": 57,
+      "coal": 98,
+      "magazines": 10
+     },
+     {
+      "t": 720,
+      "steel": 42,
+      "copper": 57,
+      "coal": 128,
+      "magazines": 20
+     },
+     {
+      "t": 780,
+      "steel": 59,
+      "copper": 57,
+      "coal": 158,
+      "magazines": 30
+     },
+     {
+      "t": 840,
+      "steel": 89,
+      "copper": 57,
+      "coal": 188,
+      "magazines": 40
+     },
+     {
+      "t": 900,
+      "steel": 119,
+      "copper": 57,
+      "coal": 218,
+      "magazines": 50
+     },
+     {
+      "t": 960,
+      "steel": 106,
+      "copper": 39,
+      "coal": 169,
+      "magazines": 15
+     },
+     {
+      "t": 1020,
+      "steel": 77,
+      "copper": 39,
+      "coal": 210,
+      "magazines": 48
+     },
+     {
+      "t": 1080,
+      "steel": 67,
+      "copper": 19,
+      "coal": 240,
+      "magazines": 46
+     },
+     {
+      "t": 1140,
+      "steel": 97,
+      "copper": 19,
+      "coal": 270,
+      "magazines": 54
+     },
+     {
+      "t": 1200,
+      "steel": 127,
+      "copper": 19,
+      "coal": 300,
+      "magazines": 64
+     },
+     {
+      "t": 1260,
+      "steel": 157,
+      "copper": 19,
+      "coal": 280,
+      "magazines": 44
+     },
+     {
+      "t": 1320,
+      "steel": 187,
+      "copper": 19,
+      "coal": 310,
+      "magazines": 53
+     },
+     {
+      "t": 1380,
+      "steel": 217,
+      "copper": 19,
+      "coal": 340,
+      "magazines": 56
+     },
+     {
+      "t": 1440,
+      "steel": 247,
+      "copper": 19,
+      "coal": 370,
+      "magazines": 64
+     },
+     {
+      "t": 1500,
+      "steel": 277,
+      "copper": 19,
+      "coal": 400,
+      "magazines": 74
+     },
+     {
+      "t": 1560,
+      "steel": 253,
+      "copper": 12,
+      "coal": 444,
+      "magazines": 67
+     },
+     {
+      "t": 1620,
+      "steel": 283,
+      "copper": 12,
+      "coal": 474,
+      "magazines": 77
+     },
+     {
+      "t": 1680,
+      "steel": 280,
+      "copper": 16,
+      "coal": 417,
+      "magazines": 64
+     },
+     {
+      "t": 1740,
+      "steel": 310,
+      "copper": 16,
+      "coal": 477,
+      "magazines": 61
+     },
+     {
+      "t": 1800,
+      "steel": 340,
+      "copper": 16,
+      "coal": 521,
+      "magazines": 71
+     },
+     {
+      "t": 1860,
+      "steel": 370,
+      "copper": 16,
+      "coal": 551,
+      "magazines": 70
+     },
+     {
+      "t": 1920,
+      "steel": 400,
+      "copper": 16,
+      "coal": 581,
+      "magazines": 76
+     },
+     {
+      "t": 1980,
+      "steel": 430,
+      "copper": 16,
+      "coal": 561,
+      "magazines": 60
+     },
+     {
+      "t": 2040,
+      "steel": 460,
+      "copper": 16,
+      "coal": 591,
+      "magazines": 61
+     },
+     {
+      "t": 2100,
+      "steel": 490,
+      "copper": 16,
+      "coal": 621,
+      "magazines": 70
+     },
+     {
+      "t": 2160,
+      "steel": 520,
+      "copper": 16,
+      "coal": 651,
+      "magazines": 75
+     },
+     {
+      "t": 2220,
+      "steel": 550,
+      "copper": 16,
+      "coal": 681,
+      "magazines": 77
+     },
+     {
+      "t": 2280,
+      "steel": 580,
+      "copper": 16,
+      "coal": 611,
+      "magazines": 65
+     },
+     {
+      "t": 2340,
+      "steel": 610,
+      "copper": 16,
+      "coal": 641,
+      "magazines": 71
+     },
+     {
+      "t": 2400,
+      "steel": 640,
+      "copper": 16,
+      "coal": 671,
+      "magazines": 74
+     },
+     {
+      "t": 2460,
+      "steel": 670,
+      "copper": 16,
+      "coal": 701,
+      "magazines": 80
+     },
+     {
+      "t": 2520,
+      "steel": 700,
+      "copper": 16,
+      "coal": 731,
+      "magazines": 85
+     },
+     {
+      "t": 2580,
+      "steel": 730,
+      "copper": 16,
+      "coal": 711,
+      "magazines": 71
+     },
+     {
+      "t": 2640,
+      "steel": 760,
+      "copper": 16,
+      "coal": 741,
+      "magazines": 78
+     },
+     {
+      "t": 2700,
+      "steel": 790,
+      "copper": 16,
+      "coal": 771,
+      "magazines": 83
+     },
+     {
+      "t": 2760,
+      "steel": 790,
+      "copper": 6,
+      "coal": 751,
+      "magazines": 89
+     },
+     {
+      "t": 2820,
+      "steel": 806,
+      "copper": 34,
+      "coal": 781,
+      "magazines": 96
+     },
+     {
+      "t": 2880,
+      "steel": 836,
+      "copper": 64,
+      "coal": 711,
+      "magazines": 78
+     },
+     {
+      "t": 2940,
+      "steel": 866,
+      "copper": 94,
+      "coal": 741,
+      "magazines": 84
+     },
+     {
+      "t": 3000,
+      "steel": 896,
+      "copper": 124,
+      "coal": 771,
+      "magazines": 94
+     },
+     {
+      "t": 3060,
+      "steel": 886,
+      "copper": 134,
+      "coal": 800,
+      "magazines": 95
+     },
+     {
+      "t": 3120,
+      "steel": 916,
+      "copper": 164,
+      "coal": 800,
+      "magazines": 102
+     },
+     {
+      "t": 3180,
+      "steel": 946,
+      "copper": 194,
+      "coal": 700,
+      "magazines": 92
+     },
+     {
+      "t": 3240,
+      "steel": 976,
+      "copper": 224,
+      "coal": 700,
+      "magazines": 94
+     },
+     {
+      "t": 3300,
+      "steel": 1006,
+      "copper": 254,
+      "coal": 700,
+      "magazines": 100
+     },
+     {
+      "t": 3360,
+      "steel": 1036,
+      "copper": 284,
+      "coal": 700,
+      "magazines": 108
+     },
+     {
+      "t": 3420,
+      "steel": 1066,
+      "copper": 314,
+      "coal": 700,
+      "magazines": 112
+     },
+     {
+      "t": 3480,
+      "steel": 1096,
+      "copper": 344,
+      "coal": 600,
+      "magazines": 98
+     },
+     {
+      "t": 3540,
+      "steel": 1126,
+      "copper": 374,
+      "coal": 600,
+      "magazines": 104
+     },
+     {
+      "t": 3600,
+      "steel": 1156,
+      "copper": 386,
+      "coal": 600,
+      "magazines": 110
+     },
+     {
+      "t": 3660,
+      "steel": 1186,
+      "copper": 386,
+      "coal": 600,
+      "magazines": 116
+     },
+     {
+      "t": 3720,
+      "steel": 1216,
+      "copper": 386,
+      "coal": 600,
+      "magazines": 123
+     },
+     {
+      "t": 3780,
+      "steel": 1246,
+      "copper": 386,
+      "coal": 500,
+      "magazines": 106
+     },
+     {
+      "t": 3840,
+      "steel": 1276,
+      "copper": 386,
+      "coal": 500,
+      "magazines": 114
+     },
+     {
+      "t": 3900,
+      "steel": 1306,
+      "copper": 386,
+      "coal": 500,
+      "magazines": 120
+     },
+     {
+      "t": 3960,
+      "steel": 1323,
+      "copper": 378,
+      "coal": 631,
+      "magazines": 223
+     },
+     {
+      "t": 4020,
+      "steel": 1353,
+      "copper": 378,
+      "coal": 631,
+      "magazines": 233
+     },
+     {
+      "t": 4080,
+      "steel": 1383,
+      "copper": 378,
+      "coal": 531,
+      "magazines": 213
+     },
+     {
+      "t": 4140,
+      "steel": 1413,
+      "copper": 378,
+      "coal": 531,
+      "magazines": 214
+     },
+     {
+      "t": 4200,
+      "steel": 1443,
+      "copper": 378,
+      "coal": 531,
+      "magazines": 224
+     },
+     {
+      "t": 4260,
+      "steel": 1473,
+      "copper": 378,
+      "coal": 531,
+      "magazines": 219
+     },
+     {
+      "t": 4320,
+      "steel": 1503,
+      "copper": 378,
+      "coal": 531,
+      "magazines": 225
+     },
+     {
+      "t": 4380,
+      "steel": 1533,
+      "copper": 378,
+      "coal": 431,
+      "magazines": 215
+     },
+     {
+      "t": 4440,
+      "steel": 1563,
+      "copper": 378,
+      "coal": 431,
+      "magazines": 211
+     }
+    ],
+    "steelMin": 30,
+    "steelMinAt": 721,
+    "copperMin": 0,
+    "coalMin": 0,
+    "fell": 0,
+    "fellWhy": {},
+    "atFirstRed": {
+     "t": 376,
+     "spawned": 40,
+     "arrivals": 0
+    },
+    "coalZeroAt": 361,
+    "railCoal": 702,
+    "railArrival": 1657,
+    "coalOut": -1,
+    "railMargin": 2843,
+    "delivered": {
+     "steel": 1889,
+     "copper": 400,
+     "stone": 1736,
+     "coal": 1404,
+     "magazine": 668,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "made": {
+     "steel": 0,
+     "copper": 0,
+     "stone": 0,
+     "coal": 0,
+     "magazine": 679,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "handFedMags": 93,
+    "handFedCoal": 972,
+    "endWant": {
+     "generators": 4,
+     "excavators": 7,
+     "assemblers": 3,
+     "turrets": 6,
+     "held": 4
+    }
+   },
+   "benchmark": {
+    "marks": {
+     "mine-done": 20,
+     "craft-done": 80,
+     "first-crawler": 185,
+     "first-turret-fire": 186,
+     "first-amber": 197,
+     "generator-2": 361,
+     "line-excavators": 371,
+     "first-red": 376,
+     "first-hand-feed": 379,
+     "line-assembler": 483,
+     "first-line-magazine": 490,
+     "first-rounds-run": 601,
+     "steel-to-chest": 721,
+     "generator-3": 902,
+     "strung-east": 905,
+     "deliver-east": 905,
+     "claim-east": 910,
+     "arrive-east": 910,
+     "held-east": 940,
+     "kitted-east": 940,
+     "east-line": 1006,
+     "wire-assembler": 1055,
+     "strung-west": 1505,
+     "deliver-west": 1506,
+     "claim-west": 1510,
+     "arrive-west": 1511,
+     "held-west": 1540,
+     "rail-yard-restored": 1540,
+     "rail-kit-unlocked": 1540,
+     "kitted-west": 1540,
+     "rail-coal-mined": 1598,
+     "west-line": 1599,
+     "rail-coal-arrived": 1622,
+     "generator-4": 2700,
+     "copper-2": 2761,
+     "strung-north": 3907,
+     "deliver-north": 3908,
+     "claim-north": 3917,
+     "arrive-north": 3919,
+     "held-north": 3946,
+     "enclosure": 3945,
+     "kitted-north": 3946
+    },
+    "walks": [
+     {
+      "name": "hand-feed beat",
+      "t0": 376,
+      "t1": 377,
+      "tiles": 18
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 378,
+      "t1": 379,
+      "tiles": 15
+     },
+     {
+      "name": "to the chest",
+      "t0": 480,
+      "t1": 480,
+      "tiles": 7
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 567,
+      "t1": 569,
+      "tiles": 19
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 569,
+      "t1": 569,
+      "tiles": 7
+     },
+     {
+      "name": "rounds run",
+      "t0": 600,
+      "t1": 601,
+      "tiles": 10
+     },
+     {
+      "name": "rounds run",
+      "t0": 601,
+      "t1": 601,
+      "tiles": 11
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 756,
+      "t1": 756,
+      "tiles": 7
+     },
+     {
+      "name": "to the chest",
+      "t0": 900,
+      "t1": 900,
+      "tiles": 7
+     },
+     {
+      "name": "deliver east",
+      "t0": 905,
+      "t1": 905,
+      "tiles": 10
+     },
+     {
+      "name": "back for east's kits",
+      "t0": 905,
+      "t1": 907,
+      "tiles": 20
+     },
+     {
+      "name": "activate east",
+      "t0": 907,
+      "t1": 909,
+      "tiles": 20
+     },
+     {
+      "name": "walk-over east",
+      "t0": 910,
+      "t1": 910,
+      "tiles": 8
+     },
+     {
+      "name": "to the chest for magazines",
+      "t0": 940,
+      "t1": 943,
+      "tiles": 28
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 943,
+      "t1": 944,
+      "tiles": 12
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 944,
+      "t1": 944,
+      "tiles": 8
+     },
+     {
+      "name": "hand-feed beat",
+      "t0": 944,
+      "t1": 946,
+      "tiles": 17
+     },
+     {
+      "name": "rounds run",
+      "t0": 946,
+      "t1": 948,
+      "tiles": 15
+     },
+     {
+      "name": "rounds run",
+      "t0": 948,
+      "t1": 948,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 1246,
+      "t1": 1246,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 1246,
+      "t1": 1247,
+      "tiles": 11
+     },
+     {
+      "name": "rounds run",
+      "t0": 1247,
+      "t1": 1248,
+      "tiles": 15
+     },
+     {
+      "name": "to the chest for the claim",
+      "t0": 1500,
+      "t1": 1500,
+      "tiles": 9
+     },
+     {
+      "name": "string west",
+      "t0": 1500,
+      "t1": 1501,
+      "tiles": 15
+     },
+     {
+      "name": "deliver west",
+      "t0": 1505,
+      "t1": 1505,
+      "tiles": 11
+     },
+     {
+      "name": "back for west's kits",
+      "t0": 1506,
+      "t1": 1508,
+      "tiles": 21
+     },
+     {
+      "name": "activate west",
+      "t0": 1508,
+      "t1": 1510,
+      "tiles": 21
+     },
+     {
+      "name": "walk-over west",
+      "t0": 1510,
+      "t1": 1511,
+      "tiles": 7
+     },
+     {
+      "name": "back from west",
+      "t0": 1540,
+      "t1": 1543,
+      "tiles": 28
+     },
+     {
+      "name": "rounds run",
+      "t0": 1546,
+      "t1": 1546,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 1546,
+      "t1": 1547,
+      "tiles": 14
+     },
+     {
+      "name": "rounds run",
+      "t0": 1547,
+      "t1": 1548,
+      "tiles": 16
+     },
+     {
+      "name": "rounds run",
+      "t0": 1548,
+      "t1": 1550,
+      "tiles": 19
+     },
+     {
+      "name": "to the chest",
+      "t0": 1594,
+      "t1": 1594,
+      "tiles": 9
+     },
+     {
+      "name": "to the chest",
+      "t0": 1846,
+      "t1": 1846,
+      "tiles": 10
+     },
+     {
+      "name": "rounds run",
+      "t0": 1846,
+      "t1": 1848,
+      "tiles": 16
+     },
+     {
+      "name": "rounds run",
+      "t0": 2446,
+      "t1": 2447,
+      "tiles": 15
+     },
+     {
+      "name": "rounds run",
+      "t0": 2447,
+      "t1": 2448,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 3046,
+      "t1": 3047,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 3047,
+      "t1": 3047,
+      "tiles": 9
+     },
+     {
+      "name": "rounds run",
+      "t0": 3646,
+      "t1": 3647,
+      "tiles": 15
+     },
+     {
+      "name": "rounds run",
+      "t0": 3647,
+      "t1": 3648,
+      "tiles": 10
+     },
+     {
+      "name": "string north",
+      "t0": 3900,
+      "t1": 3903,
+      "tiles": 29
+     },
+     {
+      "name": "deliver north",
+      "t0": 3907,
+      "t1": 3908,
+      "tiles": 7
+     },
+     {
+      "name": "back for north's kits",
+      "t0": 3908,
+      "t1": 3912,
+      "tiles": 27
+     },
+     {
+      "name": "activate north",
+      "t0": 3913,
+      "t1": 3917,
+      "tiles": 26
+     },
+     {
+      "name": "walk-over north",
+      "t0": 3917,
+      "t1": 3919,
+      "tiles": 13
+     },
+     {
+      "name": "back from north",
+      "t0": 3946,
+      "t1": 3952,
+      "tiles": 35
+     },
+     {
+      "name": "rounds run",
+      "t0": 3953,
+      "t1": 3954,
+      "tiles": 12
+     },
+     {
+      "name": "rounds run",
+      "t0": 3954,
+      "t1": 3955,
+      "tiles": 13
+     }
+    ],
+    "refused": [],
+    "entries": [
+     {
+      "t": 0,
+      "what": "§11 0:00 — to the steel patch, hand-mine 20 steel"
+     },
+     {
+      "t": 20,
+      "what": "mine-done"
+     },
+     {
+      "t": 20,
+      "what": "20 steel in the pockets"
+     },
+     {
+      "t": 20,
+      "what": "§11 — back to the workbench: craft ten magazines, the chest's 20 into the pockets (20 s late)"
+     },
+     {
+      "t": 80,
+      "what": "craft-done"
+     },
+     {
+      "t": 80,
+      "what": "10 crafted, 10 magazines in the pockets"
+     },
+     {
+      "t": 185,
+      "what": "first-crawler"
+     },
+     {
+      "t": 186,
+      "what": "first-turret-fire"
+     },
+     {
+      "t": 197,
+      "what": "first-amber"
+     },
+     {
+      "t": 360,
+      "what": "§11 6:00 — the coal Excavator and its belt, Generator 2, the steel and copper Excavators and their belts"
+     },
+     {
+      "t": 361,
+      "what": "generator-2"
+     },
+     {
+      "t": 371,
+      "what": "line-excavators"
+     },
+     {
+      "t": 376,
+      "what": "first-red"
+     },
+     {
+      "t": 376,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 379,
+      "what": "first-hand-feed"
+     },
+     {
+      "t": 379,
+      "what": "48 magazines fed by hand so far"
+     },
+     {
+      "t": 480,
+      "what": "§11 8:00 — the Shot assembler, three inserters, the ammo belt"
+     },
+     {
+      "t": 483,
+      "what": "line-assembler"
+     },
+     {
+      "t": 490,
+      "what": "first-line-magazine"
+     },
+     {
+      "t": 567,
+      "what": "hand-feed beat: 2 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 570,
+      "what": "55 magazines fed by hand so far"
+     },
+     {
+      "t": 600,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 600,
+      "what": "took 18 of 20 magazine (the chest had no more)"
+     },
+     {
+      "t": 601,
+      "what": "first-rounds-run"
+     },
+     {
+      "t": 720,
+      "what": "§11 12:00 — the second steel Excavator, belted into the chest (D-P4-7)"
+     },
+     {
+      "t": 721,
+      "what": "steel-to-chest"
+     },
+     {
+      "t": 756,
+      "what": "hand-feed beat: 1 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 756,
+      "what": "92 magazines fed by hand so far"
+     },
+     {
+      "t": 900,
+      "what": "§11 15:00 — Generator 3"
+     },
+     {
+      "t": 902,
+      "what": "generator-3"
+     },
+     {
+      "t": 902,
+      "what": "§11 15:00 — claim east"
+     },
+     {
+      "t": 902,
+      "what": "east = block 325 (civ, d 0.15, burn-off 29 s): 3 pole(s) to string, 0 steel + 0 Cu to deliver"
+     },
+     {
+      "t": 905,
+      "what": "strung-east"
+     },
+     {
+      "t": 905,
+      "what": "3 pole(s) strung to east's substation"
+     },
+     {
+      "t": 905,
+      "what": "0 steel + 0 Cu delivered to east's substation (needs 0 + 0)"
+     },
+     {
+      "t": 905,
+      "what": "deliver-east"
+     },
+     {
+      "t": 907,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 910,
+      "what": "claim-east"
+     },
+     {
+      "t": 910,
+      "what": "arrive-east"
+     },
+     {
+      "t": 940,
+      "what": "held-east"
+     },
+     {
+      "t": 940,
+      "what": "kitted-east"
+     },
+     {
+      "t": 940,
+      "what": "hand-feed beat: 4 turret(s) at or under half, 0 on a red edge"
+     },
+     {
+      "t": 946,
+      "what": "156 magazines fed by hand so far"
+     },
+     {
+      "t": 946,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 994,
+      "what": "east's Excavator on its own rubble, belted into the Depot (RI-01, D-P4-5)"
+     },
+     {
+      "t": 994,
+      "what": "east's stone line: Excavator at (302,612) facing south, 49 belts to the Depot"
+     },
+     {
+      "t": 994,
+      "what": "the start turret at (287,639) stands on the HQ lot's west corridor: moved to (284,639) for east's stone line"
+     },
+     {
+      "t": 1006,
+      "what": "east-line"
+     },
+     {
+      "t": 1054,
+      "what": "the Wire Assembler (RI-01: a real machine on the Wire recipe, D-B2-1 (b))"
+     },
+     {
+      "t": 1054,
+      "what": "assembler moved from lot (11,1) to (10,2): another machine is there"
+     },
+     {
+      "t": 1055,
+      "what": "wire-assembler"
+     },
+     {
+      "t": 1246,
+      "what": "rounds run: 2 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 1500,
+      "what": "§11 25:00 — claim west"
+     },
+     {
+      "t": 1500,
+      "what": "west = block 348 (civ, d 0.14, burn-off 28 s): 5 pole(s) to string, 0 steel + 0 Cu to deliver"
+     },
+     {
+      "t": 1505,
+      "what": "strung-west"
+     },
+     {
+      "t": 1505,
+      "what": "5 pole(s) strung to west's substation"
+     },
+     {
+      "t": 1506,
+      "what": "0 steel + 0 Cu delivered to west's substation (needs 0 + 0)"
+     },
+     {
+      "t": 1506,
+      "what": "deliver-west"
+     },
+     {
+      "t": 1508,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 1510,
+      "what": "claim-west"
+     },
+     {
+      "t": 1511,
+      "what": "arrive-west"
+     },
+     {
+      "t": 1540,
+      "what": "held-west"
+     },
+     {
+      "t": 1540,
+      "what": "rail-yard-restored"
+     },
+     {
+      "t": 1540,
+      "what": "rail-kit-unlocked"
+     },
+     {
+      "t": 1540,
+      "what": "kitted-west"
+     },
+     {
+      "t": 1546,
+      "what": "rounds run: 2 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 1594,
+      "what": "the rail yard's coal Excavator, belted into the Depot (RI-01, D-P4-12)"
+     },
+     {
+      "t": 1594,
+      "what": "west's coal line: Excavator at (265,635) facing north, 23 belts to the Depot"
+     },
+     {
+      "t": 1598,
+      "what": "rail-coal-mined"
+     },
+     {
+      "t": 1599,
+      "what": "west-line"
+     },
+     {
+      "t": 1622,
+      "what": "rail-coal-arrived"
+     },
+     {
+      "t": 1846,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2146,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2446,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 2700,
+      "what": "§11 45:00 — Generator 4"
+     },
+     {
+      "t": 2700,
+      "what": "generator-4"
+     },
+     {
+      "t": 2746,
+      "what": "rounds run: 0 turrets, 2 Generators at or under half"
+     },
+     {
+      "t": 2760,
+      "what": "§11 46:00 — the second copper Excavator, belted into the chest"
+     },
+     {
+      "t": 2761,
+      "what": "copper-2"
+     },
+     {
+      "t": 3000,
+      "what": "§11 50:00 — the third Assembler (E4 stand-in)"
+     },
+     {
+      "t": 3000,
+      "what": "assembler moved from lot (15,0) to (13,0): another machine is there"
+     },
+     {
+      "t": 3046,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 3346,
+      "what": "rounds run: 0 turrets, 3 Generators at or under half"
+     },
+     {
+      "t": 3646,
+      "what": "rounds run: 1 turrets, 1 Generators at or under half"
+     },
+     {
+      "t": 3900,
+      "what": "§11 65:00 — claim north"
+     },
+     {
+      "t": 3900,
+      "what": "north = block 324 (civ, d 0.13, burn-off 28 s): 4 pole(s) to string, 0 steel + 0 Cu to deliver"
+     },
+     {
+      "t": 3907,
+      "what": "strung-north"
+     },
+     {
+      "t": 3907,
+      "what": "4 pole(s) strung to north's substation"
+     },
+     {
+      "t": 3908,
+      "what": "0 steel + 0 Cu delivered to north's substation (needs 0 + 0)"
+     },
+     {
+      "t": 3908,
+      "what": "deliver-north"
+     },
+     {
+      "t": 3913,
+      "what": "4 kit(s) in the pockets (40 of 40 stacks used)"
+     },
+     {
+      "t": 3917,
+      "what": "claim-north"
+     },
+     {
+      "t": 3919,
+      "what": "arrive-north"
+     },
+     {
+      "t": 3946,
+      "what": "held-north"
+     },
+     {
+      "t": 3946,
+      "what": "enclosure"
+     },
+     {
+      "t": 3946,
+      "what": "kitted-north"
+     },
+     {
+      "t": 3952,
+      "what": "rounds run: 1 turrets, 3 Generators at or under half"
+     },
+     {
+      "t": 4252,
+      "what": "rounds run: 0 turrets, 1 Generators at or under half"
+     }
+    ],
+    "walkedS": 150.09999999999988,
+    "walkedPct": 3.335555555555553,
+    "chestTrips": 12,
+    "handFed": 1005,
+    "reachRefused": 0,
+    "claimWalkS": 3,
+    "held": 4,
+    "hqHeld": true,
+    "turrets": 6,
+    "generators": 4,
+    "excavators": 7,
+    "assemblers": 3,
+    "brownoutS": 0,
+    "crawlers": 244,
+    "shades": 0,
+    "turretKills": 244,
+    "rifleKills": 0,
+    "fired": 0,
+    "magsMade": 669,
+    "findings": [
+     "the walk over to east took 0 s (§11: 2–8 s)",
+     "the Electricians in the Depot: never happened (§11/calibration: 0:00–75:00)",
+     "the first shade (§11/E3: minute 32–47): never happened (§11/calibration: 32:00–47:00)"
+    ],
+    "stock": [
+     {
+      "t": 0,
+      "steel": 200,
+      "copper": 100,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 60,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 20
+     },
+     {
+      "t": 120,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 180,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 240,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 300,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 360,
+      "steel": 200,
+      "copper": 90,
+      "coal": 40,
+      "magazines": 0
+     },
+     {
+      "t": 420,
+      "steel": 90,
+      "copper": 80,
+      "coal": 28,
+      "magazines": 0
+     },
+     {
+      "t": 480,
+      "steel": 90,
+      "copper": 80,
+      "coal": 58,
+      "magazines": 0
+     },
+     {
+      "t": 540,
+      "steel": 42,
+      "copper": 57,
+      "coal": 88,
+      "magazines": 8
+     },
+     {
+      "t": 600,
+      "steel": 42,
+      "copper": 57,
+      "coal": 118,
+      "magazines": 18
+     },
+     {
+      "t": 660,
+      "steel": 42,
+      "copper": 57,
+      "coal": 98,
+      "magazines": 10
+     },
+     {
+      "t": 720,
+      "steel": 42,
+      "copper": 57,
+      "coal": 128,
+      "magazines": 20
+     },
+     {
+      "t": 780,
+      "steel": 59,
+      "copper": 57,
+      "coal": 158,
+      "magazines": 30
+     },
+     {
+      "t": 840,
+      "steel": 89,
+      "copper": 57,
+      "coal": 188,
+      "magazines": 40
+     },
+     {
+      "t": 900,
+      "steel": 119,
+      "copper": 57,
+      "coal": 218,
+      "magazines": 50
+     },
+     {
+      "t": 960,
+      "steel": 116,
+      "copper": 44,
+      "coal": 169,
+      "magazines": 15
+     },
+     {
+      "t": 1020,
+      "steel": 87,
+      "copper": 44,
+      "coal": 210,
+      "magazines": 48
+     },
+     {
+      "t": 1080,
+      "steel": 77,
+      "copper": 24,
+      "coal": 240,
+      "magazines": 46
+     },
+     {
+      "t": 1140,
+      "steel": 107,
+      "copper": 24,
+      "coal": 270,
+      "magazines": 54
+     },
+     {
+      "t": 1200,
+      "steel": 137,
+      "copper": 24,
+      "coal": 300,
+      "magazines": 64
+     },
+     {
+      "t": 1260,
+      "steel": 167,
+      "copper": 24,
+      "coal": 280,
+      "magazines": 44
+     },
+     {
+      "t": 1320,
+      "steel": 197,
+      "copper": 24,
+      "coal": 310,
+      "magazines": 53
+     },
+     {
+      "t": 1380,
+      "steel": 227,
+      "copper": 24,
+      "coal": 340,
+      "magazines": 56
+     },
+     {
+      "t": 1440,
+      "steel": 257,
+      "copper": 24,
+      "coal": 370,
+      "magazines": 64
+     },
+     {
+      "t": 1500,
+      "steel": 287,
+      "copper": 24,
+      "coal": 400,
+      "magazines": 74
+     },
+     {
+      "t": 1560,
+      "steel": 312,
+      "copper": 19,
+      "coal": 344,
+      "magazines": 47
+     },
+     {
+      "t": 1620,
+      "steel": 309,
+      "copper": 19,
+      "coal": 402,
+      "magazines": 67
+     },
+     {
+      "t": 1680,
+      "steel": 339,
+      "copper": 19,
+      "coal": 462,
+      "magazines": 69
+     },
+     {
+      "t": 1740,
+      "steel": 369,
+      "copper": 19,
+      "coal": 522,
+      "magazines": 70
+     },
+     {
+      "t": 1800,
+      "steel": 399,
+      "copper": 19,
+      "coal": 566,
+      "magazines": 79
+     },
+     {
+      "t": 1860,
+      "steel": 429,
+      "copper": 19,
+      "coal": 546,
+      "magazines": 59
+     },
+     {
+      "t": 1920,
+      "steel": 459,
+      "copper": 19,
+      "coal": 576,
+      "magazines": 64
+     },
+     {
+      "t": 1980,
+      "steel": 489,
+      "copper": 19,
+      "coal": 606,
+      "magazines": 68
+     },
+     {
+      "t": 2040,
+      "steel": 519,
+      "copper": 19,
+      "coal": 636,
+      "magazines": 71
+     },
+     {
+      "t": 2100,
+      "steel": 549,
+      "copper": 19,
+      "coal": 666,
+      "magazines": 78
+     },
+     {
+      "t": 2160,
+      "steel": 579,
+      "copper": 19,
+      "coal": 596,
+      "magazines": 63
+     },
+     {
+      "t": 2220,
+      "steel": 609,
+      "copper": 19,
+      "coal": 626,
+      "magazines": 66
+     },
+     {
+      "t": 2280,
+      "steel": 639,
+      "copper": 19,
+      "coal": 656,
+      "magazines": 70
+     },
+     {
+      "t": 2340,
+      "steel": 669,
+      "copper": 19,
+      "coal": 686,
+      "magazines": 79
+     },
+     {
+      "t": 2400,
+      "steel": 699,
+      "copper": 19,
+      "coal": 716,
+      "magazines": 82
+     },
+     {
+      "t": 2460,
+      "steel": 729,
+      "copper": 19,
+      "coal": 696,
+      "magazines": 68
+     },
+     {
+      "t": 2520,
+      "steel": 759,
+      "copper": 19,
+      "coal": 726,
+      "magazines": 72
+     },
+     {
+      "t": 2580,
+      "steel": 789,
+      "copper": 19,
+      "coal": 756,
+      "magazines": 77
+     },
+     {
+      "t": 2640,
+      "steel": 819,
+      "copper": 19,
+      "coal": 786,
+      "magazines": 84
+     },
+     {
+      "t": 2700,
+      "steel": 849,
+      "copper": 19,
+      "coal": 816,
+      "magazines": 88
+     },
+     {
+      "t": 2760,
+      "steel": 849,
+      "copper": 9,
+      "coal": 696,
+      "magazines": 71
+     },
+     {
+      "t": 2820,
+      "steel": 865,
+      "copper": 37,
+      "coal": 726,
+      "magazines": 81
+     },
+     {
+      "t": 2880,
+      "steel": 895,
+      "copper": 67,
+      "coal": 756,
+      "magazines": 83
+     },
+     {
+      "t": 2940,
+      "steel": 925,
+      "copper": 97,
+      "coal": 786,
+      "magazines": 89
+     },
+     {
+      "t": 3000,
+      "steel": 955,
+      "copper": 127,
+      "coal": 816,
+      "magazines": 99
+     },
+     {
+      "t": 3060,
+      "steel": 945,
+      "copper": 137,
+      "coal": 778,
+      "magazines": 80
+     },
+     {
+      "t": 3120,
+      "steel": 975,
+      "copper": 167,
+      "coal": 778,
+      "magazines": 86
+     },
+     {
+      "t": 3180,
+      "steel": 1005,
+      "copper": 197,
+      "coal": 778,
+      "magazines": 96
+     },
+     {
+      "t": 3240,
+      "steel": 1035,
+      "copper": 227,
+      "coal": 778,
+      "magazines": 97
+     },
+     {
+      "t": 3300,
+      "steel": 1065,
+      "copper": 257,
+      "coal": 778,
+      "magazines": 103
+     },
+     {
+      "t": 3360,
+      "steel": 1095,
+      "copper": 287,
+      "coal": 628,
+      "magazines": 92
+     },
+     {
+      "t": 3420,
+      "steel": 1125,
+      "copper": 317,
+      "coal": 628,
+      "magazines": 93
+     },
+     {
+      "t": 3480,
+      "steel": 1155,
+      "copper": 347,
+      "coal": 628,
+      "magazines": 100
+     },
+     {
+      "t": 3540,
+      "steel": 1185,
+      "copper": 377,
+      "coal": 628,
+      "magazines": 107
+     },
+     {
+      "t": 3600,
+      "steel": 1215,
+      "copper": 389,
+      "coal": 628,
+      "magazines": 109
+     },
+     {
+      "t": 3660,
+      "steel": 1245,
+      "copper": 389,
+      "coal": 578,
+      "magazines": 98
+     },
+     {
+      "t": 3720,
+      "steel": 1275,
+      "copper": 389,
+      "coal": 578,
+      "magazines": 104
+     },
+     {
+      "t": 3780,
+      "steel": 1305,
+      "copper": 389,
+      "coal": 578,
+      "magazines": 107
+     },
+     {
+      "t": 3840,
+      "steel": 1335,
+      "copper": 389,
+      "coal": 578,
+      "magazines": 115
+     },
+     {
+      "t": 3900,
+      "steel": 1365,
+      "copper": 389,
+      "coal": 578,
+      "magazines": 121
+     },
+     {
+      "t": 3960,
+      "steel": 1391,
+      "copper": 385,
+      "coal": 522,
+      "magazines": 210
+     },
+     {
+      "t": 4020,
+      "steel": 1421,
+      "copper": 385,
+      "coal": 522,
+      "magazines": 220
+     },
+     {
+      "t": 4080,
+      "steel": 1451,
+      "copper": 385,
+      "coal": 522,
+      "magazines": 219
+     },
+     {
+      "t": 4140,
+      "steel": 1481,
+      "copper": 385,
+      "coal": 522,
+      "magazines": 220
+     },
+     {
+      "t": 4200,
+      "steel": 1511,
+      "copper": 385,
+      "coal": 522,
+      "magazines": 230
+     },
+     {
+      "t": 4260,
+      "steel": 1541,
+      "copper": 385,
+      "coal": 472,
+      "magazines": 205
+     },
+     {
+      "t": 4320,
+      "steel": 1571,
+      "copper": 385,
+      "coal": 472,
+      "magazines": 212
+     },
+     {
+      "t": 4380,
+      "steel": 1601,
+      "copper": 385,
+      "coal": 472,
+      "magazines": 222
+     },
+     {
+      "t": 4440,
+      "steel": 1631,
+      "copper": 385,
+      "coal": 472,
+      "magazines": 215
+     }
+    ],
+    "steelMin": 30,
+    "steelMinAt": 721,
+    "copperMin": 9,
+    "coalMin": 0,
+    "fell": 0,
+    "fellWhy": {},
+    "atFirstRed": {
+     "t": 376,
+     "spawned": 40,
+     "arrivals": 0
+    },
+    "coalZeroAt": 361,
+    "railCoal": 702,
+    "railArrival": 1622,
+    "coalOut": -1,
+    "railMargin": 2878,
+    "delivered": {
+     "steel": 1889,
+     "copper": 400,
+     "stone": 1736,
+     "coal": 1404,
+     "magazine": 668,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "made": {
+     "steel": 0,
+     "copper": 0,
+     "stone": 0,
+     "coal": 0,
+     "magazine": 679,
+     "wire": 0,
+     "frame": 0,
+     "board": 0
+    },
+    "handFedMags": 73,
+    "handFedCoal": 932,
+    "endWant": {
+     "generators": 4,
+     "excavators": 7,
+     "assemblers": 3,
+     "turrets": 6,
+     "held": 4
+    }
+   },
+   "heartState": {
+    "cand": {
+     "productiveS": 90,
+     "stallS": 60,
+     "thresholds": [
+      25,
+      50,
+      75
+     ],
+     "approachS": 5,
+     "packets": [
+      2,
+      3,
+      4
+     ],
+     "maxAlive": 8,
+     "cabinet": {
+      "steel": 4,
+      "copper": 2
+     }
+    },
+    "site": 348,
+    "cabinets": [
+     {
+      "approach": 324,
+      "point": 1774,
+      "x": 263,
+      "y": 636,
+      "delivered": {
+       "steel": 0,
+       "copper": 0
+      },
+      "down": false
+     },
+     {
+      "approach": 344,
+      "point": 1858,
+      "x": 261,
+      "y": 643,
+      "delivered": {
+       "steel": 0,
+       "copper": 0
+      },
+      "down": false
+     }
+    ],
+    "attempt": -1,
+    "progress": 90,
+    "stall": 0,
+    "charged": true,
+    "charge": {
+     "steel": 10,
+     "copper": 5
+    },
+    "requested": {
+     "2:25": 1557,
+     "2:50": 1579,
+     "2:75": 1602
+    },
+    "pending": [],
+    "destroyed": true,
+    "destroyedAt": 1624,
+    "stats": {
+     "attempts": 1,
+     "interrupted": 0,
+     "aborted": 0,
+     "packets": 3,
+     "born": 9,
+     "knockouts": 0,
+     "repairs": 0,
+     "productiveS": 89.99999999999703,
+     "stalledS": 0
+    }
+   },
+   "candidateConfig": {
+    "production": true,
+    "asmSchedule": [],
+    "startAssemblers": 1,
+    "asmRate": 20,
+    "asmEarlyRate": null,
+    "startAsmRate": 10,
+    "hopper": 100,
+    "bufferCap": 4000,
+    "startRounds": 200,
+    "unfed": "substation",
+    "unfedN": 40,
+    "starveQuiet": false,
+    "scatter": true,
+    "scatterFrac": 0.09,
+    "validator": "none",
+    "shadeThr": 0.3,
+    "hulkThr": 0.5,
+    "wakeCap": true,
+    "bloomBase": 4,
+    "jitter": 0.1,
+    "fallTiles": 30,
+    "hulkRoll": "hash",
+    "bloomT": 120,
+    "bloomDrop": 0.9,
+    "relight": null,
+    "power": true,
+    "supply": "generators",
+    "headroom": 500,
+    "shortfall": null,
+    "draw": "half",
+    "interiorGrace": 0,
+    "asmTrack": 0,
+    "wellDeath": false,
+    "interleave": false,
+    "economy": true,
+    "walk": true,
+    "eco": {
+     "yieldPerMin": 32,
+     "claimCost": {
+      "copper": 5,
+      "steel": 10
+     },
+     "assemblerCost": {
+      "copper": 20,
+      "steel": 40
+     },
+     "startStock": {
+      "stone": 0,
+      "copper": 40,
+      "steel": 80
+     },
+     "startPatch": {
+      "steel": 7680,
+      "perMin": 64,
+      "copper": 3840,
+      "copperPerMin": 32
+     },
+     "magazineCost": {
+      "steel": 2,
+      "copper": 1
+     },
+     "pool": {
+      "civ": 3840,
+      "res": 3840,
+      "ind": 3840
+     }
+    }
+   },
+   "candidateConfigHash": "d51dfee0",
+   "benchmarkConfigHash": "e29c6c3f",
+   "matchedAttempts": true
+  },
+  "goalRuns": [
+   {
+    "seed": 3,
+    "wrong": 0,
+    "problems": [],
+    "shown": [
+     "mine",
+     "craft",
+     "coal-line",
+     "gen-2",
+     "copper-line",
+     "shot-line",
+     "steel-2",
+     "gen-3",
+     "claim-east",
+     "contest-east",
+     "claim-west",
+     "contest-west",
+     "rail-coal",
+     "gen-4",
+     "copper-2",
+     "assembler-3",
+     "claim-north",
+     "contest-north",
+     "hold"
+    ]
+   },
+   {
+    "seed": 4,
+    "wrong": 0,
+    "problems": [],
+    "shown": [
+     "mine",
+     "craft",
+     "coal-line",
+     "gen-2",
+     "steel-line",
+     "copper-line",
+     "shot-line",
+     "steel-2",
+     "gen-3",
+     "claim-east",
+     "contest-east",
+     "claim-west",
+     "contest-west",
+     "rail-coal",
+     "gen-4",
+     "copper-2",
+     "assembler-3",
+     "claim-north",
+     "contest-north",
+     "hold"
+    ]
+   },
+   {
+    "seed": 5,
+    "wrong": 0,
+    "problems": [],
+    "shown": [
+     "mine",
+     "craft",
+     "coal-line",
+     "gen-2",
+     "copper-line",
+     "shot-line",
+     "steel-2",
+     "gen-3",
+     "claim-east",
+     "contest-east",
+     "claim-west",
+     "contest-west",
+     "rail-coal",
+     "gen-4",
+     "copper-2",
+     "assembler-3",
+     "claim-north",
+     "contest-north",
+     "hold"
+    ]
+   }
+  ]
+ },
+ "meta": {
+  "seeds": [
+   3,
+   4,
+   5
+  ],
+  "hours": 5,
+  "map": "river"
+ }
+}

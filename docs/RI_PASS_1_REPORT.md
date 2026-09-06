@@ -1063,3 +1063,91 @@ index.ts`, `packages/game/src/{session,main,worldScene,panel}.ts`, `docs/RELIGHT
 (§28.8 and its changelog), `docs/PROGRESS.md`, `docs/PROGRAMME_STATE.md`,
 `docs/DECISIONS.md` (D-RI-4 / D-RI-5 / D-RI-6 annotations), `CLAUDE.md` (the command
 table's last-run cells), this report.
+
+## RI-06 validation fixes — 2026-09-06
+
+**Scope and baseline.** Daniel asked to fix the failures blocking RI-07. This pass
+repairs RI-06; it does not implement RI-07 or change the candidate's costs, timers,
+packet sizes, population cap or benchmark configuration. The six-test baseline was
+1 passed / 5 failed (`evidence/heart-fix/baseline.log`). The city pass's E-heart
+baseline had four failing checks. The earlier RI-06 report above is historical.
+
+**Corrections.** Cabinet deliveries now move the rail-yard project to `preparing`.
+The Heart bot budgets poles from both cabinet routes, mines copper shortfalls through
+ordinary walking/mining/chest commands, and exchanges surplus kits for repair copper
+and magazines before starting. The interruption test now uses that carried repair
+copper rather than injecting it. These are preparation changes to the instrument,
+not free resources or balance changes.
+
+When the yard becomes Held, newly covered abstract hoppers return their rounds to
+the buffer. Previously the production step copied and cleared that buffer before
+synchronising the turrets, then overwrote the returned rounds: seed 3 lost 200 rounds
+at the transition (`evidence/heart-fix/ledger-drop.json`). Synchronisation now happens
+before the distribution snapshot. The existing encounter conservation assertion
+covers this transition. Completion events retain the actual activation attempt id.
+Replay observers see each tick's events before cleanup, so once-only checks can count
+the packets and restoration; E-heart also checks completion against its start id.
+
+Two test expectations were corrected: destruction precedes the next block tick's
+Held/restored transition, so the completion test waits for both; loading deliberately
+pauses, so the resumed comparison explicitly sets the same speed. The description
+assertion checks the destroyed/operational facts rather than an obsolete exact string.
+
+E-heart previously used the economy-disabled benchmark while asserting a nonzero
+claim charge. Its candidate now enables the game's paid claims from state creation;
+the comparison still uses the unchanged E-hour configuration. The report records
+both hashes and the candidate configuration, making this distinction explicit.
+
+**Measured.** The focused Heart tests passed 6/6. The first corrected E-heart run
+passed 10/10 across seeds 3/4/5, with one attempt, three distinct packets, nine bodies,
+90 productive seconds, no stalls, no rifle use, no refusals and no falls on each seed.
+The yard restored at 27:10 / 26:50 / 27:05. Every ledger balanced; command replay and
+30:00 save/load replay matched the played 75:00 state. Evidence:
+`evidence/heart-fix/candidate/experiments/E-heart.json`.
+
+The initial full `npm test` run passed 155/156: only the pre-existing cold-geometry
+100 ms timing assertion failed under parallel load (172 ms). The threshold is
+unchanged. Typecheck, including the Vite build, and lint passed. The final sequential
+test run, complete experiment suite, snapshot and documentation checks are recorded
+below when complete.
+
+**Provenance and limits.** Windows, Node 24.20.0 (the installed runtime, not CI's Node
+22), HEAD `b3a3f6c8f42a09841102287ac195a424c1f05e1f` plus the uncommitted city rebuild
+and these repairs. Experiment files carry the source commit and configuration stamp;
+the final E-heart additionally carries its actual candidate/benchmark hashes. No
+human play approval, phase gate, reference-machine performance result, calibration
+rerun or new browser soak is claimed. The prior city captures remain in
+`CITY_REBUILD_REPORT.md`. Player comprehension and the integrated reward sequence
+still need the scheduled RI-07/RI-08 work.
+
+The archived-evidence warning was also traced to a Windows path bug in
+`packages/tools/src/freshness.ts`: `path.join` produces backslashes, but archive
+recognition required forward slashes. Normalising separators restores the checker's
+existing archive policy (check ancestry, report the historical hash). Archived
+results and their provenance are preserved; active evidence still requires the
+current configuration hash.
+
+The normal `npm test` script now uses `--test-concurrency=1`: this suite mixes
+correctness tests with the strict 100 ms cold-geometry check, so test workers must
+not compete for its CPU time. The unchanged 156 tests all passed in the sequential
+run (94.3 s); the original parallel run took 21.9 s but failed the timing assertion.
+The standard command is rerun after the experiments so that benchmark has an idle
+host. This changes test scheduling, not its budget or expected geometry.
+
+**Final verification.** Results from the repaired working tree:
+
+| Check | Result | Evidence under `evidence/heart-fix/` |
+|---|---|---|
+| Standard `npm test` | 156/156 passed, 91.7 s; includes all six Heart tests | `tests-final.log`, `standard-test.json` |
+| Full experiment suite, seeds 3/4/5 | 15 experiments, zero failing checks | `final/EXPERIMENTS.md`, `experiments-final.log` |
+| E-heart | 10/10, including matching completion attempt ids | `final/experiments/E-heart.json` |
+| E-hour / E-rifle / E-project | 19/19 / 16/16 / 10/10 | `final/experiments/` |
+| Typecheck and Vite build / lint | passed / passed | `typecheck-final.log`, `lint-final.log` |
+| Snapshot reproducibility | passed, unchanged | `snapshot.log` |
+| Docsync / freshness | passed / passed | `docsync-final.log`, `freshness-final.log` |
+
+The final E-heart candidate configuration hash is `d51dfee0`; its unchanged
+E-hour comparison is `e29c6c3f`. The generic experiment stamp remains `b95922d2`.
+The suite log includes a long host/tool wait; its wall-clock total is not a
+performance measurement. `PROGRESS.md` closes the RI-06 repair and leaves RI-07
+next. No commit, push or human gate was made in this pass.

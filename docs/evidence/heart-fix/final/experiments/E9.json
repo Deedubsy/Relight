@@ -1,0 +1,1082 @@
+{
+ "source_commit": "b3a3f6c8f42a09841102287ac195a424c1f05e1f",
+ "config_hash": "b95922d2",
+ "config_ref": {
+  "kind": "experiments"
+ },
+ "id": "E9",
+ "title": "Relight hold",
+ "pyNames": [
+  "E11 (phase5.py)",
+  "E11b (phase5b.py)"
+ ],
+ "docRefs": [
+  "§15",
+  "§22",
+  "§25 item 13"
+ ],
+ "setup": "compact, canonical map, production on, 25.5 h, relight at 25:00 for 10 min",
+ "sections": [
+  {
+   "title": "E9-hold: compact, canonical map, ammo line on, 25.5 h",
+   "note": "need = magazines/min demanded in 25:00–25:10; before = mag/min over 24:00–25:00; peak = the worst minute in the window",
+   "header": [
+    "variant",
+    "mag/min in window",
+    "mag/min hour before",
+    "production mag/min at 25 h",
+    "magazines banked at 25:00",
+    "peak minute (mags)",
+    "well blooms in window (per seed)",
+    "lost 25:00–25:20",
+    "lost from 25:00",
+    "lost before 25:00",
+    "hour demand first passes production"
+   ],
+   "rows": [
+    [
+     "no relight, 4 assemblers",
+     "84.3 [82.7–85.8]",
+     "85.0 [84.3–85.5]",
+     "80 [80–80]",
+     "0 [0–0]",
+     "118 [116–121]",
+     "42/33/49",
+     "4/4/4",
+     "4/6/6",
+     "134/146/199",
+     "15/13/8"
+    ],
+    [
+     "relight ×3 for 10 min, 4 assemblers",
+     "137.7 [136.5–138.7]",
+     "85.0 [84.3–85.5]",
+     "80 [80–80]",
+     "0 [0–0]",
+     "212 [207–219]",
+     "31/28/43",
+     "20/21/19",
+     "20/21/19",
+     "134/146/199",
+     "15/13/8"
+    ],
+    [
+     "relight, 6 assemblers",
+     "158.7 [142.8–185.8]",
+     "107.3 [93.8–124.9]",
+     "120 [120–120]",
+     "261 [0–392]",
+     "243 [204–320]",
+     "37/84/53",
+     "0/0/24",
+     "0/0/24",
+     "0/0/164",
+     "never/never/11"
+    ],
+    [
+     "relight, 4 assemblers, banked stock (buffer cap 40,000 rounds)",
+     "140.8 [130.8–146.7]",
+     "86.1 [86.0–86.3]",
+     "80 [80–80]",
+     "0 [0–0]",
+     "204 [163–234]",
+     "42/42/33",
+     "20/19/16",
+     "20/19/16",
+     "124/178/217",
+     "15/13/8"
+    ],
+    [
+     "relight, 6 assemblers, banked stock",
+     "113.6 [50.7–147.4]",
+     "78.4 [38.2–103.1]",
+     "120 [120–120]",
+     "3994 [3990–4000]",
+     "159 [68–205]",
+     "37/84/16",
+     "0/0/0",
+     "0/0/0",
+     "0/0/0",
+     "never/never/11"
+    ],
+    [
+     "relight, 8 assemblers from 4 h, no bank (buffer cap 4,000 rounds)",
+     "113.6 [50.7–147.4]",
+     "78.4 [38.2–103.1]",
+     "160 [160–160]",
+     "400 [400–400]",
+     "159 [68–205]",
+     "37/84/16",
+     "0/0/0",
+     "0/0/0",
+     "0/0/0",
+     "never/never/never"
+    ],
+    [
+     "relight, 8 assemblers, bank 4,000 magazines (cap 40,000 rounds)",
+     "113.6 [50.7–147.4]",
+     "78.4 [38.2–103.1]",
+     "160 [160–160]",
+     "4000 [4000–4000]",
+     "159 [68–205]",
+     "37/84/16",
+     "0/0/0",
+     "0/0/0",
+     "0/0/0",
+     "never/never/never"
+    ],
+    [
+     "relight, 8 assemblers, bank 20,000 magazines (cap 200,000 rounds)",
+     "113.6 [50.7–147.4]",
+     "78.4 [38.2–103.1]",
+     "160 [160–160]",
+     "20000 [20000–20000]",
+     "159 [68–205]",
+     "37/84/16",
+     "0/0/0",
+     "0/0/0",
+     "0/0/0",
+     "never/never/never"
+    ]
+   ]
+  },
+  {
+   "title": "E9-hourly: compact at the §18 cadence, four Shot assemblers from 3 h, first seed (demand = mag/min over the last 10 min of the hour)",
+   "header": [
+    "hour",
+    "held",
+    "front",
+    "interior",
+    "demand mag/min",
+    "production mag/min",
+    "shells/min",
+    "lost so far"
+   ],
+   "rows": [
+    [
+     1,
+     4,
+     8,
+     0,
+     "6.5",
+     "60",
+     "0.0",
+     0
+    ],
+    [
+     3,
+     28,
+     20,
+     17,
+     "22.3",
+     "80",
+     "0.0",
+     0
+    ],
+    [
+     5,
+     52,
+     27,
+     38,
+     "52.0",
+     "80",
+     "8.0",
+     0
+    ],
+    [
+     8,
+     88,
+     24,
+     74,
+     "43.5",
+     "80",
+     "9.0",
+     0
+    ],
+    [
+     10,
+     112,
+     24,
+     99,
+     "59.8",
+     "80",
+     "13.0",
+     0
+    ],
+    [
+     12,
+     136,
+     32,
+     119,
+     "66.8",
+     "80",
+     "10.0",
+     0
+    ],
+    [
+     15,
+     172,
+     35,
+     151,
+     "84.9",
+     "80",
+     "20.0",
+     0
+    ],
+    [
+     20,
+     154,
+     43,
+     129,
+     "80.8",
+     "80",
+     "12.0",
+     78
+    ],
+    [
+     25,
+     158,
+     43,
+     133,
+     "83.7",
+     "80",
+     "21.0",
+     134
+    ]
+   ]
+  },
+  {
+   "title": "E9-district: per-district cost over hours 1–25.5 of the same run (the outskirts and well edges compact play reaches only after 5 h)",
+   "header": [
+    "district",
+    "n ss",
+    "n wake",
+    "shade ss",
+    "hulk ss",
+    "mag/edge/min",
+    "mag/block/min",
+    "shell/edge/min"
+   ],
+   "rows": [
+    [
+     "civ",
+     1859,
+     119,
+     "0.05",
+     "0.00",
+     "0.60",
+     "0.97",
+     "0.000"
+    ],
+    [
+     "res",
+     2027,
+     74,
+     "0.20",
+     "0.00",
+     "1.10",
+     "1.59",
+     "0.001"
+    ],
+    [
+     "ind",
+     3765,
+     35,
+     "1.00",
+     "0.02",
+     "2.03",
+     "2.80",
+     "0.064"
+    ],
+    [
+     "out",
+     1357,
+     27,
+     "1.00",
+     "0.42",
+     "3.96",
+     "4.71",
+     "1.752"
+    ],
+    [
+     "well",
+     4309,
+     39,
+     "0.83",
+     "0.25",
+     "2.96",
+     "4.29",
+     "0.798"
+    ]
+   ]
+  }
+ ],
+ "checks": [
+  {
+   "name": "E9 informational: the Relight window demands more than the hour before",
+   "pass": true,
+   "detail": "need 137.8/138.7/136.5"
+  },
+  {
+   "name": "D4: a filled bank loses no more blocks in the window than the same assemblers without one",
+   "pass": true,
+   "detail": "bank 0/0/0 vs 0/0/0"
+  },
+  {
+   "name": "D4 (design statement): with a real bank the hold costs fewer than 5 blocks — informational until the human reads E9",
+   "pass": true,
+   "detail": "0.00 blocks (expected 0–100 blocks)"
+  }
+ ],
+ "data": {
+  "no relight, 4 assemblers": {
+   "need": [
+    85.78999999999999,
+    82.67,
+    84.53
+   ],
+   "before": [
+    84.31166666666667,
+    85.09166666666667,
+    85.545
+   ],
+   "lostWindow": [
+    4,
+    4,
+    4
+   ],
+   "lostAfter": [
+    4,
+    6,
+    6
+   ],
+   "wellBlooms": [
+    42,
+    33,
+    49
+   ],
+   "peak": [
+    118.60000000000002,
+    115.59999999999998,
+    120.60000000000001
+   ],
+   "lostBefore": [
+    134,
+    146,
+    199
+   ],
+   "bankedMags": [
+    0,
+    0,
+    0
+   ],
+   "productionAt25h": [
+    80,
+    80,
+    80
+   ],
+   "demandPassesProductionHour": [
+    15,
+    13,
+    8
+   ]
+  },
+  "relight ×3 for 10 min, 4 assemblers": {
+   "need": [
+    137.82,
+    138.7,
+    136.5
+   ],
+   "before": [
+    84.31166666666667,
+    85.09166666666667,
+    85.545
+   ],
+   "lostWindow": [
+    20,
+    21,
+    19
+   ],
+   "lostAfter": [
+    20,
+    21,
+    19
+   ],
+   "wellBlooms": [
+    31,
+    28,
+    43
+   ],
+   "peak": [
+    207.20000000000002,
+    219.39999999999998,
+    209.60000000000002
+   ],
+   "lostBefore": [
+    134,
+    146,
+    199
+   ],
+   "bankedMags": [
+    0,
+    0,
+    0
+   ],
+   "productionAt25h": [
+    80,
+    80,
+    80
+   ],
+   "demandPassesProductionHour": [
+    15,
+    13,
+    8
+   ]
+  },
+  "relight, 6 assemblers": {
+   "need": [
+    147.4,
+    142.8,
+    185.78
+   ],
+   "before": [
+    93.77333333333333,
+    103.145,
+    124.91833333333334
+   ],
+   "lostWindow": [
+    0,
+    0,
+    24
+   ],
+   "lostAfter": [
+    0,
+    0,
+    24
+   ],
+   "wellBlooms": [
+    37,
+    84,
+    53
+   ],
+   "peak": [
+    205.2,
+    204,
+    320.20000000000005
+   ],
+   "lostBefore": [
+    0,
+    0,
+    164
+   ],
+   "bankedMags": [
+    391.8000000000006,
+    390.17333333333397,
+    0
+   ],
+   "productionAt25h": [
+    120,
+    120,
+    120
+   ],
+   "demandPassesProductionHour": [
+    -1,
+    -1,
+    11
+   ]
+  },
+  "relight, 4 assemblers, banked stock (buffer cap 40,000 rounds)": {
+   "need": [
+    146.7,
+    144.84,
+    130.84
+   ],
+   "before": [
+    85.99666666666667,
+    86.26666666666667,
+    86.00666666666666
+   ],
+   "lostWindow": [
+    20,
+    19,
+    16
+   ],
+   "lostAfter": [
+    20,
+    19,
+    16
+   ],
+   "wellBlooms": [
+    42,
+    42,
+    33
+   ],
+   "peak": [
+    215.39999999999998,
+    233.79999999999998,
+    162.6
+   ],
+   "lostBefore": [
+    124,
+    178,
+    217
+   ],
+   "bankedMags": [
+    0,
+    0,
+    0
+   ],
+   "productionAt25h": [
+    80,
+    80,
+    80
+   ],
+   "demandPassesProductionHour": [
+    15,
+    13,
+    8
+   ]
+  },
+  "relight, 6 assemblers, banked stock": {
+   "need": [
+    147.4,
+    142.8,
+    50.660000000000004
+   ],
+   "before": [
+    93.77333333333333,
+    103.145,
+    38.166666666666664
+   ],
+   "lostWindow": [
+    0,
+    0,
+    0
+   ],
+   "lostAfter": [
+    0,
+    0,
+    0
+   ],
+   "wellBlooms": [
+    37,
+    84,
+    16
+   ],
+   "peak": [
+    205.2,
+    204,
+    68
+   ],
+   "lostBefore": [
+    0,
+    0,
+    0
+   ],
+   "bankedMags": [
+    3991.7999999999965,
+    3990.173333333344,
+    4000
+   ],
+   "productionAt25h": [
+    120,
+    120,
+    120
+   ],
+   "demandPassesProductionHour": [
+    -1,
+    -1,
+    11
+   ]
+  },
+  "relight, 8 assemblers from 4 h, no bank (buffer cap 4,000 rounds)": {
+   "need": [
+    147.4,
+    142.8,
+    50.660000000000004
+   ],
+   "before": [
+    93.77333333333333,
+    103.145,
+    38.166666666666664
+   ],
+   "lostWindow": [
+    0,
+    0,
+    0
+   ],
+   "lostAfter": [
+    0,
+    0,
+    0
+   ],
+   "wellBlooms": [
+    37,
+    84,
+    16
+   ],
+   "peak": [
+    205.2,
+    204,
+    68
+   ],
+   "lostBefore": [
+    0,
+    0,
+    0
+   ],
+   "bankedMags": [
+    400,
+    400,
+    400
+   ],
+   "productionAt25h": [
+    160,
+    160,
+    160
+   ],
+   "demandPassesProductionHour": [
+    -1,
+    -1,
+    -1
+   ]
+  },
+  "relight, 8 assemblers, bank 4,000 magazines (cap 40,000 rounds)": {
+   "need": [
+    147.4,
+    142.8,
+    50.660000000000004
+   ],
+   "before": [
+    93.77333333333333,
+    103.145,
+    38.166666666666664
+   ],
+   "lostWindow": [
+    0,
+    0,
+    0
+   ],
+   "lostAfter": [
+    0,
+    0,
+    0
+   ],
+   "wellBlooms": [
+    37,
+    84,
+    16
+   ],
+   "peak": [
+    205.2,
+    204,
+    68
+   ],
+   "lostBefore": [
+    0,
+    0,
+    0
+   ],
+   "bankedMags": [
+    4000,
+    4000,
+    4000
+   ],
+   "productionAt25h": [
+    160,
+    160,
+    160
+   ],
+   "demandPassesProductionHour": [
+    -1,
+    -1,
+    -1
+   ]
+  },
+  "relight, 8 assemblers, bank 20,000 magazines (cap 200,000 rounds)": {
+   "need": [
+    147.4,
+    142.8,
+    50.660000000000004
+   ],
+   "before": [
+    93.77333333333333,
+    103.145,
+    38.166666666666664
+   ],
+   "lostWindow": [
+    0,
+    0,
+    0
+   ],
+   "lostAfter": [
+    0,
+    0,
+    0
+   ],
+   "wellBlooms": [
+    37,
+    84,
+    16
+   ],
+   "peak": [
+    205.2,
+    204,
+    68
+   ],
+   "lostBefore": [
+    0,
+    0,
+    0
+   ],
+   "bankedMags": [
+    20000,
+    20000,
+    20000
+   ],
+   "productionAt25h": [
+    160,
+    160,
+    160
+   ],
+   "demandPassesProductionHour": [
+    -1,
+    -1,
+    -1
+   ]
+  },
+  "hourly": [
+   {
+    "h": 1,
+    "held": 4,
+    "front": 8,
+    "interior": 0,
+    "mags": 6.4799999999999995,
+    "production": 60,
+    "shells": 0,
+    "lost": 0
+   },
+   {
+    "h": 2,
+    "held": 16,
+    "front": 11,
+    "interior": 8,
+    "mags": 11.93,
+    "production": 60,
+    "shells": 0,
+    "lost": 0
+   },
+   {
+    "h": 3,
+    "held": 28,
+    "front": 20,
+    "interior": 17,
+    "mags": 22.28,
+    "production": 80,
+    "shells": 0,
+    "lost": 0
+   },
+   {
+    "h": 4,
+    "held": 40,
+    "front": 24,
+    "interior": 28,
+    "mags": 47.589999999999996,
+    "production": 80,
+    "shells": 6,
+    "lost": 0
+   },
+   {
+    "h": 5,
+    "held": 52,
+    "front": 27,
+    "interior": 38,
+    "mags": 51.96,
+    "production": 80,
+    "shells": 8,
+    "lost": 0
+   },
+   {
+    "h": 6,
+    "held": 64,
+    "front": 28,
+    "interior": 49,
+    "mags": 60.39,
+    "production": 80,
+    "shells": 13,
+    "lost": 0
+   },
+   {
+    "h": 7,
+    "held": 76,
+    "front": 26,
+    "interior": 63,
+    "mags": 49.29,
+    "production": 80,
+    "shells": 5,
+    "lost": 0
+   },
+   {
+    "h": 8,
+    "held": 88,
+    "front": 24,
+    "interior": 74,
+    "mags": 43.55,
+    "production": 80,
+    "shells": 9,
+    "lost": 0
+   },
+   {
+    "h": 9,
+    "held": 100,
+    "front": 23,
+    "interior": 87,
+    "mags": 42.489999999999995,
+    "production": 80,
+    "shells": 11,
+    "lost": 0
+   },
+   {
+    "h": 10,
+    "held": 112,
+    "front": 24,
+    "interior": 99,
+    "mags": 59.77,
+    "production": 80,
+    "shells": 13,
+    "lost": 0
+   },
+   {
+    "h": 11,
+    "held": 124,
+    "front": 27,
+    "interior": 110,
+    "mags": 51.92,
+    "production": 80,
+    "shells": 9,
+    "lost": 0
+   },
+   {
+    "h": 12,
+    "held": 136,
+    "front": 32,
+    "interior": 119,
+    "mags": 66.8,
+    "production": 80,
+    "shells": 10,
+    "lost": 0
+   },
+   {
+    "h": 13,
+    "held": 148,
+    "front": 31,
+    "interior": 130,
+    "mags": 63.73,
+    "production": 80,
+    "shells": 8,
+    "lost": 0
+   },
+   {
+    "h": 14,
+    "held": 160,
+    "front": 32,
+    "interior": 141,
+    "mags": 72.32000000000001,
+    "production": 80,
+    "shells": 13,
+    "lost": 0
+   },
+   {
+    "h": 15,
+    "held": 172,
+    "front": 35,
+    "interior": 151,
+    "mags": 84.86,
+    "production": 80,
+    "shells": 20,
+    "lost": 0
+   },
+   {
+    "h": 16,
+    "held": 171,
+    "front": 35,
+    "interior": 150,
+    "mags": 87.87,
+    "production": 80,
+    "shells": 24,
+    "lost": 13
+   },
+   {
+    "h": 17,
+    "held": 169,
+    "front": 39,
+    "interior": 146,
+    "mags": 86.75,
+    "production": 80,
+    "shells": 19,
+    "lost": 27
+   },
+   {
+    "h": 18,
+    "held": 164,
+    "front": 41,
+    "interior": 140,
+    "mags": 91.27000000000001,
+    "production": 80,
+    "shells": 17,
+    "lost": 44
+   },
+   {
+    "h": 19,
+    "held": 151,
+    "front": 43,
+    "interior": 127,
+    "mags": 92.78999999999999,
+    "production": 80,
+    "shells": 20,
+    "lost": 69
+   },
+   {
+    "h": 20,
+    "held": 154,
+    "front": 43,
+    "interior": 129,
+    "mags": 80.8,
+    "production": 80,
+    "shells": 12,
+    "lost": 78
+   },
+   {
+    "h": 21,
+    "held": 154,
+    "front": 46,
+    "interior": 129,
+    "mags": 84.75,
+    "production": 80,
+    "shells": 16,
+    "lost": 90
+   },
+   {
+    "h": 22,
+    "held": 155,
+    "front": 45,
+    "interior": 129,
+    "mags": 81.95,
+    "production": 80,
+    "shells": 18,
+    "lost": 101
+   },
+   {
+    "h": 23,
+    "held": 155,
+    "front": 45,
+    "interior": 129,
+    "mags": 84.9,
+    "production": 80,
+    "shells": 15,
+    "lost": 113
+   },
+   {
+    "h": 24,
+    "held": 155,
+    "front": 45,
+    "interior": 129,
+    "mags": 83.28,
+    "production": 80,
+    "shells": 18,
+    "lost": 125
+   },
+   {
+    "h": 25,
+    "held": 158,
+    "front": 43,
+    "interior": 133,
+    "mags": 83.65,
+    "production": 80,
+    "shells": 21,
+    "lost": 134
+   }
+  ],
+  "district25h": [
+   {
+    "d": "civ",
+    "nSs": 1859,
+    "nWake": 119,
+    "shSs": 0.05379236148466918,
+    "huSs": 0,
+    "shWk": 0.14285714285714285,
+    "huWk": 0,
+    "magEdge": 0.6030894137494728,
+    "magBlock": 0.9655131667792032,
+    "shellEdge": 0,
+    "wakeRounds": 79.76470588235294,
+    "ssRounds": 30.76761699838623
+   },
+   {
+    "d": "res",
+    "nSs": 2027,
+    "nWake": 74,
+    "shSs": 0.1973359644795264,
+    "huSs": 0.000493339911198816,
+    "shWk": 0.16216216216216217,
+    "huWk": 0,
+    "magEdge": 1.103939133636029,
+    "magBlock": 1.5863163463233998,
+    "shellEdge": 0.0012271444348999877,
+    "wakeRounds": 85.4054054054054,
+    "ssRounds": 44.38085841144549
+   },
+   {
+    "d": "ind",
+    "nSs": 3765,
+    "nWake": 35,
+    "shSs": 1,
+    "huSs": 0.021779548472775564,
+    "shWk": 0.9714285714285714,
+    "huWk": 0,
+    "magEdge": 2.0295626413035004,
+    "magBlock": 2.8010759629868733,
+    "shellEdge": 0.06392765260778047,
+    "wakeRounds": 143.42857142857142,
+    "ssRounds": 69.1452855245684
+   },
+   {
+    "d": "out",
+    "nSs": 1357,
+    "nWake": 27,
+    "shSs": 1,
+    "huSs": 0.4200442151805453,
+    "shWk": 1,
+    "huWk": 0.25925925925925924,
+    "magEdge": 3.961862323294407,
+    "magBlock": 4.713674588665448,
+    "shellEdge": 1.7516902274124155,
+    "wakeRounds": 170,
+    "ssRounds": 95.00294767870302
+   },
+   {
+    "d": "well",
+    "nSs": 4309,
+    "nWake": 39,
+    "shSs": 0.8317475052216291,
+    "huSs": 0.2476212578324437,
+    "shWk": 0.6410256410256411,
+    "huWk": 0.2564102564102564,
+    "magEdge": 2.9578510542844327,
+    "magBlock": 4.293747964832303,
+    "shellEdge": 0.7978166591894721,
+    "wakeRounds": 131.64102564102564,
+    "ssRounds": 91.80389881643073
+   }
+  ]
+ },
+ "meta": {
+  "seeds": [
+   3,
+   4,
+   5
+  ],
+  "hours": 5,
+  "map": "river"
+ }
+}

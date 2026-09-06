@@ -1128,6 +1128,7 @@ export function placeable(st: SimState, kind: Kind, tx: number, ty: number): str
     if (!inGround(G, x, y)) return 'outside the city';
     const t = y * G.tw + x, o = G.owner[t];
     if (o === -2) return 'in the river';
+    if (G.urban?.solid[t]) return 'a city structure is there';
     const margin = o === -1, bi = margin ? G.near[t] : o;
     if (bi < 0) return 'outside the city';
     const b = st.blocks[bi];

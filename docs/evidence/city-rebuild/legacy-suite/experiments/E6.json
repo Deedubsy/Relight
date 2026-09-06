@@ -1,0 +1,274 @@
+{
+ "source_commit": "b3a3f6c8f42a09841102287ac195a424c1f05e1f",
+ "config_hash": "b95922d2",
+ "config_ref": {
+  "kind": "experiments"
+ },
+ "id": "E6",
+ "title": "Inert walls",
+ "pyNames": [
+  "E6-scatter-*",
+  "E6-noscatter-*",
+  "E13"
+ ],
+ "docRefs": [
+  "§6",
+  "§7",
+  "§9"
+ ],
+ "setup": "compact, spike, cheapest, river; plazas buildable and plazas inert maps; production on",
+ "sections": [
+  {
+   "title": "E6-plazas: the generator's inert faces (D6: plazas and parks, 8–10 % of faces, none stranding a neighbour)",
+   "header": [
+    "seed",
+    "faces",
+    "plazas",
+    "share",
+    "plazas touching another plaza",
+    "plaza area (tiles)",
+    "lot edges that face a plaza"
+   ],
+   "rows": [
+    [
+     3,
+     382,
+     35,
+     "9.2 %",
+     15,
+     "881 [262–1883]",
+     175
+    ],
+    [
+     4,
+     373,
+     36,
+     "9.7 %",
+     13,
+     "746 [243–1566]",
+     170
+    ],
+    [
+     5,
+     349,
+     34,
+     "9.7 %",
+     10,
+     "842 [249–1894]",
+     168
+    ]
+   ]
+  },
+  {
+   "title": "E6-shape: spread on the plazas buildable and the plazas inert map (5 h total magazines)",
+   "header": [
+    "map",
+    "policy",
+    "total magazines"
+   ],
+   "rows": [
+    [
+     "plazas buildable",
+     "compact",
+     "7302 [6566–8310]"
+    ],
+    [
+     "plazas buildable",
+     "spike",
+     "17836 [17046–18331]"
+    ],
+    [
+     "plazas buildable",
+     "cheapest",
+     "10226 [9228–11311]"
+    ],
+    [
+     "plazas buildable",
+     "spike/compact",
+     "2.44×"
+    ],
+    [
+     "plazas buildable",
+     "compact/cheapest",
+     "0.71×"
+    ],
+    [
+     "plazas inert",
+     "compact",
+     "7119 [6329–7866]"
+    ],
+    [
+     "plazas inert",
+     "spike",
+     "17142 [16153–17863]"
+    ],
+    [
+     "plazas inert",
+     "cheapest",
+     "9029 [8346–9878]"
+    ],
+    [
+     "plazas inert",
+     "spike/compact",
+     "2.41×"
+    ],
+    [
+     "plazas inert",
+     "compact/cheapest",
+     "0.79×"
+    ]
+   ]
+  },
+  {
+   "title": "E6-river: river-hugging vs compact under each validator",
+   "header": [
+    "map",
+    "validator",
+    "policy",
+    "held",
+    "front/held",
+    "interior",
+    "total magazines",
+    "inert cells"
+   ],
+   "rows": [
+    [
+     "plazas buildable",
+     "none",
+     "compact",
+     "52 [52–52]",
+     "0.63 [0.62–0.65]",
+     "35 [35–36]",
+     "7302 [6566–8310]",
+     "0 [0–0]"
+    ],
+    [
+     "plazas buildable",
+     "none",
+     "river",
+     "52 [52–52]",
+     "0.63 [0.62–0.65]",
+     "35 [35–36]",
+     "7302 [6566–8310]",
+     "0 [0–0]"
+    ],
+    [
+     "plazas buildable",
+     "none",
+     "river vs compact ammo",
+     "",
+     "",
+     "",
+     "0 %",
+     ""
+    ],
+    [
+     "plazas inert",
+     "none",
+     "compact",
+     "52 [52–52]",
+     "0.51 [0.40–0.62]",
+     "39 [37–41]",
+     "7119 [6329–7866]",
+     "35 [34–36]"
+    ],
+    [
+     "plazas inert",
+     "none",
+     "river",
+     "38 [28–52]",
+     "1.55 [0.62–2.14]",
+     "13 [2–34]",
+     "14195 [11806–15514]",
+     "35 [34–36]"
+    ],
+    [
+     "plazas inert",
+     "none",
+     "river vs compact ammo",
+     "",
+     "",
+     "",
+     "99 %",
+     ""
+    ],
+    [
+     "plazas inert",
+     "inert-dark",
+     "compact",
+     "52 [52–52]",
+     "0.51 [0.40–0.62]",
+     "39 [37–41]",
+     "7119 [6329–7866]",
+     "35 [34–36]"
+    ],
+    [
+     "plazas inert",
+     "inert-dark",
+     "river",
+     "38 [28–52]",
+     "1.55 [0.62–2.14]",
+     "13 [2–34]",
+     "14195 [11806–15514]",
+     "35 [34–36]"
+    ],
+    [
+     "plazas inert",
+     "inert-dark",
+     "river vs compact ammo",
+     "",
+     "",
+     "",
+     "99 %",
+     ""
+    ]
+   ]
+  }
+ ],
+ "checks": [
+  {
+   "name": "§7 headline spike/compact on the plazas inert (canonical) map",
+   "pass": true,
+   "detail": "2.41× (expected 1.2–4×)"
+  },
+  {
+   "name": "§9/§17 inert walls on the graph: compact with the plazas inert vs every plaza buildable (ratio; the lattice's 9 % scatter gave 0.3–0.8, the city's 8–10 % plazas are measured here)",
+   "pass": true,
+   "detail": "0.97× (expected 0.5–1.1×)"
+  },
+  {
+   "name": "§25 item 2: inert-hugging (the sim's river policy) is no cheaper than compact on the plazas inert map",
+   "pass": true,
+   "detail": "0.99 (fraction more) (expected 0–1 (fraction more))"
+  }
+ ],
+ "data": {
+  "ratios": {
+   "open": {
+    "spikeCompact": 2.4426305842395024,
+    "compactCheapest": 0.7140077250281134,
+    "compactTotal": 7301.8
+   },
+   "scattered": {
+    "spikeCompact": 2.407919503310328,
+    "compactCheapest": 0.7884625323951359,
+    "compactTotal": 7119.133333333334
+   }
+  },
+  "riverGap": {
+   "open-none": 0,
+   "scattered-none": 0.9938897056757845,
+   "scattered-inert-dark": 0.9938897056757845
+  },
+  "wallRatio": 0.9749833374419093
+ },
+ "meta": {
+  "seeds": [
+   3,
+   4,
+   5
+  ],
+  "hours": 5,
+  "map": "river"
+ }
+}

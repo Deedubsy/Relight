@@ -68,6 +68,7 @@ export function stateProblem(v: unknown): string {
   if (!st.config || typeof st.config !== 'object') return 'no config';
   if (!Array.isArray(st.ring)) return 'no ring';
   if (!st.engineer || typeof st.engineer !== 'object') return 'no engineer';
+  if (st.city?.profile && st.city.profile !== 'riverside-v1') return `unsupported city profile ${st.city.profile}`;
   return '';
 }
 
