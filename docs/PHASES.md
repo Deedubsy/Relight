@@ -1,6 +1,6 @@
 # Relight — phases and revised exit criteria
 
-Version 2, 2026-09-06. **Phase 4 has just finished**, confirmed by the owner (D-EX-10). Phase 5 is incomplete. Selected later features have been brought forward through RI tasks; this does not complete their phases. PROGRESS.md alone orders execution; EXPLORATION_DEFENCE_PLAN.md defines the EX work.
+Version 2, 2026-09-06. **Phase 4 has just finished**, confirmed by the owner (D-EX-10). Phase 5 has not started (owner correction, D-EX-15). Selected later features have been brought forward through RI tasks; this does not complete their phases. PROGRESS.md alone orders execution; EXPLORATION_DEFENCE_PLAN.md defines the EX work.
 
 The [pre-revision phases](archive/pre-exploration-defence-2026-09-06/docs/PHASES.md) preserve original scope, timing estimates, milestones and historical gates. Completed Phase 0–4 reports remain evidence of their original game, not approval of Version 2. Earlier durations are not estimates for this revised scope.
 
@@ -26,7 +26,7 @@ Historical completed phase. Preserve the recorded changes and observations.
 
 ## Phase 5 — The factory, complete
 
-**Next incomplete phase.** Reuse existing physical production, recipes, accounting, commissioning, machine feedback and early transport. EX-04/06 build the new opening and network dependencies; EX-09 completes retained T13–18 obligations after the revised loop is played.
+**Not started.** The owner clarified this on 2026-09-07 (D-EX-15). EX-03–08 are the intervening design revision and representative-loop assessment; they do not open Phase 5. After that gate, EX-09 starts the revised factory phase and credits reusable work already delivered. Reuse existing physical production, recipes, accounting, commissioning, machine feedback and early transport. EX-04/06 build the new opening and network dependencies; EX-09 completes retained T13–18 obligations after the revised loop is played.
 
 Exit criteria: ordinary inventories/commands support the approved production chains; placement and reach feedback, undo/redo, drag building, hotbar/input consistency, belt routing, undergrounds, splitters/filters, storage, power/status/rates and construction assistance are delivered or explicitly mapped to their later scope. Multi-stop trams move selective outward and return freight without starving reserved downstream deliveries. Older specialised production contributes to later stations. No circular opening unlock.
 
@@ -76,7 +76,7 @@ Retain release gates, verified builds, support and update planning. Any publish,
 
 ## Immediate handoff
 
-EX-00 completes the documentation migration. EX-01 is the next runnable task: baseline and contract preparation, read-only. EX-02 records the owner's accepted opening contracts (D-EX-11); the technical baseline audit in EX-01 remains outstanding. Implementation still requires baseline/profile readiness and explicit task-level tuning. The user's confirmed Phase 4 milestone is the starting point, not an inferred percentage.
+Phase 4 remains complete and Phase 5 remains unstarted. EX-03/04 and the first freight subset are complete. PROGRESS.md owns the current defence task and subsequent network, discovery and human-loop gate. After that assessment, start Phase 5 with reconciled factory/tooling acceptance, crediting existing implementations without repeating them.
 
 ## Changelog
 

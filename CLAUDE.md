@@ -1,6 +1,6 @@
 # Relight — coding-agent working rules
 
-Current direction: exploration, tram expansion and intermittent base defence, adopted 2026-09-06 (D-EX-01–09). Phase 4 is complete; Phase 5 is incomplete, with selected later features brought forward. Do not resume the old RI task order automatically.
+Current direction: exploration, tram expansion and intermittent base defence, adopted 2026-09-06 (D-EX-01–09). Phase 4 is complete; Phase 5 has not started (owner correction, D-EX-15). The EX opening/defence work is an intervening design revision before Phase 5. Do not resume the old RI task order automatically.
 
 ## Read order
 

@@ -193,6 +193,8 @@ export type Command =
   | { type: 'chestPut'; item: string; n: number; x?: number; y?: number }
   // M6: the scene's remaining direct calls as commands, so a played session's log replays whole (hour.ts `replay`)
   | { type: 'feed'; x: number; y: number }          // E on a turret / Generator: magazines / coal from the pockets
+  | { type: 'repairDefence'; x: number; y: number }
+  | { type: 'upgradeRadio' }
   | { type: 'repair'; x: number; y: number }        // E on an eaten lamp: 1 Cu from the pockets
   | { type: 'rotate'; x: number; y: number }        // R on a machine
   | { type: 'setRecipe'; x: number; y: number; recipe: string }    // RI-01: T on an Assembler — one of flow.ts RECIPE_IDS

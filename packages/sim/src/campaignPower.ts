@@ -11,6 +11,7 @@ const cache = new WeakMap<FlowState, { key: string; grid: CampaignGrid }>();
 export function campaignGrid(st: SimState): CampaignGrid {
   const f = st.flow!, G = ground(st), n = st.blocks.length;
   const gens = f.machines.filter(m => m.kind === 'generator' && (m.inv.coal ?? 0) > 0);
+  const disabled=new Set(st.campaign?.defence?.bases.filter(b=>b.hp===0).map(b=>b.block));
   const key = `${f.rev}:${f.tick}:${gens.map(m => m.id).join(',')}:${st.campaign?.expansion?.radio.restoredAt ?? -1}`;
   const prior = cache.get(f); if (prior?.key === key) return prior.grid;
   const poles = f.machines.filter(m => m.kind === 'pole' || m.kind === 'bigpole');
@@ -22,17 +23,17 @@ export function campaignGrid(st: SimState): CampaignGrid {
   for (const m of f.machines) if (m.kind === 'substation') { const bi = blockOfTile(st, m.x, m.y); if (bi >= 0) subs[bi] = m; }
   for (let i = 0; i < poles.length; i++) {
     const a = poles[i], ax = a.x + a.size / 2, ay = a.y + a.size / 2;
-    for (let bi = 0; bi < n; bi++) { const s = subs[bi]; if (s && distToRect(ax, ay, s.x, s.y, s.size, s.size) <= reach(a)) union(n + i, bi); }
+    for (let bi = 0; bi < n; bi++) { const s = subs[bi]; if (!disabled.has(bi) && s && distToRect(ax, ay, s.x, s.y, s.size, s.size) <= reach(a)) union(n + i, bi); }
     for (let j = 0; j < i; j++) { const b = poles[j]; if (Math.hypot(ax - b.x - b.size / 2, ay - b.y - b.size / 2) <= Math.max(reach(a), reach(b))) union(n + i, n + j); }
   }
   const groups = new Map<number, Circuit>();
   const circuit = (bi: number): Circuit => { const id = root(bi); let c = groups.get(id); if (!c) { c = { supply: 0, demand: 0, load: 0, throttle: 0, generators: [] }; groups.set(id, c); } return c; };
   const blocks = st.blocks.map((_, bi) => circuit(bi));
-  for (const m of gens) { const bi = blockOfTile(st, m.x, m.y); if (bi >= 0) { blocks[bi].supply += GENERATOR_KW; blocks[bi].generators.push(m.id); } }
-  for (let bi = 0; bi < n; bi++) if (st.blocks[bi].state === HELD) blocks[bi].demand += CAMPAIGN_POWER.coreKw;
-  for (const m of f.machines) { const bi = blockOfTile(st, m.x, m.y); if (bi >= 0) blocks[bi].demand += MACHINE_KW[m.kind]; }
+  for (const m of gens) { const bi = blockOfTile(st, m.x, m.y); if (bi >= 0 && !disabled.has(bi)) { blocks[bi].supply += GENERATOR_KW; blocks[bi].generators.push(m.id); } }
+  for (let bi = 0; bi < n; bi++) if (st.blocks[bi].state === HELD && !disabled.has(bi)) blocks[bi].demand += CAMPAIGN_POWER.coreKw;
+  for (const m of f.machines) { const bi = blockOfTile(st, m.x, m.y); if (bi >= 0 && !disabled.has(bi)) blocks[bi].demand += MACHINE_KW[m.kind]; }
   const radio = st.campaign?.expansion?.radio;
-  if (radio && radio.restoredAt >= 0) blocks[radio.block].demand += CAMPAIGN_POWER.radioKw;
+  if (radio && radio.restoredAt >= 0 && !disabled.has(radio.block)) blocks[radio.block].demand += CAMPAIGN_POWER.radioKw;
   const grid: CampaignGrid = { blocks, generation: new Map(), supply: 0, demand: 0, load: 0 };
   for (const c of groups.values()) {
     c.load = Math.min(c.supply, c.demand); c.throttle = c.supply > 0 ? Math.min(1, c.supply / Math.max(1, c.demand)) : 0;

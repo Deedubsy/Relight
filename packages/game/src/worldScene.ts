@@ -37,6 +37,7 @@ import {
 } from '@relight/sim';
 import { Session, queue, record } from './session';
 import { View, debugView, hudInset } from './view';
+import { coreAt, defenceMax, defenceHp, defenceDescription, repairCheck } from '@relight/sim';
 import { campaignSiteAt, campaignSite, describeSite } from '@relight/sim';
 import { drawUrban } from './urbanDraw';
 
@@ -79,7 +80,7 @@ const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
 const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a, wire: 0xf0a86a, frame: 0xb4c6e8, board: 0x5fae6a };
 const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a,
   turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a,
-  chest: 0x4a4636, track: 0x3a3c44, tramstop: 0x3f4a5e, tram: 0xb0572a };   // RI-05: the supply chest and the rail kit (flat colours until the art pass)
+  wall: 0x858b91, chest: 0x4a4636, track: 0x3a3c44, tramstop: 0x3f4a5e, tram: 0xb0572a };   // RI-05: the supply chest and the rail kit (flat colours until the art pass)
 const LIGHT_COL = 0xffe9a0;
 /** M5 light map. GAME-ASSUMPTION: the unlit texel is a multiply of ~25 % with a cool cast (§4's "desaturated and
  *  darkened to ~25 %" — a multiply cannot desaturate, so the cast stands in for it until the Phase 12 art pass);
@@ -455,6 +456,7 @@ export class WorldScene extends Phaser.Scene {
     const st = this.st, h = this.hoverTile;
     if (!st.flow || !this.onFoot) return;
     const e = st.engineer;
+    if(h&&st.campaign){const core=coreAt(st,h.tx,h.ty),m=machineAt(st,h.tx,h.ty);if((core&&core.hp<300)||(m&&defenceMax(m)>0&&defenceHp(m)<defenceMax(m))){const why=repairCheck(st,h.tx,h.ty);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'repairDefence',x:h.tx,y:h.ty});this.hooks.onToast('Repair queued. Stay within reach; materials pay for this repair once.');}return;}}
     const site = h ? campaignSiteAt(st, h.tx, h.ty) : null;
     if (site) {
       const s = campaignSite(st, site)!; if (!this.reachable(s.x, s.y, s.size, true)) return;
@@ -681,6 +683,7 @@ export class WorldScene extends Phaser.Scene {
     if (bi >= 0) lines.push(this.blockLine(bi));
     const kc = st.flow ? cabinetAt(st, tx, ty) : -1;
     if (kc >= 0) lines.unshift(describeCabinet(st, kc));   // RI-06: a feeder cabinet under the cursor
+    const defenceInfo=defenceDescription(st,tx,ty);if(defenceInfo)lines.unshift(defenceInfo);
     const campaignInstallation = campaignSiteAt(st, tx, ty);
     if (campaignInstallation) lines.unshift(describeSite(st, campaignInstallation));
     else if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
@@ -901,6 +904,11 @@ export class WorldScene extends Phaser.Scene {
         let label = this.labels[li]; if (!label) { label = this.add.text(0, 0, '', { fontSize: '12px', color: '#f2d38b', backgroundColor: '#0b0e1aaa', padding: { x: 4, y: 2 } }).setDepth(5); this.labels.push(label); }
         label.setText(name).setPosition(site.x * TILE_PX, (site.y - 1) * TILE_PX).setScale(1 / cam.zoom).setVisible(true); li++;
       }
+    }
+    for(const core of st.campaign?.defence?.bases??[]) {
+      if(core.x<tx0||core.x>tx1||core.y<ty0||core.y>ty1)continue;
+      let label=this.labels[li];if(!label){label=this.add.text(0,0,'',{fontSize:'12px',color:'#f2d38b',backgroundColor:'#0b0e1aaa',padding:{x:4,y:2}}).setDepth(5);this.labels.push(label);}
+      label.setText(`CORE ${Math.ceil(core.hp)}/300${core.hp===0?' DISABLED / E repairs':''}`).setPosition(core.x*TILE_PX,(core.y+core.size)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
     }
     for (let k = li; k < this.labels.length; k++) this.labels[k].setVisible(false);
     if (!st.flow) {
@@ -1331,7 +1339,9 @@ export class WorldScene extends Phaser.Scene {
       // rim. The posts (lamp, pole) take a dark backing slab in their own case. GAME-ASSUMPTION: drawing only.
       const box = BOX_MACHINE.has(m.kind);
       if (box || m.kind === 'depot') { g.fillStyle(0x05070d, 0.5); g.fillRect(px + 5, py + 6, sz - 4, sz - 4); }
+      if(st.campaign&&defenceMax(m)>0){const hp=defenceHp(m);g.fillStyle(hp===0?0xd55b57:0x6bcc91,1);g.fillRect(px,py-5,sz*hp/defenceMax(m),3);if(hp===0){g.lineStyle(2,0xd55b57,1);g.lineBetween(px,py,px+sz,py+sz);g.lineBetween(px+sz,py,px,py+sz);}}
       switch (m.kind) {
+        case 'wall': { g.fillStyle(defenceHp(m)>0?MACHINE_COL.wall:0x423c3b,1);g.fillRect(px+2,py+2,sz-4,sz-4);g.lineStyle(2,0x292c32,1);g.lineBetween(px+2,cy,px+sz-2,cy);break; }
         case 'turret': {
           const rounds = m.inv.rounds ?? 0, frac = Math.min(1, rounds / TURRET_HOPPER);
           g.fillStyle(MACHINE_COL.turret, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);

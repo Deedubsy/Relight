@@ -1,3 +1,5 @@
+import { campaignWarning } from './campaignThreat';
+import { defenceMax, defenceHp, coreDisabledAt } from './campaignDefence';
 /** RI-02 — the current-goal line (D-GB-2 (a), constitution rule 8's form; plan §11.2 "prominent current goal with
  *  the reason it matters"). One line, read off the sim's own state every time it is asked: the next §11 constraint
  *  the player has not met, with the numbers that make it matter. No list, no screens, no quest state — the goal
@@ -35,7 +37,7 @@ export type GoalId =
   | 'hq-fell' | 'front' | 'mine' | 'craft' | 'coal-line' | 'gen-2' | 'steel-line' | 'copper-line' | 'shot-line' | 'steel-2' | 'gen-3'
   | 'claim-east' | 'contest-east' | 'retake-east' | 'claim-west' | 'contest-west' | 'retake-west' | 'rail-coal'
   | 'gen-4' | 'copper-2' | 'assembler-3' | 'claim-north' | 'contest-north' | 'retake-north' | 'hold';
-export type SupportId = 'down' | 'gen-dry' | 'kit' | 'feed' | 'brownout';
+export type SupportId = 'campaign-threat' | 'down' | 'gen-dry' | 'kit' | 'feed' | 'brownout';
 export type LegacyGoalId = Exclude<GoalId, 'home-factory' | 'home-explore'>;
 /** §11's row order: the goal ids a state can show, first to last. */
 export const GOAL_ORDER: readonly LegacyGoalId[] = [
@@ -244,11 +246,11 @@ export function currentGoal(st: SimState): Goal {
       const linked = ex.route.every(t => machineAt(st, t % st.flow!.tw, Math.floor(t / st.flow!.tw))?.kind === 'track')
         && ex.stops.every(([x,y]) => { const m = machineAt(st,x,y); return m?.kind === 'tramstop' && powered(st,m); })
         && !!st.flow?.machines.some(m => m.kind === 'tram' && tramRoute(st,m).includes(ex.route[0]));
-      if (!linked) return { goal: { id: 'home-explore', text: 'Lay the supplied tram route and power both stops', why: 'Blue survey squares mark track and stop positions. Collect any remaining kit at the station; place the tram on the completed line.' }, support: null };
+      if (!linked) return { goal: { id: 'home-explore', text: 'Lay the supplied tram route and power both stops', why: 'Blue survey squares mark track and stop positions. Collect any remaining kit at the station; place the tram on the completed line.' }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
     }
-    if (ex && (factory || ex.station.restoredAt >= 0)) return { goal: { id: 'home-explore', block: ex.station.block, text: ex.station.restoredAt < 0 ? `Explore to ${blockName(st, ex.station.block)} and restore its tram station` : ex.radio.restoredAt < 0 ? 'Connect the tram line and restore the nearby radio tower' : 'Build factories around your connected station', why: describeSite(st, ex.station.restoredAt < 0 ? 'station' : 'radio') }, support: null };
+    if (ex && (factory || ex.station.restoredAt >= 0)) return { goal: { id: 'home-explore', block: ex.station.block, text: ex.station.restoredAt < 0 ? `Explore to ${blockName(st, ex.station.block)} and restore its tram station` : ex.radio.restoredAt < 0 ? 'Connect the tram line and restore the nearby radio tower' : 'Build factories around your connected station', why: describeSite(st, ex.station.restoredAt < 0 ? 'station' : 'radio') }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
     return { goal: { id: factory ? 'home-explore' : 'home-factory', text: factory ? 'Explore beyond Home Court through its single entrance' : 'Build your first production line in Home Court',
-      why: factory ? 'Your house and factory remain here when you return.' : 'E at the house opens your supplies; B opens building. Steel and copper patches are inside the court.' }, support: null };
+      why: factory ? 'Your house and factory remain here when you return.' : 'E at the house opens your supplies; B opens building. Steel and copper patches are inside the court.' }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
   }
   return { goal: goalOf(st), support: supportOf(st) };
 }
@@ -259,11 +261,13 @@ export type MachineState = 'running' | 'starved' | 'blocked' | 'idle' | 'off';
 export interface MachineStatus { state: MachineState; reason: string }
 /** §11.2: a machine's working / starved / blocked state in one word, with the reason (never colour alone). */
 export function machineStatus(st: SimState, m: Machine): MachineStatus {
+  if(isCampaign(st)&&((defenceMax(m)>0&&defenceHp(m)<=0)||coreDisabledAt(st,m.x,m.y)))return {state:'off',reason:'disabled — repair the defence or base core'};
   const bi = blockOfTile(st, m.x, m.y), b = bi >= 0 ? st.blocks[bi] : null;
   const field = bi >= 0 && isFieldKind(m.kind) && fieldBlock(st, bi);   // RI-03: the field kit runs on the claim front
   if (!b || (!isCampaign(st) && b.state !== HELD && !field)) return { state: 'off', reason: 'block not Held' };
   if (MACHINE_KW[m.kind] > 0 && !powered(st, m)) return { state: 'off', reason: field ? 'no connected pole in reach' : 'no power' };
   switch (m.kind) {
+    case 'wall': return {state:'idle',reason:`${Math.ceil(defenceHp(m))} HP`};
     case 'turret': {
       if ((m.inv.rounds ?? 0) < 1) return { state: 'starved', reason: 'empty hopper' };
       return m.out > 0 || m.timer > 0 ? { state: 'running', reason: 'firing' } : { state: 'idle', reason: 'nothing in range' };

@@ -1,12 +1,13 @@
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
-  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS,
+  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, CAMPAIGN_KINDS as KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS,
   currentGoal, Goal, blockLabel, blockNameAt, edgeName, idxOf, activationCheck,
   machineAt, inReach, MACHINE_SIZE, projectList, describeProject, SUPPLY_CHEST_CAP, STOP_CAP, TRAM_CAP, TRAM_TPS, TRAM_DWELL_S, MACHINE_KW } from '@relight/sim';   // RI-05
 import { Session, setSpeed, queue, shareUrl, record, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
 import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
+import { radioUpgradeCheck, campaignWarning, defenceDescription, repairCheck, CAMPAIGN_THREAT } from '@relight/sim';
 import { campaignSite, describeSite, EXPANSION } from '@relight/sim';
 import { ITEMS, StationRules, freightInbound, isCampaign, rulesetOf, CAMPAIGN_RULESET, LEGACY_RULESET, campaignClock } from '@relight/sim';
 
@@ -92,7 +93,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const saveNote = el('span', 'hint', '');
   saveRow.append(btnSave, btnLoad, saveNote);
   header.append(saveRow);
-  header.append(el('p', 'hint', campaign ? 'Explore from Home Court to the tram station. Carry materials and build local power to restore it, collect its tram kit, then restore the radio tower. Attacks are not implemented yet.' : 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
+  header.append(el('p', 'hint', campaign ? 'Explore from Home Court to the tram station. Carry materials and build local power to restore it, collect its tram kit, then restore the radio tower. Build walls and supplied turrets. E repairs damaged defences; major assaults begin on Night 3, with lighter raids between.' : 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
   root.append(header);
   function saveGame(): void {
     try {
@@ -109,10 +110,16 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   if (hasSlot('1', rulesetOf(st))) saveNote.textContent = 'this campaign has a save';
 
   const campaignStatus = campaign ? el('p', 'hint') : null;
+  let radioUpgradeButton: HTMLButtonElement | null=null;
+  let defenceStatus: HTMLElement | null=null;
+  const coreButtons: {block:number;button:HTMLButtonElement}[]=[];
   const siteButtons: { id: 'station' | 'radio'; button: HTMLButtonElement }[] = [];
   if (campaignStatus) {
     const section = el('section'); section.append(el('h2', undefined, 'Station restoration'), campaignStatus);
     section.append(el('p', 'hint', `Station: ${EXPANSION.station.steel} steel + ${EXPANSION.station.copper} copper. Radio: ${EXPANSION.radio.steel} steel + ${EXPANSION.radio.copper} copper. Build and fuel a generator on the site or run poles to its substation. Commissioning registers this neighbourhood as a base. Its street boundaries are shown in the world and map views.`));
+    defenceStatus=el('p','hint');section.append(defenceStatus);
+    radioUpgradeButton=el('button',undefined,`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`);radioUpgradeButton.onclick=()=>queue(session,{type:'upgradeRadio'});section.append(radioUpgradeButton);
+    for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};coreButtons.push({block:base,button});section.append(button);}
     for (const id of ['station','radio'] as const) { const button = el('button', undefined, `Deliver and restore ${id}`); button.onclick = () => { const s = campaignSite(session.state, id); if (s && s.restoredAt >= 0 && id === 'station') queue(session,{type:'collectTramKit'}); else {queue(session,{type:'deliverSite',site:id});queue(session,{type:'restoreSite',site:id});} }; section.append(button);siteButtons.push({id,button}); }
     section.append(el('p', 'hint', 'After restoration, blue survey squares mark the suggested track and stop positions. They place nothing: collect the kit at the station, then lay and power the line yourself. The kit stays there if your pockets are full.'));
     root.append(section);
@@ -219,11 +226,12 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     { kind: 'tramstop', key: 'H', what: `2×2, ${MACHINE_KW.tramstop} kW, beside the track: an inserter (or E) loads its platform, a tram takes the platform and leaves its cargo as arrivals for an inserter to take (${STOP_CAP} each)` },
     { kind: 'tram', key: 'V', what: `one tile on the track: carries ${TRAM_CAP} items at ${TRAM_TPS} tiles/s between the stops on its line, ${TRAM_DWELL_S} s at each` },
   ];
+  if(campaign)BUILD.push({kind:'wall',key:'',what:'1 tile, 120 HP. Blocks creatures; disabled walls leave a breach. E repairs for carried materials.'});
   const buildCarried: { kind: BuildKind; v: HTMLElement; btn: HTMLButtonElement; lock: HTMLElement }[] = [];
   for (const b of BUILD) {
-    const li = el('li'), btn = el('button', undefined, `${b.key} · ${b.kind}`) as HTMLButtonElement;
+    const li = el('li'), btn = el('button', undefined, b.key ? `${b.key} · ${b.kind}` : b.kind) as HTMLButtonElement;
     const c = MACHINE_COST[b.kind];
-    btn.title = `Put a ${b.kind} in the hand (hotbar ${b.key})`;
+    btn.title = `Put a ${b.kind} in the hand${b.key ? ` (hotbar ${b.key})` : ''}`;
     btn.onclick = () => panelRef.onPick?.(b.kind);
     const carried = el('span', 'mono', ''), lock = el('span', 'hint', '');
     li.append(btn, el('span', 'hint', ` ${c.steel} steel${c.copper ? ` + ${c.copper} Cu` : ''} from the pockets · ${b.what} `), carried, lock);
@@ -434,6 +442,9 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     lastUpdate = nowMs;
     const s: SimState = session.state;
     updateGoal(s);
+    if(defenceStatus)defenceStatus.textContent=campaignWarning(s);
+    if(radioUpgradeButton){const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
+    for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;row.button.disabled=!core||!!repairCheck(s,core.x,core.y);if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
     if (campaignStatus) { const ex = s.campaign?.expansion; campaignStatus.textContent = ex ? `${blockNameAt(s, s.blocks[ex.station.block].x, s.blocks[ex.station.block].y)}: ${describeSite(s, 'station')} ${ex.station.restoredAt >= 0 ? describeSite(s, 'radio') : ''}` : ''; }
     for (const row of siteButtons) { const site = campaignSite(s, row.id); row.button.disabled = !site || !inReach(s, site.x, site.y, site.size) || (row.id === 'radio' && (campaignSite(s, 'station')?.restoredAt ?? -1) < 0); row.button.textContent = site && site.restoredAt >= 0 ? row.id === 'station' ? 'Collect tram kit' : 'Radio restored' : `Deliver and restore ${row.id}`; if (row.id === 'radio' && site && site.restoredAt >= 0) row.button.disabled = true; }
     const h = hud(s);

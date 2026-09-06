@@ -947,7 +947,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
         e.empty++;
       } else e.empty = 0;
     }
-    if (cfg.unfed !== 'none') {
+    if (!isCampaign(st) && cfg.unfed !== 'none') {
       for (let i = 0; i < B.length; i++) {
         const b = B[i];
         if (b.state !== HELD) continue;

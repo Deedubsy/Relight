@@ -2,7 +2,7 @@
 
 A 2D city-reclamation factory game: explore, restore useful places, connect station factories by tram, and defend a growing network of bases.
 
-**Phase 4 is complete.** The current documentation defines the revised direction adopted on 2026-09-06; most revised mechanics are not built. Individual later features exist, and the local branch differs from fetched main. Start with the handoff before coding.
+**Phase 4 is complete; Phase 5 has not started.** The current documentation defines the revised direction adopted on 2026-09-06; the revised opening and first defence slice are implemented, with network economy and discoveries still ahead. Individual later features exist, and the local branch differs from fetched main. Start with the handoff before coding.
 
 - [Programme state](docs/PROGRAMME_STATE.md) — actual checkout, reusable work and next task.
 - [Progress](docs/PROGRESS.md) — the only executable task list.
@@ -29,6 +29,6 @@ npm run freshness:check
 
 Use dependencies installed for the operating system running the commands. The currently present esbuild dependency is Linux-specific and cannot run the documentation tools under Windows; this is recorded in the migration report.
 
-To try the first home opening after starting the dev server, open `?rules=exploration-v2&view=world` or use the header link in the legacy game. This preview has a house, one entrance, starter resources and normal factory building. The second-area station now grants a tram kit, and a nearby radio can be restored. Attacks remain pending. Saves use separate campaign slots; old saves keep their legacy rules. See [the campaign report](docs/CAMPAIGN_OPENING_REPORT.md).
+To try the first home opening after starting the dev server, open `?rules=exploration-v2&view=world` or use the header link in the legacy game. This preview has a house, one entrance, starter resources and normal factory building. The second-area station now grants a tram kit, and a nearby radio can be restored. The first defence slice includes walls, paid repairs, recoverable cores, minor raids, planned major assaults and truthful radio warnings. Saves use separate campaign slots; old saves keep their legacy rules. See [the campaign report](docs/CAMPAIGN_OPENING_REPORT.md).
 
-The [station restoration report](docs/STATION_RESTORATION_REPORT.md) records the new opening reward, local power, save upgrades, checks and remaining defence work.
+The [station restoration report](docs/STATION_RESTORATION_REPORT.md) records the new opening reward, local power, save upgrades, checks and its original limitations. The [defence report](docs/CAMPAIGN_DEFENCE_REPORT.md) records the subsequent threat/repair implementation and current limits.

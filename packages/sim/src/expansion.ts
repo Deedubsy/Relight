@@ -3,6 +3,8 @@ import { SimState, HELD } from './types';
 import { ground, inReach, blockOfTile } from './ground';
 import { take, drop } from './engineer';
 import { isCampaign, CampaignSite } from './rules';
+import { registerBase } from './campaignDefence';
+import { campaignWarning, restorationWindow } from './campaignThreat';
 import { campaignThrottle } from './campaignPower';
 export const EXPANSION = { station: { steel: 30, copper: 15 }, radio: { steel: 20, copper: 10 } } as const;
 export type SiteId = 'station' | 'radio';
@@ -74,7 +76,7 @@ export function restoreSite(st:SimState,id:SiteId):string {
   const e=st.campaign!.expansion!,s=e[id];
   st.stats.spentSteel=(st.stats.spentSteel??0)+s.delivered.steel;st.stats.spentCopper=(st.stats.spentCopper??0)+s.delivered.copper;
   s.delivered={steel:0,copper:0};s.restoredAt=st.t;st.flow!.rev++;
-  if(id==='station') { const b=st.blocks[s.block];b.state=HELD;b.subOn=true;b.d=0;
+  if(id==='station') { const b=st.blocks[s.block];b.state=HELD;b.subOn=true;b.d=0;registerBase(st,s.block);
     if(e.grantedAt<0){e.grantedAt=st.t;e.reward={track:e.route.length,tramstop:2,tram:1};}
   }
   return '';
@@ -86,6 +88,6 @@ export function collectTramKit(st:SimState):number {
 export function describeSite(st:SimState,id:SiteId):string {
   const s=campaignSite(st,id);if(!s)return '';
   if(s.restoredAt>=0){if(id==='station'){const r=st.campaign!.expansion!.reward;return `Station restored. Transport unlocked. Kit remaining: ${r.tram} tram, ${r.tramstop} stops, ${r.track} track. E collects what fits.`;}
-    return campaignThrottle(st,s.block)>0?'Radio restored and powered. Attack warnings arrive with the defence system in a later increment.':'Radio restored but without power. Its warning service is offline.';}
-  return `${id==='station'?'Tram station':'Radio tower'}: ${s.delivered.steel}/${EXPANSION[id].steel} steel, ${s.delivered.copper}/${EXPANSION[id].copper} copper delivered. E delivers and restores when powered. ${siteCheck(st,id)}`;
+    return campaignThrottle(st,s.block)>0?`Radio powered. ${campaignWarning(st)}`:'Radio restored but without power. Its warning service is offline.';}
+  return `${id==='station'?'Tram station':'Radio tower'}: ${s.delivered.steel}/${EXPANSION[id].steel} steel, ${s.delivered.copper}/${EXPANSION[id].copper} copper delivered. E delivers and restores when powered. ${siteCheck(st,id)} ${id==='station'?restorationWindow(st):''}`;
 }

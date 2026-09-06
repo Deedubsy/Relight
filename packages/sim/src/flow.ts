@@ -33,6 +33,8 @@ import { segBetween, frontTiles, CitySeg } from './city';
 import { type StationRules, type FreightReservation, setStationRules, transferFreight } from './freight';
 import { campaignGrid, campaignThrottle } from './campaignPower';
 import { deliverSite, restoreSite, collectTramKit, campaignSiteAt } from './expansion';
+import { defenceMax, defenceHp, startRepair, coreDisabledAt } from './campaignDefence';
+import { upgradeRadio } from './campaignThreat';
 import { isCampaign } from './rules';
 
 export const TILE_TPS = 20;                    // constitution: fixed 20 ticks/s at tile level
@@ -43,8 +45,10 @@ export type Dir = 0 | 1 | 2 | 3;               // N E S W
 export const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 export const DIR_NAMES = ['north', 'east', 'south', 'west'];
 export type Kind = 'excavator' | 'belt' | 'inserter' | 'assembler' | 'depot' | 'turret' | 'lamp' | 'pole' | 'generator' | 'floodlight' | 'bigpole' | 'substation'
-  | 'chest' | 'track' | 'tramstop' | 'tram';   // RI-05: the supply chest (plan §4.2/§5.2) and the minimal transport kit (§13, the minimal part of T16)
+  | 'chest' | 'track' | 'tramstop' | 'tram' | 'wall';   // RI-05: the supply chest (plan §4.2/§5.2) and the minimal transport kit (§13, the minimal part of T16)
 export const KINDS: readonly Kind[] = ['excavator', 'belt', 'inserter', 'assembler', 'depot', 'turret', 'lamp', 'pole', 'generator', 'floodlight', 'bigpole', 'substation', 'chest', 'track', 'tramstop', 'tram'];
+/** Keep the legacy catalogue stable for its save/tools/tests; campaign-only additions are explicit. */
+export const CAMPAIGN_KINDS: readonly Kind[] = [...KINDS, 'wall'];
 /** Prompt B M3 (run name B-M3-unlocks): the Electricians' unlocks (§8, §13). GAME-ASSUMPTION: a group's unlocks land
  *  on the toolbar when its block turns Held and stay if the block later falls (§11: "the Electricians walk into the
  *  Depot"); the other groups' unlocks are not in the slice. */
@@ -58,7 +62,7 @@ export const PROJECT_UNLOCKS: Record<string, readonly Kind[]> = { 'rail-yard': R
 export const KIND_LABEL: Record<Kind, string> = {
   excavator: 'Excavator', belt: 'belt', inserter: 'inserter', assembler: 'Assembler', depot: 'Depot', turret: 'Gun turret', lamp: 'Lamp',
   pole: 'pole', generator: 'Generator', floodlight: 'Floodlight', bigpole: 'Big pole', substation: 'Substation',
-  chest: 'Supply chest', track: 'Track', tramstop: 'Tram stop', tram: 'Tram',
+  wall: 'Wall', chest: 'Supply chest', track: 'Track', tramstop: 'Tram stop', tram: 'Tram',
 };
 /** RI-03 (plan §4.2): the field kit — what may stand on a Dark or Contested block directly adjacent to Held ground
  *  before it is claimed: poles, the unlocked lights, turrets, belts, inserters, (RI-05) the supply chest and the
@@ -94,6 +98,7 @@ export function unlockedByProject(kind: Kind): string | null {
 /** Why a kind cannot be placed yet ('' when it can): the group that unlocks it has not joined, or (RI-05) the
  *  project that grants it is not restored — owning the reward, not the facility being operational now. */
 export function lockReason(st: SimState, kind: Kind): string {
+  if(kind==='wall')return isCampaign(st)?'':'walls belong to the exploration campaign';
   if (isCampaign(st)) {
     if (RAIL_ROUTE_KINDS.includes(kind)) return st.campaign?.expansion?.station.restoredAt === undefined || st.campaign.expansion.station.restoredAt < 0 ? 'restore the second-area tram station' : '';
     if (kind === 'substation') return '';
@@ -104,8 +109,8 @@ export function lockReason(st: SimState, kind: Kind): string {
   if (pid && projectOf(st, pid)?.stage !== 'restored') return `the ${pid === 'rail-yard' ? 'rail yard restoration' : pid} unlocks it`;
   return '';
 }
-export function unlockedKinds(st: SimState): Kind[] { return KINDS.filter(k => !lockReason(st, k)); }
-export function isKind(s: string): s is Kind { return (KINDS as readonly string[]).includes(s); }
+export function unlockedKinds(st: SimState): Kind[] { return (isCampaign(st)?CAMPAIGN_KINDS:KINDS).filter(k => !lockReason(st, k)); }
+export function isKind(s: string): s is Kind { return (CAMPAIGN_KINDS as readonly string[]).includes(s); }
 /** Flow directions (N E S W) to the block sim's edge directions (+x −x +y −y) and back. */
 export const SIM_DIR: readonly number[] = [3, 0, 2, 1], FLOW_DIR: readonly Dir[] = [1, 3, 2, 0];
 export const SIM_DIR_NAMES = ['east', 'west', 'south', 'north'];
@@ -160,7 +165,7 @@ export const ASM_INPUT_MULT = 4, ASM_OUTPUT_CAP = 5;
 /** GAME-ASSUMPTION: hand-mining takes one unit a second straight into the Depot; hand-crafting a magazine takes the
  *  recipe's 3 s and its 2 steel + 1 Cu from the stock (§11 hand-feeds the first turrets). */
 export const HAND_MINE_PER_S = 1;
-export const MACHINE_SIZE: Record<Kind, number> = { excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2, floodlight: 2, bigpole: 2, substation: SUBSTATION_TILES, chest: 2, track: 1, tramstop: 2, tram: 1 };
+export const MACHINE_SIZE: Record<Kind, number> = { excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2, floodlight: 2, bigpole: 2, substation: SUBSTATION_TILES, chest: 2, track: 1, tramstop: 2, tram: 1, wall: 1 };
 /** GAME-ASSUMPTION: machine costs in rubble (§13 gives none). The assembler costs what the block-level one does
  *  (§12: 20 Cu + 40 steel); the Excavator 10 steel; a belt tile 1 steel; an inserter 1 steel + 1 Cu; (M3) a Gun
  *  turret 15 steel + 5 Cu, a Lamp and a pole 1 steel + 1 Cu each, a Generator 30 steel + 10 Cu. Pick-up returns the machine itself
@@ -170,7 +175,7 @@ export const MACHINE_SIZE: Record<Kind, number> = { excavator: 3, belt: 1, inser
 export const MACHINE_COST: Record<Kind, { steel: number; copper: number }> = {
   excavator: { steel: 10, copper: 0 }, belt: { steel: 1, copper: 0 }, inserter: { steel: 1, copper: 1 },
   assembler: { steel: 40, copper: 20 }, depot: { steel: 0, copper: 0 },
-  turret: { steel: 15, copper: 5 }, lamp: { steel: 1, copper: 1 }, pole: { steel: 1, copper: 1 }, generator: { steel: 30, copper: 10 },
+  wall: { steel: 2, copper: 0 }, turret: { steel: 15, copper: 5 }, lamp: { steel: 1, copper: 1 }, pole: { steel: 1, copper: 1 }, generator: { steel: 30, copper: 10 },
   floodlight: { steel: 10, copper: 5 }, bigpole: { steel: 4, copper: 4 }, substation: { steel: 50, copper: 25 },
   // RI-05 GAME-ASSUMPTIONS (§13 prices none): a supply chest 10 steel; a Track tile 1 steel like a belt tile; a Tram
   // stop 10 steel; a Tram 20 steel + 5 Cu — copper, not steel, is the hour's short item when the reward is laid (the
@@ -179,7 +184,7 @@ export const MACHINE_COST: Record<Kind, { steel: number; copper: number }> = {
 };
 /** §13 power draw (kW). A machine with a draw runs only on a powered cell (M3); belts, turrets, poles and Generators
  *  draw nothing. GAME-ASSUMPTION: a placed machine draws its rated kW whether busy or idle (§13 has no idle draw). */
-export const MACHINE_KW: Record<Kind, number> = { excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: 0, lamp: LAMP_KW, pole: 0, generator: 0, floodlight: FLOODLIGHT_KW, bigpole: 0, substation: 0, chest: 0, track: 0, tramstop: 20, tram: 0 };
+export const MACHINE_KW: Record<Kind, number> = { excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: 0, lamp: LAMP_KW, pole: 0, generator: 0, floodlight: FLOODLIGHT_KW, bigpole: 0, substation: 0, chest: 0, track: 0, tramstop: 20, tram: 0, wall: 0 };
 /** GAME-ASSUMPTION: a Generator holds 50 coal (the §11 start's 40 fit); a turret's muzzle flash lasts half a second. */
 export const GENERATOR_COAL_CAP = 50, TURRET_FLASH_S = 0.5;
 /** RI-05, the minimal transport route (§13's rows): a Tram carries 200 items at 8 tiles/s between the stops on its
@@ -209,6 +214,8 @@ export interface Machine {
   recipe?: RecipeId;
   /** Turret (RI-02): seconds until it may fire again (threat.ts); in the state so a load keeps it. Absent = ready. */
   cool?: number;
+  /** Campaign-only recoverable wall/turret damage. */
+  hp?: number;
   /** RI-05. Tram: its load. Tram stop: the arrivals (what a tram unloaded; inserters and hands take from here),
    *  while `inv` is the platform (what boards the next tram). Supply chest: `inv` is the contents. */
   cargo?: Record<string, number>;
@@ -588,7 +595,7 @@ export function throttle(st: SimState): number {
 function running(st: SimState, m: Machine): boolean {
   const bi = blockIdxOf(st, m);
   if (bi < 0) return false;
-  if (isCampaign(st)) return powered(st, m);
+  if (isCampaign(st)) return !(defenceMax(m)>0&&defenceHp(m)<=0) && !coreDisabledAt(st,m.x,m.y) && powered(st, m);
   if (st.blocks[bi].state === HELD) return powered(st, m);
   return isFieldKind(m.kind) && fieldBlock(st, bi) && powered(st, m);
 }
@@ -1176,7 +1183,7 @@ export function placeable(st: SimState, kind: Kind, tx: number, ty: number): str
     if (campaignSiteAt(st, x, y) === 'radio') return 'the radio installation is there';
     if (f.occ[t] !== undefined) return 'another machine is there';
     if (cabinetAt(st, x, y) >= 0) return 'the feeder cabinet is there';   // RI-06
-    if (margin && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && kind !== 'chest' && kind !== 'track' && kind !== 'tramstop' && !post) return 'not on the street';
+    if (margin && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && kind !== 'chest' && kind !== 'track' && kind !== 'tramstop' && kind !== 'wall' && !post) return 'not on the street';
     if (!margin && kind === 'track') return 'track runs on streets';   // RI-05, §13: Track — streets only
     // prompt B M3: a craftable Substation goes on a face that has none (§7: the outskirts), on the lot, one a face
     if (kind === 'substation' && faceSub(st, bi)) return 'the face has a substation';
@@ -1246,6 +1253,8 @@ export interface PickUpCheck { ok: boolean; reason: string; m: Machine | null; s
 export function canPickUp(st: SimState, tx: number, ty: number): PickUpCheck {
   const m = st.flow ? (tramAt(st, tx, ty) ?? machineAt(st, tx, ty)) : null;   // RI-05: the tram before the track under it
   if (!m) return { ok: false, reason: 'nothing there', m: null, stacks: 0, items: {} };
+  if(isCampaign(st)&&defenceMax(m)>0&&defenceHp(m)<defenceMax(m))return {ok:false,reason:'repair this defence before packing it',m,stacks:0,items:{}};
+  if(st.campaign?.defence?.repair?.kind==='machine'&&st.campaign.defence.repair.id===m.id)return {ok:false,reason:'finish its repair first',m,stacks:0,items:{}};
   if (m.kind === 'depot') return { ok: false, reason: 'the Depot stays', m, stacks: 0, items: {} };
   if (m.kind === 'track' && tramAt(st, tx, ty)) return { ok: false, reason: 'a tram stands on it', m, stacks: 0, items: {} };
   const items = pickUpItems(m), e = st.engineer;
@@ -1365,6 +1374,7 @@ function plural(item: Item, n: number): string { return n === 1 || item === 'wir
 export function describeMachine(st: SimState, m: Machine): string {
   const on = stopReason(st, m);
   switch (m.kind) {
+    case 'wall': return `Wall · ${Math.ceil(defenceHp(m))}/${defenceMax(m)} HP · E repairs damage`;
     case 'turret': {
       const id = turretEdge(st, m), b = blockOf(st, m);
       const side = id < 0 ? '' : streetName(st, m, id);
@@ -2092,6 +2102,8 @@ handHook.current = (st, c) => {
     case 'pickUp': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) remove(st, c.x, c.y); break; }
     // M6: the scene's E / R as commands (the scene checks reach before it calls; the command form checks it here)
     case 'feed': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) handFeed(st, c.x, c.y); break; }
+    case 'repairDefence': startRepair(st,c.x,c.y); break;
+    case 'upgradeRadio': upgradeRadio(st); break;
     case 'repair': if (inReach(st, c.x, c.y, 1)) repairLight(st, c.x, c.y); break;   // a street light is a tile, not a machine
     case 'rotate': { const m = machineAt(st, c.x, c.y); if (m && inReach(st, m.x, m.y, m.size)) rotate(st, c.x, c.y); break; }
     // RI-01: the scene's T on an Assembler as a command (within reach, a known recipe)
@@ -2143,6 +2155,7 @@ export function renderLot(st: SimState, bx = st.start[0], by = st.start[1]): str
     let ch: string;
     switch (m.kind) {
       case 'depot': ch = 'D'; break;
+      case 'wall': ch = defenceHp(m)>0?'W':'w'; break;
       case 'turret': ch = (m.inv.rounds ?? 0) > 0 ? 'T' : 't'; break;
       case 'generator': ch = m.busy ? 'G' : 'g'; break;
       case 'excavator': ch = running(st, m) ? 'X' : 'x'; break;

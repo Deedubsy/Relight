@@ -40,3 +40,5 @@ export * from './campaign';
 
 export * from './expansion';
 export * from './campaignPower';
+export * from './campaignDefence';
+export * from './campaignThreat';

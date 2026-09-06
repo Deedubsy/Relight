@@ -268,7 +268,7 @@ export function engineerCommand(st: SimState, c: Command): void {
     case 'deliverSite': case 'restoreSite': case 'collectTramKit':
     case 'deliver': case 'activate': case 'commission':   // RI-03: the commissioning commands are hand commands too; RI-05: a project's too
     case 'setStationRules':
-    case 'repairCabinet': case 'abort': handHook.current?.(st, c); break;   // RI-06: the Heart's feeder repair and the explicit abort
+    case 'repairDefence': case 'upgradeRadio': case 'repairCabinet': case 'abort': handHook.current?.(st, c); break;   // RI-06: the Heart's feeder repair and the explicit abort
   }
 }
 

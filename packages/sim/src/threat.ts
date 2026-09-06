@@ -22,6 +22,8 @@
  *  (`crawlerTarget`), a shade leaves a trace of the tiles it crossed (`trail`, `shadeTraces`) so its approach can
  *  be read off unlit ground without being lit; the Stalker (stalker.ts) rides this tick when `enableStalkers` has put
  *  its candidate on the state (`stalk`), and the turrets and the rifle treat it as one more body. */
+import { isCampaign } from './rules';
+import { tickCampaignThreat, describeCampaignCrawler } from './campaignThreat';
 import { SimState, Engineer, HELD } from './types';
 import { TURRET } from './constants';
 import { edgeFrom, edgeTo } from './graph';
@@ -58,6 +60,7 @@ export interface Crawler {
   stuck: number;             // seconds without progress
   /** RI-04: the emergence point it was born at (emergence.ts id; absent on a body placed by hand or before RI-04). */
   origin?: number;
+  campaign?: { layer: 'site' | 'minor' | 'major'; group: number; origin: number; waypoint?: number };
   /** RI-06: the Heart packet this body belongs to (`${attempt}:${threshold}`); such a body has no ring edge (`edge` -1). */
   packet?: string;
   /** RI-04: unit direction of its last move, for the world view's heading tick. */
@@ -224,6 +227,7 @@ const isCrawlerHeld = (st: SimState, c: Crawler): boolean =>
 function tick(st: SimState, dt: number): void {
   if (!threatActive(st)) return;
   const f = st.flow!, T = threatOf(f), G = ground(st), tw = G.tw, e = st.engineer;
+  if (isCampaign(st)) { tickCampaignThreat(st,T,dt); tickWeapons(st,dt); return; }
   const cs = T.crawlers;
   // crawlers whose block already fell (or was lost) have nothing left to walk to
   let w = 0;
@@ -281,6 +285,10 @@ function tick(st: SimState, dt: number): void {
   }
   T.dangerS += danger ? dt : 0;
   if (T.stalk) tickStalkers(st, T, dt, CONTACT_R);   // RI-04: the Stalker candidate, when a state carries it
+  tickWeapons(st,dt);
+}
+function tickWeapons(st:SimState,dt:number):void {
+  const f=st.flow!,T=threatOf(f),G=ground(st),tw=G.tw,e=st.engineer,engUp=e.down<0;
   // the turrets: 5 rounds/s each at the nearest crawler within 9 tiles, shades only where the tile is lit
   for (const m of f.machines) {
     if (m.kind !== 'turret') continue;
@@ -471,8 +479,16 @@ export function crawlerAt(st: SimState, x: number, y: number, r = 0.8): Crawler 
 }
 /** RI-04: a crawler's current target as a tile — the engineer once it has turned, else the nearest footprint tile
  *  of its chain link on the block it walks into — and the word for it. */
-export function crawlerTarget(st: SimState, c: Crawler): { tx: number; ty: number; what: 'you' | 'lamp' | 'turret' | 'substation' | 'cabinet' } | null {
+export function crawlerTarget(st: SimState, c: Crawler): { tx: number; ty: number; what: 'you' | 'lamp' | 'turret' | 'substation' | 'cabinet' | 'ruin' | 'base core' | 'exit' } | null {
   if (c.onPlayer) { const e = st.engineer; return { tx: Math.floor(e.x), ty: Math.floor(e.y), what: 'you' }; }
+  if (c.campaign) {
+    const d = st.campaign?.defence, b = d?.bases.find(b => b.block === c.to), meta = c.campaign;
+    const attack = meta.layer === 'major' ? d?.major : d?.minor;
+    if (meta.layer === 'site' || !attack || attack.retreat || b?.hp === 0) {
+      return { tx: meta.origin % ground(st).tw, ty: Math.floor(meta.origin / ground(st).tw), what: meta.layer === 'site' ? 'ruin' : 'exit' };
+    }
+    return b ? { tx: b.x, ty: b.y, what: 'base core' } : null;
+  }
   if (!threatActive(st)) return null;
   const tw = ground(st).tw, { tiles, cls } = targetsOf(st, c.to, c.cls);
   const t = tiles.length ? nearestTarget(tiles, tw, c.x, c.y) : -1;
@@ -480,6 +496,7 @@ export function crawlerTarget(st: SimState, c: Crawler): { tx: number; ty: numbe
   return { tx: t % tw, ty: Math.floor(t / tw), what: cls === 0 ? 'lamp' : cls === 1 ? 'turret' : cabinetAt(st, t % tw, Math.floor(t / tw)) >= 0 ? 'cabinet' : 'substation' };   // RI-06: a feeder cabinet
 }
 export function describeCrawler(st: SimState, c: Crawler): string {
+  if(c.campaign)return describeCampaignCrawler(st,c);
   const b = st.blocks[c.to], tg = crawlerTarget(st, c);
   const goal = c.onPlayer ? 'turned on you' : c.cls === 0 ? 'toward the nearest lit lamp' : c.cls === 1 ? 'toward a turret' : tg?.what === 'cabinet' ? 'toward a feeder cabinet' : 'toward the substation';
   // RI-04: heading, the target's tile and the emergence point it came from (plan §7: "direction and current target are inspectable")
