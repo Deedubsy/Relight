@@ -12,6 +12,7 @@ import { Experiment, ExperimentResult, Section, Check, isTrue } from '../util';
 import {
   LoggedCommand, createHourBot, runHour, hourReport, replay, mmss, HOUR_CLAIM_AT, HOUR_S, TILE_TPS, conservation, Ledger, stateHash,
   projectOf, RAIL_YARD_PROJECT, ProjectRecord, enableHeart, heartOf, describeHeart, blockName, threatOf, SimEvent, SimState, HELD,
+  DEFAULT_CONFIG, protoCalibrated, createState, citySpec, ensureFlow, configHash,
 } from '@relight/sim';
 import { hourCity } from './ehour';
 import { goalReplay, GoalReplay } from '../goalcheck';
@@ -24,8 +25,13 @@ const MIN = HOUR_S / 60;
 const n1 = (x: number) => x.toFixed(1);
 const chest = (x: { steel: number; copper: number; coal: number; magazines: number } | undefined) => x ? `${x.steel}/${x.copper}/${x.coal}/${x.magazines}` : '-';
 const rec = (r: ProjectRecord | undefined) => r ? `${r.stage} · attempt ${r.activationAttemptId} · reward ${r.rewardId ?? '-'} @ ${mmss(r.rewardAt)}` : '(no record)';
-/** The Heart's city: E-hour's with the candidate layer on. */
-function heartCity(seed: number): SimState { const st = hourCity(seed); enableHeart(st); return st; }
+/** The candidate uses paid claims, as the game does; E-hour keeps its benchmark configuration. */
+function heartCity(seed: number): SimState {
+  const cfg = protoCalibrated({ ...DEFAULT_CONFIG, walk: true, economy: true });
+  Object.assign(cfg, { power: true, supply: 'generators', draw: 'half' });
+  const st = createState(citySpec(seed, 'river', cfg), cfg, seed);
+  ensureFlow(st); enableHeart(st); return st;
+}
 
 export const EHEART: Experiment = {
   id: 'E-heart', title: 'RI-06 (cand-heart): the Junction Heart — the rail yard\'s claim as the first boss: two feeder cabinets, a 90 s commissioning, three reinforcement packets, the hour bot rifle off (candidate layer beside the benchmark)',
@@ -38,7 +44,7 @@ export const EHEART: Experiment = {
     const replaySame: boolean[] = [], saveSame: boolean[] = [], conserved: boolean[] = [], hqHeld: boolean[] = [], falls: number[] = [], refusals: string[] = [], preserved: boolean[] = [];
     const goalRuns: GoalReplay[] = [], ledgers: Record<string, Ledger> = {};
     for (const seed of seeds) {
-      const st = hourCity(seed), H0 = enableHeart(st);
+      const st = heartCity(seed), H0 = heartOf(st);
       if (!H0) { ends.push([seed, 'no Heart: the yard has fewer than two Dark neighbours', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']); destroyed.push(false); continue; }
       const bot = createHourBot(false, 'chest', HOUR_CLAIM_AT.north, 'physical', 'belt', true), log: LoggedCommand[] = [];
       ctx.log(`E-heart seed ${seed}: the Heart's hour`);
@@ -63,12 +69,13 @@ export const EHEART: Experiment = {
       // the logged hour replayed on a fresh city with the layer: the same hash; the heart and project events counted every tick
       ctx.log(`E-heart seed ${seed}: the replay`);
       const re = heartCity(seed);
-      let starts = 0, destroyedN = 0, restoredN = 0, packetN = 0; const seen = new Set<string>(); let dup = 0;
+      let starts = 0, destroyedN = 0, restoredN = 0, packetN = 0, activeAttempt = -1;
+      let matchedAttempts = true; const seen = new Set<string>(); let dup = 0;
       replay(re, log, f.tick, { every: s => {
         for (const ev of s.events as SimEvent[]) {
           if (ev.type === 'heart') {
-            if (ev.what === 'start') starts++;
-            else if (ev.what === 'destroyed') destroyedN++;
+            if (ev.what === 'start') { starts++; activeAttempt = ev.attempt; }
+            else if (ev.what === 'destroyed') { destroyedN++; matchedAttempts &&= ev.attempt === activeAttempt; }
             else if (ev.what === 'packet') { packetN++; const key = `${ev.attempt}:${ev.threshold}`; if (seen.has(key)) dup++; seen.add(key); }
           } else if (ev.type === 'project' && ev.id === RAIL_YARD_PROJECT && ev.stage === 'restored') restoredN++;
         }
@@ -76,7 +83,7 @@ export const EHEART: Experiment = {
       const hPlayed = stateHash(st), hReplay = stateHash(re), Hr = heartOf(re)!;
       const same = hPlayed === hReplay && JSON.stringify(Hr) === JSON.stringify(H);
       replaySame.push(same);
-      const once = destroyedN === 1 && restoredN === 1 && dup === 0 && starts === H.stats.attempts && packetN === keys.length;
+      const once = destroyedN === 1 && restoredN === 1 && dup === 0 && starts === H.stats.attempts && packetN === keys.length && matchedAttempts;
       packetsOnce[packetsOnce.length - 1] = packetsOnce[packetsOnce.length - 1] && once;
       replays.push([seed, hPlayed, hReplay, hPlayed === hReplay ? 'yes' : 'NO', same ? 'yes' : 'NO', starts, packetN, dup, destroyedN, restoredN, once ? 'yes' : 'NO']);
       // the save inside / after the encounter reloaded and replayed to the end (goalcheck.ts)
@@ -95,7 +102,8 @@ export const EHEART: Experiment = {
       const rb = hourReport(sb, bb), lb = rb.stock[rb.stock.length - 1];
       for (const [name, rr, ll] of [['cand-heart', r, last], ['benchmark', rb, lb]] as const)
         beside.push([seed, name, mmss(rr.marks['claim-west']), mmss(rr.marks['held-west']), mmss(rr.marks['west-line']), mmss(rr.railArrival < 0 ? undefined : rr.railArrival), mmss(rr.marks['first-brownout']), rr.brownoutS.toFixed(0), `${rr.steelMin} @ ${mmss(rr.steelMinAt)}`, rr.copperMin, rr.coalMin, chest(ll), rr.held, rr.fell, rr.refused.length]);
-      data[`report-${seed}`] = { heart: r, benchmark: rb, heartState: H };
+      data[`report-${seed}`] = { heart: r, benchmark: rb, heartState: H,
+        candidateConfig: st.config, candidateConfigHash: configHash(st.config), benchmarkConfigHash: configHash(sb.config), matchedAttempts };
     }
     const all = (xs: boolean[]) => xs.length > 0 && xs.every(Boolean), count = (xs: boolean[]) => `${xs.filter(Boolean).length}/${xs.length} seeds`;
     sections.push({ title: 'E-heart-timeline: the encounter\'s moments (mm:ss) — the hour bot on the physical claim path, the candidate layer on, rifle off, river city',
@@ -124,6 +132,6 @@ export const EHEART: Experiment = {
     checks.push(isTrue('the bot\'s Heart step is refused nowhere (every placement, delivery, repair and Start went through)', refusals.length === 0, refusals.join(' | ') || 'no refusals'));
     data.goalRuns = goalRuns.map(g => ({ seed: g.seed, wrong: g.wrong, problems: g.problems, shown: g.shown }));
     return { id: 'E-heart', title: EHEART.title, pyNames: [], docRefs: ['§9 (plan)', '§28.8', '§13', '§14'],
-      setup: `river city, seeds ${seeds.join('/')}, the candidate Heart layer (candidates.ts, outside SimConfig), the hour bot on the physical claim path, rifle off, ${MIN} min; the replay, the ${SAVE_AT_S / 60}:00 save, the ledger; E-hour's benchmark beside it`, sections, checks, data };
+      setup: `river city, seeds ${seeds.join('/')}, the candidate Heart layer (candidates.ts) with economy=true so claims are paid; the hour bot on the physical claim path, hand-mining copper shortfalls and carrying patrol supplies, rifle off, ${MIN} min; the replay, the ${SAVE_AT_S / 60}:00 save, the ledger; E-hour's unchanged economy=false benchmark beside it; both configuration hashes in each seed's data`, sections, checks, data };
   },
 };

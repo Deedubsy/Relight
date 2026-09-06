@@ -850,11 +850,13 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       const byCopper = mc.copper > 0 ? st.stock.copper / mc.copper * 10 : Infinity;
       made = Math.max(0, Math.min(made, bySteel, byCopper));
     }
-    let avail = st.buffer + made;
-    st.buffer = 0;
     const ring = st.ring, startIdx = idxOf(st, st.start[0], st.start[1]);
     const th = tiles(st);
     if (th) th.syncEdges(st);   // M3: edges with physical turrets read their hoppers from the turrets
+    // Synchronising can return a newly covered stand-in hopper to the buffer.
+    // Include those rounds before distributing it, or the final assignment loses them.
+    let avail = st.buffer + made;
+    st.buffer = 0;
     for (let r = 0; r < ring.length; r++) {
       const e = ring[r];
       if (e.turrets) continue;   // M3: fed by inserters and hands, not by the ring

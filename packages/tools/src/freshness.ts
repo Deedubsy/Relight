@@ -61,7 +61,7 @@ function isAncestor(sha: string): boolean {
 }
 
 const rows: Row[] = files.map(({ file, kind }) => {
-  const archive = ARCHIVES.some(a => file.startsWith(a + '/'));
+  const archive = ARCHIVES.some(a => file.replace(/\\/g, '/').startsWith(a + '/'));
   const { stamp, problem } = readStamp(file, kind);
   const row: Row = { file, kind, archive, stamp, problems: problem ? [problem] : [] };
   if (!stamp) return row;

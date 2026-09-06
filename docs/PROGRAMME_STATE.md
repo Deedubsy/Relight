@@ -6,16 +6,24 @@ now. The per-milestone history lives in the phase reports (`PHASE_0_REPORT.md` �
 `archive/pre-phase-5-cleanup/PROGRAMME_STATE-2026-09-05.md`. Rules: `CONSTITUTION.md`.
 Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 
-## Now (2026-09-05, after RI-06 wrote the Junction Heart — code only, unverified)
+## Now (2026-09-06, city rebuild integrated; Heart validation repaired)
 
-- **RI-06's code is written and NOT verified.** On the user's instruction ("don't worry
-  about running tests or simulations, just write the code") RI-06 ran no test, experiment,
-  snapshot or browser check: `tsc` and eslint green is all. `E-heart` (15th experiment)
-  and `heart.test.ts` (six tests) exist unrun; `docs/EXPERIMENTS.md` and the `CLAUDE.md`
-  counters still describe RI-05's runs. The next verification pass runs `npm test`,
-  `npm run experiments`, `snapshot:check`, `freshness:check` and a browser check with
-  `?heart=1`, and fixes what they find before RI-06's evidence is claimed.
-- **The revised development plan is in execution: RI-00 … RI-06 are done (RI-06 unverified).**
+- **RI-02A city geometry and presentation are in the normal new game**, profile
+  `riverside-v1`, reference seed 3. The existing street graph carries deterministic
+  urban structures, open factory yards, named local landmarks and a rail reservation.
+  Save files without a profile retain legacy geometry. See `CITY_REBUILD_REPORT.md`
+  for the inspected captures, four-seed checks and explicit limits. Recognisability
+  is AI-reviewed; a cold-player check and reference-machine performance remain open.
+- **RI-06's validation failures are repaired.** All six Heart tests and all 15
+  experiments pass, including E-heart 10/10, E-hour 19/19 and E-project 10/10.
+  Snapshot reproducibility, build, lint, docsync and freshness pass. The 156-test
+  suite passes sequentially; the standard command now isolates its workers so the
+  existing 100 ms geometry check does not compete with other tests. Cabinet project
+  state, preparation stock, patrol supplies, event observation and returned ammunition
+  are corrected. Costs and encounter timings are unchanged. The Windows archive-path
+  check is repaired without changing historical evidence. See `RI_PASS_1_REPORT.md`
+  "RI-06 validation fixes" and `evidence/heart-fix/` for the baseline and final results.
+- **The revised development plan is in execution: RI-00 … RI-06 are done (automated evidence recorded).**
   Daniel authorised the plan with "Whole plan" (D-RI-1); it is
   `REVISED_DEVELOPMENT_PLAN.md`, verbatim, and its tasks RI-00 … RI-13 are in
   `PROGRESS.md`. RI-01 built the real opening economy (`RI_PASS_1_REPORT.md` "RI-01"):
@@ -72,9 +80,8 @@ Tasks: `PROGRESS.md`. Decisions: `DECISIONS.md`.
 - **Next task: RI-07 — integrate the opening candidate** (plan §11.1; T12c feeds it): one
   opening profile with real resources and commands in a candidate configuration separate
   from the 75-minute benchmark; automation → route choice → small enclosure → rail
-  project → reward as one sequence. **Ready** in list order (blocked by RI-06, done —
-  unverified; a red `E-heart` or `heart.test.ts` in the verification pass is a check red
-  for a reason inside RI-06 and is fixed there first). Branch `ri-pass-1` on top of
+  project → reward as one sequence. **Ready** in list order after the RI-06 repairs;
+  it was not implemented by the validation pass. Branch `ri-pass-1` on top of
   `phase-4`. The order after it: RI-08 (whose played session is **T19**, human) → RI-09
   (T13 → T17, T18) → RI-10 → RI-11 → RI-12 → RI-13; T12b and T12c are runnable behind
   RI-06 in list order.

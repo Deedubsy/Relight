@@ -6,8 +6,8 @@
 import Phaser from 'phaser';
 import {
   SimState, SimEvent, DARK, CONTESTED, HELD, INERT, VOID, idxOf, isCandidate, rotOf, rotTier, frontList, FrontEdgeView,
-  claimInfo, heldInfo, nearestHeld, facilityList, survivorList, isInterior, poolMax, generateCity, CityGeom, CityPreset,
-  STREET, WATER, segKey, activationCheck, claimNeed, blockNameAt,
+  claimInfo, heldInfo, nearestHeld, facilityList, survivorList, isInterior, poolMax, CityGeom,
+  STREET, WATER, segKey, activationCheck, claimNeed, blockNameAt, ground, cityGeomOf,
 } from '@relight/sim';
 import { Session, queue } from './session';
 import { SceneHooks, MapView, C } from './mapScene';
@@ -60,7 +60,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
   create(): void {
     const st = this.session.state;
     this.cameras.main.setBackgroundColor(C.bg);
-    this.geom = generateCity(st.city!.seed, st.city!.preset as CityPreset);
+    this.geom = cityGeomOf(st);
     const g = this.geom;
     this.tex = (this.textures.exists('city-ground') ? this.textures.get('city-ground') : this.textures.createCanvas('city-ground', 8, 8)) as Phaser.Textures.CanvasTexture;
     this.groundImg = this.add.image(PAD, PAD, 'city-ground').setOrigin(0);
@@ -257,6 +257,14 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     }
     void g;
     this.tex.context.putImageData(this.img, 0, 0);
+    const urban = ground(st).urban;
+    if (urban) {
+      const ctx = this.tex.context;
+      for (const s of urban.structures) {
+        ctx.fillStyle = st.blocks[s.block].state === HELD ? '#b8a886' : '#586a72';
+        ctx.fillRect(s.x * this.ppt, s.y * this.ppt, Math.max(1, s.w * this.ppt), Math.max(1, s.h * this.ppt));
+      }
+    }
     this.tex.refresh();
   }
 

@@ -265,6 +265,7 @@ export function heartBodies(st: SimState): number {
 }
 function complete(st: SimState, H: HeartState): void {
   const b = st.blocks[H.site];
+  const attempt = H.attempt;
   H.destroyed = true; H.destroyedAt = st.t; H.attempt = -1; H.pending = []; H.progress = H.cand.productiveS; H.stall = 0;
   // the cabinets' materials are spent now — once (ledger: committed → spent)
   for (const c of H.cabinets) {
@@ -274,7 +275,7 @@ function complete(st: SimState, H: HeartState): void {
     c.down = false;
   }
   b.contestUntil = st.t;   // the block sim's next step turns it Held: the project restores and the reward is granted there, once (RI-05)
-  st.events.push({ type: 'heart', t: st.t, what: 'destroyed', attempt: H.stats.attempts, x: b.x, y: b.y });
+  st.events.push({ type: 'heart', t: st.t, what: 'destroyed', attempt, x: b.x, y: b.y });
   syncProjects(st);
 }
 /** One tile tick of the encounter (stepFlow, after the threat's tick): productive progress or stall, the packet

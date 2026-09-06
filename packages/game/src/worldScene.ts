@@ -32,11 +32,12 @@ import {
   crawlerTarget, shadeTraces, shadeNear, TRACE_S, activeEmergencePoints, stalkersOf, stalkerAt, describeStalker, stalkerHp,
   lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
   heartOf, heartAt, cabinetAt, describeCabinet, describeHeart, cabinetConnected, cabinetRepairCheck, emergencePoint,   // RI-06
-  blockLabel, machineStatus, MachineState,
+  blockLabel, machineStatus, MachineState, bearingOf,
   activationCheck, claimNeed, deliveredTo, deliverTo,
 } from '@relight/sim';
 import { Session, queue, record } from './session';
 import { View, debugView, hudInset } from './view';
+import { drawUrban } from './urbanDraw';
 
 /** RI-02 (§11.2 "machine purpose and working / starved / blocked state", never colour alone): the state word's
  *  glyph, in the tooltip and the E toast, and drawn as the same shape on the machine (drawStatusMark). */
@@ -65,11 +66,12 @@ const FOLLOW_PER_S = 14;
 
 // tileset frames: street, ground, inert, river, then rubble (stone/copper/steel/coal × 5 variants — coal is the rail
 // yard's heap, RI-01), then deposits (iron/coal × 5), then the HQ patches (steel, copper, coal)
-const F_STREET = 0, F_GROUND = 1, F_INERT = 2, F_RIVER = 3, F_RUBBLE = 4, F_DEPOSIT = F_RUBBLE + 4 * RUBBLE_VARIANTS, F_PATCH = F_DEPOSIT + 2 * RUBBLE_VARIANTS, F_COUNT = F_PATCH + 3;
+const F_STREET = 0, F_GROUND = 1, F_INERT = 2, F_RIVER = 3, F_RUBBLE = 4, F_DEPOSIT = F_RUBBLE + 4 * RUBBLE_VARIANTS, F_PATCH = F_DEPOSIT + 2 * RUBBLE_VARIANTS;
+const F_PAVE = F_PATCH + 3, F_QUAY = F_PAVE + 1, F_DASH_H = F_QUAY + 1, F_DASH_V = F_DASH_H + 1, F_COUNT = F_DASH_V + 1;
 const RUBBLE_IDX: Record<string, number> = { stone: 0, copper: 1, steel: 2, coal: 3 };
 const DEPOSIT_IDX: Record<string, number> = { iron: 0, coal: 1 };
-const RUBBLE_COL = ['#b9bfc9', '#c0682b', '#5f83bd', '#2a2b31'];
-const RUBBLE_DARK = ['#7d848f', '#7d4119', '#3a5580', '#141519'];
+const RUBBLE_COL = ['#89948f', '#aa734c', '#81979e', '#333c3e'];
+const RUBBLE_DARK = ['#616d6b', '#705540', '#4e676e', '#20282a'];
 const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
 /** GAME-ASSUMPTION: flat item colours (steel blue, copper orange, stone grey, coal black, magazine brass; RI-01's wire
  *  a paler copper, frame a paler steel, board green) until the art pass. */
@@ -122,6 +124,7 @@ export class WorldScene extends Phaser.Scene {
   private gMach!: Phaser.GameObjects.Graphics;
   private gThreat!: Phaser.GameObjects.Graphics;
   private gEng!: Phaser.GameObjects.Graphics;
+  private gUrban!: Phaser.GameObjects.Graphics;
   private lightTex!: Phaser.Textures.CanvasTexture;
   private lightPix!: Uint8Array;        // the lit mask the texture shows (1 lit)
   private lightScratch!: Uint8Array;
@@ -197,10 +200,11 @@ export class WorldScene extends Phaser.Scene {
     this.paintLight(this.lightPix);   // all unlit until the first read
     this.add.image(0, 0, 'light').setOrigin(0).setScale(TILE_PX).setDepth(1.5).setBlendMode(Phaser.BlendModes.MULTIPLY);
     this.gOver = this.add.graphics().setDepth(2);
+    this.gUrban = this.add.graphics().setDepth(2.1);
     this.gThreat = this.add.graphics().setDepth(3);
     this.gEng = this.add.graphics().setDepth(3);
     this.depotText = this.add.text(0, 0, 'Depot', { fontSize: '20px', color: '#e8ecf4', fontStyle: 'bold' }).setDepth(3).setOrigin(0.5).setVisible(false);
-    const hud = { fontSize: '11px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 6, y: 4 } };
+    const hud = { fontFamily: 'Segoe UI, sans-serif', fontSize: '14px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 8, y: 6 } };
     this.keyText = this.add.text(0, 0, '', hud).setScrollFactor(0).setDepth(10).setOrigin(0, 0);
     this.terrText = this.add.text(0, 0, '', { ...hud, align: 'right' }).setScrollFactor(0).setDepth(10).setOrigin(1, 0);
     this.powText = this.add.text(0, 0, '', hud).setScrollFactor(0).setDepth(10).setOrigin(0, 1);
@@ -210,7 +214,7 @@ export class WorldScene extends Phaser.Scene {
     const cam = this.cameras.main, G = ground(this.st);
     cam.setBounds(0, 0, G.tw * TILE_PX, G.th * TILE_PX);
     cam.setZoom(this.fitZoom());
-    cam.setRoundPixels(true);
+    cam.setRoundPixels(false); // Fractional zoom must not round every ground tile into visible seams.
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT,SHIFT,SPACE') as WorldScene['keys'];
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
     this.input.on('pointerup', () => this.onUp());
@@ -242,8 +246,12 @@ export class WorldScene extends Phaser.Scene {
     const tex = this.textures.createCanvas('ground', F_COUNT * TILE_PX, TILE_PX)!;
     const ctx = tex.getContext();
     const rect = (f: number, col: string, x = 0, y = 0, w = TILE_PX, h = TILE_PX) => { ctx.fillStyle = col; ctx.fillRect(f * TILE_PX + x, y, w, h); };
-    rect(F_STREET, '#33363f'); rect(F_STREET, '#3b3e48', 1, 1, TILE_PX - 2, TILE_PX - 2);
-    rect(F_GROUND, '#463d33'); rect(F_GROUND, '#4c4338', 2, 2, TILE_PX - 4, TILE_PX - 4);
+    rect(F_STREET, '#35434a');
+    rect(F_GROUND, '#424d4e');
+    rect(F_PAVE, '#728082'); rect(F_PAVE, '#657475', 0, 0, TILE_PX, 1);
+    rect(F_QUAY, '#7c8379'); rect(F_QUAY, '#586b6c', 0, 0, TILE_PX, 2);
+    rect(F_DASH_H, '#35434a'); rect(F_DASH_H, '#aea58a', 4, 15, 23, 2);
+    rect(F_DASH_V, '#35434a'); rect(F_DASH_V, '#aea58a', 15, 4, 2, 23);
     rect(F_INERT, '#262a34'); ctx.strokeStyle = '#1b1e26'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(F_INERT * TILE_PX + 4, TILE_PX - 4); ctx.lineTo(F_INERT * TILE_PX + TILE_PX - 4, 4); ctx.stroke();
     rect(F_RIVER, '#1f3552'); rect(F_RIVER, '#264263', 0, 10, TILE_PX, 3); rect(F_RIVER, '#264263', 0, 22, TILE_PX, 3);
@@ -258,7 +266,7 @@ export class WorldScene extends Phaser.Scene {
     };
     for (let t = 0; t < RUBBLE_COL.length; t++) for (let v = 0; v < RUBBLE_VARIANTS; v++) {
       const f = F_RUBBLE + t * RUBBLE_VARIANTS + v;
-      rect(f, '#463d33'); rect(f, '#4c4338', 2, 2, TILE_PX - 4, TILE_PX - 4);
+      rect(f, '#424d4e');
       chunk(f, t * 10 + v, RUBBLE_COL[t], RUBBLE_DARK[t], 3 + v * 3, 3 + v);
     }
     for (let t = 0; t < 2; t++) for (let v = 0; v < RUBBLE_VARIANTS; v++) {
@@ -283,7 +291,18 @@ export class WorldScene extends Phaser.Scene {
     for (let i = 0; i < frames.length; i++) {
       const k = c.kind[i];
       let f = F_GROUND;
-      if (k === T_STREET) f = F_STREET;
+      if (k === T_STREET) {
+        f = F_STREET;
+        const x = x0 + i % CHUNK, y = y0 + Math.floor(i / CHUNK), t = y * G.tw + x, surface = G.urban?.surface;
+        if (surface?.[t] === 1) f = F_PAVE;
+        else if (surface?.[t] === 2) f = F_QUAY;
+        else if (surface && x > 5 && y > 5 && x < G.tw - 5 && y < G.th - 5) {
+          // Mark the centres of real broad streets, derived from the same tile mask.
+          const road = (xx: number, yy: number) => G.owner[yy * G.tw + xx] === -1;
+          if (x % 4 < 2 && road(x - 5, y) && road(x + 5, y) && surface[t - 3 * G.tw] && surface[t + 3 * G.tw]) f = F_DASH_H;
+          else if (y % 4 < 2 && road(x, y - 5) && road(x, y + 5) && surface[t - 3] && surface[t + 3]) f = F_DASH_V;
+        }
+      }
       else if (k === T_INERT) f = F_INERT;
       else if (k === T_RIVER) f = F_RIVER;
       else if (k === T_PATCH) f = F_PATCH + Math.max(0, c.patch[i] - 1);
@@ -309,6 +328,7 @@ export class WorldScene extends Phaser.Scene {
   private fitZoom(): number {
     const cam = this.cameras.main, G = ground(this.st), hq = G.blocks.find(b => b.hq);
     if (!hq || cam.height <= 0) return 1;
+    if (G.urban) return Math.max(0.65, Math.min(0.85, cam.height / 1400));
     const lotPx = (hq.y1 - hq.y0 + 1) * TILE_PX;
     return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, (cam.height * HQ_SCREEN_FRAC) / Math.max(1, lotPx)));
   }
@@ -794,7 +814,7 @@ export class WorldScene extends Phaser.Scene {
       for (let tx = tx0; tx <= tx1 + 1; tx++) {
         const o = tx <= tx1 ? own[ty * tw + tx] : -1, c = o >= 0 && !lit[ty * tw + tx] ? cls[o] : 0, key = c === 1 || c === 2 ? o : -1;
         if (key !== run) {
-          if (run >= 0) { const rc = cls[run]; if (rc === 1) g.fillStyle(0x0b1030, 0.25 + 0.35 * st.blocks[run].d); else g.fillStyle(0xd99a2b, flicker); g.fillRect(runX * TILE_PX, ty * TILE_PX, (tx - runX) * TILE_PX, TILE_PX); }
+          if (run >= 0) { const rc = cls[run]; if (rc === 1) g.fillStyle(0x0b1830, G.urban ? 0.12 + 0.15 * st.blocks[run].d : 0.25 + 0.35 * st.blocks[run].d); else g.fillStyle(0xd99a2b, flicker * 0.5); g.fillRect(runX * TILE_PX, ty * TILE_PX, (tx - runX) * TILE_PX, TILE_PX); }
           run = key; runX = tx;
         }
       }
@@ -841,7 +861,7 @@ export class WorldScene extends Phaser.Scene {
       const o = own[ty * tw + tx];
       if (o < 0 || cls[o] < 3) continue;
       const px = tx * TILE_PX, py = ty * TILE_PX;
-      g.lineStyle(4 / cam.zoom, cls[o] === 4 ? 0xffffff : 0xe8a93a, 0.6);
+      g.lineStyle((G.urban ? 1.5 : 4) / cam.zoom, cls[o] === 4 ? 0xffffff : 0xe8a93a, 0.6);
       if (ty === 0 || own[(ty - 1) * tw + tx] !== o) g.lineBetween(px, py, px + TILE_PX, py);
       if (ty === G.th - 1 || own[(ty + 1) * tw + tx] !== o) g.lineBetween(px, py + TILE_PX, px + TILE_PX, py + TILE_PX);
       if (tx === 0 || own[ty * tw + tx - 1] !== o) g.lineBetween(px, py, px, py + TILE_PX);
@@ -850,11 +870,15 @@ export class WorldScene extends Phaser.Scene {
     // one label per block whose pole tile is in view, kept small on screen
     let li = 0;
     for (const i of vis) {
+      if (G.urban && !debugView.coords && (G.blocks[i].hq || this.st.hops[i] > 2)) continue;
       const p = G.blocks[i].pole;
       if (p[0] < tx0 || p[0] > tx1 || p[1] < ty0 || p[1] > ty1) continue;
       let t = this.labels[li];
       if (!t) { t = this.add.text(0, 0, '', { fontSize: '12px', color: '#c7cfe0', backgroundColor: '#0b0e1aaa', padding: { x: 4, y: 2 } }).setDepth(5); this.labels.push(t); }
-      t.setText(this.blockLine(i)).setPosition(p[0] * TILE_PX + 6, p[1] * TILE_PX + 6).setScale(1 / cam.zoom).setVisible(true);
+      const place = G.urban?.places.find(p => p.block === i);
+      t.setFontFamily('Segoe UI, sans-serif').setFontSize(14);
+      t.setText(G.urban && !debugView.coords ? place?.name ?? '' : this.blockLine(i))
+        .setPosition((place ? place.pad.x : p[0]) * TILE_PX + 6, (place ? place.pad.y - 1 : p[1]) * TILE_PX + 6).setScale(1 / cam.zoom).setVisible(true);
       li++;
     }
     for (let k = li; k < this.labels.length; k++) this.labels[k].setVisible(false);
@@ -865,6 +889,20 @@ export class WorldScene extends Phaser.Scene {
       g.lineStyle(2 / cam.zoom, 0xffffff, 0.8); g.strokeRect(d.x * TILE_PX, d.y * TILE_PX, d.size * TILE_PX, d.size * TILE_PX);
     }
     this.drawKerbPips(g);
+    drawUrban(this.gUrban, st, G, vis, cam.zoom);
+    if (this.tool === 'lamp' || this.tool === 'floodlight' || this.tool === 'rifle') {
+      // Binary simulation coverage, not the rendering falloff. In particular an unlit Shade
+      // interaction never relies on judging the brightness of a pavement or a window.
+      g.lineStyle(1 / cam.zoom, 0xffe6a6, 0.55);
+      for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
+        if (!lit[y * tw + x]) continue;
+        const px = x * TILE_PX, py = y * TILE_PX;
+        if (!lit[(y - 1) * tw + x]) g.lineBetween(px, py, px + TILE_PX, py);
+        if (!lit[(y + 1) * tw + x]) g.lineBetween(px, py + TILE_PX, px + TILE_PX, py + TILE_PX);
+        if (!lit[y * tw + x - 1]) g.lineBetween(px, py, px, py + TILE_PX);
+        if (!lit[y * tw + x + 1]) g.lineBetween(px + TILE_PX, py, px + TILE_PX, py + TILE_PX);
+      }
+    }
     this.drawGhost(g);
     this.drawThreat();
     this.drawEngineer();
@@ -885,9 +923,11 @@ export class WorldScene extends Phaser.Scene {
     // top-left: the key strip (STANDARDS 4.3, the keys visible rather than in a tooltip) and what is in the hand,
     // wrapped to a little over half the viewport so it never runs under the territory block opposite it
     const wrap = Math.round(cam.width * KEY_STRIP_FRAC);
+    const directions = G.urban && this.cg ? G.urban.places.filter(p => (p.role === 'rail' || p.role === 'residential') && this.cg!.blocks[this.cg!.hq].nb.includes(p.block))
+      .map(p => `${bearingOf(st, this.cg!.hq, p.block)} · ${p.name}`).slice(0, 2).join('     /     ') : '';
     if (this.keyWrap !== wrap) { this.keyWrap = wrap; this.keyText.setWordWrapWidth(wrap); }
     this.keyText.setScale(1 / cam.zoom).setPosition(...pin(8, 8 + hudInset.top))
-      .setText(`${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}${st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}` : ''}`);
+      .setText(G.urban ? `WASD move · Shift sprint · E interact · B build · M map · wheel zoom\n${this.tool === 'hand' ? 'Empty hand · hold on rubble to mine' : `In hand: ${inHand}`} ${this.ghostReason || ''}\n${directions}` : `${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}${st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}` : ''}`);
 
     // top-right: territory — the block under the engineer, what the view holds, the zoom
     this.terrText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8, 8 + hudInset.top))
@@ -981,11 +1021,12 @@ export class WorldScene extends Phaser.Scene {
         soft[i] = (tmp[y > 0 ? i - tw : i] + 2 * tmp[i] + tmp[y < th - 1 ? i + tw : i]) / 4;
       }
     }
+    const ambient = G.urban ? [66, 78, 86] : UNLIT_RGB;
     for (let i = 0, j = 0; i < n; i++, j += 4) {
-      const v = mask[i] ? 1 : Math.min(1, soft[i] * LIGHT_SOFT);
-      d[j] = UNLIT_RGB[0] + (255 - UNLIT_RGB[0]) * v;
-      d[j + 1] = UNLIT_RGB[1] + (255 - UNLIT_RGB[1]) * v;
-      d[j + 2] = UNLIT_RGB[2] + (255 - UNLIT_RGB[2]) * v;
+      const v = mask[i] ? 1 : Math.min(0.6, soft[i] * LIGHT_SOFT);
+      d[j] = ambient[0] + (255 - ambient[0]) * v;
+      d[j + 1] = ambient[1] + (255 - ambient[1]) * v;
+      d[j + 2] = ambient[2] + (255 - ambient[2]) * v;
       d[j + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
@@ -1027,9 +1068,10 @@ export class WorldScene extends Phaser.Scene {
     // cone the ROADMAP line also asks for is NOT drawn (D-B5-1 decided against a personal light).
     if (e.face[0] || e.face[1]) this.lastFace = [e.face[0], e.face[1]];
     const fl = Math.hypot(this.lastFace[0], this.lastFace[1]) || 1, fx = this.lastFace[0] / fl, fy = this.lastFace[1] / fl;
-    g.fillStyle(0x0b0e1a, 0.6); g.fillCircle(ex + 2, ey + 3, 11);
-    g.fillStyle(e.dash > 0 ? 0xbfe8ff : 0xf5f0e0, 1); g.fillCircle(ex, ey, 10);
-    g.fillStyle(0xe8a93a, 1); g.fillCircle(ex + fx * 3, ey + fy * 3, 5);
+    const bodyScale = ground(st).urban ? Math.max(1, 1 / zoom) : 1;
+    g.fillStyle(0x0b0e1a, 0.9); g.fillCircle(ex + 2, ey + 3, 13 * bodyScale);
+    g.fillStyle(e.dash > 0 ? 0xbfe8ff : 0xf5f0e0, 1); g.fillCircle(ex, ey, 10 * bodyScale);
+    g.fillStyle(0xe8a93a, 1); g.fillCircle(ex + fx * 3, ey + fy * 3, 6 * bodyScale);
     g.lineStyle(2 / zoom, 0x0b0e1a, 0.8);
     g.lineBetween(ex + fx * 10 - fy * 5, ey + fy * 10 + fx * 5, ex + fx * 13, ey + fy * 13);
     g.lineBetween(ex + fx * 10 + fy * 5, ey + fy * 10 - fx * 5, ex + fx * 13, ey + fy * 13);
@@ -1427,9 +1469,10 @@ export class WorldScene extends Phaser.Scene {
           g.fillStyle(0x1a1d26, 1); g.fillRect(px + 12, py + sz - 24, sz - 24, 12);
           g.fillStyle(frac > 0.5 ? 0x6fe08a : frac > 0 ? 0xe8a93a : 0xe05a5a, 1); g.fillRect(px + 12, py + sz - 24, (sz - 24) * frac, 12);
           if (mags <= 0 && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 3, py + 3, sz - 6, sz - 6); }
-          const label = `Depot\n${mags} / ${Math.floor(cap / SHOT.count)} mag`;
+          const urban = !!ground(st).urban;
+          const label = urban ? 'HQ  /  DEPOT' : `Depot\n${mags} / ${Math.floor(cap / SHOT.count)} mag`;
           if (label !== this.depotLabel) { this.depotLabel = label; this.depotText.setText(label); }
-          this.depotText.setPosition(cx, cy - 6).setScale(Math.max(1, 1 / zoom)).setVisible(true);
+          this.depotText.setFontFamily('Segoe UI, sans-serif').setFontSize(urban ? 15 : 20).setPosition(cx, urban ? py + 25 : cy - 6).setScale(1 / zoom).setVisible(true);
           break;
         }
       }

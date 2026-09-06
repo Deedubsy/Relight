@@ -118,7 +118,8 @@ function syncRailYard(st: SimState, f: FlowState, r: ProjectRecord): void {
   if (f.delivered[r.siteId]) r.deliveredItems = { steel: have.steel, copper: have.copper };   // the committed store owns it while it exists
   if (activationCheck(st, b.x, b.y, false).ok) setStage(st, r, 'ready');
   else if (r.activationAttemptId >= 0) setStage(st, r, 'interrupted');   // an attempt was made and the block is Dark again
-  else if (have.steel + have.copper > 0 || poleGrid(st).reached.includes(r.siteId) || (!ground(st).blocks[r.siteId].sub && !!faceSub(st, r.siteId))) setStage(st, r, 'preparing');   // a delivery, a pole run reaching the site, or a substation the engineer built
+  else if (have.steel + have.copper > 0 || heartAt(st, r.siteId)?.cabinets.some(c => c.delivered.steel + c.delivered.copper > 0)
+    || poleGrid(st).reached.includes(r.siteId) || (!ground(st).blocks[r.siteId].sub && !!faceSub(st, r.siteId))) setStage(st, r, 'preparing');   // installation or cabinet delivery, a pole run, or a built substation
   else setStage(st, r, 'discovered');
 }
 function syncDepot(st: SimState, r: ProjectRecord): void {

@@ -6,6 +6,7 @@
  *  from the block sim and the flow layer at query time; the derivation itself depends only on the seed and the
  *  geometry, never on time. */
 import { SimState, Block, INERT, VOID } from './types';
+import { buildUrban, UrbanCity } from './city/urban';
 import { LAMP_STEP_TILES } from './constants';
 import { hash01 } from './prng';
 import { LATTICE_AREA } from './graph';
@@ -43,6 +44,7 @@ export interface BlockGround {
 }
 
 export interface Ground {
+  urban?: UrbanCity;
   tw: number; th: number;
   lattice: boolean;
   /** T_STREET | T_GROUND | T_RIVER per tile, state-free. */
@@ -173,6 +175,24 @@ function cityGround(st: SimState): Ground {
     G.blocks.push(bg);
   }
   for (let t = 0; t < tw * th; t++) if (G.rank[t] === RESERVED) G.rank[t] = -1;
+  if (st.city?.profile === 'riverside-v1') {
+    G.urban = buildUrban(st, G, cg);
+    // Structures precede the final resource placement. Relocate only covered rubble tiles,
+    // preserving count, depletion rank and type; HQ patches and rail coal are untouched.
+    for (const bg of G.blocks) {
+      if (bg.hq || bg.i === G.railYard) continue;
+      const free = Array.from(bg.tiles).filter(t => !G.urban!.solid[t] && G.rank[t] === -1 &&
+        !(bg.sub && t % tw >= bg.sub.x && t % tw < bg.sub.x + bg.sub.size && Math.floor(t / tw) >= bg.sub.y && Math.floor(t / tw) < bg.sub.y + bg.sub.size));
+      let next = 0;
+      for (let r = 0; r < bg.order.length; r++) {
+        const t = bg.order[r];
+        if (!G.urban.solid[t]) continue;
+        const to = free[next++];
+        if (to === undefined) throw new Error(`City ${st.seed}: no resource space on block ${bg.i}`);
+        G.rank[to] = r; G.variant[to] = G.variant[t]; G.rank[t] = -1; G.variant[t] = 0; bg.order[r] = to;
+      }
+    }
+  }
   buildChunks(G);
   return G;
 }
@@ -409,7 +429,7 @@ export const inGround = (G: Ground, tx: number, ty: number) => tx >= 0 && ty >= 
 /** D5: walkable is any tile that is not water — streets, lots, dark blocks, rot, plazas. Machines are the flow
  *  layer's business (walk.ts). */
 export function walkable(G: Ground, tx: number, ty: number): boolean {
-  return inGround(G, tx, ty) && G.base[ty * G.tw + tx] !== T_RIVER;
+  return inGround(G, tx, ty) && G.base[ty * G.tw + tx] !== T_RIVER && !G.urban?.solid[ty * G.tw + tx];
 }
 
 /** The block a tile belongs to for the flow layer (see `Ground.near`), -1 on water or off the map. */
@@ -573,6 +593,8 @@ export function inReach(st: SimState, tx: number, ty: number, size = 1): boolean
 export function describeGround(st: SimState, tx: number, ty: number): string {
   const G = ground(st);
   if (!inGround(G, tx, ty)) return '';
+  const shell = G.urban?.structures.find(s => tx >= s.x && tx < s.x + s.w && ty >= s.y && ty < s.y + s.h);
+  if (shell) return `tile (${tx},${ty}) · sealed ${shell.role} shell; open door approach on its south side`;
   const v = tileAt(st, tx, ty), bg = v.block >= 0 ? G.blocks[v.block] : null;
   const what = v.kind === T_RUBBLE ? `${bg?.rubble} rubble, density ${v.variant}/${RUBBLE_VARIANTS}` : v.kind === T_DEPOSIT ? `${bg?.deposit} deposit`
     : v.kind === T_PATCH ? `HQ ${PATCH_NAMES[v.patch]} patch` : TILE_NAMES[v.kind];

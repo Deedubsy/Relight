@@ -41,6 +41,7 @@ export function cityGraph(g: CityGeom, plazas: 'inert' | 'buildable' = 'inert'):
  *  is E6's counterfactual — the same streets with every face a lot, so "do inert walls pay" can be asked on the graph. */
 export function citySpec(seed: number, preset: CityPreset, cfg: Pick<SimConfig, 'jitter'>, opts: CityOpts = {}, plazas: 'inert' | 'buildable' = 'inert'): MapSpec {
   const g = generateCity(seed, preset, opts);
+  if (!g.valid) throw new Error(`City seed ${seed} (${preset}) failed validation: ${g.reasons.join('; ')}`);
   const at = (i: number): [number, number] => [g.blocks[i].cx, g.blocks[i].cy];
   return {
     w: g.tw, h: g.th, start: at(g.hq), target: at(g.foundry), wells: g.wells.map(at),

@@ -115,6 +115,11 @@ Experiment: **E17 actions per block** before and after each tool, from a bot tha
 
 ## Phase 9 — The city (4 weeks)
 
+**Moved forward into RI-02A (2026-09-06):** opening composition, shared structure /
+walk / build masks, street materials, local landmarks and seeded urban infill are
+implemented and evidenced in `CITY_REBUILD_REPORT.md`. Reuse this profile. Full
+preset identity, 10,000-seed fairness and the human ten-seed review remain here.
+
 The §17 generator: districts by band, river, wells, scattered inert at the locked density, rubble typing and gradient, outskirts deposits, depth multiplier, facilities and survivors by the Phase 7 rules. The validator with every rule and its reject rate. Five presets as parameter sets, not code. A seed browser in `packages/tools`. **Moved forward (2026-09-05):** generated neighbourhoods (connected, non-overlapping, one emergence point each) validated → **RI-11**.
 
 Experiments: **E18 seed fairness** (10,000 seeds through compact and spike; the spread of first-enclosure and Turbine-hall times stated in the doc as run variance), **E19 preset identity** (each preset's bot line differs from default by the thing the preset is for).
@@ -138,6 +143,11 @@ Experiment: **E22 megabase** (a bot builds to 400 blocks; where frame time, tick
 **Engine gate:** if the targets cannot be met after the allocation work, report the numbers; a human decides on the C#/Godot port. **STANDARDS rows:** 9.1 is the phase; D-SA-4's check — a replay of a 5 h command log reproduces the state byte for byte after the allocation work. **STANDARDS:** the `STANDARDS.md` rows for this phase are checked; no new gap was introduced without a row.
 
 ## Phase 12 — Interface, onboarding, art, sound (8 weeks, parallel with 11)
+
+**Moved forward into RI-02A (2026-09-06):** code-native urban silhouettes, warmer
+restored windows, world-first framing, local place names and viewport checks are
+implemented (`CITY_REBUILD_REPORT.md`). Reuse them; the complete art/audio kit,
+settings and accessibility work, and cold-player validation remain in this phase.
 
 * The map view finished at final scale; the world-view HUD; §11 as the entire onboarding, toasts tuned until **E23 cold player** passes (4 of 5 people who haven't seen the doc reach the first enclosure without asking a question).
 * Accessibility: colour-blind palettes with shape-coded states, remappable keys, UI scale, and no input anywhere that needs reflexes.

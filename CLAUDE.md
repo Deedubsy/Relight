@@ -127,3 +127,24 @@ sed, python3 heredocs) over the Read/Edit/Write tools. Temporary scripts go in t
 scratchpad, never the repo. Soak hygiene: idle host, background Bash, kill by PID, never
 `pkill -f`; the reference-machine soak is by hand. Give a one-line progress update every
 few minutes of work.
+
+## City rebuild verification (2026-09-06)
+
+RI-02A evidence is `docs/CITY_REBUILD_REPORT.md`; status remains only in
+`docs/PROGRESS.md`. Normal new games use `riverside-v1`; old saves and
+`?city=legacy` keep legacy lot geometry. The verification results above are
+historical: this pass runs the complete suite, reports the five existing Heart
+test failures and E-heart's four failing checks, and leaves historical evidence
+unchanged. Consult the city report for current build, snapshot, freshness,
+browser and focused compatibility results. Do not rebuild its moved-forward
+Phase 9/12 work or treat its AI image review as human play approval.
+## Heart validation repair (2026-09-06)
+
+The city pass's five Heart test failures and four E-heart failures are superseded
+by `docs/RI_PASS_1_REPORT.md`, section "RI-06 validation fixes", and
+`docs/evidence/heart-fix/`. All six Heart tests, all 15 experiments, the snapshot,
+build, lint, docsync and freshness pass. `npm test` runs workers sequentially because
+the suite includes a strict cold-geometry timing check; its 100 ms budget is unchanged.
+Archived lattice evidence is recognised on Windows without rewriting its hashes.
+Task status remains in `docs/PROGRESS.md`; this pass does not implement RI-07 or
+claim a human playtest.

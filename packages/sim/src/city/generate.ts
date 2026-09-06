@@ -567,7 +567,8 @@ const cache = new Map<string, CityGeom>();
  *  (with `valid` false and its reasons — the seed browser shows them). Cached per process. */
 export function generateCity(seed: number, preset: CityPreset = 'river', opts: CityOpts = {}): CityGeom {
   const tw = opts.tw ?? CITY_TW, th = opts.th ?? CITY_TH, attempts = opts.attempts ?? CITY_ATTEMPTS;
-  const key = `${seed}:${preset}:${tw}x${th}`;
+  if (!Number.isInteger(attempts) || attempts < 1 || attempts > CITY_ATTEMPTS) throw new Error(`City attempts must be 1..${CITY_ATTEMPTS}`);
+  const key = `${seed}:${preset}:${tw}x${th}:${attempts}`;
   const hit = cache.get(key);
   if (hit) return hit;
   let g: CityGeom | undefined;

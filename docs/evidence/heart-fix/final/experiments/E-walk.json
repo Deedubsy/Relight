@@ -1,0 +1,190 @@
+{
+ "source_commit": "b3a3f6c8f42a09841102287ac195a424c1f05e1f",
+ "config_hash": "b95922d2",
+ "config_ref": {
+  "kind": "experiments"
+ },
+ "id": "E-walk",
+ "title": "Walking minutes and the truck",
+ "pyNames": [],
+ "docRefs": [
+  "§4",
+  "§8",
+  "D5"
+ ],
+ "setup": "compact; river map; engineer walking, no rifle",
+ "sections": [
+  {
+   "title": "E-walk-hours: compact, engineer on foot (6 tiles/s; truck ×3 from the Tram depot at 3–4 hops), 5 h",
+   "note": "moves = walks the bot started in hour 3; \"within reach\" = a walk of ≤ 8 tiles; \"in the truck\" = started after the truck was found",
+   "header": [
+    "seed",
+    "walked h1 (min)",
+    "walked h3 (min)",
+    "walked h5 (min)",
+    "truck found (min)",
+    "min walked/h before truck",
+    "after truck",
+    "hour-3 moves",
+    "within reach",
+    "in the truck",
+    "reach-or-truck",
+    "walks in 5 h"
+   ],
+   "rows": [
+    [
+     3,
+     "0.8",
+     "1.5",
+     "2.1",
+     "91",
+     "1.7",
+     "2.1",
+     15,
+     0,
+     15,
+     "100 %",
+     71
+    ],
+    [
+     4,
+     "0.5",
+     "1.0",
+     "1.5",
+     "106",
+     "2.9",
+     "1.8",
+     13,
+     0,
+     13,
+     "100 %",
+     71
+    ],
+    [
+     5,
+     "0.9",
+     "4.1",
+     "1.6",
+     "146",
+     "3.8",
+     "2.3",
+     21,
+     0,
+     8,
+     "38 %",
+     79
+    ]
+   ]
+  },
+  {
+   "title": "E-walk-cost: the same bot teleporting (lattice era) vs walking",
+   "header": [
+    "seed",
+    "held (teleport)",
+    "held (walk)",
+    "lost (teleport)",
+    "lost (walk)",
+    "magazines (teleport)",
+    "magazines (walk)",
+    "ammo diff",
+    "walk length (tiles)"
+   ],
+   "rows": [
+    [
+     3,
+     52,
+     52,
+     0,
+     0,
+     "7162",
+     "7152",
+     "-0.1 %",
+     "104 [28–388]"
+    ],
+    [
+     4,
+     52,
+     52,
+     0,
+     0,
+     "7866",
+     "7859",
+     "-0.1 %",
+     "98 [26–402]"
+    ],
+    [
+     5,
+     52,
+     52,
+     0,
+     0,
+     "6329",
+     "6375",
+     "0.7 %",
+     "103 [29–318]"
+    ]
+   ]
+  }
+ ],
+ "checks": [
+  {
+   "name": "rework: more than 20 % of hour-3 moves are within reach or in the truck (mean over seeds)",
+   "pass": true,
+   "detail": "79.37 % (expected 20–100 %)"
+  },
+  {
+   "name": "rework: the truck is found before hour 5 on every seed",
+   "pass": true,
+   "detail": "145.62 min (expected 0–300 min)"
+  },
+  {
+   "name": "D5 tedium: walking under 10 min per hour of play in hour 3 (mean)",
+   "pass": true,
+   "detail": "2.20 min (expected 0–10 min)"
+  }
+ ],
+ "data": {
+  "perHour": [
+   [
+    0.8166666666666667,
+    3.35,
+    1.4833333333333334,
+    1.95,
+    2.1333333333333333
+   ],
+   [
+    0.5166666666666667,
+    5.983333333333333,
+    1.0166666666666666,
+    1.8,
+    1.5333333333333334
+   ],
+   [
+    0.9333333333333333,
+    6.533333333333333,
+    4.1,
+    1.9833333333333334,
+    1.6166666666666667
+   ]
+  ],
+  "truckAt": [
+   5437,
+   6343,
+   8737
+  ],
+  "h3Frac": [
+   1,
+   1,
+   0.38095238095238093
+  ]
+ },
+ "meta": {
+  "seeds": [
+   3,
+   4,
+   5
+  ],
+  "hours": 5,
+  "map": "river"
+ }
+}

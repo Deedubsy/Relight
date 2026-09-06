@@ -18,9 +18,9 @@ import { findPath, passable } from './walk';
 import { burnOffS, isCandidate } from './sim';
 import { pipOf, edgeCap } from './queries';
 import { TURRET_HOPPER } from './recipes';
-import { HQ_PATCHES, P_STEEL, DEPOT_LOT, DEPOT_TILES } from './tiles';
+import { HQ_PATCHES, P_STEEL, P_COPPER, DEPOT_LOT, DEPOT_TILES } from './tiles';
 import {
-  Kind, Dir, Item, Machine, depotRect, chestCount, turretEdge, placeable, canPlace, canPickUp, rubbleAt, outputTile, machineAt, DX, DY, DIR_NAMES,
+  Kind, Dir, Item, Machine, depotRect, chestCount, turretEdge, edgeTurrets, placeable, canPlace, canPickUp, rubbleAt, outputTile, machineAt, DX, DY, DIR_NAMES,
   MACHINE_SIZE, MACHINE_COST, GENERATOR_COAL_CAP, survivorJoined, advanceFlow, TILE_DT, TILE_TPS, ensureFlow, SHOT, START_TURRETS,
   polePlan, polePlanTo, claimNeed, deliveredTo, activationCheck, faceSub, lockReason, tramAt, poolStr,
 } from './flow';
@@ -163,9 +163,9 @@ function standTile(st: SimState, x: number, y: number, size: number): [number, n
   return best ?? [x, y];
 }
 
-/** The steel patch tile with units left nearest the Depot. */
-function steelTile(st: SimState): [number, number] | null {
-  const p = HQ_PATCHES.find(q => q.type === P_STEEL)!;
+/** The requested HQ patch tile with units left nearest the Depot. */
+function patchTile(st: SimState, type = P_STEEL): [number, number] | null {
+  const p = HQ_PATCHES.find(q => q.type === type)!;
   const [dx, dy] = hqLot(st, DEPOT_LOT + DEPOT_TILES / 2, DEPOT_LOT + DEPOT_TILES / 2);
   let best: [number, number] | null = null, bd = Infinity;
   for (let ly = p.ly; ly < p.ly + p.h; ly++) for (let lx = p.lx; lx < p.lx + p.w; lx++) {
@@ -234,6 +234,35 @@ const chest = (label: string, st: SimState): Task => { const d = depotRect(st); 
 /** Take from the chest; what the chest cannot give is a refusal in the log (D-P4-4's start stock). */
 function takeTask(bot: HourBot, wants: Partial<Record<'steel' | 'copper' | 'coal' | 'magazine' | 'kit', number>>): Task {
   return act('take from the chest', (st, out) => {
+    // The candidate adds cabinets and turrets before the hour's second copper line.
+    // Collect a shortfall with the same walking/mining/deposit commands a player uses.
+    const short = (wants.copper ?? 0) - chestCount(st, 'copper');
+    if (bot.heart && short > 0) {
+      const p = patchTile(st, P_COPPER);
+      if (p) {
+        const target = (st.engineer.inv.copper ?? 0) + Math.ceil(short);
+        note(bot, st, `hand-mine ${Math.ceil(short)} copper for the candidate's preparation`);
+        const mine = (s: SimState, commands: Command[]) => {
+          const q = patchTile(s, P_COPPER);
+          if (q) commands.push({ type: 'mineAt', x: q[0], y: q[1] });
+        };
+        return [goto('the copper patch', p[0], p[1], 1), act('mine copper', mine),
+          until('the preparation copper mined', s => (s.engineer.inv.copper ?? 0) >= target, short * 3 + 30,
+            (s, commands) => { if (!s.flow!.hand.mine && s.flow!.tick % TILE_TPS === 0) mine(s, commands); }),
+          act('stop mining copper', (_s, commands) => { commands.push({ type: 'mineAt', x: -1, y: -1 }); }),
+          chest('return the preparation copper', st),
+          act('deposit the copper', (s, commands) => { commands.push({ type: 'chestPut', item: 'copper', n: s.engineer.inv.copper ?? 0 }); }),
+          // Do not retry mining indefinitely if the patch or pockets ran out.
+          act('take the prepared materials', (s, commands) => {
+            for (const [item, n] of Object.entries(wants) as [keyof typeof wants, number][]) {
+              if (n <= 0) continue;
+              const have = chestCount(s, item);
+              if (have < n) refused(bot, s, `take ${n} ${item}`, `the chest has ${have}`);
+              commands.push({ type: 'chestTake', item, n: Math.min(n, have) });
+            }
+          })];
+      }
+    }
     for (const [item, n] of Object.entries(wants) as ['steel' | 'copper' | 'coal' | 'magazine' | 'kit', number][]) {
       if (n <= 0) continue;
       const have = chestCount(st, item);
@@ -755,7 +784,8 @@ function turretSpot(st: SimState, tx: number, ty: number): [number, number] | nu
  *  substation; then the patrol (`heartPatrol`) until the yard is Held, and the ordinary walk-over and kit wait. */
 function heartClaimTasks(bot: HourBot, dir: HourDir, i: number, st: SimState): Task[] {
   const H = heartAt(st, i)!, b = st.blocks[i], sub = faceSub(st, i)!, need = claimNeed(st), cab = H.cand.cabinet, nC = H.cabinets.length;
-  const poles = polePlan(st, i).length + nC * 3, spare = poles + 2, C = MACHINE_COST;
+  const poles = polePlan(st, i).length + H.cabinets.reduce((n, c) => n + polePlanTo(st, i, c.x, c.y, 1).length, 0);
+  const spare = poles + 2, C = MACHINE_COST;
   note(bot, st, `${dir} = block ${i} (${b.name}, d ${b.d.toFixed(2)}): the Junction Heart — ${nC} feeder cabinets at ${H.cabinets.map(c => `(${c.x},${c.y})`).join(' and ')}, ${cab.steel} steel + ${cab.copper} Cu each; the installation ${need.steel} steel + ${need.copper} Cu; ${H.cand.productiveS} s productive, ${H.cand.stallS} s stall, packets at ${H.cand.thresholds.join('/')} %`);
   const deliverSub = (st2: SimState, out: Command[], item: 'steel' | 'copper'): void => {
     const got = deliveredTo(st2, i), n = item === 'steel' ? need.steel - got.steel : need.copper - got.copper;
@@ -801,6 +831,13 @@ function heartClaimTasks(bot: HourBot, dir: HourDir, i: number, st: SimState): T
   tasks.push(
     chest(`back for ${dir}'s kits`, st),
     ...kitsTask(bot),
+    act('carry the Heart patrol supplies', (s, out) => {
+      const kits = s.nb[i].filter((j, k) => s.blocks[j].state !== HELD && edgeTurrets(s, i * s.deg + k).length === 0).length;
+      const surplus = (s.engineer.inv.kit ?? 0) - kits;
+      if (surplus > 0) out.push({ type: 'chestPut', item: 'kit', n: surplus });
+      out.push({ type: 'chestTake', item: 'copper', n: 2 * nC });
+      out.push({ type: 'chestTake', item: 'magazine', n: Math.ceil(nC * TURRET_HOPPER / SHOT.count) });
+    }),
     goto(`${dir}'s substation`, sub.x, sub.y, sub.size, `activate ${dir}`),
     until(`${dir} ready to start`, st2 => activationCheck(st2, b.x, b.y).ok, 60),
     act(`start commissioning ${dir}`, (st2, out) => {
@@ -905,9 +942,9 @@ export function hourSteps(bot: HourBot): HourStep[] {
   const burnE = burnOffS(0.22);
   return [
     { at: 0, name: '§11 0:00 — to the steel patch, hand-mine 20 steel', tasks: st => {
-      const p = steelTile(st);
+      const p = patchTile(st);
       if (!p) { refused(bot, st, 'mine steel', 'no steel patch tile with units'); return []; }
-      const mine = (st2: SimState, out: Command[]) => { const q = steelTile(st2); if (q) out.push({ type: 'mineAt', x: q[0], y: q[1] }); };
+      const mine = (st2: SimState, out: Command[]) => { const q = patchTile(st2); if (q) out.push({ type: 'mineAt', x: q[0], y: q[1] }); };
       return [goto('the steel patch', p[0], p[1], 1, 'to the steel patch'), act('mine', mine),
         until(`${HOUR_MINE_STEEL} steel in the pockets`, st2 => (st2.engineer.inv.steel ?? 0) >= HOUR_MINE_STEEL, HOUR_MINE_STEEL * 3,
           (st2, out) => { if (!st2.flow!.hand.mine && st2.flow!.tick % TILE_TPS === 0) mine(st2, out); }),
@@ -1446,8 +1483,8 @@ export function replay(st: SimState, log: readonly LoggedCommand[], untilTick: n
     while (k < log.length && log[k].tick <= f.tick) { const c = log[k++].c; if (c.type === 'setSpeed' || (opts.dropAim && c.type === 'aim')) continue; cmds.push(c); }
     st.acc = 0;
     advanceFlow(st, TILE_DT, cmds, 1);
-    st.events.length = 0;
     opts.every?.(st);
+    st.events.length = 0;
   }
   return st;
 }
@@ -1500,4 +1537,3 @@ export function runHour(st: SimState, bot: HourBot, seconds: number, log?: Logge
     st.events.length = 0;
   }
 }
-

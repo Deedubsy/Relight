@@ -70,7 +70,7 @@ export function findPath(st: SimState, sx: number, sy: number, gx: number, gy: n
   const G = ground(st);
   if (!inGround(G, sx, sy) || !inGround(G, gx, gy)) return null;
   const solid = solidMap(st, G), tw = G.tw, th = G.th, base = G.base;
-  const open = (x: number, y: number) => x >= 0 && y >= 0 && x < tw && y < th && base[y * tw + x] !== 4 /* T_RIVER */ && (!solid || solid[y * tw + x] === 0);
+  const open = (x: number, y: number) => x >= 0 && y >= 0 && x < tw && y < th && base[y * tw + x] !== 4 /* T_RIVER */ && !G.urban?.solid[y * tw + x] && (!solid || solid[y * tw + x] === 0);
   if (!open(gx, gy)) return null;
   const S = scratchOf(G), gen = ++S.gen;
   const start = sy * tw + sx, goal = gy * tw + gx;

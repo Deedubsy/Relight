@@ -32,3 +32,4 @@ export * from './goal';
 export * from './save';
 export * from './project';   // RI-05
 export * from './heart';   // RI-06
+export * from './city/urban';

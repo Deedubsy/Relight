@@ -28,6 +28,19 @@ The fantasy is civic, not military. Turrets are plumbing. The thing you are prou
 
 **Grid.** 32 px tiles, orthographic, no elevation. The city is generated **streets first** (D6, §17): curved arterials, a bending river, one diagonal avenue and secondary streets that branch and dead-end are drawn as splines, 6–12 tiles wide, and every **block** is a face of that street graph: an irregular polygon of ≈ 20–50 tiles across with 3–7 neighbours, rasterised to tiles, whose buildable **lot** is the face's tiles inside the street edges. Two blocks are neighbours when they share a **street segment** (the stretch of street between them), and that segment is the front edge between them **[sim: rework-graph]**. A standard city is ≈ 500–600 blocks over ≈ 768×768 tiles, the river along one side; the 24×24 lattice of Phases 1–4 (32×32-tile cells, 8-tile streets, four neighbours each) is the *lattice era* and its runs are kept only as the baseline the rework's numbers are compared against (`REWORK_REPORT.md`). Roughly 8–10 % of faces are **inert**: river, embankment, collapsed overpass, plazas and parks. Inert faces cannot be built on and cannot hold rot.
 
+**City profile (RI-02A, 2026-09-06).** Normal new games use `riverside-v1` over
+the existing street-first ownership graph. Deterministic residential shells, sheds
+and civic buildings occupy at most 12% of each lot; their single derived solid mask
+governs walking and machine placement and supplies both renderers. The real HQ
+Depot and its 24-tile service frame remain protected; other working yards reserve
+up to a 16×16 machine pad. Pavements use two existing street tiles beside lots,
+without introducing frontage edges. Existing facility-distance rules, resource
+totals and light/combat rules are unchanged. Rubble under a new structure is moved
+within the same lot, retaining its type and depletion order. Legacy saves with no
+profile keep their original ground. Dimensions and geometry are in
+`packages/sim/src/city/urban.ts`; validation and remaining scope are in
+`CITY_REBUILD_REPORT.md`.
+
 **Two renderers, one data model.**
 - *World view* (zoom 3× down to 0.5×, the slice's range, D-P4-1): the primary screen. The **engineer** is a sprite on the tile grid and the camera follows them; the map view is a key (**M**) and comes back to the engineer on M again. Machines are 1×1 to 8×8 tile sprites with a single idle/active animation each. Rubble is one tileset per rubble type with five density variants; a block's 250–350 rubble tiles are laid in three clusters, densest at the centres and denser on deeper blocks, and dig out thinnest-first as the block's pool drains **[sim: M1-tiles]**. Rot is a tinted overlay tileset with five density levels (0.05 steps of visible mottling) so "how bad is this block" is readable without a tooltip.
 - *Map view* (M): each block is drawn as its polygon, the street segments between them as lines, the engineer as a white dot. This is where the front is read from mid-game on, and claims are placed from it; poles, machines and everything with a footprint are placed by the engineer within reach in the world view. It is not a minimap.

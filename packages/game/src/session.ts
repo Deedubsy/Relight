@@ -15,7 +15,7 @@ import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } fro
 /** M6: `autoplay=hour` runs §11's hour bot on the tile layer (hour.ts; a dev aid, never a player control); `rifle=1`
  *  gives it the rifle reflex. Every command of a session is logged (`Session.log`) so a played hour replays without
  *  the rifle for Gate B's "did it matter?" row (`replaySession`). */
-export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | 'hour' | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean; map: 'lattice' | CityPreset; rifle: boolean; stalker: boolean; heart: boolean }
+export interface UrlParams { seed: number; economy: boolean; scatter: boolean; autoplay: Policy | 'hour' | null; player: string; state: string | null; view: 'map' | 'world'; flow: boolean; map: 'lattice' | CityPreset; rifle: boolean; stalker: boolean; heart: boolean; cityProfile?: 'riverside-v1' | 'legacy' }
 
 export function parseUrl(search: string): UrlParams {
   const q = new URLSearchParams(search);
@@ -28,7 +28,8 @@ export function parseUrl(search: string): UrlParams {
     autoplay: auto === 'hour' ? 'hour' : auto && (POLICIES as string[]).includes(auto) ? (auto as Policy) : null,
     player: q.get('player') ?? '',
     state: q.get('state') || null,
-    view: q.get('view') === 'world' ? 'world' : 'map',
+    view: q.get('view') === 'map' ? 'map' : 'world',
+    cityProfile: q.get('city') === 'legacy' ? 'legacy' : 'riverside-v1',
     flow: q.get('flow') !== '0',
     map: mapParam(q.get('map')),
     rifle: q.get('rifle') === '1',
@@ -52,6 +53,7 @@ export function shareUrl(p: UrlParams): string {
   }
   if (!p.flow) q.set('flow', '0');
   if (p.map !== 'river') q.set('map', p.map);
+  if (p.cityProfile === 'legacy') q.set('city', 'legacy');
   if (p.autoplay) q.set('autoplay', p.autoplay);
   if (p.rifle) q.set('rifle', '1');
   if (p.stalker) q.set('stalker', '1');
@@ -137,11 +139,12 @@ export function createSession(params: UrlParams, snapshot: Loaded | null = null)
   let state: SimState;
   if (snapshot) {
     state = loadState(snapshot.state);   // RI-02: the validated deep copy (save.ts), transients reset, paused
-    params = { ...params, seed: state.seed, economy: state.config.economy, scatter: state.config.scatter, map: state.city ? (state.city.preset as CityPreset) : 'lattice' };
+    params = { ...params, seed: state.seed, economy: state.config.economy, scatter: state.config.scatter, map: state.city ? (state.city.preset as CityPreset) : 'lattice', cityProfile: state.city?.profile ?? 'legacy' };
   } else {
     // D6: the map is the street-first city unless ?map=lattice; M1 put the tile layer on its faces, so flow is on there too
     const config = protoConfig(params);
     const spec = params.map === 'lattice' ? generateMap(params.seed, config) : citySpec(params.seed, params.map, config);
+    if (spec.city && params.cityProfile === 'riverside-v1') spec.city.profile = 'riverside-v1';
     state = createState(spec, config, params.seed);
   }
   // GAME-ASSUMPTION (M2): the tile flow layer is on for every session unless ?flow=0 (bot comparisons against the
@@ -258,6 +261,7 @@ export function replaySession(s: Session, opts: { rifleOff?: boolean } = {}): { 
   if (!s.state.flow) return { error: 'no flow layer (flow=0): nothing to replay' };
   const config = protoConfig(s.params);
   const spec = s.params.map === 'lattice' ? generateMap(s.params.seed, config) : citySpec(s.params.seed, s.params.map, config);
+  if (spec.city && s.state.city?.profile) spec.city.profile = s.state.city.profile;
   const st = createState(spec, config, s.params.seed);
   Object.assign(st.config, { power: true, supply: 'generators', draw: 'half' });
   ensureFlow(st);
