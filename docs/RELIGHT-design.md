@@ -124,6 +124,8 @@ Optional caches and unique discoveries are one-off, seeded and saved. Critical t
 
 The existing item catalogue is retained for the slice. The owner's iron example established geographic specialisation, not an additional iron-to-steel recipe chain. Exact extraction rates and starting quantities remain explicit tuning work; the persistent-source model itself is settled.
 
+**EX-06 implementation (2026-09-07, provisional tuning):** three guaranteed, separate source pads supply steel at the first outlying station, copper at the later station, and coal in a nearby third resource neighbourhood. Powered excavators use the existing 0.5 items/s and 60 kW per machine; fuel-burning generation and output capacity constrain extraction, and source pools persist. Hand mining cannot exploit these persistent sources. Home salvage remains finite. See [CAMPAIGN_DISTRICTS_REPORT.md](CAMPAIGN_DISTRICTS_REPORT.md); broad seed fairness and balance await the representative-loop gate.
+
 ## 13. Machines with tile footprints
 
 **Adopted contract: D-EX-Q06, via D-EX-11.** Reuse existing machine footprints/recipes where they fit; the legacy tables are implementation data. New costs and rates must be specified before claiming balance.
@@ -137,6 +139,8 @@ A restored workshop automatically repairs nearby defences between attacks using 
 **Adopted first rare reward:** a recovered workshop schematic for a portable field-repair tool that speeds the engineer's repair action while still consuming materials. It opens a battlefield support option without replacing turret/ammunition production. The tool is approved; exact rates and inventory slot behaviour remain implementation/tuning details to specify for its task.
 
 **Adopted distinctive site encounter:** adapt the existing Stalker into a visible guardian of that workshop ruin, with a readable wind-up, a leash and routes to avoid or fight it. A prepared turret approach remains viable. The schematic is a once-only site reward, not a random drop each time the creature respawns. The Heart can serve a later restoration defence after early trams are established.
+
+**EX-06 workshop implementation (provisional):** after restoring its district station, commission the workshop for 25 steel + 15 copper with real power. It draws 40 kW and repairs walls/turrets in the same neighbourhood within 14 tiles, using a chest or tram arrivals buffer within 4 tiles. Each 40 HP repair consumes 2 steel + 1 copper after two powered seconds; brownouts slow progress. Active major assaults anywhere and local minor raids pause service. Manual repair has priority; disabled cores still require the engineer's paid recovery. The schematic and distinctive guardian remain EX-07.
 
 ## 14. Logistics
 
@@ -152,11 +156,15 @@ If a destination is full or unpowered, its cargo stays onboard and the tram cont
 
 Example: home loads distinct ammunition allotments for the workshop and northern station. The workshop takes only its allotment. The northern station receives its own and loads local metal for home. No transfer changes the total item ledger.
 
+**EX-06 implementation:** the starter route extends along a guaranteed unbranched street survey to the later station. Its restoration costs 40 steel + 20 copper (provisional); the player buys extension track and a third stop. The existing selective freight carries onward and return goods. Local belt/inserter branches feed production and workshop supplies. Campaign inserters drawing from mixed chests/arrivals skip recipe inputs already full, so steel cannot indefinitely hide needed copper; the legacy profile keeps its prior transfer behaviour.
+
 ## 15. Progression
 
 Home defence leads to early tram access and radio restoration, then specialised stations, useful workshops, improved equipment and more ambitious projects. Exploration and restoration determine what the player can build and where. The later reduction to one complete quiet day follows the third commissioned station base with working automated resupply; it does not follow elapsed time alone.
 
 Multiple project orders should be worthwhile. Completing a major project can bring a major assault, subject to the shared schedule and rest interval. The commissioning preview shows whether restoration affects this eligible assault window or a later one; target lock and nomination rules are specified in §7. Later encounters must offer materially different decisions rather than just more health.
+
+**EX-06 milestone evidence (provisional):** the slice's three connected bases are Home Court and two restored outlying stations, each operational with a powered stop on the same tram route. The later station must actually receive destination-reserved home shipments totalling 10 steel, 5 copper and 5 magazines across at least two ammunition visits. Hand transfers and cargo returned to its origin do not count. Completion is saved once; an existing promised dawn or locked target is never advanced. The scheduler applies the one-cycle interval after the next actual major completion. These thresholds implement the approved resupply milestone; they are not validated pacing targets.
 
 ## 16. Endgame megaproject: the Relight
 

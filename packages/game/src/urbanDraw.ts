@@ -31,6 +31,21 @@ export function drawUrban(g: Phaser.GameObjects.Graphics, st: SimState, G: Groun
     }
     if (ex.station.restoredAt >= 0) for (const [x,y] of ex.stops) { if (!vis.has(G.near[y * G.tw + x])) continue; g.lineStyle(2 / zoom, 0x8fcad1, 0.8); g.strokeRect(x * P, y * P, P * 2, P * 2); }
   }
+  const district=st.campaign?.districts;
+  if(district) {
+    for(const source of district.sources) {
+      if(!vis.has(source.block))continue;
+      const color=source.item==='steel'?0x8daecc:source.item==='copper'?0xdb9565:0x9e92b5;
+      g.fillStyle(color,0.24);g.fillRect(source.x*P,source.y*P,source.size*P,source.size*P);
+      g.lineStyle(2/zoom,color,0.85);g.strokeRect(source.x*P,source.y*P,source.size*P,source.size*P);
+      for(let yy=source.y;yy<source.y+source.size;yy++)for(let xx=source.x;xx<source.x+source.size;xx++){g.fillStyle(color,0.6);g.fillCircle((xx+.5)*P,(yy+.5)*P,P*.12);}
+    }
+    if(ex&&ex.station.restoredAt>=0) {
+      for(const t of district.route)if(vis.has(G.near[t])){g.lineStyle(1/zoom,0x8fcad1,.6);g.strokeRect((t%G.tw+.3)*P,(Math.floor(t/G.tw)+.3)*P,.4*P,.4*P);}
+      const [x,y]=district.stop;g.lineStyle(2/zoom,0x8fcad1,.8);g.strokeRect(x*P,y*P,2*P,2*P);
+    }
+    for(const s of [district.station,district.workshop])if(vis.has(s.block)){g.lineStyle(3/zoom,s.restoredAt>=0?0x88d5b0:0xf1c36b,1);g.strokeRect(s.x*P,s.y*P,s.size*P,s.size*P);}
+  }
   for (const place of city.places) {
     if (!vis.has(place.block)) continue;
     const { x, y, w, h } = place.pad, held = st.blocks[place.block].state === HELD;

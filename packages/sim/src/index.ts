@@ -42,3 +42,4 @@ export * from './expansion';
 export * from './campaignPower';
 export * from './campaignDefence';
 export * from './campaignThreat';
+export * from './campaignDistricts';

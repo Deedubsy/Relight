@@ -137,7 +137,7 @@ test('ordinary paid and hand-supplied turrets hold the complete finite major ros
 });
 
 test('old previews gain a preparation interval; malformed schedules, health and orphaned bodies are refused',()=>{
-  const st=createCampaign();st.t=4000;delete st.campaign!.defence;st.campaign!.version=2;
+  const st=createCampaign();st.t=4000;delete st.campaign!.defence;delete st.campaign!.districts;st.campaign!.version=2;
   const upgraded=loadState(st),d=upgraded.campaign!.defence!;assert.ok(d.nextDawn>=6400);assert.equal(d.major,null);assert.equal(d.history.length,0);
   for(const mutate of [
     (s:SimState)=>{s.campaign!.defence!.nextDawn=NaN;},

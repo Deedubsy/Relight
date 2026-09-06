@@ -1,3 +1,4 @@
+import { DISTRICT_ECONOMY } from '@relight/sim';
 /** Provenance stamps for generated files (constitution rule 11, guardrails Step 6). Every file a script writes carries
  *  the git commit and the config hash it was made from; `npm run freshness:check` (packages/tools/src/freshness.ts)
  *  recomputes the hash from the current code and fails if either does not match.
@@ -56,7 +57,7 @@ export function evidenceRuleset(ref: ConfigRef): Ruleset { configOf(ref); return
 /** Preserve every legacy hash; campaign evidence also fingerprints its rules and geometry. */
 export function evidenceHash(ref: ConfigRef): string {
   const config = configOf(ref);
-  return ref.kind === 'campaign' ? fnv1a(canonicalJson({ config, ruleset: ref.ruleset, rules: CAMPAIGN_RULES, opening: OPENING_LAYOUT, expansion: EXPANSION, power: CAMPAIGN_POWER, defence: DEFENCE, threats: CAMPAIGN_THREAT })) : configHash(config);
+  return ref.kind === 'campaign' ? fnv1a(canonicalJson({ config, ruleset: ref.ruleset, rules: CAMPAIGN_RULES, opening: OPENING_LAYOUT, expansion: EXPANSION, power: CAMPAIGN_POWER, defence: DEFENCE, threats: CAMPAIGN_THREAT, districts: DISTRICT_ECONOMY })) : configHash(config);
 }
 export function evidenceProfileProblem(ref: ConfigRef, file: string, payload?: unknown): string {
   const profile = evidenceRuleset(ref), campaignPath = file.replace(/\\/g, '/').includes('/campaign/');

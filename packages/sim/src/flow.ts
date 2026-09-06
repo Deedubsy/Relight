@@ -35,6 +35,7 @@ import { campaignGrid, campaignThrottle } from './campaignPower';
 import { deliverSite, restoreSite, collectTramKit, campaignSiteAt } from './expansion';
 import { defenceMax, defenceHp, startRepair, coreDisabledAt } from './campaignDefence';
 import { upgradeRadio } from './campaignThreat';
+import { persistentSource, tickDistricts } from './campaignDistricts';
 import { isCampaign } from './rules';
 
 export const TILE_TPS = 20;                    // constitution: fixed 20 ticks/s at tile level
@@ -613,7 +614,7 @@ function stopReason(st: SimState, m: Machine): string {
 
 // ------------------------------------------------------------------ rubble under a tile
 
-export interface TileRubble { type: Item; units: number; bi: number; tile: number; patch: number }
+export interface TileRubble { type: Item; units: number; bi: number; tile: number; patch: number; persistent?: boolean }
 
 /** What a tile holds for digging: an HQ patch tile (steel, copper, coal) or a standing district rubble tile, with
  *  the units left in it. Null for ground, street, a dug tile, or a tile the pool says is already gone. */
@@ -623,6 +624,8 @@ export function rubbleAt(st: SimState, tx: number, ty: number): TileRubble | nul
   const G = ground(st);
   if (!inGround(G, tx, ty)) return null;
   const t = ty * G.tw + tx, bi = G.owner[t];
+  const source = persistentSource(st,tx,ty);
+  if(source)return {type:source.item,units:Infinity,bi:source.block,tile:t,patch:0,persistent:true};
   if (bi < 0) return null;
   const b = st.blocks[bi];
   if (b.state !== HELD) return null;
@@ -650,6 +653,7 @@ export function rubbleAt(st: SimState, tx: number, ty: number): TileRubble | nul
  *  (D-P4-2; before RI-01 the pool dropped a unit at a time and a half-dug tile made the thinnest edge tile flicker). */
 function mineUnit(st: SimState, r: TileRubble): Item {
   const f = st.flow!;
+  if(r.persistent){f.stats.mined++;f.stats.minedOf[r.type]=(f.stats.minedOf[r.type]??0)+1;return r.type;}
   const key = `${r.bi}:${r.tile}`;
   const left = r.units - 1;
   const b = st.blocks[r.bi];
@@ -833,7 +837,8 @@ function tickInserter(st: SimState, m: Machine, dt: number): void {
     } else if (src.kind === 'assembler' && src.out > 0) { const o = recipeOutput(recipeOf(src)); if (wants(dst, o)) { src.out--; k = o; } }
     else if (src.kind === 'chest' || src.kind === 'tramstop') {   // RI-05: from a chest's contents or a stop's arrivals, the first item the target could use
       const pool = src.kind === 'chest' ? src.inv : (src.cargo ??= {});
-      for (const kk in pool) if (pool[kk] >= 1 && isItem(kk) && wants(dst, kk)) { pool[kk]--; if (pool[kk] <= 0) delete pool[kk]; k = kk; break; }
+      // Campaign mixed supply chests must feed both recipe inputs: a full steel input cannot hide needed copper.
+      for (const kk in pool) if (pool[kk] >= 1 && isItem(kk) && wants(dst, kk) && (!isCampaign(st) || accepts(st,dst,kk))) { pool[kk]--; if (pool[kk] <= 0) delete pool[kk]; k = kk; break; }
     }
     if (!k) return;
     m.hold = k; m.phase = 1; m.timer = INSERTER_SWING + Math.min(0, m.timer);
@@ -914,7 +919,7 @@ function tickHand(st: SimState, f: FlowState, dt: number): void {
   if (!h.away && !nearDepot(st)) h.away = true;   // M4 telemetry: the next chest transaction is a trip
   if (h.mine) {
     const r = rubbleAt(st, h.mine[0], h.mine[1]);
-    if (!r || !inReach(st, h.mine[0], h.mine[1])) { h.mine = null; h.prog = 0; }   // dug out, or walked away (D5: reach 8)
+    if (!r || r.persistent || !inReach(st, h.mine[0], h.mine[1])) { h.mine = null; h.prog = 0; }   // persistent extraction requires a powered machine
     else {
       h.prog += dt * HAND_MINE_PER_S;
       if (h.prog >= 1 - EPS) {
@@ -994,6 +999,7 @@ export function stepFlow(st: SimState, dt = TILE_DT): void {
     else tickAssembler(st, m, localDt);
   }
   tickHand(st, f, dt);
+  tickDistricts(st,dt);
 }
 
 /** Real-time driver with the flow layer: tile ticks at TILE_TPS × speed, a block tick (`step`) every TILE_TPS of
@@ -1093,7 +1099,7 @@ function tramTransfer(st: SimState, m: Machine, stop: Machine): void {
     cargo[k] = (cargo[k] ?? 0) + n; stop.inv[k] -= n; if (stop.inv[k] <= 0) delete stop.inv[k];
   }
 }
-function routeStops(st: SimState, path: number[]): Machine[] {
+export function routeStops(st: SimState, path: number[]): Machine[] {
   return [...new Set(path.map(t => stopAt(st, t % st.flow!.tw, Math.floor(t / st.flow!.tw))).filter((s): s is Machine => !!s))];
 }
 /** The tram shuttles end to end along its route at TRAM_TPS, dwelling TRAM_DWELL_S at each stop it passes (once a
@@ -1180,7 +1186,7 @@ export function placeable(st: SimState, kind: Kind, tx: number, ty: number): str
       if (!isFieldKind(kind)) return 'the block is not Held';
       if (!fieldBlock(st, bi)) return b.state === DARK || b.state === CONTESTED ? 'not next to Held ground' : 'the block is not Held';
     }
-    if (campaignSiteAt(st, x, y) === 'radio') return 'the radio installation is there';
+    if (['radio','workshop'].includes(campaignSiteAt(st, x, y)??'')) return 'a restoration installation is there';
     if (f.occ[t] !== undefined) return 'another machine is there';
     if (cabinetAt(st, x, y) >= 0) return 'the feeder cabinet is there';   // RI-06
     if (margin && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && kind !== 'chest' && kind !== 'track' && kind !== 'tramstop' && kind !== 'wall' && !post) return 'not on the street';
@@ -1281,6 +1287,7 @@ export function remove(st: SimState, tx: number, ty: number): Machine | null {
     const loose = (m.inv.rounds ?? 0) % SHOT.count, give = Math.min(loose, Math.max(0, st.config.bufferCap - st.buffer));
     st.buffer += give; st.stats.roundsLost = (st.stats.roundsLost ?? 0) + loose - give;
   }
+  if(st.campaign?.districts?.repair?.target===m.id)st.campaign.districts.repair=null;
   if (m.kind !== 'tram') for (let y = m.y; y < m.y + m.size; y++) for (let x = m.x; x < m.x + m.size; x++) delete f.occ[y * f.tw + x];
   f.machines.splice(f.machines.indexOf(m), 1);
   f.rev++;
@@ -1389,7 +1396,7 @@ export function describeMachine(st: SimState, m: Machine): string {
     case 'generator': return `Generator · ${GENERATOR_KW} kW · ${Math.floor(m.inv.coal ?? 0)} / ${GENERATOR_COAL_CAP} coal · ${m.busy ? `burning (${Math.round(st.flow!.power.load / Math.max(1, st.flow!.machines.filter(g => g.kind === 'generator' && g.busy).length))} kW)` : (m.inv.coal ?? 0) > 0 ? 'idle' : 'OUT OF COAL'}${on}`;
     case 'belt': return `belt → ${DIR_NAMES[m.dir]} · ${m.items.length} item${m.items.length === 1 ? '' : 's'}${on}`;
     case 'inserter': return `inserter → ${DIR_NAMES[m.dir]} · ${m.hold ? `carrying ${m.hold}` : 'empty'}${on}`;
-    case 'excavator': { const r = findRubble(st, m); return `Excavator → ${DIR_NAMES[m.dir]} · ${r ? `digging ${r.type} (${Math.ceil(r.units)} left in the tile)` : 'nothing in reach'}${m.hold ? ` · output blocked (${m.hold})` : ''}${on}`; }
+    case 'excavator': { const r = findRubble(st, m); return `Excavator → ${DIR_NAMES[m.dir]} · ${r ? `digging ${r.type} (${r.persistent?'persistent source; powered extraction':`${Math.ceil(r.units)} left in the tile`})` : 'nothing in reach'}${m.hold ? ` · output blocked (${m.hold})` : ''}${on}`; }
     case 'assembler': {
       const r = recipeOf(m), o = recipeOutput(r);
       const ins = Object.keys(r.inputs).map(k => `${k === 'copper' ? 'Cu' : k} ${m.inv[k] ?? 0}`).join(' · ');
@@ -2090,8 +2097,8 @@ export function chestPut(st: SimState, item: ChestItem, n: number, at?: [number,
 // the engineer's hand commands (types.ts) land here when the flow layer is loaded
 handHook.current = (st, c) => {
   switch (c.type) {
-    case 'deliverSite': if (c.site === 'station' || c.site === 'radio') deliverSite(st, c.site); break;
-    case 'restoreSite': if (c.site === 'station' || c.site === 'radio') restoreSite(st, c.site); break;
+    case 'deliverSite': if (['station','radio','northStation','workshop'].includes(c.site)) deliverSite(st, c.site); break;
+    case 'restoreSite': if (['station','radio','northStation','workshop'].includes(c.site)) restoreSite(st, c.site); break;
     case 'collectTramKit': collectTramKit(st); break;
     case 'mineAt': setHandMine(st, [c.x, c.y]); break;
     case 'craft': queueCraft(st, c.count ?? 1); break;

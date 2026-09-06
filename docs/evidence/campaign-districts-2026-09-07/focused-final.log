@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: district sites and specialised sources are reachable, distinct and persistent across seeds and saves
+ok 1 - district sites and specialised sources are reachable, distinct and persistent across seeds and saves
+  ---
+  duration_ms: 2885.305231
+  type: 'test'
+  ...
+# Subtest: powered extraction produces into real local storage without depletion or hand mining; outages stop it
+ok 2 - powered extraction produces into real local storage without depletion or hand mining; outages stop it
+  ---
+  duration_ms: 577.537317
+  type: 'test'
+  ...
+# Subtest: workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+ok 3 - workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+  ---
+  duration_ms: 514.287343
+  type: 'test'
+  ...
+# Subtest: fresh campaign pays for both stations and the workshop through logged commands that replay identically
+ok 4 - fresh campaign pays for both stations and the workshop through logged commands that replay identically
+  ---
+  duration_ms: 597.394099
+  type: 'test'
+  ...
+# Subtest: paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest
+ok 5 - paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest
+  ---
+  duration_ms: 1305.666737
+  type: 'test'
+  ...
+# Subtest: old district-free previews upgrade once without moving the promised assault or duplicating sources
+ok 6 - old district-free previews upgrade once without moving the promised assault or duplicating sources
+  ---
+  duration_ms: 510.907349
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8969.900408

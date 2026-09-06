@@ -3,6 +3,7 @@
 import { SimState, HELD } from './types';
 import { ground, blockOfTile, distToRect } from './ground';
 import { MACHINE_KW, Machine, FlowState } from './flow';
+import { DISTRICT_ECONOMY } from './campaignDistricts';
 import { GENERATOR_KW, POLE_REACH, BIG_POLE_REACH } from './recipes';
 export const CAMPAIGN_POWER = { coreKw: 100, radioKw: 20 } as const;
 interface Circuit { supply: number; demand: number; load: number; throttle: number; generators: number[] }
@@ -34,6 +35,8 @@ export function campaignGrid(st: SimState): CampaignGrid {
   for (const m of f.machines) { const bi = blockOfTile(st, m.x, m.y); if (bi >= 0 && !disabled.has(bi)) blocks[bi].demand += MACHINE_KW[m.kind]; }
   const radio = st.campaign?.expansion?.radio;
   if (radio && radio.restoredAt >= 0 && !disabled.has(radio.block)) blocks[radio.block].demand += CAMPAIGN_POWER.radioKw;
+  const workshop = st.campaign?.districts?.workshop;
+  if (workshop && workshop.restoredAt >= 0 && !disabled.has(workshop.block)) blocks[workshop.block].demand += DISTRICT_ECONOMY.workshopKw;
   const grid: CampaignGrid = { blocks, generation: new Map(), supply: 0, demand: 0, load: 0 };
   for (const c of groups.values()) {
     c.load = Math.min(c.supply, c.demand); c.throttle = c.supply > 0 ? Math.min(1, c.supply / Math.max(1, c.demand)) : 0;

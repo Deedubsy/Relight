@@ -1,3 +1,4 @@
+import { districtGuidance } from './campaignDistricts';
 import { campaignWarning } from './campaignThreat';
 import { defenceMax, defenceHp, coreDisabledAt } from './campaignDefence';
 /** RI-02 — the current-goal line (D-GB-2 (a), constitution rule 8's form; plan §11.2 "prominent current goal with
@@ -248,6 +249,7 @@ export function currentGoal(st: SimState): Goal {
         && !!st.flow?.machines.some(m => m.kind === 'tram' && tramRoute(st,m).includes(ex.route[0]));
       if (!linked) return { goal: { id: 'home-explore', text: 'Lay the supplied tram route and power both stops', why: 'Blue survey squares mark track and stop positions. Collect any remaining kit at the station; place the tram on the completed line.' }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
     }
+    if(ex&&ex.radio.restoredAt>=0&&st.campaign?.districts) { const d=st.campaign.districts;return {goal:{id:'home-explore',block:d.station.block,text:d.station.restoredAt<0?'Extend your tram supply line to the later station':d.workshop.restoredAt<0?'Restore and supply the repair workshop':'Connect specialised extraction and keep home producing supplies',why:districtGuidance(st)},support:{id:'campaign-threat',text:campaignWarning(st),why:'Protect the supplies and prepare for dusk.'}};}
     if (ex && (factory || ex.station.restoredAt >= 0)) return { goal: { id: 'home-explore', block: ex.station.block, text: ex.station.restoredAt < 0 ? `Explore to ${blockName(st, ex.station.block)} and restore its tram station` : ex.radio.restoredAt < 0 ? 'Connect the tram line and restore the nearby radio tower' : 'Build factories around your connected station', why: describeSite(st, ex.station.restoredAt < 0 ? 'station' : 'radio') }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
     return { goal: { id: factory ? 'home-explore' : 'home-factory', text: factory ? 'Explore beyond Home Court through its single entrance' : 'Build your first production line in Home Court',
       why: factory ? 'Your house and factory remain here when you return.' : 'E at the house opens your supplies; B opens building. Steel and copper patches are inside the court.' }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };

@@ -3,7 +3,7 @@ import type { SimState } from './types';
 import { DEFENCE } from './campaignDefence';
 export function defenceProblem(st:SimState):string {
   const d=st.campaign?.defence;
-  if(st.campaign?.version!==3)return d?'defence requires campaign metadata version 3':'';
+  if((st.campaign?.version??0)<3)return d?'defence requires campaign metadata version 3':'';
   if(!d||d.version!==1||!st.flow||!Array.isArray(d.bases)||!Array.isArray(d.nominations)||!Array.isArray(d.sites)||!Array.isArray(d.history))return 'invalid campaign defence state';
   const number=(n:unknown)=>typeof n==='number'&&Number.isFinite(n);
   const integer=(n:unknown,min=0)=>number(n)&&Number.isInteger(n)&&(n as number)>=min;
@@ -12,8 +12,9 @@ export function defenceProblem(st:SimState):string {
   if(!integer(d.nextId,1)||!integer(d.nextDawn)||!integer(d.lastMajorEnd,-1)||!integer(d.lastMinorSlot,-1)||!integer(d.raidsStarted)||!integer(d.majorSpawned)||typeof d.radioUpgrade!=='boolean'||typeof d.notice!=='string')return 'invalid campaign schedule';
   if(new Set(d.bases.map(b=>b.block)).size!==d.bases.length||!d.bases.some(b=>b.block===st.campaign!.homeBlock))return 'invalid campaign base registry';
   for(const b of d.bases)if(!block(b.block)||!integer(b.x)||!integer(b.y)||!integer(b.size,1)||b.x+b.size>st.flow.tw||b.y+b.size>st.city!.th||!number(b.hp)||b.hp<0||b.hp>DEFENCE.coreHp||!integer(b.commissionedAt))return 'invalid campaign base';
-  const station=st.campaign.expansion?.station;
-  if(d.bases.some(b=>b.block!==st.campaign!.homeBlock&&b.block!==station?.block)||!!d.bases.find(b=>b.block===station?.block)!==!!(station&&station.restoredAt>=0))return 'campaign bases disagree with restoration';
+  const station=st.campaign!.expansion?.station;
+  const stations=[station,st.campaign!.districts?.station].filter(s=>s!==undefined);
+  if(d.bases.some(b=>b.block!==st.campaign!.homeBlock&&!stations.some(s=>s!.block===b.block))||stations.some(s=>!!d.bases.find(b=>b.block===s!.block)!==(s!.restoredAt>=0)))return 'campaign bases disagree with restoration';
   if(d.nominations.some(n=>!d.bases.some(b=>b.block===n.block)||!integer(n.at))||new Set(d.nominations.map(n=>n.block)).size!==d.nominations.length)return 'invalid restoration nominations';
   for(const a of [d.major,d.minor])if(a!==null&&(!a||!integer(a.id,1)||a.id>=d.nextId||!d.bases.some(b=>b.block===a.block)||!tile(a.origin)||typeof a.retreat!=='boolean'))return 'invalid campaign attack';
   if(d.major&&(!integer(d.major.dawn)||!integer(d.major.startsAt)||d.major.startsAt<d.major.dawn||!integer(d.major.remaining)||d.major.remaining>60||!integer(d.major.nextSpawn)))return 'invalid major roster';

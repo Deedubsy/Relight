@@ -48,7 +48,7 @@ export function coreAt(st: SimState, x: number, y: number): BaseCore | undefined
   return st.campaign?.defence?.bases.find(b => x>=b.x && x<b.x+b.size && y>=b.y && y<b.y+b.size);
 }
 export function registerBase(st: SimState, block: number): void {
-  const d = st.campaign?.defence, site = st.campaign?.expansion?.station;
+  const d = st.campaign?.defence, site = [st.campaign?.expansion?.station, st.campaign?.districts?.station].find(s=>s?.block===block);
   if (!d || !site || baseCore(st, block)) return;
   d.bases.push({ block, x: site.x, y: site.y, size: site.size, hp: DEFENCE.coreHp, commissionedAt: st.t });
   nominateBase(st, block);

@@ -5,6 +5,7 @@
 import type { SimState } from './types';
 import { type Machine, type Item, ITEMS, isItem, invTotal, STOP_CAP, TRAM_CAP, machineAt } from './flow';
 import { inReach } from './ground';
+import { recordDistrictDelivery } from './campaignDistricts';
 
 export interface StationRule { request: number; reserve: number; export: boolean }
 export type StationRules = Partial<Record<Item, StationRule>>;
@@ -53,6 +54,8 @@ export function transferFreight(st: SimState, tram: Machine, stop: Machine, rout
       const arrivals = stop.cargo ??= {};
       const n = Math.min(r.n, Math.max(0, STOP_CAP - invTotal(arrivals)));
       if (n > 0) {
+        const origin=routeStops.find(s=>s.id===r.origin);
+        if(!r.returning&&origin)recordDistrictDelivery(st,origin,stop,r.item,n);
         arrivals[r.item] = (arrivals[r.item] ?? 0) + n;
         cargo[r.item] -= n; if (!cargo[r.item]) delete cargo[r.item];
         r.n -= n;

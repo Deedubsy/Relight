@@ -38,7 +38,7 @@ import {
 import { Session, queue, record } from './session';
 import { View, debugView, hudInset } from './view';
 import { coreAt, defenceMax, defenceHp, defenceDescription, repairCheck } from '@relight/sim';
-import { campaignSiteAt, campaignSite, describeSite } from '@relight/sim';
+import { campaignSiteAt, campaignSite, describeSite, SITE_IDS, persistentSource } from '@relight/sim';
 import { drawUrban } from './urbanDraw';
 
 /** RI-02 (§11.2 "machine purpose and working / starved / blocked state", never colour alone): the state word's
@@ -684,6 +684,8 @@ export class WorldScene extends Phaser.Scene {
     const kc = st.flow ? cabinetAt(st, tx, ty) : -1;
     if (kc >= 0) lines.unshift(describeCabinet(st, kc));   // RI-06: a feeder cabinet under the cursor
     const defenceInfo=defenceDescription(st,tx,ty);if(defenceInfo)lines.unshift(defenceInfo);
+    const source=persistentSource(st,tx,ty);
+    if(source)lines.unshift(`${source.item.toUpperCase()} extraction · persistent source · powered excavator, 0.5 items/s · belt output to your station`);
     const campaignInstallation = campaignSiteAt(st, tx, ty);
     if (campaignInstallation) lines.unshift(describeSite(st, campaignInstallation));
     else if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
@@ -898,11 +900,11 @@ export class WorldScene extends Phaser.Scene {
       li++;
     }
     if (st.campaign?.expansion) {
-      const ex = st.campaign.expansion;
-      for (const [name, site] of [['TRAM STATION / E', ex.station], ['RADIO TOWER / E', ex.radio]] as const) {
+      for (const id of SITE_IDS) {
+        const site=campaignSite(st,id)!; const name=id==='northStation'?'LATER STATION / E':id==='workshop'?'REPAIR WORKSHOP / E':id==='station'?'TRAM STATION / E':'RADIO TOWER / E';
         if (site.x < tx0 || site.x > tx1 || site.y < ty0 || site.y > ty1) continue;
         let label = this.labels[li]; if (!label) { label = this.add.text(0, 0, '', { fontSize: '12px', color: '#f2d38b', backgroundColor: '#0b0e1aaa', padding: { x: 4, y: 2 } }).setDepth(5); this.labels.push(label); }
-        label.setText(name).setPosition(site.x * TILE_PX, (site.y - 1) * TILE_PX).setScale(1 / cam.zoom).setVisible(true); li++;
+        label.setText(name).setPosition(site.x * TILE_PX, (site.y - (id==='workshop'?2:1)) * TILE_PX).setScale(1 / cam.zoom).setVisible(true); li++;
       }
     }
     for(const core of st.campaign?.defence?.bases??[]) {

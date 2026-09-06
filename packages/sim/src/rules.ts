@@ -7,7 +7,7 @@ export type Ruleset = typeof LEGACY_RULESET | typeof CAMPAIGN_RULESET;
 export const CAMPAIGN_RULES = { daySeconds: 1200, daylightSeconds: 900, firstAssaultNight: 3, opening: 'culdesac-v1' } as const;
 export interface CampaignSite { block: number; x: number; y: number; size: number; delivered: { steel: number; copper: number }; restoredAt: number }
 export interface ExpansionState { station: CampaignSite; radio: CampaignSite; route: number[]; stops: [number, number][]; reward: { track: number; tramstop: number; tram: number }; grantedAt: number }
-export interface CampaignState { version: 1 | 2 | 3; defence?: import('./campaignDefence').DefenceState; opening: 'culdesac-v1'; homeBlock: number; expansion?: ExpansionState }
+export interface CampaignState { version: 1 | 2 | 3 | 4; districts?: import('./campaignDistricts').DistrictState; defence?: import('./campaignDefence').DefenceState; opening: 'culdesac-v1'; homeBlock: number; expansion?: ExpansionState }
 export function isRuleset(value: unknown): value is Ruleset { return value === LEGACY_RULESET || value === CAMPAIGN_RULESET; }
 export function rulesetOf(st: Pick<SimState, 'ruleset'>): Ruleset { return st.ruleset ?? LEGACY_RULESET; }
 export function isCampaign(st: Pick<SimState, 'ruleset'>): boolean { return rulesetOf(st) === CAMPAIGN_RULESET; }
@@ -20,7 +20,7 @@ export function rulesetProblem(st: SimState): string {
   if (!isCampaign(st)) return st.campaign !== undefined || st.version === 3 ? 'campaign metadata on a legacy state' : '';
   if (st.version !== 3) return 'exploration campaign requires save schema 3';
   const c = st.campaign;
-  if (!c || (c.version !== 1 && c.version !== 2 && c.version !== 3) || c.opening !== CAMPAIGN_RULES.opening || !Number.isInteger(c.homeBlock)
+  if (!c || ![1,2,3,4].includes(c.version) || c.opening !== CAMPAIGN_RULES.opening || !Number.isInteger(c.homeBlock)
     || !st.blocks[c.homeBlock] || st.blocks[c.homeBlock].x !== st.start[0] || st.blocks[c.homeBlock].y !== st.start[1]) return 'invalid campaign opening';
   if (c.version >= 2) {
     const e = c.expansion;

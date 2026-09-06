@@ -8,7 +8,7 @@ import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
 import { radioUpgradeCheck, campaignWarning, defenceDescription, repairCheck, CAMPAIGN_THREAT } from '@relight/sim';
-import { campaignSite, describeSite, EXPANSION } from '@relight/sim';
+import { campaignSite, describeSite, EXPANSION, SITE_IDS, SITE_LABELS, SiteId, districtGuidance } from '@relight/sim';
 import { ITEMS, StationRules, freightInbound, isCampaign, rulesetOf, CAMPAIGN_RULESET, LEGACY_RULESET, campaignClock } from '@relight/sim';
 
 /** M6: what the export carries beside the telemetry — the command log (the replay's input) and, under the hour bot, its log and report. */
@@ -113,15 +113,15 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   let radioUpgradeButton: HTMLButtonElement | null=null;
   let defenceStatus: HTMLElement | null=null;
   const coreButtons: {block:number;button:HTMLButtonElement}[]=[];
-  const siteButtons: { id: 'station' | 'radio'; button: HTMLButtonElement }[] = [];
+  const siteButtons: { id: SiteId; button: HTMLButtonElement }[] = [];
   if (campaignStatus) {
     const section = el('section'); section.append(el('h2', undefined, 'Station restoration'), campaignStatus);
     section.append(el('p', 'hint', `Station: ${EXPANSION.station.steel} steel + ${EXPANSION.station.copper} copper. Radio: ${EXPANSION.radio.steel} steel + ${EXPANSION.radio.copper} copper. Build and fuel a generator on the site or run poles to its substation. Commissioning registers this neighbourhood as a base. Its street boundaries are shown in the world and map views.`));
     defenceStatus=el('p','hint');section.append(defenceStatus);
     radioUpgradeButton=el('button',undefined,`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`);radioUpgradeButton.onclick=()=>queue(session,{type:'upgradeRadio'});section.append(radioUpgradeButton);
-    for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};coreButtons.push({block:base,button});section.append(button);}
-    for (const id of ['station','radio'] as const) { const button = el('button', undefined, `Deliver and restore ${id}`); button.onclick = () => { const s = campaignSite(session.state, id); if (s && s.restoredAt >= 0 && id === 'station') queue(session,{type:'collectTramKit'}); else {queue(session,{type:'deliverSite',site:id});queue(session,{type:'restoreSite',site:id});} }; section.append(button);siteButtons.push({id,button}); }
-    section.append(el('p', 'hint', 'After restoration, blue survey squares mark the suggested track and stop positions. They place nothing: collect the kit at the station, then lay and power the line yourself. The kit stays there if your pockets are full.'));
+    for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block,st.campaign!.districts!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};coreButtons.push({block:base,button});section.append(button);}
+    for (const id of SITE_IDS) { const button = el('button', undefined, `Deliver and restore ${SITE_LABELS[id]}`); button.onclick = () => { const s = campaignSite(session.state, id); if (s && s.restoredAt >= 0 && id === 'station') queue(session,{type:'collectTramKit'}); else {queue(session,{type:'deliverSite',site:id});queue(session,{type:'restoreSite',site:id});} }; section.append(button);siteButtons.push({id,button}); }
+    section.append(el('p', 'hint', 'After restoration, blue survey squares mark the suggested track and stop positions. They place nothing: collect the kit at the station, then lay and power the line yourself. The kit stays there if your pockets are full. Extend the survey using paid track and a third stop. Coloured source pads need powered excavators. Supply a chest within 4 tiles of the restored workshop with steel and copper; it repairs walls and turrets within 14 tiles between attacks.'));
     root.append(section);
   }
   // HUD
@@ -445,8 +445,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     if(defenceStatus)defenceStatus.textContent=campaignWarning(s);
     if(radioUpgradeButton){const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
     for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;row.button.disabled=!core||!!repairCheck(s,core.x,core.y);if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
-    if (campaignStatus) { const ex = s.campaign?.expansion; campaignStatus.textContent = ex ? `${blockNameAt(s, s.blocks[ex.station.block].x, s.blocks[ex.station.block].y)}: ${describeSite(s, 'station')} ${ex.station.restoredAt >= 0 ? describeSite(s, 'radio') : ''}` : ''; }
-    for (const row of siteButtons) { const site = campaignSite(s, row.id); row.button.disabled = !site || !inReach(s, site.x, site.y, site.size) || (row.id === 'radio' && (campaignSite(s, 'station')?.restoredAt ?? -1) < 0); row.button.textContent = site && site.restoredAt >= 0 ? row.id === 'station' ? 'Collect tram kit' : 'Radio restored' : `Deliver and restore ${row.id}`; if (row.id === 'radio' && site && site.restoredAt >= 0) row.button.disabled = true; }
+    if (campaignStatus) { const ex = s.campaign?.expansion; campaignStatus.textContent = ex ? `${blockNameAt(s, s.blocks[ex.station.block].x, s.blocks[ex.station.block].y)}: ${describeSite(s, 'station')} ${ex.station.restoredAt >= 0 ? describeSite(s, 'radio') + ' ' + describeSite(s, 'northStation') + ' ' + districtGuidance(s) : ''}` : ''; }
+    for (const row of siteButtons) { const site = campaignSite(s, row.id); row.button.title=describeSite(s,row.id); row.button.disabled = !site || !inReach(s, site.x, site.y, site.size) || (row.id === 'radio' && (campaignSite(s, 'station')?.restoredAt ?? -1) < 0); row.button.textContent = site && site.restoredAt >= 0 ? row.id === 'station' ? 'Collect tram kit' : `${SITE_LABELS[row.id]} restored` : `Deliver and restore ${SITE_LABELS[row.id]}`; if (row.id !== 'station' && site && site.restoredAt >= 0) row.button.disabled = true; }
     const h = hud(s);
     sHeld.b.textContent = String(h.held); sFront.b.textContent = String(h.front); sInt.b.textContent = String(h.interior);
     const fs = flowSummary(s);

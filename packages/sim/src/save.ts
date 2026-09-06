@@ -11,6 +11,8 @@ import type { LoggedCommand } from './hour';
 import { freightProblem } from './freight';
 import { initExpansion } from './expansion';
 import { initDefence } from './campaignDefence';
+import { initDistricts } from './campaignDistricts';
+import { districtsProblem } from './districtValidation';
 import { defenceProblem } from './defenceValidation';
 import { rulesetProblem } from './rules';
 
@@ -74,7 +76,7 @@ export function stateProblem(v: unknown): string {
   if (!Array.isArray(st.ring)) return 'no ring';
   if (!st.engineer || typeof st.engineer !== 'object') return 'no engineer';
   if (st.city?.profile && st.city.profile !== 'riverside-v1') return `unsupported city profile ${st.city.profile}`;
-  return rulesetProblem(st as SimState) || defenceProblem(st as SimState) || freightProblem(st as SimState);
+  return rulesetProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || freightProblem(st as SimState);
 }
 
 /** A validated deep copy of a saved state — a SaveFile, a telemetry export (its `finalState`) or a raw SimState —
@@ -87,7 +89,7 @@ export function loadState(raw: unknown): SimState {
   const st = JSON.parse(JSON.stringify(src)) as SimState;
   st.events = []; st.acc = 0; st.speed = 0;
   st.survivors ??= [];
-  if (st.flow) { initExpansion(st); initDefence(st); }
+  if (st.flow) { initExpansion(st); initDefence(st); initDistricts(st); }
   return st;
 }
 

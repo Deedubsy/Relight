@@ -136,8 +136,8 @@ export function tickCampaignSchedule(st:SimState,T:ThreatState):void {
     d.history.push({id:a.id,block:a.block,started:a.startsAt,ended:st.t,defeated:a.retreat,spawned:d.majorSpawned});
     if(d.history.length>32)d.history.shift();
     d.lastMajorEnd=st.t;
-    // The third-station automated-resupply milestone cannot occur in the current two-base slice.
-    d.nextDawn=Math.ceil((st.t+2*DAY-DUSK)/DAY)*DAY;
+    const quietCycles=(st.campaign!.districts?.resuppliedAt??-1)>=0?1:2;
+    d.nextDawn=Math.ceil((st.t+quietCycles*DAY-DUSK)/DAY)*DAY;
     d.major=null;d.majorSpawned=0;
   }
   if(!d.major&&st.t>=d.nextDawn) {

@@ -187,7 +187,7 @@ export type Command =
   | { type: 'fire'; edge: number }                    // -1 = cease fire
   | { type: 'enterTruck' }
   // RI-05: `x`/`y` name a supply chest or a tram stop within reach (plan §5.2's named installation); absent = the Depot
-  | { type: 'deliverSite' | 'restoreSite'; site: 'station' | 'radio' }
+  | { type: 'deliverSite' | 'restoreSite'; site: 'station' | 'radio' | 'northStation' | 'workshop' }
   | { type: 'collectTramKit' }
   | { type: 'chestTake'; item: string; n: number; x?: number; y?: number }
   | { type: 'chestPut'; item: string; n: number; x?: number; y?: number }

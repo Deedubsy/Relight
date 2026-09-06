@@ -6,8 +6,11 @@ import { isCampaign, CampaignSite } from './rules';
 import { registerBase } from './campaignDefence';
 import { campaignWarning, restorationWindow } from './campaignThreat';
 import { campaignThrottle } from './campaignPower';
-export const EXPANSION = { station: { steel: 30, copper: 15 }, radio: { steel: 20, copper: 10 } } as const;
-export type SiteId = 'station' | 'radio';
+import { workshopStatus } from './campaignDistricts';
+export const EXPANSION = { station: { steel: 30, copper: 15 }, radio: { steel: 20, copper: 10 }, northStation: {steel:40,copper:20}, workshop:{steel:25,copper:15} } as const;
+export type SiteId = 'station' | 'radio' | 'northStation' | 'workshop';
+export const SITE_IDS: readonly SiteId[] = ['station','radio','northStation','workshop'];
+export const SITE_LABELS: Record<SiteId,string> = {station:'first tram station',radio:'radio tower',northStation:'later tram station',workshop:'repair workshop'};
 export function initExpansion(st: SimState): void {
   if (!isCampaign(st) || st.campaign!.expansion) return;
   const G = ground(st), bi = G.railYard, sub = G.blocks[bi]?.sub;
@@ -54,13 +57,14 @@ export function initExpansion(st: SimState): void {
   st.campaign!.version=2;
   st.campaign!.expansion={station:site(sub.x,sub.y,sub.size),radio:site(radio[0],radio[1],1),route,stops,reward:{track:0,tramstop:0,tram:0},grantedAt:-1};
 }
-export function campaignSite(st: SimState,id: SiteId):CampaignSite|undefined { return st.campaign?.expansion?.[id]; }
+export function campaignSite(st: SimState,id: SiteId):CampaignSite|undefined { return id==='northStation'?st.campaign?.districts?.station:id==='workshop'?st.campaign?.districts?.workshop:st.campaign?.expansion?.[id]; }
 export function campaignSiteAt(st: SimState,x:number,y:number):SiteId|null {
-  for(const id of ['station','radio'] as const){const s=campaignSite(st,id);if(s && x>=s.x&&x<s.x+s.size&&y>=s.y&&y<s.y+s.size)return id;}return null;
+  for(const id of SITE_IDS){const s=campaignSite(st,id);if(s && x>=s.x&&x<s.x+s.size&&y>=s.y&&y<s.y+s.size)return id;}return null;
 }
 export function siteCheck(st:SimState,id:SiteId):string {
   const s=campaignSite(st,id); if(!s)return 'no restoration site';
-  if(id==='radio'&&campaignSite(st,'station')!.restoredAt<0)return 'restore the station first';
+  if(id!=='station'&&campaignSite(st,'station')!.restoredAt<0)return 'restore the first station first';
+  if(id==='workshop'&&campaignSite(st,'northStation')!.restoredAt<0)return 'restore this district station first';
   if(s.restoredAt>=0)return 'already restored';
   if(st.engineer.down>=0||!inReach(st,s.x,s.y,s.size))return 'walk closer to the installation';
   const need=EXPANSION[id];if(s.delivered.steel<need.steel||s.delivered.copper<need.copper)return 'deliver the missing materials';
@@ -68,16 +72,16 @@ export function siteCheck(st:SimState,id:SiteId):string {
   return '';
 }
 export function deliverSite(st:SimState,id:SiteId):void {
-  const s=campaignSite(st,id);if(!s||s.restoredAt>=0||st.engineer.down>=0||!inReach(st,s.x,s.y,s.size)||(id==='radio'&&campaignSite(st,'station')!.restoredAt<0))return;
+  const s=campaignSite(st,id);if(!s||s.restoredAt>=0||st.engineer.down>=0||!inReach(st,s.x,s.y,s.size)||(id!=='station'&&campaignSite(st,'station')!.restoredAt<0)||(id==='workshop'&&campaignSite(st,'northStation')!.restoredAt<0))return;
   for(const item of ['steel','copper'] as const)s.delivered[item]+=drop(st.engineer,item,Math.max(0,EXPANSION[id][item]-s.delivered[item]));
 }
 export function restoreSite(st:SimState,id:SiteId):string {
   const why=siteCheck(st,id);if(why)return why;
-  const e=st.campaign!.expansion!,s=e[id];
+  const e=st.campaign!.expansion!,s=campaignSite(st,id)!;
   st.stats.spentSteel=(st.stats.spentSteel??0)+s.delivered.steel;st.stats.spentCopper=(st.stats.spentCopper??0)+s.delivered.copper;
   s.delivered={steel:0,copper:0};s.restoredAt=st.t;st.flow!.rev++;
-  if(id==='station') { const b=st.blocks[s.block];b.state=HELD;b.subOn=true;b.d=0;registerBase(st,s.block);
-    if(e.grantedAt<0){e.grantedAt=st.t;e.reward={track:e.route.length,tramstop:2,tram:1};}
+  if(id==='station'||id==='northStation') { const b=st.blocks[s.block];b.state=HELD;b.subOn=true;b.d=0;registerBase(st,s.block);
+    if(id==='station'&&e.grantedAt<0){e.grantedAt=st.t;e.reward={track:e.route.length,tramstop:2,tram:1};}
   }
   return '';
 }
@@ -87,7 +91,9 @@ export function collectTramKit(st:SimState):number {
 }
 export function describeSite(st:SimState,id:SiteId):string {
   const s=campaignSite(st,id);if(!s)return '';
+  if(id==='workshop'&&s.restoredAt>=0)return workshopStatus(st);
+  if(id==='northStation'&&s.restoredAt>=0)return 'Later station restored. Extend the trunk along the survey, build and power a third stop, and supply it from home. Copper extraction and workshop service keep this district productive.';
   if(s.restoredAt>=0){if(id==='station'){const r=st.campaign!.expansion!.reward;return `Station restored. Transport unlocked. Kit remaining: ${r.tram} tram, ${r.tramstop} stops, ${r.track} track. E collects what fits.`;}
     return campaignThrottle(st,s.block)>0?`Radio powered. ${campaignWarning(st)}`:'Radio restored but without power. Its warning service is offline.';}
-  return `${id==='station'?'Tram station':'Radio tower'}: ${s.delivered.steel}/${EXPANSION[id].steel} steel, ${s.delivered.copper}/${EXPANSION[id].copper} copper delivered. E delivers and restores when powered. ${siteCheck(st,id)} ${id==='station'?restorationWindow(st):''}`;
+  return `${id==='station'?'Tram station':id==='radio'?'Radio tower':id==='northStation'?'Later tram station':'Repair workshop'}: ${s.delivered.steel}/${EXPANSION[id].steel} steel, ${s.delivered.copper}/${EXPANSION[id].copper} copper delivered. E delivers and restores when powered. ${siteCheck(st,id)} ${id==='station'||id==='northStation'?restorationWindow(st):''}`;
 }
