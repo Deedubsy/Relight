@@ -1,3 +1,5 @@
+import { stationRoute, truckRect } from '@relight/sim';
+import { transportView } from './view';
 /** The map view on a street-first city (D6): every block is the polygon the generator rasterised, drawn from sim
  *  state. The ground — streets, water, lots coloured by state, front edges painted along the street segment they
  *  share — goes into one canvas texture repainted a few times a second; pips, icons, pulses and the engineer are
@@ -153,6 +155,11 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     else this.hooks.onHover(null, 0, 0);
   }
   private onDown(p: Phaser.Input.Pointer): void {
+    if(p.leftButtonDown()&&this.session.state.flow){
+      const st=this.session.state,near=st.flow!.machines.filter(m=>m.kind==='tramstop').map(m=>({m,d:Math.hypot(this.ox+(m.x+m.size/2)*this.ppt-p.x,this.oy+(m.y+m.size/2)*this.ppt-p.y)})).filter(v=>v.d<=8).sort((a,b)=>a.d-b.d)[0];
+      if(near){if(transportView.stopId===near.m.id)transportView.stopId=null;else{transportView.stopId=near.m.id;this.hooks.onStationSelect?.(near.m.x,near.m.y);}this.lastPaint=-1e9;return;}
+    }
+    transportView.stopId=null;
     const pip = this.pipAt(p.x, p.y);
     if (pip) {
       this.selectedEdge = this.selectedEdge === pip.id ? null : pip.id;
@@ -164,6 +171,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     const tx = Math.floor((p.x - this.ox) / this.ppt), ty = Math.floor((p.y - this.oy) / this.ppt);
     const onMap = tx >= 0 && ty >= 0 && tx < g.tw && ty < g.th;
     if (st.flow && onMap && isCampaign(st)) {
+      if(st.engineer.truckSeat){this.hooks.onToast('Driving uses WASD in world view. Exit the truck to walk from the map.');return;}
       if (passable(st, tx, ty)) queue(this.session, { type: 'move', x: tx + 0.5, y: ty + 0.5 });
       else this.hooks.onToast('That spot is blocked. Choose nearby open ground to walk there.');
       return;
@@ -379,6 +387,20 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     for (const h of this.hulks) {
       const cx = this.px(h.i), cy = this.py(h.i), a = 1 - (now - h.born) / 1600;
       g.fillStyle(C.hulk, a); g.fillPoints([{ x: cx, y: cy - 6 }, { x: cx + 6, y: cy }, { x: cx, y: cy + 6 }, { x: cx - 6, y: cy }], true);
+    }
+    // Selected-stop routes use actual track components; no bridge is drawn across a cut.
+    if(st.flow){
+      const px=(x:number)=>this.ox+x*this.ppt,py=(y:number)=>this.oy+y*this.ppt;
+      const route=transportView.stopId===null?null:stationRoute(st,transportView.stopId);
+      if(route){g.lineStyle(2,route.interrupted?0xf2b632:0x66dce8,1);for(const path of route.paths){g.beginPath();path.forEach((t,i)=>{const x=px(t%st.flow!.tw+.5),y=py(Math.floor(t/st.flow!.tw)+.5);if(i===0)g.moveTo(x,y);else g.lineTo(x,y);});g.strokePath();}}
+      for(const m of st.flow.machines.filter(m=>m.kind==='tramstop')){
+        const x=px(m.x+m.size/2),y=py(m.y+m.size/2),status=route?.stops.find(s=>s.machine.id===m.id)?.status;
+        g.lineStyle(m.id===transportView.stopId?2:1,status==='unpowered'?0xff786b:status==='full'?0xf2b632:0x66dce8,1);g.fillStyle(0x101824,1);g.fillCircle(x,y,4);
+        if(status==='unpowered'){g.lineBetween(x-4,y-4,x+4,y+4);g.lineBetween(x-4,y+4,x+4,y-4);}else if(status==='full')g.strokeRect(x-4,y-4,8,8);else g.strokeCircle(x,y,4);
+        if(m.id===transportView.stopId)g.strokeCircle(x,y,7);
+      }
+      for(const t of route?.trams??[]){g.fillStyle(t.status==='disconnected'||t.status==='no route'?0xff786b:0xffffff,1);g.fillCircle(px(t.machine.x+.5),py(t.machine.y+.5),2.5);}
+      if(st.campaign?.truck){const r=truckRect(st.campaign.truck);g.lineStyle(1,0xf8dc85,1);g.strokeRect(px(r.x),py(r.y),Math.max(3,r.w*this.ppt),Math.max(3,r.h*this.ppt));}
     }
     // D5: the engineer — a white dot (red while knocked down) at its tile, with a ring while walking
     if (st.engineer) {

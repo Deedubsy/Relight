@@ -59,8 +59,8 @@ test('fresh paid expedition lays its generated kit and moves reserved freight be
   const resumed=loadState(makeSave(st));resumed.speed=st.speed;advanceFlow(st,30);advanceFlow(resumed,30);assert.equal(stateHash(resumed),stateHash(st));
 });
 test('old home preview upgrades deterministically without granting a kit; malformed expansion metadata is rejected',()=>{
-  const st=createCampaign();delete st.campaign!.expansion;delete st.campaign!.defence;delete st.campaign!.districts;st.campaign!.version=1;
-  const a=loadState(st),b=loadState(st);assert.equal(a.campaign!.version,4);assert.equal(a.campaign!.expansion!.grantedAt,-1);assert.equal(stateHash(a),stateHash(b));
+  const st=createCampaign();delete st.campaign!.expansion;delete st.campaign!.defence;delete st.campaign!.districts;delete st.campaign!.discovery;st.campaign!.version=1;
+  const a=loadState(st),b=loadState(st);assert.equal(a.campaign!.version,5);assert.equal(a.campaign!.expansion!.grantedAt,-1);assert.equal(stateHash(a),stateHash(b));
   a.campaign!.expansion!.reward.tram=2;assert.throws(()=>loadState(a),/reward/);
   b.campaign!.expansion!.stops[0][1]=ground(b).th;assert.throws(()=>loadState(b),/geometry/);
 });
@@ -75,9 +75,9 @@ test('physical pole links power a remote installation and picking them up discon
 });
 
 test('upgrading a home-only save preserves the save but labels its old log as incomplete for the new campaign factory',async()=>{
-  const st=createCampaign();delete st.campaign!.expansion;delete st.campaign!.defence;delete st.campaign!.districts;st.campaign!.version=1;
+  const st=createCampaign();delete st.campaign!.expansion;delete st.campaign!.defence;delete st.campaign!.districts;delete st.campaign!.discovery;st.campaign!.version=1;
   const raw={kind:'relight-save',version:3,state:st,log:[],logComplete:true};
   const prior=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
   Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>JSON.stringify(raw)}});
-  try{const loaded=await loadSnapshot('local:old-preview');assert.equal(loaded.state.campaign!.version,4);assert.equal(loaded.logComplete,false);assert.equal(loaded.saved?.state.campaign?.version,1);}finally{if(prior)Object.defineProperty(globalThis,'localStorage',prior);else Reflect.deleteProperty(globalThis,'localStorage');}
+  try{const loaded=await loadSnapshot('local:old-preview');assert.equal(loaded.state.campaign!.version,5);assert.equal(loaded.logComplete,false);assert.equal(loaded.saved?.state.campaign?.version,1);}finally{if(prior)Object.defineProperty(globalThis,'localStorage',prior);else Reflect.deleteProperty(globalThis,'localStorage');}
 });

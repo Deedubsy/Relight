@@ -1,3 +1,4 @@
+import { initTruck } from './truck';
 /** The second-area restoration: real deliveries, local power and a once-only transport crate. */
 import { SimState, HELD } from './types';
 import { ground, inReach, blockOfTile } from './ground';
@@ -44,7 +45,14 @@ export function initExpansion(st: SimState): void {
     const x=t%tw,y=Math.floor(t/tw); let stop: [number,number]|undefined;
     for(const [xx,yy] of [[x-2,y],[x+1,y],[x,y-2],[x,y+1],[x-2,y-1],[x+1,y-1],[x-1,y-2],[x-1,y+1]]) {
       if (blockOfTile(st,xx,yy)!==owner || !rect(xx,yy,2))continue;
-      if([yy*tw+xx,yy*tw+xx+1,(yy+1)*tw+xx,(yy+1)*tw+xx+1].some(q=>path.has(q)))continue;
+      const footprint=[yy*tw+xx,yy*tw+xx+1,(yy+1)*tw+xx,(yy+1)*tw+xx+1];
+      if(footprint.some(q=>path.has(q)))continue;
+      // Keep a street exit for the later district: seed 11's first pad otherwise seals the terminal.
+      if(t===end&&![[x,y-1],[x+1,y],[x,y+1],[x-1,y]].some(([qx,qy])=>{
+        const q=qy*tw+qx;
+        return qx>=0&&qx<tw&&qy>=0&&qy<G.th&&street(q)&&!path.has(q)&&!footprint.includes(q)
+          &&![q-tw,q+1,q+tw,q-1].some(v=>v!==end&&path.has(v));
+      }))continue;
       stop=[xx,yy];break;
     }
     if(!stop)throw new Error('campaign route has no clear stop pad');stops.push(stop);
@@ -82,6 +90,7 @@ export function restoreSite(st:SimState,id:SiteId):string {
   s.delivered={steel:0,copper:0};s.restoredAt=st.t;st.flow!.rev++;
   if(id==='station'||id==='northStation') { const b=st.blocks[s.block];b.state=HELD;b.subOn=true;b.d=0;registerBase(st,s.block);
     if(id==='station'&&e.grantedAt<0){e.grantedAt=st.t;e.reward={track:e.route.length,tramstop:2,tram:1};}
+    if(id==='station')initTruck(st);
   }
   return '';
 }

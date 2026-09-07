@@ -588,9 +588,9 @@ export function distToRect(px: number, py: number, x: number, y: number, w: numb
 }
 
 /** D5: the engineer's reach, 8 tiles from where they stand to the nearest edge of the target. */
-export function inReach(st: SimState, tx: number, ty: number, size = 1): boolean {
+export function inReach(st: SimState, tx: number, ty: number, size = 1, height = size): boolean {
   const e = st.engineer;
-  return distToRect(e.x, e.y, tx, ty, size, size) <= REACH;
+  return distToRect(e.x, e.y, tx, ty, size, height) <= REACH;
 }
 
 /** One line for a tooltip. */

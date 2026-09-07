@@ -1,3 +1,4 @@
+import { truckRect, truckOccupies, truckDescription } from '@relight/sim';
 /** World view (Phase 4 M1 + M2, prompt B M1): the city at tile level, on foot. Every tile is drawn from the ground
  *  layer in @relight/sim (ground.ts: block faces rasterised to tiles, streets on the ridges, the river), cached per
  *  32×32 chunk on `chunkKey`; the machines are drawn from `state.flow` (flow.ts). This scene holds only camera,
@@ -23,30 +24,35 @@ import {
   TILE_PX, RUBBLE_VARIANTS, T_STREET, T_GROUND, T_RUBBLE, T_INERT, T_RIVER, T_DEPOSIT, T_PATCH,
   ground, chunkTiles, chunkKey, CHUNK, describeGround, blockOfTile, inReach, depotRect, REACH, INV_STACKS, invStacks, currentPath,
   Kind, Dir, DX, DY, DIR_NAMES, Machine, MACHINE_SIZE, SHOT, EXCAVATOR_PER_S,
-  machineAt, powered, rubbleAt, canPlace, place, remove, canPickUp, costStr, rotate, setHandMine, queueCraft, entryDir, describeMachine, outputTile, inputTile,
-  handFeed, blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
+  machineAt, powered, rubbleAt, canPlace, canPickUp, costStr, entryDir, describeMachine, outputTile, inputTile,
+  blockLights, workbenchTile, substationAt, isSubstationTile, poleGrid, flowSummary, TURRET_HOPPER, TURRET_FLASH_S,
   POLE_REACH, ROUNDS_PER_MAG, RIFLE_RANGE, DODGE_COST, segBetween, cityGeomOf, CityGeom, pipOf, edgeCap,
   lockReason, KIND_LABEL, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH,
-  setRecipe, RECIPE_IDS, recipeOf, recipeOutput,
+  RECIPE_IDS, recipeOf, recipeOutput,
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
   crawlerTarget, shadeTraces, shadeNear, TRACE_S, activeEmergencePoints, stalkersOf, stalkerAt, describeStalker, stalkerHp,
-  lightMask, lightAt, canRepair, repairLight, contestProgress, REPAIR_COPPER,
+  lightMask, lightAt, canRepair, contestProgress, REPAIR_COPPER,
   heartOf, heartAt, cabinetAt, describeCabinet, describeHeart, cabinetConnected, cabinetRepairCheck, emergencePoint,   // RI-06
   blockLabel, machineStatus, MachineState, bearingOf,
-  activationCheck, claimNeed, deliveredTo, deliverTo,
+  activationCheck, claimNeed, deliveredTo,
 } from '@relight/sim';
-import { Session, queue, record } from './session';
+import { Session, queue, dispatch } from './session';
 import { View, debugView, hudInset } from './view';
 import { coreAt, defenceMax, defenceHp, defenceDescription, repairCheck } from '@relight/sim';
-import { campaignSiteAt, campaignSite, describeSite, SITE_IDS, persistentSource } from '@relight/sim';
+import { campaignSiteAt, campaignSite, describeSite, SITE_IDS, persistentSource, discoveryAt, discoveryCheck, discoveryDescription, stalkerLayer } from '@relight/sim';
+import { extendBuildPath, pathEdits, constructionCheck, type TilePoint } from '@relight/sim';
+import { bound, MOVEMENT_KEYS } from './controls';
+import { toolForKey, toolKeyLine } from './buildCatalogue';
+import { dimensions, machineDimensions, undergroundCheck, undergroundMate, splitterPorts, routingDescription, ITEMS, type BuildEdit } from '@relight/sim';
+import { FACTORY_TEXT, FACTORY_STATUS_GLYPH } from './factoryStrings';
 import { drawUrban } from './urbanDraw';
 
 /** RI-02 (§11.2 "machine purpose and working / starved / blocked state", never colour alone): the state word's
  *  glyph, in the tooltip and the E toast, and drawn as the same shape on the machine (drawStatusMark). */
-const STATUS_GLYPH: Record<MachineState, string> = { running: '▶', starved: '○', blocked: '■', idle: '–', off: '✕' };
+const STATUS_GLYPH = FACTORY_STATUS_GLYPH;
 const STATUS_COL: Record<MachineState, number> = { running: 0x6fe08a, starved: 0xe8a93a, blocked: 0xe05a5a, idle: 0x9aa5b8, off: 0x9aa5b8 };
-/** The machines that have a working state (the belts, inserters, posts and the substation slab do not). */
-const STATUS_KIND = new Set<Kind>(['turret', 'generator', 'excavator', 'assembler', 'floodlight']);
+/** Routine conveyor marks appear on hover; stopped devices expose their mark in place. */
+const STATUS_KIND = new Set<Kind>(['turret', 'generator', 'excavator', 'assembler', 'floodlight','inserter','underground','splitter','lamp','pole','bigpole','substation','tramstop']);
 
 /** GAME-ASSUMPTION: the constitution's 0.5–3× zoom, not §4's 1.0–0.2×; the doc is edited to this range (D-P4-1). */
 export const ZOOM_MIN = 0.5, ZOOM_MAX = 3, ZOOM_STEP = 1.15;
@@ -80,7 +86,7 @@ const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
 const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a, wire: 0xf0a86a, frame: 0xb4c6e8, board: 0x5fae6a };
 const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a,
   turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a,
-  wall: 0x858b91, chest: 0x4a4636, track: 0x3a3c44, tramstop: 0x3f4a5e, tram: 0xb0572a };   // RI-05: the supply chest and the rail kit (flat colours until the art pass)
+  underground:0x4a5945, splitter:0x364759, wall: 0x858b91, chest: 0x4a4636, track: 0x3a3c44, tramstop: 0x3f4a5e, tram: 0xb0572a };   // RI-05: the supply chest and the rail kit (flat colours until the art pass)
 const LIGHT_COL = 0xffe9a0;
 /** M5 light map. GAME-ASSUMPTION: the unlit texel is a multiply of ~25 % with a cool cast (§4's "desaturated and
  *  darkened to ~25 %" — a multiply cannot desaturate, so the cast stands in for it until the Phase 12 art pass);
@@ -102,11 +108,8 @@ export type Tool = 'hand' | 'rifle' | Exclude<Kind, 'depot'>;
  *  8 Generator, 9 the rifle — the rifle is a hotbar item like any building, and while it is in hand you cannot mine
  *  or place until you clear it (Q, or pick something else). Prompt B M3: the Electricians' unlocks sit after the
  *  digits — 0 Floodlight, [ Big pole, ] Substation — and answer with why they are locked until the group joins. */
-export const HOTBAR: readonly Tool[] = ['belt', 'inserter', 'excavator', 'assembler', 'turret', 'lamp', 'pole', 'generator', 'rifle'];
-/** GAME-ASSUMPTION: the Electricians' unlocks sit on 0, [ and ] (§4 gives the hotbar 1–9; - and = are the speed keys). */
-export const UNLOCK_KEYS: Readonly<Record<string, Tool>> = { '0': 'floodlight', '[': 'bigpole', ']': 'substation',
-  'c': 'chest', 'l': 'track', 'h': 'tramstop', 'v': 'tram' };   // RI-05: the supply chest and the rail kit (the rail yard's restoration unlocks the kit; the chest is in the field kit)
-export const TOOL_KEY_LINE = '1 belt · 2 inserter · 3 Excavator · 4 Assembler · 5 turret · 6 lamp · 7 pole · 8 Generator · 9 rifle · 0 / [ / ] Floodlight / Big pole / Substation (Electricians) · B build menu · R rotate · T recipe (on an Assembler) · Q pipette / clear hand · E interact · right-click removes (empty hand) or clears the hand · C / L / H / V Supply chest / Track / Tram stop / Tram (the rail yard\'s restoration unlocks the kit; RI-05)';
+export const TOOL_KEY_LINE = toolKeyLine;
+
 
 export interface WorldHooks {
   onHoverText(text: string | null, px: number, py: number): void;
@@ -115,6 +118,9 @@ export interface WorldHooks {
   onChest(): void;
   /** RI-05: E on a Supply chest or a Tram stop within reach — the pockets, targeted at it (chestTake / chestPut at). */
   onChestAt(x: number, y: number): void;
+  onRoutingAt(x:number,y:number):void;
+  onInspectAt(x:number,y:number):void;
+  onTruck():void;
 }
 
 interface Chunk { key: string; frames: Uint8Array }
@@ -181,6 +187,8 @@ export class WorldScene extends Phaser.Scene {
   drawn = 0;
   /** Draw cost, ms: an EMA over frames and the worst since last read (the soak's `world.drawMs`). */
   drawMs = 0; drawWorstMs = 0;
+  /** Renderer-only cumulative diagnostics for reproducible light-map engineering checks. */
+  renderTiming={lightChecks:0,lightMs:0,lightMaxMs:0,lightPaints:0,lightPaintMs:0,lightPaintMaxMs:0};
 
   constructor(private session: Session, private view: View, private hooks: WorldHooks) { super('world'); }
 
@@ -217,12 +225,14 @@ export class WorldScene extends Phaser.Scene {
     cam.setBounds(0, 0, G.tw * TILE_PX, G.th * TILE_PX);
     cam.setZoom(this.fitZoom());
     cam.setRoundPixels(false); // Fractional zoom must not round every ground tile into visible seams.
-    this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT,SHIFT,SPACE') as WorldScene['keys'];
+    this.keys = this.input.keyboard!.addKeys(MOVEMENT_KEYS) as WorldScene['keys'];
+    this.input.keyboard!.on('keydown', (event: KeyboardEvent) => { this.modifiedKey = event.ctrlKey || event.metaKey || event.altKey; });
+    this.input.keyboard!.on('keyup', (event: KeyboardEvent) => { this.modifiedKey = event.ctrlKey || event.metaKey || event.altKey; });
     // Clicking back into the world leaves station inputs, restoring game keyboard controls.
     this.game.canvas.tabIndex = 0;
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { this.game.canvas.focus({ preventScroll: true }); this.onDown(p); });
     this.input.on('pointerup', () => this.onUp());
-    this.input.on('gameout', () => { this.onUp(); this.hoverTile = null; this.hooks.onHoverText(null, 0, 0); });
+    this.input.on('gameout', () => { this.beltPath = null; this.undergroundStart = null; this.onUp(); this.hoverTile = null; this.hooks.onHoverText(null, 0, 0); });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
     this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
       const f = dy > 0 ? 1 / ZOOM_STEP : ZOOM_STEP;
@@ -232,7 +242,7 @@ export class WorldScene extends Phaser.Scene {
     // changes size — until the human turns the wheel, after which their zoom stands.
     this.scale.on('resize', () => { if (!this.zoomTouched) this.cameras.main.setZoom(this.fitZoom()); });
     this.events.on(Phaser.Scenes.Events.WAKE, () => this.onWake());
-    this.events.on(Phaser.Scenes.Events.SLEEP, () => { this.onUp(); this.sendWalk(0, 0); this.sendSprint(false); });
+    this.events.on(Phaser.Scenes.Events.SLEEP, () => { this.beltPath = null; this.undergroundStart = null; this.onUp(); this.sendWalk(0, 0); this.sendSprint(false); });
     this.onWake();
   }
 
@@ -395,44 +405,38 @@ export class WorldScene extends Phaser.Scene {
   /** A key from the page's keydown handler (only while this view is up). Returns true when the scene took it. */
   key(k: string): boolean {
     const st = this.st;
-    const lower = k.toLowerCase();
     if (!st.flow) return false;
-    const slot = '123456789'.indexOf(k);
-    if (slot >= 0) { this.setTool(HOTBAR[slot]); return true; }
-    const unlock = UNLOCK_KEYS[k] ?? UNLOCK_KEYS[lower];   // RI-05: the letters
-    if (unlock) {
-      // prompt B M3: a locked unlock says who unlocks it (rule 8) and stays out of the hand
-      const lock = lockReason(st, unlock as Kind);
-      if (lock) this.hooks.onToast(`${KIND_LABEL[unlock as Kind]}: ${lock}`, 'bad'); else this.setTool(unlock);
-      return true;
-    }
-    if (lower === 'escape') { this.setTool('hand'); return true; }
-    if (lower === 'q') {
+    const tool = toolForKey(k);
+    if (tool) { this.setTool(tool); return true; }
+    if (bound('cancel', k)) { this.beltPath = null; this.undergroundStart = null; this.setTool('hand'); return true; }
+    if (bound('pipette', k)) {
       // pipette: the machine under the cursor into the hand; nothing there (or the Depot) clears the hand
       const h = this.hoverTile, m = h ? machineAt(st, h.tx, h.ty) : undefined;
       this.setTool(m && m.kind !== 'depot' ? m.kind : 'hand');
       if (m && m.kind !== 'depot') this.dir = m.dir;
       return true;
     }
-    if (lower === 'r') {
+    if (bound('rotate', k)) {
       const h = this.hoverTile, m = h && this.tool === 'hand' ? machineAt(st, h.tx, h.ty) : undefined;
-      if (m && m.kind !== 'depot') { if (this.reachable(m.x, m.y, m.size, true)) { rotate(st, m.x, m.y); record(this.session, { type: 'rotate', x: m.x, y: m.y }); } } else this.dir = ((this.dir + 1) % 4) as Dir;
+      if (m && m.kind !== 'depot') { if (this.reachable(m.x, m.y, machineDimensions(m)[0], true, machineDimensions(m)[1])) { const r = dispatch(this.session, { type: 'construct', edits: [{ action: 'rotate', x: m.x, y: m.y }] }); this.hooks.onToast(r.reason, r.ok ? 'good' : 'bad'); } } else this.dir = ((this.dir + 1) % 4) as Dir;
       return true;
     }
-    if (lower === 't') {
+    if (bound('recipe', k)) {
       // RI-01: cycle the Assembler under the cursor through the recipes its machine can run (D-B2-1 (b)); the sim's
       // refusal (out of reach, full pockets) is the toast
       const h = this.hoverTile, m = h ? machineAt(st, h.tx, h.ty) : undefined;
-      if (!m || m.kind !== 'assembler') { this.hooks.onToast('T sets the recipe of the Assembler under the cursor', 'bad'); return true; }
-      if (!this.reachable(m.x, m.y, m.size, true)) return true;
+      if(m?.kind==='inserter'){const choices=[undefined,...ITEMS],filter=choices[(choices.indexOf(m.filter)+1)%choices.length]??null;const r=dispatch(this.session,{type:'factory',action:{type:'routing',x:m.x,y:m.y,filter}});this.hooks.onToast(r.ok?routingDescription(st,m):r.reason,r.ok?'good':'bad');return true;}
+      if(m?.kind==='splitter'){const choices=['balanced','left','right'] as const,priority=choices[(choices.indexOf(m.priority??'balanced')+1)%choices.length];const r=dispatch(this.session,{type:'factory',action:{type:'routing',x:m.x,y:m.y,priority}});this.hooks.onToast(r.ok?routingDescription(st,m):r.reason,r.ok?'good':'bad');return true;}
+      if (!m || m.kind !== 'assembler') { this.hooks.onToast(FACTORY_TEXT.recipeTarget, 'bad'); return true; }
+      if (!this.reachable(m.x, m.y, machineDimensions(m)[0], true, machineDimensions(m)[1])) return true;
       const cur = m.recipe ?? 'shot', next = RECIPE_IDS[(RECIPE_IDS.indexOf(cur) + 1) % RECIPE_IDS.length];
-      const why = setRecipe(st, m.x, m.y, next);
-      if (why) this.hooks.onToast(`Assembler: ${why}`, 'bad');
-      else { record(this.session, { type: 'setRecipe', x: m.x, y: m.y, recipe: next }); this.hooks.onToast(`Assembler → ${recipeOf(m).name}`, 'good'); }
+      const r = dispatch(this.session, { type: 'factory', action: { type: 'setRecipe', x: m.x, y: m.y, recipe: next } });
+      this.hooks.onToast(r.reason, r.ok ? 'good' : 'bad');
       return true;
     }
-    if (lower === 'e') { this.interact(); return true; }
-    if (lower === 'x') {
+    if (bound('inspect', k)) { const h=this.hoverTile;if(h){if(truckOccupies(this.st,h.tx,h.ty))this.hooks.onTruck();else this.hooks.onInspectAt(h.tx,h.ty);}return true; }
+    if (bound('interact', k)) { this.interact(); return true; }
+    if (bound('abort', k)) {
       // RI-06 (§9.2 default 9): the explicit abort of the Heart's commissioning; nothing else on X
       const H = heartOf(st);
       if (H && H.attempt >= 0) queue(this.session, { type: 'abort' }); else if (H && !H.destroyed) this.hooks.onToast('Nothing to abort — the Heart is not being commissioned');
@@ -443,7 +447,9 @@ export class WorldScene extends Phaser.Scene {
 
   /** Put a tool (a building, the rifle, or nothing) in the hand. The build menu's picks land here too. */
   setTool(t: Tool): void {
+    if (t !== 'hand' && t !== 'rifle') { const why = lockReason(this.st, t); if (why) { this.hooks.onToast(why, 'bad'); return; } }
     if (t === this.tool) return;
+    this.beltPath = null; this.undergroundStart = null;
     if (this.firing) { this.firing = false; this.sendAim(null); }
     this.tool = t;
   }
@@ -456,7 +462,9 @@ export class WorldScene extends Phaser.Scene {
     const st = this.st, h = this.hoverTile;
     if (!st.flow || !this.onFoot) return;
     const e = st.engineer;
+    if(st.campaign&&(e.truckSeat||(h&&truckOccupies(st,h.tx,h.ty)))){const r=dispatch(this.session,{type:'factory',action:{type:'truckBoard'}});this.hooks.onToast(r.reason,r.ok?'good':'bad');return;}
     if(h&&st.campaign){const core=coreAt(st,h.tx,h.ty),m=machineAt(st,h.tx,h.ty);if((core&&core.hp<300)||(m&&defenceMax(m)>0&&defenceHp(m)<defenceMax(m))){const why=repairCheck(st,h.tx,h.ty);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'repairDefence',x:h.tx,y:h.ty});this.hooks.onToast('Repair queued. Stay within reach; materials pay for this repair once.');}return;}}
+    if(h&&discoveryAt(st,h.tx,h.ty)){const d=st.campaign!.discovery!,why=discoveryCheck(st,d.id);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'recoverSchematic',id:d.id});this.hooks.onToast('Recovering the field-repair schematic.');}return;}
     const site = h ? campaignSiteAt(st, h.tx, h.ty) : null;
     if (site) {
       const s = campaignSite(st, site)!; if (!this.reachable(s.x, s.y, s.size, true)) return;
@@ -467,18 +475,15 @@ export class WorldScene extends Phaser.Scene {
     const wb = workbenchTile(st);
     if (h && h.tx >= wb[0] && h.tx < wb[0] + 2 && h.ty >= wb[1] && h.ty < wb[1] + 2) {
       if (!this.reachable(wb[0], wb[1], 2, true)) return;
-      const why = queueCraft(st, 1);   // M2: from the pockets, into the pockets
-      record(this.session, { type: 'craft', item: 'magazine', count: 1 });
-      if (why) this.hooks.onToast(`Workbench: ${why}`, 'bad');
-      else this.hooks.onToast(`Workbench: crafting a magazine by hand from the pockets (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s) — ${st.flow.hand.crafts} queued`);
+      const r = dispatch(this.session, { type: 'factory', action: { type: 'craft', item: 'magazine', count: 1 } });
+      this.hooks.onToast(r.reason, r.ok ? 'good' : 'bad');
       return;
     }
     // M5: E on a broken (§13) or eaten (M4) light repairs it from the pockets
     const light = h ? lightAt(st, h.tx, h.ty) : null;
     if (light && light.l.why) {
       if (!this.reachable(h!.tx, h!.ty, 1, true)) return;
-      const r = repairLight(st, h!.tx, h!.ty);
-      record(this.session, { type: 'repair', x: h!.tx, y: h!.ty });
+      const r = dispatch(this.session, { type: 'factory', action: { type: 'repair', x: h!.tx, y: h!.ty } });
       if (!r.ok) { this.hooks.onToast(`No repair: ${r.reason}`, 'bad'); return; }
       const bi = light.bi, b = st.blocks[bi];
       this.hooks.onToast(`${light.l.kind === 'lamp' ? 'Lamp' : 'Streetlight'} repaired (${REPAIR_COPPER} Cu from the pockets) — ${b.state === HELD || b.state === CONTESTED ? 'it lights while the substation powers it' : 'it lights when its block is claimed'}`, 'good');
@@ -503,8 +508,7 @@ export class WorldScene extends Phaser.Scene {
       for (const item of ['steel', 'copper'] as const) {
         const short = H.cand.cabinet[item] - c.delivered[item];
         if (short <= 0 || (e.inv[item] ?? 0) <= 0) continue;
-        const r = deliverTo(st, bs.x, bs.y, item, short, kc);
-        record(this.session, { type: 'deliver', bx: bs.x, by: bs.y, item, n: short, cabinet: kc });
+        const r = dispatch(this.session, { type: 'factory', action: { type: 'deliver', bx: bs.x, by: bs.y, item, n: short, cabinet: kc } });
         if (r.ok) moved.push(`${r.moved} ${item === 'copper' ? 'Cu' : 'steel'}`);
       }
       this.hooks.onToast(`${moved.length ? `${moved.join(' + ')} delivered · ` : ''}${describeCabinet(st, kc)}`, moved.length ? 'good' : undefined);
@@ -521,8 +525,7 @@ export class WorldScene extends Phaser.Scene {
         for (const item of ['steel', 'copper'] as const) {
           const short = need[item] - deliveredTo(st, bi)[item];
           if (short <= 0 || (e.inv[item] ?? 0) <= 0) continue;
-          const r = deliverTo(st, b.x, b.y, item, short);
-          record(this.session, { type: 'deliver', bx: b.x, by: b.y, item, n: short });
+          const r = dispatch(this.session, { type: 'factory', action: { type: 'deliver', bx: b.x, by: b.y, item, n: short } });
           if (r.ok) moved.push(`${r.moved} ${item === 'copper' ? 'Cu' : 'steel'}`);
         }
         const chk = activationCheck(st, b.x, b.y), got = deliveredTo(st, bi);
@@ -537,13 +540,14 @@ export class WorldScene extends Phaser.Scene {
     }
     const m = h ? machineAt(st, h.tx, h.ty) : undefined;
     if (m) {
-      if (!this.reachable(m.x, m.y, m.size, true)) return;
+      if (!this.reachable(m.x, m.y, machineDimensions(m)[0], true, machineDimensions(m)[1])) return;
+      if(m.kind==='inserter'||m.kind==='splitter'){this.hooks.onRoutingAt(m.x,m.y);return;}
       if (m.kind === 'depot') { this.hooks.onChest(); return; }
       if (m.kind === 'chest' || m.kind === 'tramstop') { this.hooks.onChestAt(m.x, m.y); return; }   // RI-05: the pockets talk to it
-      this.hooks.onToast(`${this.statusLine(m)} · ${describeMachine(st, m)}`);
+      this.hooks.onInspectAt(m.x,m.y);
       return;
     }
-    if (e.truckFound) { queue(this.session, { type: 'enterTruck' }); this.hooks.onToast(e.truck ? 'Out of the truck' : 'In the truck — 3× walk speed, 200 stacks'); return; }
+    if (!st.campaign && e.truckFound) { queue(this.session, { type: 'enterTruck' }); this.hooks.onToast(e.truck ? 'Out of the truck' : 'In the truck — 3× walk speed, 200 stacks'); return; }
     const b = e.block >= 0 ? st.blocks[e.block] : null;
     const sv = b ? st.survivors.find(v => v.x === b.x && v.y === b.y) : undefined;
     if (sv) { this.hooks.onToast(`${sv.name} (${sv.tag}): "${b!.state === HELD ? "We're in." : 'Light the street and we talk.'}"`); return; }
@@ -559,8 +563,8 @@ export class WorldScene extends Phaser.Scene {
 
   /** D5 reach: hand actions land within 8 tiles of the engineer. Outside, the first refusal is a toast, every one
    *  the "walk closer" cursor and the ghost's reason. Without the flow layer there is no engineer on the tiles. */
-  private reachable(tx: number, ty: number, size: number, loud: boolean): boolean {
-    if (!this.onFoot || inReach(this.st, tx, ty, size)) return true;
+  private reachable(tx: number, ty: number, size: number, loud: boolean, height = size): boolean {
+    if (!this.onFoot || inReach(this.st, tx, ty, size, height)) return true;
     if (loud && this.st.flow) this.st.flow.stats.reachRefused++;   // GAME-ASSUMPTION (M4 telemetry): placements refused for reach count one per click, not per drag step
     if (loud && !this.walkCloserToasted) { this.walkCloserToasted = true; this.hooks.onToast(`Walk closer — the engineer reaches ${REACH} tiles (WASD or click the ground)`, 'bad'); }
     return false;
@@ -571,11 +575,12 @@ export class WorldScene extends Phaser.Scene {
     if (this.tool === 'hand' || !st.flow) return;
     const kind = this.tool as Kind;
     const [ox, oy] = this.footprint(kind, tx, ty);
-    if (!this.reachable(ox, oy, MACHINE_SIZE[kind], loud)) return;
-    const c = canPlace(st, kind, ox, oy);
+    const [width,height]=dimensions(kind,this.dir,MACHINE_SIZE[kind]);
+    if (!this.reachable(ox, oy, width, loud,height)) return;
+    const c = canPlace(st, kind, ox, oy,this.dir);
     if (!c.ok) { if (loud) this.hooks.onToast(`No ${kind} here: ${c.reason}`, 'bad'); return; }
-    place(st, kind, ox, oy, this.dir);
-    record(this.session, { type: 'place', item: kind, x: ox, y: oy, dir: this.dir });
+    const r = dispatch(this.session, { type: 'construct', edits: [{ action: 'place', item: kind, x: ox, y: oy, dir: this.dir }] });
+    if (!r.ok) this.hooks.onToast(r.reason, 'bad');
   }
 
   private sendWalk(dx: number, dy: number): void {
@@ -609,16 +614,17 @@ export class WorldScene extends Phaser.Scene {
     const w = this.worldAt(p.x, p.y);
     const tx = Math.floor(w.x / TILE_PX), ty = Math.floor(w.y / TILE_PX);
     if (p.rightButtonDown()) {
+      this.beltPath = null; this.undergroundStart = null;
       if (!st.flow) return;
       if (this.tool !== 'hand') { this.setTool('hand'); return; }   // something in hand: right-click clears it
       const m = machineAt(st, tx, ty);
       if (!m) return;
-      if (!this.reachable(m.x, m.y, m.size, true)) return;
+      if (!this.reachable(m.x, m.y, machineDimensions(m)[0], true, machineDimensions(m)[1])) return;
       // M2: a pick-up goes to the pockets with what the machine held; a full pocket refuses with the reason
       const pk = canPickUp(st, tx, ty);
       if (!pk.ok) { this.hooks.onToast(`No pick-up: ${pk.reason}`, 'bad'); return; }
-      remove(st, tx, ty);
-      record(this.session, { type: 'pickUp', x: tx, y: ty });
+      const result = dispatch(this.session, { type: 'construct', edits: [{ action: 'pickUp', x: tx, y: ty }] });
+      if (!result.ok) { this.hooks.onToast(result.reason, 'bad'); return; }
       const held = Object.keys(pk.items).filter(k => k !== m.kind).map(k => `${pk.items[k]} ${k === 'magazine' && pk.items[k] !== 1 ? 'magazines' : k}`).join(', ');
       this.hooks.onToast(`${m.kind} picked up into the pockets (${pk.stacks} stack${pk.stacks === 1 ? '' : 's'}${held ? `: ${held}` : ''}) — ${invStacks(st.engineer.inv)}/${INV_STACKS} stacks`);
       return;
@@ -629,36 +635,48 @@ export class WorldScene extends Phaser.Scene {
       if (this.onFoot) { this.firing = true; this.sendAim(this.aimAt(p)); }
       return;
     }
+    if(this.tool==='underground'&&st.flow){
+      if(!this.undergroundStart){const existing=machineAt(st,tx,ty);if(existing?.kind==='underground'&&existing.underground==='input')this.dir=existing.dir;this.undergroundStart={x:tx,y:ty};return;}
+      const r=dispatch(this.session,{type:'undergroundPair',from:this.undergroundStart,to:{x:tx,y:ty},dir:this.dir});
+      if(r.ok)this.undergroundStart=null;this.hooks.onToast(r.reason,r.ok?'good':'bad');return;
+    }
+    if (this.tool === 'belt' && st.flow) { this.beltPath = [{ x: tx, y: ty }]; return; }
     if (this.tool !== 'hand' && st.flow) { this.placing = true; this.tryPlace(tx, ty, true); return; }
     if (this.tool === 'hand' && st.flow) {
       // §11: the tester hand-feeds turrets and the Generator; a click on one moves what the Depot has
       const m = machineAt(st, tx, ty);
       if (m && (m.kind === 'turret' || m.kind === 'generator')) {
-        if (!this.reachable(m.x, m.y, m.size, true)) return;
-        const fed = handFeed(st, tx, ty);
-        record(this.session, { type: 'feed', x: tx, y: ty });
-        if (fed) {
-          if (fed.moved > 0) this.hooks.onToast(fed.kind === 'turret' ? `Hand-fed ${fed.moved} magazine${fed.moved === 1 ? '' : 's'} from the pockets into the turret` : `Hand-fed ${fed.moved} coal from the pockets into the Generator`, 'good');
-          else this.hooks.onToast(fed.reason, 'bad');
-          return;
-        }
+        if (!this.reachable(m.x, m.y, machineDimensions(m)[0], true, machineDimensions(m)[1])) return;
+        const r = dispatch(this.session, { type: 'factory', action: { type: 'feed', x: tx, y: ty } });
+        this.hooks.onToast(r.reason, r.ok ? 'good' : 'bad');
+        return;
       }
       if (rubbleAt(st, tx, ty)) {
         if (!this.reachable(tx, ty, 1, true)) return;
-        this.mining = true; setHandMine(st, [tx, ty]); record(this.session, { type: 'mineAt', x: tx, y: ty }); return;
+        this.mining = true; dispatch(this.session, { type: 'factory', action: { type: 'mineAt', x: tx, y: ty } }); return;
       }
       if (this.onFoot) return;   // no click-to-walk in the world view (D-B1-5): WASD, or the map view's walk-here
     }
     this.dragging = true;
   }
 
+  private beltPath: TilePoint[] | null = null;
+  private undergroundStart: TilePoint | null = null;
+  private modifiedKey = false;
+  private previewKey = '';
+  private previewResult = { ok: true, reason: '' };
   private onUp(): void {
+    if (this.beltPath) {
+      const path = this.beltPath; this.beltPath = null; this.undergroundStart = null;
+      const r = dispatch(this.session, { type: 'buildPath', path, dir: this.dir });
+      this.hooks.onToast(r.reason, r.ok ? 'good' : 'bad');
+    }
     this.dragging = false; this.placing = false;
-    if (this.mining) { this.mining = false; if (this.st.flow) { setHandMine(this.st, null); record(this.session, { type: 'mineAt', x: -1, y: -1 }); } }   // M6: (-1,-1) = the hands off (no rubble there)
+    if (this.mining) { this.mining = false; if (this.st.flow) { dispatch(this.session, { type: 'factory', action: { type: 'mineAt', x: -1, y: -1 } }); } }   // M6: (-1,-1) = the hands off (no rubble there)
     if (this.firing) { this.firing = false; this.sendAim(null); }
   }
 
-  private onMove(p: Phaser.Input.Pointer): void {
+  private onMove(p: Phaser.Input.Pointer,refresh=false): void {
     const cam = this.cameras.main;
     if (this.dragging && p.isDown && !this.onFoot) {
       cam.scrollX -= (p.position.x - p.prevPosition.x) / cam.zoom;
@@ -666,11 +684,12 @@ export class WorldScene extends Phaser.Scene {
     }
     const w = this.worldAt(p.x, p.y);
     const tx = Math.floor(w.x / TILE_PX), ty = Math.floor(w.y / TILE_PX);
-    if (this.hoverTile && this.hoverTile.tx === tx && this.hoverTile.ty === ty) return;
+    if (!refresh && this.hoverTile && this.hoverTile.tx === tx && this.hoverTile.ty === ty) return;
     this.hoverTile = { tx, ty };
     const st = this.st, G = ground(st);
+    if (this.beltPath && p.isDown) this.beltPath = extendBuildPath(this.beltPath, { x: tx, y: ty });
     if (this.placing && p.isDown) this.tryPlace(tx, ty, false);
-    if (this.mining && p.isDown && st.flow) { const was = st.flow.hand.mine; if (!was || was[0] !== tx || was[1] !== ty) { setHandMine(st, [tx, ty]); record(this.session, { type: 'mineAt', x: tx, y: ty }); } }
+    if (this.mining && p.isDown && st.flow) { const was = st.flow.hand.mine; if (!was || was[0] !== tx || was[1] !== ty) { dispatch(this.session, { type: 'factory', action: { type: 'mineAt', x: tx, y: ty } }); } }
     if (this.firing && p.isDown) this.sendAim(this.aimAt(p));
     if (tx < 0 || ty < 0 || tx >= G.tw || ty >= G.th) { this.hooks.onHoverText(null, 0, 0); return; }
     const rect = this.game.canvas.getBoundingClientRect();
@@ -681,11 +700,13 @@ export class WorldScene extends Phaser.Scene {
     // RI-02: the tile coordinates are debug coordinates — shown only behind the ` toggle
     const groundLine = describeGround(st, tx, ty), lines = [(debugView.coords ? groundLine : groundLine.replace(/^tile \(-?\d+,-?\d+\) · /, '')) + unlit];
     if (bi >= 0) lines.push(this.blockLine(bi));
+    if(truckOccupies(st,tx,ty))lines.unshift(truckDescription(st)+' · F: cargo');
     const kc = st.flow ? cabinetAt(st, tx, ty) : -1;
     if (kc >= 0) lines.unshift(describeCabinet(st, kc));   // RI-06: a feeder cabinet under the cursor
     const defenceInfo=defenceDescription(st,tx,ty);if(defenceInfo)lines.unshift(defenceInfo);
     const source=persistentSource(st,tx,ty);
     if(source)lines.unshift(`${source.item.toUpperCase()} extraction · persistent source · powered excavator, 0.5 items/s · belt output to your station`);
+    if(discoveryAt(st,tx,ty))lines.unshift(discoveryDescription(st));
     const campaignInstallation = campaignSiteAt(st, tx, ty);
     if (campaignInstallation) lines.unshift(describeSite(st, campaignInstallation));
     else if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
@@ -759,16 +780,18 @@ export class WorldScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ frame
 
+  private hoverRefreshedAt=0;
   update(_time: number, delta: number): void {
     const cam = this.cameras.main, dt = Math.min(0.1, delta / 1000);
-    const right = this.keys.D.isDown || this.keys.RIGHT.isDown, left = this.keys.A.isDown || this.keys.LEFT.isDown;
-    const down = this.keys.S.isDown || this.keys.DOWN.isDown, up = this.keys.W.isDown || this.keys.UP.isDown;
+    const typing = this.modifiedKey || !!document.activeElement?.closest('input, textarea, select, [contenteditable=true]');
+    const right = !typing && (this.keys.D.isDown || this.keys.RIGHT.isDown), left = !typing && (this.keys.A.isDown || this.keys.LEFT.isDown);
+    const down = !typing && (this.keys.S.isDown || this.keys.DOWN.isDown), up = !typing && (this.keys.W.isDown || this.keys.UP.isDown);
     if (this.onFoot) {
       // WASD walks the engineer (a sim command; walk.ts moves them with collision); the camera follows.
       // D-B1-5: Shift sprints, Space dodges; the rifle's aim follows the cursor while the button is held.
       this.sendWalk((right ? 1 : 0) - (left ? 1 : 0), (down ? 1 : 0) - (up ? 1 : 0));
-      this.sendSprint(this.keys.SHIFT.isDown);
-      if (Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) queue(this.session, { type: 'dodge' });
+      this.sendSprint(!typing && this.keys.SHIFT.isDown);
+      if (!typing && Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) queue(this.session, { type: 'dodge' });
       if (this.firing) this.sendAim(this.aimAt(this.input.activePointer));
       const e = this.st.engineer, gx = e.x * TILE_PX - cam.width / 2, gy = e.y * TILE_PX - cam.height / 2;
       if (!this.snapped) { cam.setScroll(gx, gy); this.snapped = true; }
@@ -781,6 +804,7 @@ export class WorldScene extends Phaser.Scene {
       if (down) cam.scrollY += pan;
     }
     const t0 = performance.now();
+    if(this.hoverTile&&!this.input.activePointer.isDown&&t0-this.hoverRefreshedAt>=150){this.hoverRefreshedAt=t0;this.onMove(this.input.activePointer,true);}
     this.draw();
     const ms = performance.now() - t0;
     this.drawMs += (ms - this.drawMs) * 0.05; if (ms > this.drawWorstMs) this.drawWorstMs = ms;
@@ -907,6 +931,13 @@ export class WorldScene extends Phaser.Scene {
         label.setText(name).setPosition(site.x * TILE_PX, (site.y - (id==='workshop'?2:1)) * TILE_PX).setScale(1 / cam.zoom).setVisible(true); li++;
       }
     }
+    const discovery=st.campaign?.discovery;
+    if(discovery&&discovery.x>=tx0&&discovery.x<=tx1&&discovery.y>=ty0&&discovery.y<=ty1){
+      const d=discovery;let label=this.labels[li];if(!label){label=this.add.text(0,0,'',{fontSize:'12px',color:'#9de9d2',backgroundColor:'#0b0e1add',padding:{x:4,y:2}}).setDepth(5);this.labels.push(label);}
+      label.setText(d.recoveredAt>=0?'WORKSHOP RECORDS / EMPTY':'OPTIONAL: WORKSHOP RECORDS / E').setPosition(d.x*TILE_PX,(d.y-2)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
+      g.fillStyle(d.recoveredAt>=0?0x526c67:0x75d3b7,1);g.fillRect((d.x+.15)*TILE_PX,(d.y+.15)*TILE_PX,.7*TILE_PX,.7*TILE_PX);
+      g.lineStyle(2/cam.zoom,0x102c29,1);g.strokeRect((d.x+.3)*TILE_PX,(d.y+.25)*TILE_PX,.4*TILE_PX,.5*TILE_PX);
+    }
     for(const core of st.campaign?.defence?.bases??[]) {
       if(core.x<tx0||core.x>tx1||core.y<ty0||core.y>ty1)continue;
       let label=this.labels[li];if(!label){label=this.add.text(0,0,'',{fontSize:'12px',color:'#f2d38b',backgroundColor:'#0b0e1aaa',padding:{x:4,y:2}}).setDepth(5);this.labels.push(label);}
@@ -958,7 +989,7 @@ export class WorldScene extends Phaser.Scene {
       .map(p => `${bearingOf(st, this.cg!.hq, p.block)} · ${p.name}`).slice(0, 2).join('     /     ') : '';
     if (this.keyWrap !== wrap) { this.keyWrap = wrap; this.keyText.setWordWrapWidth(wrap); }
     this.keyText.setScale(1 / cam.zoom).setPosition(...pin(8, 8 + hudInset.top))
-      .setText(G.urban ? `WASD move · Shift sprint · E interact · B build · M map · wheel zoom\n${this.tool === 'hand' ? 'Empty hand · hold on rubble to mine' : `In hand: ${inHand}`} ${this.ghostReason || ''}\n${directions}` : `${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}${st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}` : ''}`);
+      .setText(G.urban ? `${FACTORY_TEXT.worldKeys}\n${this.tool === 'hand' ? FACTORY_TEXT.miningHand : FACTORY_TEXT.inHand(inHand)} ${this.ghostReason || ''}\n${directions}` : `${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}${st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}` : ''}`);
 
     // top-right: territory — the block under the engineer, what the view holds, the zoom
     this.terrText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8, 8 + hudInset.top))
@@ -1027,9 +1058,8 @@ export class WorldScene extends Phaser.Scene {
     }
     let changed = false;
     for (let i = 0; i < m.length; i++) if (m[i] !== this.lightPix[i]) { changed = true; break; }
-    if (!changed) return;
-    this.lightPix.set(m);
-    this.paintLight(this.lightPix);
+    if(changed){this.lightPix.set(m);this.paintLight(this.lightPix);}
+    const ms=performance.now()-now;this.renderTiming.lightChecks++;this.renderTiming.lightMs+=ms;this.renderTiming.lightMaxMs=Math.max(this.renderTiming.lightMaxMs,ms);
   }
   /** Layout pass (ROADMAP §2 "soft light falloff"): the lit edge was a hard texel step, so a lamp's reach ended on a
    *  straight line. The mask is blurred with two passes of [1,2,1]/4 and an unlit texel is lerped that far towards
@@ -1038,6 +1068,7 @@ export class WorldScene extends Phaser.Scene {
    *  The texture is one texel per tile drawn at `TILE_PX`, and `antialias` is on, so the card's bilinear filter
    *  carries the ramp the rest of the way. */
   private paintLight(mask: Uint8Array): void {
+    const started=performance.now();
     const G = ground(this.st), tw = G.tw, th = G.th, n = tw * th;
     const ctx = this.lightTex.getContext(), img = ctx.createImageData(tw, th), d = img.data;
     const soft = this.lightSoft, tmp = this.lightBlur;
@@ -1062,6 +1093,7 @@ export class WorldScene extends Phaser.Scene {
     }
     ctx.putImageData(img, 0, 0);
     this.lightTex.refresh();
+    const ms=performance.now()-started;this.renderTiming.lightPaints++;this.renderTiming.lightPaintMs+=ms;this.renderTiming.lightPaintMaxMs=Math.max(this.renderTiming.lightPaintMaxMs,ms);
   }
 
   /** D5 on foot: the engineer (a disc, red while down), their path, and the reach ring — faint, brighter while the
@@ -1073,6 +1105,16 @@ export class WorldScene extends Phaser.Scene {
     g.clear();
     if (!this.onFoot) return;
     const e = st.engineer, zoom = this.cameras.main.zoom, ex = e.x * TILE_PX, ey = e.y * TILE_PX;
+    const truck=st.campaign?.truck;
+    if(truck){const r=truckRect(truck),x=r.x*TILE_PX,y=r.y*TILE_PX,w=r.w*TILE_PX,hh=r.h*TILE_PX;
+      g.fillStyle(0x121820,1);g.fillRect(x,y,w,hh);g.fillStyle(0xb99144,1);g.fillRect(x+3,y+3,w-6,hh-6);
+      g.lineStyle(2/zoom,0xf8dc85,1);g.strokeRect(x+3,y+3,w-6,hh-6);
+      const dx=[0,1,0,-1][truck.dir],dy=[-1,0,1,0][truck.dir],cx=truck.x*TILE_PX,cy=truck.y*TILE_PX;
+      g.fillStyle(0x18222c,1);
+      if(dx){for(const xx of [x+8,x+w-14]){g.fillRect(xx,y,8,6);g.fillRect(xx,y+hh-6,8,6);}g.lineBetween(cx+dx*TILE_PX*.4,y+6,cx+dx*TILE_PX*.4,y+hh-6);}
+      else{for(const yy of [y+8,y+hh-14]){g.fillRect(x,yy,6,8);g.fillRect(x+w-6,yy,6,8);}g.lineBetween(x+6,cy+dy*TILE_PX*.4,x+w-6,cy+dy*TILE_PX*.4);}
+      g.fillStyle(0x82c8d8,1);g.fillRect(cx+dx*TILE_PX*.8-(dx?4:12),cy+dy*TILE_PX*.8-(dy?4:12),dx?8:24,dy?8:24);
+    }
     const path = currentPath(st);
     if (path) {
       g.lineStyle(2 / zoom, 0xffffff, 0.25);
@@ -1099,6 +1141,7 @@ export class WorldScene extends Phaser.Scene {
     // cone the ROADMAP line also asks for is NOT drawn (D-B5-1 decided against a personal light).
     if (e.face[0] || e.face[1]) this.lastFace = [e.face[0], e.face[1]];
     const fl = Math.hypot(this.lastFace[0], this.lastFace[1]) || 1, fx = this.lastFace[0] / fl, fy = this.lastFace[1] / fl;
+    if(e.truckSeat)return;
     const bodyScale = ground(st).urban ? Math.max(1, 1 / zoom) : 1;
     g.fillStyle(0x0b0e1a, 0.9); g.fillCircle(ex + 2, ey + 3, 13 * bodyScale);
     g.fillStyle(e.dash > 0 ? 0xbfe8ff : 0xf5f0e0, 1); g.fillCircle(ex, ey, 10 * bodyScale);
@@ -1211,12 +1254,13 @@ export class WorldScene extends Phaser.Scene {
     }
     // RI-04: the Stalkers (the candidate is on) — a triangle along the heading, an HP bar once hurt, the perception ring
     // and a mark on the home tile so the territory reads before the first contact, the wind-up rim, red while on you
-    const S = th.stalk;
+    const S = stalkerLayer(st);
     if (S) {
       const per = S.cand.perception * TILE_PX, maxHp = stalkerHp(S.cand);
       for (const s of stalkersOf(st)) {
         const px = s.x * TILE_PX, py = s.y * TILE_PX, hx = s.hx * TILE_PX, hy = s.hy * TILE_PX;
         if (onScreen(hx, hy, per + 48)) {
+          if(st.campaign){g.lineStyle(1 / zoom,0xc06060,0.18);g.strokeCircle(hx,hy,S.cand.leash*TILE_PX);}
           g.lineStyle(1.5 / zoom, 0xc06060, s.mode === 'guard' ? 0.35 : 0.18); g.strokeCircle(hx, hy, per);
           g.lineStyle(1.5 / zoom, 0xc06060, 0.7); g.lineBetween(hx - 5, hy - 5, hx + 5, hy + 5); g.lineBetween(hx - 5, hy + 5, hx + 5, hy - 5);
         }
@@ -1254,16 +1298,41 @@ export class WorldScene extends Phaser.Scene {
     const st = this.st, h = this.hoverTile;
     this.ghostReason = '';
     if (!st.flow || !h || this.tool === 'hand' || this.tool === 'rifle') return;   // the rifle draws its aim line, not a footprint
+    if (this.beltPath) {
+      const edits = pathEdits(this.beltPath, this.dir);
+      const key = `${st.flow.rev}:${Math.floor(st.flow.tick / 20)}:${st.engineer.x}:${st.engineer.y}:${st.engineer.down}:${JSON.stringify(st.engineer.inv)}:${JSON.stringify(edits)}`;
+      if (key !== this.previewKey) { this.previewKey = key; this.previewResult = constructionCheck(st, edits); }
+      const check = this.previewResult;
+      const col = check.ok ? 0x56e392 : 0xff655d;
+      this.ghostReason = check.ok ? `${this.beltPath.length} belts · ${FACTORY_TEXT.release}` : check.reason;
+      for (const e of edits) {
+        g.fillStyle(col, 0.3); g.fillRect(e.x * TILE_PX, e.y * TILE_PX, TILE_PX, TILE_PX);
+        if (e.action === 'place') this.arrow(g, (e.x + 0.5) * TILE_PX, (e.y + 0.5) * TILE_PX, e.dir, HALF - 3, col, 1);
+      }
+      return;
+    }
     const kind = this.tool as Kind, size = MACHINE_SIZE[kind];
+    const [width,height]=dimensions(kind,this.dir,size);
+    if(kind==='underground'&&this.undergroundStart){
+      const a=this.undergroundStart,b={x:h.tx,y:h.ty},edits:BuildEdit[]=[{action:'place',item:'underground',...a,dir:this.dir,underground:'input'},{action:'place',item:'underground',...b,dir:this.dir,underground:'output'}];
+      const key=JSON.stringify([edits,st.flow?.rev,Math.floor((st.flow?.tick??0)/20),st.engineer.x,st.engineer.y,st.engineer.inv]);
+      if(this.previewKey!==key){this.previewKey=key;this.previewResult=undergroundCheck(st,edits);}
+      const check=this.previewResult,col=check.ok?0x3ddc84:0xff3b30;this.ghostReason=check.ok?'Click output to build pair; Esc cancels':check.reason;
+      g.lineStyle(2,col,.8);g.lineBetween((a.x+.5)*TILE_PX,(a.y+.5)*TILE_PX,(b.x+.5)*TILE_PX,(b.y+.5)*TILE_PX);
+      for(const p of [a,b]){g.fillStyle(col,.25);g.fillRect(p.x*TILE_PX,p.y*TILE_PX,TILE_PX,TILE_PX);this.arrow(g,(p.x+.5)*TILE_PX,(p.y+.5)*TILE_PX,this.dir,12,col);}
+      return;
+    }
     const [ox, oy] = this.footprint(kind, h.tx, h.ty);
-    const far = this.onFoot && !inReach(st, ox, oy, size);
-    const c = canPlace(st, kind, ox, oy);
+    const far = this.onFoot && !inReach(st, ox, oy, width,height);
+    const c = canPlace(st, kind, ox, oy,this.dir);
+    const existing=kind==='underground'?machineAt(st,ox,oy):undefined;
+    const reuse=existing?.kind==='underground'&&existing.underground==='input';
     // M2: the price is read from the pockets — a carried machine goes down as it is
-    this.ghostReason = far ? 'walk closer' : c.ok ? (c.carried ? `from the pockets (${st.engineer.inv[kind]} carried)` : `${costStr(c.cost)} from the pockets`) : c.reason;
-    const col = c.ok && !far ? 0x6fe08a : 0xe05a5a;
-    g.fillStyle(col, 0.25); g.fillRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
-    g.lineStyle(2 / this.cameras.main.zoom, col, 0.9); g.strokeRect(ox * TILE_PX, oy * TILE_PX, size * TILE_PX, size * TILE_PX);
-    const gcx = (ox + size / 2) * TILE_PX, gcy = (oy + size / 2) * TILE_PX;
+    this.ghostReason = far ? 'walk closer' : reuse ? 'Click this input to reconnect its output' : c.ok ? (c.carried ? `from the pockets (${st.engineer.inv[kind]} carried)` : `${costStr(c.cost)} from the pockets`) : c.reason;
+    const col = (c.ok || reuse) && !far ? 0x6fe08a : 0xe05a5a;
+    g.fillStyle(col, 0.25); g.fillRect(ox * TILE_PX, oy * TILE_PX, width * TILE_PX, height * TILE_PX);
+    g.lineStyle(2 / this.cameras.main.zoom, col, 0.9); g.strokeRect(ox * TILE_PX, oy * TILE_PX, width * TILE_PX, height * TILE_PX);
+    const gcx = (ox + width / 2) * TILE_PX, gcy = (oy + height / 2) * TILE_PX;
     if (kind === 'pole' || kind === 'bigpole') { g.lineStyle(1 / this.cameras.main.zoom, col, 0.6); g.strokeCircle(gcx, gcy, (kind === 'bigpole' ? BIG_POLE_REACH : POLE_REACH) * TILE_PX); }
     else if (kind === 'lamp') { g.lineStyle(1 / this.cameras.main.zoom, LIGHT_COL, 0.6); g.strokeCircle(gcx, gcy, 4 * TILE_PX); }
     else if (kind === 'floodlight') {
@@ -1332,7 +1401,8 @@ export class WorldScene extends Phaser.Scene {
     g.lineStyle(2 / zoom, 0xc9b98a, 0.8);
     for (const w of grid.links) g.lineBetween(w.x0 * TILE_PX, w.y0 * TILE_PX, w.x1 * TILE_PX, w.y1 * TILE_PX);
     for (const m of f.machines) {
-      if (m.x + m.size <= tx0 || m.x > tx1 || m.y + m.size <= ty0 || m.y > ty1) continue;
+      const [width,height]=machineDimensions(m);
+      if (m.x + width <= tx0 || m.x > tx1 || m.y + height <= ty0 || m.y > ty1) continue;
       const px = m.x * TILE_PX, py = m.y * TILE_PX, sz = m.size * TILE_PX, cx = px + sz / 2, cy = py + sz / 2;
       // Layout pass (ROADMAP §2 "distinct machine silhouettes with outlines"): the shapes were already distinct but
       // the outlines were not — the turret's showed only while idle, the generator, excavator and assembler had an
@@ -1451,6 +1521,22 @@ export class WorldScene extends Phaser.Scene {
           g.fillStyle(0xff9a3a, 1); g.fillRect(px + 10, py + sz - 16, (sz - 20) * Math.min(1, m.timer), 8);
           break;
         }
+        case 'splitter': {
+          g.fillStyle(0x364759,1);g.fillRect(px+2,py+2,width*TILE_PX-4,height*TILE_PX-4);
+          g.lineStyle(2,0x83bfe8,.9);g.strokeRect(px+2,py+2,width*TILE_PX-4,height*TILE_PX-4);
+          splitterPorts(m).forEach(([x,y],i)=>this.arrow(g,(x-DX[m.dir]+.5)*TILE_PX,(y-DY[m.dir]+.5)*TILE_PX,m.dir,12,m.priority===(i===0?'left':'right')?0xffce69:0x83bfe8));
+          m.items.forEach((it,i)=>{g.fillStyle(ITEM_COL[it.k],1);g.fillRect(px+5+(i%4)*5,py+5+Math.floor(i/4)*5,4,4);});
+          break;
+        }
+        case 'underground': {
+          g.fillStyle(m.underground==='output'?0x355b73:0x4a5945,1);g.fillRect(px+2,py+2,TILE_PX-4,TILE_PX-4);
+          this.arrow(g,cx,cy,m.dir,12,m.underground==='output'?0x83bfe8:0x86d99a);
+          g.lineStyle(3,0xd5b574,1);g.lineBetween(cx-DY[m.dir]*9,cy+DX[m.dir]*9,cx+DY[m.dir]*9,cy-DX[m.dir]*9);
+          const mate=undergroundMate(st,m);
+          if(mate&&this.hoverTile&&machineAt(st,this.hoverTile.tx,this.hoverTile.ty)?.id===m.id){g.lineStyle(2,0x83bfe8,.7);g.lineBetween(cx,cy,(mate.x+.5)*TILE_PX,(mate.y+.5)*TILE_PX);}
+          if(m.items.length){g.fillStyle(ITEM_COL[m.items[m.items.length-1].k],1);g.fillRect(px+4,py+4,6,6);}
+          break;
+        }
         case 'belt': this.drawBelt(g, m, px, py); break;
         case 'inserter': {
           g.fillStyle(0x3a3220, 1); g.fillRect(px + 2, py + 2, TILE_PX - 4, TILE_PX - 4);
@@ -1515,7 +1601,7 @@ export class WorldScene extends Phaser.Scene {
         const empty = m.kind === 'turret' ? (m.inv.rounds ?? 0) <= 0 : m.kind === 'generator' ? (m.inv.coal ?? 0) <= 0 : false;
         if (empty && blink) { g.lineStyle(3 / zoom, 0xe05a5a, 1); g.strokeRect(px + 1, py + 1, sz - 2, sz - 2); }
       }
-      if (STATUS_KIND.has(m.kind)) this.drawStatusMark(g, m, px, py, zoom);   // RI-02: the state mark, over everything
+      if (STATUS_KIND.has(m.kind)||(m.kind==='belt'&&(machineStatus(st,m).state==='blocked'||(this.hoverTile?.tx===m.x&&this.hoverTile?.ty===m.y)))) this.drawStatusMark(g, m, px, py, zoom);
     }
   }
 

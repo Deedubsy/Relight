@@ -1,0 +1,17 @@
+
+> relight-prototype@0.1.0 typecheck
+> npm run build -w packages/sim && npm run build -w packages/harness && npm run build -w packages/tools && npm run build -w packages/game
+
+
+> @relight/sim@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+test/inspection.test.ts(89,25): error TS2345: Argument of type '{ verdict: ReplayVerdict; state: SimState; } | { error: string; }' is not assignable to parameter of type 'SimState'.
+  Type '{ verdict: ReplayVerdict; state: SimState; }' is missing the following properties from type 'SimState': version, seed, t, rng, and 42 more.
+npm error Lifecycle script `build` failed with error:
+npm error code 2
+npm error path /mnt/e/Factorio2/packages/sim
+npm error workspace @relight/sim@0.1.0
+npm error location /mnt/e/Factorio2/packages/sim
+npm error command failed
+npm error command sh -c tsc -p tsconfig.json --noEmit

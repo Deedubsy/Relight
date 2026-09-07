@@ -1,3 +1,5 @@
+import { routingDescription, routingStatus } from './routing';
+import { campaignGrid } from './campaignPower';
 import { districtGuidance } from './campaignDistricts';
 import { campaignWarning } from './campaignThreat';
 import { defenceMax, defenceHp, coreDisabledAt } from './campaignDefence';
@@ -19,7 +21,7 @@ import { isCampaign } from './rules';
 import {
   Machine, MACHINE_COST, MACHINE_KW, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
   recipeOf, recipeOutput, subPowered, poleGrid, inputTile, outputTile, findRubble, asmCanStart, costStr, Item,
-  isFieldKind, fieldBlock, powered, invTotal, tramAt, tramRoute,
+  isFieldKind, fieldBlock, powered, invTotal, tramAt, tramRoute, nextOf, BELT_SPACING, inserterPickup,
 } from './flow';
 import { ground, hqLot, blockOfTile } from './ground';
 import { HQ_PATCHES, P_COAL, P_COPPER, P_STEEL, RAIL_YARD_COAL } from './tiles';
@@ -276,6 +278,7 @@ export function machineStatus(st: SimState, m: Machine): MachineStatus {
     }
     case 'generator': {
       if ((m.inv.coal ?? 0) <= 0) return { state: 'starved', reason: 'out of coal' };
+      if(isCampaign(st))return (campaignGrid(st).generation.get(m.id)??0)>0?{state:'running',reason:'supplying local circuit'}:{state:'idle',reason:'no local load'};
       return m.busy ? { state: 'running', reason: 'burning' } : { state: 'idle', reason: 'no load' };
     }
     case 'excavator': {
@@ -295,15 +298,29 @@ export function machineStatus(st: SimState, m: Machine): MachineStatus {
     case 'inserter': {
       const [sx, sy] = inputTile(m), [dx, dy] = outputTile(m);
       const src = machineAt(st, sx, sy), dst = machineAt(st, dx, dy);
+      if(isCampaign(st)){
+        if(m.phase===1&&m.hold)return m.timer<=1e-9&&(!dst||!accepts(st,dst,m.hold,.5))?{state:'blocked',reason:dst?`${dst.kind} cannot accept ${m.hold}`:'no destination; held item retained'}:{state:'running',reason:`carrying ${m.hold}`};
+        if(m.phase===2)return {state:'running',reason:'returning to pickup'};
+        const pick=inserterPickup(st,m);if(pick)return {state:'idle',reason:`ready to pick up ${pick.item}`};
+        const waiting=inserterPickup(st,m,true);if(waiting)return {state:'blocked',reason:`destination cannot accept ${waiting.item}`};
+      }
       if (!src || !dst) return { state: 'starved', reason: !src ? 'nothing behind it' : 'nothing in front' };
       if (m.phase === 1 && m.hold && m.timer <= 1e-9 && !accepts(st, dst, m.hold, 0.5)) return { state: 'blocked', reason: `${dst.kind} full` };
       if (m.phase !== 0) return { state: 'running', reason: m.hold ? `carrying ${m.hold}` : 'swinging back' };
-      return { state: 'starved', reason: 'nothing to pick up' };
+      return { state: 'starved', reason: m.filter?`no matching ${m.filter} to pick up`:'nothing to pick up' };
     }
-    case 'belt': return m.items.length ? { state: 'running', reason: `${m.items.length} item${m.items.length === 1 ? '' : 's'}` } : { state: 'idle', reason: 'empty' };
+    case 'underground': case 'splitter': return {state:routingStatus(st,m),reason:routingDescription(st,m)};
+    case 'belt': {
+      const lead=m.items.at(-1),dst=nextOf(st,m);
+      if(isCampaign(st)&&lead&&lead.p>=1-BELT_SPACING/2-1e-9&&(!dst||!accepts(st,dst,lead.k)))return {state:'blocked',reason:dst?`output cannot accept ${lead.k}`:'no output connection'};
+      return m.items.length?{state:'running',reason:`${m.items.length} items moving`}:{state:'idle',reason:'empty'};
+    }
     case 'lamp': case 'floodlight': return { state: 'running', reason: 'lit' };
-    case 'pole': case 'bigpole': return poleGrid(st).connected.has(m.id) ? { state: 'running', reason: 'on the grid' } : { state: 'idle', reason: 'not connected' };
-    case 'substation': return subPowered(st, b) ? { state: 'running', reason: 'on' } : { state: 'off', reason: 'off' };
+    case 'pole': case 'bigpole': {
+      if(isCampaign(st))return (campaignGrid(st).poles.get(m.id)?.supply??0)>0?{state:'running',reason:'connected to a supplied circuit'}:{state:'off',reason:'no connected supply'};
+      return poleGrid(st).connected.has(m.id)?{state:'running',reason:'on the grid'}:{state:'idle',reason:'not connected'};
+    }
+    case 'substation': return (isCampaign(st)?campaignGrid(st).blocks[bi].throttle>0:subPowered(st, b)) ? { state: 'running', reason: 'on' } : { state: 'off', reason: 'no circuit supply' };
     case 'depot': return { state: 'idle', reason: `${chestMags(st)} magazines in the line buffer` };
     // RI-05
     case 'chest': { const n = invTotal(m.inv); return n > 0 ? { state: 'idle', reason: `${n} item${n === 1 ? '' : 's'}` } : { state: 'idle', reason: 'empty' }; }

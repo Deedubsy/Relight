@@ -1,0 +1,239 @@
+TAP version 13
+# Subtest: legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+ok 1 - legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+  ---
+  duration_ms: 712.766722
+  type: 'test'
+  ...
+# Subtest: campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+ok 2 - campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+  ---
+  duration_ms: 1491.767673
+  type: 'test'
+  ...
+# Subtest: cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+ok 3 - cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+  ---
+  duration_ms: 3223.659735
+  type: 'test'
+  ...
+# Subtest: campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+ok 4 - campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+  ---
+  duration_ms: 632.494335
+  type: 'test'
+  ...
+# Subtest: paid walls block walking, retain their footprint on defeat, and repair consumes materials once through save/load
+ok 5 - paid walls block walking, retain their footprint on defeat, and repair consumes materials once through save/load
+  ---
+  duration_ms: 994.33496
+  type: 'test'
+  ...
+# Subtest: one dawn lock coalesces restorations; later nominations wait and a late ending preserves two full quiet cycles
+ok 6 - one dawn lock coalesces restorations; later nominations wait and a late ending preserves two full quiet cycles
+  ---
+  duration_ms: 586.183101
+  type: 'test'
+  ...
+# Subtest: a powered radio receives the real lock; outages retain it and never reroll the target
+ok 7 - a powered radio receives the real lock; outages retain it and never reroll the target
+  ---
+  duration_ms: 243.620576
+  type: 'test'
+  ...
+# Subtest: minor opportunities are shared, finite and suppressed during major combat and recovery without catch-up
+ok 8 - minor opportunities are shared, finite and suppressed during major combat and recovery without catch-up
+  ---
+  duration_ms: 269.904139
+  type: 'test'
+  ...
+# Subtest: unopposed major crawlers follow the home mouth, defeat its core and physically withdraw before paid recovery
+ok 9 - unopposed major crawlers follow the home mouth, defeat its core and physically withdraw before paid recovery
+  ---
+  duration_ms: 442.217404
+  type: 'test'
+  ...
+# Subtest: a sealed court is breached through a player wall instead of losing pathfinding; turret defeat preserves its ammo
+ok 10 - a sealed court is breached through a player wall instead of losing pathfinding; turret defeat preserves its ammo
+  ---
+  duration_ms: 538.392839
+  type: 'test'
+  ...
+# Subtest: ruin guards stay at their own sites and never join the base assault
+ok 11 - ruin guards stay at their own sites and never join the base assault
+  ---
+  duration_ms: 393.336116
+  type: 'test'
+  ...
+# Subtest: ordinary paid and hand-supplied turrets hold the complete finite major roster without the rifle
+ok 12 - ordinary paid and hand-supplied turrets hold the complete finite major roster without the rifle
+  ---
+  duration_ms: 497.554368
+  type: 'test'
+  ...
+# Subtest: old previews gain a preparation interval; malformed schedules, health and orphaned bodies are refused
+ok 13 - old previews gain a preparation interval; malformed schedules, health and orphaned bodies are refused
+  ---
+  duration_ms: 485.198281
+  type: 'test'
+  ...
+# Subtest: ordinary paid defence commands replay from the same fresh campaign factory
+ok 14 - ordinary paid defence commands replay from the same fresh campaign factory
+  ---
+  duration_ms: 398.760685
+  type: 'test'
+  ...
+# {"seed":3,"ticks":388,"commands":75,"recoveredAt":17,"hash":"82b5c543"}
+# Subtest: the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+ok 15 - the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+  ---
+  duration_ms: 3795.805407
+  type: 'test'
+  ...
+# Subtest: guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+ok 16 - guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+  ---
+  duration_ms: 418.352052
+  type: 'test'
+  ...
+# Subtest: the guardian returns at its bounded leash and workshop restoration does not retire it
+ok 17 - the guardian returns at its bounded leash and workshop restoration does not retire it
+  ---
+  duration_ms: 277.545414
+  type: 'test'
+  ...
+# Subtest: a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+ok 18 - a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+  ---
+  duration_ms: 555.678594
+  type: 'test'
+  ...
+# Subtest: field repair retains material costs, paid pauses and existing job duration, including core recovery
+ok 19 - field repair retains material costs, paid pauses and existing job duration, including core recovery
+  ---
+  duration_ms: 208.714503
+  type: 'test'
+  ...
+# Subtest: old previews add one deferred guardian; malformed or missing current reward state is rejected
+ok 20 - old previews add one deferred guardian; malformed or missing current reward state is rejected
+  ---
+  duration_ms: 466.391039
+  type: 'test'
+  ...
+# Subtest: fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+ok 21 - fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+  ---
+  duration_ms: 1247.236713
+  type: 'test'
+  ...
+# Subtest: the records can be recovered by drawing the living guardian away, with no kill requirement
+ok 22 - the records can be recovered by drawing the living guardian away, with no kill requirement
+  ---
+  duration_ms: 179.233189
+  type: 'test'
+  ...
+# Subtest: a paid missed rifle round attracts the workshop guardian even when the engineer stands still
+ok 23 - a paid missed rifle round attracts the workshop guardian even when the engineer stands still
+  ---
+  duration_ms: 164.519518
+  type: 'test'
+  ...
+# Subtest: district sites and specialised sources are reachable, distinct and persistent across seeds and saves
+ok 24 - district sites and specialised sources are reachable, distinct and persistent across seeds and saves
+  ---
+  duration_ms: 2560.982696
+  type: 'test'
+  ...
+# Subtest: powered extraction produces into real local storage without depletion or hand mining; outages stop it
+ok 25 - powered extraction produces into real local storage without depletion or hand mining; outages stop it
+  ---
+  duration_ms: 677.713579
+  type: 'test'
+  ...
+# Subtest: workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+ok 26 - workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+  ---
+  duration_ms: 449.984779
+  type: 'test'
+  ...
+# Subtest: fresh campaign pays for both stations and the workshop through logged commands that replay identically
+ok 27 - fresh campaign pays for both stations and the workshop through logged commands that replay identically
+  ---
+  duration_ms: 586.397675
+  type: 'test'
+  ...
+# Subtest: paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest
+ok 28 - paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest
+  ---
+  duration_ms: 1225.989739
+  type: 'test'
+  ...
+# Subtest: old district-free previews upgrade once without moving the promised assault or duplicating sources
+ok 29 - old district-free previews upgrade once without moving the promised assault or duplicating sources
+  ---
+  duration_ms: 486.823986
+  type: 'test'
+  ...
+# Subtest: second area is reachable across seeds; restoration costs, local power, radio and once-only kit survive saves
+ok 30 - second area is reachable across seeds; restoration costs, local power, radio and once-only kit survive saves
+  ---
+  duration_ms: 2942.087887
+  type: 'test'
+  ...
+# Subtest: fresh paid expedition lays its generated kit and moves reserved freight between independently powered bases
+ok 31 - fresh paid expedition lays its generated kit and moves reserved freight between independently powered bases
+  ---
+  duration_ms: 1236.650235
+  type: 'test'
+  ...
+# Subtest: old home preview upgrades deterministically without granting a kit; malformed expansion metadata is rejected
+ok 32 - old home preview upgrades deterministically without granting a kit; malformed expansion metadata is rejected
+  ---
+  duration_ms: 564.493639
+  type: 'test'
+  ...
+# Subtest: physical pole links power a remote installation and picking them up disconnects it
+ok 33 - physical pole links power a remote installation and picking them up disconnects it
+  ---
+  duration_ms: 328.705678
+  type: 'test'
+  ...
+# Subtest: upgrading a home-only save preserves the save but labels its old log as incomplete for the new campaign factory
+ok 34 - upgrading a home-only save preserves the save but labels its old log as incomplete for the new campaign factory
+  ---
+  duration_ms: 398.992398
+  type: 'test'
+  ...
+# Subtest: three stations reserve only their own deliveries; stock and in-flight reservations prevent double ordering across trams; exports return upstream
+ok 35 - three stations reserve only their own deliveries; stock and in-flight reservations prevent double ordering across trams; exports return upstream
+  ---
+  duration_ms: 376.507018
+  type: 'test'
+  ...
+# Subtest: capacity is reserved across all items and trams; partial refusal returns the remainder without losing it
+ok 36 - capacity is reserved across all items and trams; partial refusal returns the remainder without losing it
+  ---
+  duration_ms: 89.312803
+  type: 'test'
+  ...
+# Subtest: unpowered stops retain cargo with bounded service; a refused destination returns home, and removal of either endpoint remains recoverable
+ok 37 - unpowered stops retain cargo with bounded service; a refused destination returns home, and removal of either endpoint remains recoverable
+  ---
+  duration_ms: 74.767196
+  type: 'test'
+  ...
+# Subtest: a mid-shipment save resumes to the same hash; old saves stay version one and invalid manifests are rejected
+ok 38 - a mid-shipment save resumes to the same hash; old saves stay version one and invalid manifests are rejected
+  ---
+  duration_ms: 110.171693
+  type: 'test'
+  ...
+1..38
+# tests 38
+# suites 0
+# pass 38
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 46800.683226

@@ -1,0 +1,73 @@
+TAP version 13
+# Subtest: construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+ok 1 - construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+  ---
+  duration_ms: 1273.891062
+  type: 'test'
+  ...
+# Subtest: construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+ok 2 - construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+  ---
+  duration_ms: 918.937705
+  type: 'test'
+  ...
+# Subtest: construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+not ok 3 - construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+  ---
+  duration_ms: 1336.794349
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/construction.test.ts:59:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + undefined
+    - null
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/construction.test.ts:71:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+ok 4 - construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+  ---
+  duration_ms: 1607.914474
+  type: 'test'
+  ...
+# Subtest: construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+ok 5 - construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+  ---
+  duration_ms: 8647.64702
+  type: 'test'
+  ...
+# Subtest: construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+ok 6 - construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+  ---
+  duration_ms: 2006.509519
+  type: 'test'
+  ...
+# Subtest: construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+ok 7 - construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+  ---
+  duration_ms: 0.430552
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 6
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 19931.109608

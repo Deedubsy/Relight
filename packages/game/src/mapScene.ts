@@ -29,6 +29,7 @@ interface HulkMark { x: number; y: number; born: number }
 interface PoleLine { x0: number; y0: number; x1: number; y1: number }
 
 export interface SceneHooks {
+  onStationSelect?(x:number,y:number):void;
   onHover(info: ReturnType<typeof claimInfo> | HeldInfo | null, px: number, py: number): void;
   onPipSelect(edge: FrontEdgeView | null): void;
   /** RI-03: a Dark block's click previews the claim and says what it still needs — the map claims nothing. */

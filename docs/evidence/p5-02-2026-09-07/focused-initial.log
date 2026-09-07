@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: routing: underground span boundaries, paired construction and atomic interference/material/reach refusals
+ok 1 - routing: underground span boundaries, paired construction and atomic interference/material/reach refusals
+  ---
+  duration_ms: 1211.744478
+  type: 'test'
+  ...
+# Subtest: routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication
+ok 2 - routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication
+  ---
+  duration_ms: 698.444841
+  type: 'test'
+  ...
+# Subtest: routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load
+ok 3 - routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load
+  ---
+  duration_ms: 323.489103
+  type: 'test'
+  ...
+# Subtest: routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item
+ok 4 - routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item
+  ---
+  duration_ms: 641.811902
+  type: 'test'
+  ...
+# Subtest: routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change
+ok 5 - routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change
+  ---
+  duration_ms: 405.019308
+  type: 'test'
+  ...
+# Subtest: routing: paired commands and settings replay at a paused boundary and survive saved history
+ok 6 - routing: paired commands and settings replay at a paused boundary and survive saved history
+  ---
+  duration_ms: 454.425774
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8497.081576

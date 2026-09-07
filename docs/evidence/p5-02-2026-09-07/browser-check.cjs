@@ -1,0 +1,48 @@
+const { chromium }=require(process.env.RELIGHT_PLAYWRIGHT||'C:/Users/Admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({channel:'chrome',headless:true,args:['--disable-gpu']});
+ const page=await browser.newPage({viewport:{width:1366,height:900}}),errors=[];
+ page.on('pageerror',e=>errors.push(String(e)));
+ const out=__dirname,url='http://127.0.0.1:5176/?rules=exploration-v2&seed=3&view=world';
+ const state=()=>page.evaluate(()=>JSON.parse(window.__relight.stateJson()));
+ const hash=()=>page.evaluate(()=>window.__relight.stateHash());
+ const aim=async p=>{const a=await page.evaluate(p=>window.__relight.world.screenOf(p.x+.5,p.y+.5),p),box=await page.locator('canvas').boundingBox();await page.mouse.move(box.x+a[0],box.y+a[1]);};
+ const click=async(p,button='left')=>{await aim(p);await page.mouse.down({button});await page.mouse.up({button});await page.waitForTimeout(120);};
+ const find=offsets=>page.evaluate(offsets=>{const r=window.__relight,e=r.engineer();for(let y=Math.floor(e.y)-6;y<e.y+6;y++)for(let x=Math.floor(e.x)-6;x<e.x+6;x++){if(offsets.every(([dx,dy])=>r.flow.canPlace('belt',x+dx,y+dy).ok&&Math.hypot(x+dx+.5-e.x,y+dy+.5-e.y)<7))return{x,y};}return null;},offsets);
+ try{
+  await page.goto(url);await page.waitForFunction(()=>window.__relight?.session.state.flow);await page.keyboard.press('p');await page.waitForTimeout(200);
+  await page.keyboard.press('i');const pockets=page.locator('section').filter({has:page.getByRole('heading',{name:/Pockets and the chest/})});
+  for(const n of [0,1])await pockets.getByRole('button',{name:'Take 50',exact:true}).nth(n).click();await page.keyboard.press('Escape');
+  const a=await find([[0,0],[4,0]]);assert.ok(a);const b={x:a.x+4,y:a.y},initial=await hash();
+  await page.keyboard.press('u');await click(a);await aim(b);await page.waitForTimeout(100);
+  assert.equal(await hash(),initial,'preview charges nothing');
+  await page.waitForTimeout(5100);await page.screenshot({path:path.join(out,'underground-preview-1366.png')});
+  await page.keyboard.press('Escape');assert.equal(await hash(),initial);
+  await page.keyboard.press('u');await click(a);await click({x:a.x+6,y:a.y});assert.equal(await hash(),initial);
+  assert.match(await page.locator('.toast').last().innerText(),/four hidden/);
+  await click(b);let s=await state();assert.equal(s.flow.machines.filter(m=>m.kind==='underground').length,2);assert.equal(s.engineer.inv.steel,40);assert.equal(s.construction.undo.at(-1).length,2);
+  await page.keyboard.press('Control+z');assert.equal((await state()).flow.machines.filter(m=>m.kind==='underground').length,0);
+  await page.keyboard.press('Control+y');await page.keyboard.press('Escape');await click(b,'right');assert.equal((await state()).flow.machines.filter(m=>m.kind==='underground').length,1);
+  await page.keyboard.press('u');await click(a);await click(b);assert.equal((await state()).construction.undo.at(-1).length,1,'reconnect builds only the missing endpoint');
+  const j=await find([[0,0],[1,0],[0,1],[1,1]]);assert.ok(j);await page.keyboard.press('j');await click(j);await page.keyboard.press('Escape');await aim(j);await page.keyboard.press('r');
+  s=await state();let splitter=s.flow.machines.find(m=>m.kind==='splitter');assert.ok(splitter);assert.equal(splitter.dir,2);assert.equal(s.flow.occ[j.y*s.flow.tw+j.x+1],splitter.id);
+  await page.keyboard.press('e');const settings=page.locator('section').filter({has:page.getByRole('heading',{name:'Routing settings',exact:true})});
+  await settings.getByRole('combobox',{name:'Splitter output priority'}).selectOption('left');assert.equal((await state()).flow.machines.find(m=>m.id===splitter.id).priority,'left');
+  await page.keyboard.press('Escape');assert.equal(await settings.isVisible(),false);
+  await aim(j);await page.keyboard.press('t');assert.equal((await state()).flow.machines.find(m=>m.id===splitter.id).priority,'right');
+  const i=await find([[0,0]]);assert.ok(i);await page.keyboard.press('2');await click(i);await page.keyboard.press('Escape');await aim(i);await page.keyboard.press('e');
+  await settings.getByRole('combobox',{name:'Inserter item filter'}).selectOption('copper');assert.equal((await state()).flow.machines.find(m=>m.x===i.x&&m.y===i.y).filter,'copper');
+  await page.setViewportSize({width:900,height:900});await settings.scrollIntoViewIfNeeded();await page.waitForTimeout(5100);await page.screenshot({path:path.join(out,'filter-settings-900.png')});
+  await page.keyboard.press('Escape');await page.keyboard.press('b');
+  const menu=page.locator('section').filter({has:page.getByRole('heading',{name:/Build menu/})});
+  assert.equal(await menu.getByRole('button',{name:'U · underground',exact:true}).isEnabled(),true);assert.equal(await menu.getByRole('button',{name:'J · splitter',exact:true}).isEnabled(),true);
+  await menu.scrollIntoViewIfNeeded();await page.waitForTimeout(5100);await page.screenshot({path:path.join(out,'routing-catalogue-900.png')});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.keyboard.press('Escape');
+  await page.keyboard.press('Control+s');const saved=await hash(),load=await page.evaluate(()=>window.__relight.loadUrl());
+  await page.goto(load);await page.waitForFunction(()=>window.__relight?.session.state.flow);assert.equal(await hash(),saved);
+  const replay=await page.evaluate(()=>window.__relight.replayHash());assert.equal(replay.same,true);
+  fs.writeFileSync(path.join(out,'browser-result.json'),JSON.stringify({setup:'Fresh seed 3 paused with P; ordinary chest buttons take 50 steel and 50 copper. Read-only dev hooks locate clear tiles and inspect results. No injected stock/position.',widths:[1366,900],input:a,output:b,splitter:j,inserter:i,replay,errors,log:await page.evaluate(()=>window.__relight.commandLog())},null,2));
+  assert.deepEqual(errors,[]);console.log('PASS: normal paid pair preview/cancel/refusal/release, grouped undo/redo, endpoint replacement, rectangular rotation, keyboard priority, settings/filter selects, Escape/focus, 1366/900 layouts, save/reload and identical replay.');
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

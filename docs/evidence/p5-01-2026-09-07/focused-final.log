@@ -1,0 +1,52 @@
+TAP version 13
+# Subtest: construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+ok 1 - construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+  ---
+  duration_ms: 569.939488
+  type: 'test'
+  ...
+# Subtest: construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+ok 2 - construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+  ---
+  duration_ms: 522.203502
+  type: 'test'
+  ...
+# Subtest: construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+ok 3 - construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+  ---
+  duration_ms: 429.146617
+  type: 'test'
+  ...
+# Subtest: construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+ok 4 - construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+  ---
+  duration_ms: 363.875324
+  type: 'test'
+  ...
+# Subtest: construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+ok 5 - construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+  ---
+  duration_ms: 1160.686414
+  type: 'test'
+  ...
+# Subtest: construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+ok 6 - construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+  ---
+  duration_ms: 418.848383
+  type: 'test'
+  ...
+# Subtest: construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+ok 7 - construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+  ---
+  duration_ms: 0.436636
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6718.014366

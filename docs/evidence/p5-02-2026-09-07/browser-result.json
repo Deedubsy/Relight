@@ -1,0 +1,203 @@
+{
+  "setup": "Fresh seed 3 paused with P; ordinary chest buttons take 50 steel and 50 copper. Read-only dev hooks locate clear tiles and inspect results. No injected stock/position.",
+  "widths": [
+    1366,
+    900
+  ],
+  "input": {
+    "x": 415,
+    "y": 638
+  },
+  "output": {
+    "x": 419,
+    "y": 638
+  },
+  "splitter": {
+    "x": 424,
+    "y": 633
+  },
+  "inserter": {
+    "x": 424,
+    "y": 632
+  },
+  "replay": {
+    "same": true,
+    "replayed": "b0e40b5a",
+    "played": "b0e40b5a",
+    "tick": 1
+  },
+  "errors": [],
+  "log": [
+    {
+      "tick": 1,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "chestTake",
+          "item": "steel",
+          "n": 50
+        }
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "chestTake",
+          "item": "copper",
+          "n": 50
+        }
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "undergroundPair",
+        "from": {
+          "x": 415,
+          "y": 638
+        },
+        "to": {
+          "x": 421,
+          "y": 638
+        },
+        "dir": 1
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "undergroundPair",
+        "from": {
+          "x": 415,
+          "y": 638
+        },
+        "to": {
+          "x": 419,
+          "y": 638
+        },
+        "dir": 1
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "undoBuild"
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "redoBuild"
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "construct",
+        "edits": [
+          {
+            "action": "pickUp",
+            "x": 419,
+            "y": 638
+          }
+        ]
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "undergroundPair",
+        "from": {
+          "x": 415,
+          "y": 638
+        },
+        "to": {
+          "x": 419,
+          "y": 638
+        },
+        "dir": 1
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "construct",
+        "edits": [
+          {
+            "action": "place",
+            "item": "splitter",
+            "x": 424,
+            "y": 633,
+            "dir": 1
+          }
+        ]
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "construct",
+        "edits": [
+          {
+            "action": "rotate",
+            "x": 424,
+            "y": 633
+          }
+        ]
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "routing",
+          "x": 424,
+          "y": 633,
+          "priority": "left"
+        }
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "routing",
+          "x": 424,
+          "y": 633,
+          "priority": "right"
+        }
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "construct",
+        "edits": [
+          {
+            "action": "place",
+            "item": "inserter",
+            "x": 424,
+            "y": 632,
+            "dir": 1
+          }
+        ]
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "routing",
+          "x": 424,
+          "y": 632,
+          "filter": "copper"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+TAP version 13
+# {"seed":3,"ticks":388,"commands":75,"recoveredAt":17,"hash":"82b5c543"}
+# Subtest: the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+ok 1 - the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+  ---
+  duration_ms: 3600.464891
+  type: 'test'
+  ...
+# Subtest: guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+ok 2 - guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+  ---
+  duration_ms: 371.383164
+  type: 'test'
+  ...
+# Subtest: the guardian returns at its bounded leash and workshop restoration does not retire it
+ok 3 - the guardian returns at its bounded leash and workshop restoration does not retire it
+  ---
+  duration_ms: 252.994226
+  type: 'test'
+  ...
+# Subtest: a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+ok 4 - a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+  ---
+  duration_ms: 468.829445
+  type: 'test'
+  ...
+# Subtest: field repair retains material costs, paid pauses and existing job duration, including core recovery
+ok 5 - field repair retains material costs, paid pauses and existing job duration, including core recovery
+  ---
+  duration_ms: 184.098266
+  type: 'test'
+  ...
+# Subtest: old previews add one deferred guardian; malformed or missing current reward state is rejected
+ok 6 - old previews add one deferred guardian; malformed or missing current reward state is rejected
+  ---
+  duration_ms: 418.199818
+  type: 'test'
+  ...
+# Subtest: fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+ok 7 - fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+  ---
+  duration_ms: 1105.326812
+  type: 'test'
+  ...
+# Subtest: the records can be recovered by drawing the living guardian away, with no kill requirement
+ok 8 - the records can be recovered by drawing the living guardian away, with no kill requirement
+  ---
+  duration_ms: 166.77179
+  type: 'test'
+  ...
+# Subtest: a paid missed rifle round attracts the workshop guardian even when the engineer stands still
+ok 9 - a paid missed rifle round attracts the workshop guardian even when the engineer stands still
+  ---
+  duration_ms: 142.35538
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9558.595144

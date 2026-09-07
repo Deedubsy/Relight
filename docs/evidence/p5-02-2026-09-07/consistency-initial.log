@@ -1,0 +1,8 @@
+EX-08A frozen source and build archives still match their original SHA-256 hashes.
+Verified 154 source/test/build inputs, 6 build files, and 31 evidence files.
+105 local documentation references resolve.
+Traceback (most recent call last):
+  File "E:\Factorio2\docs\evidence\p5-02-2026-09-07\check.py", line 72, in <module>
+    assert 'PASS:' in (out / 'browser-final.log').read_text(encoding='utf-8-sig')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

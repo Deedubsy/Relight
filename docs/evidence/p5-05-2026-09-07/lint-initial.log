@@ -1,0 +1,32 @@
+
+> relight-prototype@0.1.0 lint
+> eslint packages/sim/src packages/harness/src packages/tools/src
+
+
+/mnt/e/Factorio2/packages/harness/src/blueprint.ts
+  75:16  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+
+/mnt/e/Factorio2/packages/harness/src/campaignExperiments.ts
+  2:10   error  'createCampaign' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  2:69   error  'makeSave' is defined but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+  2:79   error  'loadState' is defined but never used. Allowed unused vars must match /^_/u             @typescript-eslint/no-unused-vars
+  2:90   error  'machineAt' is defined but never used. Allowed unused vars must match /^_/u             @typescript-eslint/no-unused-vars
+  2:101  error  'machineRunning' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  3:2    error  'recipeOf' is defined but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+  3:74   error  'campaignThrottle' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  3:92   error  'blockOfTile' is defined but never used. Allowed unused vars must match /^_/u           @typescript-eslint/no-unused-vars
+  3:105  error  'inReach' is defined but never used. Allowed unused vars must match /^_/u               @typescript-eslint/no-unused-vars
+  4:16   error  'freightInbound' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  4:62   error  'Machine' is defined but never used. Allowed unused vars must match /^_/u               @typescript-eslint/no-unused-vars
+  4:76   error  'RecipeId' is defined but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+  4:91   error  'Item' is defined but never used. Allowed unused vars must match /^_/u                  @typescript-eslint/no-unused-vars
+  6:92   error  'LOGISTICS_ASSISTANCE' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/mnt/e/Factorio2/packages/harness/src/factoryScenario.ts
+  1:90  error  'machineAt' is defined but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+  2:13  error  'inReach' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+  2:22  error  'dimensions' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  2:34  error  'MACHINE_SIZE' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 19 problems (19 errors, 0 warnings)
+

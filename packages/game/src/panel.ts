@@ -1,14 +1,21 @@
+import { truckDescription, truckBoardCheck, stationRoute } from '@relight/sim';
+import { transportView } from './view';
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
-import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, queueCraft, SHOT, MACHINE_COST,
-  CHEST_ITEMS, ChestItem, chestCount, chestTake, chestPut, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, CAMPAIGN_KINDS as KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS,
+import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, SHOT, MACHINE_COST,
+  CHEST_ITEMS, ChestItem, chestCount, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, CAMPAIGN_KINDS as KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS,
   currentGoal, Goal, blockLabel, blockNameAt, edgeName, idxOf, activationCheck,
   machineAt, inReach, MACHINE_SIZE, projectList, describeProject, SUPPLY_CHEST_CAP, STOP_CAP, TRAM_CAP, TRAM_TPS, TRAM_DWELL_S, MACHINE_KW } from '@relight/sim';   // RI-05
-import { Session, setSpeed, queue, shareUrl, record, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
+import { Session, setSpeed, queue, shareUrl, dispatch, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
+import { buildCatalogue } from './buildCatalogue';
+import { FACTORY_TEXT, FACTORY_STATUS_GLYPH } from './factoryStrings';
+import { type Item, type OutputPriority, machineDimensions, routingDescription } from '@relight/sim';
+import { inspectMachine, factoryStatistics, machineById, tramAt, RECIPE_IDS, ASSEMBLER_RECIPES, type RecipeId } from '@relight/sim';
+import { shortcut, bound } from './controls';
 import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
 import { radioUpgradeCheck, campaignWarning, defenceDescription, repairCheck, CAMPAIGN_THREAT } from '@relight/sim';
-import { campaignSite, describeSite, EXPANSION, SITE_IDS, SITE_LABELS, SiteId, districtGuidance } from '@relight/sim';
+import { campaignSite, describeSite, EXPANSION, SITE_IDS, SITE_LABELS, SiteId, districtGuidance, discoveryDescription, discoveryCheck } from '@relight/sim';
 import { ITEMS, StationRules, freightInbound, isCampaign, rulesetOf, CAMPAIGN_RULESET, LEGACY_RULESET, campaignClock } from '@relight/sim';
 
 /** M6: what the export carries beside the telemetry — the command log (the replay's input) and, under the hour bot, its log and report. */
@@ -34,6 +41,10 @@ export interface Panel {
   /** RI-05: open the pockets targeted at the Supply chest or Tram stop at (x, y) (E on it): its transfers go there
    *  (chestTake / chestPut at). Tab / I target the Depot again. Pressing it on the same target closes them. */
   openPocketsAt(x: number, y: number): void;
+  openTruck():void;
+  openStationRoute(x:number,y:number):void;
+  openRoutingAt(x:number,y:number):void;
+  openInspectionAt(x:number,y:number):void;
   /** D-B1-5: show/hide the build menu (B); a click on a row puts that building in the hand. */
   toggleBuild(): boolean;
   /** Esc: close the pockets and the build menu. */
@@ -110,6 +121,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   if (hasSlot('1', rulesetOf(st))) saveNote.textContent = 'this campaign has a save';
 
   const campaignStatus = campaign ? el('p', 'hint') : null;
+  const discoveryStatus = campaign ? el('p','hint') : null;
+  const discoveryButton = campaign ? el('button',undefined,'Recover field-repair schematic') : null;
   let radioUpgradeButton: HTMLButtonElement | null=null;
   let defenceStatus: HTMLElement | null=null;
   const coreButtons: {block:number;button:HTMLButtonElement}[]=[];
@@ -122,6 +135,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block,st.campaign!.districts!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};coreButtons.push({block:base,button});section.append(button);}
     for (const id of SITE_IDS) { const button = el('button', undefined, `Deliver and restore ${SITE_LABELS[id]}`); button.onclick = () => { const s = campaignSite(session.state, id); if (s && s.restoredAt >= 0 && id === 'station') queue(session,{type:'collectTramKit'}); else {queue(session,{type:'deliverSite',site:id});queue(session,{type:'restoreSite',site:id});} }; section.append(button);siteButtons.push({id,button}); }
     section.append(el('p', 'hint', 'After restoration, blue survey squares mark the suggested track and stop positions. They place nothing: collect the kit at the station, then lay and power the line yourself. The kit stays there if your pockets are full. Extend the survey using paid track and a third stop. Coloured source pads need powered excavators. Supply a chest within 4 tiles of the restored workshop with steel and copper; it repairs walls and turrets within 14 tiles between attacks.'));
+    section.append(el('h3',undefined,'Optional discovery'),discoveryStatus!,discoveryButton!);
+    discoveryButton!.onclick=()=>{const d=session.state.campaign?.discovery;if(d)queue(session,{type:'recoverSchematic',id:d.id});};
     root.append(section);
   }
   // HUD
@@ -137,7 +152,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const speedRow = el('div', 'row');
   const speeds: [number, string][] = [[0, 'Pause'], [1, '1×'], [4, '4×'], [16, '16×']];
   const speedBtns = speeds.map(([m, label]) => { const b = el('button', undefined, label); b.onclick = () => setSpeed(session, m); speedRow.append(b); return { m, b }; });
-  speedRow.append(el('span', 'hint', 'keys: P pause · - / = speed · M map ↔ world · Tab/I pockets · B build menu · Esc closes · ` debug panel'));
+  speedRow.append(el('span', 'hint', FACTORY_TEXT.keys));
   hudSec.append(speedRow);
   root.append(hudSec);
 
@@ -150,7 +165,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   let pocketAt: [number, number] | null = null;   // RI-05: the Supply chest or Tram stop the pockets talk to (E on it); null = the Depot
   const pocketTarget = () => pocketAt ? machineAt(session.state, pocketAt[0], pocketAt[1]) : undefined;
   const pocketWhere = () => { const m = pocketTarget(); return !m ? 'the Depot' : m.kind === 'tramstop' ? 'the Tram stop\'s platform' : 'the Supply chest'; };
-  pocketSec.append(el('h2', undefined, 'Pockets and the chest (Tab / I, or E on the Depot; E on a Supply chest or a Tram stop targets it)'));
+  pocketSec.append(el('h2', undefined, FACTORY_TEXT.pocketTitle));
   const pocketHead = el('p', 'hint', '');
   pocketSec.append(pocketHead);
   const pocketList = el('ul', 'plain');
@@ -158,9 +173,9 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const l = el('li'), a = el('span', undefined, item === 'magazine' ? 'magazines' : item === 'kit' ? 'kits (10 stacks each)' : item), v = el('span', 'mono', '');
     const row = el('div', 'row');
     const n = item === 'kit' ? 1 : item === 'magazine' ? 5 : stackSize(item);
-    const take = el('button', undefined, `Take ${n}`), put = el('button', undefined, 'Put all');
-    take.onclick = () => { const r = chestTake(session.state, item, n, pocketAt ?? undefined); record(session, { type: 'chestTake', item, n, ...(pocketAt ? { x: pocketAt[0], y: pocketAt[1] } : {}) }); if (r.moved) toast(`${r.moved} ${item} into the pockets`, 'good'); else toast(r.reason, 'bad'); };
-    put.onclick = () => { const r = chestPut(session.state, item, 1e9, pocketAt ?? undefined); record(session, { type: 'chestPut', item, n: 1e9, ...(pocketAt ? { x: pocketAt[0], y: pocketAt[1] } : {}) }); if (r.moved) toast(`${r.moved} ${item} into ${pocketWhere()}`, 'good'); else toast(r.reason, 'bad'); };
+    const take = el('button', undefined, FACTORY_TEXT.take(n)), put = el('button', undefined, FACTORY_TEXT.putAll);
+    take.onclick = () => { const r = dispatch(session, { type: 'factory', action: { type: 'chestTake', item, n, ...(pocketAt ? { x: pocketAt[0], y: pocketAt[1] } : {}) } }); if (r.moved) toast(`${r.moved} ${item} into the pockets`, 'good'); else toast(r.reason, 'bad'); };
+    put.onclick = () => { const r = dispatch(session, { type: 'factory', action: { type: 'chestPut', item, n: 1e9, ...(pocketAt ? { x: pocketAt[0], y: pocketAt[1] } : {}) } }); if (r.moved) toast(`${r.moved} ${item} into ${pocketWhere()}`, 'good'); else toast(r.reason, 'bad'); };
     row.append(take, put);
     l.append(a, v); pocketList.append(l); pocketList.append(row);
     return { item: item as ChestItem, v, take, put };
@@ -211,30 +226,17 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   // three (0, [, ]) are listed locked, with who unlocks them, until the group's block turns Held (rule 8).
   const buildSec = el('section');
   buildSec.hidden = true;
-  buildSec.append(el('h2', undefined, 'Build menu (B)'));
+  buildSec.append(el('h2', undefined, `${FACTORY_TEXT.buildTitle} (${shortcut('build')})`));
   const buildList = el('ul', 'plain');
-  const BUILD: { kind: BuildKind; key: string; what: string }[] = [
-    { kind: 'belt', key: '1', what: '7.5 items/s' }, { kind: 'inserter', key: '2', what: 'one item a second across a tile' },
-    { kind: 'excavator', key: '3', what: '3×3, 0.5/s onto the belt it faces' }, { kind: 'assembler', key: '4', what: `Assembler (3×3): Shot magazine ${SHOT.seconds} s (${Math.round(60 / SHOT.seconds)}/min), or Wire / Frame / Board — T on it sets the recipe; the Mk2 (3 s) is the purchase` },
-    { kind: 'turret', key: '5', what: `2×2, range ${TURRET_RANGE}, ${TURRET_HOPPER}-round hopper` }, { kind: 'lamp', key: '6', what: `lights a ${LAMP_RADIUS}-tile radius` },
-    { kind: 'pole', key: '7', what: 'carries power; a run reaching a Dark block\'s substation is the claim\'s power connection' }, { kind: 'generator', key: '8', what: '2×2, burns coal for power' },
-    { kind: 'floodlight', key: '0', what: '2×2, 40 kW, a 12-tile cone along its facing (R rotates)' }, { kind: 'bigpole', key: '[', what: '2×2, reach 12' },
-    { kind: 'substation', key: ']', what: '3×3, gives a face that has none (the outskirts) its substation' },
-    // RI-05 (plan §5, the minimal part of T16): the supply chest (the field kit) and the rail kit (the rail yard's restoration)
-    { kind: 'chest', key: 'C', what: `2×2 Supply chest: holds ${SUPPLY_CHEST_CAP} items of any kind; inserters and the pockets (E on it) use it; a restored supply depot's chest hands out kits` },
-    { kind: 'track', key: 'L', what: 'one tile of rail on a street (walkable); a tram runs the length of one unbranched line' },
-    { kind: 'tramstop', key: 'H', what: `2×2, ${MACHINE_KW.tramstop} kW, beside the track: an inserter (or E) loads its platform, a tram takes the platform and leaves its cargo as arrivals for an inserter to take (${STOP_CAP} each)` },
-    { kind: 'tram', key: 'V', what: `one tile on the track: carries ${TRAM_CAP} items at ${TRAM_TPS} tiles/s between the stops on its line, ${TRAM_DWELL_S} s at each` },
-  ];
-  if(campaign)BUILD.push({kind:'wall',key:'',what:'1 tile, 120 HP. Blocks creatures; disabled walls leave a breach. E repairs for carried materials.'});
+  const BUILD = buildCatalogue(campaign);
   const buildCarried: { kind: BuildKind; v: HTMLElement; btn: HTMLButtonElement; lock: HTMLElement }[] = [];
   for (const b of BUILD) {
     const li = el('li'), btn = el('button', undefined, b.key ? `${b.key} · ${b.kind}` : b.kind) as HTMLButtonElement;
     const c = MACHINE_COST[b.kind];
-    btn.title = `Put a ${b.kind} in the hand${b.key ? ` (hotbar ${b.key})` : ''}`;
+    btn.title = FACTORY_TEXT.toolTitle(b.label, b.key);
     btn.onclick = () => panelRef.onPick?.(b.kind);
     const carried = el('span', 'mono', ''), lock = el('span', 'hint', '');
-    li.append(btn, el('span', 'hint', ` ${c.steel} steel${c.copper ? ` + ${c.copper} Cu` : ''} from the pockets · ${b.what} `), carried, lock);
+    li.append(btn, el('span', 'hint', ` ${FACTORY_TEXT.price(c.steel, c.copper)} · ${b.what} `), carried, lock);
     buildCarried.push({ kind: b.kind, v: carried, btn, lock });
     buildList.append(li);
   }
@@ -244,8 +246,72 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   mk2.append(el('span', 'mono', 'Rifle Mk2'), el('span', 'hint', ' · twin barrels, 1.4 s a crawler (the Mk1 takes 3 rounds, 2 s) '), mk2Lock);
   buildList.append(mk2);
   buildSec.append(buildList);
-  buildSec.append(el('p', 'hint', 'In the world view: left-click places what the hand holds from the pockets (a carried machine first, else its price in carried steel and copper — take them from the chest), R rotates, Q pipettes the machine under the cursor or clears the hand, right-click with an empty hand picks a machine up into the pockets. 9 is the rifle: while it is in hand, holding left-click fires toward the cursor and nothing else happens until you clear it.'));
+  const historyRow = el('div', 'row');
+  for (const type of ['undoBuild', 'redoBuild'] as const) {
+    const label = type === 'undoBuild' ? FACTORY_TEXT.undo : FACTORY_TEXT.redo;
+    const button = el('button', undefined, `${label} (Ctrl+${shortcut(type === 'undoBuild' ? 'undo' : 'redo')})`);
+    button.onclick = () => { const r = dispatch(session, { type }); toast(r.reason, r.ok ? 'good' : 'bad'); };
+    historyRow.append(button);
+  }
+  buildSec.append(historyRow, el('p', 'hint', FACTORY_TEXT.pathHint), el('p', 'hint', FACTORY_TEXT.historyHint));
+  buildSec.append(el('p', 'hint', FACTORY_TEXT.buildHelp));
   root.append(buildSec);
+
+  const routingSec=el('section');routingSec.hidden=true;
+  routingSec.setAttribute('aria-label',FACTORY_TEXT.inspectTitle);
+  let inspectionId:number|null=null;
+  const inspectionHead=el('h2',undefined,FACTORY_TEXT.inspectTitle),inspectionBody=el('div','inspection-body');
+  const recipeSelect=el('select');recipeSelect.setAttribute('aria-label',FACTORY_TEXT.recipeLabel);
+  const recipeLabel=el('label',undefined,FACTORY_TEXT.recipeLabel+' ');recipeLabel.append(recipeSelect);
+  for(const id of RECIPE_IDS){const option=el('option',undefined,ASSEMBLER_RECIPES[id].name);option.value=id;recipeSelect.append(option);}
+  recipeSelect.onchange=()=>{const m=inspectionId===null?null:machineById(session.state,inspectionId);if(!m)return;const r=dispatch(session,{type:'factory',action:{type:'setRecipe',x:m.x,y:m.y,recipe:recipeSelect.value as RecipeId}});toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;};
+  let routingAt:[number,number]|null=null;
+  const routingHead=el('p','hint',''),filterSelect=el('select'),prioritySelect=el('select');
+  filterSelect.setAttribute('aria-label',FACTORY_TEXT.filter);prioritySelect.setAttribute('aria-label',FACTORY_TEXT.priority);
+  for(const item of ['',...ITEMS]){const option=el('option',undefined,item||'Any item');option.value=item;filterSelect.append(option);}
+  for(const priority of ['balanced','left','right']){const option=el('option',undefined,priority);option.value=priority;prioritySelect.append(option);}
+  const filterLabel=el('label',undefined,FACTORY_TEXT.filter+' ');filterLabel.append(filterSelect);
+  const priorityLabel=el('label',undefined,FACTORY_TEXT.priority+' ');priorityLabel.append(prioritySelect);
+  const configure=()=>{
+    if(!routingAt)return;const [x,y]=routingAt,m=machineAt(session.state,x,y);if(!m)return;
+    const r=dispatch(session,{type:'factory',action:{type:'routing',x,y,...(m.kind==='inserter'?{filter:filterSelect.value as Item||null}:{priority:prioritySelect.value as OutputPriority})}});
+    toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;
+  };
+  filterSelect.onchange=configure;prioritySelect.onchange=configure;
+  routingSec.addEventListener('keydown',ev=>{ev.stopPropagation();if(bound('cancel',ev.key)){panelRef.closeAll();document.querySelector('canvas')?.focus();}});
+  routingSec.append(inspectionHead,inspectionBody,recipeLabel,routingHead,filterLabel,priorityLabel,el('p','hint',FACTORY_TEXT.inspectHint));root.append(routingSec);
+  const itemStats=el('details');itemStats.className='item-statistics';
+  const statRows=el('tbody'),statWindow=el('p','hint'),table=el('table'),thead=el('thead'),statHeader=el('tr');
+  for(const label of ['Item','Produced','Used','Made/min','Used/min'])statHeader.append(el('th',undefined,label));
+  thead.append(statHeader);table.append(thead,statRows);
+  itemStats.append(el('summary',undefined,FACTORY_TEXT.itemStats),statWindow,table,el('p','hint',FACTORY_TEXT.statsHint));root.append(itemStats);
+  const statCells=ITEMS.map(item=>{const row=el('tr');row.append(el('th',undefined,item));const cells=Array.from({length:4},()=>el('td'));row.append(...cells);statRows.append(row);return cells;});
+  const num=(n:number|null)=>n===null?'—':Number(n.toFixed(2)).toLocaleString();
+  const windowText=(seconds:number)=>seconds>0?`Measured over the last ${num(seconds)} simulation seconds (up to 60 s).`:'Waiting for simulation time; no measured rate yet.';
+  function openInspection(x:number,y:number):void {
+    const m=tramAt(session.state,x,y)??machineAt(session.state,x,y);
+    if(!m){toast('Point at a factory machine to inspect it');return;}
+    transportView.stopId=m.kind==='tramstop'?m.id:null;
+    inspectionId=m.id;routingAt=[m.x,m.y];routingSec.hidden=false;lastUpdate=-1e9;update(performance.now());routingSec.scrollIntoView({block:'nearest'});
+  }
+
+  const truckOpen=el('button',undefined,'Truck cargo'),truckSec=el('section','truck-cargo');truckSec.hidden=true;
+  const truckNote=el('p','hint'),truckStock=el('p','mono'),truckBoard=el('button',undefined,'Board truck');
+  const truckItem=el('select');truckItem.setAttribute('aria-label','Truck cargo item');
+  const truckCount=el('input');truckCount.type='number';truckCount.min='1';truckCount.step='1';truckCount.value='50';truckCount.setAttribute('aria-label','Truck cargo amount');
+  const cargoRow=el('div','row'),loadCargo=el('button',undefined,'Load cargo'),unloadCargo=el('button',undefined,'Unload cargo');
+  const cargoAction=(put:boolean)=>{const r=dispatch(session,{type:'factory',action:{type:'truckCargo',item:truckItem.value,n:Number(truckCount.value),put}});toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;update(performance.now());};
+  loadCargo.onclick=()=>cargoAction(true);unloadCargo.onclick=()=>cargoAction(false);
+  truckBoard.onclick=()=>{const r=dispatch(session,{type:'factory',action:{type:'truckBoard'}});toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;update(performance.now());};
+  function openTruck():void {truckSec.hidden=false;lastUpdate=-1e9;update(performance.now());truckSec.scrollIntoView({block:'nearest'});}
+  truckOpen.onclick=openTruck;truckOpen.hidden=!campaign;header.append(truckOpen);
+  cargoRow.append(truckItem,truckCount,loadCargo,unloadCargo);
+  truckSec.append(el('h2',undefined,'Truck cargo'),truckNote,truckBoard,truckStock,cargoRow,el('p','hint','200 cargo stacks, separate from 40 pocket stacks. Load and unload within 8 tiles. E boards beside the truck or exits; WASD drives. Cargo stays parked when you leave. F on the truck opens this panel.'));root.append(truckSec);
+  truckSec.addEventListener('keydown',ev=>{ev.stopPropagation();if(bound('cancel',ev.key)){panelRef.closeAll();document.querySelector('canvas')?.focus();}});
+  const routeSec=el('section','station-route'),routeHead=el('h2'),routeNote=el('p','hint'),routeMap=el('button',undefined,'Show route on map'),routeClear=el('button',undefined,'Clear route');
+  let panelMode:'map'|'world'='world';routeSec.hidden=true;
+  routeMap.onclick=()=>{if(panelMode!=='map')hooks.onToggleView();};routeClear.onclick=()=>{transportView.stopId=null;routeSec.hidden=true;};
+  routeSec.append(routeHead,routeNote,el('p','hint','Select a stop on the map to trace its existing track. Cyan: service connected. Amber: interruption. Circles: ready stops; crosses: unpowered; squares: full. Dots on track: trams.'),routeMap,routeClear);header.append(routeSec);
 
   // Rework Step 5: the side panel is held / front / interior / ammo made vs demanded / stock / blocks lost;
   // the rest sits behind the debug key (backquote) so a tester reads the map, not the panel.
@@ -295,7 +361,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const craftRow = el('div', 'row');
     btnCraft = el('button', undefined, `Craft a magazine by hand (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu, ${SHOT.seconds} s)`);
     btnCraft.title = 'E on the workbench in the world view. A hand craft takes its steel and copper from the pockets and puts the magazine in the pockets; the engineer stays within reach of the Depot while it runs.';
-    btnCraft.onclick = () => { const why = queueCraft(session.state, 1); record(session, { type: 'craft', item: 'magazine', count: 1 }); if (why) toast(why, 'bad'); };
+    btnCraft.onclick = () => { const r = dispatch(session, { type: 'factory', action: { type: 'craft', item: 'magazine', count: 1 } }); toast(r.reason, r.ok ? 'good' : 'bad'); };
     craftRow.append(btnCraft);
     lineSec.append(craftRow);
     const mc = MACHINE_COST;
@@ -441,10 +507,49 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     if (nowMs - lastUpdate < 150) return;
     lastUpdate = nowMs;
     const s: SimState = session.state;
+    const route=transportView.stopId===null?null:stationRoute(s,transportView.stopId);routeSec.hidden=!route;
+    if(route){routeHead.textContent=`Selected stop ${route.stop.id}`;routeNote.textContent=route.summary;}else transportView.stopId=null;
+    if(!truckSec.hidden){
+      truckNote.textContent=truckDescription(s);truckBoard.textContent=s.engineer.truckSeat?'Exit truck':'Board truck';truckBoard.title=truckBoardCheck(s);
+      const keys=[...new Set([...ITEMS,...Object.keys(s.engineer.inv),...Object.keys(s.campaign?.truck?.cargo??{})])].sort(),selected=truckItem.value;
+      if(Array.from(truckItem.options).map(o=>o.value).join('|')!==keys.join('|')){truckItem.replaceChildren(...keys.map(k=>{const o=el('option',undefined,k);o.value=k;return o;}));if(keys.includes(selected))truckItem.value=selected;else truckItem.value='steel';}
+      truckStock.textContent=`Pockets: ${Object.entries(s.engineer.inv).filter(([,n])=>n>0).map(([k,n])=>`${k} ${num(n)}`).join(', ')||'empty'} · Cargo: ${Object.entries(s.campaign?.truck?.cargo??{}).map(([k,n])=>`${k} ${num(n)}`).join(', ')||'empty'}`;
+    }
+    if(!routingSec.hidden&&inspectionId!==null){
+      const m=machineById(s,inspectionId),info=inspectMachine(s,inspectionId),valid=m&&(m.kind==='inserter'||m.kind==='splitter');
+      routingAt=m?[m.x,m.y]:null;
+      inspectionHead.textContent=info?`${FACTORY_TEXT.inspectTitle} · ${info.title}`:'Inspected machine removed';
+      inspectionBody.replaceChildren();
+      if(info){
+        const line=(text:string,cls='hint')=>inspectionBody.append(el('p',cls,text));
+        const glyph=FACTORY_STATUS_GLYPH[info.status.state];
+        line(`${glyph} ${info.status.state} — ${info.status.reason}`,'machine-status');line(info.location);
+        const p=info.circuit;
+        line(`${p.scope}: ${num(p.supply)} kW supply / ${num(p.demand)} kW demand · ${num(p.load)} kW load · ${num(p.throttle*100)}% throttle`);
+        line(`Machine draw: ${info.draw} kW${info.draw===0?' · independent of power throttle':''}`);
+        if(info.recipe)line(`Recipe: ${info.recipe}`);
+        for(const r of info.nominal)line(`${r.item}: nominal ${num(r.input)} in / ${num(r.output)} out per min · power-limited ${num(r.input*info.scale)} in / ${num(r.output*info.scale)} out per min`);
+        if(info.capacity)line(info.capacity);
+        if(info.measured){line(`${info.measurement}. ${windowText(info.measured.seconds)}`);for(const r of info.measured.rows)if(r.produced>0||info.nominal.some(n=>n.item===r.item&&n.output>0))line(`${r.item}: ${num(r.produced)} recorded · ${num(r.producedPerMin)}/min measured`);}
+        line(info.contents.length?'Contents':'Contents: empty');
+        for(const c of info.contents)line(`${c.place} · ${c.item}: ${num(c.count)}`);
+        for(const setting of info.settings)line(setting);
+        if(info.range)line(info.range);
+        if(!info.reachable)line('Out of reach — walk closer to change settings.');
+      }
+      recipeLabel.hidden=m?.kind!=='assembler';recipeSelect.disabled=!info?.reachable;
+      if(info)recipeSelect.value=info.recipeId;
+      routingHead.hidden=!valid;routingHead.textContent=valid?routingDescription(s,m):'';
+      filterLabel.hidden=m?.kind!=='inserter';priorityLabel.hidden=m?.kind!=='splitter';
+      filterSelect.disabled=prioritySelect.disabled=!valid||!inReach(s,m!.x,m!.y,...machineDimensions(m!));
+      if(valid){filterSelect.value=m.filter??'';prioritySelect.value=m.priority??'balanced';}
+    }
+    if(itemStats.open){const stats=factoryStatistics(s);if(stats){statWindow.textContent=windowText(stats.seconds);stats.rows.forEach((r,i)=>[r.produced,r.consumed,r.producedPerMin,r.consumedPerMin].forEach((n,j)=>{statCells[i][j].textContent=num(n);}));}}
     updateGoal(s);
     if(defenceStatus)defenceStatus.textContent=campaignWarning(s);
     if(radioUpgradeButton){const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
     for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;row.button.disabled=!core||!!repairCheck(s,core.x,core.y);if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
+    if(discoveryStatus&&discoveryButton){const d=s.campaign?.discovery;discoveryStatus.textContent=d&&d.seenAt>=0?discoveryDescription(s):'A field-repair schematic was left in the workshop side yard. Look for the marked records cache while exploring; a Stalker guards it. This detour is optional.';discoveryButton.disabled=!d||!!discoveryCheck(s,d.id);discoveryButton.title=d?discoveryCheck(s,d.id):'';discoveryButton.textContent=d&&d.recoveredAt>=0?'Field-repair tool fitted':'Recover field-repair schematic';}
     if (campaignStatus) { const ex = s.campaign?.expansion; campaignStatus.textContent = ex ? `${blockNameAt(s, s.blocks[ex.station.block].x, s.blocks[ex.station.block].y)}: ${describeSite(s, 'station')} ${ex.station.restoredAt >= 0 ? describeSite(s, 'radio') + ' ' + describeSite(s, 'northStation') + ' ' + districtGuidance(s) : ''}` : ''; }
     for (const row of siteButtons) { const site = campaignSite(s, row.id); row.button.title=describeSite(s,row.id); row.button.disabled = !site || !inReach(s, site.x, site.y, site.size) || (row.id === 'radio' && (campaignSite(s, 'station')?.restoredAt ?? -1) < 0); row.button.textContent = site && site.restoredAt >= 0 ? row.id === 'station' ? 'Collect tram kit' : `${SITE_LABELS[row.id]} restored` : `Deliver and restore ${SITE_LABELS[row.id]}`; if (row.id !== 'station' && site && site.restoredAt >= 0) row.button.disabled = true; }
     const h = hud(s);
@@ -488,8 +593,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       } else freightKey = '';
     }
     if (!buildSec.hidden) for (const b of buildCarried) {
-      const n = s.engineer.inv[b.kind] ?? 0; b.v.textContent = n > 0 ? `· ${n} carried` : '';
-      const lk = lockReason(s, b.kind); b.btn.disabled = !!lk; b.lock.textContent = lk ? ` · locked: ${lk}` : '';
+      const n = s.engineer.inv[b.kind] ?? 0; b.v.textContent = FACTORY_TEXT.carried(n);
+      const lk = lockReason(s, b.kind); b.btn.disabled = !!lk; b.lock.textContent = FACTORY_TEXT.locked(lk);
     }
     if (!buildSec.hidden) mk2Lock.textContent = survivorJoined(s, 'Arsenal') ? '· the Arsenal are in — the upgrade itself is outside the hour (prompt B M4)' : '· locked: the Arsenal unlock it — hold their block';
     if (vCu) { vCu.textContent = String(Math.floor(s.stock.copper)); vSteel!.textContent = String(Math.floor(s.stock.steel)); vStone!.textContent = String(Math.floor(s.stock.stone)); vPatch!.textContent = String(Math.floor(s.patch.steel)); }
@@ -549,6 +654,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     tip.style.left = `${Math.min(px + 14, window.innerWidth - w - 8)}px`; tip.style.top = `${Math.min(py + 14, window.innerHeight - h - 8)}px`;
   }
   function setView(mode: 'map' | 'world'): void {
+    panelMode=mode;
     h1.textContent = `Relight · ${mode} view · ${mapName} · seed ${st.seed}`;
     btnView.textContent = mode === 'map' ? 'World view (M)' : 'Map view (M)';
   }
@@ -586,16 +692,20 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   }
 
   const panelRef: Panel = {
+    openStationRoute(x,y){const m=machineAt(session.state,x,y);if(m?.kind!=='tramstop')return;transportView.stopId=m.id;lastUpdate=-1e9;update(performance.now());routeSec.scrollIntoView({block:'nearest'});},
+    openTruck,openRoutingAt:openInspection,openInspectionAt:openInspection,
     update, tooltip, tooltipText, toast, setView, onPick: null,
     toggleDebug() { debug.hidden = !debug.hidden; debugView.coords = !debug.hidden; ringKey = ''; lastFacKey = ''; return !debug.hidden; },
-    togglePockets() { pocketAt = null; pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; return !pocketSec.hidden; },
+    togglePockets() { pocketAt = null; pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; if (!pocketSec.hidden) pocketSec.scrollIntoView({ block: 'nearest' }); return !pocketSec.hidden; },
     openPocketsAt(x, y) {   // RI-05
+      const stop=machineAt(session.state,x,y);transportView.stopId=stop?.kind==='tramstop'?stop.id:null;
       const same = pocketAt !== null && pocketAt[0] === x && pocketAt[1] === y;
       if (same && !pocketSec.hidden) { pocketSec.hidden = true; pocketAt = null; } else { pocketAt = [x, y]; pocketSec.hidden = false; }
       lastUpdate = -1e9;
+      if (!pocketSec.hidden) pocketSec.scrollIntoView({ block: 'nearest' });
     },
-    toggleBuild() { buildSec.hidden = !buildSec.hidden; return !buildSec.hidden; },
-    closeAll() { pocketSec.hidden = true; buildSec.hidden = true; },
+    toggleBuild() { buildSec.hidden = !buildSec.hidden; if (!buildSec.hidden) buildSec.scrollIntoView({ block: 'nearest' }); return !buildSec.hidden; },
+    closeAll() { truckSec.hidden=true;transportView.stopId=null;routeSec.hidden=true;pocketSec.hidden = true; buildSec.hidden = true; routingSec.hidden=true; document.querySelector('canvas')?.scrollIntoView({ block: 'nearest' }); },
     setSelectedEdge(e) {
       selected = e ? e.id : null; ringKey = '';
       if (e) toast(`${edgeName(session.state, e.id)}${debugView.coords ? ` (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})` : ''} is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);

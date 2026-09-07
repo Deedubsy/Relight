@@ -5,6 +5,7 @@ import { citySpec } from './city';
 import { ensureFlow } from './flow';
 import { initDefence } from './campaignDefence';
 import { initExpansion } from './expansion';
+import { initDiscovery } from './campaignDiscovery';
 import { initDistricts } from './campaignDistricts';
 import { CAMPAIGN_RULESET } from './rules';
 export function campaignConfig(): SimConfig {
@@ -16,6 +17,6 @@ export function createCampaign(seed = 3): SimState {
   ensureFlow(st);
   initExpansion(st);
   initDefence(st);
-  initDistricts(st);
+  initDistricts(st); initDiscovery(st);
   return st;
 }

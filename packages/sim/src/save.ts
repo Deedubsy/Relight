@@ -1,3 +1,4 @@
+import { truckProblem } from './truck';
 /** RI-02 — the save / load baseline (§11.2, plan line "early save/load support sufficient for repeatable testing").
  *  The state is plain JSON (types.ts), so a save is the state plus the session's command log; loading is a validated
  *  deep copy with the transients reset. `stateHash` is the check: a save at minute N reloads to the same hash and
@@ -9,12 +10,17 @@
 import { SimState } from './types';
 import type { LoggedCommand } from './hour';
 import { freightProblem } from './freight';
+import { routingProblem } from './routing';
+import { inspectionProblem } from './inspection';
 import { initExpansion } from './expansion';
 import { initDefence } from './campaignDefence';
+import { initDiscovery } from './campaignDiscovery';
 import { initDistricts } from './campaignDistricts';
+import { discoveryProblem } from './discoveryValidation';
 import { districtsProblem } from './districtValidation';
 import { defenceProblem } from './defenceValidation';
 import { rulesetProblem } from './rules';
+import { constructionProblem } from './construction';
 
 export const SAVE_TRANSIENT: readonly (keyof SimState)[] = ['events', 'acc', 'speed'];
 
@@ -76,7 +82,7 @@ export function stateProblem(v: unknown): string {
   if (!Array.isArray(st.ring)) return 'no ring';
   if (!st.engineer || typeof st.engineer !== 'object') return 'no engineer';
   if (st.city?.profile && st.city.profile !== 'riverside-v1') return `unsupported city profile ${st.city.profile}`;
-  return rulesetProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || freightProblem(st as SimState);
+  return rulesetProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || discoveryProblem(st as SimState) || freightProblem(st as SimState) || constructionProblem(st as SimState) || routingProblem(st as SimState) || inspectionProblem(st as SimState) || truckProblem(st as SimState);
 }
 
 /** A validated deep copy of a saved state — a SaveFile, a telemetry export (its `finalState`) or a raw SimState —
@@ -89,7 +95,7 @@ export function loadState(raw: unknown): SimState {
   const st = JSON.parse(JSON.stringify(src)) as SimState;
   st.events = []; st.acc = 0; st.speed = 0;
   st.survivors ??= [];
-  if (st.flow) { initExpansion(st); initDefence(st); initDistricts(st); }
+  if (st.flow) { initExpansion(st); initDefence(st); initDistricts(st); initDiscovery(st); }
   return st;
 }
 

@@ -169,6 +169,11 @@ export interface PowerState {
 }
 
 export type Command =
+  | { type: 'construct'; edits: import('./construction').BuildEdit[] }
+  | { type: 'buildPath'; path: import('./construction').TilePoint[]; dir: import('./flow').Dir }
+  | { type: 'undergroundPair'; from: import('./construction').TilePoint; to: import('./construction').TilePoint; dir: import('./flow').Dir }
+  | { type: 'undoBuild' | 'redoBuild' }
+  | { type: 'factory'; action: import('./construction').FactoryAction }
   | { type: 'claim'; x: number; y: number }
   | { type: 'ringOrder'; ids: number[] }
   | { type: 'addAssembler' }
@@ -193,6 +198,7 @@ export type Command =
   | { type: 'chestPut'; item: string; n: number; x?: number; y?: number }
   // M6: the scene's remaining direct calls as commands, so a played session's log replays whole (hour.ts `replay`)
   | { type: 'feed'; x: number; y: number }          // E on a turret / Generator: magazines / coal from the pockets
+  | { type: 'recoverSchematic'; id: string }
   | { type: 'repairDefence'; x: number; y: number }
   | { type: 'upgradeRadio' }
   | { type: 'repair'; x: number; y: number }        // E on an eaten lamp: 1 Cu from the pockets
@@ -262,6 +268,8 @@ export interface Engineer {
   inv: Record<string, number>; // item counts (stacks = Σ ceil(count / stack size), capped at INV_STACKS)
   reach: number;               // tiles
   truck: boolean; truckFound: boolean;
+  /** Physical campaign truck seat; legacy truck toggle keeps its old inventory semantics. */
+  truckSeat?: true;
   dest: number;                // block it is walking to (-1 none)
   remaining: number;           // tiles left on that walk
   vel: [number, number];       // held-key direction (world view)
@@ -290,6 +298,7 @@ export interface Engineer {
 }
 
 export interface SimState {
+  construction?: import('./construction').ConstructionHistory;
   version: 1 | 2 | 3;
   ruleset?: import('./rules').Ruleset;
   campaign?: import('./rules').CampaignState;

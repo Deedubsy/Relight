@@ -1,0 +1,46 @@
+
+> relight-prototype@0.1.0 factory
+> tsx packages/harness/src/factoryCli.ts --seeds 3,4,5 --hours 5
+
+E-chain, seed 3: starting
+E-chain, seed 3: 7/7 checks in 2.8 s
+E-chain, seed 4: starting
+E-chain, seed 4: 7/7 checks in 2.2 s
+E-chain, seed 5: starting
+E-chain, seed 5: 7/7 checks in 1.9 s
+E-coal, seed 3: starting
+E-coal, seed 3: 5/5 checks in 8.4 s
+E-coal, seed 4: starting
+E-coal, seed 4: 5/5 checks in 7.8 s
+E-coal, seed 5: starting
+E-coal, seed 5: 5/5 checks in 7.9 s
+E-tram, seed 3: starting
+E-tram, seed 3: 5/5 checks in 1.9 s
+E-tram, seed 4: starting
+E-tram, seed 4: 5/5 checks in 2.1 s
+E-tram, seed 5: starting
+E-tram, seed 5: 5/5 checks in 1.9 s
+E-logistics, seed 3: starting
+seed 3: 1.01 h, 79 machines, 1104 freight items, save/replay match
+seed 3: 2.03 h, 79 machines, 2244 freight items, save/replay match
+seed 3: 3.01 h, 79 machines, 3324 freight items, save/replay match
+seed 3: 4.02 h, 79 machines, 4444 freight items, save/replay match
+seed 3: 5.00 h, 79 machines, 5524 freight items, save/replay match
+E-logistics, seed 3: 9/9 checks in 111.1 s
+E-logistics, seed 4: starting
+/mnt/e/Factorio2/packages/harness/src/blueprint.ts:40
+ send(c:Command):void {this.log.push({tick:this.state.flow!.tick,c:structuredClone(c)});applyCommands(this.state,[c]);if(['factory','construct','undergroundPair'].includes(c.type)&&!actionResult(this.state).ok)throw new Error(actionResult(this.state).reason);}
+                                                                                                                                                                                                                        ^
+
+
+Error: rubble in the way
+    at FactoryDriver.send (/mnt/e/Factorio2/packages/harness/src/blueprint.ts:40:217)
+    at FactoryDriver.place (/mnt/e/Factorio2/packages/harness/src/blueprint.ts:58:88)
+    at extract (/mnt/e/Factorio2/packages/harness/src/factoryScenario.ts:52:103)
+    at Object.logistics (/mnt/e/Factorio2/packages/harness/src/campaignExperiments.ts:68:101)
+    at <anonymous> (/mnt/e/Factorio2/packages/harness/src/factoryCli.ts:28:72)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.18.0

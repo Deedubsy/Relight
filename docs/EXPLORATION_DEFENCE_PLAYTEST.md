@@ -2,9 +2,13 @@
 
 Version 2 protocol, 2026-09-06. **Not run.** This defines EX-08's human observation; it contains no invented player results. The old Gate A/B protocols and reports retain their historical meaning.
 
+## Prepared session, 2026-09-07
+
+EX-08A preparation is recorded in [EX08_PREPARATION_REPORT.md](EX08_PREPARATION_REPORT.md). D-EX-20 defers human play until Phase 5 factory implementation is ready. The frozen seed-3 build, [session guide](EX08_SESSION_GUIDE.md) and [blank observation record](EX08_SESSION_RECORD.md) retain the earlier EX-07 checkpoint; EX-08B must refresh them before the deferred session. The primary session is an unscored diagnostic at normal speed; all human observations and the gate verdict remain **not run/not recorded**.
+
 ## Prerequisites
 
-EX-04–07 integrated on an identified version/profile, D-EX-Q01–06 settled for the tested slice, and the relevant automated checks recorded. The observer records build, seed, difficulty, day duration, assault/rest settings, warning capability and known failures before play. Define any pass/fail thresholds before running the session; do not tune them after seeing the result.
+EX-04–07 and the reconciled Phase 5 factory implemented and verified (EX-09B), refreshed preparation EX-08B complete, an identified version/profile, D-EX-Q01–06 settled for the tested slice, and the relevant automated checks recorded. The observer records build, seed, difficulty, day duration, assault/rest settings, warning capability and known failures before play. Define any pass/fail thresholds before running the session; do not tune them after seeing the result.
 
 ## Session
 

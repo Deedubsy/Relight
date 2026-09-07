@@ -1,0 +1,73 @@
+TAP version 13
+# {"seed":3,"ticks":388,"commands":75,"recoveredAt":17,"hash":"82b5c543"}
+# Subtest: the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+ok 1 - the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+  ---
+  duration_ms: 2784.794379
+  type: 'test'
+  ...
+# Subtest: guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+not ok 2 - guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+  ---
+  duration_ms: 397.420118
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:49:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      stateHash(copy)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:59:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: the guardian returns at its bounded leash and workshop restoration does not retire it
+ok 3 - the guardian returns at its bounded leash and workshop restoration does not retire it
+  ---
+  duration_ms: 292.057854
+  type: 'test'
+  ...
+# Subtest: a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+ok 4 - a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+  ---
+  duration_ms: 534.211087
+  type: 'test'
+  ...
+# Subtest: field repair retains material costs, paid pauses and existing job duration, including core recovery
+ok 5 - field repair retains material costs, paid pauses and existing job duration, including core recovery
+  ---
+  duration_ms: 187.522231
+  type: 'test'
+  ...
+# Subtest: old previews add one deferred guardian; malformed or missing current reward state is rejected
+ok 6 - old previews add one deferred guardian; malformed or missing current reward state is rejected
+  ---
+  duration_ms: 433.773922
+  type: 'test'
+  ...
+# Subtest: fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+ok 7 - fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+  ---
+  duration_ms: 1206.790599
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 6
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8636.017693

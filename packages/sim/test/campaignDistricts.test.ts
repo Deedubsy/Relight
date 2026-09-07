@@ -9,6 +9,7 @@ import { createSession, parseUrl, replaySession } from '../../game/src/session';
 const commandLogs=new WeakMap<SimState,LoggedCommand[]>();
 function applyCommands(st:SimState,commands:Command[]):void {for(const c of commands)commandLogs.get(st)?.push({tick:st.flow!.tick,c:structuredClone(c)});rawApplyCommands(st,commands);}
 import { threatOf } from '../src/threat';
+import { stationRoute } from '../src/transport';
 
 /** Labelled construction fixture: extra finite chest stock and deferred threats isolate logistics, not campaign balance. */
 function fixture():SimState {
@@ -162,6 +163,7 @@ test('paid three-base tram route reserves onward supply, returns district goods 
   const stops=[...e.stops,d.stop].map(([x,y])=>place(st,'tramstop',x,y));
   const [home,middle,last]=stops,tram=place(st,'tram',path[0]%G.tw,Math.floor(path[0]/G.tw));
   assert.equal(tramRoute(st,tram).length,path.length);assert.equal(routeStops(st,path).length,3);
+  const selected=stationRoute(st,middle.id)!;assert.equal(selected.stops.length,3);assert.deepEqual(selected.paths[0],tramRoute(st,tram));assert.equal(selected.trams.length,1);
   const set=(m:Machine,c:Command)=>{walk(st,m.x,m.y,m.size);applyCommands(st,[c]);};
   set(home,{type:'setStationRules',x:home.x,y:home.y,rules:{steel:{request:0,reserve:0,export:true},copper:{request:5,reserve:0,export:true},magazine:{request:0,reserve:0,export:true}}});
   set(middle,{type:'setStationRules',x:middle.x,y:middle.y,rules:{steel:{request:4,reserve:0,export:false}}});
@@ -196,9 +198,9 @@ test('paid three-base tram route reserves onward supply, returns district goods 
 });
 
 test('old district-free previews upgrade once without moving the promised assault or duplicating sources',()=>{
-  const st=createCampaign();delete st.campaign!.districts;st.campaign!.version=3;st.t=4000;
+  const st=createCampaign();delete st.campaign!.districts;delete st.campaign!.discovery;st.campaign!.version=3;st.t=4000;
   const dawn=st.campaign!.defence!.nextDawn,a=loadState(st),b=loadState(st);
-  assert.equal(a.campaign!.version,4);assert.equal(a.campaign!.defence!.nextDawn,dawn);assert.equal(stateHash(a),stateHash(b));
+  assert.equal(a.campaign!.version,5);assert.equal(a.campaign!.defence!.nextDawn,dawn);assert.equal(stateHash(a),stateHash(b));
   assert.equal(stateHash(loadState(makeSave(a))),stateHash(a));
   for(const mutate of [
     (s:SimState)=>{delete s.campaign!.districts;},

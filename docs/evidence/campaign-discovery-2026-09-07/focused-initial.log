@@ -1,0 +1,130 @@
+TAP version 13
+# Subtest: the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+ok 1 - the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+  ---
+  duration_ms: 2839.133394
+  type: 'test'
+  ...
+# Subtest: guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+not ok 2 - guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+  ---
+  duration_ms: 213.314063
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:49:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'd3d8bc2d'
+    - 'f04b8548'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'f04b8548'
+  actual: 'd3d8bc2d'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:52:69)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: the guardian returns at its bounded leash and workshop restoration does not retire it
+ok 3 - the guardian returns at its bounded leash and workshop restoration does not retire it
+  ---
+  duration_ms: 221.961039
+  type: 'test'
+  ...
+# Subtest: a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+not ok 4 - a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+  ---
+  duration_ms: 252.662601
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:77:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      Math.hypot(x+1-s.x,y+1-s.y)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:97:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: field repair retains material costs, paid pauses and existing job duration, including core recovery
+ok 5 - field repair retains material costs, paid pauses and existing job duration, including core recovery
+  ---
+  duration_ms: 165.789058
+  type: 'test'
+  ...
+# Subtest: old previews add one deferred guardian; malformed or missing current reward state is rejected
+not ok 6 - old previews add one deferred guardian; malformed or missing current reward state is rejected
+  ---
+  duration_ms: 480.19469
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:119:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:124:38)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+not ok 7 - fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+  ---
+  duration_ms: 240.518857
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:136:1'
+  failureType: 'testCodeFailure'
+  error: 'false == true'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:148:64)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 3
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7618.092699

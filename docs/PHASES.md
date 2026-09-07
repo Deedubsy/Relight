@@ -1,6 +1,6 @@
 # Relight — phases and revised exit criteria
 
-Version 2, 2026-09-06. **Phase 4 has just finished**, confirmed by the owner (D-EX-10). Phase 5 has not started (owner correction, D-EX-15). Selected later features have been brought forward through RI tasks; this does not complete their phases. PROGRESS.md alone orders execution; EXPLORATION_DEFENCE_PLAN.md defines the EX work.
+Version 2, 2026-09-06. **Phase 4 has just finished**, confirmed by the owner (D-EX-10). Phase 5 began with the EX-09A scope audit on 2026-09-07 (D-EX-21); P5-01 construction, P5-02 routing, P5-03 inspection, P5-04 transport and P5-05 integration are complete; EX-09B and RI-09 technical review are complete; EX-08B refreshed preparation and human exit are outstanding. Selected later features have been brought forward through RI tasks; this does not complete their phases. PROGRESS.md alone orders execution; EXPLORATION_DEFENCE_PLAN.md defines the EX work.
 
 The [pre-revision phases](archive/pre-exploration-defence-2026-09-06/docs/PHASES.md) preserve original scope, timing estimates, milestones and historical gates. Completed Phase 0–4 reports remain evidence of their original game, not approval of Version 2. Earlier durations are not estimates for this revised scope.
 
@@ -26,7 +26,7 @@ Historical completed phase. Preserve the recorded changes and observations.
 
 ## Phase 5 — The factory, complete
 
-**Not started.** The owner clarified this on 2026-09-07 (D-EX-15). EX-03–08 are the intervening design revision and representative-loop assessment; they do not open Phase 5. After that gate, EX-09 starts the revised factory phase and credits reusable work already delivered. Reuse existing physical production, recipes, accounting, commissioning, machine feedback and early transport. EX-04/06 build the new opening and network dependencies; EX-09 completes retained T13–18 obligations after the revised loop is played.
+**Started with EX-09A scope reconciliation complete (D-EX-21); factory P5-01 construction, P5-02 routing, P5-03 inspection, P5-04 transport and P5-05 integration are complete; EX-09B and RI-09 technical review are complete; EX-08B refreshed preparation and human exit are outstanding.** Reconcile current code and retained factory obligations in EX-09A, then implement and verify P5-01–05 and assess readiness in EX-09B before the representative gameplay test. Credit existing physical production, recipes, accounting, commissioning, feedback and transport from EX/RI work. EX-08B refreshes the test build, then EX-08H supplies human observations and EX-08 assesses the loop. Factory implementation readiness does not itself complete Phase 5: retain the reconciled human construction exercise and explicit owner phase verdict. Q07 remains a later progression dependency, not a prerequisite for independent factory work.
 
 Exit criteria: ordinary inventories/commands support the approved production chains; placement and reach feedback, undo/redo, drag building, hotbar/input consistency, belt routing, undergrounds, splitters/filters, storage, power/status/rates and construction assistance are delivered or explicitly mapped to their later scope. Multi-stop trams move selective outward and return freight without starving reserved downstream deliveries. Older specialised production contributes to later stations. No circular opening unlock.
 
@@ -76,7 +76,7 @@ Retain release gates, verified builds, support and update planning. Any publish,
 
 ## Immediate handoff
 
-Phase 4 remains complete and Phase 5 remains unstarted. EX-03/04 and the first freight subset are complete. PROGRESS.md owns the current defence task and subsequent network, discovery and human-loop gate. After that assessment, start Phase 5 with reconciled factory/tooling acceptance, crediting existing implementations without repeating them.
+Phase 4 remains complete. EX-09A has reconciled the factory/tooling scope in [PHASE_5_SCOPE_REPORT.md](PHASE_5_SCOPE_REPORT.md); P5-01 construction, P5-02 routing, P5-03 inspection, P5-04 transport and P5-05 integration are complete; [EX-09B readiness review](PHASE_5_READINESS_REPORT.md) permits EX-08B refreshed preparation next, retaining rendering concerns and human exit. Factory implementation and verification precede refreshed preparation and human gameplay testing under D-EX-20. PROGRESS.md owns task order; P5-01–05 have technical evidence in P5_01_CONSTRUCTION_REPORT.md, P5_02_ROUTING_REPORT.md, P5_03_INSPECTION_REPORT.md, P5_04_TRANSPORT_REPORT.md and [P5_05_INTEGRATION_REPORT.md](P5_05_INTEGRATION_REPORT.md); Phase 5 has no overall completion or human-pass claim.
 
 ## Changelog
 

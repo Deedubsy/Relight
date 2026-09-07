@@ -1,0 +1,16 @@
+{
+ "version":1,
+ "name":"Mixed input chest to assembler, underground and priority output storage",
+ "entities":[
+  {"id":"input","kind":"chest","x":0,"y":0,"dir":0},
+  {"id":"feed","kind":"inserter","x":2,"y":0,"dir":1},
+  {"id":"assembler","kind":"assembler","x":3,"y":0,"dir":0,"recipe":"shot"},
+  {"id":"output-arm","kind":"inserter","x":6,"y":1,"dir":1},
+  {"id":"belt","kind":"belt","x":7,"y":1,"dir":1},
+  {"id":"tunnel-in","kind":"underground","x":8,"y":1,"dir":1,"underground":"input"},
+  {"id":"tunnel-out","kind":"underground","x":11,"y":1,"dir":1,"underground":"output"},
+  {"id":"splitter","kind":"splitter","x":12,"y":1,"dir":1,"priority":"left"},
+  {"id":"output","kind":"chest","x":13,"y":1,"dir":0},
+  {"id":"generator","kind":"generator","x":5,"y":4,"dir":0}
+ ]
+}

@@ -95,8 +95,8 @@ function go(st: SimState, s: Stalker, mode: StalkerMode): void {
 }
 
 /** Field a Stalker at a site's home — unless the engineer is within perception of it (no spawn behind them). */
-export function spawnStalker(st: SimState, S: StalkerLayer, site: number): Stalker | null {
-  const G = ground(st), [hx, hy] = homeOf(st, G, site), e = st.engineer;
+export function spawnStalker(st: SimState, S: StalkerLayer, site: number, home?: [number, number]): Stalker | null {
+  const G = ground(st), [hx, hy] = home ?? homeOf(st, G, site), e = st.engineer;
   if (e.down < 0 && Math.hypot(e.x - hx, e.y - hy) <= S.cand.perception) return null;
   const s: Stalker = { id: S.next++, kind: 'stalker', site, hx, hy, x: hx, y: hy, hp: stalkerHp(S.cand), mode: 'guard', modeT: st.t,
     px: hx, py: hy, windup: 0, atk: 0, warmed: false, lost: 0, stuck: 0, born: st.t, dir: [0, 0], path: [], goal: -1, planT: -1 };
@@ -175,12 +175,12 @@ function cueFor(st: SimState, S: StalkerLayer, s: Stalker, moved: boolean, shot:
   return null;
 }
 
-export function tickStalkers(st: SimState, T: ThreatState, dt: number, contactR: number): void {
-  const S = T.stalk; if (!S) return;
+export function tickStalkers(st: SimState, T: ThreatState, dt: number, contactR: number, S = T.stalk, boundedSite = false): void {
+  if (!S) return;
   const f = st.flow!, G = ground(st), e = st.engineer, c = S.cand, engUp = e.down < 0, step = stalkerSpeed(c) * dt;
   const moved = e.x !== S.ex || e.y !== S.ey, shot = T.shotAt !== S.shotAt;
   const built = f.machines.filter(m => m.id >= S.machineId);
-  for (const k of Object.keys(S.sites)) { const site = Number(k); if (!S.sites[site].restored && st.blocks[site].state !== DARK) S.sites[site].restored = true; }
+  if (!boundedSite) for (const k of Object.keys(S.sites)) { const site = Number(k); if (!S.sites[site].restored && st.blocks[site].state !== DARK) S.sites[site].restored = true; }
   const ss = S.stalkers;
   for (let i = 0; i < ss.length; i++) {
     const s = ss[i];
@@ -188,9 +188,14 @@ export function tickStalkers(st: SimState, T: ThreatState, dt: number, contactR:
     const mem = S.sites[s.site];
     if (mem?.restored && s.mode !== 'return') go(st, s, 'return');
     const dE = Math.hypot(e.x - s.x, e.y - s.y), dH = Math.hypot(s.hx - s.x, s.hy - s.y);
+    if (boundedSite && s.mode !== 'return' && (dH > c.leash || Math.hypot(e.x-s.hx,e.y-s.hy)>c.leash && (s.mode==='pursue'||s.mode==='attack'))) go(st,s,'return');
     const cue = s.mode === 'guard' || s.mode === 'investigate' ? cueFor(st, S, s, moved, shot, built) : null;
     const walked = (gx: number, gy: number): boolean => {
-      if (walk(st, G, s, gx, gy, step)) { s.stuck = 0; return true; }
+      const [x,y]=[s.x,s.y];
+      if (walk(st, G, s, gx, gy, step)) {
+        if (boundedSite && s.mode!=='return' && Math.hypot(s.x-s.hx,s.y-s.hy)>c.leash) { s.x=x;s.y=y;go(st,s,'return');return false; }
+        s.stuck = 0; return true;
+      }
       s.stuck += dt; return false;
     };
     switch (s.mode) {
@@ -219,6 +224,7 @@ export function tickStalkers(st: SimState, T: ThreatState, dt: number, contactR:
             S.stats.attacks++;
             if (e.dash > 0) { S.stats.dodged++; emit(st, s, 'dodged'); }   // a valid dodge: the swing misses (§7.1)
             else { hurt(st, c.attackHp); S.stats.hits++; emit(st, s, 'hit'); }
+            if (boundedSite) { s.warmed=false; s.windup=c.attackS; }
           }
         } else {
           if (s.mode === 'attack') go(st, s, 'pursue');
@@ -233,25 +239,26 @@ export function tickStalkers(st: SimState, T: ThreatState, dt: number, contactR:
           go(st, s, 'guard');
           break;
         }
-        if (!walked(s.hx, s.hy) && s.stuck >= STUCK_S) { retire(st, S, s); i--; }
+        if (!walked(s.hx, s.hy) && s.stuck >= STUCK_S && !boundedSite) { retire(st, S, s); i--; }
         break;
     }
   }
   S.ex = e.x; S.ey = e.y; S.shotAt = T.shotAt; S.machineId = f.next;
-  spawnStalkers(st, S, true);
+  if (!boundedSite) spawnStalkers(st, S, true);
 }
 
 // ------------------------------------------------------------------ queries for the views
 
-export function stalkersOf(st: SimState): Stalker[] { return st.flow?.threat?.stalk?.stalkers ?? []; }
-export function stalkerCandidate(st: SimState): StalkerCandidate | null { return st.flow?.threat?.stalk?.cand ?? null; }
+export function stalkerLayer(st: SimState): StalkerLayer | undefined { return st.campaign?.discovery?.guardian ?? st.flow?.threat?.stalk; }
+export function stalkersOf(st: SimState): Stalker[] { return stalkerLayer(st)?.stalkers ?? []; }
+export function stalkerCandidate(st: SimState): StalkerCandidate | null { return stalkerLayer(st)?.cand ?? null; }
 export function stalkerAt(st: SimState, x: number, y: number, r = 0.9): Stalker | null {
   let best: Stalker | null = null, bd = r;
   for (const s of stalkersOf(st)) { const d = Math.hypot(s.x - x, s.y - y); if (d < bd) { bd = d; best = s; } }
   return best;
 }
 export function describeStalker(st: SimState, s: Stalker): string {
-  const S = st.flow!.threat!.stalk!, b = st.blocks[s.site];
+  const S = stalkerLayer(st)!, b = st.blocks[s.site];
   const what = s.mode === 'attack' ? (s.warmed ? 'attacking' : `winding up (${s.windup.toFixed(1)} s)`) : s.mode === 'pursue' ? 'pursuing you' : s.mode === 'investigate' ? 'investigating' : s.mode === 'return' ? 'returning home' : 'guarding';
   return `Stalker · ${what} · ${Math.max(0, Math.round(s.hp))}/${stalkerHp(S.cand)} HP · site (${b.x},${b.y}) · leash ${S.cand.leash} tiles from home`;
 }

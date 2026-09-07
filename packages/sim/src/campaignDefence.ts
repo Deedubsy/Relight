@@ -5,6 +5,7 @@ import { ground, inReach, blockOfTile } from './ground';
 import { machineAt, type Machine } from './flow';
 import { drop } from './engineer';
 import { isCampaign, CAMPAIGN_RULES } from './rules';
+import { DISCOVERY } from './campaignDiscovery';
 import { blockName } from './names';
 
 export const DEFENCE = { wallHp: 120, turretHp: 100, coreHp: 300, repairHp: 40, repairSeconds: 4,
@@ -87,13 +88,16 @@ export function repairCheck(st: SimState, x: number, y: number): string {
   const steel=core?.hp===0?DEFENCE.coreSteel:DEFENCE.repairSteel, copper=core?.hp===0?DEFENCE.coreCopper:DEFENCE.repairCopper;
   return (st.engineer.inv.steel??0)<steel || (st.engineer.inv.copper??0)<copper ? `repair needs ${steel} steel and ${copper} copper in your pockets` : '';
 }
+export function manualRepairSeconds(st:SimState, disabled=false):number {
+  return (disabled?DEFENCE.coreRepairSeconds:DEFENCE.repairSeconds) * ((st.campaign?.discovery?.recoveredAt??-1)>=0?DISCOVERY.repairMultiplier:1);
+}
 export function startRepair(st: SimState,x:number,y:number):string {
   const why=repairCheck(st,x,y); if(why)return why;
   const core=coreAt(st,x,y), m=machineAt(st,x,y), disabled=core?.hp===0;
   const steel=disabled?DEFENCE.coreSteel:DEFENCE.repairSteel, copper=disabled?DEFENCE.coreCopper:DEFENCE.repairCopper;
   drop(st.engineer,'steel',steel);drop(st.engineer,'copper',copper);
   st.stats.spentSteel=(st.stats.spentSteel??0)+steel;st.stats.spentCopper=(st.stats.spentCopper??0)+copper;
-  st.campaign!.defence!.repair={kind:core?'core':'machine',id:core?.block??m!.id,remaining:disabled?DEFENCE.coreRepairSeconds:DEFENCE.repairSeconds,recommission:disabled};
+  st.campaign!.defence!.repair={kind:core?'core':'machine',id:core?.block??m!.id,remaining:manualRepairSeconds(st,disabled),recommission:disabled};
   return '';
 }
 export function tickRepair(st:SimState,dt:number):void {
@@ -118,5 +122,5 @@ export function defenceDescription(st:SimState,x:number,y:number):string {
   const hp=core?.hp??defenceHp(m!);
   const r=st.campaign?.defence?.repair;
   const repairing=r && (core?r.kind==='core'&&r.id===core.block:r.kind==='machine'&&r.id===m!.id);
-  return `${core?'Base core':m!.kind==='wall'?'Wall':'Gun turret'} · ${Math.ceil(hp)}/${max} HP${hp===0?' · DISABLED':''}${repairing?` · repair ${Math.ceil(r.remaining)}s (stay in reach)`:hp<max?` · E repairs: ${core&&hp===0?'10 steel + 5 copper, 12s':'2 steel + 1 copper, 4s / 40 HP'}`:''}`;
+  return `${core?'Base core':m!.kind==='wall'?'Wall':'Gun turret'} · ${Math.ceil(hp)}/${max} HP${hp===0?' · DISABLED':''}${repairing?` · repair ${Math.ceil(r.remaining)}s (stay in reach)`:hp<max?` · E repairs: ${core&&hp===0?`10 steel + 5 copper, ${manualRepairSeconds(st,true)}s`:`2 steel + 1 copper, ${manualRepairSeconds(st)}s / 40 HP`}`:''}`;
 }

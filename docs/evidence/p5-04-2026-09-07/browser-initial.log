@@ -1,0 +1,24 @@
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Selected stop 52/. Input:
+
+'SELECTED STOP 52\n' +
+  '\n' +
+  '2 stops · 1 tram · Service connected\n' +
+  '\n' +
+  'Select a stop on the map to trace its existing track. Cyan: service connected. Amber: interruption. Circles: ready stops; crosses: unpowered; squares: full. Dots on track: trams.\n' +
+  '\n' +
+  'Show route on mapClear route'
+
+    at E:\Factorio2\docs\evidence\p5-04-2026-09-07\browser-check.cjs:32:75 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'SELECTED STOP 52\n' +
+    '\n' +
+    '2 stops · 1 tram · Service connected\n' +
+    '\n' +
+    'Select a stop on the map to trace its existing track. Cyan: service connected. Amber: interruption. Circles: ready stops; crosses: unpowered; squares: full. Dots on track: trams.\n' +
+    '\n' +
+    'Show route on mapClear route',
+  expected: /Selected stop 52/,
+  operator: 'match',
+  diff: 'simple'
+}

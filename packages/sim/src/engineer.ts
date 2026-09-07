@@ -66,7 +66,7 @@ export const invStacks = (inv: Record<string, number>): number => {
   for (const k in inv) { const n = inv[k]; if (n <= 0) continue; s += k === 'kit' ? n * KIT_STACKS : Math.ceil(n / stackSize(k)); }
   return s;
 };
-export const invCap = (e: Engineer) => (e.truck ? TRUCK_STACKS : INV_STACKS);
+export const invCap = (e: Engineer) => (e.truck && !e.truckSeat ? TRUCK_STACKS : INV_STACKS);
 export const speedOf = (e: Engineer) => WALK_TILES_PER_S * (e.truck ? TRUCK_MULT : 1);
 export const rifleRate = (e: Engineer) => (e.barrels === 2 ? RIFLE2_ROUNDS_PER_S : RIFLE_ROUNDS_PER_S);
 /** HP a shot crawler lands before it dies: 5 HP/s for the kill time. */
@@ -147,6 +147,7 @@ export function hurt(st: SimState, hp: number): void {
   if (e.down >= 0 || hp <= 0) return;
   e.hp -= hp; e.hurt += hp; e.lastHit = st.t;
   if (e.hp <= 0) {
+    if(st.campaign&&e.truckSeat){e.truck=false;delete e.truckSeat;st.flow!.rev++;}
     e.hp = 0; e.down = st.t + RESPAWN_S; e.downs++; e.firing = -1; e.dest = -1; e.remaining = 0;
     e.aim = null; e.sprint = false; e.dash = 0; e.target = null; e.vel = [0, 0];
     st.events.push({ type: 'engineer-down', t: st.t, x: e.x, y: e.y });
@@ -250,25 +251,26 @@ export const handHook: { current: ((st: SimState, c: Command) => void) | null } 
 export function engineerCommand(st: SimState, c: Command): void {
   const e = st.engineer;
   switch (c.type) {
-    case 'move': if (e.down < 0) { e.target = [c.x, c.y]; e.vel = [0, 0]; e.dest = -1; } break;
+    case 'move': if (e.down < 0 && !e.truckSeat) { e.target = [c.x, c.y]; e.vel = [0, 0]; e.dest = -1; } break;
     case 'walk': if (e.down < 0) { e.vel = [c.dx, c.dy]; if (c.dx || c.dy) e.target = null; e.dest = -1; } break;
-    case 'walkTo': walkTo(st, c.block); break;   // bots and dev hooks only (D-B1-5): the player has no click-to-walk in the world
+    case 'walkTo': if(!e.truckSeat)walkTo(st, c.block); break;   // bots and dev hooks only (D-B1-5): the player has no click-to-walk in the world
     case 'fire': e.firing = c.edge; break;
-    case 'sprint': e.sprint = c.on && e.down < 0; break;
+    case 'sprint': e.sprint = c.on && e.down < 0 && !e.truckSeat; break;
     case 'dodge':
-      if (e.down < 0 && e.dash <= 0 && e.dashCooldown <= 0 && e.stamina >= DODGE_COST - 1e-9) {
+      if (e.down < 0 && !e.truckSeat && e.dash <= 0 && e.dashCooldown <= 0 && e.stamina >= DODGE_COST - 1e-9) {
         const L = Math.hypot(e.vel[0], e.vel[1]);
         e.dashDir = L > 0 ? [e.vel[0] / L, e.vel[1] / L] : [e.face[0], e.face[1]];
         e.dash = DODGE_S; e.dashCooldown = DODGE_COOLDOWN_S; e.stamina -= DODGE_COST; e.target = null; e.dest = -1;
       }
       break;
     case 'aim': e.aim = e.down < 0 ? c.at : null; break;
-    case 'enterTruck': if (e.truckFound && e.down < 0) e.truck = !e.truck; break;
+    case 'enterTruck': if(st.campaign){handHook.current?.(st,{type:'factory',action:{type:'truckBoard'}});break;} if (e.truckFound && e.down < 0) e.truck = !e.truck; break;
+    case 'construct': case 'buildPath': case 'undergroundPair': case 'undoBuild': case 'redoBuild': case 'factory':
     case 'mineAt': case 'craft': case 'place': case 'pickUp': case 'chestTake': case 'chestPut': case 'feed': case 'repair': case 'rotate':
     case 'deliverSite': case 'restoreSite': case 'collectTramKit':
     case 'deliver': case 'activate': case 'commission':   // RI-03: the commissioning commands are hand commands too; RI-05: a project's too
     case 'setStationRules':
-    case 'repairDefence': case 'upgradeRadio': case 'repairCabinet': case 'abort': handHook.current?.(st, c); break;   // RI-06: the Heart's feeder repair and the explicit abort
+    case 'recoverSchematic': case 'repairDefence': case 'upgradeRadio': case 'repairCabinet': case 'abort': handHook.current?.(st, c); break;   // RI-06: the Heart's feeder repair and the explicit abort
   }
 }
 

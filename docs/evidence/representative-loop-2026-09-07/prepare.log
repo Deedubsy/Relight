@@ -1,0 +1,12 @@
+/mnt/e/Factorio2/docs/evidence/representative-loop-2026-09-07/prepare.ts:7
+if(st.t!==0||st.flow!.tick!==0||!conservation(st).ok||stateHash(save.state)!==stateHash(st))throw new Error('not an unchanged fresh campaign');
+                                                                                                  ^
+
+
+Error: not an unchanged fresh campaign
+    at <anonymous> (/mnt/e/Factorio2/docs/evidence/representative-loop-2026-09-07/prepare.ts:7:99)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.18.0

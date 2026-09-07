@@ -2,7 +2,7 @@
 
 A 2D city-reclamation factory game: explore, restore useful places, connect station factories by tram, and defend a growing network of bases.
 
-**Phase 4 is complete; Phase 5 has not started.** The current documentation defines the revised direction adopted on 2026-09-06; the revised opening and first defence slice are implemented, with network economy and discoveries still ahead. Individual later features exist, and the local branch differs from fetched main. Start with the handoff before coding.
+**Phase 4 is complete; Phase 5 has begun with its scope audit, construction, routing, inspection and transport increments complete.** The revised opening, defence, network economy and discovery slice are implemented through EX-07. D-EX-20 brings Phase 5 factory implementation before human gameplay testing, EX-09A and P5-01–05 are complete; EX-09B and RI-09 technical review are complete; EX-08B refreshes the gameplay-test build next, retaining known rendering limitations. Human Phase 5 exit remains outstanding. Individual later features exist, and the local branch differs from fetched main. Start with the handoff before coding.
 
 - [Programme state](docs/PROGRAMME_STATE.md) — actual checkout, reusable work and next task.
 - [Progress](docs/PROGRESS.md) — the only executable task list.

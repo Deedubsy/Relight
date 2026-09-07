@@ -1,0 +1,184 @@
+{
+  "source_commit": "184908158db1c328b2a01d617a551954a0b3c99e",
+  "config_hash": "a9aea2fa",
+  "config_ref": {
+    "kind": "campaign",
+    "ruleset": "exploration-v2",
+    "opening": "culdesac-v1"
+  },
+  "generated_at": "2026-09-06T23:58:19.161Z",
+  "session": "EX-08H-A",
+  "human_play": "not_run",
+  "seed": 3,
+  "ruleset": "exploration-v2",
+  "save_schema": 3,
+  "campaign_metadata": 5,
+  "initial_hash": "ab93bc27",
+  "initial_tick": 0,
+  "start": "fresh, paused tick-zero save; no injected stock, progress, elapsed time or debug enemies",
+  "difficulty": "default campaign tuning; no separate difficulty selector",
+  "speed": "1x during measured play; pauses logged separately",
+  "clock": {
+    "daySeconds": 1200,
+    "daylightSeconds": 900,
+    "firstAssaultNight": 3,
+    "opening": "culdesac-v1"
+  },
+  "first_lock_seconds": 2400,
+  "first_attack_seconds": 3300,
+  "threat": {
+    "majorCount": 60,
+    "spawnEvery": 4,
+    "minorMin": 8,
+    "minorMax": 12,
+    "contactDps": 5,
+    "structureDps": 8,
+    "speed": 2,
+    "minorAfterMajor": 300,
+    "guardLeash": 12,
+    "guardNotice": 8,
+    "radioUpgradeSteel": 15,
+    "radioUpgradeCopper": 10
+  },
+  "defence": {
+    "wallHp": 120,
+    "turretHp": 100,
+    "coreHp": 300,
+    "repairHp": 40,
+    "repairSeconds": 4,
+    "repairSteel": 2,
+    "repairCopper": 1,
+    "coreSteel": 10,
+    "coreCopper": 5,
+    "coreRepairSeconds": 12
+  },
+  "districts": {
+    "workshopKw": 40,
+    "repairSeconds": 2,
+    "repairRadius": 14,
+    "supplyRadius": 4,
+    "resupplySteel": 10,
+    "resupplyCopper": 5,
+    "resupplyMagazines": 5,
+    "resupplyVisits": 2
+  },
+  "discovery": {
+    "repairMultiplier": 0.5,
+    "clueRadius": 24,
+    "cacheClearance": 3,
+    "guardian": {
+      "perception": 5,
+      "leash": 8,
+      "hpMul": 2,
+      "speedMul": 1.2,
+      "windupS": 1.2,
+      "attackS": 1.2,
+      "attackHp": 5,
+      "investigateS": 6,
+      "lostS": 2,
+      "hysteresis": 2,
+      "respawnS": 0
+    }
+  },
+  "initial_stock": {
+    "stone": 50,
+    "copper": 100,
+    "steel": 200
+  },
+  "initial_buffer_rounds": 200,
+  "initial_pockets": {},
+  "initial_store": {
+    "coal": 40,
+    "wire": 0,
+    "frame": 0,
+    "board": 0
+  },
+  "initial_machines": [
+    {
+      "id": 1,
+      "kind": "depot",
+      "x": 418,
+      "y": 632,
+      "inventory": {}
+    },
+    {
+      "id": 2,
+      "kind": "generator",
+      "x": 428,
+      "y": 631,
+      "inventory": {
+        "coal": 40
+      }
+    }
+  ],
+  "radio": "unrestored; major target is home until the tower is restored; powered tower receives the actual lock",
+  "config": {
+    "production": true,
+    "asmSchedule": [],
+    "startAssemblers": 1,
+    "asmRate": 20,
+    "asmEarlyRate": null,
+    "startAsmRate": 10,
+    "hopper": 100,
+    "bufferCap": 4000,
+    "startRounds": 200,
+    "unfed": "substation",
+    "unfedN": 40,
+    "starveQuiet": false,
+    "scatter": true,
+    "scatterFrac": 0.09,
+    "validator": "none",
+    "shadeThr": 0.3,
+    "hulkThr": 0.5,
+    "wakeCap": true,
+    "bloomBase": 4,
+    "jitter": 0.1,
+    "fallTiles": 30,
+    "hulkRoll": "hash",
+    "bloomT": 120,
+    "bloomDrop": 0.9,
+    "relight": null,
+    "power": true,
+    "supply": "generators",
+    "headroom": 500,
+    "shortfall": null,
+    "draw": "half",
+    "interiorGrace": 0,
+    "asmTrack": 0,
+    "wellDeath": false,
+    "interleave": false,
+    "economy": true,
+    "walk": true,
+    "eco": {
+      "yieldPerMin": 32,
+      "claimCost": {
+        "copper": 5,
+        "steel": 10
+      },
+      "assemblerCost": {
+        "copper": 20,
+        "steel": 40
+      },
+      "startStock": {
+        "stone": 0,
+        "copper": 40,
+        "steel": 80
+      },
+      "startPatch": {
+        "steel": 7680,
+        "perMin": 64,
+        "copper": 3840,
+        "copperPerMin": 32
+      },
+      "magazineCost": {
+        "steel": 2,
+        "copper": 1
+      },
+      "pool": {
+        "civ": 3840,
+        "res": 3840,
+        "ind": 3840
+      }
+    }
+  }
+}

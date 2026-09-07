@@ -1,0 +1,4 @@
+import {campaignConfig,createState,citySpec,ensureFlow,initExpansion,initDefence,ground,CAMPAIGN_RULESET} from '../../../packages/sim/src/index';
+const cfg=campaignConfig(),st=createState(citySpec(11,'river',cfg),cfg,11,CAMPAIGN_RULESET);ensureFlow(st);initExpansion(st);initDefence(st);
+const G=ground(st),e=st.campaign!.expansion!,start=e.route.at(-1)!,old=new Set(e.route),ns=(t:number)=>[t-G.tw,t+1,t+G.tw,t-1];
+console.log(JSON.stringify({home:st.campaign!.homeBlock,station:e.station,stops:e.stops,tail:e.route.slice(-15).map(t=>[t%G.tw,Math.floor(t/G.tw)]),neighbours:ns(start).map(t=>({x:t%G.tw,y:Math.floor(t/G.tw),owner:G.owner[t],near:G.near[t],solid:G.urban!.solid[t],occ:st.flow!.occ[t],adjacentOld:ns(t).filter(q=>old.has(q)),stop:e.stops.some(([x,y])=>t%G.tw>=x&&t%G.tw<x+2&&Math.floor(t/G.tw)>=y&&Math.floor(t/G.tw)<y+2)}))},null,2));

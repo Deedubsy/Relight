@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: factory blueprint validates structure, rectangular occupancy, settings, paired endpoints and bounded input before issuing commands
+ok 1 - factory blueprint validates structure, rectangular occupancy, settings, paired endpoints and bounded input before issuing commands
+  ---
+  duration_ms: 738.289455
+  type: 'test'
+  ...
+# Subtest: a blueprint walks and pays from ordinary stock, keeps the engineer clear, and replays all construction/settings from a fresh campaign
+ok 2 - a blueprint walks and pays from ordinary stock, keeps the engineer clear, and replays all construction/settings from a fresh campaign
+  ---
+  duration_ms: 1260.394703
+  type: 'test'
+  ...
+# Subtest: failed blueprint retains only paid completed work and reports the failing entity; invalid replay intervals are rejected
+ok 3 - failed blueprint retains only paid completed work and reports the failing entity; invalid replay intervals are rejected
+  ---
+  duration_ms: 599.837917
+  type: 'test'
+  ...
+# Subtest: the seeded copper margin is mined and stored by ordinary commands before a paid extraction layout is built
+ok 4 - the seeded copper margin is mined and stored by ordinary commands before a paid extraction layout is built
+  ---
+  duration_ms: 16250.141794
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 21608.906419

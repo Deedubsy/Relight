@@ -10,6 +10,7 @@
     "packages/game"
   ],
   "scripts": {
+    "factory": "tsx packages/harness/src/factoryCli.ts",
     "test": "npm test -w packages/sim",
     "typecheck": "npm run build -w packages/sim && npm run build -w packages/harness && npm run build -w packages/tools && npm run build -w packages/game",
     "lint": "eslint packages/sim/src packages/harness/src packages/tools/src",

@@ -1,0 +1,172 @@
+TAP version 13
+# Subtest: district sites and specialised sources are reachable, distinct and persistent across seeds and saves
+ok 1 - district sites and specialised sources are reachable, distinct and persistent across seeds and saves
+  ---
+  duration_ms: 3020.586457
+  type: 'test'
+  ...
+# Subtest: powered extraction produces into real local storage without depletion or hand mining; outages stop it
+ok 2 - powered extraction produces into real local storage without depletion or hand mining; outages stop it
+  ---
+  duration_ms: 609.791646
+  type: 'test'
+  ...
+# Subtest: workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+ok 3 - workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+  ---
+  duration_ms: 470.803924
+  type: 'test'
+  ...
+# Subtest: fresh campaign pays for both stations and the workshop through logged commands that replay identically
+ok 4 - fresh campaign pays for both stations and the workshop through logged commands that replay identically
+  ---
+  duration_ms: 606.360871
+  type: 'test'
+  ...
+# Subtest: paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest
+ok 5 - paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest
+  ---
+  duration_ms: 1265.634716
+  type: 'test'
+  ...
+# Subtest: old district-free previews upgrade once without moving the promised assault or duplicating sources
+ok 6 - old district-free previews upgrade once without moving the promised assault or duplicating sources
+  ---
+  duration_ms: 455.809471
+  type: 'test'
+  ...
+# Subtest: the HQ lot: §11 patches, a clear Depot footprint, the Depot placed by ensureFlow, the Mk1 stand-in retired
+ok 7 - the HQ lot: §11 patches, a clear Depot footprint, the Depot placed by ensureFlow, the Mk1 stand-in retired
+  ---
+  duration_ms: 132.053008
+  type: 'test'
+  ...
+# Subtest: Excavator: 0.5 units/s onto the belt it faces, one tile at a time; the steel patch and the tile go with it
+ok 8 - Excavator: 0.5 units/s onto the belt it faces, one tile at a time; the steel patch and the tile go with it
+  ---
+  duration_ms: 111.981613
+  type: 'test'
+  ...
+# Subtest: belt: 7.5 items/s through a 12-tile run with a corner; items keep their spacing; a head-on belt does not feed
+ok 9 - belt: 7.5 items/s through a 12-tile run with a corner; items keep their spacing; a head-on belt does not feed
+  ---
+  duration_ms: 53.885179
+  type: 'test'
+  ...
+# Subtest: inserter: 1 item/s from a belt into the Depot; it waits with the item when the target is full
+ok 10 - inserter: 1 item/s from a belt into the Depot; it waits with the item when the target is full
+  ---
+  duration_ms: 32.567617
+  type: 'test'
+  ...
+# Subtest: Shot assembler: 3 s a magazine (20/min) from 2 steel + 1 Cu, out through an inserter into the Depot
+ok 11 - Shot assembler: 3 s a magazine (20/min) from 2 steel + 1 Cu, out through an inserter into the Depot
+  ---
+  duration_ms: 23.19394
+  type: 'test'
+  ...
+# Subtest: a whole line: two Excavators → belt → assembler ← copper; magazines to the Depot at the doc rate
+ok 12 - a whole line: two Excavators → belt → assembler ← copper; magazines to the Depot at the doc rate
+  ---
+  duration_ms: 61.892553
+  type: 'test'
+  ...
+# Subtest: time: 20 tile ticks a block tick; 1 h at 4× is 72,000 tile ticks; determinism across frame sizes; JSON round trip
+ok 13 - time: 20 tile ticks a block tick; 1 h at 4× is 72,000 tile ticks; determinism across frame sizes; JSON round trip
+  ---
+  duration_ms: 369.530182
+  type: 'test'
+  ...
+# Subtest: placement: Held cells only, streets for belts and inserters, no rubble under anything but an Excavator, costs and refunds
+ok 14 - placement: Held cells only, streets for belts and inserters, no rubble under anything but an Excavator, costs and refunds
+  ---
+  duration_ms: 26.421446
+  type: 'test'
+  ...
+# Subtest: the block map stays the judge: a machine on a block that stops being Held stands still
+ok 15 - the block map stays the judge: a machine on a block that stops being Held stands still
+  ---
+  duration_ms: 9.329662
+  type: 'test'
+  ...
+# Subtest: hands: mining a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in the recipe's time (Mk1, 6 s) from the pockets into the pockets
+ok 16 - hands: mining a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in the recipe's time (Mk1, 6 s) from the pockets into the pockets
+  ---
+  duration_ms: 10.582317
+  type: 'test'
+  ...
+# Subtest: three stations reserve only their own deliveries; stock and in-flight reservations prevent double ordering across trams; exports return upstream
+ok 17 - three stations reserve only their own deliveries; stock and in-flight reservations prevent double ordering across trams; exports return upstream
+  ---
+  duration_ms: 388.742818
+  type: 'test'
+  ...
+# Subtest: capacity is reserved across all items and trams; partial refusal returns the remainder without losing it
+ok 18 - capacity is reserved across all items and trams; partial refusal returns the remainder without losing it
+  ---
+  duration_ms: 70.710818
+  type: 'test'
+  ...
+# Subtest: unpowered stops retain cargo with bounded service; a refused destination returns home, and removal of either endpoint remains recoverable
+ok 19 - unpowered stops retain cargo with bounded service; a refused destination returns home, and removal of either endpoint remains recoverable
+  ---
+  duration_ms: 47.22609
+  type: 'test'
+  ...
+# Subtest: a mid-shipment save resumes to the same hash; old saves stay version one and invalid manifests are rejected
+ok 20 - a mid-shipment save resumes to the same hash; old saves stay version one and invalid manifests are rejected
+  ---
+  duration_ms: 119.42327
+  type: 'test'
+  ...
+# Subtest: names: every block has a stable, unique, state-free name; the HQ is "HQ"; the rail yard is named; the §11 directions are three distinct HQ neighbours
+ok 21 - names: every block has a stable, unique, state-free name; the HQ is "HQ"; the rail yard is named; the §11 directions are three distinct HQ neighbours
+  ---
+  duration_ms: 5213.267434
+  type: 'test'
+  ...
+# Subtest: goal: a fresh city asks for hand-mined steel; a block-only state asks for the front; every id shown in 20 minutes is a §11 row in schedule order and never wrong against the state
+ok 22 - goal: a fresh city asks for hand-mined steel; a block-only state asks for the front; every id shown in 20 minutes is a §11 row in schedule order and never wrong against the state
+  ---
+  duration_ms: 1220.215884
+  type: 'test'
+  ...
+# Subtest: machineStatus: one of five words with a reason; the line at minute 10 has running Excavators, and an unpowered block reads off
+ok 23 - machineStatus: one of five words with a reason; the line at minute 10 has running Excavators, and an unpowered block reads off
+  ---
+  duration_ms: 479.650733
+  type: 'test'
+  ...
+# Subtest: save: the hash ignores only the transients, a load validates and deep-copies, and a save at 1:30 replays to the unbroken run's hash at 3:00
+ok 24 - save: the hash ignores only the transients, a load validates and deep-copies, and a save at 1:30 replays to the unbroken run's hash at 3:00
+  ---
+  duration_ms: 373.404013
+  type: 'test'
+  ...
+# Subtest: conservation: the hour bot's first twenty minutes reconcile on seed 3 — and an injected item is reported
+ok 25 - conservation: the hour bot's first twenty minutes reconcile on seed 3 — and an injected item is reported
+  ---
+  duration_ms: 1899.2394
+  type: 'test'
+  ...
+# Subtest: conservation: a hand-played sequence — chest, craft, place, feed, pick-up, recipe change, hand mining — reconciles
+ok 26 - conservation: a hand-played sequence — chest, craft, place, feed, pick-up, recipe change, hand mining — reconciles
+  ---
+  duration_ms: 84.264621
+  type: 'test'
+  ...
+# Subtest: conservation: rounds a full line buffer cannot take back are counted lost, not dropped (stats.roundsLost)
+ok 27 - conservation: rounds a full line buffer cannot take back are counted lost, not dropped (stats.roundsLost)
+  ---
+  duration_ms: 54.150888
+  type: 'test'
+  ...
+1..27
+# tests 27
+# suites 0
+# pass 27
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33731.582695

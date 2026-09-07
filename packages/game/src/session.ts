@@ -7,6 +7,7 @@ import {
   SaveFile, makeSave, loadState, isSaveFile, stateHash, enableStalkers, enableHeart,
 } from '@relight/sim';
 import { Telemetry, createTelemetry, recordEvent, recordMinute, recordPips } from './telemetry';
+import { applyCommands, actionResult, type ActionResult } from '@relight/sim';
 import { type Ruleset, isRuleset, rulesetOf, isCampaign, CAMPAIGN_RULESET, LEGACY_RULESET, createCampaign } from '@relight/sim';
 
 /** `state` names a snapshot: a bare name resolves to /snapshots/<name>.json (shipped with the proto), a path or URL
@@ -107,9 +108,10 @@ export async function loadSnapshot(ref: string): Promise<Loaded> {
   try { state = loadState(json); } catch (e) { throw new Error(`${ref}: ${(e as Error).message}`); }
   const saved = isSaveFile(json) ? json : undefined;
   const original = (saved?.state ?? (json as { finalState?: SimState })?.finalState ?? json) as SimState;
-  const upgradedHome = original.ruleset === CAMPAIGN_RULESET && (original.campaign?.version ?? 0) < 4;
+  const upgradedHome = original.ruleset === CAMPAIGN_RULESET && (original.campaign?.version ?? 0) < 5;
+  const upgradedTransport=original.ruleset===CAMPAIGN_RULESET&&!original.campaign?.truck&&(original.campaign?.expansion?.station.restoredAt??-1)>=0;
   // The old log predates station geometry and local circuits: resume the save, but do not claim a new-factory replay of that history.
-  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && !upgradedHome, ref, saved };
+  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && !upgradedHome && !upgradedTransport, ref, saved };
 }
 
 export interface Session {
@@ -211,8 +213,17 @@ export { stateHash };
 
 export function queue(s: Session, c: Command): void { s.pending.push(c); }
 
-/** M6: write a command to the session's log at the current tile tick. `frame`/`runTicks` log what they apply; the
- *  scene's direct calls (E, R, the chest panel, the workbench) log the command they stand for after they run. */
+/** Immediate ordinary command dispatch, including while paused. Flush earlier queued inputs in order;
+ * record each command once at the current tile tick. Gameplay always mutates inside the sim dispatcher. */
+export function dispatch(s: Session, c: Command): ActionResult {
+  const cmds = [...s.pending, c]; s.pending = [];
+  for (const command of cmds) record(s, command);
+  applyCommands(s.state, cmds);
+  return actionResult(s.state);
+}
+
+/** Write a command at the current tile tick. `dispatch`, `frame` and `runTicks` log what
+ * they apply. Only historical dev/test hooks still record direct helper calls. */
 export function record(s: Session, c: Command): void {
   if (c.type === 'setSpeed') return;
   s.log.push({ tick: s.state.flow?.tick ?? -1, c });

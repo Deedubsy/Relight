@@ -1,0 +1,27 @@
+
+> relight-prototype@0.1.0 factory
+> tsx packages/harness/src/factoryCli.ts --seeds 3 --hours 0.1
+
+E-chain, seed 3: starting
+E-chain, seed 3: 7/7 checks in 2.4 s
+E-coal, seed 3: starting
+E-coal, seed 3: 4/5 checks in 9.0 s
+FAIL finite home coal tile depletes: {"finiteMined":78,"units":77.77777777777777}
+E-tram, seed 3: starting
+E-tram, seed 3: 5/5 checks in 2.0 s
+E-logistics, seed 3: starting
+/mnt/e/Factorio2/packages/harness/src/blueprint.ts:66
+ }catch(error){throw new Error(`Blueprint stopped at ${e.id}; ${Object.keys(built).length} placements retained: ${(error as Error).message}`);}}
+                     ^
+
+
+Error: Blueprint stopped at tunnel-out; 6 placements retained: No physical approach to 420,624
+    at buildBlueprint (/mnt/e/Factorio2/packages/harness/src/blueprint.ts:66:22)
+    at factoryLine (/mnt/e/Factorio2/packages/harness/src/factoryScenario.ts:22:47)
+    at Object.logistics (/mnt/e/Factorio2/packages/harness/src/campaignExperiments.ts:69:13)
+    at <anonymous> (/mnt/e/Factorio2/packages/harness/src/factoryCli.ts:28:72)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.18.0

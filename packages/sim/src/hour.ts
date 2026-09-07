@@ -15,7 +15,7 @@ import { hqIdx, RIFLE_RANGE, INV_STACKS, KIT_STACKS, invStacks, invCap } from '.
 import { ground, hqLot, inReach, Ground, blockOfTile } from './ground';
 import { LOT_TILES, MARGIN_TILES } from './tiles';
 import { findPath, passable } from './walk';
-import { burnOffS, isCandidate } from './sim';
+import { applyCommands, burnOffS, isCandidate } from './sim';
 import { pipOf, edgeCap } from './queries';
 import { TURRET_HOPPER } from './recipes';
 import { HQ_PATCHES, P_STEEL, P_COPPER, DEPOT_LOT, DEPOT_TILES } from './tiles';
@@ -1486,6 +1486,15 @@ export function replay(st: SimState, log: readonly LoggedCommand[], untilTick: n
     opts.every?.(st);
     st.events.length = 0;
   }
+  // UI commands can be committed while paused, including at the final tick. Apply that
+  // boundary's logged inputs without advancing production, movement or combat another tick.
+  cmds.length = 0;
+  while (k < log.length && log[k].tick <= f.tick) {
+    const c = log[k++].c;
+    if (c.type !== 'setSpeed' && !(opts.dropAim && c.type === 'aim')) cmds.push(c);
+  }
+  applyCommands(st, cmds);
+  st.events.length = 0;
   return st;
 }
 

@@ -43,3 +43,14 @@ export * from './campaignPower';
 export * from './campaignDefence';
 export * from './campaignThreat';
 export * from './campaignDistricts';
+export * from './campaignDiscovery';
+
+export { BUILD_LIMIT, HISTORY_LIMIT, extendBuildPath, pathEdits, constructionCheck, actionResult, constructionProblem } from './construction';
+export type { BuildEdit, BuildChange, ConstructionHistory, TilePoint, FactoryAction, ActionResult } from './construction';
+export { undergroundCheck } from './construction';
+export * from './footprint';
+export * from './routing';
+export * from './inspection';
+
+export * from './truck';
+export * from './transport';

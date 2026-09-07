@@ -1,0 +1,325 @@
+{
+  "date": "2026-09-07T05:07:22.387Z",
+  "fixtureStateSha256": "d73757ec0bba83882d4ba9ba5660c2867da8066663b1ea1860bf9d9d6b6d52e1",
+  "host": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz",
+    "logicalCpus": 16,
+    "memoryGiB": 63.8297004699707,
+    "browser": "153.0.8010.27",
+    "gl": {
+      "vendor": "Google Inc. (NVIDIA)",
+      "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 (0x00002488) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    }
+  },
+  "setup": "Installed Chrome, headless, five-second RAF samples after warmup; live 1x fresh seed 3 and loaded declared five-hour assisted logistics save. Real viewport resize and M map/world controls. Changed-mask samples toggle the existing rendering-only hand-lamp preview every 400 ms, not a gameplay light unlock. CPU timings include light-mask checks and changed texture paints; RAF is browser scheduling, not measured monitor presentation. No simulation workload runs concurrently.",
+  "rows": [
+    {
+      "label": "fresh",
+      "preview": false,
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "frames": 300,
+      "frameMeanMs": 16.674666666666667,
+      "frameP95Ms": 16.800000000000182,
+      "frameMaxMs": 16.900000000000546,
+      "draw": {
+        "ema": 0.46,
+        "worst": 1.7
+      },
+      "lightBefore": {
+        "lightChecks": 12,
+        "lightMs": 30.30000001192093,
+        "lightMaxMs": 18.30000001192093,
+        "lightPaints": 2,
+        "lightPaintMs": 39.10000002384186,
+        "lightPaintMaxMs": 23
+      },
+      "lightAfter": {
+        "lightChecks": 50,
+        "lightMs": 58.60000014305115,
+        "lightMaxMs": 18.30000001192093,
+        "lightPaints": 2,
+        "lightPaintMs": 39.10000002384186,
+        "lightPaintMaxMs": 23
+      },
+      "lightChecks": 38,
+      "lightPaints": 0,
+      "lightMeanMs": 0.7447368455560583,
+      "lightPaintMeanMs": 0,
+      "horizontalOverflow": false,
+      "machines": 2
+    },
+    {
+      "label": "fresh",
+      "preview": false,
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "frames": 300,
+      "frameMeanMs": 16.67433333333333,
+      "frameP95Ms": 16.799999999999272,
+      "frameMaxMs": 16.80000000000109,
+      "draw": {
+        "ema": 0.44,
+        "worst": 2
+      },
+      "lightBefore": {
+        "lightChecks": 56,
+        "lightMs": 62.50000023841858,
+        "lightMaxMs": 18.30000001192093,
+        "lightPaints": 2,
+        "lightPaintMs": 39.10000002384186,
+        "lightPaintMaxMs": 23
+      },
+      "lightAfter": {
+        "lightChecks": 94,
+        "lightMs": 87.49999994039536,
+        "lightMaxMs": 18.30000001192093,
+        "lightPaints": 2,
+        "lightPaintMs": 39.10000002384186,
+        "lightPaintMaxMs": 23
+      },
+      "lightChecks": 38,
+      "lightPaints": 0,
+      "lightMeanMs": 0.6578947289993888,
+      "lightPaintMeanMs": 0,
+      "horizontalOverflow": false,
+      "machines": 2
+    },
+    {
+      "label": "fresh",
+      "preview": false,
+      "viewport": {
+        "width": 1920,
+        "height": 900
+      },
+      "frames": 300,
+      "frameMeanMs": 16.67466666666667,
+      "frameP95Ms": 16.799999999999272,
+      "frameMaxMs": 16.80000000000291,
+      "draw": {
+        "ema": 0.46,
+        "worst": 1.3
+      },
+      "lightBefore": {
+        "lightChecks": 100,
+        "lightMs": 91.60000002384186,
+        "lightMaxMs": 18.30000001192093,
+        "lightPaints": 2,
+        "lightPaintMs": 39.10000002384186,
+        "lightPaintMaxMs": 23
+      },
+      "lightAfter": {
+        "lightChecks": 138,
+        "lightMs": 115.49999988079071,
+        "lightMaxMs": 18.30000001192093,
+        "lightPaints": 2,
+        "lightPaintMs": 39.10000002384186,
+        "lightPaintMaxMs": 23
+      },
+      "lightChecks": 38,
+      "lightPaints": 0,
+      "lightMeanMs": 0.6289473646565488,
+      "lightPaintMeanMs": 0,
+      "horizontalOverflow": false,
+      "machines": 2
+    },
+    {
+      "label": "fresh-changed-light-mask",
+      "preview": true,
+      "viewport": {
+        "width": 1920,
+        "height": 900
+      },
+      "frames": 294,
+      "frameMeanMs": 17.014625850340135,
+      "frameP95Ms": 16.799999999999272,
+      "frameMaxMs": 116.80000000000291,
+      "draw": {
+        "ema": 1.17,
+        "worst": 126.9
+      },
+      "lightBefore": {
+        "lightChecks": 141,
+        "lightMs": 117.299999833107,
+        "lightMaxMs": 18.30000001192093,
+        "lightPaints": 2,
+        "lightPaintMs": 39.10000002384186,
+        "lightPaintMaxMs": 23
+      },
+      "lightAfter": {
+        "lightChecks": 178,
+        "lightMs": 453.299999833107,
+        "lightMaxMs": 126.39999997615814,
+        "lightPaints": 15,
+        "lightPaintMs": 349.7000000476837,
+        "lightPaintMaxMs": 124.80000001192093
+      },
+      "lightChecks": 37,
+      "lightPaints": 13,
+      "lightMeanMs": 9.08108108108108,
+      "lightPaintMeanMs": 23.89230769414168,
+      "horizontalOverflow": false,
+      "machines": 2
+    },
+    {
+      "label": "five-hour-assisted",
+      "preview": false,
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "frames": 300,
+      "frameMeanMs": 16.674000000000003,
+      "frameP95Ms": 16.800000000000182,
+      "frameMaxMs": 16.90000000000009,
+      "draw": {
+        "ema": 0.48,
+        "worst": 2.1
+      },
+      "lightBefore": {
+        "lightChecks": 12,
+        "lightMs": 29,
+        "lightMaxMs": 15.600000023841858,
+        "lightPaints": 2,
+        "lightPaintMs": 34.30000001192093,
+        "lightPaintMaxMs": 21.5
+      },
+      "lightAfter": {
+        "lightChecks": 49,
+        "lightMs": 65.40000015497208,
+        "lightMaxMs": 15.600000023841858,
+        "lightPaints": 2,
+        "lightPaintMs": 34.30000001192093,
+        "lightPaintMaxMs": 21.5
+      },
+      "lightChecks": 37,
+      "lightPaints": 0,
+      "lightMeanMs": 0.9837837879722183,
+      "lightPaintMeanMs": 0,
+      "horizontalOverflow": false,
+      "machines": 79
+    },
+    {
+      "label": "five-hour-assisted",
+      "preview": false,
+      "viewport": {
+        "width": 900,
+        "height": 900
+      },
+      "frames": 300,
+      "frameMeanMs": 16.67433333333333,
+      "frameP95Ms": 16.799999999999272,
+      "frameMaxMs": 17.299999999999272,
+      "draw": {
+        "ema": 0.47,
+        "worst": 2.1
+      },
+      "lightBefore": {
+        "lightChecks": 55,
+        "lightMs": 71.50000023841858,
+        "lightMaxMs": 15.600000023841858,
+        "lightPaints": 2,
+        "lightPaintMs": 34.30000001192093,
+        "lightPaintMaxMs": 21.5
+      },
+      "lightAfter": {
+        "lightChecks": 92,
+        "lightMs": 110.00000029802322,
+        "lightMaxMs": 15.600000023841858,
+        "lightPaints": 2,
+        "lightPaintMs": 34.30000001192093,
+        "lightPaintMaxMs": 21.5
+      },
+      "lightChecks": 37,
+      "lightPaints": 0,
+      "lightMeanMs": 1.0405405421514768,
+      "lightPaintMeanMs": 0,
+      "horizontalOverflow": false,
+      "machines": 79
+    },
+    {
+      "label": "five-hour-assisted",
+      "preview": false,
+      "viewport": {
+        "width": 1920,
+        "height": 900
+      },
+      "frames": 300,
+      "frameMeanMs": 16.674333333333337,
+      "frameP95Ms": 16.799999999999272,
+      "frameMaxMs": 16.899999999997817,
+      "draw": {
+        "ema": 0.56,
+        "worst": 2
+      },
+      "lightBefore": {
+        "lightChecks": 98,
+        "lightMs": 115.80000030994415,
+        "lightMaxMs": 15.600000023841858,
+        "lightPaints": 2,
+        "lightPaintMs": 34.30000001192093,
+        "lightPaintMaxMs": 21.5
+      },
+      "lightAfter": {
+        "lightChecks": 135,
+        "lightMs": 153.3000002503395,
+        "lightMaxMs": 15.600000023841858,
+        "lightPaints": 2,
+        "lightPaintMs": 34.30000001192093,
+        "lightPaintMaxMs": 21.5
+      },
+      "lightChecks": 37,
+      "lightPaints": 0,
+      "lightMeanMs": 1.013513511902577,
+      "lightPaintMeanMs": 0,
+      "horizontalOverflow": false,
+      "machines": 79
+    },
+    {
+      "label": "five-hour-assisted-changed-light-mask",
+      "preview": true,
+      "viewport": {
+        "width": 1920,
+        "height": 900
+      },
+      "frames": 292,
+      "frameMeanMs": 17.131164383561643,
+      "frameP95Ms": 16.799999999999272,
+      "frameMaxMs": 150.10000000000218,
+      "draw": {
+        "ema": 1.19,
+        "worst": 144.4
+      },
+      "lightBefore": {
+        "lightChecks": 138,
+        "lightMs": 156.3000002503395,
+        "lightMaxMs": 15.600000023841858,
+        "lightPaints": 2,
+        "lightPaintMs": 34.30000001192093,
+        "lightPaintMaxMs": 21.5
+      },
+      "lightAfter": {
+        "lightChecks": 175,
+        "lightMs": 509.80000030994415,
+        "lightMaxMs": 143.5,
+        "lightPaints": 15,
+        "lightPaintMs": 342.8000000715256,
+        "lightPaintMaxMs": 142.19999998807907
+      },
+      "lightChecks": 37,
+      "lightPaints": 13,
+      "lightMeanMs": 9.55405405566499,
+      "lightPaintMeanMs": 23.730769235354202,
+      "horizontalOverflow": false,
+      "machines": 79
+    }
+  ],
+  "errors": [],
+  "gap": "No owner-designated 2019 reference laptop or controlled visible GPU/display measurement. These local headless measurements do not pass the reference-machine 60 FPS gate or human visual readability."
+}

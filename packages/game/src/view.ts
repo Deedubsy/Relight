@@ -15,3 +15,6 @@ export const debugView = { coords: false };
 /** RI-02: the height the goal overlay (#goal) takes at the top of the canvas, so the world view's top HUD corners
  *  sit under it instead of behind it. main.ts measures it once a panel update; 0 while the overlay is hidden. */
 export const hudInset = { top: 0 };
+
+/** Selected stop is presentation only: selecting a route never dispatches a movement command. */
+export const transportView: { stopId:number|null } = { stopId:null };

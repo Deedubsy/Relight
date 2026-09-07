@@ -1,0 +1,174 @@
+TAP version 13
+# Subtest: construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+ok 1 - construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+  ---
+  duration_ms: 547.963773
+  type: 'test'
+  ...
+# Subtest: construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+ok 2 - construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+  ---
+  duration_ms: 517.548008
+  type: 'test'
+  ...
+# Subtest: construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+ok 3 - construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+  ---
+  duration_ms: 437.6501
+  type: 'test'
+  ...
+# Subtest: construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+ok 4 - construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+  ---
+  duration_ms: 325.079819
+  type: 'test'
+  ...
+# Subtest: construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+ok 5 - construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+  ---
+  duration_ms: 1077.937816
+  type: 'test'
+  ...
+# Subtest: construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+ok 6 - construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+  ---
+  duration_ms: 822.943808
+  type: 'test'
+  ...
+# Subtest: construction: packing refuses an unfinished recipe, fractional stock or loose-round overflow atomically
+ok 7 - construction: packing refuses an unfinished recipe, fractional stock or loose-round overflow atomically
+  ---
+  duration_ms: 324.447877
+  type: 'test'
+  ...
+# Subtest: construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+ok 8 - construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+  ---
+  duration_ms: 0.339796
+  type: 'test'
+  ...
+# Subtest: inspection: paid assembler exposes nominal recipe rates, completed production and conserved saved continuation
+ok 9 - inspection: paid assembler exposes nominal recipe rates, completed production and conserved saved continuation
+  ---
+  duration_ms: 841.496102
+  type: 'test'
+  ...
+# Subtest: inspection: recipe changes retain per-item observations; packing/rebuild resets only machine history
+ok 10 - inspection: recipe changes retain per-item observations; packing/rebuild resets only machine history
+  ---
+  duration_ms: 273.892331
+  type: 'test'
+  ...
+# Subtest: inspection: local circuits isolate remote supply, reflect brownout, fuel exhaustion and pole connection
+ok 11 - inspection: local circuits isolate remote supply, reflect brownout, fuel exhaustion and pole connection
+  ---
+  duration_ms: 195.023978
+  type: 'test'
+  ...
+# Subtest: inspection: belt blockage and inserter destination loss report the actual held state
+ok 12 - inspection: belt blockage and inserter destination loss report the actual held state
+  ---
+  duration_ms: 283.633241
+  type: 'test'
+  ...
+# Subtest: inspection: saved sample window is bounded, excludes pause time and rejects malformed observations
+ok 13 - inspection: saved sample window is bounded, excludes pause time and rejects malformed observations
+  ---
+  duration_ms: 472.678373
+  type: 'test'
+  ...
+# Subtest: inspection: fresh campaign replay includes identical observations and readonly queries add no commands
+not ok 14 - inspection: fresh campaign replay includes identical observations and readonly queries add no commands
+  ---
+  duration_ms: 163.084175
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:83:1'
+  failureType: 'testCodeFailure'
+  error: 'location is not defined'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ReferenceError'
+  stack: |-
+    createSession (/mnt/e/Factorio2/packages/game/src/session.ts:182:38)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:84:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: routing: underground span boundaries, paired construction and atomic interference/material/reach refusals
+ok 15 - routing: underground span boundaries, paired construction and atomic interference/material/reach refusals
+  ---
+  duration_ms: 877.90139
+  type: 'test'
+  ...
+# Subtest: routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication
+ok 16 - routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication
+  ---
+  duration_ms: 678.274053
+  type: 'test'
+  ...
+# Subtest: routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load
+ok 17 - routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load
+  ---
+  duration_ms: 360.855666
+  type: 'test'
+  ...
+# Subtest: routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item
+ok 18 - routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item
+  ---
+  duration_ms: 516.48046
+  type: 'test'
+  ...
+# Subtest: routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change
+ok 19 - routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change
+  ---
+  duration_ms: 326.828843
+  type: 'test'
+  ...
+# Subtest: routing: paired commands and settings replay at a paused boundary and survive saved history
+ok 20 - routing: paired commands and settings replay at a paused boundary and survive saved history
+  ---
+  duration_ms: 673.579158
+  type: 'test'
+  ...
+# Subtest: routing: crossing tunnels pair independently and an intervening endpoint refuses a new pair atomically
+ok 21 - routing: crossing tunnels pair independently and an intervening endpoint refuses a new pair atomically
+  ---
+  duration_ms: 377.995624
+  type: 'test'
+  ...
+# Subtest: routing: filter applies to mixed belt and station-arrival source fixtures
+ok 22 - routing: filter applies to mixed belt and station-arrival source fixtures
+  ---
+  duration_ms: 358.826235
+  type: 'test'
+  ...
+# Subtest: routing: rectangular occupancy follows all four rotations, including the ordinary command path
+ok 23 - routing: rectangular occupancy follows all four rotations, including the ordinary command path
+  ---
+  duration_ms: 850.038428
+  type: 'test'
+  ...
+# Subtest: routing: saturated splitter and underground throughput stay bounded and conserve their circulating fixture stock
+ok 24 - routing: saturated splitter and underground throughput stay bounded and conserve their circulating fixture stock
+  ---
+  duration_ms: 343.348299
+  type: 'test'
+  ...
+# Subtest: routing: all four recipes run through a paid chest/inserter/belt/underground/splitter line reached on foot
+ok 25 - routing: all four recipes run through a paid chest/inserter/belt/underground/splitter line reached on foot
+  ---
+  duration_ms: 2135.106006
+  type: 'test'
+  ...
+1..25
+# tests 25
+# suites 0
+# pass 24
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 24243.691238

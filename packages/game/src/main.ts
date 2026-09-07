@@ -6,11 +6,13 @@ import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queu
   idxOf, LIGHT_SEQ_PER_S, REPAIR_COPPER, hourReport, blockLabel, stateHash, currentGoal, clockOf,
   heartAt, heartOf, CANDIDATES,   // RI-06
 } from '@relight/sim';
-import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue, record, replaySession, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
+import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue, record, dispatch, replaySession, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
 import { MapScene, MapView, SceneHooks, MAP_W, MAP_H } from './mapScene';
 import { CityMapScene } from './cityMapScene';
 import { WorldScene, Tool } from './worldScene';
 import { View, debugView, hudInset } from './view';
+import { bound } from './controls';
+import { FACTORY_TEXT } from './factoryStrings';
 import { createPanel, exportExtra } from './panel';
 import { exportJson, summarise } from './telemetry';
 
@@ -150,13 +152,14 @@ const game = new Phaser.Game({
 const hooks: SceneHooks = {
   onHover: (info, px, py) => panel.tooltip(info, px, py),
   onPipSelect: e => panel.setSelectedEdge(e),
+  onStationSelect: (x,y) => panel.openStationRoute(x,y),
   onToast: (msg, kind) => panel.toast(msg, kind),
 };
 // D6: the city map draws polygons; the lattice MapScene stays for ?map=lattice and the lattice-era snapshots
 const mapScene: MapView = session.state.city ? new CityMapScene(session, hooks) : new MapScene(session, hooks);
-const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind), onChest: () => panel.togglePockets(), onChestAt: (x, y) => panel.openPocketsAt(x, y) });
+const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind), onChest: () => panel.togglePockets(), onChestAt: (x, y) => panel.openPocketsAt(x, y), onRoutingAt: (x,y) => panel.openRoutingAt(x,y), onInspectAt: (x,y) => panel.openInspectionAt(x,y), onTruck: () => panel.openTruck() });
 worldScene.handLamp = new URLSearchParams(location.search).get('handlamp') === '1';   // D-B5-1 preview only
-panel.onPick = kind => { worldScene.setTool(kind); panel.toast(`${kind} in hand — left-click places it, R rotates, right-click clears the hand`); };
+panel.onPick = kind => { worldScene.setTool(kind); panel.closeAll(); panel.toast(FACTORY_TEXT.picked(kind)); };
 game.scene.add('map', mapScene, view.mode === 'map');
 game.scene.add('world', worldScene, view.mode === 'world');
 if (view.mode === 'world') worldScene.centreOn(view.focus[0], view.focus[1]);
@@ -205,32 +208,38 @@ function toggleView(): void {
  *  scene's (Shift sprints there too). */
 const SPEEDS = [1, 4, 16];
 window.addEventListener('keydown', ev => {
-  if ((ev.target as HTMLElement)?.tagName === 'INPUT') return;
+  if ((ev.target as HTMLElement)?.closest('input, textarea, select, [contenteditable=true]')) return;
   const k = ev.key;
+  if ((ev.ctrlKey || ev.metaKey) && (bound('undo', k) || bound('redo', k))) {
+    ev.preventDefault(); if (ev.repeat) return;
+    const type = bound('redo', k) || ev.shiftKey ? 'redoBuild' : 'undoBuild';
+    const r = dispatch(session, { type }); panel.toast(r.reason, r.ok ? 'good' : 'bad'); return;
+  }
   // RI-02: Ctrl+S saves to slot 1 in this browser, Ctrl+O reloads the page from it (the panel's Save / Load buttons)
-  if ((ev.ctrlKey || ev.metaKey) && (k === 's' || k === 'S')) {
+  if ((ev.ctrlKey || ev.metaKey) && bound('save', k)) {
     ev.preventDefault();
     try { const save = saveSlot(session, '1'); panel.toast(`Saved to slot 1 at ${clockOf(save.t)} (state ${save.hash}) — Ctrl+O or Load reloads it`, 'good'); }
     catch (e) { panel.toast(`Could not save: ${(e as Error).message}`, 'bad'); }
     return;
   }
-  if ((ev.ctrlKey || ev.metaKey) && (k === 'o' || k === 'O')) {
+  if ((ev.ctrlKey || ev.metaKey) && bound('load', k)) {
     ev.preventDefault();
     if (!hasSlot('1', rulesetOf(session.state))) { panel.toast('This campaign has no save yet — Ctrl+S saves it', 'bad'); return; }
     if (window.confirm('Reload from slot 1? Unsaved progress is lost.')) location.href = slotUrl(session, '1');
     return;
   }
-  if (k === 'p' || k === 'P') setSpeed(session, session.state.speed === 0 ? 1 : 0);
-  else if (k === '-' || k === '_' || k === '=' || k === '+') {
-    const cur = SPEEDS.indexOf(session.state.speed), next = k === '-' || k === '_' ? Math.max(0, cur - 1) : Math.min(SPEEDS.length - 1, cur + 1);
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (bound('pause', k)) setSpeed(session, session.state.speed === 0 ? 1 : 0);
+  else if (bound('slower', k) || bound('faster', k)) {
+    const cur = SPEEDS.indexOf(session.state.speed), next = bound('slower', k) ? Math.max(0, cur - 1) : Math.min(SPEEDS.length - 1, cur + 1);
     setSpeed(session, SPEEDS[cur < 0 ? 0 : next]);
   }
-  else if (k === 'm' || k === 'M') toggleView();   // D5: M = map view
-  else if (k === 'i' || k === 'I' || k === 'Tab') { ev.preventDefault(); panel.togglePockets(); }   // M1: the pockets and the Depot chest
-  else if (k === 'b' || k === 'B') panel.toggleBuild();
-  else if (k === '`') panel.toggleDebug();
-  else if (k === 'Escape') { panel.closeAll(); if (view.mode === 'world') worldScene.key(k); }
-  else if (k === ' ') { if (view.mode === 'world') ev.preventDefault(); }   // the dodge (worldScene reads the key itself)
+  else if (bound('map', k)) toggleView();   // D5: M = map view
+  else if (bound('pockets', k)) { ev.preventDefault(); panel.togglePockets(); }   // M1: the pockets and the Depot chest
+  else if (bound('build', k)) panel.toggleBuild();
+  else if (bound('debug', k)) panel.toggleDebug();
+  else if (bound('cancel', k)) { panel.closeAll(); if (view.mode === 'world') worldScene.key(k); }
+  else if (bound('dodge', k)) { if (view.mode === 'world') ev.preventDefault(); }   // the dodge (worldScene reads the key itself)
   else if (view.mode === 'world' && worldScene.key(k)) ev.preventDefault();
 });
 
@@ -250,6 +259,7 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   /** RI-02: replay the session's whole log (aim kept) from a fresh state and compare hashes with the played state. */
   replayHash: () => { const r = replaySession(session, { rifleOff: false }); return 'error' in r ? r : { same: stateHash(r.state) === stateHash(session.state), replayed: stateHash(r.state), played: stateHash(session.state), tick: r.state.flow?.tick ?? -1 }; },
   stateJson: () => JSON.stringify(session.state),
+  renderTiming: () => ({...worldScene.renderTiming}),
   /** RI-02: the state hash (save.ts), the current goal line, the save file, and the browser slot (the Ctrl+S / Ctrl+O path). */
   stateHash: () => stateHash(session.state),
   goal: () => currentGoal(session.state),

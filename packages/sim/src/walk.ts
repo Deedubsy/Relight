@@ -1,3 +1,4 @@
+import { driveTruck, truckOccupies } from './truck';
 /** Prompt B M1 — the engineer on the tile grid. The block sim keeps its block-level engineer (engineer.ts: a walk is
  *  a distance along the streets, the harness bot's model); with the flow layer present the engineer is a sprite on
  *  the ground instead, ticked 20× a second by `stepFlow`: WASD velocity with collision (D-B1-5: plus sprint, the
@@ -5,6 +6,7 @@
  *  walkable grid (any tile that is not water and holds no machine but a belt). Walking anywhere is harmless (D5).
  *  Paths live outside SimState (a snapshot restarts them). */
 import { SimState, Engineer } from './types';
+import { machineDimensions } from './footprint';
 import type { FlowState } from './flow';
 import { Ground, ground, walkable, inGround, hqLot, cityGeomOf } from './ground';
 import { segBetween } from './city';
@@ -34,7 +36,8 @@ function solidMap(st: SimState, G: Ground): Uint8Array | null {
   const solid = new Uint8Array(G.tw * G.th);
   for (const m of f.machines) {
     if (PASSABLE.has(m.kind) || (st.campaign && (m.kind==='wall'||m.kind==='turret') && m.hp===0)) continue;
-    for (let y = m.y; y < m.y + m.size; y++) for (let x = m.x; x < m.x + m.size; x++) if (inGround(G, x, y)) solid[y * G.tw + x] = 1;
+    const [width,height]=machineDimensions(m);
+    for (let y = m.y; y < m.y + height; y++) for (let x = m.x; x < m.x + width; x++) if (inGround(G, x, y)) solid[y * G.tw + x] = 1;
   }
   solids.set(f, { rev: f.rev, solid });
   return solid;
@@ -45,7 +48,7 @@ export function passable(st: SimState, tx: number, ty: number): boolean {
   const G = ground(st);
   if (!walkable(G, tx, ty)) return false;
   const s = solidMap(st, G);
-  return !s || s[ty * G.tw + tx] === 0;
+  return !truckOccupies(st,tx,ty) && (!s || s[ty * G.tw + tx] === 0);
 }
 
 // ------------------------------------------------------------------ A*
@@ -70,7 +73,7 @@ export function findPath(st: SimState, sx: number, sy: number, gx: number, gy: n
   const G = ground(st);
   if (!inGround(G, sx, sy) || !inGround(G, gx, gy)) return null;
   const solid = solidMap(st, G), tw = G.tw, th = G.th, base = G.base;
-  const open = (x: number, y: number) => x >= 0 && y >= 0 && x < tw && y < th && base[y * tw + x] !== 4 /* T_RIVER */ && !G.urban?.solid[y * tw + x] && (!solid || solid[y * tw + x] === 0);
+  const open = (x: number, y: number) => x >= 0 && y >= 0 && x < tw && y < th && base[y * tw + x] !== 4 /* T_RIVER */ && !G.urban?.solid[y * tw + x] && (!solid || solid[y * tw + x] === 0) && !truckOccupies(st,x,y);
   if (!open(gx, gy)) return null;
   const S = scratchOf(G), gen = ++S.gen;
   const start = sy * tw + sx, goal = gy * tw + gx;
@@ -165,6 +168,8 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
     }
     return;
   }
+  if(e.truckSeat){plans.delete(e);driveTruck(st,dt);}
+  else {
   let v = speedOf(e) * dt, moved = false;
   const rev = f ? f.rev : 0;
   // D-B1-5: the dodge, then sprint and the stamina bar. Keys held (not a walk-here, not a bot walk) are what sprints.
@@ -232,6 +237,7 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
   if (e.dest < 0 && inGround(G, tx, ty)) {
     const o = G.owner[ty * G.tw + tx];
     if (o >= 0) { e.block = o; kitBlock(st, o); }
+  }
   }
   if (e.hp < ENGINEER_HP && st.t - e.lastHit >= REGEN_AFTER_S) e.hp = Math.min(ENGINEER_HP, e.hp + REGEN_HP_PER_S * dt);
   // D-B1-5: the rifle in hand — a round toward the cursor every 1/rate s while the mouse is held (not mid-dodge)

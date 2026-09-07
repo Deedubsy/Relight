@@ -1,0 +1,69 @@
+{
+  "setup": "Fresh seed 3; normal stock transfers and paid assembler; keyboard F/E/Escape, recipe DOM selector, pause/resume, item statistics, save/reload. Read-only hooks locate and inspect; no injected stock or position.",
+  "widths": [
+    1366,
+    900
+  ],
+  "assembler": {
+    "x": 424,
+    "y": 632
+  },
+  "replay": {
+    "same": true,
+    "replayed": "8eba0e33",
+    "played": "8eba0e33",
+    "tick": 46
+  },
+  "errors": [],
+  "log": [
+    {
+      "tick": 1,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "chestTake",
+          "item": "steel",
+          "n": 50
+        }
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "chestTake",
+          "item": "copper",
+          "n": 50
+        }
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "construct",
+        "edits": [
+          {
+            "action": "place",
+            "item": "assembler",
+            "x": 424,
+            "y": 632,
+            "dir": 1
+          }
+        ]
+      }
+    },
+    {
+      "tick": 1,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "setRecipe",
+          "x": 424,
+          "y": 632,
+          "recipe": "wire"
+        }
+      }
+    }
+  ]
+}

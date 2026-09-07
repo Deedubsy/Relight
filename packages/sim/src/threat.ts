@@ -22,6 +22,8 @@
  *  (`crawlerTarget`), a shade leaves a trace of the tiles it crossed (`trail`, `shadeTraces`) so its approach can
  *  be read off unlit ground without being lit; the Stalker (stalker.ts) rides this tick when `enableStalkers` has put
  *  its candidate on the state (`stalk`), and the turrets and the rifle treat it as one more body. */
+import { tickDiscovery } from './campaignDiscovery';
+import { stalkerLayer, stalkersOf } from './stalker';
 import { isCampaign } from './rules';
 import { tickCampaignThreat, describeCampaignCrawler } from './campaignThreat';
 import { SimState, Engineer, HELD } from './types';
@@ -227,7 +229,7 @@ const isCrawlerHeld = (st: SimState, c: Crawler): boolean =>
 function tick(st: SimState, dt: number): void {
   if (!threatActive(st)) return;
   const f = st.flow!, T = threatOf(f), G = ground(st), tw = G.tw, e = st.engineer;
-  if (isCampaign(st)) { tickCampaignThreat(st,T,dt); tickWeapons(st,dt); return; }
+  if (isCampaign(st)) { tickCampaignThreat(st,T,dt); tickDiscovery(st,dt); tickWeapons(st,dt); return; }
   const cs = T.crawlers;
   // crawlers whose block already fell (or was lost) have nothing left to walk to
   let w = 0;
@@ -327,7 +329,7 @@ function nearest(st: SimState, T: ThreatState, x: number, y: number, r: number, 
     if (c.kind === 'shade' && !litAt(st, Math.floor(c.x), Math.floor(c.y))) continue;   // §7: untargetable off lit tiles
     bd = d2; best = c;
   }
-  if (T.stalk) for (const s of T.stalk.stalkers) {
+  for (const s of stalkersOf(st)) {
     const dx = s.x - x, dy = s.y - y, d2 = dx * dx + dy * dy;
     if (d2 > bd) continue;
     bd = d2; best = s;
@@ -336,7 +338,7 @@ function nearest(st: SimState, T: ThreatState, x: number, y: number, r: number, 
 }
 /** ROUND_DMG off a body; true when it died (a crawler leaves the list here, a Stalker through its own layer). */
 function damage(st: SimState, T: ThreatState, c: Target): boolean {
-  if (c.kind === 'stalker') return damageStalker(st, T.stalk!, c, ROUND_DMG);
+  if (c.kind === 'stalker') return damageStalker(st, stalkerLayer(st)!, c, ROUND_DMG);
   c.hp -= ROUND_DMG;
   if (c.hp > 0) return false;
   const i = T.crawlers.indexOf(c); if (i >= 0) T.crawlers.splice(i, 1);
@@ -420,11 +422,13 @@ function hit(st: SimState, T: ThreatState, e: Engineer, c: Target): void {
 function fire(st: SimState, e: Engineer, ax: number, ay: number): boolean {
   if (!threatActive(st)) return false;
   const T = threatOf(st.flow!);
+  // Campaign activity cues include a paid missed round, not just a hit.
+  if (isCampaign(st)) T.shotAt = st.t;
   const dx = ax - e.x, dy = ay - e.y, L = Math.hypot(dx, dy);
   if (L < 1e-6) return true;
   const ux = dx / L, uy = dy / L;
   let best: Target | null = null, bestAlong = Infinity;
-  const bodies: Target[] = T.stalk ? [...T.crawlers, ...T.stalk.stalkers] : T.crawlers;
+  const bodies: Target[] = [...T.crawlers, ...stalkersOf(st)];
   for (const c of bodies) {
     const px = c.x - e.x, py = c.y - e.y, along = px * ux + py * uy;
     if (along < 0 || along > RIFLE_RANGE || along >= bestAlong) continue;
