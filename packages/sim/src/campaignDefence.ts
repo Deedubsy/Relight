@@ -8,14 +8,14 @@ import { isCampaign, CAMPAIGN_RULES } from './rules';
 import { DISCOVERY } from './campaignDiscovery';
 import { blockName } from './names';
 
-export const DEFENCE = { wallHp: 120, turretHp: 100, coreHp: 300, repairHp: 40, repairSeconds: 4,
+export const DEFENCE = { barricadeHp: 240, wallHp: 120, turretHp: 100, coreHp: 300, repairHp: 40, repairSeconds: 4,
   repairSteel: 2, repairCopper: 1, coreSteel: 10, coreCopper: 5, coreRepairSeconds: 12 } as const;
 export interface BaseCore { block: number; x: number; y: number; size: number; hp: number; commissionedAt: number }
-export interface Assault { id: number; block: number; dawn: number; startsAt: number; origin: number; remaining: number; nextSpawn: number; retreat: boolean }
+export interface Assault { id: number; block: number; dawn: number; startsAt: number; origin: number; remaining: number; nextSpawn: number; retreat: boolean; waiting?: 'approach' | 'minor' }
 export interface MinorRaid { id: number; block: number; origin: number; retreat: boolean }
 export interface RadioMessage { assault: number; block: number; startsAt: number; receivedAt: number; approach?: string; composition?: string }
 export interface DefenceState {
-  version: 1; bases: BaseCore[]; nextId: number; nextDawn: number; lastMajorEnd: number;
+  version: 1 | 2; bases: BaseCore[]; nextId: number; nextDawn: number; lastMajorEnd: number;
   lastMinorSlot: number; nominations: { block: number; at: number }[]; major: Assault | null; minor: MinorRaid | null;
   radioUpgrade: boolean; warning: RadioMessage | null;
   repair: { kind: 'machine' | 'core'; id: number; remaining: number; recommission: boolean } | null;
@@ -24,7 +24,16 @@ export interface DefenceState {
   raidsStarted: number; majorSpawned: number; notice: string;
 }
 export function initDefence(st: SimState): void {
-  if (!isCampaign(st) || st.campaign!.defence || !st.flow) return;
+  if (!isCampaign(st) || !st.flow) return;
+  // P6-01 changes routing, not the saved roster, target, rest promise or paid repair.
+  if (st.campaign!.defence) {
+    if(st.campaign!.defence!.version===1) {
+      // The old pursuit path could retain a distant attack waypoint. Replan from the saved body position.
+      for(const c of st.flow.threat?.crawlers??[])if(c.campaign)delete c.campaign.waypoint;
+      st.campaign!.defence!.version=2;
+    }
+    return;
+  }
   const G = ground(st), home = st.campaign!.homeBlock, depot = st.flow.machines.find(m => m.kind === 'depot')!;
   const bases: BaseCore[] = [{ block: home, x: depot.x, y: depot.y, size: depot.size, hp: DEFENCE.coreHp, commissionedAt: 0 }];
   const station = st.campaign!.expansion?.station;
@@ -38,7 +47,7 @@ export function initDefence(st: SimState): void {
     if (!G.urban!.solid[tile] && G.owner[tile] !== -2 && st.flow.occ[tile] === undefined) sites.push({ id: sites.length+1, block: p.block, tile, spawned: false });
   }
   // Old preview saves receive two full cycles of preparation; missed events are never replayed on upgrade.
-  st.campaign!.defence = { version: 1, bases, nextId: 1,
+  st.campaign!.defence = { version: 2, bases, nextId: 1,
     nextDawn: st.t === 0 ? (CAMPAIGN_RULES.firstAssaultNight-1)*1200 : Math.ceil((st.t+2400)/1200)*1200,
     lastMajorEnd: -1, lastMinorSlot: Math.floor(st.t/1200)*2+(st.t%1200>=600?1:st.t%1200>=300?0:-1), nominations: [], major: null, minor: null,
     radioUpgrade: false, warning: null, repair: null, sites, history: [], raidsStarted: 0, majorSpawned: 0, notice: '' };
@@ -58,7 +67,7 @@ export function nominateBase(st: SimState, block: number): void {
   const d = st.campaign?.defence; if (!d) return;
   d.nominations = d.nominations.filter(n => n.block !== block); d.nominations.push({ block, at: st.t });
 }
-export function defenceMax(m: Machine): number { return m.kind === 'wall' ? DEFENCE.wallHp : m.kind === 'turret' ? DEFENCE.turretHp : 0; }
+export function defenceMax(m: Machine): number { return m.kind==='barricade'?DEFENCE.barricadeHp:m.kind === 'wall' ? DEFENCE.wallHp : m.kind === 'turret' ? DEFENCE.turretHp : 0; }
 export function defenceHp(m: Machine): number { return m.hp ?? defenceMax(m); }
 export function damageDefence(st: SimState, m: Machine, amount: number): void {
   if (!isCampaign(st) || !defenceMax(m) || amount<=0) return;
@@ -71,7 +80,7 @@ export function damageCore(st: SimState, core: BaseCore, amount: number): void {
   if (core.hp===0) {
     st.blocks[core.block].subOn = false; st.flow!.rev++;
     const d = st.campaign!.defence!;
-    if (d.major?.block===core.block) { d.major.retreat=true; d.major.remaining=0; }
+    if (d.major?.block===core.block) { d.major.retreat=true; d.major.remaining=0; delete d.major.waiting; }
     if (d.minor?.block===core.block) d.minor.retreat=true;
     d.notice = `${blockName(st,core.block)} core disabled. Layout and supplies remain; repair the core when the attackers leave.`;
   }
@@ -122,5 +131,5 @@ export function defenceDescription(st:SimState,x:number,y:number):string {
   const hp=core?.hp??defenceHp(m!);
   const r=st.campaign?.defence?.repair;
   const repairing=r && (core?r.kind==='core'&&r.id===core.block:r.kind==='machine'&&r.id===m!.id);
-  return `${core?'Base core':m!.kind==='wall'?'Wall':'Gun turret'} · ${Math.ceil(hp)}/${max} HP${hp===0?' · DISABLED':''}${repairing?` · repair ${Math.ceil(r.remaining)}s (stay in reach)`:hp<max?` · E repairs: ${core&&hp===0?`10 steel + 5 copper, ${manualRepairSeconds(st,true)}s`:`2 steel + 1 copper, ${manualRepairSeconds(st)}s / 40 HP`}`:''}`;
+  return `${core?'Base core':m!.kind==='barricade'?'Barricade':m!.kind==='wall'?'Wall':'Gun turret'} · ${Math.ceil(hp)}/${max} HP${hp===0?' · DISABLED':''}${repairing?` · repair ${Math.ceil(r.remaining)}s (stay in reach)`:hp<max?` · E repairs: ${core&&hp===0?`10 steel + 5 copper, ${manualRepairSeconds(st,true)}s`:`2 steel + 1 copper, ${manualRepairSeconds(st)}s / 40 HP`}`:''}`;
 }

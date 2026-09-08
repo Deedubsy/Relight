@@ -1,0 +1,1169 @@
+--- P7-01/packages/game/src/controls.ts
++++ P7-02/packages/game/src/controls.ts
+@@ -6,7 +6,7 @@
+   recipe: ['t'], interact: ['e'], inspect: ['f'], abort: ['x'], save: ['s'], load: ['o'], undo: ['z'], redo: ['y'],
+   belt: ['1'], inserter: ['2'], excavator: ['3'], assembler: ['4'], turret: ['5'], lamp: ['6'], pole: ['7'],
+   generator: ['8'], rifle: ['9'], floodlight: ['0'], bigpole: ['['], substation: [']'], chest: ['c'],
+-  track: ['l'], tramstop: ['h'], tram: ['v'], wall: [], underground: ['u'], splitter: ['j'],
++  track: ['l'], tramstop: ['h'], tram: ['v'], wall: [], mixer: [], barricade: [], underground: ['u'], splitter: ['j'],
+ } as const;
+ export type Binding = keyof typeof BINDINGS;
+ export const bound = (action: Binding, key: string): boolean => (BINDINGS[action] as readonly string[]).some(k => k.toLowerCase() === key.toLowerCase());
+--- P7-01/packages/game/src/factoryStrings.ts
++++ P7-02/packages/game/src/factoryStrings.ts
+@@ -13,12 +13,12 @@
+   placed: 'Construction completed', recipeTarget: 'Point at an Assembler to change its recipe',
+   release: 'Release to build', cancelled: 'Construction preview cancelled',
+   buildHelp: `Left-click builds from carried machines or their material price. ${shortcut('rotate')} rotates; ${shortcut('pipette')} copies the pointed-at machine or clears the hand. Right-click with an empty hand packs a machine and its contents. ${shortcut('rifle')} equips the rifle; hold left-click to fire.`,
+-  pocketHelp: 'Take supplies from the house within reach. Build from carried steel and copper; right-click a machine to recover it and its contents. Restoration uses carried materials and local or connected power.',
++  pocketHelp: 'Take supplies from the house within reach. Build from carried materials; right-click a machine to recover it and its contents. Restoration uses carried materials and local or connected power.',
+   pocketTitle: `Pockets and the chest (${shortcut('pockets')} / Tab; ${shortcut('interact')} on a house, Supply chest or Tram stop targets it)`,
+   putAll: 'Put all', take: (n: number) => `Take ${n}`,
+   picked: (kind: string) => `${kind} in hand — left-click builds, ${shortcut('rotate')} rotates, right-click clears the hand`,
+   toolTitle: (kind: string, key: string) => `Put a ${kind} in the hand${key ? ` (${key})` : ''}`,
+-  price: (steel: number, copper: number) => `${steel} steel${copper ? ` + ${copper} Cu` : ''} from the pockets`,
++  price: (steel: number, copper: number, concrete = 0) => `${steel} steel${copper ? ` + ${copper} Cu` : ''}${concrete ? ` + ${concrete} concrete` : ''} from the pockets`,
+   transfer: (n: number, item: string, where: string) => `${n} ${item} into ${where}`,
+   carried: (n: number) => n > 0 ? `· ${n} carried` : '', locked: (reason: string) => reason ? ` · locked: ${reason}` : '',
+   keys: `keys: ${shortcut('pause')} pause · ${shortcut('slower')} / ${shortcut('faster')} speed · ${shortcut('map')} map · Tab/${shortcut('pockets')} pockets · ${shortcut('build')} build · ${shortcut('cancel')} closes · ${shortcut('debug')} debug`,
+@@ -33,6 +33,8 @@
+     belt: 'Carry items between machines without hand transfers.',
+     inserter: 'Move one item per second across a tile. E sets an item filter; T cycles it.',
+     excavator: 'Extract local resources automatically and output to the belt it faces.',
++    mixer: 'Mix 2 stone into 1 concrete every 2s using 60 kW; belt inputs and inserter output.',
++    barricade: '240 HP concrete defence; repair before packing. Blocks creatures until disabled.',
+     assembler: 'Produce Shot magazines, Wire, Frames or Boards from supplied inputs.',
+     turret: 'Defend a supplied position automatically with magazines.',
+     lamp: 'Light nearby work and approaches.', pole: 'Connect local power circuits.',
+--- P7-01/packages/game/src/panel.ts
++++ P7-02/packages/game/src/panel.ts
+@@ -15,7 +15,7 @@
+ import { summarise, exportJson } from './telemetry';
+ import { hourReport } from '@relight/sim';
+ import { radioUpgradeCheck, campaignWarning, defenceDescription, repairCheck, CAMPAIGN_THREAT } from '@relight/sim';
+-import { campaignSite, describeSite, EXPANSION, SITE_IDS, SITE_LABELS, SiteId, districtGuidance, recruitDescription, recruitCheck, discoveryDescription, discoveryCheck } from '@relight/sim';
++import { campaignSite, describeSite, EXPANSION, SITE_IDS, SITE_LABELS, SiteId, districtGuidance, RECRUITS, recruitDescription, recruitCheck, discoveryDescription, discoveryCheck } from '@relight/sim';
+ import { ITEMS, StationRules, freightInbound, isCampaign, rulesetOf, CAMPAIGN_RULESET, LEGACY_RULESET, campaignClock } from '@relight/sim';
+ 
+ /** M6: what the export carries beside the telemetry — the command log (the replay's input) and, under the hour bot, its log and report. */
+@@ -121,8 +121,7 @@
+   if (hasSlot('1', rulesetOf(st))) saveNote.textContent = 'this campaign has a save';
+ 
+   const campaignStatus = campaign ? el('p', 'hint') : null;
+-  const recruitStatus = campaign ? el('p','hint') : null;
+-  const recruitButton = campaign ? el('button',undefined,'Recruit Electricians') : null;
++  const recruitRows:{id:string;status:HTMLElement;button:HTMLButtonElement}[]=[];
+   const discoveryStatus = campaign ? el('p','hint') : null;
+   const discoveryButton = campaign ? el('button',undefined,'Recover field-repair schematic') : null;
+   let radioUpgradeButton: HTMLButtonElement | null=null;
+@@ -136,9 +135,9 @@
+     radioUpgradeButton=el('button',undefined,`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`);radioUpgradeButton.onclick=()=>queue(session,{type:'upgradeRadio'});section.append(radioUpgradeButton);
+     for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block,st.campaign!.districts!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};coreButtons.push({block:base,button});section.append(button);}
+     for (const id of SITE_IDS) { const button = el('button', undefined, `Deliver and restore ${SITE_LABELS[id]}`); button.onclick = () => { const s = campaignSite(session.state, id); if (s && s.restoredAt >= 0 && id === 'station') queue(session,{type:'collectTramKit'}); else {queue(session,{type:'deliverSite',site:id});queue(session,{type:'restoreSite',site:id});} }; section.append(button);siteButtons.push({id,button}); }
+-    section.append(el('p', 'hint', 'After restoration, blue survey squares mark the suggested track and stop positions. They place nothing: collect the kit at the station, then lay and power the line yourself. The kit stays there if your pockets are full. Extend the survey using paid track and a third stop. Coloured source pads need powered excavators. Supply a chest within 4 tiles of the restored workshop with steel and copper; it repairs walls and turrets within 14 tiles between attacks.'));
+-    section.append(el('h3',undefined,'Survivor shelter'),recruitStatus!,recruitButton!);
+-    recruitButton!.onclick=()=>{const s=session.state.campaign?.recruits?.sites[0];if(s)queue(session,{type:'recruitSurvivors',id:s.id});};
++    section.append(el('p', 'hint', 'After restoration, blue survey squares mark the suggested track and stop positions. They place nothing: collect the kit at the station, then lay and power the line yourself. The kit stays there if your pockets are full. Extend the survey using paid track and a third stop. Coloured source pads need powered excavators. Supply a chest within 4 tiles of the restored workshop with steel and copper; it repairs walls, Barricades and turrets within 14 tiles between attacks.'));
++    section.append(el('h3',undefined,'Survivor shelters'));
++    for(const s of st.campaign!.recruits!.sites){const status=el('p','hint'),button=el('button',undefined,`Recruit ${RECRUITS[s.kind].name}`);button.onclick=()=>queue(session,{type:'recruitSurvivors',id:s.id});section.append(status,button);recruitRows.push({id:s.id,status,button});}
+     section.append(el('h3',undefined,'Optional discovery'),discoveryStatus!,discoveryButton!);
+     discoveryButton!.onclick=()=>{const d=session.state.campaign?.discovery;if(d)queue(session,{type:'recoverSchematic',id:d.id});};
+     root.append(section);
+@@ -240,7 +239,7 @@
+     btn.title = FACTORY_TEXT.toolTitle(b.label, b.key);
+     btn.onclick = () => panelRef.onPick?.(b.kind);
+     const carried = el('span', 'mono', ''), lock = el('span', 'hint', '');
+-    li.append(btn, el('span', 'hint', ` ${FACTORY_TEXT.price(c.steel, c.copper)} · ${b.what} `), carried, lock);
++    li.append(btn, el('span', 'hint', ` ${FACTORY_TEXT.price(c.steel, c.copper, c.concrete)} · ${b.what} `), carried, lock);
+     buildCarried.push({ kind: b.kind, v: carried, btn, lock });
+     buildList.append(li);
+   }
+@@ -553,7 +552,7 @@
+     if(defenceStatus)defenceStatus.textContent=campaignWarning(s);
+     if(radioUpgradeButton){const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
+     for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;row.button.disabled=!core||!!repairCheck(s,core.x,core.y);if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
+-    if(recruitStatus&&recruitButton){const r=s.campaign?.recruits?.sites[0];recruitStatus.textContent=r&&r.seenAt>=0?recruitDescription(s,r):'Explore beyond the home court to find a survivor shelter.';recruitButton.hidden=!r||r.seenAt<0;recruitButton.disabled=!r||!!recruitCheck(s,r.id);recruitButton.title=r?recruitCheck(s,r.id):'';recruitButton.textContent=r&&r.recruitedAt>=0?'Electricians recruited':'Recruit Electricians';}
++    for(const row of recruitRows){const r=s.campaign?.recruits?.sites.find(r=>r.id===row.id);row.status.textContent=r&&r.seenAt>=0?recruitDescription(s,r):'Explore beyond home to find survivor shelters.';row.button.hidden=!r||r.seenAt<0;row.button.disabled=!r||!!recruitCheck(s,r.id);row.button.title=r?recruitCheck(s,r.id):'';row.button.textContent=r?`${r.recruitedAt>=0?'Recruited':'Recruit'} ${RECRUITS[r.kind].name}`:'Unknown shelter';}
+     if(discoveryStatus&&discoveryButton){const d=s.campaign?.discovery;discoveryStatus.textContent=d&&d.seenAt>=0?discoveryDescription(s):'A field-repair schematic was left in the workshop side yard. Look for the marked records cache while exploring; a Stalker guards it. This detour is optional.';discoveryButton.disabled=!d||!!discoveryCheck(s,d.id);discoveryButton.title=d?discoveryCheck(s,d.id):'';discoveryButton.textContent=d&&d.recoveredAt>=0?'Field-repair tool fitted':'Recover field-repair schematic';}
+     if (campaignStatus) { const ex = s.campaign?.expansion; campaignStatus.textContent = ex ? `${blockNameAt(s, s.blocks[ex.station.block].x, s.blocks[ex.station.block].y)}: ${describeSite(s, 'station')} ${ex.station.restoredAt >= 0 ? describeSite(s, 'radio') + ' ' + describeSite(s, 'northStation') + ' ' + districtGuidance(s) : ''}` : ''; }
+     for (const row of siteButtons) { const site = campaignSite(s, row.id); row.button.title=describeSite(s,row.id); row.button.disabled = !site || !inReach(s, site.x, site.y, site.size) || (row.id === 'radio' && (campaignSite(s, 'station')?.restoredAt ?? -1) < 0); row.button.textContent = site && site.restoredAt >= 0 ? row.id === 'station' ? 'Collect tram kit' : `${SITE_LABELS[row.id]} restored` : `Deliver and restore ${SITE_LABELS[row.id]}`; if (row.id !== 'station' && site && site.restoredAt >= 0) row.button.disabled = true; }
+--- P7-01/packages/game/src/session.ts
++++ P7-02/packages/game/src/session.ts
+@@ -108,7 +108,7 @@
+   try { state = loadState(json); } catch (e) { throw new Error(`${ref}: ${(e as Error).message}`); }
+   const saved = isSaveFile(json) ? json : undefined;
+   const original = (saved?.state ?? (json as { finalState?: SimState })?.finalState ?? json) as SimState;
+-  const upgradedHome = original.ruleset === CAMPAIGN_RULESET && (original.campaign?.version ?? 0) < 6;
++  const upgradedHome = original.ruleset === CAMPAIGN_RULESET && (original.campaign?.version ?? 0) < 7;
+   const upgradedDefence = original.ruleset === CAMPAIGN_RULESET && (original.campaign?.defence?.version ?? 0) < 2;
+   const upgradedTransport=original.ruleset===CAMPAIGN_RULESET&&!original.campaign?.truck&&(original.campaign?.expansion?.station.restoredAt??-1)>=0;
+   // The old log predates station geometry and local circuits: resume the save, but do not claim a new-factory replay of that history.
+--- P7-01/packages/game/src/worldScene.ts
++++ P7-02/packages/game/src/worldScene.ts
+@@ -39,7 +39,7 @@
+ import { Session, queue, dispatch } from './session';
+ import { View, debugView, hudInset, inspectionView } from './view';
+ import { coreAt, defenceMax, defenceHp, defenceDescription, repairCheck } from '@relight/sim';
+-import { campaignSiteAt, campaignSite, describeSite, SITE_IDS, persistentSource, recruitAt, recruitCheck, recruitDescription, discoveryAt, discoveryCheck, discoveryDescription, stalkerLayer } from '@relight/sim';
++import { campaignSiteAt, campaignSite, describeSite, SITE_IDS, persistentSource, recruitAt, recruitCheck, recruitDescription, RECRUITS, discoveryAt, discoveryCheck, discoveryDescription, stalkerLayer } from '@relight/sim';
+ import { extendBuildPath, pathEdits, constructionCheck, type TilePoint } from '@relight/sim';
+ import { bound, MOVEMENT_KEYS } from './controls';
+ import { toolForKey, toolKeyLine } from './buildCatalogue';
+@@ -52,7 +52,7 @@
+ const STATUS_GLYPH = FACTORY_STATUS_GLYPH;
+ const STATUS_COL: Record<MachineState, number> = { running: 0x6fe08a, starved: 0xe8a93a, blocked: 0xe05a5a, idle: 0x9aa5b8, off: 0x9aa5b8 };
+ /** Routine conveyor marks appear on hover; stopped devices expose their mark in place. */
+-const STATUS_KIND = new Set<Kind>(['turret', 'generator', 'excavator', 'assembler', 'floodlight','inserter','underground','splitter','lamp','pole','bigpole','substation','tramstop']);
++const STATUS_KIND = new Set<Kind>(['mixer','turret', 'generator', 'excavator', 'assembler', 'floodlight','inserter','underground','splitter','lamp','pole','bigpole','substation','tramstop']);
+ 
+ /** GAME-ASSUMPTION: the constitution's 0.5–3× zoom, not §4's 1.0–0.2×; the doc is edited to this range (D-P4-1). */
+ export const ZOOM_MIN = 0.5, ZOOM_MAX = 3, ZOOM_STEP = 1.15;
+@@ -83,10 +83,10 @@
+ const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
+ /** GAME-ASSUMPTION: flat item colours (steel blue, copper orange, stone grey, coal black, magazine brass; RI-01's wire
+  *  a paler copper, frame a paler steel, board green) until the art pass. */
+-const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a, wire: 0xf0a86a, frame: 0xb4c6e8, board: 0x5fae6a };
++const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a, wire: 0xf0a86a, frame: 0xb4c6e8, concrete: 0xb8b4a2, board: 0x5fae6a };
+ const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a,
+   turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a,
+-  underground:0x4a5945, splitter:0x364759, wall: 0x858b91, chest: 0x4a4636, track: 0x3a3c44, tramstop: 0x3f4a5e, tram: 0xb0572a };   // RI-05: the supply chest and the rail kit (flat colours until the art pass)
++  underground:0x4a5945, splitter:0x364759, mixer:0x797c64, barricade:0xc1bcae, wall: 0x858b91, chest: 0x4a4636, track: 0x3a3c44, tramstop: 0x3f4a5e, tram: 0xb0572a };   // RI-05: the supply chest and the rail kit (flat colours until the art pass)
+ const LIGHT_COL = 0xffe9a0;
+ /** M5 light map. GAME-ASSUMPTION: the unlit texel is a multiply of ~25 % with a cool cast (§4's "desaturated and
+  *  darkened to ~25 %" — a multiply cannot desaturate, so the cast stands in for it until the Phase 12 art pass);
+@@ -99,7 +99,7 @@
+ const LIGHT_SOFT = 0.7;
+ /** Layout pass, drawing only: the machines whose footprint is a box, so they take the common drop shadow and rim.
+  *  Belts, inserters and the posts are not boxes — a rim per tile would draw a ladder down a belt run. */
+-const BOX_MACHINE = new Set(['turret', 'floodlight', 'generator', 'excavator', 'assembler', 'bigpole', 'chest', 'tramstop']);   // RI-05: the chest and the stop are boxes too
++const BOX_MACHINE = new Set(['turret', 'floodlight', 'generator', 'excavator', 'assembler', 'mixer', 'bigpole', 'chest', 'tramstop']);   // RI-05: the chest and the stop are boxes too
+ /** D-B5-1's hand lamp, drawing only: a 2-tile disc on the engineer in the light map when the human takes it (`?handlamp=1`). */
+ const HAND_LAMP_R = 2;
+ 
+@@ -474,7 +474,7 @@
+     const e = st.engineer;
+     if(st.campaign&&(e.truckSeat||(h&&truckOccupies(st,h.tx,h.ty)))){const r=dispatch(this.session,{type:'factory',action:{type:'truckBoard'}});this.hooks.onToast(r.reason,r.ok?'good':'bad');return;}
+     if(h&&st.campaign){const core=coreAt(st,h.tx,h.ty),m=machineAt(st,h.tx,h.ty);if((core&&core.hp<300)||(m&&defenceMax(m)>0&&defenceHp(m)<defenceMax(m))){const why=repairCheck(st,h.tx,h.ty);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'repairDefence',x:h.tx,y:h.ty});this.hooks.onToast('Repair queued. Stay within reach; materials pay for this repair once.');}return;}}
+-    if(h){const s=recruitAt(st,h.tx,h.ty);if(s){const why=recruitCheck(st,s.id);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'recruitSurvivors',id:s.id});this.hooks.onToast('Recruiting the Electricians.');}return;}}
++    if(h){const s=recruitAt(st,h.tx,h.ty);if(s){const why=recruitCheck(st,s.id);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'recruitSurvivors',id:s.id});this.hooks.onToast(`Recruiting the ${RECRUITS[s.kind].name}.`);}return;}}
+     if(h&&discoveryAt(st,h.tx,h.ty)){const d=st.campaign!.discovery!,why=discoveryCheck(st,d.id);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'recoverSchematic',id:d.id});this.hooks.onToast('Recovering the field-repair schematic.');}return;}
+     const site = h ? campaignSiteAt(st, h.tx, h.ty) : null;
+     if (site) {
+@@ -948,7 +948,7 @@
+     for(const s of st.campaign?.recruits?.sites??[]) {
+       if(s.seenAt<0||s.x<tx0||s.x>tx1||s.y<ty0||s.y>ty1)continue;
+       let label=this.labels[li];if(!label){label=this.add.text(0,0,'',{fontSize:'12px',color:'#c5e4ff',backgroundColor:'#0b0e1add',padding:{x:4,y:2}}).setDepth(5);this.labels.push(label);}
+-      label.setText(s.recruitedAt>=0?'ELECTRICIANS / RECRUITED':'ELECTRICIANS SHELTER / E').setPosition(s.x*TILE_PX,(s.y-1)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
++      label.setText(`${RECRUITS[s.kind].name.toUpperCase()} / ${s.recruitedAt>=0?'RECRUITED':'E'}`).setPosition(s.x*TILE_PX,(s.y-1)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
+       g.fillStyle(s.recruitedAt>=0?0x526c67:0x97cdff,1);g.fillRect((s.x+.1)*TILE_PX,(s.y+.1)*TILE_PX,.8*TILE_PX,.8*TILE_PX);
+     }
+     const discovery=st.campaign?.discovery;
+@@ -1443,7 +1443,7 @@
+       if (box || m.kind === 'depot') { g.fillStyle(0x05070d, 0.5); g.fillRect(px + 5, py + 6, sz - 4, sz - 4); }
+       if(st.campaign&&defenceMax(m)>0){const hp=defenceHp(m);g.fillStyle(hp===0?0xd55b57:0x6bcc91,1);g.fillRect(px,py-5,sz*hp/defenceMax(m),3);if(hp===0){g.lineStyle(2,0xd55b57,1);g.lineBetween(px,py,px+sz,py+sz);g.lineBetween(px+sz,py,px,py+sz);}}
+       switch (m.kind) {
+-        case 'wall': { g.fillStyle(defenceHp(m)>0?MACHINE_COL.wall:0x423c3b,1);g.fillRect(px+2,py+2,sz-4,sz-4);g.lineStyle(2,0x292c32,1);g.lineBetween(px+2,cy,px+sz-2,cy);break; }
++        case 'barricade': case 'wall': { g.fillStyle(defenceHp(m)>0?MACHINE_COL[m.kind]:0x423c3b,1);g.fillRect(px+2,py+2,sz-4,sz-4);g.lineStyle(2,0x292c32,1);g.lineBetween(px+2,cy,px+sz-2,cy);break; }
+         case 'turret': {
+           const rounds = m.inv.rounds ?? 0, frac = Math.min(1, rounds / TURRET_HOPPER);
+           g.fillStyle(MACHINE_COL.turret, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+@@ -1593,8 +1593,8 @@
+           if (m.hold) { const [ox, oy] = outputTile(m); g.fillStyle(ITEM_COL[m.hold], 1); g.fillRect((ox + 0.5) * TILE_PX - 4 - DX[m.dir] * 10, (oy + 0.5) * TILE_PX - 4 - DY[m.dir] * 10, 8, 8); }
+           break;
+         }
+-        case 'assembler': {
+-          g.fillStyle(MACHINE_COL.assembler, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
++        case 'mixer': case 'assembler': {
++          g.fillStyle(MACHINE_COL[m.kind], 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+           g.lineStyle(2, 0x33293d, 1); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12);
+           this.arrow(g, cx, cy, m.dir, sz / 2 - 2, 0xd8d0e8, 0.7);
+           // progress bar and the input/output counts as item squares, in the recipe's own items (RI-01: one row an input)
+--- P7-01/packages/sim/src/campaignDefence.ts
++++ P7-02/packages/sim/src/campaignDefence.ts
+@@ -8,7 +8,7 @@
+ import { DISCOVERY } from './campaignDiscovery';
+ import { blockName } from './names';
+ 
+-export const DEFENCE = { wallHp: 120, turretHp: 100, coreHp: 300, repairHp: 40, repairSeconds: 4,
++export const DEFENCE = { barricadeHp: 240, wallHp: 120, turretHp: 100, coreHp: 300, repairHp: 40, repairSeconds: 4,
+   repairSteel: 2, repairCopper: 1, coreSteel: 10, coreCopper: 5, coreRepairSeconds: 12 } as const;
+ export interface BaseCore { block: number; x: number; y: number; size: number; hp: number; commissionedAt: number }
+ export interface Assault { id: number; block: number; dawn: number; startsAt: number; origin: number; remaining: number; nextSpawn: number; retreat: boolean; waiting?: 'approach' | 'minor' }
+@@ -67,7 +67,7 @@
+   const d = st.campaign?.defence; if (!d) return;
+   d.nominations = d.nominations.filter(n => n.block !== block); d.nominations.push({ block, at: st.t });
+ }
+-export function defenceMax(m: Machine): number { return m.kind === 'wall' ? DEFENCE.wallHp : m.kind === 'turret' ? DEFENCE.turretHp : 0; }
++export function defenceMax(m: Machine): number { return m.kind==='barricade'?DEFENCE.barricadeHp:m.kind === 'wall' ? DEFENCE.wallHp : m.kind === 'turret' ? DEFENCE.turretHp : 0; }
+ export function defenceHp(m: Machine): number { return m.hp ?? defenceMax(m); }
+ export function damageDefence(st: SimState, m: Machine, amount: number): void {
+   if (!isCampaign(st) || !defenceMax(m) || amount<=0) return;
+@@ -131,5 +131,5 @@
+   const hp=core?.hp??defenceHp(m!);
+   const r=st.campaign?.defence?.repair;
+   const repairing=r && (core?r.kind==='core'&&r.id===core.block:r.kind==='machine'&&r.id===m!.id);
+-  return `${core?'Base core':m!.kind==='wall'?'Wall':'Gun turret'} · ${Math.ceil(hp)}/${max} HP${hp===0?' · DISABLED':''}${repairing?` · repair ${Math.ceil(r.remaining)}s (stay in reach)`:hp<max?` · E repairs: ${core&&hp===0?`10 steel + 5 copper, ${manualRepairSeconds(st,true)}s`:`2 steel + 1 copper, ${manualRepairSeconds(st)}s / 40 HP`}`:''}`;
++  return `${core?'Base core':m!.kind==='barricade'?'Barricade':m!.kind==='wall'?'Wall':'Gun turret'} · ${Math.ceil(hp)}/${max} HP${hp===0?' · DISABLED':''}${repairing?` · repair ${Math.ceil(r.remaining)}s (stay in reach)`:hp<max?` · E repairs: ${core&&hp===0?`10 steel + 5 copper, ${manualRepairSeconds(st,true)}s`:`2 steel + 1 copper, ${manualRepairSeconds(st)}s / 40 HP`}`:''}`;
+ }
+--- P7-01/packages/sim/src/campaignDistricts.ts
++++ P7-02/packages/sim/src/campaignDistricts.ts
+@@ -103,7 +103,7 @@
+   }
+ }
+ export function workshopStatus(st:SimState):string {
+-  const d=st.campaign?.districts,w=d?.workshop;if(!w||w.restoredAt<0)return 'Restore the workshop to automate nearby wall and turret repairs.';
++  const d=st.campaign?.districts,w=d?.workshop;if(!w||w.restoredAt<0)return 'Restore the workshop to automate nearby wall, Barricade and turret repairs.';
+   const defence=st.campaign!.defence!;
+   if(baseCore(st,w.block)?.hp===0)return 'Workshop offline: repair the disabled base core.';
+   if((defence.major&&st.t>=defence.major.startsAt)||defence.minor?.block===w.block)return 'Workshop paused while attackers are active.';
+--- P7-01/packages/sim/src/campaignRecruits.ts
++++ P7-02/packages/sim/src/campaignRecruits.ts
+@@ -5,22 +5,22 @@
+ import { passable } from './walk';
+ import { isCampaign } from './rules';
+ 
+-export const RECRUITS = { electricians: { name: 'Electricians', reward: 'Floodlight and Big pole', clueRadius: 24 } } as const;
++export const RECRUITS = { electricians: { name: 'Electricians', reward: 'Floodlight and Big pole', clueRadius: 24 }, concrete: {name:'Concrete crew',reward:'Mixer, Concrete and Barricade',clueRadius:24} } as const;
+ export type RecruitKind = keyof typeof RECRUITS;
+ export interface RecruitSite {
+   id: string; kind: RecruitKind; block: number; x: number; y: number;
+   seenAt: number; recruitedAt: number; inherited: boolean;
+ }
+-export interface RecruitState { version: 1; sites: RecruitSite[] }
++export interface RecruitState { version: 1 | 2; sites: RecruitSite[] }
+ export const recruitId = (seed: number, kind: RecruitKind): string => `${seed}:recruit:${kind}:v1`;
+ 
+ /** Old earned unlocks are imported once, including a formerly Held/fallen Electricians block. */
+-export function initRecruits(st: SimState): void {
++function newRecruit(st: SimState, kind: RecruitKind): RecruitSite {
+   const c = st.campaign;
+-  if (!isCampaign(st) || !c || !st.flow || c.recruits) return;
++  if(!c||!st.flow)throw new Error('recruit placement requires a campaign');
+   const G = ground(st), original = st.survivors.find(s => s.name === 'Electricians');
+   const bi = original ? idxOf(st, original.x, original.y) : -1;
+-  const inherited = bi >= 0 && (st.blocks[bi].state === HELD || !!st.fallen[bi]);
++  const inherited = kind==='electricians' && bi >= 0 && (st.blocks[bi].state === HELD || !!st.fallen[bi]);
+   // Static geometry defines the location even when loading an older, heavily built save.
+   // An existing machine is never moved or destroyed; local reach allows interaction beside it.
+   const bare = { ...st, campaign: { ...c, truck: undefined }, flow: { ...st.flow, occ: {}, machines: [] } } as SimState;
+@@ -38,6 +38,7 @@
+   for (let head = 0; head < queue.length; head++) {
+     const t = queue[head], x = t % G.tw, y = Math.floor(t / G.tw), block = G.owner[t];
+     if (block >= 0 && block !== c.homeBlock && [HELD,DARK].includes(st.blocks[block].state)
++      && (c.recruits?.sites??[]).every(s=>Math.hypot(x-s.x,y-s.y)>24)
+       && !route.has(t) && !G.patch[t] && G.rank[t]<0 && safe(t)
+       && installations.every(s => Math.hypot(x-s.x,y-s.y)>s.size+4)
+       && [...e.stops,d.stop].every(([sx,sy])=>Math.hypot(x-sx,y-sy)>5)) { chosen = t; break; }
+@@ -47,11 +48,16 @@
+       seen.add(q);queue.push(q);
+     }
+   }
+-  if (chosen < 0) throw new Error('campaign requires an accessible Electricians shelter');
+-  c.recruits = { version: 1, sites: [{ id: recruitId(st.seed,'electricians'), kind:'electricians',
++  if (chosen < 0) throw new Error(`campaign requires an accessible ${RECRUITS[kind].name} shelter`);
++  return { id: recruitId(st.seed,kind), kind,
+     block:G.owner[chosen], x:chosen%G.tw, y:Math.floor(chosen/G.tw),
+-    seenAt:inherited?st.t:-1, recruitedAt:inherited?st.t:-1, inherited }] };
+-  c.version = 6;
++    seenAt:inherited?st.t:-1, recruitedAt:inherited?st.t:-1, inherited };
++}
++export function initRecruits(st:SimState):void {
++  const c=st.campaign;if(!isCampaign(st)||!c||!st.flow||c.recruits?.version===2)return;
++  c.recruits??={version:1,sites:[]};
++  for(const kind of Object.keys(RECRUITS) as RecruitKind[])if(!c.recruits.sites.some(s=>s.kind===kind))c.recruits.sites.push(newRecruit(st,kind));
++  c.recruits.version=2;c.version=7;
+ }
+ export function recruitAt(st: SimState, x: number, y: number): RecruitSite | undefined {
+   return st.campaign?.recruits?.sites.find(s => s.x===x && s.y===y);
+@@ -67,30 +73,33 @@
+   const s=st.campaign?.recruits?.sites.find(s=>s.id===id);
+   if(!s)return 'Unknown survivor shelter.';
+   if(s.recruitedAt>=0)return `${RECRUITS[s.kind].name} already recruited; their plans are yours permanently.`;
+-  if(st.engineer.down>=0 || st.engineer.truckSeat || !inReach(st,s.x,s.y,1))return 'Walk closer to the shelter to recruit the Electricians.';
++  if(st.engineer.down>=0 || st.engineer.truckSeat || !inReach(st,s.x,s.y,1))return `Walk closer to the shelter to recruit the ${RECRUITS[s.kind].name}.`;
+   return '';
+ }
+ export function recruitSurvivors(st: SimState, id: string): string {
+   const why=recruitCheck(st,id);if(why)return why;
+   const s=st.campaign!.recruits!.sites.find(s=>s.id===id)!;
+   s.seenAt=st.t;s.recruitedAt=st.t;
+-  st.campaign!.defence!.notice='Electricians recruited: Floodlight and Big pole plans available. Build with carried materials and connect real power.';
++  st.campaign!.defence!.notice=`${RECRUITS[s.kind].name} recruited: ${RECRUITS[s.kind].reward} plans available. Build with carried materials; production needs real power.`;
+   return '';
+ }
+ export function recruitDescription(_st: SimState, s: RecruitSite): string {
++  if(s.kind==='concrete')return s.recruitedAt>=0?'Concrete crew recruited · Mixer: 2 stone → 1 concrete every 2s at 60 kW. Barricade: 2 steel + 4 concrete, 240 HP.':'Concrete crew shelter · E to recruit in person. Unlocks the Mixer and stronger concrete Barricades.';
+   return s.recruitedAt>=0 ? 'Electricians recruited · Floodlight and Big pole plans retained. Build with carried materials; lights need connected power.'
+     : 'Electricians shelter · E to recruit in person. Unlocks Floodlight and Big pole plans; no block claim or restoration kit required.';
+ }
+ export function recruitsProblem(st: SimState): string {
+   const c=st.campaign,r=c?.recruits;
+   if((c?.version??0)<6)return r?'recruits require campaign metadata version 6':'';
+-  if(!r || r.version!==1 || !Array.isArray(r.sites) || r.sites.length!==1)return 'invalid campaign recruits';
++  const current=(c?.version??0)>=7;
++  if(!r || r.version!==(current?2:1) || !Array.isArray(r.sites) || r.sites.length!==(current?2:1) || new Set(r.sites.map(s=>s?.kind)).size!==r.sites.length)return 'invalid campaign recruits';
++  if(new Set(r.sites.map(s=>`${s.x}:${s.y}`)).size!==r.sites.length)return 'overlapping campaign recruits';
+   for(const s of r.sites) {
+-    if(!s || s.kind!=='electricians' || s.id!==recruitId(st.seed,s.kind) || !Number.isInteger(s.block) || !st.blocks[s.block]
++    if(!s || !(s.kind==='electricians'||(current&&s.kind==='concrete')) || s.id!==recruitId(st.seed,s.kind) || !Number.isInteger(s.block) || !st.blocks[s.block]
+       || !Number.isInteger(s.x) || !Number.isInteger(s.y) || s.x<0 || s.y<0 || s.x>=st.flow!.tw || s.y>=st.city!.th
+       || ground(st).owner[s.y*st.flow!.tw+s.x]!==s.block || typeof s.inherited!=='boolean'
+       || ![s.seenAt,s.recruitedAt].every(t=>Number.isFinite(t)&&(t===-1||(t>=0&&t<=st.t)))
+-      || (s.recruitedAt>=0&&(s.seenAt<0||s.seenAt>s.recruitedAt)) || (s.inherited&&s.recruitedAt<0))return 'invalid campaign recruit record';
++      || (s.recruitedAt>=0&&(s.seenAt<0||s.seenAt>s.recruitedAt)) || (s.inherited&&(s.recruitedAt<0||s.kind!=='electricians')))return 'invalid campaign recruit record';
+   }
+   return '';
+ }
+--- P7-01/packages/sim/src/campaignThreat.ts
++++ P7-02/packages/sim/src/campaignThreat.ts
+@@ -233,7 +233,7 @@
+ }
+ export interface CampaignAction {
+   action:'attack'|'breach'|'pursue'|'advance'|'withdraw'|'guard'|'blocked';
+-  tx:number;ty:number;what:'you'|'wall'|'turret'|'base core'|'exit'|'ruin';
++  tx:number;ty:number;what:'you'|'wall'|'barricade'|'turret'|'base core'|'exit'|'ruin';
+   destination:'base core'|'exit'|'ruin';
+ }
+ /** Read-only immediate decision, also consumed by the damage/movement tick. No saved UI state. */
+@@ -258,7 +258,7 @@
+   const fld=route(st,c,x,y,size),t=Math.floor(c.y)*G.tw+Math.floor(c.x),reset=retreat&&!meta.withdrawing;
+   if(fld.dist[t]===0&&(reset||meta.waypoint===undefined))return {tx:x,ty:y,what:destination,action:retreat?'withdraw':'attack',destination};
+   const next=fieldStep(st,c,fld,reset),tx=next%G.tw,ty=Math.floor(next/G.tw),m=next<0?undefined:machineAt(st,tx,ty);
+-  if(m&&defenceMax(m)>0&&defenceHp(m)>0)return {tx:m.x,ty:m.y,what:m.kind as 'wall'|'turret',action:'breach',destination};
++  if(m&&defenceMax(m)>0&&defenceHp(m)>0)return {tx:m.x,ty:m.y,what:m.kind as 'wall'|'barricade'|'turret',action:'breach',destination};
+   return {tx:x,ty:y,what:destination,action:next<0||!hostileOpen(st,tx,ty)?'blocked':retreat?'withdraw':'advance',destination};
+ }
+ function walkField(st:SimState,c:Crawler,fld:Field,dt:number):boolean {
+--- P7-01/packages/sim/src/concreteValidation.ts
++++ P7-02/packages/sim/src/concreteValidation.ts
+@@ -0,0 +1,22 @@
++/** P7-02: concrete production is a saved campaign capability, never a legacy recipe override. */
++import type { SimState } from './types';
++import { ASM_OUTPUT_CAP, ASM_INPUT_MULT, MACHINE_SIZE, recipeOf } from './flow';
++import { isCampaign } from './rules';
++export function concreteProblem(st:SimState):string {
++  const f=st.flow;if(!f)return '';
++  const count=(n:unknown)=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
++  if(f.stats.placed.concrete!==undefined&&(!isCampaign(st)||(st.campaign?.version??0)<7||!count(f.stats.placed.concrete)))return 'invalid concrete construction counter';
++  for(const m of f.machines) {
++    if(m.kind!=='mixer'&&m.kind!=='barricade')continue;
++    if(!isCampaign(st)||(st.campaign?.version??0)<7)return 'concrete machines require campaign metadata version 7';
++    if(m.size!==MACHINE_SIZE[m.kind]||!Number.isInteger(m.x)||!Number.isInteger(m.y)||m.x<0||m.y<0||m.x+m.size>f.tw||m.y+m.size>st.city!.th
++      ||!Number.isInteger(m.dir)||m.dir<0||m.dir>3||m.recipe!==undefined||!m.inv||!Array.isArray(m.items)||m.items.length||m.hold!==null)return 'invalid concrete machine';
++    if(m.kind==='mixer') {
++      const r=recipeOf(m);
++      if(!count(m.out)||m.out>ASM_OUTPUT_CAP||typeof m.busy!=='boolean'||(m.busy&&m.out>=ASM_OUTPUT_CAP)
++        ||!Number.isFinite(m.timer)||m.timer<0||m.timer>=r.seconds||(!m.busy&&m.timer!==0)
++        ||Object.entries(m.inv).some(([k,n])=>k!=='stone'||!count(n)||n>r.inputs.stone*ASM_INPUT_MULT))return 'invalid Mixer production';
++    }else if(Object.keys(m.inv).length||m.out!==0||m.busy||m.timer!==0)return 'invalid Barricade contents';
++  }
++  return '';
++}
+--- P7-01/packages/sim/src/construction.ts
++++ P7-02/packages/sim/src/construction.ts
+@@ -2,7 +2,7 @@
+ /** P5-01: bounded, saved construction history. Inverses use current stock and reach, never rewind the world. */
+ import type { Command, SimState } from './types';
+ import { canPlace, place, canPickUp, remove, rotate, machineAt, tramAt, isKind, isRecipeId, MACHINE_SIZE,
+-  type Kind, type Dir, type RecipeId, type Machine, setRecipe, queueCraft, chestTake, chestPut, isChestItem,
++  type Kind, type Dir, type RecipeId, type Machine, setRecipe, queueCraft, chestTake, chestPut, isChestItem, isItem,
+   handFeed, setHandMine, repairLight, deliverTo, SHOT, rotateTo, type Item } from './flow';
+ import { dimensions, machineDimensions } from './footprint';
+ import { configureRouting, undergroundSpan, undergroundMate, type UndergroundMode, type OutputPriority } from './routing';
+@@ -229,7 +229,7 @@
+     if (!Array.isArray(group) || group.length < 1 || group.length > BUILD_LIMIT) return 'invalid construction group';
+     for (const c of group) {
+       if (!c || !['place', 'pickUp', 'rotate'].includes(c.action) || !isKind(c.item) || c.item === 'depot' || !integer(c.x) || !integer(c.y) || !integer(c.id) || c.id < 0 || !direction(c.dir) || (c.action === 'rotate' && !direction(c.beforeDir)) || (c.recipe !== undefined && (c.item !== 'assembler' || !isRecipeId(c.recipe)))) return 'invalid construction change';
+-      if(c.filter!==undefined&&(c.item!=='inserter'||!['steel','copper','stone','coal','magazine','wire','frame','board'].includes(c.filter)))return 'invalid saved filter';
++      if(c.filter!==undefined&&(c.item!=='inserter'||!isItem(c.filter)))return 'invalid saved filter';
+       if(c.priority!==undefined&&(c.item!=='splitter'||!['balanced','left','right'].includes(c.priority)))return 'invalid saved priority';
+       if(c.underground!==undefined&&(c.item!=='underground'||!['input','output'].includes(c.underground)))return 'invalid saved underground';
+       if (c.freight !== undefined) {
+--- P7-01/packages/sim/src/defenceValidation.ts
++++ P7-02/packages/sim/src/defenceValidation.ts
+@@ -1,6 +1,6 @@
+ /** Reject corrupt/partial campaign threat saves instead of silently resetting their schedule. */
+ import type { SimState } from './types';
+-import { DEFENCE } from './campaignDefence';
++import { DEFENCE, defenceMax } from './campaignDefence';
+ export function defenceProblem(st:SimState):string {
+   const d=st.campaign?.defence;
+   if((st.campaign?.version??0)<3)return d?'defence requires campaign metadata version 3':'';
+@@ -27,8 +27,8 @@
+   const attackIds=[...d.history.map(h=>h.id),...[d.major,d.minor].filter(a=>a!==null).map(a=>a!.id)];
+   if(new Set(attackIds).size!==attackIds.length||attackIds.some(id=>id>=d.nextId)||d.history.some(h=>h.spawned>60))return 'reused campaign attack identity';
+   const r=d.repair;
+-  if(r&&(typeof r.recommission!=='boolean'||!number(r.remaining)||r.remaining<0||(r.kind==='core'?!d.bases.some(b=>b.block===r.id):r.kind==='machine'?!st.flow.machines.some(m=>m.id===r.id&&(m.kind==='wall'||m.kind==='turret')):true)))return 'invalid paid repair';
+-  for(const m of st.flow.machines)if(m.hp!==undefined&&(!number(m.hp)||m.hp<0||(m.kind!=='wall'&&m.kind!=='turret')||m.hp>(m.kind==='wall'?DEFENCE.wallHp:DEFENCE.turretHp)))return 'invalid defence health';
++  if(r&&(typeof r.recommission!=='boolean'||!number(r.remaining)||r.remaining<0||(r.kind==='core'?!d.bases.some(b=>b.block===r.id):r.kind==='machine'?!st.flow.machines.some(m=>m.id===r.id&&defenceMax(m)>0):true)))return 'invalid paid repair';
++  for(const m of st.flow.machines)if(m.hp!==undefined&&(!number(m.hp)||m.hp<0||defenceMax(m)===0||m.hp>defenceMax(m)))return 'invalid defence health';
+   const bodies=st.flow.threat?.crawlers??[];
+   if(new Set(bodies.map(c=>c.id)).size!==bodies.length||bodies.some(c=>!integer(c.id,1)||c.id>=st.flow!.threat!.next))return 'invalid campaign creature identity';
+   if(bodies.filter(c=>c.campaign?.layer==='major').length>d.majorSpawned)return 'major bodies exceed spawned roster';
+--- P7-01/packages/sim/src/districtValidation.ts
++++ P7-02/packages/sim/src/districtValidation.ts
+@@ -18,6 +18,6 @@
+     ||!Array.isArray(d.stop)||d.stop.length!==2||!rect({block:d.station.block,x:d.stop[0],y:d.stop[1],size:2}))return 'invalid district trunk geometry';
+   if(!d.supplied||![d.supplied.steel,d.supplied.copper,d.supplied.magazine,d.repairs,d.visits].every(n=>int(n))||!int(d.lastVisit,-1)||!int(d.resuppliedAt,-1))return 'invalid district service history';
+   if(d.resuppliedAt>=0&&(d.station.restoredAt<0||d.visits<DISTRICT_ECONOMY.resupplyVisits||d.supplied.steel<DISTRICT_ECONOMY.resupplySteel||d.supplied.copper<DISTRICT_ECONOMY.resupplyCopper||d.supplied.magazine<DISTRICT_ECONOMY.resupplyMagazines))return 'unearned district resupply milestone';
+-  const r=d.repair;if(r&&(!int(r.target)||!Number.isFinite(r.progress)||r.progress<0||r.progress>=DISTRICT_ECONOMY.repairSeconds||!st.flow.machines.some(m=>m.id===r.target&&(m.kind==='wall'||m.kind==='turret'))))return 'invalid workshop repair';
++  const r=d.repair;if(r&&(!int(r.target)||!Number.isFinite(r.progress)||r.progress<0||r.progress>=DISTRICT_ECONOMY.repairSeconds||!st.flow.machines.some(m=>m.id===r.target&&(m.kind==='wall'||m.kind==='turret'||m.kind==='barricade'))))return 'invalid workshop repair';
+   return '';
+ }
+--- P7-01/packages/sim/src/engineer.ts
++++ P7-02/packages/sim/src/engineer.ts
+@@ -31,7 +31,7 @@
+ export const RIFLE_RANGE = TURRET_RANGE, RIFLE_HIT_RADIUS = 1.5;
+ /** Stack sizes for the pocket count (GAME-ASSUMPTION: rubble 50 a stack, magazines 20, machines one each; RI-01: the
+  *  §12 intermediates the placed Assembler makes stack 50 like rubble until a rule says otherwise). */
+-export const STACK: Record<string, number> = { stone: 50, copper: 50, steel: 50, coal: 50, iron: 50, magazine: 20, wire: 50, frame: 50, board: 50 };
++export const STACK: Record<string, number> = { concrete: 50, stone: 50, copper: 50, steel: 50, coal: 50, iron: 50, magazine: 20, wire: 50, frame: 50, board: 50 };
+ export const stackSize = (item: string) => STACK[item] ?? 1;
+ 
+ export function createEngineer(st: SimState, startIdx: number): Engineer {
+--- P7-01/packages/sim/src/flow.ts
++++ P7-02/packages/sim/src/flow.ts
+@@ -54,10 +54,10 @@
+ export const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
+ export const DIR_NAMES = ['north', 'east', 'south', 'west'];
+ export type Kind = 'excavator' | 'belt' | 'inserter' | 'assembler' | 'depot' | 'turret' | 'lamp' | 'pole' | 'generator' | 'floodlight' | 'bigpole' | 'substation'
+-  | 'chest' | 'track' | 'tramstop' | 'tram' | 'wall' | 'underground' | 'splitter';   // RI-05: the supply chest (plan §4.2/§5.2) and the minimal transport kit (§13, the minimal part of T16)
++  | 'chest' | 'track' | 'tramstop' | 'tram' | 'wall' | 'underground' | 'splitter' | 'mixer' | 'barricade';   // RI-05: the supply chest (plan §4.2/§5.2) and the minimal transport kit (§13, the minimal part of T16)
+ export const KINDS: readonly Kind[] = ['excavator', 'belt', 'inserter', 'assembler', 'depot', 'turret', 'lamp', 'pole', 'generator', 'floodlight', 'bigpole', 'substation', 'chest', 'track', 'tramstop', 'tram'];
+ /** Keep the legacy catalogue stable for its save/tools/tests; campaign-only additions are explicit. */
+-export const CAMPAIGN_KINDS: readonly Kind[] = [...KINDS, 'wall', 'underground', 'splitter'];
++export const CAMPAIGN_KINDS: readonly Kind[] = [...KINDS, 'wall', 'underground', 'splitter', 'mixer', 'barricade'];
+ /** Prompt B M3 (run name B-M3-unlocks): the Electricians' unlocks (§8, §13). GAME-ASSUMPTION: a group's unlocks land
+  *  on the toolbar when its block turns Held and stay if the block later falls (§11: "the Electricians walk into the
+  *  Depot"); the other groups' unlocks are not in the slice. */
+@@ -71,7 +71,7 @@
+ export const KIND_LABEL: Record<Kind, string> = {
+   excavator: 'Excavator', belt: 'belt', inserter: 'inserter', assembler: 'Assembler', depot: 'Depot', turret: 'Gun turret', lamp: 'Lamp',
+   pole: 'pole', generator: 'Generator', floodlight: 'Floodlight', bigpole: 'Big pole', substation: 'Substation',
+-  underground: 'Underground belt', splitter: 'Priority splitter', wall: 'Wall', chest: 'Supply chest', track: 'Track', tramstop: 'Tram stop', tram: 'Tram',
++  mixer: 'Mixer', barricade: 'Barricade', underground: 'Underground belt', splitter: 'Priority splitter', wall: 'Wall', chest: 'Supply chest', track: 'Track', tramstop: 'Tram stop', tram: 'Tram',
+ };
+ /** RI-03 (plan §4.2): the field kit — what may stand on a Dark or Contested block directly adjacent to Held ground
+  *  before it is claimed: poles, the unlocked lights, turrets, belts, inserters, (RI-05) the supply chest and the
+@@ -109,6 +109,7 @@
+  *  project that grants it is not restored — owning the reward, not the facility being operational now. */
+ export function lockReason(st: SimState, kind: Kind): string {
+   if(kind==='underground'||kind==='splitter')return isCampaign(st)?'':'routing primitives belong to the exploration campaign';
++  if(kind==='mixer'||kind==='barricade')return !isCampaign(st)?'concrete construction belongs to the exploration campaign':campaignRecruited(st,'concrete')?'':'recruit the Concrete crew at their shelter';
+   if(kind==='wall')return isCampaign(st)?'':'walls belong to the exploration campaign';
+   if (isCampaign(st)) {
+     if (RAIL_ROUTE_KINDS.includes(kind)) return st.campaign?.expansion?.station.restoredAt === undefined || st.campaign.expansion.station.restoredAt < 0 ? 'restore the second-area tram station' : '';
+@@ -128,14 +129,14 @@
+ export const SIM_DIR_NAMES = ['east', 'west', 'south', 'north'];
+ /** What a belt, an inserter, a pocket stack or a machine's hand can hold: the four rubbles, the magazine, and (RI-01,
+  *  D-B2-1 (b)) the three §12 intermediates the placed Assembler makes. */
+-export type Item = 'steel' | 'copper' | 'stone' | 'coal' | 'magazine' | 'wire' | 'frame' | 'board';
+-export const ITEMS: readonly Item[] = ['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board'];
++export type Item = 'steel' | 'copper' | 'stone' | 'coal' | 'magazine' | 'wire' | 'frame' | 'board' | 'concrete';
++export const ITEMS: readonly Item[] = ['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board', 'concrete'];
+ export function isItem(s: string): s is Item { return (ITEMS as readonly string[]).includes(s); }
+-/** A zero count of every item (the stats ledgers). */
+-export function zeroItems(): Record<Item, number> { const o = {} as Record<Item, number>; for (const k of ITEMS) o[k] = 0; return o; }
++/** Zero counters. Concrete remains sparse in saved stats to preserve the frozen legacy state shape; read-only ledgers request all items. */
++export function zeroItems(includeConcrete = false): Record<Item, number> { const o = {} as Record<Item, number>; for (const k of ITEMS) if(k!=='concrete'||includeConcrete) o[k] = 0; return o; }
+ /** Items the Depot keeps outside the block sim's stock (§14's stock is steel / copper / stone): coal and the intermediates. */
+-export type StoreItem = 'coal' | 'wire' | 'frame' | 'board';
+-export const STORE_ITEMS: readonly StoreItem[] = ['coal', 'wire', 'frame', 'board'];
++export type StoreItem = 'coal' | 'wire' | 'frame' | 'board' | 'concrete';
++export const STORE_ITEMS: readonly StoreItem[] = ['coal', 'wire', 'frame', 'board', 'concrete'];
+ export function isStoreItem(s: string): s is StoreItem { return (STORE_ITEMS as readonly string[]).includes(s); }
+ 
+ /** Constitution M2: belts carry 7.5 items/s (§13/§14 said 8; D-P4-6). GAME-ASSUMPTION: four items a tile, so the
+@@ -166,7 +167,7 @@
+   { machine: 'Workbench (the Depot)', recipes: 'Shot magazine by hand (E, from the pockets)', state: 'built (prompt B M2)' },
+ ];
+ /** The recipe a placed Assembler runs (`recipe` absent on a pre-RI-01 save = the Shot magazine). */
+-export function recipeOf(m: Machine): Recipe { return ASSEMBLER_RECIPES[m.recipe ?? 'shot']; }
++export function recipeOf(m: Pick<Machine,'kind'|'recipe'>): Recipe { return m.kind==='mixer'?RECIPES.find(r=>r.name==='Concrete')!:ASSEMBLER_RECIPES[m.recipe ?? 'shot']; }
+ /** The item a recipe's craft puts in the Assembler's output slot: the Shot magazine's ten rounds are one magazine. */
+ export function recipeOutput(r: Recipe): Item { return r.output === 'rounds' ? 'magazine' : r.output as Item; }
+ /** Output items per craft as the Assembler counts them (one magazine, two wire, one frame, one board). */
+@@ -177,14 +178,15 @@
+ /** GAME-ASSUMPTION: hand-mining takes one unit a second straight into the Depot; hand-crafting a magazine takes the
+  *  recipe's 3 s and its 2 steel + 1 Cu from the stock (§11 hand-feeds the first turrets). */
+ export const HAND_MINE_PER_S = 1;
+-export const MACHINE_SIZE: Record<Kind, number> = { excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2, floodlight: 2, bigpole: 2, substation: SUBSTATION_TILES, chest: 2, track: 1, tramstop: 2, tram: 1, wall: 1, underground: 1, splitter: 1 };
++export const MACHINE_SIZE: Record<Kind, number> = { mixer: 3, barricade: 1, excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2, floodlight: 2, bigpole: 2, substation: SUBSTATION_TILES, chest: 2, track: 1, tramstop: 2, tram: 1, wall: 1, underground: 1, splitter: 1 };
+ /** GAME-ASSUMPTION: machine costs in rubble (§13 gives none). The assembler costs what the block-level one does
+  *  (§12: 20 Cu + 40 steel); the Excavator 10 steel; a belt tile 1 steel; an inserter 1 steel + 1 Cu; (M3) a Gun
+  *  turret 15 steel + 5 Cu, a Lamp and a pole 1 steel + 1 Cu each, a Generator 30 steel + 10 Cu. Pick-up returns the machine itself
+  *  to the pockets (prompt B M2), never a rubble refund. Prompt B M3, the Electricians' unlocks: the craftable Substation is
+  *  §13's 20 frames + 20 wire + 10 boards paid as the raw rubble those recipes take (50 steel + 25 Cu; frames, wire and
+  *  boards are Phase 5 items); a Floodlight 10 steel + 5 Cu and a Big pole 4 steel + 4 Cu are GAME-ASSUMPTIONS like the rest. */
+-export const MACHINE_COST: Record<Kind, { steel: number; copper: number }> = {
++export const MACHINE_COST: Record<Kind, { steel: number; copper: number; concrete?: number }> = {
++  mixer: {steel:20,copper:10}, barricade: {steel:2,copper:0,concrete:4},
+   underground: {steel:5,copper:2}, splitter: {steel:5,copper:2},
+   excavator: { steel: 10, copper: 0 }, belt: { steel: 1, copper: 0 }, inserter: { steel: 1, copper: 1 },
+   assembler: { steel: 40, copper: 20 }, depot: { steel: 0, copper: 0 },
+@@ -197,7 +199,7 @@
+ };
+ /** §13 power draw (kW). A machine with a draw runs only on a powered cell (M3); belts, turrets, poles and Generators
+  *  draw nothing. GAME-ASSUMPTION: a placed machine draws its rated kW whether busy or idle (§13 has no idle draw). */
+-export const MACHINE_KW: Record<Kind, number> = { excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: 0, lamp: LAMP_KW, pole: 0, generator: 0, floodlight: FLOODLIGHT_KW, bigpole: 0, substation: 0, chest: 0, track: 0, tramstop: 20, tram: 0, wall: 0, underground: 0, splitter: 0 };
++export const MACHINE_KW: Record<Kind, number> = { mixer: 60, barricade: 0, excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: 0, lamp: LAMP_KW, pole: 0, generator: 0, floodlight: FLOODLIGHT_KW, bigpole: 0, substation: 0, chest: 0, track: 0, tramstop: 20, tram: 0, wall: 0, underground: 0, splitter: 0 };
+ /** GAME-ASSUMPTION: a Generator holds 50 coal (the §11 start's 40 fit); a turret's muzzle flash lasts half a second. */
+ export const GENERATOR_COAL_CAP = 50, TURRET_FLASH_S = 0.5;
+ /** RI-05, the minimal transport route (§13's rows): a Tram carries 200 items at 8 tiles/s between the stops on its
+@@ -277,7 +279,7 @@
+   units: Record<string, number>;
+   /** Items with no home in the block sim's stock. §11: the start's 40 coal (the Generator is M3); RI-01: the three
+    *  intermediates the placed Assembler makes (wire, frame, board) until something consumes them. */
+-  store: Record<StoreItem, number>;
++  store: Record<Exclude<StoreItem,'concrete'>, number> & {concrete?:number};
+   /** M1 (prompt B): `full` is raised when the pockets refused a mined unit (the game toasts it and clears it). */
+   hand: { mine: [number, number] | null; prog: number; crafts: number; crafting: boolean; craftProg: number; full: boolean;
+           /** M4 telemetry: the engineer has been out of the Depot's reach since the last chest transaction (a "trip"). */
+@@ -298,7 +300,7 @@
+             *  steel and copper machine placements took from the pockets. */
+            minedOf: Record<Item, number>; handMinedOf: Record<Item, number>; railCoal: number;
+            made: Record<Item, number>; consumed: Record<Item, number>; turretFed: number; genFed: number;
+-           placed: { steel: number; copper: number };
++           placed: { steel: number; copper: number; concrete?: number };
+            /** RI-05: items a tram unloaded at a stop (the route's deliveries) and items a belt committed to a claim. */
+            tramMoved?: number; beltDelivered?: number };
+   /** M3: commands the tile layer raises for the block map. RI-03 (plan §4.1): a pole run no longer raises a claim —
+@@ -506,8 +508,8 @@
+   f.stats.chestTrips ??= 0; f.stats.reachRefused ??= 0;
+   // RI-01: the intermediates' store and the accounting counters (a pre-RI-01 save starts them at zero — its history
+   // is not reconstructed, so `conservation` on such a save reports the gap as unexplained, by design)
+-  for (const k of STORE_ITEMS) f.store[k] ??= 0;
+-  for (const k of ITEMS) f.stats.delivered[k] ??= 0;
++  for (const k of STORE_ITEMS) if(k!=='concrete') f.store[k] ??= 0;
++  for (const k of ITEMS) if(k!=='concrete') f.stats.delivered[k] ??= 0;
+   f.stats.putBack ??= zeroItems(); f.stats.handFedMags ??= 0; f.stats.handFedCoal ??= 0;
+   f.stats.minedOf ??= zeroItems(); f.stats.handMinedOf ??= zeroItems(); f.stats.railCoal ??= 0;
+   f.stats.made ??= zeroItems(); f.stats.consumed ??= zeroItems(); f.stats.turretFed ??= 0; f.stats.genFed ??= 0;
+@@ -697,9 +699,9 @@
+     if (st.buffer + SHOT.count > st.config.bufferCap + 1e-9) return false;
+     st.buffer += SHOT.count;
+     f.stats.magsDelivered++;
+-  } else if (isStoreItem(k)) f.store[k] += 1;
++  } else if (isStoreItem(k)) f.store[k] = (f.store[k]??0) + 1;
+   else st.stock[k] += 1;
+-  f.stats.delivered[k]++;
++  f.stats.delivered[k]=(f.stats.delivered[k]??0)+1;
+   return true;
+ }
+ 
+@@ -724,7 +726,7 @@
+     case 'splitter': case 'underground': return routingAccepts(st,m);
+     case 'belt': return beltRoom(m, p);
+     case 'depot': return k !== 'magazine' || st.buffer + SHOT.count <= st.config.bufferCap + 1e-9;
+-    case 'assembler': { const need = recipeNeed(recipeOf(m), k); return need !== undefined && (m.inv[k] ?? 0) < need * ASM_INPUT_MULT; }
++    case 'mixer': case 'assembler': { const need = recipeNeed(recipeOf(m), k); return need !== undefined && (m.inv[k] ?? 0) < need * ASM_INPUT_MULT; }
+     case 'turret': return k === 'magazine' && (m.inv.rounds ?? 0) + SHOT.count <= TURRET_HOPPER + 1e-9;
+     case 'generator': return k === 'coal' && (m.inv.coal ?? 0) < GENERATOR_COAL_CAP;
+     case 'chest': return invTotal(m.inv) < SUPPLY_CHEST_CAP;        // RI-05: any item, up to the cap
+@@ -740,7 +742,7 @@
+     case 'splitter': return true;
+     case 'underground': return m.underground === 'input';
+     case 'belt': case 'depot': case 'chest': case 'tramstop': return true;
+-    case 'assembler': return recipeNeed(recipeOf(m), k) !== undefined;
++    case 'mixer': case 'assembler': return recipeNeed(recipeOf(m), k) !== undefined;
+     case 'turret': return k === 'magazine';
+     case 'generator': return k === 'coal';
+     default: return false;
+@@ -841,7 +843,7 @@
+   const allows=(k:Item)=>(!m.filter||m.filter===k)&&wants(dst,k);
+   if(isConveyor(src)&&(src.kind!=='underground'||src.underground==='output')){
+     for(let n=0;n<src.items.length;n++){const i=src.kind==='splitter'?n:src.items.length-1-n;if(allows(src.items[i].k))return {item:src.items[i].k,index:i};}
+-  }else if(src.kind==='assembler'&&src.out>0){const item=recipeOutput(recipeOf(src));if(allows(item))return {item};}
++  }else if((src.kind==='assembler'||src.kind==='mixer')&&src.out>0){const item=recipeOutput(recipeOf(src));if(allows(item))return {item};}
+   else if(src.kind==='chest'||src.kind==='tramstop'){
+     const pool=src.kind==='chest'?src.inv:src.cargo??{};
+     for(const k in pool)if(pool[k]>=1&&isItem(k)&&allows(k)&&(ignoreRoom||!isCampaign(st)||accepts(st,dst,k)))return {item:k};
+@@ -869,7 +871,7 @@
+     const pick=inserterPickup(st,m);if(!pick)return;
+     const k=pick.item;
+     if(pick.index!==undefined)src.items.splice(pick.index,1);
+-    else if(src.kind==='assembler')src.out--;
++    else if((src.kind==='assembler'||src.kind==='mixer'))src.out--;
+     else {const pool=src.kind==='chest'?src.inv:src.cargo!;pool[k]--;if(pool[k]<=0)delete pool[k];}
+     if(isConveyor(src))observeOutput(st,src,k);
+     m.hold = k; m.phase = 1; m.timer = INSERTER_SWING + Math.min(0, m.timer);
+@@ -922,7 +924,7 @@
+   if (m.timer < r.seconds - EPS) return;
+   const n = recipeYield(r), o = recipeOutput(r);
+   m.out += n; m.busy = false;
+-  st.flow!.stats.made[o] += n;
++  st.flow!.stats.made[o] = (st.flow!.stats.made[o]??0) + n;
+   observeOutput(st,m,o,n);
+   if (o === 'magazine') { st.flow!.stats.magsMade += n; st.stats.magsMade += n; }
+   const rem = m.timer - r.seconds;
+@@ -1027,7 +1029,7 @@
+     if (m.kind === 'turret') { m.timer = Math.max(0, m.timer - dt); continue; }
+     if (m.kind === 'generator') { if (running(st, m)) tickGenerator(st, m, dt, cg ? cg.generation.get(m.id) ?? 0 : share); continue; }
+     if (m.kind === 'tram') { tickTram(st, m, dt); continue; }   // RI-05: draws nothing and rides its track whatever the grid does; the stops need power to transfer
+-    if (isRouting(m) || m.kind === 'wall' || m.kind === 'belt' || m.kind === 'depot' || m.kind === 'lamp' || m.kind === 'pole' || m.kind === 'floodlight' || m.kind === 'bigpole' || m.kind === 'substation'
++    if (isRouting(m) || m.kind === 'barricade' || m.kind === 'wall' || m.kind === 'belt' || m.kind === 'depot' || m.kind === 'lamp' || m.kind === 'pole' || m.kind === 'floodlight' || m.kind === 'bigpole' || m.kind === 'substation'
+       || m.kind === 'chest' || m.kind === 'track' || m.kind === 'tramstop' || !running(st, m)) continue;
+     const localDt = cg ? dt * campaignThrottle(st, blockIdxOf(st, m)) : mdt;
+     if (m.kind === 'inserter') tickInserter(st, m, localDt);
+@@ -1184,11 +1186,11 @@
+ export interface PlaceCheck {
+   ok: boolean; reason: string;
+   /** What the placement takes from the pockets: the rubble price, or nothing when a carried machine goes down. */
+-  cost: { steel: number; copper: number };
++  cost: { steel: number; copper: number; concrete?: number };
+   /** M2: a carried machine (picked up earlier) is placed as it is; `cost` is then zero. */
+   carried: boolean;
+ }
+-export const costStr = (c: { steel: number; copper: number }): string => c.steel || c.copper ? `${c.steel} steel${c.copper ? ` + ${c.copper} Cu` : ''}` : 'nothing';
++export const costStr = (c: { steel: number; copper: number; concrete?: number }): string => c.steel || c.copper || c.concrete ? `${c.steel} steel${c.copper ? ` + ${c.copper} Cu` : ''}${c.concrete ? ` + ${c.concrete} concrete` : ''}` : 'nothing';
+ 
+ /** GAME-ASSUMPTION: a machine goes on any tile of a Held block's cell (lot or its street margin: §14 lets belts run
+  *  on streets; an inserter is belt furniture and may too; excavators, assemblers and Generators stay on the lot;
+@@ -1228,7 +1230,7 @@
+     if (['radio','workshop'].includes(campaignSiteAt(st, x, y)??'')) return 'a restoration installation is there';
+     if (f.occ[t] !== undefined && f.occ[t] !== ignoreId) return 'another machine is there';
+     if (cabinetAt(st, x, y) >= 0) return 'the feeder cabinet is there';   // RI-06
+-    if (margin && kind !== 'underground' && kind !== 'splitter' && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && kind !== 'chest' && kind !== 'track' && kind !== 'tramstop' && kind !== 'wall' && !post) return 'not on the street';
++    if (margin && kind !== 'underground' && kind !== 'splitter' && kind !== 'belt' && kind !== 'inserter' && kind !== 'turret' && kind !== 'floodlight' && kind !== 'chest' && kind !== 'track' && kind !== 'tramstop' && kind !== 'wall' && kind !== 'barricade' && !post) return 'not on the street';
+     if (!margin && kind === 'track') return 'track runs on streets';   // RI-05, §13: Track — streets only
+     // prompt B M3: a craftable Substation goes on a face that has none (§7: the outskirts), on the lot, one a face
+     if (kind === 'substation' && faceSub(st, bi)) return 'the face has a substation';
+@@ -1251,7 +1253,7 @@
+   if (kind === 'depot') return { ok: true, reason: '', cost, carried: false };
+   const inv = st.engineer.inv;
+   if ((inv[kind] ?? 0) >= 1) return { ok: true, reason: '', cost: { steel: 0, copper: 0 }, carried: true };
+-  if ((inv.steel ?? 0) < cost.steel || (inv.copper ?? 0) < cost.copper) return { ok: false, reason: `not enough in the pockets (${costStr(cost)})`, cost, carried: false };
++  if ((inv.steel ?? 0) < cost.steel || (inv.copper ?? 0) < cost.copper || (inv.concrete??0)<(cost.concrete??0)) return { ok: false, reason: `not enough in the pockets (${costStr(cost)})`, cost, carried: false };
+   return { ok: true, reason: '', cost, carried: false };
+ }
+ 
+@@ -1276,7 +1278,7 @@
+   const chk = canPlace(st, kind, tx, ty, dir);
+   if (!chk.ok) return null;
+   if (chk.carried) pocketDrop(st.engineer, kind, 1);
+-  else { pocketDrop(st.engineer, 'steel', chk.cost.steel); pocketDrop(st.engineer, 'copper', chk.cost.copper); st.flow!.stats.placed.steel += chk.cost.steel; st.flow!.stats.placed.copper += chk.cost.copper; }
++  else { pocketDrop(st.engineer, 'steel', chk.cost.steel); pocketDrop(st.engineer, 'copper', chk.cost.copper); st.flow!.stats.placed.steel += chk.cost.steel; st.flow!.stats.placed.copper += chk.cost.copper; if(chk.cost.concrete){pocketDrop(st.engineer,'concrete',chk.cost.concrete);st.flow!.stats.placed.concrete=(st.flow!.stats.placed.concrete??0)+chk.cost.concrete;} }
+   return addMachine(st, kind, tx, ty, dir);   // RI-03: a pole that reaches a Dark substation claims nothing (plan §4.1)
+ }
+ 
+@@ -1291,7 +1293,7 @@
+   if (m.hold) add(m.hold, 1);
+   if (m.kind === 'turret') add('magazine', Math.floor((m.inv.rounds ?? 0) / SHOT.count));
+   else if (m.kind === 'generator') add('coal', Math.floor(m.inv.coal ?? 0));
+-  else { for (const k in m.inv) add(k, Math.floor(m.inv[k])); add(m.kind === 'assembler' ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
++  else { for (const k in m.inv) add(k, Math.floor(m.inv[k])); add((m.kind === 'assembler'||m.kind==='mixer') ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
+   if (m.cargo) for (const k in m.cargo) add(k, Math.floor(m.cargo[k]));   // RI-05: a tram's load, a stop's arrivals
+   return out;
+ }
+@@ -1302,6 +1304,7 @@
+   if (!m) return { ok: false, reason: 'nothing there', m: null, stacks: 0, items: {} };
+   if(isCampaign(st)&&defenceMax(m)>0&&defenceHp(m)<defenceMax(m))return {ok:false,reason:'repair this defence before packing it',m,stacks:0,items:{}};
+   if(st.campaign?.defence?.repair?.kind==='machine'&&st.campaign.defence.repair.id===m.id)return {ok:false,reason:'finish its repair first',m,stacks:0,items:{}};
++  if(m.kind==='mixer'&&m.busy)return {ok:false,reason:'wait for the Mixer to finish before packing it',m,stacks:0,items:{}};
+   if (m.kind === 'depot') return { ok: false, reason: 'the Depot stays', m, stacks: 0, items: {} };
+   if (m.kind === 'track' && tramAt(st, tx, ty)) return { ok: false, reason: 'a tram stands on it', m, stacks: 0, items: {} };
+   const items = pickUpItems(m), e = st.engineer;
+@@ -1435,7 +1438,7 @@
+ export function describeMachine(st: SimState, m: Machine): string {
+   const on = stopReason(st, m);
+   switch (m.kind) {
+-    case 'wall': return `Wall · ${Math.ceil(defenceHp(m))}/${defenceMax(m)} HP · E repairs damage`;
++    case 'barricade': case 'wall': return `${KIND_LABEL[m.kind]} · ${Math.ceil(defenceHp(m))}/${defenceMax(m)} HP · E repairs damage`;
+     case 'turret': {
+       const id = turretEdge(st, m), b = blockOf(st, m);
+       const side = id < 0 ? '' : streetName(st, m, id);
+@@ -1452,12 +1455,12 @@
+     case 'belt': return `belt → ${DIR_NAMES[m.dir]} · ${m.items.length} item${m.items.length === 1 ? '' : 's'}${on}`;
+     case 'inserter': return `inserter → ${DIR_NAMES[m.dir]} · ${m.hold ? `carrying ${m.hold}` : 'empty'}${on}`;
+     case 'excavator': { const r = findRubble(st, m); return `Excavator → ${DIR_NAMES[m.dir]} · ${r ? `digging ${r.type} (${r.persistent?'persistent source; powered extraction':`${Math.ceil(r.units)} left in the tile`})` : 'nothing in reach'}${m.hold ? ` · output blocked (${m.hold})` : ''}${on}`; }
+-    case 'assembler': {
++    case 'mixer': case 'assembler': {
+       const r = recipeOf(m), o = recipeOutput(r);
+       const ins = Object.keys(r.inputs).map(k => `${k === 'copper' ? 'Cu' : k} ${m.inv[k] ?? 0}`).join(' · ');
+-      return `${r.name === 'Shot magazine' ? 'Shot' : r.name} assembler → ${DIR_NAMES[m.dir]} · ${ins} · ${m.out} ${plural(o, m.out)} out${m.busy ? ` · ${Math.round(m.timer / r.seconds * 100)} %` : ''}${on}`;
++      return `${r.name === 'Shot magazine' ? 'Shot' : r.name} ${m.kind==='mixer'?'Mixer':'assembler'} → ${DIR_NAMES[m.dir]} · ${ins} · ${m.out} ${plural(o, m.out)} out${m.busy ? ` · ${Math.round(m.timer / r.seconds * 100)} %` : ''}${on}`;
+     }
+-    case 'depot': { const s = st.flow!.store, mid = (['wire', 'frame', 'board'] as const).filter(k => s[k] > 0).map(k => ` · ${k} ${Math.floor(s[k])}`).join(''); return `Depot · steel ${Math.floor(st.stock.steel)} · Cu ${Math.floor(st.stock.copper)} · stone ${Math.floor(st.stock.stone)} · coal ${Math.floor(s.coal)}${mid} · ${Math.floor(st.buffer / SHOT.count)} magazines in the line buffer`; }
++    case 'depot': { const s = st.flow!.store, mid = (['wire', 'frame', 'board', 'concrete'] as const).filter(k => (s[k]??0) > 0).map(k => ` · ${k} ${Math.floor(s[k]??0)}`).join(''); return `Depot · steel ${Math.floor(st.stock.steel)} · Cu ${Math.floor(st.stock.copper)} · stone ${Math.floor(st.stock.stone)} · coal ${Math.floor(s.coal)}${mid} · ${Math.floor(st.buffer / SHOT.count)} magazines in the line buffer`; }
+     // RI-05
+     case 'chest': { const d = depotChestOf(st, m); return `${d ? `${blockName(st, d.siteId)} supply depot (restored · hands out kits)` : 'Supply chest'} · ${poolStr(m.inv) || 'empty'} · ${invTotal(m.inv)} / ${SUPPLY_CHEST_CAP}${on}`; }
+     case 'track': { const tr = tramAt(st, m.x, m.y); return `Track · streets only${tr ? ' · a tram on it' : ''}${stopAt(st, m.x, m.y) ? ' · serves a stop' : ''}`; }
+@@ -2054,7 +2057,7 @@
+ // ------------------------------------------------------------------ Prompt B M1: pockets and the chest
+ 
+ export type ChestItem = Item | 'kit';
+-export const CHEST_ITEMS: readonly ChestItem[] = ['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board', 'kit'];
++export const CHEST_ITEMS: readonly ChestItem[] = ['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board', 'concrete', 'kit'];
+ export function isChestItem(s: string): s is ChestItem { return (CHEST_ITEMS as readonly string[]).includes(s); }
+ 
+ /** The Depot's footprint: the chest and workbench on the HQ lot. */
+@@ -2116,7 +2119,7 @@
+   if (got <= 0) return { moved: 0, reason: 'the pockets are full' };
+   chestTrip(f);
+   if (item === 'magazine') st.buffer -= got * SHOT.count;
+-  else if (isStoreItem(item)) f.store[item] -= got;
++  else if (isStoreItem(item)) f.store[item] = (f.store[item]??0) - got;
+   else if (item !== 'kit') st.stock[item] -= got;
+   return { moved: got, reason: '' };
+ }
+@@ -2143,9 +2146,9 @@
+   const put = pocketDrop(st.engineer, item, want);
+   chestTrip(f);
+   if (item === 'magazine') { st.buffer += put * SHOT.count; f.stats.magsDelivered += put; }
+-  else if (isStoreItem(item)) f.store[item] += put;
++  else if (isStoreItem(item)) f.store[item] = (f.store[item]??0) + put;
+   else if (item !== 'kit') st.stock[item] += put;
+-  if (item !== 'kit') f.stats.putBack[item] += put;   // RI-01: by hand, apart from `delivered` (machines), and all of it
++  if (item !== 'kit') f.stats.putBack[item] = (f.stats.putBack[item]??0) + put;   // RI-01: by hand, apart from `delivered` (machines), and all of it
+   return { moved: put, reason: '' };
+ }
+ 
+@@ -2220,11 +2223,11 @@
+     let ch: string;
+     switch (m.kind) {
+       case 'depot': ch = 'D'; break;
+-      case 'wall': ch = defenceHp(m)>0?'W':'w'; break;
++      case 'barricade': case 'wall': ch = defenceHp(m)>0?'W':'w'; break;
+       case 'turret': ch = (m.inv.rounds ?? 0) > 0 ? 'T' : 't'; break;
+       case 'generator': ch = m.busy ? 'G' : 'g'; break;
+       case 'excavator': ch = running(st, m) ? 'X' : 'x'; break;
+-      case 'assembler': ch = m.busy && running(st, m) ? 'A' : 'a'; break;
++      case 'mixer': case 'assembler': ch = m.busy && running(st, m) ? 'A' : 'a'; break;
+       case 'belt': ch = '^>v<'[m.dir]; break;
+       case 'underground': ch = m.underground==='output'?'U':'u'; break;
+       case 'splitter': ch = 'J'; break;
+--- P7-01/packages/sim/src/goal.ts
++++ P7-02/packages/sim/src/goal.ts
+@@ -243,7 +243,7 @@
+ /** The current goal and its support line. Pure; cheap enough for a HUD to call once a second. */
+ export function currentGoal(st: SimState): Goal {
+   if (isCampaign(st)) {
+-    const factory = st.flow?.machines.some(m => m.kind === 'excavator' || m.kind === 'assembler');
++    const factory = st.flow?.machines.some(m => m.kind === 'excavator' || (m.kind === 'assembler'||m.kind==='mixer'));
+     const ex = st.campaign?.expansion;
+     if (ex && ex.radio.restoredAt >= 0) {
+       const linked = ex.route.every(t => machineAt(st, t % st.flow!.tw, Math.floor(t / st.flow!.tw))?.kind === 'track')
+@@ -271,7 +271,7 @@
+   if (!b || (!isCampaign(st) && b.state !== HELD && !field)) return { state: 'off', reason: 'block not Held' };
+   if (MACHINE_KW[m.kind] > 0 && !powered(st, m)) return { state: 'off', reason: field ? 'no connected pole in reach' : 'no power' };
+   switch (m.kind) {
+-    case 'wall': return {state:'idle',reason:`${Math.ceil(defenceHp(m))} HP`};
++    case 'barricade': case 'wall': return {state:'idle',reason:`${Math.ceil(defenceHp(m))} HP`};
+     case 'turret': {
+       if ((m.inv.rounds ?? 0) < 1) return { state: 'starved', reason: 'empty hopper' };
+       return m.out > 0 || m.timer > 0 ? { state: 'running', reason: 'firing' } : { state: 'idle', reason: 'nothing in range' };
+@@ -286,7 +286,7 @@
+       const r = findRubble(st, m);
+       return r ? { state: 'running', reason: `digging ${r.type}` } : { state: 'starved', reason: 'nothing in reach' };
+     }
+-    case 'assembler': {
++    case 'mixer': case 'assembler': {
+       if (m.busy) return { state: 'running', reason: `making ${recipeOutput(recipeOf(m))}` };
+       if (m.out >= ASM_OUTPUT_CAP) return { state: 'blocked', reason: 'output full' };
+       if (!asmCanStart(m)) {
+--- P7-01/packages/sim/src/inspection.ts
++++ P7-02/packages/sim/src/inspection.ts
+@@ -14,7 +14,7 @@
+ type Counts = Partial<Record<Item, number>>;
+ interface Sample { tick:number; produced:Counts; consumed:Counts }
+ export interface Observation { produced:Counts; consumed:Counts; samples:Sample[] }
+-const measured = (m:Machine) => ['assembler','excavator','belt','inserter','underground','splitter'].includes(m.kind);
++const measured = (m:Machine) => ['mixer','assembler','excavator','belt','inserter','underground','splitter'].includes(m.kind);
+ const start = (tick:number):Observation => ({produced:{},consumed:{},samples:[{tick,produced:{},consumed:{}}]});
+ function sample(o:Observation,tick:number):void {
+   if(tick-o.samples.at(-1)!.tick>=INSPECTION_SAMPLE_TICKS)o.samples.push({tick,produced:{...o.produced},consumed:{...o.consumed}});
+@@ -58,7 +58,7 @@
+   const scale=powered(st,m)&&status.state!=='off'?(draw>0?circuit.throttle:1):0;
+   const nominal: {item:string;input:number;output:number}[]=[];
+   let recipe:string|null=null,capacity:string|null=null;
+-  if(m.kind==='assembler'){
++  if((m.kind==='assembler'||m.kind==='mixer')){
+     const r=recipeOf(m);recipe=r.name;
+     for(const [item,n] of Object.entries(r.inputs))nominal.push({item,input:n*60/r.seconds,output:0});
+     nominal.push({item:recipeOutput(r),input:0,output:recipeYield(r)*60/r.seconds});
+@@ -79,13 +79,13 @@
+   if(m.hold)add('Held',m.hold,1);
+   const buffer:Counts={};for(const it of m.items)buffer[it.k]=(buffer[it.k]??0)+1;
+   for(const [k,n] of Object.entries(buffer))add('Buffered',k,n);
+-  if(m.kind==='assembler')add('Finished output',recipeOutput(recipeOf(m)),m.out);
++  if((m.kind==='assembler'||m.kind==='mixer'))add('Finished output',recipeOutput(recipeOf(m)),m.out);
+   const settings=[`Facing ${DIR_NAMES[m.dir]}`,`Footprint ${footprint(m).join(' × ')} tiles`];
+   if(['inserter','underground','splitter'].includes(m.kind))settings.push(routingDescription(st,m));
+   const ranges:Partial<Record<Machine['kind'],string>>={excavator:'Extraction: 5 × 5 tiles (one tile around footprint)',inserter:'Pickup/drop: adjacent tile behind/in front',turret:`Weapon range: ${TURRET_RANGE} tiles`,lamp:`Light radius: ${LAMP_RADIUS} tiles`,floodlight:`Light cone range: ${FLOODLIGHT_RANGE} tiles`,pole:`Connection reach: ${POLE_REACH} tiles`,bigpole:`Connection reach: ${BIG_POLE_REACH} tiles`,underground:`Span: up to ${UNDERGROUND_HIDDEN} hidden tiles`,chest:`Storage: ${SUPPLY_CHEST_CAP} items`,tramstop:`Platform/arrivals: ${STOP_CAP} items each`,tram:`Cargo: ${TRAM_CAP} items`};
+   return {id,title:KIND_LABEL[m.kind],kind:m.kind,status,location:bi>=0?blockLabel(st,bi,false):'Outside a serviced block',
+     reachable:inReach(st,m.x,m.y,...footprint(m)),circuit,draw,scale,recipe,recipeId:m.recipe??'shot',nominal,capacity,contents,settings,range:ranges[m.kind]??null,
+-    measured:measured(m)?rates(m.observation,st.flow!.tick):null,measurement:m.kind==='assembler'||m.kind==='excavator'?'Completed production':'Transfers out'};
++    measured:measured(m)?rates(m.observation,st.flow!.tick):null,measurement:(m.kind==='assembler'||m.kind==='mixer')||m.kind==='excavator'?'Completed production':'Transfers out'};
+ }
+ export function inspectionProblem(st:SimState):string {
+   if(!st.flow)return '';
+--- P7-01/packages/sim/src/ledger.ts
++++ P7-02/packages/sim/src/ledger.ts
+@@ -47,10 +47,10 @@
+ export function heldItems(st: SimState): { total: Record<Item, number>; where: Record<LedgerPlace, Record<Item, number>> } {
+   const f = flowOf(st);
+   const where = {} as Record<LedgerPlace, Record<Item, number>>;
+-  for (const p of LEDGER_PLACES) where[p] = zeroItems();
++  for (const p of LEDGER_PLACES) where[p] = zeroItems(true);
+   const add = (p: LedgerPlace, k: string, n: number) => { if (isItem(k) && n > 0) where[p][k] += n; };
+   add('chest', 'steel', st.stock.steel); add('chest', 'copper', st.stock.copper); add('chest', 'stone', st.stock.stone);
+-  for (const k in f.store) add('chest', k, f.store[k as keyof typeof f.store]);
++  for (const k in f.store) add('chest', k, f.store[k as keyof typeof f.store]??0);
+   add('buffer', 'magazine', st.buffer / ROUNDS);
+   for (const e of st.ring) if (!e.turrets) add('ring', 'magazine', e.hopper / ROUNDS);   // a stand-in edge's hopper; a turret edge's mirrors its turrets
+   for (const k in st.engineer.inv) add('pockets', k, st.engineer.inv[k]);
+@@ -62,11 +62,11 @@
+     for (const it of m.items) add('belts', it.k, 1);
+     if (m.hold) add(m.kind === 'belt' ? 'belts' : 'machines', m.hold, 1);
+     if (m.kind === 'turret') add('machines', 'magazine', (m.inv.rounds ?? 0) / ROUNDS);
+-    else { for (const k in m.inv) add('machines', k, m.inv[k]); if (m.out > 0) add('machines', m.kind === 'assembler' ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
++    else { for (const k in m.inv) add('machines', k, m.inv[k]); if (m.out > 0) add('machines', (m.kind === 'assembler'||m.kind==='mixer') ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
+     if (m.cargo) for (const k in m.cargo) add('machines', k, m.cargo[k]);   // RI-05: a tram's load, a stop's arrivals
+   }
+   for(const [k,n] of Object.entries(st.campaign?.truck?.cargo??{}))add('machines',k,n);
+-  const total = zeroItems();
++  const total = zeroItems(true);
+   for (const p of LEDGER_PLACES) for (const k of ITEMS) total[k] += where[p][k];
+   return { total, where };
+ }
+@@ -74,10 +74,11 @@
+ /** What the counters say entered the game (`sources`) and left it (`sinks`) since the flow layer's counters began. */
+ export function ledgerFlows(st: SimState): { sources: Record<Item, number>; sinks: Record<Item, number> } {
+   const f = flowOf(st), s = f.stats, b = st.stats;
+-  const sources = zeroItems(), sinks = zeroItems();
++  const sources = zeroItems(true), sinks = zeroItems(true);
+   for (const k of ITEMS) { sources[k] += (s.minedOf[k] ?? 0) + (s.made[k] ?? 0); sinks[k] += s.consumed[k] ?? 0; }
+   sinks.steel += (s.placed?.steel ?? 0) + (b.spentSteel ?? 0);
+   sinks.copper += (s.placed?.copper ?? 0) + (b.spentCopper ?? 0) + (f.repairs ?? 0) * REPAIR_COPPER;
++  sinks.concrete += s.placed?.concrete ?? 0;
+   sinks.coal += s.coalBurned ?? 0;
+   sinks.magazine += ((s.fired ?? 0) + (st.engineer.fired ?? 0) + (b.ringFired ?? 0) + (b.roundsLost ?? 0)) / ROUNDS;
+   return { sources, sinks };
+@@ -86,8 +87,9 @@
+ /** The opening record for a flow state: held − net now, so that `conservation` reads zero from here on. */
+ export function openLedger(st: SimState): { tick: number; base: Record<Item, number> } {
+   const { total } = heldItems(st), { sources, sinks } = ledgerFlows(st);
+-  const base = zeroItems();
++  const base = zeroItems(true);
+   for (const k of ITEMS) base[k] = total[k] - (sources[k] - sinks[k]);
++  if(!st.campaign)Reflect.deleteProperty(base,'concrete'); // Preserve the frozen legacy state shape.
+   return { tick: st.flow?.tick ?? 0, base };
+ }
+ 
+@@ -95,10 +97,10 @@
+ export function conservation(st: SimState, tolerance = 0.01): Ledger {
+   const f = ensureFlow(st);
+   const { total: held, where } = heldItems(st), { sources, sinks } = ledgerFlows(st);
+-  const opening = f.ledger?.base ?? zeroItems(), openedAt = f.ledger?.tick ?? 0;
+-  const unexplained = zeroItems(), problems: string[] = [];
++  const opening = { ...zeroItems(true), ...f.ledger?.base }, openedAt = f.ledger?.tick ?? 0;
++  const unexplained = zeroItems(true), problems: string[] = [];
+   for (const k of ITEMS) {
+-    unexplained[k] = held[k] + sinks[k] - sources[k] - opening[k];
++    unexplained[k] = held[k] + sinks[k] - sources[k] - (opening[k]??0);
+     if (Math.abs(unexplained[k]) > tolerance) problems.push(`${k}: ${unexplained[k] > 0 ? '+' : ''}${unexplained[k].toFixed(2)} unexplained (opening ${opening[k].toFixed(1)} + sources ${sources[k].toFixed(1)} = held ${held[k].toFixed(1)} + sinks ${sinks[k].toFixed(1)})`);
+   }
+   return { ok: problems.length === 0, tolerance, openedAt, opening, sources, sinks, held, where, unexplained, problems };
+--- P7-01/packages/sim/src/rules.ts
++++ P7-02/packages/sim/src/rules.ts
+@@ -7,7 +7,7 @@
+ export const CAMPAIGN_RULES = { daySeconds: 1200, daylightSeconds: 900, firstAssaultNight: 3, opening: 'culdesac-v1' } as const;
+ export interface CampaignSite { block: number; x: number; y: number; size: number; delivered: { steel: number; copper: number }; restoredAt: number }
+ export interface ExpansionState { station: CampaignSite; radio: CampaignSite; route: number[]; stops: [number, number][]; reward: { track: number; tramstop: number; tram: number }; grantedAt: number }
+-export interface CampaignState { version: 1 | 2 | 3 | 4 | 5 | 6; recruits?: import('./campaignRecruits').RecruitState; truck?: import('./truck').TruckState; discovery?: import('./campaignDiscovery').DiscoveryState; districts?: import('./campaignDistricts').DistrictState; defence?: import('./campaignDefence').DefenceState; opening: 'culdesac-v1'; homeBlock: number; expansion?: ExpansionState }
++export interface CampaignState { version: 1 | 2 | 3 | 4 | 5 | 6 | 7; recruits?: import('./campaignRecruits').RecruitState; truck?: import('./truck').TruckState; discovery?: import('./campaignDiscovery').DiscoveryState; districts?: import('./campaignDistricts').DistrictState; defence?: import('./campaignDefence').DefenceState; opening: 'culdesac-v1'; homeBlock: number; expansion?: ExpansionState }
+ export function isRuleset(value: unknown): value is Ruleset { return value === LEGACY_RULESET || value === CAMPAIGN_RULESET; }
+ export function rulesetOf(st: Pick<SimState, 'ruleset'>): Ruleset { return st.ruleset ?? LEGACY_RULESET; }
+ export function isCampaign(st: Pick<SimState, 'ruleset'>): boolean { return rulesetOf(st) === CAMPAIGN_RULESET; }
+@@ -20,7 +20,7 @@
+   if (!isCampaign(st)) return st.campaign !== undefined || st.version === 3 ? 'campaign metadata on a legacy state' : '';
+   if (st.version !== 3) return 'exploration campaign requires save schema 3';
+   const c = st.campaign;
+-  if (!c || ![1,2,3,4,5,6].includes(c.version) || c.opening !== CAMPAIGN_RULES.opening || !Number.isInteger(c.homeBlock)
++  if (!c || ![1,2,3,4,5,6,7].includes(c.version) || c.opening !== CAMPAIGN_RULES.opening || !Number.isInteger(c.homeBlock)
+     || !st.blocks[c.homeBlock] || st.blocks[c.homeBlock].x !== st.start[0] || st.blocks[c.homeBlock].y !== st.start[1]) return 'invalid campaign opening';
+   if (c.version >= 2) {
+     const e = c.expansion;
+--- P7-01/packages/sim/src/save.ts
++++ P7-02/packages/sim/src/save.ts
+@@ -22,6 +22,7 @@
+ import { defenceProblem } from './defenceValidation';
+ import { rulesetProblem } from './rules';
+ import { constructionProblem } from './construction';
++import { concreteProblem } from './concreteValidation';
+ 
+ export const SAVE_TRANSIENT: readonly (keyof SimState)[] = ['events', 'acc', 'speed'];
+ 
+@@ -83,7 +84,7 @@
+   if (!Array.isArray(st.ring)) return 'no ring';
+   if (!st.engineer || typeof st.engineer !== 'object') return 'no engineer';
+   if (st.city?.profile && st.city.profile !== 'riverside-v1') return `unsupported city profile ${st.city.profile}`;
+-  return rulesetProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || discoveryProblem(st as SimState) || recruitsProblem(st as SimState) || freightProblem(st as SimState) || constructionProblem(st as SimState) || routingProblem(st as SimState) || inspectionProblem(st as SimState) || truckProblem(st as SimState);
++  return rulesetProblem(st as SimState) || concreteProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || discoveryProblem(st as SimState) || recruitsProblem(st as SimState) || freightProblem(st as SimState) || constructionProblem(st as SimState) || routingProblem(st as SimState) || inspectionProblem(st as SimState) || truckProblem(st as SimState);
+ }
+ 
+ /** A validated deep copy of a saved state — a SaveFile, a telemetry export (its `finalState`) or a raw SimState —
+--- P7-01/packages/sim/src/threat.ts
++++ P7-02/packages/sim/src/threat.ts
+@@ -484,7 +484,7 @@
+ }
+ /** RI-04: a crawler's current target as a tile — the engineer once it has turned, else the nearest footprint tile
+  *  of its chain link on the block it walks into — and the word for it. */
+-export function crawlerTarget(st: SimState, c: Crawler): { tx: number; ty: number; what: 'wall' | 'you' | 'lamp' | 'turret' | 'substation' | 'cabinet' | 'ruin' | 'base core' | 'exit' } | null {
++export function crawlerTarget(st: SimState, c: Crawler): { tx: number; ty: number; what: 'barricade' | 'wall' | 'you' | 'lamp' | 'turret' | 'substation' | 'cabinet' | 'ruin' | 'base core' | 'exit' } | null {
+   if(c.campaign){const a=campaignCrawlerAction(st,c);return {tx:a.tx,ty:a.ty,what:a.what};}
+   if (c.onPlayer) { const e = st.engineer; return { tx: Math.floor(e.x), ty: Math.floor(e.y), what: 'you' }; }
+   if (!threatActive(st)) return null;
+--- P7-01/packages/sim/src/truck.ts
++++ P7-02/packages/sim/src/truck.ts
+@@ -16,7 +16,7 @@
+  const G=ground(st),r=truckRect({x,y,dir});
+  for(let ty=Math.floor(r.y+1e-8);ty<Math.ceil(r.y+r.h-1e-8);ty++)for(let tx=Math.floor(r.x+1e-8);tx<Math.ceil(r.x+r.w-1e-8);tx++){
+   if(!walkable(G,tx,ty)||G.base[ty*G.tw+tx]!==T_STREET)return false;
+-  const m=machineAt(st,tx,ty);if(m&&!['belt','track','tram'].includes(m.kind)&&!(m.kind==='wall'&&m.hp===0))return false;
++  const m=machineAt(st,tx,ty);if(m&&!['belt','track','tram'].includes(m.kind)&&!((m.kind==='wall'||m.kind==='barricade')&&m.hp===0))return false;
+  }
+  return true;
+ }
+--- P7-01/packages/sim/src/walk.ts
++++ P7-02/packages/sim/src/walk.ts
+@@ -35,7 +35,7 @@
+   if (c && c.rev === f.rev) return c.solid;
+   const solid = new Uint8Array(G.tw * G.th);
+   for (const m of f.machines) {
+-    if (PASSABLE.has(m.kind) || (st.campaign && (m.kind==='wall'||m.kind==='turret') && m.hp===0)) continue;
++    if (PASSABLE.has(m.kind) || (st.campaign && (m.kind==='wall'||m.kind==='barricade'||m.kind==='turret') && m.hp===0)) continue;
+     const [width,height]=machineDimensions(m);
+     for (let y = m.y; y < m.y + height; y++) for (let x = m.x; x < m.x + width; x++) if (inGround(G, x, y)) solid[y * G.tw + x] = 1;
+   }
+--- P7-01/packages/sim/test/campaignDistricts.test.ts
++++ P7-02/packages/sim/test/campaignDistricts.test.ts
+@@ -123,11 +123,12 @@
+   const resumed=loadState(makeSave(st));resumed.speed=st.speed;run(st,5);run(resumed,5);assert.equal(stateHash(st),stateHash(resumed));
+ });
+ 
+-test('workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves',()=>{
++for(const kind of ['wall','barricade'] as const)test(`${kind}: workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves`,()=>{
+   const st=fixture();outposts(st);restore(st,'workshop');
++  if(kind==='barricade'){const crew=st.campaign!.recruits!.sites.find(s=>s.kind==='concrete')!;crew.seenAt=0;crew.recruitedAt=0;st.engineer.inv.concrete=4;st.flow!.ledger=openLedger(st);} // Labelled finished-material fixture; full Mixer chain tested separately.
+   const d=st.campaign!.districts!,w=d.workshop;
+-  const chest=nearby(st,'chest',w.x,w.y,w.block,3),wall=nearby(st,'wall',w.x+7,w.y+4,w.block,3);
+-  damageDefence(st,wall,120);assert.match(workshopStatus(st),/needs 2 steel/);
++  const chest=nearby(st,'chest',w.x,w.y,w.block,3),wall=nearby(st,kind,w.x+7,w.y+4,w.block,3);
++  damageDefence(st,wall,kind==='wall'?120:240);assert.match(workshopStatus(st),/needs 2 steel/);
+   walk(st,chest.x,chest.y,2);applyCommands(st,[{type:'chestPut',x:chest.x,y:chest.y,item:'steel',n:10},{type:'chestPut',x:chest.x,y:chest.y,item:'copper',n:5}]);
+   run(st,1);assert.ok(d.repair);const resumed=loadState(makeSave(st));resumed.speed=st.speed;
+   run(st,1.1);run(resumed,1.1);assert.equal(stateHash(st),stateHash(resumed));assert.equal(defenceHp(wall),40);assert.equal(chest.inv.steel,8);
+@@ -139,6 +140,7 @@
+   const def=st.campaign!.defence!;def.major={id:def.nextId++,block:w.block,dawn:st.t,startsAt:st.t,origin:0,remaining:0,nextSpawn:st.t,retreat:false};
+   const before=chest.inv.steel;tickDistricts(st,10);assert.equal(defenceHp(wall),40);assert.equal(chest.inv.steel,before);assert.match(workshopStatus(st),/paused/);def.major=null;
+   run(st,5);assert.equal(defenceHp(wall),120);assert.equal(chest.inv.steel,4);assert.equal(d.repairs,3);
++  if(kind==='barricade'){run(st,6);assert.equal(defenceHp(wall),200);assert.match(workshopStatus(st),/needs 2 steel/);}
+   assert.ok(conservation(st).ok,conservation(st).problems.join(','));
+ });
+ 
+@@ -207,7 +209,7 @@
+ test('old district-free previews upgrade once without moving the promised assault or duplicating sources',()=>{
+   const st=createCampaign();delete st.campaign!.districts;delete st.campaign!.discovery;delete st.campaign!.recruits;st.campaign!.version=3;st.t=4000;
+   const dawn=st.campaign!.defence!.nextDawn,a=loadState(st),b=loadState(st);
+-  assert.equal(a.campaign!.version,6);assert.equal(a.campaign!.defence!.nextDawn,dawn);assert.equal(stateHash(a),stateHash(b));
++  assert.equal(a.campaign!.version,7);assert.equal(a.campaign!.defence!.nextDawn,dawn);assert.equal(stateHash(a),stateHash(b));
+   assert.equal(stateHash(loadState(makeSave(a))),stateHash(a));
+   for(const mutate of [
+     (s:SimState)=>{delete s.campaign!.districts;},
+--- P7-01/packages/sim/test/campaignRecruits.test.ts
++++ P7-02/packages/sim/test/campaignRecruits.test.ts
+@@ -82,7 +82,7 @@
+ test('version 5 migration keeps earned plans, existing workshop history and layouts; unearned plans stay locked',()=>{
+   const original=JSON.parse(readFileSync(new URL('../../../docs/evidence/ex08b-2026-09-07/campaign/network.json',import.meta.url),'utf8'));
+   const migrated=loadState(original);
+-  assert.equal(migrated.campaign!.version,6);
++  assert.equal(migrated.campaign!.version,7);
+   assert.deepEqual(migrated.flow!.machines,original.state.flow.machines);
+   assert.deepEqual(migrated.campaign!.discovery,original.state.campaign.discovery);
+   assert.equal(stateHash(loadState(makeSave(migrated))),stateHash(migrated));
+@@ -109,6 +109,6 @@
+   const saved=makeSave(st,{log:[],logComplete:true});delete saved.state.campaign!.recruits;saved.state.campaign!.version=5;
+   const prior=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+   Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>JSON.stringify(saved)}});
+-  try{const loaded=await loadSnapshot('local:p7-old');assert.equal(loaded.logComplete,false);assert.equal(loaded.state.campaign!.version,6);}
++  try{const loaded=await loadSnapshot('local:p7-old');assert.equal(loaded.logComplete,false);assert.equal(loaded.state.campaign!.version,7);}
+   finally{if(prior)Object.defineProperty(globalThis,'localStorage',prior);else Reflect.deleteProperty(globalThis,'localStorage');}
+ });
+--- P7-01/packages/sim/test/concrete.test.ts
++++ P7-02/packages/sim/test/concrete.test.ts
+@@ -0,0 +1,134 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { createCampaign, applyCommands, advanceFlow, inReach, findPath, ground, canPlace, machineAt,
++  MACHINE_SIZE, lockReason, recruitCheck, conservation, makeSave, loadState, stateHash, inspectMachine,
++  machineStatus, damageDefence, defenceHp, passable, canPickUp, accepts, actionResult, tickCampaignSchedule,
++  campaignOrigin, openLedger, blockOfTile, type SimState, type Command, type Kind, type Machine } from '../src/index';
++import { createSession, parseUrl, replaySession } from '../../game/src/session';
++import { threatOf } from '../src/threat';
++import { shotAssemblers } from '../src/goal';
++
++const run=(st:SimState,s:number)=>advanceFlow(st,s,[],Math.ceil(s*20)+1);
++function walk(st:SimState,x:number,y:number,send=(c:Command)=>applyCommands(st,[c])):void {
++  send({type:'move',x:x+.5,y:y+.5});for(let i=0;i<180&&st.engineer.target;i++)run(st,1);
++  assert.ok(inReach(st,x,y),`reach ${x},${y}`);
++}
++function unlock(st:SimState):void { // Labelled local-recruit fixture for isolated mechanics tests.
++  const s=st.campaign!.recruits!.sites.find(s=>s.kind==='concrete')!;
++  s.seenAt=0;s.recruitedAt=0;
++}
++function supplies(st:SimState):void {applyCommands(st,[{type:'chestTake',item:'steel',n:120},{type:'chestTake',item:'copper',n:50},{type:'chestTake',item:'stone',n:40}]);}
++function line(st:SimState,send=(c:Command)=>applyCommands(st,[c])) {
++  const b=ground(st).opening!.bounds;
++  for(let y=b.y+2;y<b.y+b.size-4;y++)for(let x=b.x+5;x<b.x+b.size-6;x++) {
++    const plan:[Kind,number,number][]=[['mixer',x,y],['chest',x-4,y+1],['inserter',x-2,y+1],['belt',x-1,y+1],['inserter',x+3,y+1],['chest',x+4,y+1]];
++    if(plan.some(([k,xx,yy])=>!canPlace(st,k,xx,yy,1).ok||blockOfTile(st,xx,yy)!==st.campaign!.homeBlock))continue;
++    for(const [item,xx,yy] of plan) {
++      if(!inReach(st,xx,yy,MACHINE_SIZE[item]))walk(st,xx,yy,send);
++      send({type:'construct',edits:[{action:'place',item,x:xx,y:yy,dir:1}]});assert.ok(actionResult(st).ok,actionResult(st).reason);
++    }
++    return {m:machineAt(st,x,y)!,input:machineAt(st,x-4,y+1)!,output:machineAt(st,x+4,y+1)!,arm:machineAt(st,x+3,y+1)!};
++  }throw new Error('no home concrete line layout');
++}
++function put(st:SimState,m:Machine,item:string,n:number,send=(c:Command)=>applyCommands(st,[c])) {
++  if(!inReach(st,m.x,m.y,m.size))walk(st,m.x,m.y,send);
++  send({type:'factory',action:{type:'chestPut',x:m.x,y:m.y,item,n}});assert.ok(actionResult(st).ok,actionResult(st).reason);
++}
++const conserved=(st:SimState)=>assert.ok(conservation(st).ok,conservation(st).problems.join(', '));
++
++test('Concrete crew sites are separate and reachable across 32 seeds; version 6 migration preserves the original recruit',()=>{
++  for(let seed=1;seed<=32;seed++) {
++    const st=createCampaign(seed),[e,c]=st.campaign!.recruits!.sites;
++    assert.equal(c.kind,'concrete');assert.ok(Math.hypot(e.x-c.x,e.y-c.y)>24);
++    assert.ok(findPath(st,Math.floor(st.engineer.x),Math.floor(st.engineer.y),c.x,c.y),`seed ${seed}`);
++    assert.match(lockReason(st,'mixer'),/Concrete crew/);assert.match(canPlace(st,'pole',c.x,c.y).reason,/shelter/);
++    st.campaign!.version=6;st.campaign!.recruits={version:1,sites:[e]};
++    const copy=loadState(st);assert.deepEqual(copy.campaign!.recruits!.sites[0],e);assert.deepEqual(copy.campaign!.recruits!.sites[1],c);
++    assert.deepEqual(copy.flow!.machines,st.flow!.machines);assert.equal(stateHash(copy),stateHash(loadState(makeSave(copy))));
++  }
++});
++
++test('ordinary recruitment and paid stone → belt → Mixer → concrete chest chain save and replay',()=>{
++  const previous=Object.getOwnPropertyDescriptor(globalThis,'location');Object.defineProperty(globalThis,'location',{configurable:true,value:{href:'http://localhost/'}});
++  let session:ReturnType<typeof createSession>;
++  try{session=createSession(parseUrl('?rules=exploration-v2&seed=3&view=world'));}finally{if(previous)Object.defineProperty(globalThis,'location',previous);else Reflect.deleteProperty(globalThis,'location');}
++  const st=session.state,send=(c:Command)=>{session.log.push({tick:st.flow!.tick,c:structuredClone(c)});applyCommands(st,[c]);};
++  for(const [item,n] of [['steel',120],['copper',50],['stone',40]] as const)send({type:'factory',action:{type:'chestTake',item,n}});
++  const home={x:Math.floor(st.engineer.x),y:Math.floor(st.engineer.y)},crew=st.campaign!.recruits!.sites.find(s=>s.kind==='concrete')!,stock={...st.engineer.inv};
++  assert.notEqual(recruitCheck(st,crew.id),'');walk(st,crew.x,crew.y,send);assert.equal(recruitCheck(st,crew.id),'');
++  send({type:'recruitSurvivors',id:crew.id});const at=crew.recruitedAt;send({type:'recruitSurvivors',id:crew.id});
++  assert.equal(crew.recruitedAt,at);assert.deepEqual(st.engineer.inv,stock);assert.equal(st.campaign!.defence!.bases.length,1);
++  walk(st,home.x,home.y,send);const {m,input,output,arm}=line(st,send);put(st,input,'stone',40,send);
++  if(!inReach(st,arm.x,arm.y))walk(st,arm.x,arm.y,send);
++  send({type:'factory',action:{type:'routing',x:arm.x,y:arm.y,filter:'concrete'}});
++  run(st,50);assert.equal(output.inv.concrete,20);assert.equal(st.flow!.stats.made.concrete,20);assert.equal(st.flow!.stats.consumed.stone,40);
++  const info=inspectMachine(st,m.id)!;assert.equal(info.recipe,'Concrete');assert.equal(info.draw,60);assert.equal(info.nominal.find(r=>r.item==='concrete')!.output,30);
++  assert.equal(shotAssemblers(st).length,0,'a Mixer never supplies ammunition capacity');
++  assert.ok(info.measured!.rows.find(r=>r.item==='concrete')!.produced>0);assert.equal(accepts(st,m,'steel'),false);
++  if(!inReach(st,output.x,output.y,2))walk(st,output.x,output.y,send);
++  send({type:'factory',action:{type:'chestTake',x:output.x,y:output.y,item:'concrete',n:20}});assert.equal(st.engineer.inv.concrete,20);
++  // Concrete is a normal carried/Depot item, with no source or sink for either transfer.
++  walk(st,home.x,home.y,send);send({type:'factory',action:{type:'chestPut',item:'concrete',n:20}});
++  send({type:'factory',action:{type:'chestTake',item:'concrete',n:20}});assert.equal(st.engineer.inv.concrete,20);
++  conserved(st);const copy=loadState(makeSave(st));copy.speed=st.speed;run(st,1);run(copy,1);assert.equal(stateHash(st),stateHash(copy));
++  const replay=replaySession(session);assert.ok('state' in replay,JSON.stringify(replay));if('state' in replay)assert.equal(stateHash(st),stateHash(replay.state));
++});
++
++test('Mixer pauses without power, retains a paid partial craft, refuses busy packing and stops at full output',()=>{
++  const st=createCampaign();unlock(st);supplies(st);const {m,input,output,arm}=line(st);put(st,input,'stone',40);
++  for(let i=0;i<100&&!m.busy;i++)run(st,.05);assert.ok(m.busy);assert.match(canPickUp(st,m.x,m.y).reason,/finish/);
++  // Labelled outage fixture disables the core while preserving all fuel/materials.
++  const core=st.campaign!.defence!.bases[0],hp=core.hp;core.hp=0;st.flow!.rev++;
++  const timer=m.timer;run(st,3);assert.equal(m.timer,timer);assert.equal(machineStatus(st,m).state,'off');
++  const copy=loadState(makeSave(st));copy.speed=st.speed;core.hp=hp;copy.campaign!.defence!.bases[0].hp=hp;st.flow!.rev++;copy.flow!.rev++;
++  run(st,4);run(copy,4);assert.equal(stateHash(st),stateHash(copy));
++  // Output disconnection is a real packing command; its held item returns to the pockets.
++  if(!inReach(st,arm.x,arm.y))walk(st,arm.x,arm.y);applyCommands(st,[{type:'pickUp',x:arm.x,y:arm.y}]);assert.equal(machineAt(st,arm.x,arm.y),undefined);
++  run(st,25);assert.equal(m.out,5);assert.equal(m.busy,false);assert.equal(machineStatus(st,m).state,'blocked');
++  const made=st.flow!.stats.made.concrete;run(st,5);assert.equal(st.flow!.stats.made.concrete,made);
++  if(!inReach(st,m.x,m.y,3))walk(st,m.x,m.y);applyCommands(st,[{type:'construct',edits:[{action:'pickUp',x:m.x,y:m.y}]}]);assert.ok(actionResult(st).ok,actionResult(st).reason);
++  assert.equal(st.engineer.inv.mixer,1);assert.ok((st.engineer.inv.concrete??0)>=5);assert.ok((output.inv.concrete??0)>=0);conserved(st);
++});
++
++test('paid Barricades conserve concrete through history, damage, saved repair and packing',()=>{
++  const st=createCampaign();unlock(st);supplies(st);const {input,output}=line(st);put(st,input,'stone',40);run(st,50);
++  if(!inReach(st,output.x,output.y,2))walk(st,output.x,output.y);applyCommands(st,[{type:'chestTake',x:output.x,y:output.y,item:'concrete',n:20}]);
++  const G=ground(st),t=G.opening!.gate[1],x=t%G.tw,y=Math.floor(t/G.tw);walk(st,x,y);
++  const steel=st.engineer.inv.steel,concrete=st.engineer.inv.concrete;
++  applyCommands(st,[{type:'construct',edits:[{action:'place',item:'barricade',x,y,dir:0}]}]);assert.ok(actionResult(st).ok,actionResult(st).reason);
++  assert.equal(st.engineer.inv.steel,steel-2);assert.equal(st.engineer.inv.concrete,concrete-4);
++  applyCommands(st,[{type:'undoBuild'},{type:'redoBuild'}]);assert.ok(actionResult(st).ok);assert.equal(st.flow!.stats.placed.concrete,4);
++  const wall=machineAt(st,x,y)!;assert.equal(defenceHp(wall),240);assert.equal(passable(st,x,y),false);assert.equal(accepts(st,wall,'concrete'),false);
++  damageDefence(st,wall,240);assert.equal(passable(st,x,y),true);assert.equal(canPickUp(st,x,y).ok,false);
++  const paid=st.engineer.inv.steel;applyCommands(st,[{type:'repairDefence',x,y},{type:'repairDefence',x,y}]);assert.equal(st.engineer.inv.steel,paid-2);
++  run(st,2);const copy=loadState(makeSave(st));copy.speed=st.speed;run(st,2.1);run(copy,2.1);assert.equal(stateHash(st),stateHash(copy));assert.equal(defenceHp(wall),40);
++  for(let i=0;i<5;i++){applyCommands(st,[{type:'repairDefence',x,y}]);run(st,4.1);}
++  assert.equal(defenceHp(wall),240);applyCommands(st,[{type:'pickUp',x,y}]);assert.equal(st.engineer.inv.barricade,1);assert.equal(st.flow!.stats.placed.concrete,4);conserved(st);
++});
++
++test('concrete saves reject corrupt production and counters; construction requires concrete',()=>{
++  const st=createCampaign();unlock(st);supplies(st);const {m}=line(st),G=ground(st),t=G.opening!.gate[1];
++  assert.match(canPlace(st,'barricade',t%G.tw,Math.floor(t/G.tw)).reason,/4 concrete/);
++  for(const mutate of [(s:SimState)=>{s.flow!.machines.find(x=>x.id===m.id)!.out=6;},(s:SimState)=>{s.flow!.machines.find(x=>x.id===m.id)!.recipe='shot';},
++    (s:SimState)=>{s.flow!.machines.find(x=>x.id===m.id)!.inv={concrete:1};},(s:SimState)=>{s.flow!.stats.placed.concrete=-1;}]) {
++    const copy=structuredClone(st);mutate(copy);assert.throws(()=>loadState(copy),/concrete|Mixer/);
++  }
++  const old=structuredClone(st);old.campaign!.version=6;old.campaign!.recruits={version:1,sites:[old.campaign!.recruits!.sites[0]]};assert.throws(()=>loadState(old),/version 7/);
++  const overlap=structuredClone(st),[a,b]=overlap.campaign!.recruits!.sites;b.x=a.x;b.y=a.y;b.block=a.block;assert.throws(()=>loadState(overlap),/overlapping/);
++  const inherited=structuredClone(st);inherited.campaign!.recruits!.sites[1].inherited=true;assert.throws(()=>loadState(inherited),/recruit/);
++  const sparse=structuredClone(st);Reflect.deleteProperty(sparse.flow!.ledger!.base,'concrete');sparse.engineer.inv.concrete=1;
++  assert.equal(conservation(sparse).ok,false);assert.match(conservation(sparse).problems.join(','),/concrete: \+1/);
++});
++
++test('crawlers physically breach a sealed Barricade court',()=>{
++  const st=createCampaign();unlock(st);supplies(st);
++  // Labelled combat fixture supplies finished concrete; the production/payment chain is tested above.
++  st.engineer.inv.concrete=40;st.flow!.ledger=openLedger(st);
++  const G=ground(st),gate=G.opening!.gate,t=gate[1],dir=G.opening!.direction;
++  walk(st,t%G.tw-[0,1,0,-1][dir]*4,Math.floor(t/G.tw)-[-1,0,1,0][dir]*4);
++  for(const t of gate)applyCommands(st,[{type:'place',item:'barricade',x:t%G.tw,y:Math.floor(t/G.tw)}]);
++  assert.ok(gate.every(t=>machineAt(st,t%G.tw,Math.floor(t/G.tw))?.kind==='barricade'));
++  assert.ok(campaignOrigin(st,st.campaign!.defence!.bases[0])>=0);
++  st.t=2400;tickCampaignSchedule(st,threatOf(st.flow!));st.t=3300;run(st,90);
++  assert.ok(gate.some(t=>machineAt(st,t%G.tw,Math.floor(t/G.tw))?.hp===0));conserved(st);
++});
+--- P7-01/packages/sim/test/expansion.test.ts
++++ P7-02/packages/sim/test/expansion.test.ts
+@@ -60,7 +60,7 @@
+ });
+ test('old home preview upgrades deterministically without granting a kit; malformed expansion metadata is rejected',()=>{
+   const st=createCampaign();delete st.campaign!.expansion;delete st.campaign!.defence;delete st.campaign!.districts;delete st.campaign!.discovery;delete st.campaign!.recruits;st.campaign!.version=1;
+-  const a=loadState(st),b=loadState(st);assert.equal(a.campaign!.version,6);assert.equal(a.campaign!.expansion!.grantedAt,-1);assert.equal(stateHash(a),stateHash(b));
++  const a=loadState(st),b=loadState(st);assert.equal(a.campaign!.version,7);assert.equal(a.campaign!.expansion!.grantedAt,-1);assert.equal(stateHash(a),stateHash(b));
+   a.campaign!.expansion!.reward.tram=2;assert.throws(()=>loadState(a),/reward/);
+   b.campaign!.expansion!.stops[0][1]=ground(b).th;assert.throws(()=>loadState(b),/geometry/);
+ });
+@@ -79,5 +79,5 @@
+   const raw={kind:'relight-save',version:3,state:st,log:[],logComplete:true};
+   const prior=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
+   Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>JSON.stringify(raw)}});
+-  try{const loaded=await loadSnapshot('local:old-preview');assert.equal(loaded.state.campaign!.version,6);assert.equal(loaded.logComplete,false);assert.equal(loaded.saved?.state.campaign?.version,1);}finally{if(prior)Object.defineProperty(globalThis,'localStorage',prior);else Reflect.deleteProperty(globalThis,'localStorage');}
++  try{const loaded=await loadSnapshot('local:old-preview');assert.equal(loaded.state.campaign!.version,7);assert.equal(loaded.logComplete,false);assert.equal(loaded.saved?.state.campaign?.version,1);}finally{if(prior)Object.defineProperty(globalThis,'localStorage',prior);else Reflect.deleteProperty(globalThis,'localStorage');}
+ });
+--- P7-01/packages/tools/src/campaign-docsync.ts
++++ P7-02/packages/tools/src/campaign-docsync.ts
+@@ -1,6 +1,6 @@
+ /** Separate generated reference for the campaign; never rewrites legacy tables. */
+ import { readFileSync, writeFileSync } from 'node:fs';
+-import { UNDERGROUND_HIDDEN, SPLITTER_CAPACITY, SPLITTER_PER_S, MACHINE_COST, INSPECTION_WINDOW_TICKS, INSPECTION_SAMPLE_TICKS, TRUCK_RULES, INV_STACKS } from '@relight/sim';
++import { UNDERGROUND_HIDDEN, SPLITTER_CAPACITY, SPLITTER_PER_S, MACHINE_COST, MACHINE_SIZE, RECRUITS, recipeOf, INSPECTION_WINDOW_TICKS, INSPECTION_SAMPLE_TICKS, TRUCK_RULES, INV_STACKS } from '@relight/sim';
+ import { CAMPAIGN_RULESET, CAMPAIGN_RULES, OPENING_LAYOUT, EXPANSION, CAMPAIGN_POWER, DEFENCE, CAMPAIGN_THREAT, DISTRICT_ECONOMY, DISCOVERY, EXCAVATOR_PER_S, MACHINE_KW } from '@relight/sim';
+ export function syncCampaignDocs(path: string, check: boolean): void {
+   const expected = `# Campaign implementation reference
+@@ -18,7 +18,10 @@
+ | Daylight | ${CAMPAIGN_RULES.daylightSeconds} seconds |
+ | First major assault | Night ${CAMPAIGN_RULES.firstAssaultNight}; dawn target lock, dusk finite roster |
+ | Legacy frontier blooms, ammo ring and claims | Disabled in this profile |
+-| Campaign metadata | Version 5; old discovery-free previews add a once-only workshop cache and delay the guardian until the engineer is away; old district-free previews add sites without changing their existing defence schedule; older defence-free previews receive protected preparation |
++| Campaign metadata | Version 7; saved Electricians and Concrete crew recruitment; old earned electrical plans and existing factory/cache/defence history are retained; upgraded older logs are evidence, not current-code fresh replays |
++| Concrete crew | Separate reachable shelter; ${RECRUITS.concrete.clueRadius}-tile clue radius; recruit locally on foot, permanent plans, no new base |
++| Mixer | ${MACHINE_SIZE.mixer}×${MACHINE_SIZE.mixer}, ${MACHINE_COST.mixer.steel} steel + ${MACHINE_COST.mixer.copper} copper; ${MACHINE_KW.mixer} kW; ${recipeOf({kind:"mixer"}).inputs.stone} stone → 1 concrete every ${recipeOf({kind:"mixer"}).seconds}s; belt/inserter input, inserter output; provisional |
++| Barricade | ${MACHINE_SIZE.barricade}×${MACHINE_SIZE.barricade}, ${MACHINE_COST.barricade.steel} steel + ${MACHINE_COST.barricade.concrete} concrete; ${DEFENCE.barricadeHp} HP, no power; manual/workshop repair uses the existing paid 40-HP service; provisional |
+ | Station restoration | ${EXPANSION.station.steel} steel + ${EXPANSION.station.copper} copper, real local/connected power; provisional cost |
+ | Starter tram kit | One tram, two stops and route-length track, once-only station inventory |
+ | Physical truck | Restored second-area station; ${TRUCK_RULES.width}×${TRUCK_RULES.length} street footprint, rotates; ${TRUCK_RULES.stacks} saved cargo stacks separate from ${INV_STACKS} pocket stacks; speed ×${TRUCK_RULES.speedMultiplier}; local boarding within ${TRUCK_RULES.boardReach} tiles; valid adjacent exit; provisional |

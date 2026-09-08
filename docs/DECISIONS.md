@@ -39,6 +39,22 @@ The rows below govern Version 2. The owner is the current user in the voice conv
 
 | D-EX-27 | Continue with EX-09B Phase 5 implementation-readiness assessment. | decided | owner (current user) | 2026-09-07 | “Ok continue” after the P5-05 handoff named EX-09B next. | Review P5-01–05/T13–17 and retained RI-09 evidence; PHASE_5_READINESS_REPORT.md records the engineering assessment and limitations. This authorises the review, not owner approval of performance, balance or Phase 5 exit. Human observations, reference-machine validation, commit, merge and push are not implied. |
 
+| D-EX-28 | Review Phase 6 against implemented threats, retained standards and confirmed gameplay; define the remaining increments. | decided | owner (current user) | 2026-09-07 | “OK start the phase 6 review”, after confirming current-build factory, tram/truck and defence/recovery testing was successful. | P6-00 review and P6-01–04/P6-H scope in PHASE_6_SCOPE_REPORT.md; PROGRESS owns order, with shared EX-08B follow-up preparation after threat changes. This prioritises the requested review without retroactively completing EX-08B/H or T18. Existing Q01/02/03/06 apply; D-B4-3 remains legacy-only where current Q06 requires real turret damage. No new enemy, Q07 resolution, tuning approval, phase-pass verdict or implementation of all proposed increments is inferred. |
+
+| D-EX-29 | Implement P6-01 attack approach and lifecycle reliability. | decided | owner (current user) | 2026-09-07 | “Ok lets move to P6-01”. | Same-base/same-direction staging fallback, explicit recoverable deferral, physical withdrawal and saved schedule/roster validation per PHASE_6_SCOPE_REPORT.md. Local fallback distance and retry interval are provisional technical defaults; adopted clock, target locks and rest policy remain unchanged. P6_01_RELIABILITY_REPORT.md records implementation and actual verification. |
+
+| D-EX-31 | Implement and run P6-03 supplied-network defence evidence. | decided | owner (current user) | 2026-09-07 | “Nice! Move onto P6-03”. | Ordinary starting stock, live threats, paid commands and reach; seeds 3/4/5 and holdouts 8/11/13; explicit turret-only/personal-support comparison, costs, failures, supply interruption/recovery, conservation and saved/full replay. PHASE_6_SCOPE_REPORT.md defines acceptance. No new combat tuning, phase verdict or push is implied. |
+
+
+| D-EX-32 | Proceed with P6-04 engineering readiness review and defer the unreproduced ammunition report to owner retesting. | decided | owner (current user) | 2026-09-07 | “Continue onto P6-04. It might be fixed. I'll test after this”. | P6-AMMO remains unresolved awaiting the next playtest and no longer blocks P6-04. This authorises the review, not a claim that loading was fixed, a human Phase 6 verdict, combat tuning, shared session preparation, commit or push. |
+
+| D-EX-33 | Prepare EX-08B shared follow-up playtest build, starts, guide and blank record. | decided | owner (current user) | 2026-09-07 | “Onto the next one then” after EX-08B was named next. | Freeze reviewed source/build and identify reproducible starting conditions; verify normal light/power interaction and retain known findings. Credit earlier owner play, include ammo retesting and Phase 6 gaps, and keep all human observations and verdicts blank. No gameplay tuning, commit or push implied. |
+
+| D-EX-34 | Move shared playtesting after Phase 7 and begin its discovery scope review. | decided | owner (current user) | 2026-09-07 | “OK lets do the playtest after P7. Lets move onto P7”. | Supersedes EX-08-before-P7 sequencing: P7-00 reconciles the catalogue, adopted P7 implementation follows, EX-08C refreshes preparation, then shared human observations. EX-08B stays completed historical preparation; no human task is passed or waived. Q09 records the proposed catalogue separately; Q07 remains open for full progression/endgame. No commit or push implied. |
+
+| D-EX-35 | Adopt the reviewed P7 catalogue and continue with P7-01. | decided | owner (current user) | 2026-09-07 | “All looks good! Continue on with P7”. | Q09 adopted; P7-01 implements saved recruits and explicit local Electricians recruitment with earned-unlock/save compatibility. Later increments follow PROGRESS. Post-P7 play remains required; no phase verdict, commit or push implied. |
+| D-EX-36 | Implement P7-02 concrete production and Barricades. | decided | owner (current user) | 2026-09-08 | “Ok onto P7-02”. | Approved catalogue increment; initial Mixer 20 steel + 10 copper, 3×3, 60 kW, 2 stone → 1 concrete / 2s; Barricade 2 steel + 4 concrete, 240 HP. These are implementation tuning defaults, not a balance verdict. Shared play follows P7. |
+
 ### Supersession boundaries
 
 D-RI-1's Version 1 executable plan is superseded by D-EX-09; its adoption remains historical fact. D-RI-3's old scope boundaries are revised where D-EX permits discoveries, personal defence and scheduled assaults. D-RI-5's preservation of legacy evidence is retained; its old benchmark does not define Version 2 acceptance. D-RI-6's opening, adjacent-only establishment and encounter defaults require replacement contracts; unaffected implementation details can be reused.
@@ -53,6 +69,8 @@ The six decided rows below share D-EX-11's owner/date/quote provenance. EX-02 re
 
 | id | contract | status | adopted contract or remaining proposal | affects |
 |---|---|---|---|---|
+| D-EX-30 | Implement P6-02 defence information and navigation | Reviewed P6-02 scope only; G views a known threat, K returns to the engineer; shared sim action query and turret range | decided (scope); provisional (controls) | owner (scope); coding agent (controls) | 2026-09-07 | “continue” after the completed P6-01 handoff naming P6-02 next | No new threat precision, clock, damage or progression rule. PHASE_6_SCOPE_REPORT.md defines acceptance; automated and human results remain separate. |
+
 | D-EX-Q01 | Base identity, territory, station/corridor vulnerability, remote construction, retained rot/wells and loss/retake. | decided | D-EX-11; GDD §5. Home/station cores anchor fixed neighbourhoods; local powered establishment without a Held chain; no per-edge corridor pressure or ordinary frontier blooms; core defeat disables service and leaves a repairable site, layout and stock. | EX-03/04/05/06 |
 | D-EX-Q02 | Day duration, first assault, light effects, restoration scheduling, rest progression, minor raid rate/strength and overlap. | decided | D-EX-11; GDD §7. Initial 20-minute cycle (15 daylight/5 night), Nights 3/6/9 subject to two full quiet cycles after actual completion; one quiet cycle after third station base with automated resupply. Dawn target lock; restoration nominations coalesce; finite major roster, 3–5-minute duration target; two shared minor-raid opportunities/day, 8–12-enemy initial target; no visual-sun change to mechanical light. | EX-03/04/05 |
 | D-EX-Q03 | Radio unlock, lead time, precision, coverage/upgrades, power failures and targeting visibility. | decided | D-EX-11; GDD §7. Home-only major targeting before first radio restoration; then network eligibility permanently unlocked. Powered first tower names locked base at dawn; upgrade adds approach/composition. Slice-wide coverage; outages retain received warnings and never reroll targets. | EX-04/05 |
@@ -61,6 +79,7 @@ The six decided rows below share D-EX-11's owner/date/quote provenance. EX-02 re
 | D-EX-Q06 | Equipment, distinctive enemies, barriers/turrets, workshop service, damage, repair and defeat consequences. | decided | D-EX-11; GDD §13. Early wall/turret/rifle; recoverable disabled defences/core and protected production/cargo; supplied/powered workshop repair between attacks, paid manual repairs; existing knockdown/inventory retention. Field-repair-tool schematic at a Stalker-guarded workshop; exact equipment/rates/costs remain to specify. | EX-04/05/06/07 |
 | D-EX-Q07 | Full project progression, endgame kit/defence and campaign length. | open | Retain the Relight goal but derive requirements from the tested station economy after EX-08. | EX-09/10 |
 | D-EX-Q08 | Campaign location/unlock for the driven truck. | decided | Owner (current user), 2026-09-07, selected “At the restored second-area tram station (recommended)” in response to the Phase 5 truck question. Make a persistent truck available there after restoration. This adopts location/unlock, not a truck added to the carried tram kit, a new fuel chain or automatic Line truck behaviour; mechanical/capacity defaults are specified before implementation. | P5-04; active GDD §14 |
+| D-EX-Q09 | Revised Phase 7 facility/recruit catalogue and Phase 8 boundary. | decided | Owner (current user), 2026-09-07: “All looks good! Continue on with P7”, accepting PHASE_7_SCOPE_REPORT.md and the catalogue question. Local Electricians recruitment; Concrete crew with Mixer/Concrete/Barricade; riverside Turbine hall; optional Lamplighters/Arc lamp and Surveyors/district information; truthful discovery/recipe UI. Credit existing tram/radio/workshop/repair and direct turret feed. Foundry/Arsenal/Refinery/Chemist/endgame stay with wider reconciliation; Foreman/blueprint recruitment ships with working Phase 8 tools. Costs/rates/placement remain provisional; Q07 remains open. | P7-01–05 |
 
 ## Earlier decision register — historical and retained-rule provenance
 
@@ -238,3 +257,13 @@ and only lacks a name.
 - 2026-09-06 — Added D-EX-01–10 and Q01–07 from the voice discussion; specified partial supersession and retained provenance. No historical measurement or approval was rewritten.
 
 - 2026-09-06 — D-EX-11: owner accepted all recommendations; Q01–06 changed from open to decided with shared explicit provenance. Q07 stays open. Approved initial settings are not simulated or played evidence.
+
+
+### D-EX-37 — P7-03 implementation (2026-09-08)
+
+The owner’s “Ok onto P7-0” follows the completed P7-02 handoff naming P7-03 next; interpreted and announced as authorisation for that increment. Implements the already adopted Q09 catalogue: paid Turbine restoration, Lamplighters/Arc lamp and district-only Surveyors. Numerical tuning remains provisional; no human play result, later increment, commit or push is authorised by this request.
+
+
+### D-EX-38 — P7-04 implementation (2026-09-08)
+
+The owner requests “OK move onto P7-04”, authorising the adopted Q09 discovery and recipe information increment. Keep the opening station clue; remember other installation discoveries through exploration, preserve locations already exposed by old saves, and show actual service state and implemented item production/uses. Foreman/clipboard tools remain Phase 8. No gameplay tuning, human verdict or commit/push is implied.

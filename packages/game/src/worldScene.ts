@@ -30,16 +30,16 @@ import {
   lockReason, KIND_LABEL, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH,
   RECIPE_IDS, recipeOf, recipeOutput,
   threatActive, crawlerAt, describeCrawler, litAt, ENEMIES, ENGINEER_HP,
-  crawlerTarget, shadeTraces, shadeNear, TRACE_S, activeEmergencePoints, stalkersOf, stalkerAt, describeStalker, stalkerHp,
+  TURRET_RANGE, machineById, knownCampaignThreat, crawlerTarget, shadeTraces, shadeNear, TRACE_S, activeEmergencePoints, stalkersOf, stalkerAt, describeStalker, stalkerHp,
   lightMask, lightAt, canRepair, contestProgress, REPAIR_COPPER,
   heartOf, heartAt, cabinetAt, describeCabinet, describeHeart, cabinetConnected, cabinetRepairCheck, emergencePoint,   // RI-06
   blockLabel, machineStatus, MachineState, bearingOf,
   activationCheck, claimNeed, deliveredTo,
 } from '@relight/sim';
 import { Session, queue, dispatch } from './session';
-import { View, debugView, hudInset } from './view';
+import { View, debugView, hudInset, inspectionView } from './view';
 import { coreAt, defenceMax, defenceHp, defenceDescription, repairCheck } from '@relight/sim';
-import { campaignSiteAt, campaignSite, describeSite, SITE_IDS, persistentSource, discoveryAt, discoveryCheck, discoveryDescription, stalkerLayer } from '@relight/sim';
+import { knownSite, turbineAt, describeTurbine, ARC_LAMP_RADIUS, campaignSiteAt, campaignSite, describeSite, SITE_IDS, persistentSource, recruitAt, recruitCheck, recruitDescription, RECRUITS, discoveryAt, discoveryCheck, discoveryDescription, stalkerLayer } from '@relight/sim';
 import { extendBuildPath, pathEdits, constructionCheck, type TilePoint } from '@relight/sim';
 import { bound, MOVEMENT_KEYS } from './controls';
 import { toolForKey, toolKeyLine } from './buildCatalogue';
@@ -52,7 +52,7 @@ import { drawUrban } from './urbanDraw';
 const STATUS_GLYPH = FACTORY_STATUS_GLYPH;
 const STATUS_COL: Record<MachineState, number> = { running: 0x6fe08a, starved: 0xe8a93a, blocked: 0xe05a5a, idle: 0x9aa5b8, off: 0x9aa5b8 };
 /** Routine conveyor marks appear on hover; stopped devices expose their mark in place. */
-const STATUS_KIND = new Set<Kind>(['turret', 'generator', 'excavator', 'assembler', 'floodlight','inserter','underground','splitter','lamp','pole','bigpole','substation','tramstop']);
+const STATUS_KIND = new Set<Kind>(['arclamp','mixer','turret', 'generator', 'excavator', 'assembler', 'floodlight','inserter','underground','splitter','lamp','pole','bigpole','substation','tramstop']);
 
 /** GAME-ASSUMPTION: the constitution's 0.5–3× zoom, not §4's 1.0–0.2×; the doc is edited to this range (D-P4-1). */
 export const ZOOM_MIN = 0.5, ZOOM_MAX = 3, ZOOM_STEP = 1.15;
@@ -83,10 +83,10 @@ const RUBBLE_DARK = ['#616d6b', '#705540', '#4e676e', '#20282a'];
 const DEPOSIT_COL = ['#9a4c3a', '#1a1b20'];
 /** GAME-ASSUMPTION: flat item colours (steel blue, copper orange, stone grey, coal black, magazine brass; RI-01's wire
  *  a paler copper, frame a paler steel, board green) until the art pass. */
-const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a, wire: 0xf0a86a, frame: 0xb4c6e8, board: 0x5fae6a };
+const ITEM_COL: Record<string, number> = { steel: 0x7fa0d8, copper: 0xd9743a, stone: 0xc7ccd6, coal: 0x202126, magazine: 0xe6d45a, wire: 0xf0a86a, frame: 0xb4c6e8, concrete: 0xb8b4a2, board: 0x5fae6a };
 const MACHINE_COL: Record<Kind, number> = { excavator: 0x4d5a6a, belt: 0x2a2d36, inserter: 0x5a4a2a, assembler: 0x5a4a6a, depot: 0x0b0e1a,
-  turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a,
-  underground:0x4a5945, splitter:0x364759, wall: 0x858b91, chest: 0x4a4636, track: 0x3a3c44, tramstop: 0x3f4a5e, tram: 0xb0572a };   // RI-05: the supply chest and the rail kit (flat colours until the art pass)
+  arclamp: 0x9db4ca, turret: 0x3d4452, lamp: 0x6b6f7a, pole: 0x6e5a3a, generator: 0x5a2e2e, floodlight: 0x5c6270, bigpole: 0x7a6440, substation: 0x2b2f3a,
+  underground:0x4a5945, splitter:0x364759, mixer:0x797c64, barricade:0xc1bcae, wall: 0x858b91, chest: 0x4a4636, track: 0x3a3c44, tramstop: 0x3f4a5e, tram: 0xb0572a };   // RI-05: the supply chest and the rail kit (flat colours until the art pass)
 const LIGHT_COL = 0xffe9a0;
 /** M5 light map. GAME-ASSUMPTION: the unlit texel is a multiply of ~25 % with a cool cast (§4's "desaturated and
  *  darkened to ~25 %" — a multiply cannot desaturate, so the cast stands in for it until the Phase 12 art pass);
@@ -99,7 +99,7 @@ const UNLIT_RGB = [62, 66, 98], LIGHT_REFRESH_MS = 125, SWEEP_R = 16;
 const LIGHT_SOFT = 0.7;
 /** Layout pass, drawing only: the machines whose footprint is a box, so they take the common drop shadow and rim.
  *  Belts, inserters and the posts are not boxes — a rim per tile would draw a ladder down a belt run. */
-const BOX_MACHINE = new Set(['turret', 'floodlight', 'generator', 'excavator', 'assembler', 'bigpole', 'chest', 'tramstop']);   // RI-05: the chest and the stop are boxes too
+const BOX_MACHINE = new Set(['turret', 'floodlight', 'generator', 'excavator', 'assembler', 'mixer', 'bigpole', 'chest', 'tramstop']);   // RI-05: the chest and the stop are boxes too
 /** D-B5-1's hand lamp, drawing only: a 2-tile disc on the engineer in the light map when the human takes it (`?handlamp=1`). */
 const HAND_LAMP_R = 2;
 
@@ -180,6 +180,7 @@ export class WorldScene extends Phaser.Scene {
   private walkCloserToasted = false;
   private cursor = 'default';
   private snapped = false;
+  viewingThreat = false;
   /** Current tool and the direction the next machine faces. */
   tool: Tool = 'hand';
   dir: Dir = 1;
@@ -376,7 +377,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   setZoom(z: number): void {
-    const [sx, sy] = this.onFoot ? this.engineerScreen() : [this.cameras.main.width / 2, this.cameras.main.height / 2];
+    const [sx, sy] = this.onFoot && !this.viewingThreat ? this.engineerScreen() : [this.cameras.main.width / 2, this.cameras.main.height / 2];
     this.zoomAt(sx, sy, z / this.cameras.main.zoom);
   }
   get zoom(): number { return this.cameras.main.zoom; }
@@ -389,6 +390,15 @@ export class WorldScene extends Phaser.Scene {
     const p = i >= 0 ? G.blocks[i].pole : [G.tw / 2, G.th / 2];
     this.cameras.main.centerOn((p[0] + 0.5) * TILE_PX, (p[1] + 0.5) * TILE_PX);
   }
+
+  /** Explicit camera inspection leaves the engineer, selected tool and simulation untouched. */
+  viewThreat():void {
+    const target=knownCampaignThreat(this.st);if(!target)return;
+    if(this.input.activePointer.isDown){this.hooks.onToast('Release the pointer before viewing the threat');return;}
+    this.viewingThreat=true;
+    this.cameras.main.centerOn(target.x*TILE_PX,target.y*TILE_PX);
+  }
+  returnToEngineer():void {this.viewingThreat=false;this.snapped=false;}
 
   /** The block the map view gets on M: the engineer's on foot, else the one under the camera's centre. */
   focusBlock(): [number, number] {
@@ -464,6 +474,8 @@ export class WorldScene extends Phaser.Scene {
     const e = st.engineer;
     if(st.campaign&&(e.truckSeat||(h&&truckOccupies(st,h.tx,h.ty)))){const r=dispatch(this.session,{type:'factory',action:{type:'truckBoard'}});this.hooks.onToast(r.reason,r.ok?'good':'bad');return;}
     if(h&&st.campaign){const core=coreAt(st,h.tx,h.ty),m=machineAt(st,h.tx,h.ty);if((core&&core.hp<300)||(m&&defenceMax(m)>0&&defenceHp(m)<defenceMax(m))){const why=repairCheck(st,h.tx,h.ty);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'repairDefence',x:h.tx,y:h.ty});this.hooks.onToast('Repair queued. Stay within reach; materials pay for this repair once.');}return;}}
+    if(h){const s=turbineAt(st,h.tx,h.ty);if(s){if(s.restoredAt>=0)queue(this.session,{type:'setTurbineEnabled',enabled:!s.enabled});else{queue(this.session,{type:'deliverTurbine'});queue(this.session,{type:'restoreTurbine'});}this.hooks.onToast(describeTurbine(st));return;}}
+    if(h){const s=recruitAt(st,h.tx,h.ty);if(s){const why=recruitCheck(st,s.id);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'recruitSurvivors',id:s.id});this.hooks.onToast(`Recruiting the ${RECRUITS[s.kind].name}.`);}return;}}
     if(h&&discoveryAt(st,h.tx,h.ty)){const d=st.campaign!.discovery!,why=discoveryCheck(st,d.id);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'recoverSchematic',id:d.id});this.hooks.onToast('Recovering the field-repair schematic.');}return;}
     const site = h ? campaignSiteAt(st, h.tx, h.ty) : null;
     if (site) {
@@ -550,7 +562,7 @@ export class WorldScene extends Phaser.Scene {
     if (!st.campaign && e.truckFound) { queue(this.session, { type: 'enterTruck' }); this.hooks.onToast(e.truck ? 'Out of the truck' : 'In the truck — 3× walk speed, 200 stacks'); return; }
     const b = e.block >= 0 ? st.blocks[e.block] : null;
     const sv = b ? st.survivors.find(v => v.x === b.x && v.y === b.y) : undefined;
-    if (sv) { this.hooks.onToast(`${sv.name} (${sv.tag}): "${b!.state === HELD ? "We're in." : 'Light the street and we talk.'}"`); return; }
+    if (!st.campaign && sv) { this.hooks.onToast(`${sv.name} (${sv.tag}): "${b!.state === HELD ? "We're in." : 'Light the street and we talk.'}"`); return; }
     this.hooks.onToast('Nothing here to interact with — E opens the Depot chest, the workbench, a machine, the truck, a survivor group, or repairs a broken light');
   }
 
@@ -706,11 +718,13 @@ export class WorldScene extends Phaser.Scene {
     const defenceInfo=defenceDescription(st,tx,ty);if(defenceInfo)lines.unshift(defenceInfo);
     const source=persistentSource(st,tx,ty);
     if(source)lines.unshift(`${source.item.toUpperCase()} extraction · persistent source · powered excavator, 0.5 items/s · belt output to your station`);
-    if(discoveryAt(st,tx,ty))lines.unshift(discoveryDescription(st));
+    if(turbineAt(st,tx,ty)&&(st.campaign?.turbine?.seenAt??-1)>=0)lines.unshift(describeTurbine(st));
+    const recruit=recruitAt(st,tx,ty);if(recruit&&recruit.seenAt>=0)lines.unshift(recruitDescription(st,recruit));
+    if(discoveryAt(st,tx,ty)&&(st.campaign?.discovery?.seenAt??-1)>=0)lines.unshift(discoveryDescription(st));
     const campaignInstallation = campaignSiteAt(st, tx, ty);
-    if (campaignInstallation) lines.unshift(describeSite(st, campaignInstallation));
+    if (campaignInstallation && knownSite(st,campaignInstallation)) lines.unshift(describeSite(st, campaignInstallation));
     else if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
-    else if (st.flow && isSubstationTile(st, tx, ty)) {
+    else if (!st.campaign && st.flow && isSubstationTile(st, tx, ty)) {
       const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
       if (sub && heartAt(st, bi)) lines.unshift(`The Junction Heart · ${describeHeart(st)}`);   // RI-06: the objective, the active failure condition, the next action
       if (sub && st.blocks[bi].state === DARK) {
@@ -794,7 +808,9 @@ export class WorldScene extends Phaser.Scene {
       if (!typing && Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) queue(this.session, { type: 'dodge' });
       if (this.firing) this.sendAim(this.aimAt(this.input.activePointer));
       const e = this.st.engineer, gx = e.x * TILE_PX - cam.width / 2, gy = e.y * TILE_PX - cam.height / 2;
-      if (!this.snapped) { cam.setScroll(gx, gy); this.snapped = true; }
+      if(left||right||up||down)this.viewingThreat=false;
+      if(this.viewingThreat){ /* Hold the explicitly selected camera position. */ }
+      else if (!this.snapped) { cam.setScroll(gx, gy); this.snapped = true; }
       else { const k = Math.min(1, FOLLOW_PER_S * dt); cam.setScroll(cam.scrollX + (gx - cam.scrollX) * k, cam.scrollY + (gy - cam.scrollY) * k); }
     } else {
       const pan = PAN_PX_PER_S * dt / cam.zoom;
@@ -925,14 +941,28 @@ export class WorldScene extends Phaser.Scene {
     }
     if (st.campaign?.expansion) {
       for (const id of SITE_IDS) {
+        if(!knownSite(st,id))continue;
         const site=campaignSite(st,id)!; const name=id==='northStation'?'LATER STATION / E':id==='workshop'?'REPAIR WORKSHOP / E':id==='station'?'TRAM STATION / E':'RADIO TOWER / E';
         if (site.x < tx0 || site.x > tx1 || site.y < ty0 || site.y > ty1) continue;
         let label = this.labels[li]; if (!label) { label = this.add.text(0, 0, '', { fontSize: '12px', color: '#f2d38b', backgroundColor: '#0b0e1aaa', padding: { x: 4, y: 2 } }).setDepth(5); this.labels.push(label); }
         label.setText(name).setPosition(site.x * TILE_PX, (site.y - (id==='workshop'?2:1)) * TILE_PX).setScale(1 / cam.zoom).setVisible(true); li++;
       }
     }
+    const hall=st.campaign?.turbine;
+    if(hall&&hall.seenAt>=0){
+      g.fillStyle(hall.restoredAt>=0&&hall.enabled?0x589f9e:0x655a51,1);g.fillRect(hall.x*TILE_PX,hall.y*TILE_PX,hall.size*TILE_PX,hall.size*TILE_PX);
+      g.lineStyle(2/cam.zoom,0xbadbd7,1);g.strokeRect(hall.x*TILE_PX,hall.y*TILE_PX,hall.size*TILE_PX,hall.size*TILE_PX);
+      const label=this.labels[li]??(this.labels[li]=this.add.text(0,0,'',{fontSize:'12px',color:'#dcece9',backgroundColor:'#10191de0'}).setDepth(15));
+      label.setText(`TURBINE / ${hall.restoredAt<0?'RESTORE':hall.enabled?'ON':'OFF'} / E`).setPosition(hall.x*TILE_PX,(hall.y-1)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
+    }
+    for(const s of st.campaign?.recruits?.sites??[]) {
+      if(s.seenAt<0||s.x<tx0||s.x>tx1||s.y<ty0||s.y>ty1)continue;
+      let label=this.labels[li];if(!label){label=this.add.text(0,0,'',{fontSize:'12px',color:'#c5e4ff',backgroundColor:'#0b0e1add',padding:{x:4,y:2}}).setDepth(5);this.labels.push(label);}
+      label.setText(`${RECRUITS[s.kind].name.toUpperCase()} / ${s.recruitedAt>=0?'RECRUITED':'E'}`).setPosition(s.x*TILE_PX,(s.y-1)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
+      g.fillStyle(s.recruitedAt>=0?0x526c67:0x97cdff,1);g.fillRect((s.x+.1)*TILE_PX,(s.y+.1)*TILE_PX,.8*TILE_PX,.8*TILE_PX);
+    }
     const discovery=st.campaign?.discovery;
-    if(discovery&&discovery.x>=tx0&&discovery.x<=tx1&&discovery.y>=ty0&&discovery.y<=ty1){
+    if(discovery&&discovery.seenAt>=0&&discovery.x>=tx0&&discovery.x<=tx1&&discovery.y>=ty0&&discovery.y<=ty1){
       const d=discovery;let label=this.labels[li];if(!label){label=this.add.text(0,0,'',{fontSize:'12px',color:'#9de9d2',backgroundColor:'#0b0e1add',padding:{x:4,y:2}}).setDepth(5);this.labels.push(label);}
       label.setText(d.recoveredAt>=0?'WORKSHOP RECORDS / EMPTY':'OPTIONAL: WORKSHOP RECORDS / E').setPosition(d.x*TILE_PX,(d.y-2)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
       g.fillStyle(d.recoveredAt>=0?0x526c67:0x75d3b7,1);g.fillRect((d.x+.15)*TILE_PX,(d.y+.15)*TILE_PX,.7*TILE_PX,.7*TILE_PX);
@@ -952,7 +982,7 @@ export class WorldScene extends Phaser.Scene {
     }
     this.drawKerbPips(g);
     drawUrban(this.gUrban, st, G, vis, cam.zoom);
-    if (this.tool === 'lamp' || this.tool === 'floodlight' || this.tool === 'rifle') {
+    if (this.tool === 'arclamp' || this.tool === 'lamp' || this.tool === 'floodlight' || this.tool === 'rifle') {
       // Binary simulation coverage, not the rendering falloff. In particular an unlit Shade
       // interaction never relies on judging the brightness of a pavement or a window.
       g.lineStyle(1 / cam.zoom, 0xffe6a6, 0.55);
@@ -965,6 +995,8 @@ export class WorldScene extends Phaser.Scene {
         if (!lit[y * tw + x + 1]) g.lineBetween(px + TILE_PX, py, px + TILE_PX, py + TILE_PX);
       }
     }
+    const inspected=inspectionView.machineId===null?null:machineById(st,inspectionView.machineId);
+    if(inspected?.kind==='turret')this.drawTurretRange(g,inspected.x+inspected.size/2,inspected.y+inspected.size/2);
     this.drawGhost(g);
     this.drawThreat();
     this.drawEngineer();
@@ -1293,6 +1325,13 @@ export class WorldScene extends Phaser.Scene {
     return `\nPower ${mw(p.load)} / ${mw(p.supply)} MW (demand ${mw(p.demand)})${state} · Generators ${fs.generatorsBurning}/${fs.generators} burning, ${Math.floor(fs.genCoal)} coal · lamps ${fs.lampsLit}/${fs.lamps} lit · brownout ${Math.round(fs.brownoutS)} s`;
   }
 
+  private drawTurretRange(g:Phaser.GameObjects.Graphics,x:number,y:number):void {
+    const zoom=this.cameras.main.zoom,r=TURRET_RANGE*TILE_PX,px=x*TILE_PX,py=y*TILE_PX;
+    g.lineStyle(4/zoom,0x05070f,.95);g.strokeCircle(px,py,r);
+    g.lineStyle(2/zoom,0xffe6a6,1);g.strokeCircle(px,py,r);
+    for(const [dx,dy] of [[0,1],[1,0],[0,-1],[-1,0]])g.lineBetween(px+dx*(r-5/zoom),py+dy*(r-5/zoom),px+dx*(r+5/zoom),py+dy*(r+5/zoom));
+  }
+
   /** The tool's footprint under the pointer, green when it can go there, red with the reason otherwise. */
   private drawGhost(g: Phaser.GameObjects.Graphics): void {
     const st = this.st, h = this.hoverTile;
@@ -1333,15 +1372,16 @@ export class WorldScene extends Phaser.Scene {
     g.fillStyle(col, 0.25); g.fillRect(ox * TILE_PX, oy * TILE_PX, width * TILE_PX, height * TILE_PX);
     g.lineStyle(2 / this.cameras.main.zoom, col, 0.9); g.strokeRect(ox * TILE_PX, oy * TILE_PX, width * TILE_PX, height * TILE_PX);
     const gcx = (ox + width / 2) * TILE_PX, gcy = (oy + height / 2) * TILE_PX;
-    if (kind === 'pole' || kind === 'bigpole') { g.lineStyle(1 / this.cameras.main.zoom, col, 0.6); g.strokeCircle(gcx, gcy, (kind === 'bigpole' ? BIG_POLE_REACH : POLE_REACH) * TILE_PX); }
-    else if (kind === 'lamp') { g.lineStyle(1 / this.cameras.main.zoom, LIGHT_COL, 0.6); g.strokeCircle(gcx, gcy, 4 * TILE_PX); }
+    if(kind==='turret'){this.drawTurretRange(g,gcx/TILE_PX,gcy/TILE_PX);this.ghostReason+=` · range ${TURRET_RANGE} tiles`;}
+    else if (kind === 'pole' || kind === 'bigpole') { g.lineStyle(1 / this.cameras.main.zoom, col, 0.6); g.strokeCircle(gcx, gcy, (kind === 'bigpole' ? BIG_POLE_REACH : POLE_REACH) * TILE_PX); }
+    else if (kind === 'lamp' || kind === 'arclamp') { g.lineStyle(1 / this.cameras.main.zoom, LIGHT_COL, 0.6); g.strokeCircle(gcx, gcy, (kind==='arclamp'?ARC_LAMP_RADIUS:4) * TILE_PX); }
     else if (kind === 'floodlight') {
       // the cone it would throw (M3: 12 tiles, 60° about the facing)
       const a = Math.atan2(DY[this.dir], DX[this.dir]);
       g.lineStyle(1 / this.cameras.main.zoom, LIGHT_COL, 0.6); g.beginPath(); g.slice(gcx, gcy, FLOODLIGHT_RANGE * TILE_PX, a - FLOODLIGHT_HALF_ANGLE, a + FLOODLIGHT_HALF_ANGLE, false); g.closePath(); g.strokePath();
       this.arrow(g, gcx, gcy, this.dir, size * HALF - 4, col, 0.9);
     }
-    else if (kind !== 'turret' && kind !== 'substation') this.arrow(g, gcx, gcy, this.dir, size * HALF - 4, col, 0.9);
+    else if (kind !== 'substation') this.arrow(g, gcx, gcy, this.dir, size * HALF - 4, col, 0.9);
   }
 
   /** RI-05: a pool's contents as item-coloured squares, one per ten items (rounded up), at most perRow × rows. */
@@ -1413,7 +1453,7 @@ export class WorldScene extends Phaser.Scene {
       if (box || m.kind === 'depot') { g.fillStyle(0x05070d, 0.5); g.fillRect(px + 5, py + 6, sz - 4, sz - 4); }
       if(st.campaign&&defenceMax(m)>0){const hp=defenceHp(m);g.fillStyle(hp===0?0xd55b57:0x6bcc91,1);g.fillRect(px,py-5,sz*hp/defenceMax(m),3);if(hp===0){g.lineStyle(2,0xd55b57,1);g.lineBetween(px,py,px+sz,py+sz);g.lineBetween(px+sz,py,px,py+sz);}}
       switch (m.kind) {
-        case 'wall': { g.fillStyle(defenceHp(m)>0?MACHINE_COL.wall:0x423c3b,1);g.fillRect(px+2,py+2,sz-4,sz-4);g.lineStyle(2,0x292c32,1);g.lineBetween(px+2,cy,px+sz-2,cy);break; }
+        case 'barricade': case 'wall': { g.fillStyle(defenceHp(m)>0?MACHINE_COL[m.kind]:0x423c3b,1);g.fillRect(px+2,py+2,sz-4,sz-4);g.lineStyle(2,0x292c32,1);g.lineBetween(px+2,cy,px+sz-2,cy);break; }
         case 'turret': {
           const rounds = m.inv.rounds ?? 0, frac = Math.min(1, rounds / TURRET_HOPPER);
           g.fillStyle(MACHINE_COL.turret, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
@@ -1429,11 +1469,11 @@ export class WorldScene extends Phaser.Scene {
           if (!m.busy) { g.lineStyle(1.5 / zoom, 0x8a8f9a, 0.6); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12); }
           break;
         }
-        case 'lamp': {
+        case 'arclamp': case 'lamp': {
           const on = lit.has(m.x * 4096 + m.y);
           const dim = on && shades && flick && shadeNear(st, m.x, m.y);   // RI-04: the same flicker on a lamp near a shade
           g.fillStyle(0x05070d, 0.5); g.fillRect(cx - 6, py + 6, 12, TILE_PX - 8);
-          g.fillStyle(MACHINE_COL.lamp, 1); g.fillRect(cx - 3, py + 8, 6, TILE_PX - 12);
+          g.fillStyle(MACHINE_COL[m.kind], 1); g.fillRect(cx - 3, py + 8, 6, TILE_PX - 12);
           g.fillStyle(dim ? 0xb0a070 : on ? 0xfff3b0 : 0x3a3a40, 1); g.fillCircle(cx, py + 9, 6);
           if (on) { g.fillStyle(LIGHT_COL, dim ? 0.12 : 0.35); g.fillCircle(cx, py + 9, 9); }
           break;
@@ -1563,8 +1603,8 @@ export class WorldScene extends Phaser.Scene {
           if (m.hold) { const [ox, oy] = outputTile(m); g.fillStyle(ITEM_COL[m.hold], 1); g.fillRect((ox + 0.5) * TILE_PX - 4 - DX[m.dir] * 10, (oy + 0.5) * TILE_PX - 4 - DY[m.dir] * 10, 8, 8); }
           break;
         }
-        case 'assembler': {
-          g.fillStyle(MACHINE_COL.assembler, 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
+        case 'mixer': case 'assembler': {
+          g.fillStyle(MACHINE_COL[m.kind], 1); g.fillRect(px + 2, py + 2, sz - 4, sz - 4);
           g.lineStyle(2, 0x33293d, 1); g.strokeRect(px + 6, py + 6, sz - 12, sz - 12);
           this.arrow(g, cx, cy, m.dir, sz / 2 - 2, 0xd8d0e8, 0.7);
           // progress bar and the input/output counts as item squares, in the recipe's own items (RI-01: one row an input)

@@ -64,6 +64,36 @@ export function campaignOrigin(st:SimState,base:BaseCore):number {
   }
   return best;
 }
+/** Keep the locked compass approach. Occupied entry tiles never require spawning inside a wall.
+ * Provisional local search: at most 12 ground-path steps, stable path-distance/tile tie-break. */
+export function campaignStaging(st:SimState,base:BaseCore,origin:number):number {
+  const G=ground(st),tw=G.tw,ox=origin%tw,oy=Math.floor(origin/tw);
+  const toCore=field(st,base.x,base.y,base.size,true),bounds=G.opening!.bounds;
+  const approach=headingWord([ox-base.x,oy-base.y]);
+  const valid=(x:number,y:number):boolean=>{
+    if(!inGround(G,x,y))return false;
+    const t=y*tw+x,d=toCore.dist[t];
+    if(d<20||d>60||!passable(st,x,y)||st.flow!.occ[t]!==undefined)return false;
+    if(base.block===st.campaign!.homeBlock&&x>=bounds.x&&x<bounds.x+bounds.size&&y>=bounds.y&&y<bounds.y+bounds.size)return false;
+    return Math.hypot(st.engineer.x-x-.5,st.engineer.y-y-.5)>=8&&headingWord([x-base.x,y-base.y])===approach;
+  };
+  if(valid(ox,oy))return origin;
+  // Only the original tile may be obstructed. Do not choose a new birth point through another wall,
+  // or closer to the core than the advertised entry; defence construction must not be bypassed.
+  const queue=[{tile:origin,distance:0}],seen=new Set([origin]);let best=-1,distance=Infinity;
+  for(let head=0;head<queue.length;head++) {
+    const {tile:t,distance:d}=queue[head],x=t%tw,y=Math.floor(t/tw);
+    if(d>distance)break;
+    if(toCore.dist[t]>=toCore.dist[origin]&&valid(x,y)&&(d<distance||t<best)){best=t;distance=d;}
+    if(d>=12)continue;
+    for(let k=0;k<4;k++) {
+      const xx=x+DX[k],yy=y+DY[k],q=yy*tw+xx;
+      if(!inGround(G,xx,yy)||seen.has(q)||!hostileOpen(st,xx,yy))continue;
+      seen.add(q);queue.push({tile:q,distance:d+1});
+    }
+  }
+  return best;
+}
 function eligible(st:SimState,major:boolean):BaseCore[] {
   const d=st.campaign!.defence!,network=(st.campaign!.expansion?.radio.restoredAt??-1)>=0;
   return d.bases.filter(b=>b.hp>0&&(!major||network||b.block===st.campaign!.homeBlock));
@@ -108,16 +138,29 @@ export function restorationWindow(st:SimState):string {
   const d=st.campaign?.defence;if(!d)return '';
   return d.major?'Today’s major target is locked; restoration can nominate a later assault.':`Restoration can nominate Night ${Math.floor(d.nextDawn/DAY)+1}; protected rest days remain.`;
 }
+/** Presentation may navigate only received intelligence, the guaranteed home target, raids or recovery. */
+export function knownCampaignThreat(st:SimState):{block:number;phase:'warning'|'assault'|'withdrawal'|'minor raid'|'recovery';x:number;y:number}|null {
+  const d=st.campaign?.defence;if(!d)return null;
+  const a=d.major,w=d.warning;
+  let block:number|undefined,phase:'warning'|'assault'|'withdrawal'|'minor raid'|'recovery';
+  // A current local raid takes priority over a future dusk warning.
+  if(d.minor){block=d.minor.block;phase=d.minor.retreat?'withdrawal':'minor raid';}
+  else if(a){
+    block=w?.assault===a.id?w.block:(st.campaign?.expansion?.radio.restoredAt??-1)<0?st.campaign!.homeBlock:undefined;
+    phase=a.retreat?'withdrawal':st.t>=a.startsAt?'assault':'warning';
+  }else {block=d.bases.find(b=>b.hp===0)?.block;phase='recovery';}
+  const core=block===undefined?undefined:baseCore(st,block);
+  return core?{block:core.block,phase,x:core.x+core.size/2,y:core.y+core.size/2}:null;
+}
 export function campaignWarning(st:SimState):string {
   const d=st.campaign?.defence;if(!d)return '';
   const a=d.major,w=d.warning;
   if(a) {
     const known=w?.assault===a.id,homeOnly=(st.campaign?.expansion?.radio.restoredAt??-1)<0;
     const target=known?blockName(st,w.block):homeOnly?'Home Court':'target unknown — radio offline';
-    const timing=a.retreat?'attackers withdrawing':st.t>=a.startsAt?'assault underway':`assault at dusk in ${Math.ceil((a.startsAt-st.t)/60)} min`;
-    const blocked=st.t>=a.startsAt&&a.remaining>0&&st.t>a.nextSpawn+5;
+    const timing=a.retreat?'attackers withdrawing':a.waiting==='minor'?'assault delayed until the minor raid withdraws':a.waiting==='approach'?'assault delayed — no clear staging ground on the locked approach; waiting to resume':st.t>=a.startsAt?'assault underway':`assault at dusk in ${Math.ceil((a.startsAt-st.t)/60)} min`;
     const homeApproach=['north','east','south','west'][ground(st).opening!.direction];
-    return `${target}: ${timing}${homeOnly?` · ${homeApproach} entrance`:known&&w.approach?` · approach ${w.approach} · ${w.composition}`:''}${known&&!radioPowered(st)?' · last received warning (radio offline)':''}${blocked?' · remaining attackers waiting at an obstructed approach':''}`;
+    return `${d.minor?`Minor raid at ${blockName(st,d.minor.block)}${d.minor.retreat?' · withdrawing':''}. `:''}${target}: ${timing}${homeOnly?` · ${homeApproach} entrance`:known&&w.approach?` · approach ${w.approach} · ${w.composition}`:''}${known&&!radioPowered(st)?' · last received warning (radio offline)':''}`;
   }
   if(d.minor)return `Minor raid at ${blockName(st,d.minor.block)}${d.minor.retreat?' · withdrawing':''}`;
   const disabled=d.bases.find(b=>b.hp===0);
@@ -131,7 +174,7 @@ export function tickCampaignSchedule(st:SimState,T:ThreatState):void {
     site.spawned=true;birth(st,T,site.block,site.tile,'site',site.id);
   }
   if(d.minor&&!T.crawlers.some(c=>c.campaign?.layer==='minor'&&c.campaign.group===d.minor!.id))d.minor=null;
-  if(d.major&&st.t>=d.major.startsAt&&d.major.remaining===0&&!T.crawlers.some(c=>c.campaign?.layer==='major'&&c.campaign.group===d.major!.id)) {
+  if(d.major&&!d.minor&&st.t>=d.major.startsAt&&d.major.remaining===0&&!T.crawlers.some(c=>c.campaign?.layer==='major'&&c.campaign.group===d.major!.id)) {
     const a=d.major;
     d.history.push({id:a.id,block:a.block,started:a.startsAt,ended:st.t,defeated:a.retreat,spawned:d.majorSpawned});
     if(d.history.length>32)d.history.shift();
@@ -153,14 +196,19 @@ export function tickCampaignSchedule(st:SimState,T:ThreatState):void {
   receiveWarning(st);
   const a=d.major;
   if(a&&st.t>=a.startsAt) {
-    if(d.minor)d.minor.retreat=true;
+    if(d.minor){d.minor.retreat=true;if(!a.retreat)a.waiting='minor';}
+    else if(a.waiting==='minor')delete a.waiting;
     // A departing small raid must finish before the major roster appears; no overlapping base targets.
     if(!d.minor&&!a.retreat&&a.remaining>0&&st.t>=a.nextSpawn) {
-      const G=ground(st),core=baseCore(st,a.block)!;
-      if(core.hp===0){a.retreat=true;a.remaining=0;}
-      else if(passable(st,a.origin%G.tw,Math.floor(a.origin/G.tw))&&field(st,core.x,core.y,core.size,true).dist[a.origin]>=0) {
-        birth(st,T,a.block,a.origin,'major',a.id);a.remaining--;d.majorSpawned++;a.nextSpawn=st.t+CAMPAIGN_THREAT.spawnEvery;
-      }else d.notice='Assault approach obstructed; remaining attackers are waiting outside.';
+      const core=baseCore(st,a.block)!;
+      if(core.hp===0){a.retreat=true;a.remaining=0;delete a.waiting;}
+      else {
+        const staging=campaignStaging(st,core,a.origin);
+        if(staging>=0) {
+          birth(st,T,a.block,staging,'major',a.id);a.remaining--;d.majorSpawned++;a.nextSpawn=st.t+CAMPAIGN_THREAT.spawnEvery;
+          delete a.waiting;
+        }else {a.waiting='approach';a.nextSpawn=st.t+1;}
+      }
     }
   }
   const day=Math.floor(st.t/DAY),elapsed=st.t%DAY;
@@ -174,14 +222,49 @@ export function tickCampaignSchedule(st:SimState,T:ThreatState):void {
     for(let n=0;n<count;n++)birth(st,T,base.block,origin,'minor',id);
   }
 }
-function walkField(st:SimState,c:Crawler,fld:Field,dt:number):boolean {
-  const G=ground(st),tw=G.tw,t=Math.floor(c.y)*tw+Math.floor(c.x),meta=c.campaign!;
-  if(fld.dist[t]===0&&meta.waypoint===undefined){return true;}
-  let next=meta.waypoint??-1;
+function fieldStep(st:SimState,c:Crawler,fld:Field,ignoreWaypoint=false):number {
+  const G=ground(st),tw=G.tw,t=Math.floor(c.y)*tw+Math.floor(c.x);
+  let next=ignoreWaypoint?-1:c.campaign!.waypoint??-1;
   if(next<0) {
     let best=fld.dist[t]<0?Infinity:fld.dist[t];
     for(let k=0;k<4;k++){const xx=Math.floor(c.x)+DX[k],yy=Math.floor(c.y)+DY[k],q=yy*tw+xx;if(!inGround(G,xx,yy)||fld.dist[q]<0||fld.dist[q]>=best)continue;best=fld.dist[q];next=q;}
   }
+  return next;
+}
+export interface CampaignAction {
+  action:'attack'|'breach'|'pursue'|'advance'|'withdraw'|'guard'|'blocked';
+  tx:number;ty:number;what:'you'|'wall'|'barricade'|'turret'|'base core'|'exit'|'ruin';
+  destination:'base core'|'exit'|'ruin';
+}
+/** Read-only immediate decision, also consumed by the damage/movement tick. No saved UI state. */
+export function campaignCrawlerAction(st:SimState,c:Crawler):CampaignAction {
+  const meta=c.campaign!,G=ground(st),e=st.engineer,d=st.campaign!.defence!;
+  const origin={tx:meta.origin%G.tw,ty:Math.floor(meta.origin/G.tw)};
+  const player={tx:Math.floor(e.x),ty:Math.floor(e.y),what:'you' as const};
+  if(meta.layer==='site') {
+    const near=e.down<0&&Math.hypot(e.x-origin.tx-.5,e.y-origin.ty-.5)<=CAMPAIGN_THREAT.guardLeash&&Math.hypot(e.x-c.x,e.y-c.y)<=CAMPAIGN_THREAT.guardNotice;
+    return near?{...player,action:Math.hypot(e.x-c.x,e.y-c.y)<=1.2?'attack':'pursue',destination:'ruin'}:{...origin,what:'ruin',action:'guard',destination:'ruin'};
+  }
+  const group=meta.layer==='major'?d.major:d.minor,core=baseCore(st,c.to);
+  const retreat=!group||group.retreat||!core||core.hp===0;
+  const destination=retreat?'exit':'base core';
+  if(!retreat) {
+    if(e.down<0&&e.dash<=0&&Math.hypot(e.x-c.x,e.y-c.y)<=1.2)return {...player,action:'attack',destination};
+    if(c.onPlayer&&e.down<0&&Math.hypot(e.x-core.x,e.y-core.y)<25&&Math.hypot(e.x-c.x,e.y-c.y)<8)return {...player,action:'pursue',destination};
+    const nearby=st.flow!.machines.find(m=>m.kind==='turret'&&defenceHp(m)>0&&Math.hypot(c.x-m.x-m.size/2,c.y-m.y-m.size/2)<2);
+    if(nearby)return {tx:nearby.x,ty:nearby.y,what:'turret',action:'attack',destination};
+  }
+  const x=retreat?origin.tx:core.x,y=retreat?origin.ty:core.y,size=retreat?0:core.size;
+  const fld=route(st,c,x,y,size),t=Math.floor(c.y)*G.tw+Math.floor(c.x),reset=retreat&&!meta.withdrawing;
+  if(fld.dist[t]===0&&(reset||meta.waypoint===undefined))return {tx:x,ty:y,what:destination,action:retreat?'withdraw':'attack',destination};
+  const next=fieldStep(st,c,fld,reset),tx=next%G.tw,ty=Math.floor(next/G.tw),m=next<0?undefined:machineAt(st,tx,ty);
+  if(m&&defenceMax(m)>0&&defenceHp(m)>0)return {tx:m.x,ty:m.y,what:m.kind as 'wall'|'barricade'|'turret',action:'breach',destination};
+  return {tx:x,ty:y,what:destination,action:next<0||!hostileOpen(st,tx,ty)?'blocked':retreat?'withdraw':'advance',destination};
+}
+function walkField(st:SimState,c:Crawler,fld:Field,dt:number):boolean {
+  const G=ground(st),tw=G.tw,t=Math.floor(c.y)*tw+Math.floor(c.x),meta=c.campaign!;
+  if(fld.dist[t]===0&&meta.waypoint===undefined)return true;
+  const next=fieldStep(st,c,fld);
   if(next<0){c.stuck+=dt;return false;}
   const x=next%tw,y=Math.floor(next/tw),m=machineAt(st,x,y);
   if(m&&defenceMax(m)>0&&defenceHp(m)>0){damageDefence(st,m,CAMPAIGN_THREAT.structureDps*dt);delete meta.waypoint;return false;}
@@ -193,36 +276,35 @@ function walkField(st:SimState,c:Crawler,fld:Field,dt:number):boolean {
 /** Called before the shared turret/rifle tick. Site bodies never become base attackers. */
 export function tickCampaignThreat(st:SimState,T:ThreatState,dt:number):void {
   initDefence(st);tickRepair(st,dt);tickCampaignSchedule(st,T);
-  const d=st.campaign!.defence!,G=ground(st),e=st.engineer;
+  const G=ground(st),e=st.engineer;
   for(const c of [...T.crawlers]) {
     const meta=c.campaign;if(!meta)continue;
+    const action=campaignCrawlerAction(st,c);
     if(meta.layer==='site') {
-      const x=meta.origin%G.tw+.5,y=Math.floor(meta.origin/G.tw)+.5;
-      const near=e.down<0&&Math.hypot(e.x-x,e.y-y)<=CAMPAIGN_THREAT.guardLeash&&Math.hypot(e.x-c.x,e.y-c.y)<=CAMPAIGN_THREAT.guardNotice;
-      c.onPlayer=near;
-      if(near&&Math.hypot(e.x-c.x,e.y-c.y)<=1.2){if(e.dash<=0)hurt(st,CAMPAIGN_THREAT.contactDps*dt);T.dangerS+=dt;}
-      else stepToward(st,G,c,near?e.x:x,near?e.y:y,CAMPAIGN_THREAT.speed*dt);
+      c.onPlayer=action.what==='you';
+      if(action.action==='attack'){if(e.dash<=0)hurt(st,CAMPAIGN_THREAT.contactDps*dt);T.dangerS+=dt;}
+      else stepToward(st,G,c,c.onPlayer?e.x:action.tx+.5,c.onPlayer?e.y:action.ty+.5,CAMPAIGN_THREAT.speed*dt);
       continue;
     }
-    const group=meta.layer==='major'?d.major:d.minor,core=baseCore(st,c.to);
-    const retreat=!group||group.retreat||!core||core.hp===0;
-    if(retreat) {
+    if(action.destination==='exit') {
+      if(!meta.withdrawing){delete meta.waypoint;meta.withdrawing=true;}
       c.onPlayer=false;const x=meta.origin%G.tw,y=Math.floor(meta.origin/G.tw);
       if(walkField(st,c,route(st,c,x,y,0),dt))T.crawlers.splice(T.crawlers.indexOf(c),1);
       continue;
     }
-    if(e.down<0&&e.dash<=0&&Math.hypot(e.x-c.x,e.y-c.y)<=1.2){hurt(st,CAMPAIGN_THREAT.contactDps*dt);T.dangerS+=dt;continue;}
-    // A shot draws nearby retaliation; leaving the base's vicinity releases the pursuer.
-    if(c.onPlayer&&e.down<0&&Math.hypot(e.x-core.x,e.y-core.y)<25&&Math.hypot(e.x-c.x,e.y-c.y)<8) {
-      stepToward(st,G,c,e.x,e.y,CAMPAIGN_THREAT.speed*dt);continue;
+    if(action.what==='you') {
+      if(action.action==='attack'){hurt(st,CAMPAIGN_THREAT.contactDps*dt);T.dangerS+=dt;}
+      else {delete meta.waypoint;stepToward(st,G,c,e.x,e.y,CAMPAIGN_THREAT.speed*dt);}
+      continue;
     }
     c.onPlayer=false;
-    const nearby=st.flow!.machines.find(m=>m.kind==='turret'&&defenceHp(m)>0&&Math.hypot(c.x-m.x-m.size/2,c.y-m.y-m.size/2)<2);
-    if(nearby){damageDefence(st,nearby,CAMPAIGN_THREAT.structureDps*dt);continue;}
+    if(action.action==='attack'&&action.what==='turret'){damageDefence(st,machineAt(st,action.tx,action.ty)!,CAMPAIGN_THREAT.structureDps*dt);continue;}
+    const core=baseCore(st,c.to)!;
     if(walkField(st,c,route(st,c,core.x,core.y,core.size),dt))damageCore(st,core,CAMPAIGN_THREAT.structureDps*dt);
   }
 }
 export function describeCampaignCrawler(st:SimState,c:Crawler):string {
-  const meta=c.campaign!;
-  return `Crawler · ${Math.ceil(c.hp)}/12 HP · ${meta.layer==='site'?'ruin guardian (leashed)':`${meta.layer==='major'?'major assault':'minor raid'} at ${blockName(st,c.to)}`}${c.stuck>1?' · approach obstructed':''}`;
+  const meta=c.campaign!,a=campaignCrawlerAction(st,c);
+  const verb={attack:'attacking',breach:'breaching',pursue:'pursuing',advance:'advancing toward',withdraw:'withdrawing toward',guard:'guarding',blocked:'route blocked toward'}[a.action];
+  return `Crawler · ${Math.ceil(c.hp)}/12 HP · ${meta.layer==='site'?'ruin guardian (leashed)':`${meta.layer==='major'?'major assault':'minor raid'} at ${blockName(st,c.to)}`} · now ${verb} ${a.what} · destination: ${a.destination}${c.stuck>1?' · approach obstructed':''}`;
 }

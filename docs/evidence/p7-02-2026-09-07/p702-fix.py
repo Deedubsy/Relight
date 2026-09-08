@@ -1,0 +1,28 @@
+from pathlib import Path
+def edit(n,a,b):
+ p=Path(n);s=p.read_text(encoding='utf-8');assert a in s,(n,a);p.write_bytes(s.replace(a,b).encode('utf-8'))
+f='packages/sim/src/flow.ts'
+edit(f,"export type Item = 'steel' | 'copper' | 'stone' | 'coal' | 'magazine' | 'wire' | 'frame' | 'board';","export type Item = 'steel' | 'copper' | 'stone' | 'coal' | 'magazine' | 'wire' | 'frame' | 'board' | 'concrete';")
+edit(f,"['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board'];","['steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board', 'concrete'];")
+edit(f,'zeroItems(): Record<Item, number> { const o = {} as Record<Item, number>; for (const k of ITEMS) o[k] = 0;','zeroItems(includeConcrete = false): Record<Item, number> { const o = {} as Record<Item, number>; for (const k of ITEMS) if(k!==\'concrete\'||includeConcrete) o[k] = 0;')
+edit(f,"export type StoreItem = 'coal' | 'wire' | 'frame' | 'board';","export type StoreItem = 'coal' | 'wire' | 'frame' | 'board' | 'concrete';")
+edit(f,"['coal', 'wire', 'frame', 'board'];","['coal', 'wire', 'frame', 'board', 'concrete'];")
+edit(f,'store: Record<StoreItem, number>;','store: Partial<Record<StoreItem, number>>;')
+edit(f,'for (const k of STORE_ITEMS) f.store[k] ??= 0;','for (const k of STORE_ITEMS) if(k!==\'concrete\') f.store[k] ??= 0;')
+edit(f,'for (const k of ITEMS) f.stats.delivered[k] ??= 0;','for (const k of ITEMS) if(k!==\'concrete\') f.stats.delivered[k] ??= 0;')
+edit(f,'f.store[k] += 1;','f.store[k] = (f.store[k]??0) + 1;')
+edit(f,'f.stats.delivered[k]++;','f.stats.delivered[k]=(f.stats.delivered[k]??0)+1;')
+edit(f,'st.flow!.stats.made[o] += n;','st.flow!.stats.made[o] = (st.flow!.stats.made[o]??0) + n;')
+edit(f,"'frame', 'board', 'kit'];","'frame', 'board', 'concrete', 'kit'];")
+edit(f,'f.store[item] -= got;','f.store[item] = (f.store[item]??0) - got;')
+edit(f,'f.store[item] += put;','f.store[item] = (f.store[item]??0) + put;')
+edit(f,'f.stats.putBack[item] += put;','f.stats.putBack[item] = (f.stats.putBack[item]??0) + put;')
+f='packages/sim/src/ledger.ts'
+edit(f,'zeroItems()','zeroItems(true)')
+edit(f,'add(\'chest\', k, f.store[k as keyof typeof f.store]);','add(\'chest\', k, f.store[k as keyof typeof f.store]??0);')
+edit(f,'return { tick: st.flow?.tick ?? 0, base };',"if(!st.campaign)Reflect.deleteProperty(base,'concrete'); // Preserve the frozen legacy state shape.\n  return { tick: st.flow?.tick ?? 0, base };")
+edit(f,'- opening[k];','- (opening[k]??0);')
+edit('packages/game/src/worldScene.ts','board: 0x5fae6a','concrete: 0xb8b4a2, board: 0x5fae6a')
+edit('docs/PROGRESS.md','| P7-02 | Concrete crew, Mixer and Barricades | agent | todo |','| P7-02 | Concrete crew, Mixer and Barricades | agent | in_progress |')
+p=Path('docs/PROGRESS.md');p.write_bytes((p.read_text(encoding='utf-8')+'\n- 2026-09-08 — D-EX-36: owner requests P7-02. Concrete crew, powered Mixer and paid Barricades become in_progress; shared play remains after P7.\n').encode('utf-8'))
+p=Path('docs/DECISIONS.md');s=p.read_text(encoding='utf-8');line=next(x for x in s.splitlines() if x.startswith('| D-EX-35 |'));s=s.replace(line,line+'\n| D-EX-36 | Implement P7-02 concrete production and Barricades. | decided | owner (current user) | 2026-09-08 | “Ok onto P7-02”. | Approved catalogue increment; initial Mixer 20 steel + 10 copper, 3×3, 60 kW, 2 stone → 1 concrete / 2s; Barricade 2 steel + 4 concrete, 240 HP. These are implementation tuning defaults, not a balance verdict. Shared play follows P7. |');p.write_bytes(s.encode('utf-8'))

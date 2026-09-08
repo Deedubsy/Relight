@@ -1,10 +1,10 @@
 /** Reject corrupt/partial campaign threat saves instead of silently resetting their schedule. */
 import type { SimState } from './types';
-import { DEFENCE } from './campaignDefence';
+import { DEFENCE, defenceMax } from './campaignDefence';
 export function defenceProblem(st:SimState):string {
   const d=st.campaign?.defence;
   if((st.campaign?.version??0)<3)return d?'defence requires campaign metadata version 3':'';
-  if(!d||d.version!==1||!st.flow||!Array.isArray(d.bases)||!Array.isArray(d.nominations)||!Array.isArray(d.sites)||!Array.isArray(d.history))return 'invalid campaign defence state';
+  if(!d||![1,2].includes(d.version)||!st.flow||!Array.isArray(d.bases)||!Array.isArray(d.nominations)||!Array.isArray(d.sites)||!Array.isArray(d.history))return 'invalid campaign defence state';
   const number=(n:unknown)=>typeof n==='number'&&Number.isFinite(n);
   const integer=(n:unknown,min=0)=>number(n)&&Number.isInteger(n)&&(n as number)>=min;
   const tile=(n:unknown)=>integer(n)&&(n as number)<st.flow!.tw*st.city!.th;
@@ -18,16 +18,31 @@ export function defenceProblem(st:SimState):string {
   if(d.nominations.some(n=>!d.bases.some(b=>b.block===n.block)||!integer(n.at))||new Set(d.nominations.map(n=>n.block)).size!==d.nominations.length)return 'invalid restoration nominations';
   for(const a of [d.major,d.minor])if(a!==null&&(!a||!integer(a.id,1)||a.id>=d.nextId||!d.bases.some(b=>b.block===a.block)||!tile(a.origin)||typeof a.retreat!=='boolean'))return 'invalid campaign attack';
   if(d.major&&(!integer(d.major.dawn)||!integer(d.major.startsAt)||d.major.startsAt<d.major.dawn||!integer(d.major.remaining)||d.major.remaining>60||!integer(d.major.nextSpawn)))return 'invalid major roster';
+  if(d.major?.waiting!==undefined&&(d.version<2||!['approach','minor'].includes(d.major.waiting)||d.major.retreat||st.t<d.major.startsAt||
+    (d.major.waiting==='approach'&&d.major.remaining===0)||(d.major.waiting==='minor'&&!d.minor)))return 'invalid deferred assault';
+  if(d.majorSpawned>60||(!d.major&&d.majorSpawned!==0)||(d.major&&(d.major.retreat?d.major.remaining!==0:d.major.remaining+d.majorSpawned!==60)))return 'inconsistent major roster accounting';
   if(d.warning&&(!integer(d.warning.assault,1)||!block(d.warning.block)||!integer(d.warning.startsAt)||!integer(d.warning.receivedAt)||(d.major&&d.warning.assault===d.major.id&&(d.warning.block!==d.major.block||d.warning.startsAt!==d.major.startsAt))))return 'invalid radio warning';
   if(d.sites.some(s=>!integer(s.id,1)||!block(s.block)||!tile(s.tile)||typeof s.spawned!=='boolean')||new Set(d.sites.map(s=>s.id)).size!==d.sites.length)return 'invalid ruin guards';
   if(d.history.some(h=>!integer(h.id,1)||!block(h.block)||!integer(h.started)||!integer(h.ended)||h.ended<h.started||typeof h.defeated!=='boolean'||!integer(h.spawned)))return 'invalid assault history';
+  const attackIds=[...d.history.map(h=>h.id),...[d.major,d.minor].filter(a=>a!==null).map(a=>a!.id)];
+  if(new Set(attackIds).size!==attackIds.length||attackIds.some(id=>id>=d.nextId)||d.history.some(h=>h.spawned>60))return 'reused campaign attack identity';
   const r=d.repair;
-  if(r&&(typeof r.recommission!=='boolean'||!number(r.remaining)||r.remaining<0||(r.kind==='core'?!d.bases.some(b=>b.block===r.id):r.kind==='machine'?!st.flow.machines.some(m=>m.id===r.id&&(m.kind==='wall'||m.kind==='turret')):true)))return 'invalid paid repair';
-  for(const m of st.flow.machines)if(m.hp!==undefined&&(!number(m.hp)||m.hp<0||(m.kind!=='wall'&&m.kind!=='turret')||m.hp>(m.kind==='wall'?DEFENCE.wallHp:DEFENCE.turretHp)))return 'invalid defence health';
-  for(const c of st.flow.threat?.crawlers??[]) {
+  if(r&&(typeof r.recommission!=='boolean'||!number(r.remaining)||r.remaining<0||(r.kind==='core'?!d.bases.some(b=>b.block===r.id):r.kind==='machine'?!st.flow.machines.some(m=>m.id===r.id&&defenceMax(m)>0):true)))return 'invalid paid repair';
+  for(const m of st.flow.machines)if(m.hp!==undefined&&(!number(m.hp)||m.hp<0||defenceMax(m)===0||m.hp>defenceMax(m)))return 'invalid defence health';
+  const bodies=st.flow.threat?.crawlers??[];
+  if(new Set(bodies.map(c=>c.id)).size!==bodies.length||bodies.some(c=>!integer(c.id,1)||c.id>=st.flow!.threat!.next))return 'invalid campaign creature identity';
+  if(bodies.filter(c=>c.campaign?.layer==='major').length>d.majorSpawned)return 'major bodies exceed spawned roster';
+  for(const c of bodies) {
     const m=c.campaign;
     if(!m||!['site','minor','major'].includes(m.layer)||!integer(m.group,1)||!tile(m.origin)||(m.waypoint!==undefined&&!tile(m.waypoint))||!number(c.x)||!number(c.y)||c.x<0||c.y<0||c.x>=st.flow.tw||c.y>=st.city!.th||!number(c.hp)||c.hp<=0)return 'invalid campaign creature';
     if(m.layer==='site'?!d.sites.some(s=>s.id===m.group):m.layer==='minor'?d.minor?.id!==m.group:d.major?.id!==m.group)return 'orphaned campaign creature';
+    const group=m.layer==='site'?d.sites.find(s=>s.id===m.group):m.layer==='minor'?d.minor:d.major;
+    if(c.to!==group!.block||c.from!==group!.block||(m.layer==='site'&&m.origin!==d.sites.find(s=>s.id===m.group)!.tile))return 'campaign creature target disagrees with group';
+    if(m.withdrawing!==undefined&&(d.version<2||m.withdrawing!==true||m.layer==='site'||!(m.layer==='major'?d.major?.retreat:d.minor?.retreat)&&d.bases.find(b=>b.block===c.to)?.hp!==0))return 'invalid campaign withdrawal';
+    if(d.version>=2&&m.waypoint!==undefined) {
+      const dx=Math.abs(m.waypoint%st.flow.tw-Math.floor(c.x)),dy=Math.abs(Math.floor(m.waypoint/st.flow.tw)-Math.floor(c.y));
+      if(dx+dy>1)return 'nonadjacent campaign waypoint';
+    }
   }
   return '';
 }

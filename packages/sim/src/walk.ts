@@ -35,10 +35,12 @@ function solidMap(st: SimState, G: Ground): Uint8Array | null {
   if (c && c.rev === f.rev) return c.solid;
   const solid = new Uint8Array(G.tw * G.th);
   for (const m of f.machines) {
-    if (PASSABLE.has(m.kind) || (st.campaign && (m.kind==='wall'||m.kind==='turret') && m.hp===0)) continue;
+    if (PASSABLE.has(m.kind) || (st.campaign && (m.kind==='wall'||m.kind==='barricade'||m.kind==='turret') && m.hp===0)) continue;
     const [width,height]=machineDimensions(m);
     for (let y = m.y; y < m.y + height; y++) for (let x = m.x; x < m.x + width; x++) if (inGround(G, x, y)) solid[y * G.tw + x] = 1;
   }
+  const turbine=st.campaign?.turbine;
+  if(turbine)for(let y=turbine.y;y<turbine.y+turbine.size;y++)for(let x=turbine.x;x<turbine.x+turbine.size;x++)solid[y*G.tw+x]=1;
   solids.set(f, { rev: f.rev, solid });
   return solid;
 }

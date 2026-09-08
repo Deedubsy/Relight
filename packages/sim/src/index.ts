@@ -44,6 +44,7 @@ export * from './campaignDefence';
 export * from './campaignThreat';
 export * from './campaignDistricts';
 export * from './campaignDiscovery';
+export * from './campaignRecruits';
 
 export { BUILD_LIMIT, HISTORY_LIMIT, extendBuildPath, pathEdits, constructionCheck, actionResult, constructionProblem } from './construction';
 export type { BuildEdit, BuildChange, ConstructionHistory, TilePoint, FactoryAction, ActionResult } from './construction';
@@ -54,3 +55,10 @@ export * from './inspection';
 
 export * from './truck';
 export * from './transport';
+
+export * from './campaignTurbine';
+export { surveyedDistrict } from './campaignRecruits';
+export { ARC_LAMP_RADIUS } from './flow';
+
+export * from './campaignGuide';
+export * from './itemGuide';

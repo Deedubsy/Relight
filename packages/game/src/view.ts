@@ -18,3 +18,6 @@ export const hudInset = { top: 0 };
 
 /** Selected stop is presentation only: selecting a route never dispatches a movement command. */
 export const transportView: { stopId:number|null } = { stopId:null };
+
+/** Inspected machine identity is presentation only. */
+export const inspectionView:{machineId:number|null}={machineId:null};

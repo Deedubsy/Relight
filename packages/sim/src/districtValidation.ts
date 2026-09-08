@@ -18,6 +18,6 @@ export function districtsProblem(st:SimState):string {
     ||!Array.isArray(d.stop)||d.stop.length!==2||!rect({block:d.station.block,x:d.stop[0],y:d.stop[1],size:2}))return 'invalid district trunk geometry';
   if(!d.supplied||![d.supplied.steel,d.supplied.copper,d.supplied.magazine,d.repairs,d.visits].every(n=>int(n))||!int(d.lastVisit,-1)||!int(d.resuppliedAt,-1))return 'invalid district service history';
   if(d.resuppliedAt>=0&&(d.station.restoredAt<0||d.visits<DISTRICT_ECONOMY.resupplyVisits||d.supplied.steel<DISTRICT_ECONOMY.resupplySteel||d.supplied.copper<DISTRICT_ECONOMY.resupplyCopper||d.supplied.magazine<DISTRICT_ECONOMY.resupplyMagazines))return 'unearned district resupply milestone';
-  const r=d.repair;if(r&&(!int(r.target)||!Number.isFinite(r.progress)||r.progress<0||r.progress>=DISTRICT_ECONOMY.repairSeconds||!st.flow.machines.some(m=>m.id===r.target&&(m.kind==='wall'||m.kind==='turret'))))return 'invalid workshop repair';
+  const r=d.repair;if(r&&(!int(r.target)||!Number.isFinite(r.progress)||r.progress<0||r.progress>=DISTRICT_ECONOMY.repairSeconds||!st.flow.machines.some(m=>m.id===r.target&&(m.kind==='wall'||m.kind==='turret'||m.kind==='barricade'))))return 'invalid workshop repair';
   return '';
 }

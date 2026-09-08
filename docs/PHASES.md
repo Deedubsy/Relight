@@ -1,6 +1,8 @@
 # Relight — phases and revised exit criteria
 
-Version 2, 2026-09-06. **Phase 4 has just finished**, confirmed by the owner (D-EX-10). Phase 5 began with the EX-09A scope audit on 2026-09-07 (D-EX-21); P5-01 construction, P5-02 routing, P5-03 inspection, P5-04 transport and P5-05 integration are complete; EX-09B and RI-09 technical review are complete; EX-08B refreshed preparation and human exit are outstanding. Selected later features have been brought forward through RI tasks; this does not complete their phases. PROGRESS.md alone orders execution; EXPLORATION_DEFENCE_PLAN.md defines the EX work.
+**Current sequencing (D-EX-34, 2026-09-07):** the owner moves shared playtesting after P7. [Phase 7 scope review](PHASE_7_SCOPE_REPORT.md) is complete; catalogue Q09 is adopted under D-EX-35. P7-01–05 implement saved recruits, the paid Mixer/Barricade chain, Turbine generation and optional Arc lighting/district surveying, plus discovery and recipe information; EX-08C playtest preparation is next. P7 implementation and EX-08C preparation precede EX-08H/P6-H/P7-H and remaining T18 observations. EX-08B is retained historical preparation, not the post-P7 build. Earlier sequencing statements below describe prior checkpoints; human criteria remain outstanding.
+
+Version 2, 2026-09-06; current review 2026-09-07. Phase 4 is complete (D-EX-10). Phase 5 implementation and technical review are complete, and the owner confirms successful current-build factory, transport and defence/recovery testing. D-EX-28 authorises the [Phase 6 scope review](PHASE_6_SCOPE_REPORT.md); forward-built EX-05–07 systems are credited without claiming Phase 6 complete. Formal human closeout gaps remain recorded. PROGRESS alone orders execution.
 
 The [pre-revision phases](archive/pre-exploration-defence-2026-09-06/docs/PHASES.md) preserve original scope, timing estimates, milestones and historical gates. Completed Phase 0–4 reports remain evidence of their original game, not approval of Version 2. Earlier durations are not estimates for this revised scope.
 
@@ -34,13 +36,17 @@ Retain the human two-assembler construction exercise where relevant, but define 
 
 ## Phase 6 — Threat, complete
 
+[P6-01 reliability](P6_01_RELIABILITY_REPORT.md) is implemented and verified; [P6-02 information](P6_02_INFORMATION_REPORT.md) now completes the defence-feedback increment. [P6-03 supplied-network evidence](P6_03_NETWORK_DEFENCE_REPORT.md) is complete; [P6-04 engineering readiness](P6_04_READINESS_REPORT.md) is complete; [EX-08B shared preparation](EX08B_PREPARATION_REPORT.md) is complete and EX-08H/P6-H observations are ready (ammo retesting remains open under D-EX-32). This does not complete the phase exit below.
+
+The [current scope review](PHASE_6_SCOPE_REPORT.md) maps implementation and evidence to P6-01–04 and P6-H. It retains the requirements below, identifies the locked-origin stall and missing defence UI, and excludes automatic execution of historical RI-10 enemy candidates.
+
 EX-05 brings the representative three-layer threat forward. Complete site creatures, bounded shared minor raids, single-target major assaults, restoration-event arbitration, rest-day progression and radio warnings under D-EX-Q01/02/03/06. Deliver usable barriers/turrets, personal equipment, damage/repair feedback and loss/recovery semantics before claiming a defence loop.
 
 Exit criteria: valid origins/paths, no overlapping major targets, protected rest days, warnings grounded in state, saved schedules without duplicates, routine raids normally handled by supplied defences, and observed player time to travel and prepare. Legacy density/bloom/enclosure rules are retained only where the contract explicitly adopts them.
 
 ## Phase 7 — Found tech and discoveries
 
-EX-04/07 introduce second-area tram access, radio opportunity and one optional reward/encounter. Complete the approved facility/survivor/discovery catalogue after the slice. Essential progression is reachable; optional discoveries do not randomly gate completion. Restoration produces a working capability and save/load cannot repeat its reward. Combat rewards do not silently introduce a loot/XP system.
+EX-04/07 introduce second-area tram access, radio opportunity and one optional reward/encounter. Complete the facility/survivor/discovery catalogue reconciled in [the P7 review](PHASE_7_SCOPE_REPORT.md), under adopted Q09, including its reduced catalogue and Phase 8 Foreman boundary. Essential progression is reachable; optional discoveries do not randomly gate completion. Restoration produces a working capability and save/load cannot repeat its reward. Combat rewards do not silently introduce a loot/XP system.
 
 ## Phase 8 — Territory and construction tools
 

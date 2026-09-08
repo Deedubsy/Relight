@@ -1,0 +1,22 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  s.blocks.flatMap((_,i)=>blockLights(s,i)).find(l=>l.tx===m.x&&l.ty===m.y)
+
+    at <anonymous> (/mnt/e/Factorio2/docs/evidence/p7-05-2026-09-08/services.ts:7:183)
+    at Array.map (<anonymous>)
+    at <anonymous> (/mnt/e/Factorio2/docs/evidence/p7-05-2026-09-08/services.ts:7:85)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: true,
+  operator: '=='
+}
+
+Node.js v22.18.0

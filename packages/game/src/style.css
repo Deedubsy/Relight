@@ -95,3 +95,18 @@ kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 
 .truck-cargo .row { flex-wrap: wrap; }
 .truck-cargo input { width: 68px; }
 .truck-cargo .mono, .station-route { overflow-wrap: anywhere; }
+
+#threat-controls { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:4px 8px; font-size:12px; margin-top:5px; }
+#threat-controls[hidden], #threat-controls [hidden] { display:none; }
+#threat-controls button { pointer-events:auto; font-size:12px; padding:4px 8px; }
+#threat-direction { flex-basis:100%; }
+#tooltip { max-width:min(520px, calc(100vw - 24px)); white-space:pre-line; overflow-wrap:anywhere; }
+
+.campaign-guide { padding:12px; border:1px solid var(--line); border-radius:6px; background:var(--panel); overflow-wrap:anywhere; }
+.campaign-guide summary { cursor:pointer; font-weight:600; }
+.campaign-guide article { margin:12px 0; padding-top:8px; border-top:1px solid var(--line); }
+.campaign-guide h3 { margin:6px 0; }
+.campaign-guide h4 { margin-bottom:4px; }
+.campaign-guide p, .campaign-guide li { line-height:1.5; }
+.campaign-guide select { max-width:100%; margin:12px 0; }
+.campaign-guide button { max-width:100%; white-space:normal; }

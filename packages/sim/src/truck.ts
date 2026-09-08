@@ -16,7 +16,7 @@ export function truckFits(st:SimState,x:number,y:number,dir:Dir):boolean {
  const G=ground(st),r=truckRect({x,y,dir});
  for(let ty=Math.floor(r.y+1e-8);ty<Math.ceil(r.y+r.h-1e-8);ty++)for(let tx=Math.floor(r.x+1e-8);tx<Math.ceil(r.x+r.w-1e-8);tx++){
   if(!walkable(G,tx,ty)||G.base[ty*G.tw+tx]!==T_STREET)return false;
-  const m=machineAt(st,tx,ty);if(m&&!['belt','track','tram'].includes(m.kind)&&!(m.kind==='wall'&&m.hp===0))return false;
+  const m=machineAt(st,tx,ty);if(m&&!['belt','track','tram'].includes(m.kind)&&!((m.kind==='wall'||m.kind==='barricade')&&m.hp===0))return false;
  }
  return true;
 }

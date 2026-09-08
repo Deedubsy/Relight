@@ -1,25 +1,33 @@
 # STANDARDS — current Relight acceptance and historical comparisons
 
+**Current sequencing (D-EX-34, 2026-09-07):** the owner moves shared playtesting after P7. [Phase 7 scope review](PHASE_7_SCOPE_REPORT.md) is complete; catalogue Q09 is adopted under D-EX-35. P7-01–05 implement saved recruits, the paid Mixer/Barricade chain, Turbine generation and optional Arc lighting/district surveying, plus discovery and recipe information; EX-08C playtest preparation is next. P7 implementation and EX-08C preparation precede EX-08H/P6-H/P7-H and remaining T18 observations. EX-08B is retained historical preparation, not the post-P7 build. Earlier sequencing statements below describe prior checkpoints; human criteria remain outstanding.
+
 Version 2, 2026-09-06. The following Relight requirements supersede conflicting Relight status/"never" cells in the historical comparison below. External research is retained as historical evidence, not refreshed research. EX-01 verifies implementation states; EX-09 reconciles remaining controls/logistics/accessibility obligations.
 
 **Phase 5 audit, 2026-09-07:** [PHASE_5_SCOPE_REPORT.md](PHASE_5_SCOPE_REPORT.md) records current code and maps every retained Phase 5 standard to P5-01–05. Its findings supersede stale implementation cells below: pointer painting, sim-owned machine status, physical storage/power and multi-stop freight already exist, but do not complete their broader standards. The report distinguishes remaining implementation, later unlocks and human exit evidence. PROGRESS alone orders the work; no standard is marked passed by this audit.
 
 **Factory readiness review, 2026-09-07:** [PHASE_5_READINESS_REPORT.md](PHASE_5_READINESS_REPORT.md) completes EX-09B/RI-09 technical review of P5-01–05 and T13–17. EX-08B refreshed diagnostic preparation is next. Light-map repaint stalls, reference-machine performance, human construction/readability and D-SA-2/C3/D-B2-2 positions remain open; no human standard or phase exit is passed.
 
+**Phase 6 review, 2026-09-07:** [PHASE_6_SCOPE_REPORT.md](PHASE_6_SCOPE_REPORT.md) supersedes earlier threat implementation assessments. Scheduling, radio, damage, repair and encounter mechanics exist; missing turret-range previews, actionable known-threat navigation and immediate enemy-action feedback map to P6-02. Origin/lifecycle reliability maps to P6-01 and supplied-network evidence to P6-03. The owner reports successful current-build gameplay; unmeasured human criteria and performance remain open. PROGRESS now places this work before refreshed shared preparation.
+
+**P6-01 implementation:** [P6_01_RELIABILITY_REPORT.md](P6_01_RELIABILITY_REPORT.md) records same-approach staging fallback, explicit deferral, physical withdrawal and saved lifecycle validation. [P6-02 information](P6_02_INFORMATION_REPORT.md) now implements and verifies range previews, actionable known-threat navigation and immediate-action feedback; the earlier scope review remains historical evidence.
+
 | Area | Current requirement | State / owner |
 |---|---|---|
-| B.1 planning clock and assault warning | A day/assault rhythm and information matching radio capability; the old timer prohibition is superseded. | Intended; Q02/03, EX-05 |
-| B.2/B.3 target/composition/origin | Valid origins and legible attacks; show only warning intelligence actually available. | Legacy components reusable; revised behaviour unbuilt |
+| B.1 planning clock and assault warning | A day/assault rhythm and information matching radio capability; the old timer prohibition is superseded. | EX-05 scheduling and P6-01 reliability implemented; P6-02 feedback is implemented; P6-03 supplied-network evidence is recorded; human preparation evidence remains. |
+| B.2/B.3 target/composition/origin | Valid origins and legible attacks; show only warning intelligence actually available. | Scheduling/origins/radio and P6-01 locked-origin recovery implemented; P6-02 immediate-action feedback is implemented and checked. |
 | B.4 alerts | Distinguish small raids from major assaults; name a meaningful place, support response without constant interruption; visual alternative to sound. | EX-05/08 |
-| B.5–B.9 defence feedback | Range, ammunition, damage, targets and loss/recovery reasons tied to real state. | Reconcile existing components; EX-04/05/09 |
+| B.5–B.9 defence feedback | Range, ammunition, damage, targets and loss/recovery reasons tied to real state. | HP/ammo/repair feedback, P6-02 range previews, navigation and immediate-action target lines are implemented; browser controls/readability verified at both required sizes. Human comprehension remains P6-H. |
 | 2 / 7 logistics and map | Multiple stations, selected cargo, onward supply, return freight and clear blocked-transfer explanations. | EX-06 multi-stop freight retained; P5-04 adds the physical truck and selected-stop route/service display; human acceptance remains outstanding. See [transport evidence](P5_04_TRANSPORT_REPORT.md). |
-| 4 opening | One-approach home, early useful second-area tram access, discoverable radio opportunity and self-directed roaming. | Version 2 unbuilt; EX-04/08 |
+| 4 opening | One-approach home, early useful second-area tram access, discoverable radio opportunity and self-directed roaming. | EX-04 opening and EX-05 warnings implemented; P6-04 credits engineering evidence. Human opening/wayfinding acceptance remains EX-08H. |
 | A body/equipment | Meaningful personal defence and exploration decisions; no rescue-only shooting quota. | Q06, EX-05/07/08 |
-| C.1/C.2/C.7 city identity | Recognisable home, stations, useful landmarks and differentiated resource districts. | Names locally built; newer main urban work to reuse; human judgement still owed |
+| C.1/C.2/C.7 city identity | Recognisable home, stations, useful landmarks and differentiated resource districts. | Main urban/Heart baseline integrated; named home/stations and district geometry implemented. Human place recognition remains EX-08H. |
 | C.3–C.6 wayfinding/discovery | Support roaming, returning to the threatened base and retaining discovered information without prematurely revealing hidden targets. | EX-04/05/07/08 |
 | Meta/accessibility/performance | Retain remapping, UI scale, saves, compatibility, audio controls and real-machine scale criteria. | [P5-05](P5_05_INTEGRATION_REPORT.md) records campaign save/replay, five-hour logistics and local light-map/resize measurements. Reference-laptop/GPU performance remains unverified; broader EX-09/10 and human acceptance remain, no waiver. |
 
-The representative-loop human protocol is EXPLORATION_DEFENCE_PLAYTEST.md. Original row numbers remain reference handles; original "built" statements apply only to their recorded build. Do not use historical comparison statuses as a live task list.
+The current shared human guide is [EX08B_SESSION_GUIDE.md](EX08B_SESSION_GUIDE.md), with its blank EX08B_SESSION_RECORD.md. EXPLORATION_DEFENCE_PLAYTEST.md and EX-08A materials remain preserved historical protocol. Original row numbers remain reference handles; original "built" statements apply only to their recorded build. Do not use historical comparison statuses as a live task list.
+
+**P6-03 evidence:** [P6_03_NETWORK_DEFENCE_REPORT.md](P6_03_NETWORK_DEFENCE_REPORT.md) records nine ordinary-stock live-threat runs, paid freight/recovery, preparation and maintenance costs, candidate failures and the new-survey correction. [P6-04 engineering review](P6_04_READINESS_REPORT.md) is complete; [EX-08B preparation](EX08B_PREPARATION_REPORT.md) is complete; shared human observations remain open. The unreproduced direct conveyor loading report awaits owner retesting under D-EX-32; human and performance findings remain open.
 
 ## Historical comparison baseline — retained sources and prior Relight status
 

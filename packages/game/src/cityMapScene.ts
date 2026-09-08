@@ -1,4 +1,4 @@
-import { stationRoute, truckRect } from '@relight/sim';
+import { campaignDiscoveries, stationRoute, truckRect } from '@relight/sim';
 import { transportView } from './view';
 /** The map view on a street-first city (D6): every block is the polygon the generator rasterised, drawn from sim
  *  state. The ground — streets, water, lots coloured by state, front edges painted along the street segment they
@@ -9,7 +9,7 @@ import Phaser from 'phaser';
 import {
   SimState, SimEvent, DARK, CONTESTED, HELD, INERT, VOID, idxOf, isCandidate, rotOf, rotTier, frontList, FrontEdgeView,
   claimInfo, heldInfo, nearestHeld, facilityList, survivorList, isInterior, poolMax, CityGeom,
-  STREET, WATER, segKey, activationCheck, claimNeed, blockNameAt, ground, cityGeomOf, isCampaign, passable,
+  STREET, WATER, segKey, activationCheck, claimNeed, blockNameAt, ground, cityGeomOf, isCampaign, passable, surveyedDistrict, campaignRecruited,
 } from '@relight/sim';
 import { Session, queue } from './session';
 import { SceneHooks, MapView, C } from './mapScene';
@@ -146,9 +146,10 @@ export class CityMapScene extends Phaser.Scene implements MapView {
   // --- input --------------------------------------------------------------------------------------------------
   private onMove(p: Phaser.Input.Pointer): void {
     const i = this.blockAtPixel(p.x, p.y);
-    this.setHover(i);
+    this.setHover(i);this.registry.set('knownSiteHover','');
     if (i < 0) { this.hooks.onHover(null, 0, 0); return; }
     const st = this.session.state, b = st.blocks[i];
+    if(isCampaign(st)){this.hooks.onHover(null,0,0);const site=campaignDiscoveries(st).find(s=>Math.hypot(this.ox+(s.x+s.size/2)*this.ppt-p.x,this.oy+(s.y+s.size/2)*this.ppt-p.y)<7);this.registry.set('knownSiteHover',site?`${site.title} · ${site.status}`:'');return;}
     const rect = this.game.canvas.getBoundingClientRect();
     if (b.state === DARK) this.hooks.onHover(claimInfo(st, b.x, b.y), rect.left + p.x, rect.top + p.y);
     else if (b.state === HELD) this.hooks.onHover(heldInfo(st, b.x, b.y), rect.left + p.x, rect.top + p.y);
@@ -245,12 +246,14 @@ export class CityMapScene extends Phaser.Scene implements MapView {
       const b = st.blocks[i];
       let c: number;
       switch (b.state) {
-        case DARK: { const tier = rotTier(rotOf(st, i)); c = wellSet.has(i) ? C.wellCell : (b.well ? DARK_WELL : DARK_TIER)[tier]; break; }
+        case DARK: { if(isCampaign(st)){c=0x222c39;break;} const tier = rotTier(rotOf(st, i)); c = wellSet.has(i) ? C.wellCell : (b.well ? DARK_WELL : DARK_TIER)[tier]; break; }
         case CONTESTED: c = flicker ? C.contested : 0x8a6320; break;
         case HELD: { const inn = isInterior(st, i); inner[i] = inn ? 1 : 0; c = inn ? C.interior : C.held; break; }
         case INERT: c = C.inert; break;
         case VOID: default: c = C.void; break;
       }
+      const district=surveyedDistrict(st,i);
+      if(district&&[HELD,DARK].includes(b.state))c=({civ:0x676547,res:0x425f79,ind:0x795448,out:0x456653})[district];
       if (i === this.hover || i === selIdx) c = lighten(c, i === selIdx ? 0.35 : 0.22);
       col[i] = c;
     }
@@ -284,6 +287,10 @@ export class CityMapScene extends Phaser.Scene implements MapView {
   // --- everything on top of the ground --------------------------------------------------------------------------
   private draw(now: number): void {
     const st = this.session.state;
+    if(isCampaign(st)){
+      const district=surveyedDistrict(st,this.hover),name=district?({civ:'Civic',res:'Residential',ind:'Industrial',out:'Outskirts'})[district]:'';
+      this.headText.setText(this.registry.get('knownSiteHover') || (campaignRecruited(st,'surveyors')?`Survey · ${name||'hover a district'} · yellow Civic / blue Residential / rust Industrial / green Outskirts`:`Seed ${st.seed} · known sites marked with squares; hover to inspect`)).setColor('#c5d2df').setFontSize(12).setBackgroundColor('#0b0e1a').setPadding(4).setWordWrapWidth(this.W-24).setPosition(this.ox+8,this.oy+this.H-48);
+    }
     const g = this.gFx;
     g.clear();
     const throb = 0.5 + 0.5 * Math.sin(now / 600);
@@ -291,7 +298,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     const wellSet = new Set(st.wells.map(([x, y]) => idxOf(st, x, y)));
     for (let i = 0; i < st.blocks.length; i++) {
       const b = st.blocks[i], px = this.px(i), py = this.py(i);
-      if (b.state === DARK) {
+      if (b.state === DARK && !isCampaign(st)) {
         if (wellSet.has(i)) { g.lineStyle(1.5, C.wellGlow, 0.35 + 0.55 * throb); g.strokeCircle(px, py, 7); }
         if (b.awake && b.timer >= 0) {   // bloom timer ring: fills as the timer counts down
           const T = st.config.bloomT / (0.5 + b.d);
@@ -312,11 +319,12 @@ export class CityMapScene extends Phaser.Scene implements MapView {
         if (!b.subOn) { g.fillStyle(C.red, 0.9); g.fillRect(px - 2, py - 2, 4, 4); }
       }
     }
+    for(const site of campaignDiscoveries(st)){const x=this.ox+(site.x+site.size/2)*this.ppt,y=this.oy+(site.y+site.size/2)*this.ppt;g.lineStyle(1,0xb9e3ff,1);g.strokeRect(x-3,y-3,6,6);}
     // start marker
     { const i = idxOf(st, st.start[0], st.start[1]); g.lineStyle(1, C.white, 0.7); g.strokeRect(this.px(i) - 5, this.py(i) - 5, 10, 10); }
 
     // facilities (§8 skyline) and survivors
-    const facs = facilityList(st).filter(f => f.visible);
+    const facs = (isCampaign(st)?[]:facilityList(st)).filter(f => f.visible);
     const key = facs.map(f => `${f.name}${f.held ? 1 : 0}`).join('|');
     for (const f of facs) this.drawFacility(g, f);
     if (key !== this.facilityLabelsFor) {
@@ -325,7 +333,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
       this.labels = facs.map(f => { const i = idxOf(st, f.x, f.y); return this.add.text(this.px(i), this.py(i) + 9, f.name,
         { fontSize: '9px', color: f.held ? '#f5c24f' : '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 2, y: 1 } }).setOrigin(0.5, 0).setDepth(5); });
     }
-    const survs = survivorList(st).filter(f => f.revealed);
+    const survs = (isCampaign(st)?[]:survivorList(st)).filter(f => f.revealed);
     const skey = survs.map(f => `${f.tag}${f.held ? 1 : 0}`).join('|');
     for (const f of survs) {
       const i = idxOf(st, f.x, f.y), px = this.px(i), py = this.py(i), colr = f.held ? C.facilityHeld : C.survivor;

@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: Concrete crew sites are separate and reachable across 32 seeds; version 6 migration preserves the original recruit
+ok 1 - Concrete crew sites are separate and reachable across 32 seeds; version 6 migration preserves the original recruit
+  ---
+  duration_ms: 23074.593966
+  type: 'test'
+  ...
+# Subtest: ordinary recruitment and paid stone → belt → Mixer → concrete chest chain save and replay
+ok 2 - ordinary recruitment and paid stone → belt → Mixer → concrete chest chain save and replay
+  ---
+  duration_ms: 1082.778877
+  type: 'test'
+  ...
+# Subtest: Mixer pauses without power, retains a paid partial craft, refuses busy packing and stops at full output
+ok 3 - Mixer pauses without power, retains a paid partial craft, refuses busy packing and stops at full output
+  ---
+  duration_ms: 515.211507
+  type: 'test'
+  ...
+# Subtest: paid Barricades conserve concrete through history, damage, saved repair and packing
+ok 4 - paid Barricades conserve concrete through history, damage, saved repair and packing
+  ---
+  duration_ms: 572.997366
+  type: 'test'
+  ...
+# Subtest: concrete saves reject corrupt production and counters; construction requires concrete
+ok 5 - concrete saves reject corrupt production and counters; construction requires concrete
+  ---
+  duration_ms: 183.344048
+  type: 'test'
+  ...
+# Subtest: crawlers physically breach a sealed Barricade court
+ok 6 - crawlers physically breach a sealed Barricade court
+  ---
+  duration_ms: 326.190954
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 28951.58433

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { rulesetOf } from '@relight/sim';
+import { rulesetOf, knownCampaignThreat, blockName } from '@relight/sim';
 import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
   hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
   projectOf, projectTitle, describeProject, RAIL_ROUTE_REWARD, LOCAL_DEPOT_REWARD,   // RI-05
@@ -11,7 +11,7 @@ import { MapScene, MapView, SceneHooks, MAP_W, MAP_H } from './mapScene';
 import { CityMapScene } from './cityMapScene';
 import { WorldScene, Tool } from './worldScene';
 import { View, debugView, hudInset } from './view';
-import { bound } from './controls';
+import { bound, shortcut } from './controls';
 import { FACTORY_TEXT } from './factoryStrings';
 import { createPanel, exportExtra } from './panel';
 import { exportJson, summarise } from './telemetry';
@@ -170,6 +170,7 @@ game.events.on(Phaser.Core.Events.STEP, (time: number, delta: number) => {
   const events = frame(session, Math.min(0.1, delta / 1000));
   if (events.length) { mapScene.consume(events, time); describe(events); }
   panel.update(performance.now());
+  updateThreatControls();
   // RI-02: the world view's top HUD corners sit under the goal overlay (measured here, not per frame — the panel throttles)
   const goalEl = document.getElementById('goal');
   hudInset.top = goalEl && !goalEl.hidden ? goalEl.offsetHeight + 4 : 0;
@@ -190,6 +191,7 @@ function toggleView(): void {
     panel.tooltip(null, 0, 0);
     game.scene.sleep('map');
     game.scene.run('world');
+    worldScene.returnToEngineer();
     worldScene.centreOn(view.focus[0], view.focus[1]);
   } else {
     view.focus = worldScene.focusBlock();
@@ -201,6 +203,33 @@ function toggleView(): void {
   }
   view.switchedAt = session.state.t;
   panel.setView(view.mode);
+}
+
+function viewKnownThreat():void {
+  if(!knownCampaignThreat(session.state))return;
+  if(view.mode==='map')toggleView();
+  worldScene.viewThreat();
+  document.querySelector('canvas')?.scrollIntoView({block:'nearest'});
+}
+const threatControls=document.createElement('div');threatControls.id='threat-controls';
+const threatDirection=document.createElement('span'),threatButton=document.createElement('button'),returnButton=document.createElement('button');
+threatDirection.id='threat-direction';
+threatButton.textContent=`View threat (${shortcut('threat')})`;threatButton.onclick=viewKnownThreat;
+returnButton.textContent=`Return to engineer (${shortcut('engineer')})`;returnButton.onclick=()=>worldScene.returnToEngineer();
+threatControls.append(threatDirection,threatButton,returnButton);document.getElementById('goal')!.append(threatControls);
+function updateThreatControls():void {
+  const target=knownCampaignThreat(session.state);
+  threatControls.hidden=!session.state.campaign;
+  threatButton.hidden=!target;returnButton.hidden=!worldScene.viewingThreat;
+  let text='';
+  if(target){
+    const [x,y]=view.mode==='world'?worldScene.screenOf(target.x,target.y):[0,0],canvas=document.querySelector('canvas')!,w=canvas.clientWidth,h=canvas.clientHeight;
+    const off=x<0||y<0||x>w||y>h;
+    const bearing=(Math.round(Math.atan2(y-h/2,x-w/2)/(Math.PI/4))+8)%8;
+    const arrows=['→ east','↘ southeast','↓ south','↙ southwest','← west','↖ northwest','↑ north','↗ northeast'];
+    text=`${target.phase} · ${blockName(session.state,target.block)} · ${view.mode==='map'?'view in world':off?`off-screen ${arrows[bearing]}`:'in view'}`;
+  }else if(session.state.campaign?.defence?.major)text='Target unknown — radio offline';
+  if(threatDirection.textContent!==text)threatDirection.textContent=text;
 }
 
 /** D-B1-5 keys: P pause, - / = speed (1×, 4×, 16×), M map ↔ world, Tab or I the pockets, B the build menu, Esc closes
@@ -234,6 +263,8 @@ window.addEventListener('keydown', ev => {
     const cur = SPEEDS.indexOf(session.state.speed), next = bound('slower', k) ? Math.max(0, cur - 1) : Math.min(SPEEDS.length - 1, cur + 1);
     setSpeed(session, SPEEDS[cur < 0 ? 0 : next]);
   }
+  else if (bound('threat', k)) {ev.preventDefault();viewKnownThreat();}
+  else if (bound('engineer', k)) worldScene.returnToEngineer();
   else if (bound('map', k)) toggleView();   // D5: M = map view
   else if (bound('pockets', k)) { ev.preventDefault(); panel.togglePockets(); }   // M1: the pockets and the Depot chest
   else if (bound('build', k)) panel.toggleBuild();

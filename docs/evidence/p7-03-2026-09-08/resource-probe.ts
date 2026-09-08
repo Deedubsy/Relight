@@ -1,0 +1,2 @@
+import {createCampaign,ground,rubbleAt,HELD} from '../../../packages/sim/src/index';
+const s=createCampaign(),g=ground(s);for(const bi of [s.campaign!.homeBlock,s.campaign!.expansion!.station.block,s.campaign!.districts!.station.block]){s.blocks[bi].state=HELD;console.log(bi,s.blocks[bi].name,g.blocks[bi].tiles.reduce((o,t)=>{const r=rubbleAt(s,t%g.tw,Math.floor(t/g.tw));if(r)o[r.type]=(o[r.type]??0)+1;return o;},{} as Record<string,number>));}

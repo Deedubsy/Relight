@@ -14,7 +14,7 @@ export const INSPECTION_WINDOW_TICKS = 1200, INSPECTION_SAMPLE_TICKS = 20;
 type Counts = Partial<Record<Item, number>>;
 interface Sample { tick:number; produced:Counts; consumed:Counts }
 export interface Observation { produced:Counts; consumed:Counts; samples:Sample[] }
-const measured = (m:Machine) => ['assembler','excavator','belt','inserter','underground','splitter'].includes(m.kind);
+const measured = (m:Machine) => ['mixer','assembler','excavator','belt','inserter','underground','splitter'].includes(m.kind);
 const start = (tick:number):Observation => ({produced:{},consumed:{},samples:[{tick,produced:{},consumed:{}}]});
 function sample(o:Observation,tick:number):void {
   if(tick-o.samples.at(-1)!.tick>=INSPECTION_SAMPLE_TICKS)o.samples.push({tick,produced:{...o.produced},consumed:{...o.consumed}});
@@ -58,7 +58,7 @@ export function inspectMachine(st:SimState,id:number){
   const scale=powered(st,m)&&status.state!=='off'?(draw>0?circuit.throttle:1):0;
   const nominal: {item:string;input:number;output:number}[]=[];
   let recipe:string|null=null,capacity:string|null=null;
-  if(m.kind==='assembler'){
+  if((m.kind==='assembler'||m.kind==='mixer')){
     const r=recipeOf(m);recipe=r.name;
     for(const [item,n] of Object.entries(r.inputs))nominal.push({item,input:n*60/r.seconds,output:0});
     nominal.push({item:recipeOutput(r),input:0,output:recipeYield(r)*60/r.seconds});
@@ -79,13 +79,13 @@ export function inspectMachine(st:SimState,id:number){
   if(m.hold)add('Held',m.hold,1);
   const buffer:Counts={};for(const it of m.items)buffer[it.k]=(buffer[it.k]??0)+1;
   for(const [k,n] of Object.entries(buffer))add('Buffered',k,n);
-  if(m.kind==='assembler')add('Finished output',recipeOutput(recipeOf(m)),m.out);
+  if((m.kind==='assembler'||m.kind==='mixer'))add('Finished output',recipeOutput(recipeOf(m)),m.out);
   const settings=[`Facing ${DIR_NAMES[m.dir]}`,`Footprint ${footprint(m).join(' × ')} tiles`];
   if(['inserter','underground','splitter'].includes(m.kind))settings.push(routingDescription(st,m));
-  const ranges:Partial<Record<Machine['kind'],string>>={excavator:'Extraction: 5 × 5 tiles (one tile around footprint)',inserter:'Pickup/drop: adjacent tile behind/in front',turret:`Weapon range: ${TURRET_RANGE} tiles`,lamp:`Light radius: ${LAMP_RADIUS} tiles`,floodlight:`Light cone range: ${FLOODLIGHT_RANGE} tiles`,pole:`Connection reach: ${POLE_REACH} tiles`,bigpole:`Connection reach: ${BIG_POLE_REACH} tiles`,underground:`Span: up to ${UNDERGROUND_HIDDEN} hidden tiles`,chest:`Storage: ${SUPPLY_CHEST_CAP} items`,tramstop:`Platform/arrivals: ${STOP_CAP} items each`,tram:`Cargo: ${TRAM_CAP} items`};
+  const ranges:Partial<Record<Machine['kind'],string>>={arclamp:'Light radius: 6 tiles',excavator:'Extraction: 5 × 5 tiles (one tile around footprint)',inserter:'Pickup/drop: adjacent tile behind/in front',turret:`Weapon range: ${TURRET_RANGE} tiles`,lamp:`Light radius: ${LAMP_RADIUS} tiles`,floodlight:`Light cone range: ${FLOODLIGHT_RANGE} tiles`,pole:`Connection reach: ${POLE_REACH} tiles`,bigpole:`Connection reach: ${BIG_POLE_REACH} tiles`,underground:`Span: up to ${UNDERGROUND_HIDDEN} hidden tiles`,chest:`Storage: ${SUPPLY_CHEST_CAP} items`,tramstop:`Platform/arrivals: ${STOP_CAP} items each`,tram:`Cargo: ${TRAM_CAP} items`};
   return {id,title:KIND_LABEL[m.kind],kind:m.kind,status,location:bi>=0?blockLabel(st,bi,false):'Outside a serviced block',
     reachable:inReach(st,m.x,m.y,...footprint(m)),circuit,draw,scale,recipe,recipeId:m.recipe??'shot',nominal,capacity,contents,settings,range:ranges[m.kind]??null,
-    measured:measured(m)?rates(m.observation,st.flow!.tick):null,measurement:m.kind==='assembler'||m.kind==='excavator'?'Completed production':'Transfers out'};
+    measured:measured(m)?rates(m.observation,st.flow!.tick):null,measurement:(m.kind==='assembler'||m.kind==='mixer')||m.kind==='excavator'?'Completed production':'Transfers out'};
 }
 export function inspectionProblem(st:SimState):string {
   if(!st.flow)return '';

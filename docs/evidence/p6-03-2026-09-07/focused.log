@@ -1,0 +1,38 @@
+TAP version 13
+# Subtest: defence observation preserves ordinary commands, clock, live raid and replay
+ok 1 - defence observation preserves ordinary commands, clock, live raid and replay
+  ---
+  duration_ms: 3843.375253
+  type: 'test'
+  ...
+# Subtest: time away from home uses elapsed ticks rather than count of fractional samples
+not ok 2 - time away from home uses elapsed ticks rather than count of fractional samples
+  ---
+  duration_ms: 469.929994
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/defenceHarness.test.ts:16:1'
+  failureType: 'testCodeFailure'
+  error: 'false == true'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/defenceHarness.test.ts:22:9)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8758.009918

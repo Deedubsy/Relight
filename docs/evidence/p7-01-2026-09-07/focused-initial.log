@@ -1,0 +1,54 @@
+TAP version 13
+# Subtest: 32 seeded shelters are accessible without a guardian fight and are permanent walkable reservations
+ok 1 - 32 seeded shelters are accessible without a guardian fight and are permanent walkable reservations
+  ---
+  duration_ms: 32618.975091
+  type: 'test'
+  ...
+# Subtest: ordinary walk and recruitment grant real electrical plans once, preserve stock and replay
+not ok 2 - ordinary walk and recruitment grant real electrical plans once, preserve stock and replay
+  ---
+  duration_ms: 252.619232
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignRecruits.test.ts:1:1315'
+  failureType: 'testCodeFailure'
+  error: 'location is not defined'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ReferenceError'
+  stack: |-
+    createSession (/mnt/e/Factorio2/packages/game/src/session.ts:184:38)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignRecruits.test.ts:29:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: recruitment requires an able engineer on foot and persists through disabled cores and block changes
+ok 3 - recruitment requires an able engineer on foot and persists through disabled cores and block changes
+  ---
+  duration_ms: 304.846652
+  type: 'test'
+  ...
+# Subtest: version 5 migration keeps earned plans, existing workshop history and layouts; unearned plans stay locked
+ok 4 - version 5 migration keeps earned plans, existing workshop history and layouts; unearned plans stay locked
+  ---
+  duration_ms: 3680.161407
+  type: 'test'
+  ...
+# Subtest: current saves reject missing, duplicated or malformed recruits and old logs are marked incomplete
+ok 5 - current saves reject missing, duplicated or malformed recruits and old logs are marked incomplete
+  ---
+  duration_ms: 1185.12702
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 4
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 44614.429519

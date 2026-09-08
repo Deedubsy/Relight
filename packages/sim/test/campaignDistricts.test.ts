@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createCampaign, ground, findPath, persistentSource, loadState, makeSave, stateHash, type SimState,
   applyCommands as rawApplyCommands, advanceFlow, canPlace, machineAt, blockOfTile, campaignSite, siteCheck, inReach, passable,
   conservation, openLedger, damageDefence, defenceHp, tickDistricts, workshopStatus, campaignThrottle,
-  rubbleAt, tramRoute, routeStops, tickCampaignSchedule, MACHINE_SIZE, type Kind, type Dir, type Machine, type Command, type LoggedCommand } from '../src/index';
+  rubbleAt, tramRoute, routeStops, tickCampaignSchedule, campaignOrigin, MACHINE_SIZE, type Kind, type Dir, type Machine, type Command, type LoggedCommand } from '../src/index';
 import { writeFileSync } from 'node:fs';
 import { createSession, parseUrl, replaySession } from '../../game/src/session';
 const commandLogs=new WeakMap<SimState,LoggedCommand[]>();
@@ -123,11 +123,12 @@ test('powered extraction produces into real local storage without depletion or h
   const resumed=loadState(makeSave(st));resumed.speed=st.speed;run(st,5);run(resumed,5);assert.equal(stateHash(st),stateHash(resumed));
 });
 
-test('workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves',()=>{
+for(const kind of ['wall','barricade'] as const)test(`${kind}: workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves`,()=>{
   const st=fixture();outposts(st);restore(st,'workshop');
+  if(kind==='barricade'){const crew=st.campaign!.recruits!.sites.find(s=>s.kind==='concrete')!;crew.seenAt=0;crew.recruitedAt=0;st.engineer.inv.concrete=4;st.flow!.ledger=openLedger(st);} // Labelled finished-material fixture; full Mixer chain tested separately.
   const d=st.campaign!.districts!,w=d.workshop;
-  const chest=nearby(st,'chest',w.x,w.y,w.block,3),wall=nearby(st,'wall',w.x+7,w.y+4,w.block,3);
-  damageDefence(st,wall,120);assert.match(workshopStatus(st),/needs 2 steel/);
+  const chest=nearby(st,'chest',w.x,w.y,w.block,3),wall=nearby(st,kind,w.x+7,w.y+4,w.block,3);
+  damageDefence(st,wall,kind==='wall'?120:240);assert.match(workshopStatus(st),/needs 2 steel/);
   walk(st,chest.x,chest.y,2);applyCommands(st,[{type:'chestPut',x:chest.x,y:chest.y,item:'steel',n:10},{type:'chestPut',x:chest.x,y:chest.y,item:'copper',n:5}]);
   run(st,1);assert.ok(d.repair);const resumed=loadState(makeSave(st));resumed.speed=st.speed;
   run(st,1.1);run(resumed,1.1);assert.equal(stateHash(st),stateHash(resumed));assert.equal(defenceHp(wall),40);assert.equal(chest.inv.steel,8);
@@ -139,6 +140,7 @@ test('workshop consumes local supplies at its powered rate, pauses during attack
   const def=st.campaign!.defence!;def.major={id:def.nextId++,block:w.block,dawn:st.t,startsAt:st.t,origin:0,remaining:0,nextSpawn:st.t,retreat:false};
   const before=chest.inv.steel;tickDistricts(st,10);assert.equal(defenceHp(wall),40);assert.equal(chest.inv.steel,before);assert.match(workshopStatus(st),/paused/);def.major=null;
   run(st,5);assert.equal(defenceHp(wall),120);assert.equal(chest.inv.steel,4);assert.equal(d.repairs,3);
+  if(kind==='barricade'){run(st,6);assert.equal(defenceHp(wall),200);assert.match(workshopStatus(st),/needs 2 steel/);}
   assert.ok(conservation(st).ok,conservation(st).problems.join(','));
 });
 
@@ -192,15 +194,22 @@ test('paid three-base tram route reserves onward supply, returns district goods 
   if(process.env.EX06_REVIEW_PATH)writeFileSync(process.env.EX06_REVIEW_PATH,JSON.stringify(makeSave(st),null,2));
   // Completing an existing assault is the only point that shortens the next interval.
   const def=st.campaign!.defence!,promised=def.nextDawn;assert.equal(promised,100000);
-  def.major={id:def.nextId++,block:def.bases[0].block,dawn:st.t,startsAt:st.t,origin:0,remaining:0,nextSpawn:st.t,retreat:false};
+  // P6-01: the genuinely earned milestone survives a save while an advertised lock is still pending.
+  def.major={id:def.nextId++,block:def.bases[0].block,dawn:st.t,startsAt:st.t+900,origin:campaignOrigin(st,def.bases[0]),remaining:60,nextSpawn:st.t+900,retreat:false};
+  const locked=loadState(makeSave(st));
+  assert.equal(locked.campaign!.districts!.resuppliedAt,d.resuppliedAt);
+  assert.equal(locked.campaign!.defence!.nextDawn,promised);
+  assert.deepEqual(locked.campaign!.defence!.major,def.major);
+  // Labelled scheduler resolution, not a claim that the fixture fought the roster.
+  st.t=def.major.startsAt;def.major.retreat=true;def.major.remaining=0;
   tickCampaignSchedule(st,threatOf(st.flow!));assert.ok(def.nextDawn+900>=st.t+1200);assert.ok(def.nextDawn+900<st.t+2400);
   const saved=loadState(makeSave(st));saved.speed=st.speed;run(st,4);run(saved,4);assert.equal(stateHash(st),stateHash(saved));
 });
 
 test('old district-free previews upgrade once without moving the promised assault or duplicating sources',()=>{
-  const st=createCampaign();delete st.campaign!.districts;delete st.campaign!.discovery;st.campaign!.version=3;st.t=4000;
+  const st=createCampaign();delete st.campaign!.districts;delete st.campaign!.discovery;delete st.campaign!.recruits;delete st.campaign!.turbine;delete st.campaign!.knowledge;st.campaign!.version=3;st.t=4000;
   const dawn=st.campaign!.defence!.nextDawn,a=loadState(st),b=loadState(st);
-  assert.equal(a.campaign!.version,5);assert.equal(a.campaign!.defence!.nextDawn,dawn);assert.equal(stateHash(a),stateHash(b));
+  assert.equal(a.campaign!.version,9);assert.equal(a.campaign!.defence!.nextDawn,dawn);assert.equal(stateHash(a),stateHash(b));
   assert.equal(stateHash(loadState(makeSave(a))),stateHash(a));
   for(const mutate of [
     (s:SimState)=>{delete s.campaign!.districts;},

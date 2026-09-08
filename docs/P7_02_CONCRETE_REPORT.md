@@ -1,0 +1,32 @@
+# P7-02 — Concrete crew, Mixer and Barricades
+
+Date: 2026-09-08 (work began 2026-09-07). Branch `codex/tram-expansion`, base HEAD `17939145b5d40afe4dcfc1937a3ec6d34b763df6`, with prior uncommitted P6/P7 work preserved. Authority: D-EX-36, owner “Ok onto P7-02”, within adopted Q09. Shared human play remains after P7.
+
+## Implemented behaviour
+
+A separate, locally discovered Concrete crew shelter permanently unlocks the Mixer and Barricade. Recruit on foot using E or the panel button. The crew adds no base, free materials or duplicate workshop reward. Placement uses the existing deterministic safe traversal, with more than 24 tiles between shelters. Existing Electricians positions, earned plans and timestamps survive migration.
+
+The paid 3×3 Mixer costs **20 steel + 10 copper**, draws **60 kW**, and produces **one concrete from two stone every two powered seconds**. Belts and inserters supply stone; inserters take finished concrete. Input and output buffers enforce the existing four-recipe input limit and five-item output limit. Power loss pauses paid work; a full output pauses production. A busy Mixer cannot be packed until its current craft completes. The Assembler's selectable recipes remain unchanged.
+
+Concrete uses ordinary belts, inserter filters, chests, Depot transfers, station freight and truck cargo. It stacks to 50 in the pockets. Production, transfers, packing and construction are counted by the resource ledger; construction does not invent or refund raw concrete. The build menu shows the crew requirement, price and machine purpose; inspection shows the concrete recipe, power draw, contents, nominal rate and measured production. Comprehensive discovery/recipe presentation remains P7-04.
+
+A paid **1×1 Barricade costs 2 steel + 4 concrete**, has **240 HP**, and needs no power. Existing walls remain 120 HP. Barricades obstruct walking and hostile approaches, can be physically breached and become passable when disabled. Their footprint and identity remain available for repair. Manual and supplied-workshop repair use the existing **2 steel + 1 copper per 40 HP**; manual time is four seconds before the field-tool improvement, workshop time two powered seconds. Damaged defences cannot be packed or restored by undo to erase damage. An intact packed Barricade returns as a carried machine, with no second raw-material charge when rebuilt.
+
+All costs, rates, footprint and HP values above are provisional implementation tuning, not a balance or human-play verdict. No new creature resistance, Hulk slowing, social simulation or restoration prerequisites are introduced.
+
+## Save compatibility
+
+Campaign metadata 7 / recruit metadata 2 appends the new crew to version-6 saves. Earlier imports retain their existing workshop cache, guardians, schedules, machines and earned electrical plans. Older command logs remain evidence and are marked incomplete for current-code fresh replays. Current saves reject missing/duplicate/overlapping recruits, impossible inherited Concrete plans, malformed Mixer work and invalid concrete construction counters.
+
+Concrete counters are sparse in saved statistics and Depot stock, preserving the frozen legacy state shape. Read-only conservation reports normalize missing old counters to zero. The outer campaign save schema remains 3; legacy profiles retain their own machines and generated references.
+
+## Verification
+
+- [Full suite](evidence/p7-02-2026-09-07/tests-final.log): **262/262 passed**, including a 32-seed two-shelter sweep, ordinary recruitment and paid conveyor production with full replay, interruption/backpressure, manual repair/history/packing, malformed saves and crawler breaches. The supplied-workshop test now covers both walls and Barricades, including outages, hostile pauses, saved repair and material exhaustion.
+- [Focused final checks](evidence/p7-02-2026-09-07/final-focused.log): **19/19 passed**, covering the final sparse-counter, recruit-validation, saved-filter and ammunition-capacity review refinements. Combat and workshop isolation fixtures are explicitly labelled; the production/recruitment/replay chain uses starting stock and ordinary commands.
+- [Typecheck/build](evidence/p7-02-2026-09-07/typecheck.log), [lint](evidence/p7-02-2026-09-07/lint.log), [unchanged legacy snapshot](evidence/p7-02-2026-09-07/snapshot.log), [docsync](evidence/p7-02-2026-09-07/docsync.log), [freshness](evidence/p7-02-2026-09-07/freshness.log), and [reference/archive verification](evidence/p7-02-2026-09-07/consistency.log).
+- [Browser results](evidence/p7-02-2026-09-07/browser.json): isolated headless Chrome, 1366×900 and 900×900; actual panel/E recruitment, build-menu and world-click Mixer/Barricade placement, ordinary queued logistics, 40 stone becoming 20 concrete, recipe/power inspection, four concrete paid per Barricade, full replay and Ctrl+S/O equality. No page errors or horizontal overflow. Screenshots were inspected. Initial placement probes used a footprint corner and a transient camera position; correcting the test coordinates and waiting for the follow camera passed without a gameplay UI change.
+- The campaign fingerprint changed when Barricade HP joined the defence contract. All **12 factory experiments** (E-chain, E-coal, E-tram and E-logistics; seeds 3/4/5; unchanged five-hour logistics duration) were rerun to refresh current campaign evidence. The [original Phase 5 results](evidence/p7-02-2026-09-07/prior-campaign-experiments.zip) remain archived byte-for-byte; [fresh results](evidence/p7-02-2026-09-07/campaign-experiments.zip) include their own source hashes, full declared setup, command logs and checks. Legacy experiments and snapshot were not regenerated. These engineering workloads defer threats and use stated finite stock assistance; they are not a human or unattended-survival verdict.
+- [Manifest](evidence/p7-02-2026-09-07/manifest.json) and source/build archives identify this increment; the ordinary-command [concrete line save](evidence/p7-02-2026-09-07/concrete-line.json) retains its complete log. Prior P6/P7-01 checkpoint artifacts remain unchanged.
+
+The existing Vite chunk-size advisory and previously recorded larger-workload light-map stalls remain open. P6-AMMO remains an unreproduced owner observation awaiting the post-P7 retest; this increment makes no claim to fix that original conveyor/turret report. P7-03 is next after this increment's verification. No commit or push performed.

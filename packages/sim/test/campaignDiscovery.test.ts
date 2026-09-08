@@ -120,7 +120,7 @@ test('field repair retains material costs, paid pauses and existing job duration
 
 test('old previews add one deferred guardian; malformed or missing current reward state is rejected',()=>{
   const st=createCampaign(),d=st.campaign!.discovery!;st.engineer.x=d.x+.5;st.engineer.y=d.y+.5;
-  delete st.campaign!.discovery;st.campaign!.version=4;
+  delete st.campaign!.discovery;delete st.campaign!.recruits;delete st.campaign!.turbine;delete st.campaign!.knowledge;st.campaign!.version=4;
   const a=loadState(st),b=loadState(st);a.speed=1;assert.equal(stateHash(a),stateHash(b));assert.equal(stalkersOf(a).length,0);
   run(a,2);assert.equal(stalkersOf(a).length,0,'no spawn on the engineer');
   a.engineer.x+=20;run(a,.05);assert.equal(stalkersOf(a).length,1);

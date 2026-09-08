@@ -1,5 +1,5 @@
 /** EX-06 district economy. Geometry, extraction and service defaults are provisional. */
-import type { SimState } from './types';
+import { DARK, HELD, type SimState } from './types';
 import type { CampaignSite } from './rules';
 import { ground, blockOfTile } from './ground';
 import { type Machine, type Item, tramRoute, routeStops } from './flow';
@@ -42,6 +42,8 @@ export function initDistricts(st: SimState): void {
     }
     for(const q of neighbours(t)) {
       if(prev[q]!==-1||G.owner[q]!==-1||G.urban!.solid[q]||st.flow!.occ[q]!==undefined||old.has(q))continue;
+      // Survey only streets accepted by campaign construction; an INERT neighbour is not buildable.
+      const state=st.blocks[G.near[q]]?.state;if(state!==DARK&&state!==HELD)continue;
       if(neighbours(q).some(v=>old.has(v)&&v!==start))continue;
       if(e.stops.some(([x,y])=>q%tw>=x&&q%tw<x+2&&Math.floor(q/tw)>=y&&Math.floor(q/tw)<y+2))continue;
       prev[q]=t;queue.push(q);
@@ -101,7 +103,7 @@ function supply(st:SimState):Record<string,number>|undefined {
   }
 }
 export function workshopStatus(st:SimState):string {
-  const d=st.campaign?.districts,w=d?.workshop;if(!w||w.restoredAt<0)return 'Restore the workshop to automate nearby wall and turret repairs.';
+  const d=st.campaign?.districts,w=d?.workshop;if(!w||w.restoredAt<0)return 'Restore the workshop to automate nearby wall, Barricade and turret repairs.';
   const defence=st.campaign!.defence!;
   if(baseCore(st,w.block)?.hp===0)return 'Workshop offline: repair the disabled base core.';
   if((defence.major&&st.t>=defence.major.startsAt)||defence.minor?.block===w.block)return 'Workshop paused while attackers are active.';

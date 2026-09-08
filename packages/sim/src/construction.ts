@@ -2,7 +2,7 @@ import { boardTruck, truckTransfer } from './truck';
 /** P5-01: bounded, saved construction history. Inverses use current stock and reach, never rewind the world. */
 import type { Command, SimState } from './types';
 import { canPlace, place, canPickUp, remove, rotate, machineAt, tramAt, isKind, isRecipeId, MACHINE_SIZE,
-  type Kind, type Dir, type RecipeId, type Machine, setRecipe, queueCraft, chestTake, chestPut, isChestItem,
+  type Kind, type Dir, type RecipeId, type Machine, setRecipe, queueCraft, chestTake, chestPut, isChestItem, isItem,
   handFeed, setHandMine, repairLight, deliverTo, SHOT, rotateTo, type Item } from './flow';
 import { dimensions, machineDimensions } from './footprint';
 import { configureRouting, undergroundSpan, undergroundMate, type UndergroundMode, type OutputPriority } from './routing';
@@ -229,7 +229,7 @@ export function constructionProblem(st: SimState): string {
     if (!Array.isArray(group) || group.length < 1 || group.length > BUILD_LIMIT) return 'invalid construction group';
     for (const c of group) {
       if (!c || !['place', 'pickUp', 'rotate'].includes(c.action) || !isKind(c.item) || c.item === 'depot' || !integer(c.x) || !integer(c.y) || !integer(c.id) || c.id < 0 || !direction(c.dir) || (c.action === 'rotate' && !direction(c.beforeDir)) || (c.recipe !== undefined && (c.item !== 'assembler' || !isRecipeId(c.recipe)))) return 'invalid construction change';
-      if(c.filter!==undefined&&(c.item!=='inserter'||!['steel','copper','stone','coal','magazine','wire','frame','board'].includes(c.filter)))return 'invalid saved filter';
+      if(c.filter!==undefined&&(c.item!=='inserter'||!isItem(c.filter)))return 'invalid saved filter';
       if(c.priority!==undefined&&(c.item!=='splitter'||!['balanced','left','right'].includes(c.priority)))return 'invalid saved priority';
       if(c.underground!==undefined&&(c.item!=='underground'||!['input','output'].includes(c.underground)))return 'invalid saved underground';
       if (c.freight !== undefined) {

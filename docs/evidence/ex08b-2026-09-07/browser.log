@@ -1,0 +1,18 @@
+PASS paused start/save-load fresh 1366 6e541bc4
+PASS paused start/save-load network 1366 aa2be5bc
+PASS paused start/save-load fresh 900 6e541bc4
+PASS paused start/save-load network 900 aa2be5bc
+MEASURE {"name":"fresh","width":1366,"edits":20,"successful":20,"startSim":0,"endSim":5,"frames":300,"meanMs":16.67399999999999,"p95Ms":16.800000000000182,"maxMs":17.100000000000364,"draw":{"ema":0.71,"worst":18.6},"lightPaints":9,"lightPaintMeanMs":12.511111113760206,"before":{"lightChecks":8,"lightMs":36.30000001192093,"lightMaxMs":16.19999998807907,"lightPaints":3,"lightPaintMs":52.69999998807907,"lightPaintMaxMs":25.69999998807907},"after":{"lightChecks":46,"lightMs":176.90000015497208,"lightMaxMs":17.69999998807907,"lightPaints":12,"lightPaintMs":165.30000001192093,"lightPaintMaxMs":25.69999998807907},"overflow":false}
+MEASURE {"name":"fresh","width":900,"edits":20,"successful":20,"startSim":0,"endSim":5,"frames":293,"meanMs":17.07269624573378,"p95Ms":16.800000000000182,"maxMs":133.5,"draw":{"ema":0.65,"worst":139.4},"lightPaints":9,"lightPaintMeanMs":26.900000002649094,"before":{"lightChecks":8,"lightMs":42.89999997615814,"lightMaxMs":21.100000023841858,"lightPaints":3,"lightPaintMs":55,"lightPaintMaxMs":22.100000023841858},"after":{"lightChecks":46,"lightMs":310.9000000357628,"lightMaxMs":138.80000001192093,"lightPaints":12,"lightPaintMs":297.10000002384186,"lightPaintMaxMs":138.10000002384186},"overflow":false}
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(r.lightPaints>0)
+
+    at E:\Factorio2\docs\evidence\ex08b-2026-09-07\browser.cjs:29:78 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

@@ -5,6 +5,9 @@ import { citySpec } from './city';
 import { ensureFlow } from './flow';
 import { initDefence } from './campaignDefence';
 import { initExpansion } from './expansion';
+import { initKnowledge } from './campaignGuide';
+import { initTurbine } from './campaignTurbine';
+import { initRecruits } from './campaignRecruits';
 import { initDiscovery } from './campaignDiscovery';
 import { initDistricts } from './campaignDistricts';
 import { CAMPAIGN_RULESET } from './rules';
@@ -17,6 +20,6 @@ export function createCampaign(seed = 3): SimState {
   ensureFlow(st);
   initExpansion(st);
   initDefence(st);
-  initDistricts(st); initDiscovery(st);
+  initDistricts(st); initDiscovery(st); initRecruits(st); initTurbine(st); initKnowledge(st,true);
   return st;
 }

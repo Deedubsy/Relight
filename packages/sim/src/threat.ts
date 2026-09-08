@@ -22,10 +22,13 @@
  *  (`crawlerTarget`), a shade leaves a trace of the tiles it crossed (`trail`, `shadeTraces`) so its approach can
  *  be read off unlit ground without being lit; the Stalker (stalker.ts) rides this tick when `enableStalkers` has put
  *  its candidate on the state (`stalk`), and the turrets and the rifle treat it as one more body. */
+import { tickRecruits } from './campaignRecruits';
+import { tickKnowledge } from './campaignGuide';
+import { tickTurbine } from './campaignTurbine';
 import { tickDiscovery } from './campaignDiscovery';
 import { stalkerLayer, stalkersOf } from './stalker';
 import { isCampaign } from './rules';
-import { tickCampaignThreat, describeCampaignCrawler } from './campaignThreat';
+import { tickCampaignThreat, campaignCrawlerAction, describeCampaignCrawler } from './campaignThreat';
 import { SimState, Engineer, HELD } from './types';
 import { TURRET } from './constants';
 import { edgeFrom, edgeTo } from './graph';
@@ -62,7 +65,7 @@ export interface Crawler {
   stuck: number;             // seconds without progress
   /** RI-04: the emergence point it was born at (emergence.ts id; absent on a body placed by hand or before RI-04). */
   origin?: number;
-  campaign?: { layer: 'site' | 'minor' | 'major'; group: number; origin: number; waypoint?: number };
+  campaign?: { layer: 'site' | 'minor' | 'major'; group: number; origin: number; waypoint?: number; withdrawing?: true };
   /** RI-06: the Heart packet this body belongs to (`${attempt}:${threshold}`); such a body has no ring edge (`edge` -1). */
   packet?: string;
   /** RI-04: unit direction of its last move, for the world view's heading tick. */
@@ -229,7 +232,7 @@ const isCrawlerHeld = (st: SimState, c: Crawler): boolean =>
 function tick(st: SimState, dt: number): void {
   if (!threatActive(st)) return;
   const f = st.flow!, T = threatOf(f), G = ground(st), tw = G.tw, e = st.engineer;
-  if (isCampaign(st)) { tickCampaignThreat(st,T,dt); tickDiscovery(st,dt); tickWeapons(st,dt); return; }
+  if (isCampaign(st)) { tickCampaignThreat(st,T,dt); tickDiscovery(st,dt); tickRecruits(st); tickTurbine(st); tickKnowledge(st); tickWeapons(st,dt); return; }
   const cs = T.crawlers;
   // crawlers whose block already fell (or was lost) have nothing left to walk to
   let w = 0;
@@ -483,16 +486,9 @@ export function crawlerAt(st: SimState, x: number, y: number, r = 0.8): Crawler 
 }
 /** RI-04: a crawler's current target as a tile — the engineer once it has turned, else the nearest footprint tile
  *  of its chain link on the block it walks into — and the word for it. */
-export function crawlerTarget(st: SimState, c: Crawler): { tx: number; ty: number; what: 'you' | 'lamp' | 'turret' | 'substation' | 'cabinet' | 'ruin' | 'base core' | 'exit' } | null {
+export function crawlerTarget(st: SimState, c: Crawler): { tx: number; ty: number; what: 'barricade' | 'wall' | 'you' | 'lamp' | 'turret' | 'substation' | 'cabinet' | 'ruin' | 'base core' | 'exit' } | null {
+  if(c.campaign){const a=campaignCrawlerAction(st,c);return {tx:a.tx,ty:a.ty,what:a.what};}
   if (c.onPlayer) { const e = st.engineer; return { tx: Math.floor(e.x), ty: Math.floor(e.y), what: 'you' }; }
-  if (c.campaign) {
-    const d = st.campaign?.defence, b = d?.bases.find(b => b.block === c.to), meta = c.campaign;
-    const attack = meta.layer === 'major' ? d?.major : d?.minor;
-    if (meta.layer === 'site' || !attack || attack.retreat || b?.hp === 0) {
-      return { tx: meta.origin % ground(st).tw, ty: Math.floor(meta.origin / ground(st).tw), what: meta.layer === 'site' ? 'ruin' : 'exit' };
-    }
-    return b ? { tx: b.x, ty: b.y, what: 'base core' } : null;
-  }
   if (!threatActive(st)) return null;
   const tw = ground(st).tw, { tiles, cls } = targetsOf(st, c.to, c.cls);
   const t = tiles.length ? nearestTarget(tiles, tw, c.x, c.y) : -1;

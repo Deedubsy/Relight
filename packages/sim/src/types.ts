@@ -198,6 +198,9 @@ export type Command =
   | { type: 'chestPut'; item: string; n: number; x?: number; y?: number }
   // M6: the scene's remaining direct calls as commands, so a played session's log replays whole (hour.ts `replay`)
   | { type: 'feed'; x: number; y: number }          // E on a turret / Generator: magazines / coal from the pockets
+  | { type: 'deliverTurbine' | 'restoreTurbine' }
+  | { type: 'setTurbineEnabled'; enabled: boolean }
+  | { type: 'recruitSurvivors'; id: string }
   | { type: 'recoverSchematic'; id: string }
   | { type: 'repairDefence'; x: number; y: number }
   | { type: 'upgradeRadio' }

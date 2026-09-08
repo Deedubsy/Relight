@@ -1,4 +1,5 @@
 import { routingDescription, routingStatus } from './routing';
+import { knownSite } from './campaignGuide';
 import { campaignGrid } from './campaignPower';
 import { districtGuidance } from './campaignDistricts';
 import { campaignWarning } from './campaignThreat';
@@ -243,7 +244,7 @@ function supportOf(st: SimState): GoalLine | null {
 /** The current goal and its support line. Pure; cheap enough for a HUD to call once a second. */
 export function currentGoal(st: SimState): Goal {
   if (isCampaign(st)) {
-    const factory = st.flow?.machines.some(m => m.kind === 'excavator' || m.kind === 'assembler');
+    const factory = st.flow?.machines.some(m => m.kind === 'excavator' || (m.kind === 'assembler'||m.kind==='mixer'));
     const ex = st.campaign?.expansion;
     if (ex && ex.radio.restoredAt >= 0) {
       const linked = ex.route.every(t => machineAt(st, t % st.flow!.tw, Math.floor(t / st.flow!.tw))?.kind === 'track')
@@ -251,7 +252,7 @@ export function currentGoal(st: SimState): Goal {
         && !!st.flow?.machines.some(m => m.kind === 'tram' && tramRoute(st,m).includes(ex.route[0]));
       if (!linked) return { goal: { id: 'home-explore', text: 'Lay the supplied tram route and power both stops', why: 'Blue survey squares mark track and stop positions. Collect any remaining kit at the station; place the tram on the completed line.' }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
     }
-    if(ex&&ex.radio.restoredAt>=0&&st.campaign?.districts) { const d=st.campaign.districts;return {goal:{id:'home-explore',block:d.station.block,text:d.station.restoredAt<0?'Extend your tram supply line to the later station':d.workshop.restoredAt<0?'Restore and supply the repair workshop':'Connect specialised extraction and keep home producing supplies',why:districtGuidance(st)},support:{id:'campaign-threat',text:campaignWarning(st),why:'Protect the supplies and prepare for dusk.'}};}
+    if(ex&&ex.radio.restoredAt>=0&&st.campaign?.districts) { const d=st.campaign.districts;return {goal:{id:'home-explore',block:d.station.block,text:d.station.restoredAt<0?'Extend your tram supply line to the later station':d.workshop.restoredAt<0?'Restore and supply the repair workshop':'Connect specialised extraction and keep home producing supplies',why:knownSite(st,'workshop')?districtGuidance(st):'Extend the surveyed line, establish local power and explore the next district for services.'},support:{id:'campaign-threat',text:campaignWarning(st),why:'Protect the supplies and prepare for dusk.'}};}
     if (ex && (factory || ex.station.restoredAt >= 0)) return { goal: { id: 'home-explore', block: ex.station.block, text: ex.station.restoredAt < 0 ? `Explore to ${blockName(st, ex.station.block)} and restore its tram station` : ex.radio.restoredAt < 0 ? 'Connect the tram line and restore the nearby radio tower' : 'Build factories around your connected station', why: describeSite(st, ex.station.restoredAt < 0 ? 'station' : 'radio') }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
     return { goal: { id: factory ? 'home-explore' : 'home-factory', text: factory ? 'Explore beyond Home Court through its single entrance' : 'Build your first production line in Home Court',
       why: factory ? 'Your house and factory remain here when you return.' : 'E at the house opens your supplies; B opens building. Steel and copper patches are inside the court.' }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
@@ -271,7 +272,7 @@ export function machineStatus(st: SimState, m: Machine): MachineStatus {
   if (!b || (!isCampaign(st) && b.state !== HELD && !field)) return { state: 'off', reason: 'block not Held' };
   if (MACHINE_KW[m.kind] > 0 && !powered(st, m)) return { state: 'off', reason: field ? 'no connected pole in reach' : 'no power' };
   switch (m.kind) {
-    case 'wall': return {state:'idle',reason:`${Math.ceil(defenceHp(m))} HP`};
+    case 'barricade': case 'wall': return {state:'idle',reason:`${Math.ceil(defenceHp(m))} HP`};
     case 'turret': {
       if ((m.inv.rounds ?? 0) < 1) return { state: 'starved', reason: 'empty hopper' };
       return m.out > 0 || m.timer > 0 ? { state: 'running', reason: 'firing' } : { state: 'idle', reason: 'nothing in range' };
@@ -286,7 +287,7 @@ export function machineStatus(st: SimState, m: Machine): MachineStatus {
       const r = findRubble(st, m);
       return r ? { state: 'running', reason: `digging ${r.type}` } : { state: 'starved', reason: 'nothing in reach' };
     }
-    case 'assembler': {
+    case 'mixer': case 'assembler': {
       if (m.busy) return { state: 'running', reason: `making ${recipeOutput(recipeOf(m))}` };
       if (m.out >= ASM_OUTPUT_CAP) return { state: 'blocked', reason: 'output full' };
       if (!asmCanStart(m)) {
@@ -315,7 +316,7 @@ export function machineStatus(st: SimState, m: Machine): MachineStatus {
       if(isCampaign(st)&&lead&&lead.p>=1-BELT_SPACING/2-1e-9&&(!dst||!accepts(st,dst,lead.k)))return {state:'blocked',reason:dst?`output cannot accept ${lead.k}`:'no output connection'};
       return m.items.length?{state:'running',reason:`${m.items.length} items moving`}:{state:'idle',reason:'empty'};
     }
-    case 'lamp': case 'floodlight': return { state: 'running', reason: 'lit' };
+    case 'arclamp': case 'lamp': case 'floodlight': return { state: 'running', reason: 'lit' };
     case 'pole': case 'bigpole': {
       if(isCampaign(st))return (campaignGrid(st).poles.get(m.id)?.supply??0)>0?{state:'running',reason:'connected to a supplied circuit'}:{state:'off',reason:'no connected supply'};
       return poleGrid(st).connected.has(m.id)?{state:'running',reason:'on the grid'}:{state:'idle',reason:'not connected'};

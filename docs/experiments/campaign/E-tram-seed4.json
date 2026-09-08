@@ -1,20 +1,21 @@
 {
- "source_commit": "184908158db1c328b2a01d617a551954a0b3c99e",
- "config_hash": "4a669e38",
+ "source_commit": "17939145b5d40afe4dcfc1937a3ec6d34b763df6",
+ "config_hash": "1833957f",
  "config_ref": {
   "kind": "campaign",
   "ruleset": "exploration-v2",
   "opening": "culdesac-v1"
  },
- "source_tree_hash": "fe43582bca3758de7eb449bf5f2bed1769e16df046dc775301896c3864e086e1",
+ "source_tree_hash": "3fa031ac3ace324bc6e8e3a6bb471f9f873475f91a400b4a8d9722bbec7b0fb3",
  "source_files": {
   "packages/sim/src/bots.ts": "d9a0c2f6ffcf02a6301fd6bb87448df651a7ba922a9e81e8aabd8085ab13a5c6",
-  "packages/sim/src/campaign.ts": "caad7b42cd1e8c958a6119224825365cccc86fbc6d6b9158b977da7937bac9fe",
-  "packages/sim/src/campaignDefence.ts": "8073e59cd5173b1dc21a218db1b397e723803f7a5b0a2100dd69da4009c92f11",
+  "packages/sim/src/campaign.ts": "84503bdfc984b2f937f9915f3c1b29431bc18a2deb0986bacf119dee1f2ac96c",
+  "packages/sim/src/campaignDefence.ts": "cb238aaa64eed55ea4e4cedd79ccc7630e4e82c25b0927af505906e60ab1815b",
   "packages/sim/src/campaignDiscovery.ts": "5578067ec9393a4c5e428a0d3c7fa5055ef0de6f0899a26b5284b74d36897a9d",
-  "packages/sim/src/campaignDistricts.ts": "3cbbe15edabad587758378b38265e6f91bed397b1f0be96012f6fb317c04bc3f",
+  "packages/sim/src/campaignDistricts.ts": "c79f5bd21561199cb78d5221db94a4b078c2d18a536e14478aa570a040f9410a",
   "packages/sim/src/campaignPower.ts": "a4de3de6145005304bb5fdc6942b03af69e7b4c1d58eb6d1b4879396fda37dce",
-  "packages/sim/src/campaignThreat.ts": "f0d6adabc1ec43905656cc3e5164565e92f9589f90ae572b49c93f87258c3136",
+  "packages/sim/src/campaignRecruits.ts": "15539d6b85d634a43ff2c07b8abf45650b61beaef0b6011fd676c940fff06420",
+  "packages/sim/src/campaignThreat.ts": "d32338670803cb84bbfb5e4c5fdba11175b65e86f0341fba0ce0ee2b6bb8dd56",
   "packages/sim/src/candidates.ts": "f5ed47344490e6c37d55b47c2ec70cdf33c4b07e0368f5a712f2abf70c739681",
   "packages/sim/src/city/generate.ts": "d479b80d682915b24731146f2bd2ac5d96587be78aa7bae827612861d3b6f394",
   "packages/sim/src/city/geom.ts": "5e58c8b4788fcb4982641618015e36d0925aff87c60d69d0ca4bce304d572090",
@@ -22,28 +23,29 @@
   "packages/sim/src/city/opening.ts": "1e2aaf5a7a3d72484caf819dd59024b34220890321bfa3af9f12e5f5b9e9e79e",
   "packages/sim/src/city/spec.ts": "6e5ea957b0b1848a67089129c98bf6d5629f3d072f4ae8bd7fb82024192a2f53",
   "packages/sim/src/city/urban.ts": "f7dcbd017c630333198d7f9b4fc3b3e477c026197aed7383c37b0ea086a4a971",
+  "packages/sim/src/concreteValidation.ts": "92a80d7ea1540c7a0eacf20830cf57772fcafab336f870c732914d8a17973be4",
   "packages/sim/src/constants.ts": "a52cd5d07bc682f392371fc821157dd834f48212602701d098b1e2353a59950a",
-  "packages/sim/src/construction.ts": "66db1867014709dec732981cc5e41c53a5ae6daaf9d30670f456cf66eb4f5924",
-  "packages/sim/src/defenceValidation.ts": "aad4a908b60b699fbb920081dece0ad933e3ba66d639b155e1aa341e3799bf4c",
+  "packages/sim/src/construction.ts": "48bb7b2abc7a981f3bbe32a9162b023463bee0d9a6995c6d54464dc620a5cb2c",
+  "packages/sim/src/defenceValidation.ts": "c3304cf8902ac4109840289aac7be048bd6177390c9c0c4e60721a15e1015ee7",
   "packages/sim/src/discoveryValidation.ts": "8e9bd359f16e96653298ddca00010b325397f36e5902f3976a82dacd922bf9f9",
-  "packages/sim/src/districtValidation.ts": "de775afe82c2eac3cae48a8e6fa88c39db83fa2767310f004994fb0fcd70f06a",
+  "packages/sim/src/districtValidation.ts": "4b8fccd390c000d5de899779783ff1471217416125497c317b76bfc3a1061d8a",
   "packages/sim/src/districts.ts": "d6132455a15a1e44ebe398ac4ed78e96c0a3f9d00b10128e84788e98b5e28b55",
   "packages/sim/src/emergence.ts": "039decb03aead84b7acceb8850d9a3791c5ddb8051dce1f1000a8e7c19d3048f",
   "packages/sim/src/enemies.ts": "9580bfbd0fa41b4f68a76c051b7e8a3debd5e6adbeacb3545e4378473e201daf",
-  "packages/sim/src/engineer.ts": "022184f923b48972e85e251a750084fd0b166c3ffa49cbfb7c08b563ba585b47",
+  "packages/sim/src/engineer.ts": "985078c4f47ea4c2060d6edc6a408cf8bf7ccde12e3ced3eb565d9aa607dcd48",
   "packages/sim/src/expansion.ts": "572c64e19cf3b4e243170ac1d585da29c0d8f5cc08bde48ddf9b197b10ef0647",
   "packages/sim/src/firsthour.ts": "5f6677ee4001384d5abd58282a050f6792c35a7bae358c78d9001a799c19c531",
-  "packages/sim/src/flow.ts": "84d85e45e6769225dedbe457bd2f8bba64c6ab59daaa93b4163f4053a870b6e5",
+  "packages/sim/src/flow.ts": "daad4ac26ee9e037496eb2dbd213a7ceab64ee6464d2495de3f51fa39611b3f4",
   "packages/sim/src/footprint.ts": "5613109d1095392f4a8ee98f666b7a51e130790c477d6097569c66d46adcb6b1",
   "packages/sim/src/freight.ts": "324436bbd726041d2f2e8a374b232fb750433ffdf1f73ac38600ae56c899d93c",
-  "packages/sim/src/goal.ts": "f42143e50aa77e32ec17bfd57545611609ff448bea5e37136f306ef82d941c6d",
+  "packages/sim/src/goal.ts": "794ce7de097b6e0dd762333fd4ec443763815f5d8c4752ce7da41b50cb4f0e3a",
   "packages/sim/src/graph.ts": "5440d84b0f45b6a9adb9e6f68d7de017cb72f5d915585f299c47e8529ffecd9b",
   "packages/sim/src/ground.ts": "a19b784b0cbd4a8d26827387bc2fd0964945a1700e51da695b44344e1650c5fc",
   "packages/sim/src/heart.ts": "9349bf46879ecc5949b3663ca04c7d6b2f3aeb033a11bf92e1025947c4d6d0ad",
   "packages/sim/src/hour.ts": "e344ecff66c5c7626882a61d20fafd62e2db6ef042d892f58f8d470e391f9715",
-  "packages/sim/src/index.ts": "c19331be835c897b30fce363bd9a5ce4b286716668f2f40565044f1492058be9",
-  "packages/sim/src/inspection.ts": "45b61172aa5ee1bf30c0ae655bebd5b53ec1b956c0203365c975cdf2ac7dea2c",
-  "packages/sim/src/ledger.ts": "ce41f4c04d1a7af00c950caf50d4cbd0cbd0d4a2e387bf119d6b59ea393fb846",
+  "packages/sim/src/index.ts": "0d0f428880e8d66ca767fe0523dc625e738b861a41c3dd5f8b3b7d899a55c3bb",
+  "packages/sim/src/inspection.ts": "ca3f5c6adbe621ddaaad479b5a2ebb0c8727c8c4adee370d2d5d835271ec0e7d",
+  "packages/sim/src/ledger.ts": "d3527339b5522fc7b8ff1a5a9313d162ad0e29ea43f0ff11ac959bf55e3ad506",
   "packages/sim/src/light.ts": "61b3a0d439e2762d16eeef09c386c0ca4054e66b8d583aec623679f3d4bcb39e",
   "packages/sim/src/map.ts": "32af97c2f33365aa39191f053c9a8063278ec8dacfb3e3b8c38b6935add4a090",
   "packages/sim/src/move.ts": "32dd1edce56d3e94cb8ddbb60610391332d35c9596890465b4ef2c6e6278ab54",
@@ -53,22 +55,24 @@
   "packages/sim/src/queries.ts": "4109e1390fe3eb3023ce43234c4bdd6980bc5894ef08d8035edcad88870b2eb1",
   "packages/sim/src/recipes.ts": "9427d8ed554c013e3aa66cdee700f91c9f282b4faf2d76a3ca6989b587ac3e69",
   "packages/sim/src/routing.ts": "ec6ce7d0135474b6f0ebcc8e9d3c58b9e5fa3e7c7e4f236c9a783324c0b447c8",
-  "packages/sim/src/rules.ts": "c2a81f8f4bf821599c538248a17a0c61829a268f6945a19bba4424c79b389554",
-  "packages/sim/src/save.ts": "644fabe6e3daf3a110d2b76a37610fcd1eee41df615ed2b450f152b18b2cf46c",
+  "packages/sim/src/rules.ts": "361476b26c6b9a7e686d21dba73edc1a9c5a99682136fa4dbcac35f3159d949e",
+  "packages/sim/src/save.ts": "3e64c8cf21995614e9396c7d15b8266efab0be1f1e216364d1d70388dd784913",
   "packages/sim/src/sim.ts": "0418265267ba913ab71b02f6e5d7b9a2a145ce91220b9f47c5f5c1348905ab6f",
   "packages/sim/src/stalker.ts": "ff402e22d26c5e51c901d2bbe05e380c7ad4c11aadd611702415cef82ea3812f",
-  "packages/sim/src/threat.ts": "39273a6cc547854058ce605d9fad26e1bd6e81acbe76c9e9ddb1c32abaa22d1c",
+  "packages/sim/src/threat.ts": "60de9527b10d4df569e123cde3b9089fc5e6462ce58a92e5f21212c7ded98bdf",
   "packages/sim/src/tiles.ts": "2f5889b4c72b75afee71bf4d42c1663ab357f3e08df4cd285cd238830d283aa4",
   "packages/sim/src/transport.ts": "726ac16e614d1881229267a4fc0c60998cad7360edfa81114b28b957a64ec124",
-  "packages/sim/src/truck.ts": "c0c57a10bcba77e3fc60d2786ceb73ee6dc0b335752ca902e445dfc7f80af33c",
-  "packages/sim/src/types.ts": "08375082b75d0e3627b39d981ea792e2da0a9e43a29288057721391d992435e2",
-  "packages/sim/src/walk.ts": "d899bcb76a9ef04cdc7725baec534103ecae8de6ef8cc726e8d47f4ff581f166",
+  "packages/sim/src/truck.ts": "d2fd7961f19a4a957042b650ac42f807334782b42231d283ec574ca9dc8e0f30",
+  "packages/sim/src/types.ts": "ddc2949c9d169e110dfe46ac536f16fea2f7403dd62a9e4dd6103a0eb16bbc5c",
+  "packages/sim/src/walk.ts": "d09527176f19179f14f7f7ce18d7b612cba1d7b08dc155b646bcb415841c9d18",
   "packages/harness/src/bench.ts": "5a98398fc6b64ccc358d7f2208ad3ef92ed4d08ef66a14fbebe22a06ae00dba5",
   "packages/harness/src/blueprint.ts": "f29128ba2fff1eb80683217b8934ae19093654e691fb31954d177c0b6221fd6e",
   "packages/harness/src/calibrate.ts": "c807ffbd92e1e27265e9ed9015551fee9efae2546eaf7053e06d49d0ea2a39ff",
   "packages/harness/src/campaignExperiments.ts": "52d8585c5e5249525a29996dd97a19248f0bb4a512f788638d7b3928133d9359",
   "packages/harness/src/citycheck.ts": "425e16db87af74c080a948a74f738f2f54969beebe11f7cf562a0c4e03b98d10",
   "packages/harness/src/cli.ts": "d05b53a4de2df16a2a16811a5a370bef13bfbe5ffdaac727df0ee2faf9bef13b",
+  "packages/harness/src/defenceCli.ts": "f7665d1f04d2b196fa1833dcf11e7af3d6d99d3bb9ee00e504e1a412c0173fb3",
+  "packages/harness/src/defenceScenario.ts": "bc76c95b4119e9172f4a70578df25c6240b518f007201d62586936a13c3acf05",
   "packages/harness/src/experiments/e1.ts": "abdfb11a2944ef09bd1409663c8bacc43634c585d8eac4099240639e4674d2c1",
   "packages/harness/src/experiments/e2.ts": "1fed0cee6eb30ecce9d4ed72494d5a29e1609aaf1cdcbf1e7a872b82084d45e0",
   "packages/harness/src/experiments/e3.ts": "afb9429b5cf50a53c8018e9dfe578c475d9567830a5815a1b7dd9b59c0c83e3e",
@@ -97,17 +101,17 @@
   "packages/harness/src/util.ts": "61baf917a90e63ec62e921de41d1ecf12c799b9e8617ca2c6b46d64104c91338",
   "packages/game/src/buildCatalogue.ts": "9959753cff2dd88fed958c0db8586bc2f7f96e72e707959283ac5ddc9ed5dbda",
   "packages/game/src/cityMapScene.ts": "719ece3e39aa7252b32ba69bf0ea2e917bae3a5c9f54ff9093b0142dd6fa0af8",
-  "packages/game/src/controls.ts": "1d2b8730c0bb73a7bd42de18153548c4ad525d4e845c592e7dca949380eeca69",
-  "packages/game/src/factoryStrings.ts": "4f8ef52da96b38e79a2e2032c210518bb896cfbc7dbf35071d05e8152e262c0e",
-  "packages/game/src/main.ts": "ff3b5aa1034b92fcd34b0d67b48cd234bd2017a6d84eb84417785720dd131610",
+  "packages/game/src/controls.ts": "40fcacb732d64e8c1dc56f3d2234c6235256f8d5e2f86db1bcfe0172691f64c1",
+  "packages/game/src/factoryStrings.ts": "0dc8557fd861ebe35a20889b1131ea5ec4756ddc3856d99c4fe4c30dbd7a921e",
+  "packages/game/src/main.ts": "27b74f1d998800e6f6fffb3131604c6f05bbf1b8d3eca7706b910e8c0fb267d6",
   "packages/game/src/mapScene.ts": "59b6a22d4b03729bc979aa7ad154fbebd3fa840231f9e268a7b44d84d049b09d",
-  "packages/game/src/panel.ts": "abaf1684fc2300278466e7878f0c65f5cde3d239658655e232a3fb1f08168e17",
-  "packages/game/src/session.ts": "c05d4291bbf5489fb878fa3a5e31cdd7fe5bf5c0f423a7907484e720cde68b4e",
+  "packages/game/src/panel.ts": "d67da2cb40eed92fe0f334e73efec03a596f0426c9f1d0db8d752a24c593ec0f",
+  "packages/game/src/session.ts": "3b8f671de86e568402e7b9e33945ea3715c11dee5e4dfecac9e73b4b25a27e56",
   "packages/game/src/telemetry.ts": "ccbfb0c2fee5412910abf273318a3d178224b2e8213d1f783449e8263c4348e4",
   "packages/game/src/urbanDraw.ts": "5f54c4a6862822abd1c2f65a792ff12ec0543fcabb4f3c57ff825bd5e5f56d7d",
-  "packages/game/src/view.ts": "84ff93d9a6dd173da8dd66c70308d10371378b723a13c6a4bb6e3d4bf625bdf0",
-  "packages/game/src/worldScene.ts": "1eac83bf58897d112f94c3d801cfc34f982b04089ab826fc88e8e7ee55e3bb58",
-  "packages/tools/src/campaign-docsync.ts": "5c598d6861661fb4544c4047709a584724ad55911a24f3553dd230c2c2d74e19",
+  "packages/game/src/view.ts": "2f82a8430f97ff1df2c09dab6092322a988366518f594de53da5eb9cb6b17399",
+  "packages/game/src/worldScene.ts": "0e4a6bebe41356802b6d495023f4161270a228538ddabc49de168550cf32e358",
+  "packages/tools/src/campaign-docsync.ts": "adbf29c0e646264edc5442e1599f9ae7b66229a4528b01b8325a00fb922e3db8",
   "packages/tools/src/docsync.ts": "c358d5408b186393e39a409e63926a396ea7715abad616ce2de6e20951032305",
   "packages/tools/src/freshness.ts": "4e79e400b8c76df6754481723708ec8db6a579cb925997e015e8cb4beb386735",
   "packages/tools/src/section18.ts": "cf51c28845f83e6855bf2eb1a93991935aae3d05235c51c9e77e171334623a9e",
@@ -116,8 +120,8 @@
  },
  "blueprint": "packages/harness/blueprints/factory-line.json",
  "blueprint_hash": "4388cb8a6339c2acbd3261e72d7d844b9d0a75974fdf123a4c8da8f2c950d01e",
- "generated_at": "2026-09-07T05:08:58.691Z",
- "wall_seconds": 5.382490906999999,
+ "generated_at": "2026-09-07T14:35:31.326Z",
+ "wall_seconds": 4.387137497999996,
  "id": "E-tram",
  "seed": 4,
  "setup": "Labelled logistics fixture: +1200 steel, +600 copper and +500 coal in the home chest before the opening ledger; minor/major attacks deferred and ruin guards removed. All later walks, placements, restoration, transfers and recovery use ordinary commands. Not campaign balance or defence evidence.",
@@ -154,15 +158,16 @@
     "magazine": 0,
     "wire": 0,
     "frame": 0,
-    "board": 0
+    "board": 0,
+    "concrete": 0
    }
   },
   {
    "name": "save continuation",
    "pass": true,
    "detail": {
-    "before": "25807074",
-    "after": "1aaaa687",
+    "before": "a30ab724",
+    "after": "c4810a67",
     "same": true
    }
   },
@@ -170,8 +175,8 @@
    "name": "complete command replay from declared initial state",
    "pass": true,
    "detail": {
-    "replayed": "25807074",
-    "actual": "25807074"
+    "replayed": "a30ab724",
+    "actual": "a30ab724"
    }
   }
  ],
@@ -1955,7 +1960,7 @@
   "acc": 0,
   "ruleset": "exploration-v2",
   "campaign": {
-   "version": 5,
+   "version": 7,
    "opening": "culdesac-v1",
    "homeBlock": 360,
    "expansion": {
@@ -2075,7 +2080,7 @@
     "grantedAt": -1
    },
    "defence": {
-    "version": 1,
+    "version": 2,
     "bases": [
      {
       "block": 360,
@@ -2249,6 +2254,31 @@
       "contactS": 0
      }
     }
+   },
+   "recruits": {
+    "version": 2,
+    "sites": [
+     {
+      "id": "4:recruit:electricians:v1",
+      "kind": "electricians",
+      "block": 361,
+      "x": 492,
+      "y": 659,
+      "seenAt": -1,
+      "recruitedAt": -1,
+      "inherited": false
+     },
+     {
+      "id": "4:recruit:concrete:v1",
+      "kind": "concrete",
+      "block": 361,
+      "x": 493,
+      "y": 683,
+      "seenAt": -1,
+      "recruitedAt": -1,
+      "inherited": false
+     }
+    ]
    }
   },
   "w": 800,
@@ -26703,7 +26733,8 @@
      "magazine": 20,
      "wire": 0,
      "frame": 0,
-     "board": 0
+     "board": 0,
+     "concrete": 0
     }
    }
   }
@@ -26717,7 +26748,7 @@
   "acc": 0,
   "ruleset": "exploration-v2",
   "campaign": {
-   "version": 5,
+   "version": 7,
    "opening": "culdesac-v1",
    "homeBlock": 360,
    "expansion": {
@@ -26837,7 +26868,7 @@
     "grantedAt": 15
    },
    "defence": {
-    "version": 1,
+    "version": 2,
     "bases": [
      {
       "block": 360,
@@ -27036,6 +27067,31 @@
       "contactS": 0
      }
     }
+   },
+   "recruits": {
+    "version": 2,
+    "sites": [
+     {
+      "id": "4:recruit:electricians:v1",
+      "kind": "electricians",
+      "block": 361,
+      "x": 492,
+      "y": 659,
+      "seenAt": 0,
+      "recruitedAt": -1,
+      "inherited": false
+     },
+     {
+      "id": "4:recruit:concrete:v1",
+      "kind": "concrete",
+      "block": 361,
+      "x": 493,
+      "y": 683,
+      "seenAt": 1,
+      "recruitedAt": -1,
+      "inherited": false
+     }
+    ]
    },
    "truck": {
     "x": 420,
@@ -52992,7 +53048,8 @@
      "magazine": 20,
      "wire": 0,
      "frame": 0,
-     "board": 0
+     "board": 0,
+     "concrete": 0
     }
    },
    "observation": {
@@ -53004,7 +53061,8 @@
      "magazine": 0,
      "wire": 0,
      "frame": 0,
-     "board": 0
+     "board": 0,
+     "concrete": 0
     },
     "consumed": {
      "steel": 148,
@@ -53014,7 +53072,8 @@
      "magazine": 0,
      "wire": 0,
      "frame": 0,
-     "board": 0
+     "board": 0,
+     "concrete": 0
     },
     "samples": [
      {
@@ -53027,7 +53086,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53037,7 +53097,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53050,7 +53111,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53060,7 +53122,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53073,7 +53136,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53083,7 +53147,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53096,7 +53161,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53106,7 +53172,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53119,7 +53186,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53129,7 +53197,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53142,7 +53211,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53152,7 +53222,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53165,7 +53236,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53175,7 +53247,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53188,7 +53261,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53198,7 +53272,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53211,7 +53286,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53221,7 +53297,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53234,7 +53311,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53244,7 +53322,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53257,7 +53336,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53267,7 +53347,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53280,7 +53361,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53290,7 +53372,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53303,7 +53386,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53313,7 +53397,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53326,7 +53411,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53336,7 +53422,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53349,7 +53436,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53359,7 +53447,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53372,7 +53461,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53382,7 +53472,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53395,7 +53486,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53405,7 +53497,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53418,7 +53511,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53428,7 +53522,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53441,7 +53536,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53451,7 +53547,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53464,7 +53561,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53474,7 +53572,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53487,7 +53586,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53497,7 +53597,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53510,7 +53611,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53520,7 +53622,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53533,7 +53636,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53543,7 +53647,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53556,7 +53661,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53566,7 +53672,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53579,7 +53686,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53589,7 +53697,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53602,7 +53711,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53612,7 +53722,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53625,7 +53736,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53635,7 +53747,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53648,7 +53761,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53658,7 +53772,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53671,7 +53786,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53681,7 +53797,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53694,7 +53811,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53704,7 +53822,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53717,7 +53836,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53727,7 +53847,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53740,7 +53861,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53750,7 +53872,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53763,7 +53886,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53773,7 +53897,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53786,7 +53911,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53796,7 +53922,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53809,7 +53936,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53819,7 +53947,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53832,7 +53961,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53842,7 +53972,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53855,7 +53986,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53865,7 +53997,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53878,7 +54011,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53888,7 +54022,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53901,7 +54036,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53911,7 +54047,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53924,7 +54061,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53934,7 +54072,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53947,7 +54086,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53957,7 +54097,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53970,7 +54111,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -53980,7 +54122,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -53993,7 +54136,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54003,7 +54147,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54016,7 +54161,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54026,7 +54172,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54039,7 +54186,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54049,7 +54197,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54062,7 +54211,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54072,7 +54222,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54085,7 +54236,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54095,7 +54247,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54108,7 +54261,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54118,7 +54272,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54131,7 +54286,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54141,7 +54297,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54154,7 +54311,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54164,7 +54322,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54177,7 +54336,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54187,7 +54347,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54200,7 +54361,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54210,7 +54372,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54223,7 +54386,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54233,7 +54397,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54246,7 +54411,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54256,7 +54422,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54269,7 +54436,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54279,7 +54447,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54292,7 +54461,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54302,7 +54472,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54315,7 +54486,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54325,7 +54497,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54338,7 +54511,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54348,7 +54522,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54361,7 +54536,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54371,7 +54547,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      },
      {
@@ -54384,7 +54561,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       },
       "consumed": {
        "steel": 148,
@@ -54394,7 +54572,8 @@
        "magazine": 0,
        "wire": 0,
        "frame": 0,
-       "board": 0
+       "board": 0,
+       "concrete": 0
       }
      }
     ]

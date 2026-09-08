@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+ok 1 - legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+  ---
+  duration_ms: 1180.889475
+  ...
+# Subtest: campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+ok 2 - campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+  ---
+  duration_ms: 1590.210193
+  ...
+# Subtest: cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+ok 3 - cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+  ---
+  duration_ms: 2845.119127
+  ...
+# Subtest: campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+ok 4 - campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+  ---
+  duration_ms: 741.230418
+  ...
+# {"seed":3,"ticks":388,"commands":75,"recoveredAt":17,"hash":"b14d936b"}
+# Subtest: the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+ok 5 - the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+  ---
+  duration_ms: 5373.630469
+  ...
+# Subtest: guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+ok 6 - guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+  ---
+  duration_ms: 418.212956
+  ...
+# Subtest: the guardian returns at its bounded leash and workshop restoration does not retire it
+ok 7 - the guardian returns at its bounded leash and workshop restoration does not retire it
+  ---
+  duration_ms: 417.08761
+  ...
+# Subtest: a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+ok 8 - a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+  ---
+  duration_ms: 622.388296
+  ...
+# Subtest: field repair retains material costs, paid pauses and existing job duration, including core recovery
+ok 9 - field repair retains material costs, paid pauses and existing job duration, including core recovery
+  ---
+  duration_ms: 226.259682
+  ...
+# Subtest: old previews add one deferred guardian; malformed or missing current reward state is rejected
+ok 10 - old previews add one deferred guardian; malformed or missing current reward state is rejected
+  ---
+  duration_ms: 613.328083
+  ...
+# Subtest: fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+ok 11 - fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+  ---
+  duration_ms: 1067.161764
+  ...
+# Subtest: the records can be recovered by drawing the living guardian away, with no kill requirement
+ok 12 - the records can be recovered by drawing the living guardian away, with no kill requirement
+  ---
+  duration_ms: 173.512586
+  ...
+# Subtest: a paid missed rifle round attracts the workshop guardian even when the engineer stands still
+ok 13 - a paid missed rifle round attracts the workshop guardian even when the engineer stands still
+  ---
+  duration_ms: 182.098937
+  ...
+# Subtest: district sites and specialised sources are reachable, distinct and persistent across seeds and saves
+ok 14 - district sites and specialised sources are reachable, distinct and persistent across seeds and saves
+  ---
+  duration_ms: 4360.556045
+  ...
+# Subtest: powered extraction produces into real local storage without depletion or hand mining; outages stop it
+ok 15 - powered extraction produces into real local storage without depletion or hand mining; outages stop it
+  ---
+  duration_ms: 1088.807846
+  ...
+# Subtest: workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+ok 16 - workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+  ---
+  duration_ms: 805.387017
+  ...
+# Subtest: fresh campaign pays for both stations and the workshop through logged commands that replay identically
+ok 17 - fresh campaign pays for both stations and the workshop through logged commands that replay identically
+  ---
+  duration_ms: 700.067431
+  ...
+# Subtest: paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest
+ok 18 - paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest
+  ---
+  duration_ms: 1921.055794
+  ...
+# Subtest: old district-free previews upgrade once without moving the promised assault or duplicating sources
+ok 19 - old district-free previews upgrade once without moving the promised assault or duplicating sources
+  ---
+  duration_ms: 516.793875
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33496.617401

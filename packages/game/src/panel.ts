@@ -1,5 +1,7 @@
+import { createCampaignGuide } from './campaignGuidePanel';
+import { knownSite } from '@relight/sim';
 import { truckDescription, truckBoardCheck, stationRoute } from '@relight/sim';
-import { transportView } from './view';
+import { transportView, inspectionView } from './view';
 /** DOM side panel: HUD, ring order (drag to reorder), stock + assembler, facilities, session summary, export. */
 import { SimState, FrontEdgeView, ClaimInfo, HeldInfo, frontList, hud, facilityList, survivorList, shapeMetrics, clockOf, slotInfo, SKYLINE_RANGE, flowSummary, SHOT, MACHINE_COST,
   CHEST_ITEMS, ChestItem, chestCount, nearDepot, invStacks, INV_STACKS, KIT_STACKS, stackSize, REACH, Kind, CAMPAIGN_KINDS as KINDS, lockReason, survivorJoined, TURRET_RANGE, TURRET_HOPPER, LAMP_RADIUS,
@@ -15,7 +17,7 @@ import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
 import { radioUpgradeCheck, campaignWarning, defenceDescription, repairCheck, CAMPAIGN_THREAT } from '@relight/sim';
-import { campaignSite, describeSite, EXPANSION, SITE_IDS, SITE_LABELS, SiteId, districtGuidance, discoveryDescription, discoveryCheck } from '@relight/sim';
+import { turbineReachProblem, describeTurbine, campaignSite, describeSite, EXPANSION, SITE_IDS, SITE_LABELS, SiteId, districtGuidance, RECRUITS, recruitDescription, recruitCheck, discoveryDescription, discoveryCheck } from '@relight/sim';
 import { ITEMS, StationRules, freightInbound, isCampaign, rulesetOf, CAMPAIGN_RULESET, LEGACY_RULESET, campaignClock } from '@relight/sim';
 
 /** M6: what the export carries beside the telemetry — the command log (the replay's input) and, under the hour bot, its log and report. */
@@ -120,24 +122,13 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   }
   if (hasSlot('1', rulesetOf(st))) saveNote.textContent = 'this campaign has a save';
 
-  const campaignStatus = campaign ? el('p', 'hint') : null;
-  const discoveryStatus = campaign ? el('p','hint') : null;
-  const discoveryButton = campaign ? el('button',undefined,'Recover field-repair schematic') : null;
-  let radioUpgradeButton: HTMLButtonElement | null=null;
-  let defenceStatus: HTMLElement | null=null;
-  const coreButtons: {block:number;button:HTMLButtonElement}[]=[];
-  const siteButtons: { id: SiteId; button: HTMLButtonElement }[] = [];
-  if (campaignStatus) {
-    const section = el('section'); section.append(el('h2', undefined, 'Station restoration'), campaignStatus);
-    section.append(el('p', 'hint', `Station: ${EXPANSION.station.steel} steel + ${EXPANSION.station.copper} copper. Radio: ${EXPANSION.radio.steel} steel + ${EXPANSION.radio.copper} copper. Build and fuel a generator on the site or run poles to its substation. Commissioning registers this neighbourhood as a base. Its street boundaries are shown in the world and map views.`));
-    defenceStatus=el('p','hint');section.append(defenceStatus);
-    radioUpgradeButton=el('button',undefined,`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`);radioUpgradeButton.onclick=()=>queue(session,{type:'upgradeRadio'});section.append(radioUpgradeButton);
-    for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block,st.campaign!.districts!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};coreButtons.push({block:base,button});section.append(button);}
-    for (const id of SITE_IDS) { const button = el('button', undefined, `Deliver and restore ${SITE_LABELS[id]}`); button.onclick = () => { const s = campaignSite(session.state, id); if (s && s.restoredAt >= 0 && id === 'station') queue(session,{type:'collectTramKit'}); else {queue(session,{type:'deliverSite',site:id});queue(session,{type:'restoreSite',site:id});} }; section.append(button);siteButtons.push({id,button}); }
-    section.append(el('p', 'hint', 'After restoration, blue survey squares mark the suggested track and stop positions. They place nothing: collect the kit at the station, then lay and power the line yourself. The kit stays there if your pockets are full. Extend the survey using paid track and a third stop. Coloured source pads need powered excavators. Supply a chest within 4 tiles of the restored workshop with steel and copper; it repairs walls and turrets within 14 tiles between attacks.'));
-    section.append(el('h3',undefined,'Optional discovery'),discoveryStatus!,discoveryButton!);
-    discoveryButton!.onclick=()=>{const d=session.state.campaign?.discovery;if(d)queue(session,{type:'recoverSchematic',id:d.id});};
-    root.append(section);
+  const guide=campaign?createCampaignGuide(session,root,c=>queue(session,c)):null;
+  if(guide){const discoveries=el('button',undefined,'Discoveries'),items=el('button',undefined,'Items and recipes');discoveries.onclick=()=>guide.openDiscoveries();items.onclick=()=>guide.openItem();header.append(discoveries,items);}
+  let radioUpgradeButton:HTMLButtonElement|null=null,defenceStatus:HTMLElement|null=null;
+  const coreButtons:{block:number;button:HTMLButtonElement}[]=[];
+  if(campaign){const section=el('section');section.append(el('h2',undefined,'Base defence'));defenceStatus=el('p','hint');section.append(defenceStatus);
+    radioUpgradeButton=el('button');radioUpgradeButton.onclick=()=>queue(session,{type:'upgradeRadio'});section.append(radioUpgradeButton);
+    for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block,st.campaign!.districts!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};coreButtons.push({block:base,button});section.append(button);}root.append(section);
   }
   // HUD
   const hudSec = el('section');
@@ -226,6 +217,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   // three (0, [, ]) are listed locked, with who unlocks them, until the group's block turns Held (rule 8).
   const buildSec = el('section');
   buildSec.hidden = true;
+  if(guide){const browse=el('button',undefined,'Browse items and recipes');browse.onclick=()=>guide.openItem();buildSec.append(browse);}
   buildSec.append(el('h2', undefined, `${FACTORY_TEXT.buildTitle} (${shortcut('build')})`));
   const buildList = el('ul', 'plain');
   const BUILD = buildCatalogue(campaign);
@@ -236,13 +228,13 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     btn.title = FACTORY_TEXT.toolTitle(b.label, b.key);
     btn.onclick = () => panelRef.onPick?.(b.kind);
     const carried = el('span', 'mono', ''), lock = el('span', 'hint', '');
-    li.append(btn, el('span', 'hint', ` ${FACTORY_TEXT.price(c.steel, c.copper)} · ${b.what} `), carried, lock);
+    li.append(btn, el('span', 'hint', ` ${FACTORY_TEXT.price(c.steel, c.copper, c.concrete)} · ${b.what} `), carried, lock);
     buildCarried.push({ kind: b.kind, v: carried, btn, lock });
     buildList.append(li);
   }
   // GAME-ASSUMPTION (M4): the Arsenal's rifle upgrade (§8, 1.4 s a crawler) is a toolbar entry only — the upgrade itself is outside the hour
   const mk2Lock = el('span', 'hint', '');
-  const mk2 = el('li');
+  const mk2 = el('li');mk2.hidden=campaign;
   mk2.append(el('span', 'mono', 'Rifle Mk2'), el('span', 'hint', ' · twin barrels, 1.4 s a crawler (the Mk1 takes 3 rounds, 2 s) '), mk2Lock);
   buildList.append(mk2);
   buildSec.append(buildList);
@@ -292,7 +284,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const m=tramAt(session.state,x,y)??machineAt(session.state,x,y);
     if(!m){toast('Point at a factory machine to inspect it');return;}
     transportView.stopId=m.kind==='tramstop'?m.id:null;
-    inspectionId=m.id;routingAt=[m.x,m.y];routingSec.hidden=false;lastUpdate=-1e9;update(performance.now());routingSec.scrollIntoView({block:'nearest'});
+    inspectionId=m.id;inspectionView.machineId=m.id;routingAt=[m.x,m.y];routingSec.hidden=false;lastUpdate=-1e9;update(performance.now());routingSec.scrollIntoView({block:'nearest'});
   }
 
   const truckOpen=el('button',undefined,'Truck cargo'),truckSec=el('section','truck-cargo');truckSec.hidden=true;
@@ -380,7 +372,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
 
   // facilities (§8: silhouettes within SKYLINE_RANGE blocks of a Held block) and survivors (§8: a block's contents
   // show once a neighbour is Held)
-  const facSec = el('section');
+  const facSec = el('section'); facSec.hidden=campaign; // Campaign discoveries have explicit local recruitment; this is legacy debugging.
   facSec.append(el('h2', undefined, 'Skyline'));
   const facList = el('ul', 'plain');
   facSec.append(facList);
@@ -547,11 +539,9 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     if(itemStats.open){const stats=factoryStatistics(s);if(stats){statWindow.textContent=windowText(stats.seconds);stats.rows.forEach((r,i)=>[r.produced,r.consumed,r.producedPerMin,r.consumedPerMin].forEach((n,j)=>{statCells[i][j].textContent=num(n);}));}}
     updateGoal(s);
     if(defenceStatus)defenceStatus.textContent=campaignWarning(s);
-    if(radioUpgradeButton){const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
+    if(radioUpgradeButton){radioUpgradeButton.hidden=!knownSite(s,'radio');const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
     for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;row.button.disabled=!core||!!repairCheck(s,core.x,core.y);if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
-    if(discoveryStatus&&discoveryButton){const d=s.campaign?.discovery;discoveryStatus.textContent=d&&d.seenAt>=0?discoveryDescription(s):'A field-repair schematic was left in the workshop side yard. Look for the marked records cache while exploring; a Stalker guards it. This detour is optional.';discoveryButton.disabled=!d||!!discoveryCheck(s,d.id);discoveryButton.title=d?discoveryCheck(s,d.id):'';discoveryButton.textContent=d&&d.recoveredAt>=0?'Field-repair tool fitted':'Recover field-repair schematic';}
-    if (campaignStatus) { const ex = s.campaign?.expansion; campaignStatus.textContent = ex ? `${blockNameAt(s, s.blocks[ex.station.block].x, s.blocks[ex.station.block].y)}: ${describeSite(s, 'station')} ${ex.station.restoredAt >= 0 ? describeSite(s, 'radio') + ' ' + describeSite(s, 'northStation') + ' ' + districtGuidance(s) : ''}` : ''; }
-    for (const row of siteButtons) { const site = campaignSite(s, row.id); row.button.title=describeSite(s,row.id); row.button.disabled = !site || !inReach(s, site.x, site.y, site.size) || (row.id === 'radio' && (campaignSite(s, 'station')?.restoredAt ?? -1) < 0); row.button.textContent = site && site.restoredAt >= 0 ? row.id === 'station' ? 'Collect tram kit' : `${SITE_LABELS[row.id]} restored` : `Deliver and restore ${SITE_LABELS[row.id]}`; if (row.id !== 'station' && site && site.restoredAt >= 0) row.button.disabled = true; }
+    guide?.update();
     const h = hud(s);
     sHeld.b.textContent = String(h.held); sFront.b.textContent = String(h.front); sInt.b.textContent = String(h.interior);
     const fs = flowSummary(s);
@@ -630,7 +620,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       // Phase 7 (STANDARDS dealbreaker 1): from minute one the panel says where blueprints and copy-paste will come from.
       // GAME-ASSUMPTION (GA-EF-3): the row is a fixed line of text ("not yet found"), not a survivor the sim knows; Phase 7
       // replaces it with the real survivor's row and the §8 gift
-      { const l = el('li'); l.append(el('span', undefined, 'Blueprints and copy-paste · a survivor\'s gift (Phase 7)'), el('span', 'muted', 'not yet found')); survList.append(l); }
+      { const l = el('li'); l.append(el('span', undefined, 'Blueprints and copy-paste · Foreman tools (Phase 8)'), el('span', 'muted', 'not available in this build')); survList.append(l); }
       for (const f of survs) { const l = el('li'); l.append(el('span', undefined, `${f.tag} · ${f.name} · ${at(f.x, f.y)}`), el('span', f.held ? '' : 'muted', f.held ? 'with us' : 'seen')); survList.append(l); }
       if (!survs.length) survList.append(el('li', 'muted', 'no one else found yet'));
     }
@@ -705,7 +695,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       if (!pocketSec.hidden) pocketSec.scrollIntoView({ block: 'nearest' });
     },
     toggleBuild() { buildSec.hidden = !buildSec.hidden; if (!buildSec.hidden) buildSec.scrollIntoView({ block: 'nearest' }); return !buildSec.hidden; },
-    closeAll() { truckSec.hidden=true;transportView.stopId=null;routeSec.hidden=true;pocketSec.hidden = true; buildSec.hidden = true; routingSec.hidden=true; document.querySelector('canvas')?.scrollIntoView({ block: 'nearest' }); },
+    closeAll() { guide?.close();inspectionView.machineId=null;truckSec.hidden=true;transportView.stopId=null;routeSec.hidden=true;pocketSec.hidden = true; buildSec.hidden = true; routingSec.hidden=true; document.querySelector('canvas')?.scrollIntoView({ block: 'nearest' }); },
     setSelectedEdge(e) {
       selected = e ? e.id : null; ringKey = '';
       if (e) toast(`${edgeName(session.state, e.id)}${debugView.coords ? ` (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})` : ''} is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);
