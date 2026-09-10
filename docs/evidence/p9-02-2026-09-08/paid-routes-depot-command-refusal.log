@@ -1,0 +1,14 @@
+/mnt/e/Factorio2/packages/harness/src/blueprint.ts:13
+ send(c:Command):void {this.log.push({tick:this.state.flow!.tick,c:structuredClone(c)});applyCommands(this.state,[c]);if(['factory','construct','undergroundPair'].includes(c.type)&&!actionResult(this.state).ok)throw new Error(actionResult(this.state).reason);}
+                                                                                                                                                                                                                        ^
+
+
+Error: no chest or stop there
+    at FactoryDriver.send (/mnt/e/Factorio2/packages/harness/src/blueprint.ts:13:217)
+    at FactoryDriver.take (/mnt/e/Factorio2/packages/harness/src/blueprint.ts:27:47)
+    at <anonymous> (/mnt/e/Factorio2/docs/evidence/p9-02-2026-09-08/paid-routes.ts:13:74)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.18.0

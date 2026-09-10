@@ -1,0 +1,15 @@
+/mnt/e/Factorio2/packages/harness/src/blueprint.ts:13
+ send(c:Command):void {this.log.push({tick:this.state.flow!.tick,c:structuredClone(c)});applyCommands(this.state,[c]);if(['factory','construct','undergroundPair'].includes(c.type)&&!actionResult(this.state).ok)throw new Error(actionResult(this.state).reason);}
+                                                                                                                                                                                                                        ^
+
+
+Error: Packed machines use a physical supply chest
+    at FactoryDriver.send (/mnt/e/Factorio2/packages/harness/src/blueprint.ts:13:217)
+    at send (/mnt/e/Factorio2/docs/evidence/p9-04-2026-09-08/paid-rubble.ts:10:29)
+    at deposit (/mnt/e/Factorio2/docs/evidence/p9-04-2026-09-08/paid-rubble.ts:16:80)
+    at <anonymous> (/mnt/e/Factorio2/docs/evidence/p9-04-2026-09-08/paid-rubble.ts:25:72)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.18.0

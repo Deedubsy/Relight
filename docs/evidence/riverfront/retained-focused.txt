@@ -1,0 +1,143 @@
+TAP version 13
+# Subtest: direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters
+ok 1 - direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters
+  ---
+  duration_ms: 454.889854
+  type: 'test'
+  ...
+# Subtest: direct belts: any storage side can unload, and pointing inward never steals from the destination
+not ok 2 - direct belts: any storage side can unload, and pointing inward never steals from the destination
+  ---
+  duration_ms: 11.915195
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/directConveyor.test.ts:44:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Step outside the machine footprint before building
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    send (/mnt/e/Factorio2/packages/sim/test/directConveyor.test.ts:8:75)
+    build (/mnt/e/Factorio2/packages/sim/test/directConveyor.test.ts:19:2)
+    <anonymous> (/mnt/e/Factorio2/packages/sim/test/directConveyor.test.ts:21:100)
+    Array.map (<anonymous>)
+    planBuild (/mnt/e/Factorio2/packages/sim/test/directConveyor.test.ts:21:81)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/directConveyor.test.ts:47:39)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+  ...
+# Subtest: direct belts: incompatible mixed stock stays at its source and full destinations conserve items
+ok 3 - direct belts: incompatible mixed stock stays at its source and full destinations conserve items
+  ---
+  duration_ms: 34.093355
+  type: 'test'
+  ...
+# Subtest: direct belts: Home supplies and turret hoppers can unload without creating stock
+ok 4 - direct belts: Home supplies and turret hoppers can unload without creating stock
+  ---
+  duration_ms: 27.33669
+  type: 'test'
+  ...
+# Subtest: UI-02 fresh and paused load point to mining with empty Home; partial pockets name only the remainder
+ok 5 - UI-02 fresh and paused load point to mining with empty Home; partial pockets name only the remainder
+  ---
+  duration_ms: 90.442578
+  type: 'test'
+  ...
+# Subtest: UI-02 packed machines skip collection, exhausted Home suggests a real known patch, not impossible supplies
+ok 6 - UI-02 packed machines skip collection, exhausted Home suggests a real known patch, not impossible supplies
+  ---
+  duration_ms: 3.877463
+  type: 'test'
+  ...
+# Subtest: UI-02 existing machinery is inspected, with saved facts surviving load and removal
+ok 7 - UI-02 existing machinery is inspected, with saved facts surviving load and removal
+  ---
+  duration_ms: 17.542931
+  type: 'test'
+  ...
+# Subtest: UI-02 restored milestones remain restored while missing machinery needs rebuilding; down takes priority over tracking
+ok 8 - UI-02 restored milestones remain restored while missing machinery needs rebuilding; down takes priority over tracking
+  ---
+  duration_ms: 3.595745
+  type: 'test'
+  ...
+# Subtest: UI-02 tracking and minimap use known stable identities; invalid IDs fall back without revealing unknown sites
+ok 9 - UI-02 tracking and minimap use known stable identities; invalid IDs fall back without revealing unknown sites
+  ---
+  duration_ms: 11.455969
+  type: 'test'
+  ...
+# Subtest: UI-02 Home, workbench, machine and out-of-reach prompts resolve their actual E action without mutation
+ok 10 - UI-02 Home, workbench, machine and out-of-reach prompts resolve their actual E action without mutation
+  ---
+  duration_ms: 7.482526
+  type: 'test'
+  ...
+# Subtest: UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home
+ok 11 - UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home
+  ---
+  duration_ms: 9.383621
+  type: 'test'
+  ...
+# Subtest: UI-02 machine reach is measured from the whole footprint, independent of which corner is pointed at
+not ok 12 - UI-02 machine reach is measured from the whole footprint, independent of which corner is pointed at
+  ---
+  duration_ms: 62.725169
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/uiGuidance.test.ts:51:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      fresh()
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/uiGuidance.test.ts:53:9)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: UI-06 optional preferences preserve old quickbars and recover malformed individual fields
+ok 13 - UI-06 optional preferences preserve old quickbars and recover malformed individual fields
+  ---
+  duration_ms: 1.67093
+  type: 'test'
+  ...
+# Subtest: UI-06 binding validation preserves modifier/blueprint contexts and prevents world collisions
+ok 14 - UI-06 binding validation preserves modifier/blueprint contexts and prevents world collisions
+  ---
+  duration_ms: 0.696185
+  type: 'test'
+  ...
+# Subtest: UI-06 settings and quickbar saves compose; denied storage retains the session value without changing gameplay
+ok 15 - UI-06 settings and quickbar saves compose; denied storage retains the session value without changing gameplay
+  ---
+  duration_ms: 76.138223
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 13
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8733.358321

@@ -1,0 +1,428 @@
+--- UI-04/packages/game/src/alertInbox.ts
++++ UI-05/packages/game/src/alertInbox.ts
+@@ -0,0 +1,20 @@
++import {campaignAlerts,blockName,type CampaignAlert} from '@relight/sim';
++import type {Session} from './session';
++import {el} from './uiShell';
++interface Entry {alert:CampaignAlert;active:boolean;dismissed:boolean;count:number;row:HTMLElement;text:HTMLElement;locate:HTMLButtonElement;dismiss:HTMLButtonElement}
++/** Session presentation history; dismissing never changes authoritative conditions or the urgent HUD. */
++export function createAlertInbox(session:Session,root:HTMLElement,locate:(x:number,y:number)=>void){
++ const inbox=el('details','alert-inbox'),summary=el('summary',undefined,'Alerts and received messages'),intro=el('p',undefined,'Current conditions and session history. Dismissed danger stays visible on the HUD.'),list=el('div');inbox.append(summary,intro,list);root.append(inbox);
++ const entries=new Map<string,Entry>();
++ function put(a:CampaignAlert,active:boolean,repeat=false){let e=entries.get(a.id);if(!e){const row=el('article'),text=el('p'),loc=el('button',undefined,'Locate alert'),dismiss=el('button',undefined,'Dismiss');row.append(text,loc,dismiss);list.prepend(row);e={alert:a,active,dismissed:false,count:0,row,text,locate:loc,dismiss};entries.set(a.id,e);
++   loc.onclick=()=>{const current=campaignAlerts(session.state).find(c=>c.id===a.id);if(current?.location)locate(current.location.x,current.location.y);else loc.textContent='Location unavailable';};
++   dismiss.onclick=()=>{e!.dismissed=true;render(e!);};
++  }if(active&&!e.active)e.dismissed=false;e.alert=a;e.active=active;if(repeat)e.count++;render(e);
++ }
++ function render(e:Entry){e.text.textContent=`${e.active?'Active':e.alert.id.startsWith('message:')?'Message':'Resolved'}${e.dismissed?' · dismissed':''} · ${e.alert.title}${e.count>1?` ×${e.count}`:''}. ${e.alert.detail}`;e.row.classList.toggle('resolved',!e.active);e.locate.textContent=e.active&&e.alert.location?'Locate alert':'Location unavailable';e.locate.setAttribute('aria-disabled',String(!e.active||!e.alert.location));e.dismiss.hidden=e.dismissed;}
++ return {element:inbox,record(message:string,kind:string){put({id:`message:${kind}:${message}`,title:message,detail:'',priority:0,location:null},false,true);},update(){
++   const alerts=campaignAlerts(session.state),ids=new Set(alerts.map(a=>a.id));for(const e of entries.values())if(e.active&&!ids.has(e.alert.id)){e.active=false;render(e);}for(const a of alerts)put(a,true);
++   const w=session.state.campaign?.defence?.warning;if(w){const id=`message:radio:${w.assault}`;put({id,title:`Received radio warning · ${blockName(session.state,w.block)}`,detail:`Received at ${Math.floor(w.receivedAt)} s${w.approach?` · ${w.approach} · ${w.composition}`:''}. Retained during power outages.`,priority:0,location:null},false);}
++   summary.textContent=`Alerts and received messages · ${alerts.length} active`;
++ }};
++}
+--- UI-04/packages/game/src/campaignGuidePanel.ts
++++ UI-05/packages/game/src/campaignGuidePanel.ts
+@@ -1,13 +1,21 @@
+-import { campaignDiscoveries, itemGuide, ITEMS, type Item, type Command, type DiscoveryInfo } from '@relight/sim';
+-import type { Session } from './session';
++import { campaignDiscoveries, itemGuide, ITEMS, type Item } from '@relight/sim';
++import {dispatch,type Session} from './session';
++import {objectiveView} from './view';
+ 
+ const node=<K extends keyof HTMLElementTagNameMap>(tag:K,text=''):HTMLElementTagNameMap[K]=>{const n=document.createElement(tag);n.textContent=text;return n;};
+ /** Keep controls and focus stable while the simulation updates their current facts. */
+-export function createCampaignGuide(session:Session,root:HTMLElement,send:(c:Command)=>void){
+-  const journal=node('details'),summary=node('summary','Discoveries');journal.className='campaign-guide';journal.open=true;
++export function createCampaignGuide(session:Session,root:HTMLElement,hooks:{locate(x:number,y:number):void}){
++  const journal=node('details'),summary=node('summary','Known projects');journal.className='campaign-guide';journal.open=true;
+   const intro=node('p','Explore for nearby clues. Only known places appear here; recruiting and restoring require a local visit.');
+-  const list=node('div');journal.append(summary,intro,list);root.append(journal);
+-  const cards=new Map<string,{root:HTMLElement;title:HTMLElement;status:HTMLElement;detail:HTMLElement;needs:HTMLElement;actions:HTMLElement;key:string}>();
++  const choice=node('select');choice.setAttribute('aria-label','Known project');
++  const list=node('div'),card=node('article'),title=node('h3'),status=node('strong'),detail=node('p'),needs=node('div'),actions=node('div'),feedback=node('p');
++  card.className='project-card';status.className='project-status';needs.className='project-circuit';feedback.className='action-result';feedback.setAttribute('role','status');
++  const track=node('button','Track project'),locate=node('button','Show project location');
++  card.append(title,status,detail,needs,track,locate,actions,feedback);list.append(card);journal.append(summary,intro,choice,list);root.append(journal);
++  let selected='',key='',choicesKey='',busy=false,completed=false;
++  choice.onchange=()=>{selected=choice.value;key='';feedback.textContent='';updateProject();};
++  track.onclick=()=>{if(campaignDiscoveries(session.state).some(r=>r.id===selected)){objectiveView.targetId=selected;updateProject();}};
++  locate.onclick=()=>{const row=campaignDiscoveries(session.state).find(r=>r.id===selected);if(row)hooks.locate(row.x+row.size/2,row.y+row.size/2);else feedback.textContent='Location unavailable.';};
+   const recipes=node('details'),recipeSummary=node('summary','Items and recipes');recipes.className='campaign-guide item-guide';
+   const label=node('label','Item '),select=node('select');select.setAttribute('aria-label','Item guide');
+   for(const item of ITEMS){const o=node('option',item==='magazine'?'Shot magazine':item[0].toUpperCase()+item.slice(1));o.value=item;select.append(o);}label.append(select);
+@@ -20,14 +28,35 @@
+     body.append(node('h4','Used by'));const uses=node('ul');for(const use of info.uses)uses.append(node('li',use));body.append(uses,node('h4','Move and store'),node('p',info.transport));
+   }
+   select.onchange=updateRecipe;recipes.ontoggle=updateRecipe;
+-  function updateCard(row:DiscoveryInfo){let c=cards.get(row.id);if(!c){c={root:node('article'),title:node('h3'),status:node('strong'),detail:node('p'),needs:node('p'),actions:node('div'),key:''};c.root.dataset.discovery=row.id;c.root.append(c.title,c.status,c.detail,c.needs,c.actions);list.append(c.root);cards.set(row.id,c);}
+-    const key=JSON.stringify(row);if(key===c.key)return;c.key=key;c.title.textContent=row.title;c.status.textContent=`${row.status} · tile ${row.x}, ${row.y}`;c.detail.textContent=row.detail;
+-    c.needs.hidden=!row.needs.length;c.needs.textContent=row.needs.map(n=>`${n.item}: ${n.delivered}/${n.required} delivered (${Math.max(0,n.required-n.delivered)} remaining)`).join(' · ');
+-    while(c.actions.children.length>row.actions.length)c.actions.lastChild!.remove();
+-    row.actions.forEach((a,i)=>{let b=c!.actions.children[i] as HTMLButtonElement|undefined;if(!b){b=node('button');c!.actions.append(b);}b.textContent=a.label;b.disabled=!!a.reason;b.title=a.reason;b.onclick=()=>{for(const command of a.commands)send(command);};});
++  function updateProject(){
++    const rows=campaignDiscoveries(session.state),ck=rows.map(r=>r.id+r.title).join('|');
++    if(ck!==choicesKey){choicesKey=ck;choice.replaceChildren(...rows.map(r=>{const o=node('option',r.title);o.value=r.id;return o;}));}
++    if(!rows.some(r=>r.id===selected))selected=rows.find(r=>r.id===objectiveView.targetId)?.id??rows[0]?.id??'';
++    choice.value=selected;const row=rows.find(r=>r.id===selected);card.hidden=!row;if(!row)return;
++    track.textContent=objectiveView.targetId===selected?'Tracking project':'Track project';
++    const k=JSON.stringify(row);if(k===key)return;key=k;card.dataset.discovery=row.id;
++    title.textContent=row.title;status.textContent=row.circuit?.restored?'Restored · materials consumed':row.status;detail.textContent=row.detail;
++    const done=!!row.circuit?.restored;if(done&&!completed){card.classList.remove('project-completed');void card.offsetWidth;card.classList.add('project-completed');}completed=done;
++    needs.replaceChildren();const c=row.circuit;
++    if(c){
++      needs.append(node('h4','Restoration service circuit'));
++      const circuit=node('ol');circuit.className='service-nodes';
++      for(const m of c.materials){const n=node('li',`${c.restored?'✓ Consumed':m.delivered>=m.required?'✓ Delivered':'○ Material'} · ${m.item}: ${c.restored?m.required:m.delivered}/${m.required}`);n.className=c.restored||m.delivered>=m.required?'complete':'';circuit.append(n);}
++      const power=node('li',`${c.powered?'✓':'○'} Local power · ${c.powered?'online':'offline'}`);power.className=c.powered?'complete':'';circuit.append(power);needs.append(circuit);
++      if(c.restored)needs.append(node('p',row.status));
++      else {const checklist=node('ul');for(const m of c.materials)checklist.append(node('li',`${m.item}: ${m.delivered} delivered; ${m.required-m.delivered} remaining. Carried ${m.carried} · Home supplies ${m.home}. Will deliver ${m.transfer}.`));needs.append(checklist,node('p',c.blocker||'Materials and local power are ready.'));}
++    }
++    if(row.reward)needs.append(node('h4','Tram kit · collect what fits'),...row.reward.map(r=>node('p',`${r.item}: ${r.remaining} remaining · will collect ${r.collect}`)));
++    if(row.upgrade)needs.append(node('h4','Radio precision upgrade'),node('p',row.upgrade.bought?'Purchased · approach and composition added to received warnings.':`Separate purchase: ${row.upgrade.steel} steel + ${row.upgrade.copper} copper from pockets. Adds approach and composition to received warnings; local power required.`));
++    while(actions.children.length>row.actions.length)actions.lastChild!.remove();
++    row.actions.forEach((a,i)=>{let box=actions.children[i] as HTMLElement|undefined;if(!box){box=node('div');box.append(node('button'),node('p'));actions.append(box);}const button=box.children[0] as HTMLButtonElement,why=box.children[1] as HTMLElement;
++      button.textContent=a.label;button.setAttribute('aria-disabled',String(!!a.reason));why.textContent=a.reason;why.hidden=!a.reason;
++      button.onclick=()=>{if(busy)return;const fresh=campaignDiscoveries(session.state).find(r=>r.id===selected)?.actions[i];if(!fresh){feedback.textContent='Action unavailable.';return;}if(fresh.reason){feedback.textContent=fresh.reason;return;}
++        busy=true;try{for(const command of fresh.commands)dispatch(session,command);feedback.textContent=`${fresh.label} applied.`;key='';updateProject();}finally{window.setTimeout(()=>{busy=false;},350);}};
++    });
+   }
+   for(const d of [journal,recipes])d.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape'){d.open=false;document.querySelector('canvas')?.focus();}});
+-  return {update(){const rows=campaignDiscoveries(session.state),ids=new Set(rows.map(r=>r.id));for(const [id,c] of cards)if(!ids.has(id)){c.root.remove();cards.delete(id);}for(const row of rows)updateCard(row);updateRecipe();},
++  return {update(){updateProject();updateRecipe();},
+     openDiscoveries(){journal.open=true;journal.scrollIntoView({block:'nearest'});},
+     openItem(item:Item='steel'){select.value=item;recipes.open=true;updateRecipe();recipes.scrollIntoView({block:'nearest'});select.focus();},
+     close(){journal.open=false;recipes.open=false;}};
+--- UI-04/packages/game/src/hud.ts
++++ UI-05/packages/game/src/hud.ts
+@@ -1,4 +1,4 @@
+-import {blockName,blockOfTile,campaignClock,campaignWarning,currentGoal,invStacks,INV_STACKS,ENGINEER_HP,ROUNDS_PER_MAG,KIND_LABEL,navigationTargets,ground,T_RIVER,T_STREET,knownCampaignThreat,campaignDiscoveries,type NextAction} from '@relight/sim';
++import {blockName,blockOfTile,campaignClock,campaignAlerts,currentGoal,invStacks,INV_STACKS,ENGINEER_HP,ROUNDS_PER_MAG,KIND_LABEL,navigationTargets,ground,T_RIVER,T_STREET,campaignDiscoveries,type NextAction} from '@relight/sim';
+ import {el,uiInput} from './uiShell';
+ import {shortcut} from './controls';
+ import {hudInset,objectiveView,type View} from './view';
+@@ -43,7 +43,7 @@
+     put(title,tracked?action?.title??'Explore':'No tracked objective');put(next,tracked?action?.text??'Choose a known destination':'Track a known objective in Projects.');put(detail,action?.detail??'');details.hidden=!tracked;locate.hidden=!tracked||!action?.location;back.hidden=!world.viewingThreat;
+     const key=discoveries.map(s=>s.id+s.title).join('|');if(optionsKey!==key){optionsKey=key;select.replaceChildren(...[{id:'auto',title:'Automatic next action'},{id:'none',title:'Untrack'},...discoveries].map(s=>{const o=el('option',undefined,s.title);o.value=s.id;return o;}));}select.value=objectiveView.targetId===undefined?'auto':objectiveView.targetId===null?'none':objectiveView.targetId;
+     put(clock,`Day ${c.day} · ${c.night?'Night':'Daylight'} · ${Math.floor(c.elapsed/60)}:${String(Math.floor(c.elapsed%60)).padStart(2,'0')} · ${st.speed===0?'Paused':`${st.speed}×`}`);
+-    put(warning,campaignWarning(st));const threat=knownCampaignThreat(st);time.classList.toggle('urgent',!!threat);time.classList.toggle('danger',threat?.phase==='assault'||threat?.phase==='minor raid'||e.down>=0);speed.inert=panel.shell.paused();
++    const urgent=campaignAlerts(st)[0];put(warning,urgent?`${urgent.priority>=90?'⚠':'◷'} ${urgent.title}`:'');warning.title=urgent?.detail??'';time.classList.toggle('urgent',!!urgent&&urgent.priority>=60);time.classList.toggle('danger',!!urgent&&urgent.priority>=90);speed.inert=panel.shell.paused();
+     put(health,e.down>=0?`Engineer down · ${Math.ceil(Math.max(0,e.down-st.t))} s`:`Engineer · ${Math.ceil(e.hp)}/${ENGINEER_HP} HP`);
+     put(equipment,e.truckSeat?'Driving truck':tool.tool==='hand'?'Empty hand':tool.tool==='rifle'?`Rifle · ${Math.floor((e.inv.magazine??0)*ROUNDS_PER_MAG)} rounds`:KIND_LABEL[tool.tool]);put(stock,`Pockets ${invStacks(e.inv)}/${INV_STACKS} stacks`);
+     const interaction=view.mode==='world'&&!uiInput.blocked&&tool.tool==='hand'&&!tool.mode?world.interaction():null;
+--- UI-04/packages/game/src/panel.ts
++++ UI-05/packages/game/src/panel.ts
+@@ -1,3 +1,4 @@
++import {createAlertInbox} from './alertInbox';
+ import {createInspectionPanel} from './inspectionPanel';
+ import {createInventoryPanel} from './inventoryPanel';
+ import {truckTransferPreview,handCraftCheck} from '@relight/sim';
+@@ -24,7 +25,7 @@
+ import { debugView } from './view';
+ import { summarise, exportJson } from './telemetry';
+ import { hourReport } from '@relight/sim';
+-import { radioUpgradeCheck, campaignWarning, defenceDescription, repairCheck, CAMPAIGN_THREAT } from '@relight/sim';
++import { radioUpgradeCheck, defenceDescription, repairCheck, CAMPAIGN_THREAT } from '@relight/sim';
+ import { turbineReachProblem, describeTurbine, campaignSite, describeSite, EXPANSION, SITE_IDS, SITE_LABELS, SiteId, districtGuidance, RECRUITS, recruitDescription, recruitCheck, discoveryDescription, discoveryCheck } from '@relight/sim';
+ import { ITEMS, StationRules, freightInbound, isCampaign, rulesetOf, CAMPAIGN_RULESET, LEGACY_RULESET, campaignClock } from '@relight/sim';
+ 
+@@ -127,7 +128,8 @@
+   }
+   if (hasSlot('1', rulesetOf(st))) saveNote.textContent = 'this campaign has a save';
+ 
+-  const guide=campaign?createCampaignGuide(session,root,c=>queue(session,c)):null;
++  const alerts=campaign?createAlertInbox(session,root,hooks.locate):null;
++  const guide=campaign?createCampaignGuide(session,root,{locate:hooks.locate}):null;
+   const clipboard=campaign?createClipboardPanel(session,root,a=>panelRef.onBlueprint?.(a),()=>panelRef.onRemovalPreview?.()??null):null;
+   const blueprintLibrary=campaign?createBlueprintLibraryPanel(session,root,toast):null;
+   const truckWork=campaign?createTruckWorkPanel(session,root,toast):null;
+@@ -435,9 +437,13 @@
+   const tip = document.getElementById('tooltip')!;
+   const toasts = document.getElementById('toasts')!;
+   function toast(msg: string, kind: 'info' | 'bad' | 'good' = 'info'): void {
+-    const t = el('div', `toast ${kind === 'info' ? '' : kind}`, msg);
+-    toasts.append(t);
+-    while (toasts.children.length > 6) toasts.firstElementChild?.remove();
++    alerts?.record(msg,kind);
++    const short=campaign&&msg.length>150?msg.slice(0,147)+'…':msg;
++    const repeated=Array.from(toasts.children).find(n=>(n as HTMLElement).dataset.message===msg&&(n as HTMLElement).dataset.kind===kind) as HTMLElement|undefined;
++    if(repeated){const count=Number(repeated.dataset.count??1)+1;repeated.dataset.count=String(count);repeated.textContent=`${short} ×${count}`;return;}
++    const t = el('div', `toast ${kind === 'info' ? '' : kind}`, short);
++    t.dataset.message=msg;t.dataset.kind=kind;toasts.append(t);
++    while (toasts.children.length > (campaign?3:6)) toasts.firstElementChild?.remove();
+     setTimeout(() => t.remove(), 5000);
+   }
+ 
+@@ -555,7 +561,8 @@
+     if(itemStats.open){const stats=factoryStatistics(s);if(stats){statWindow.textContent=windowText(stats.seconds);stats.rows.forEach((r,i)=>[r.produced,r.consumed,r.producedPerMin,r.consumedPerMin].forEach((n,j)=>{statCells[i][j].textContent=num(n);}));}}
+     inspectionUi?.update();if(!pocketSec.hidden)inventoryUi?.update();
+     updateGoal(s);
+-    if(defenceStatus)defenceStatus.textContent=campaignWarning(s);
++    if(defenceStatus)defenceStatus.textContent='Current threats and received messages are in Projects → Alerts. The urgent HUD remains visible.';
++    alerts?.update();
+     if(radioUpgradeButton){radioUpgradeButton.hidden=!knownSite(s,'radio');const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
+     for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;const why=core?repairCheck(s,core.x,core.y):'';row.button.disabled=!core||!!why;row.button.title=why||'';row.reason.textContent=why||'';row.reason.hidden=!core||!why;if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
+     buildUi?.update();guide?.update();clipboard?.update();blueprintLibrary?.update();truckWork?.update();
+@@ -714,7 +721,7 @@
+   }
+   shell.register('truck','Truck cargo',[truckSec]);
+   shell.register('route','Station route',[routeSec]);
+-  if(guide&&journal) shell.register('projects','Projects',[journal],()=>guide.openDiscoveries());
++  if(guide&&journal) shell.register('projects','Projects',[journal,...(alerts?[alerts.element]:[])],()=>guide.openDiscoveries());
+   shell.register('help','Help',[controlsHelp(),...[recipes].filter(Boolean) as HTMLElement[]],()=>guide?.openItem());
+   // Keep stock, loss history, exact power/buffers and legacy management out of Developer.
+   debug.hidden=false;
+--- UI-04/packages/game/src/style.css
++++ UI-05/packages/game/src/style.css
+@@ -229,13 +229,13 @@
+  .hud-prompt {left:calc(50% + 30px);max-width:calc(100vw - 470px);}
+  .hud-opening-hint {left:280px;max-width:calc(100vw - 300px);}
+ }
+-.ui-shell:has(.ui-drawer:not([hidden])) .hud-time:not(.urgent) {right:calc(var(--ui-drawer-inset) + 12px);min-width:220px;}
++.ui-shell:has(.ui-drawer:not([hidden])) .hud-time {right:calc(var(--ui-drawer-inset) + 12px);min-width:220px;}
+ .ui-shell:has(.ui-modal:not([hidden])) .hud-time {z-index:var(--ui-alert);}
+ 
+ .hud-goal .hud-opening-hint {position:static;margin-top:8px;padding:8px;max-width:100%;}
+ 
+ @media(max-width:1100px) {
+- .ui-shell:has(.ui-drawer:not([hidden])) .hud-time:not(.urgent) {left:12px;right:calc(var(--ui-drawer-inset) + 12px);min-width:0;}
++ .ui-shell:has(.ui-drawer:not([hidden])) .hud-time {left:12px;right:calc(var(--ui-drawer-inset) + 12px);min-width:0;}
+  .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal {top:calc(var(--ui-clock-height) + 24px);width:calc(100vw - var(--ui-drawer-inset) - 24px);}
+  .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal details, .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal button {display:none;}
+ }
+@@ -295,3 +295,23 @@
+ .ui-shell #panel [data-adapter=inspection] section section {padding:0;border:0;margin:12px 0;}
+ .ui-shell #panel [data-adapter=inspection] h3 {margin:0 0 8px;}
+ .ui-shell #panel [data-adapter=inspection] p {margin:8px 0;}
++
++/* UI-05: one known project, material delivery circuit and session alert history. */
++.project-card { border:1px solid var(--ui-border); border-radius:8px; padding:14px; }
++.project-status { display:block; margin-bottom:10px; color:var(--ui-accent); }
++.service-nodes { display:flex; flex-wrap:wrap; gap:8px; padding:0; list-style:none; }
++.service-nodes li { flex:1 1 110px; border:2px solid #b78f51; border-radius:6px; padding:10px; background:#302a20; }
++.service-nodes li.complete { border-color:#83c6a6; background:#20392e; }
++.project-circuit li { margin-bottom:8px; }
++.project-card button { margin:4px 6px 4px 0; }
++.project-card [aria-disabled=true],.alert-inbox [aria-disabled=true] { opacity:.75; }
++.alert-inbox article { border-top:1px solid var(--ui-border); padding:8px 0; }
++.alert-inbox .resolved { border-left:3px solid #83c6a6; padding-left:8px; }
++.project-completed { animation:project-complete .6s ease-out; }
++@keyframes project-complete { from { box-shadow:0 0 0 3px #83c6a6; } to { box-shadow:none; } }
++@media(prefers-reduced-motion:reduce) { .project-completed { animation:none; } }
++
++.ui-shell #panel .project-card p { margin:8px 0; }
++.ui-shell #panel .project-card h3 { margin:0 0 8px; }
++.ui-shell #panel .project-card h4 { margin:12px 0 8px; }
++.ui-shell #panel .campaign-guide > p { margin:8px 0; }
+--- UI-04/packages/sim/src/campaignAlerts.ts
++++ UI-05/packages/sim/src/campaignAlerts.ts
+@@ -0,0 +1,23 @@
++import type {SimState} from './types';
++import {campaignWarning,knownCampaignThreat} from './campaignThreat';
++import {campaignClock} from './rules';
++import {blockName} from './names';
++import {blockOfTile} from './ground';
++import {knownDistrict} from './navigation';
++import {machineConstraints} from './inspection';
++import {KIND_LABEL,litAt} from './flow';
++import {DANGER_R} from './threat';
++import {DEFENCE} from './campaignDefence';
++export interface CampaignAlert {id:string;priority:number;title:string;detail:string;location:{x:number;y:number}|null}
++/** Read-only conditions. Never inspect a hidden attack roster, target or creature location. */
++export function campaignAlerts(st:SimState):CampaignAlert[] {
++ const d=st.campaign?.defence;if(!d)return [];const out:CampaignAlert[]=[],e=st.engineer,target=knownCampaignThreat(st);
++ if(e.down>=0||st.t-e.lastHit<5)out.push({id:'engineer:danger',priority:100,title:e.down>=0?'Engineer down':'Engineer under attack',detail:e.down>=0?'Wait for recovery.':'Take cover or defend yourself.',location:{x:e.x,y:e.y}});
++ for(const c of st.flow?.threat?.crawlers??[])if(c.hp>0&&Math.hypot(c.x-e.x,c.y-e.y)<=DANGER_R&&(c.kind!=='shade'||litAt(st,Math.floor(c.x),Math.floor(c.y))))out.push({id:`nearby:${c.id}`,priority:85,title:`Nearby threat · ${c.kind} #${c.id}`,detail:'Hostile within close range of the engineer.',location:{x:c.x,y:c.y}});
++ for(const b of d.bases)if(b.hp<DEFENCE.coreHp&&b.block!==target?.block)out.push({id:`damage:${b.block}`,priority:80,title:`Base ${b.hp===0?'disabled':'damaged'} · ${blockName(st,b.block)}`,detail:`Core ${Math.ceil(b.hp)}/${DEFENCE.coreHp} HP. Visit the core to repair.`,location:{x:b.x+b.size/2,y:b.y+b.size/2}});
++ if(target){const active=target.phase==='assault'||target.phase==='minor raid',title=active?'Base under attack':target.phase==='recovery'?'Base core disabled':target.phase==='withdrawal'?'Attackers withdrawing':`Assault in ${Math.max(0,Math.ceil(((d.major?.startsAt??st.t)-st.t)/60))} min`;out.push({id:`threat:${target.block}`,priority:active?90:target.phase==='recovery'?80:60,title:`${title} · ${blockName(st,target.block)}`,detail:campaignWarning(st),location:{x:target.x,y:target.y}});}
++ else if(d.major)out.push({id:'assault:unknown',priority:65,title:'Assault · location unavailable',detail:campaignWarning(st),location:null});
++ out.push({id:'schedule',priority:50,title:d.major?'Assault schedule pending withdrawal':`Scheduled assault · Night ${campaignClock({t:d.nextDawn}).day}`,detail:d.major?'Current assault in progress. The next schedule updates after withdrawal.':'Minor raids and ruin guardians remain possible before the major assault.',location:null});
++ for(const m of st.flow?.machines??[]){if(!['assembler','mixer','generator','turret'].includes(m.kind)||!knownDistrict(st,blockOfTile(st,m.x,m.y)))continue;const blockers=machineConstraints(st,m).blockers;if(blockers.length)out.push({id:`production:${m.id}`,priority:20,title:`Production warning · ${KIND_LABEL[m.kind]} #${m.id}`,detail:blockers.map(b=>b.text).join(' · '),location:{x:m.x+.5,y:m.y+.5}});}
++ return out.sort((a,b)=>b.priority-a.priority||a.id.localeCompare(b.id));
++}
+--- UI-04/packages/sim/src/campaignGuide.ts
++++ UI-05/packages/sim/src/campaignGuide.ts
+@@ -1,10 +1,12 @@
+-import {lockReason} from './flow';
++import {lockReason,chestCount,type ChestItem} from './flow';
++import {take} from './engineer';
++import {radioUpgradeCheck,CAMPAIGN_THREAT} from './campaignThreat';
+ /** P7-04: saved installation knowledge and read-only player-facing discovery information. */
+ import {navigationName} from './navigation';
+ import type { Command, SimState } from './types';
+ import { isCampaign } from './rules';
+ import { inReach } from './ground';
+-import { campaignSite, SITE_IDS, SITE_LABELS, EXPANSION, describeSite, siteCheck, type SiteId } from './expansion';
++import { campaignSite, SITE_IDS, SITE_LABELS, EXPANSION, describeSite, siteDeliveryCheck, type SiteId } from './expansion';
+ import { RECRUITS, recruitDescription, recruitCheck } from './campaignRecruits';
+ import { discoveryDescription, discoveryCheck } from './campaignDiscovery';
+ import { describeTurbine, turbineReachProblem, TURBINE } from './campaignTurbine';
+@@ -40,11 +42,25 @@
+   return '';
+ }
+ export interface GuideAction { label:string; reason:string; commands:Command[] }
++export interface ProjectMaterial {item:string;delivered:number;required:number;carried:number;home:number;transfer:number}
++export interface ServiceCircuit {restored:boolean;powered:boolean;materials:ProjectMaterial[];blocker:string}
+ export interface DiscoveryInfo {
+   id:string; title:string; defaultTitle:string; status:string; detail:string; x:number; y:number; size:number;
+   needs:{item:string;delivered:number;required:number}[]; actions:GuideAction[];
++  circuit?:ServiceCircuit; reward?:{item:string;remaining:number;collect:number}[];
++  upgrade?:{bought:boolean;steel:number;copper:number};
+ }
+ const local=(st:SimState,s:{x:number;y:number;size:number}):string=>st.engineer.down>=0||st.engineer.truckSeat||!inReach(st,s.x,s.y,s.size)?'Walk closer on foot to interact.':'';
++/** Uses only carried inventory for delivery; home stock is informational and separately identified. */
++function circuit(st:SimState,s:{restoredAt:number;block:number;delivered:Record<string,number>},cost:Record<string,number>):ServiceCircuit {
++  const restored=s.restoredAt>=0,powered=campaignThrottle(st,s.block)>0;
++  const materials=Object.entries(cost).map(([item,required])=>({item,required,delivered:s.delivered[item],carried:st.engineer.inv[item]??0,home:chestCount(st,item as ChestItem),transfer:restored?0:Math.min(Math.max(0,required-s.delivered[item]),st.engineer.inv[item]??0)}));
++  return {restored,powered,materials,blocker:restored?'':!powered?'Local power is still required to restore.':materials.some(m=>m.delivered+m.transfer<m.required)?'More carried materials are required to finish.':''};
++}
++function restorationAction(c:ServiceCircuit,reason:string,deliver:Command,restore:Command):GuideAction {
++  const transfer=c.materials.some(m=>m.transfer>0),ready=c.materials.every(m=>m.delivered+m.transfer>=m.required)&&c.powered;
++  return {label:transfer?(ready?'Deliver and restore':'Deliver carried materials'):'Restore',reason:reason||(!transfer&&!ready?(c.blocker||'Deliver the missing materials.') :''),commands:transfer?(ready?[deliver,restore]:[deliver]):[restore]};
++}
+ /** Only known locations. No hidden counters, locations, roster or attack query enters this model. */
+ export function campaignDiscoveries(st:SimState):DiscoveryInfo[] {
+   if(!isCampaign(st))return [];
+@@ -54,22 +70,23 @@
+     const disabled=st.campaign!.defence!.bases.some(b=>b.block===s.block&&b.hp===0);
+     let status=restored?(disabled?'Restored · core disabled':powered?'Restored · powered':'Restored · no power'):'Discovered · awaiting restoration';
+     // describeSite(radio) includes radio warning data: the journal deliberately avoids that query.
+-    let detail=id==='radio'?'Powered service names the announced target; a precision upgrade adds approach and composition. Read received intelligence in defence warnings.':id==='workshop'?(restored?workshopStatus(st):'Automates paid repairs near the workshop when supplied and powered, between attacks.'):restored?describeSite(st,id):'Deliver carried materials and provide local power. Station restoration registers a base; build and power actual track, platforms and trams for transport.';
++    const detail=id==='radio'?'Powered service names the announced target; a precision upgrade adds approach and composition. Read received intelligence in defence warnings.':id==='workshop'?(restored?workshopStatus(st):'Automates paid repairs near the workshop when supplied and powered, between attacks.'):restored?describeSite(st,id):'Deliver carried materials and provide local power. Station restoration registers a base; build and power actual track, platforms and trams for transport.';
+     if(id==='workshop'&&restored)status=`Restored · ${detail.replace(/^Workshop /,'').replace(/\.$/,'')}`;
+-    if(!restored)detail+=` ${siteCheck(st,id)}`;
+-    const actions:GuideAction[]=restored?(id==='station'?[{label:'Collect tram kit',reason:local(st,s),commands:[{type:'collectTramKit'}]}]:[]):[{label:`Deliver and restore ${SITE_LABELS[id]}`,reason:local(st,s),commands:[{type:'deliverSite',site:id},{type:'restoreSite',site:id}]}];
++    const service=circuit(st,s,EXPANSION[id]);
++    const reward=id==='station'&&restored?(()=>{const e={...st.engineer,inv:{...st.engineer.inv}};return (['tram','tramstop','track'] as const).map(item=>({item,remaining:st.campaign!.expansion!.reward[item],collect:take(e,item,st.campaign!.expansion!.reward[item])}));})():undefined;
++    const actions:GuideAction[]=restored?(id==='station'?[{label:'Collect tram kit',reason:local(st,s)||(reward!.every(r=>!r.remaining)?'Kit fully collected.':reward!.every(r=>!r.collect)?'Pockets full. Make room to collect.':''),commands:[{type:'collectTramKit'}]}]:id==='radio'?[{label:'Buy radio precision upgrade',reason:local(st,s)||radioUpgradeCheck(st),commands:[{type:'upgradeRadio'}]}]:[]):[restorationAction(service,local(st,s)||siteDeliveryCheck(st,id),{type:'deliverSite',site:id},{type:'restoreSite',site:id})];
+     out.push({id,title:SITE_LABELS[id][0].toUpperCase()+SITE_LABELS[id].slice(1),status,detail,x:s.x,y:s.y,size:s.size,
+-      needs:restored?[]:(['steel','copper'] as const).map(item=>({item,delivered:s.delivered[item],required:EXPANSION[id][item]})),actions});
++      needs:restored?[]:(['steel','copper'] as const).map(item=>({item,delivered:s.delivered[item],required:EXPANSION[id][item]})),actions,circuit:service,reward,...(id==='radio'&&restored?{upgrade:{bought:!!st.campaign!.defence!.radioUpgrade,steel:CAMPAIGN_THREAT.radioUpgradeSteel,copper:CAMPAIGN_THREAT.radioUpgradeCopper}}:{})});
+   }
+   for(const s of st.campaign!.recruits?.sites??[]){if(s.seenAt<0&&s.recruitedAt<0)continue;
+     out.push({id:s.id,title:RECRUITS[s.kind].name,status:s.recruitedAt>=0?'Recruited · plans retained':'Discovered · not recruited',detail:recruitDescription(st,s),x:s.x,y:s.y,size:1,needs:[],
+       actions:[{label:`${s.recruitedAt>=0?'Recruited':'Recruit'} ${RECRUITS[s.kind].name}`,reason:recruitCheck(st,s.id),commands:[{type:'recruitSurvivors',id:s.id}]}]});
+   }
+   const t=st.campaign!.turbine;
+-  if(t&&(t.seenAt>=0||t.restoredAt>=0)){const restored=t.restoredAt>=0,grid=campaignGrid(st);
++  if(t&&(t.seenAt>=0||t.restoredAt>=0)){const restored=t.restoredAt>=0,grid=campaignGrid(st),service=circuit(st,t,TURBINE.cost);
+     out.push({id:t.id,title:'Turbine hall',status:!restored?'Discovered · awaiting restoration':!t.enabled?'Restored · switched off':grid.blocks[t.block].turbineSupply===0?'Restored · core disabled':grid.turbineOutput>0?'Restored · generating':'Restored · standby',detail:describeTurbine(st),x:t.x,y:t.y,size:t.size,
+       needs:restored?[]:(['steel','copper','concrete'] as const).map(item=>({item,delivered:t.delivered[item],required:TURBINE.cost[item]})),
+-      actions:[{label:restored?`Switch Turbine ${t.enabled?'off':'on'}`:'Deliver and restore Turbine hall',reason:turbineReachProblem(st),commands:restored?[{type:'setTurbineEnabled',enabled:!t.enabled}]:[{type:'deliverTurbine'},{type:'restoreTurbine'}]}]});
++      circuit:service,actions:restored?[{label:`Switch Turbine ${t.enabled?'off':'on'}`,reason:turbineReachProblem(st),commands:[{type:'setTurbineEnabled',enabled:!t.enabled}]}]:[restorationAction(service,turbineReachProblem(st),{type:'deliverTurbine'},{type:'restoreTurbine'})]});
+   }
+   const d=st.campaign!.discovery;
+   if(d&&(d.seenAt>=0||d.recoveredAt>=0))out.push({id:d.id,title:'Workshop records',status:d.recoveredAt>=0?'Recovered · field-repair tool fitted':'Discovered · records available',detail:discoveryDescription(st),x:d.x,y:d.y,size:1,needs:[],actions:[{label:d.recoveredAt>=0?'Field-repair tool fitted':'Recover field-repair schematic',reason:discoveryCheck(st,d.id),commands:[{type:'recoverSchematic',id:d.id}]}]});
+--- UI-04/packages/sim/src/expansion.ts
++++ UI-05/packages/sim/src/expansion.ts
+@@ -77,18 +77,22 @@
+ export function campaignSiteAt(st: SimState,x:number,y:number):SiteId|null {
+   for(const id of SITE_IDS){const s=campaignSite(st,id);if(s && x>=s.x&&x<s.x+s.size&&y>=s.y&&y<s.y+s.size)return id;}return null;
+ }
+-export function siteCheck(st:SimState,id:SiteId):string {
++export function siteDeliveryCheck(st:SimState,id:SiteId):string {
+   const s=campaignSite(st,id); if(!s)return 'no restoration site';
+   if(id!=='station'&&campaignSite(st,'station')!.restoredAt<0)return 'restore the first station first';
+   if(id==='workshop'&&campaignSite(st,'northStation')!.restoredAt<0)return 'restore this district station first';
+   if(s.restoredAt>=0)return 'already restored';
+   if(st.engineer.down>=0||!inReach(st,s.x,s.y,s.size))return 'walk closer to the installation';
++  return '';
++}
++export function siteCheck(st:SimState,id:SiteId):string {
++  const why=siteDeliveryCheck(st,id);if(why)return why;const s=campaignSite(st,id)!;
+   const need=EXPANSION[id];if(s.delivered.steel<need.steel||s.delivered.copper<need.copper)return 'deliver the missing materials';
+   if(campaignThrottle(st,s.block)<=0)return 'needs a fueled local generator or poles connected to a powered substation';
+   return '';
+ }
+ export function deliverSite(st:SimState,id:SiteId):void {
+-  const s=campaignSite(st,id);if(!s||s.restoredAt>=0||st.engineer.down>=0||!inReach(st,s.x,s.y,s.size)||(id!=='station'&&campaignSite(st,'station')!.restoredAt<0)||(id==='workshop'&&campaignSite(st,'northStation')!.restoredAt<0))return;
++  if(siteDeliveryCheck(st,id))return;const s=campaignSite(st,id)!;
+   for(const item of ['steel','copper'] as const)s.delivered[item]+=drop(st.engineer,item,Math.max(0,EXPANSION[id][item]-s.delivered[item]));
+ }
+ export function restoreSite(st:SimState,id:SiteId):string {
+--- UI-04/packages/sim/src/index.ts
++++ UI-05/packages/sim/src/index.ts
+@@ -80,3 +80,5 @@
+ export * from './navigation';
+ 
+ export * from './interaction';
++
++export * from './campaignAlerts';
+--- UI-04/packages/sim/test/projects.test.ts
++++ UI-05/packages/sim/test/projects.test.ts
+@@ -0,0 +1,63 @@
++import {test} from 'node:test';
++import {writeFileSync} from 'node:fs';
++import assert from 'node:assert/strict';
++import {createCampaign,newThreat,ground,findPath,passable,advanceFlow,applyCommands,canPlace,blockOfTile,campaignSite,machineAt,inReach,campaignDiscoveries,campaignAlerts,conservation,loadState,makeSave,stateHash,CAMPAIGN_THREAT,type Crawler,type SimState,type Command,type LoggedCommand} from '../src/index';
++const logs = new WeakMap<SimState, LoggedCommand[]>();
++function command(st:SimState,commands:Command[]):void { const log=logs.get(st)??[];for(const c of commands)log.push({tick:st.flow!.tick,c});logs.set(st,log);applyCommands(st,commands); }
++function walk(st:SimState,x:number,y:number,size=1):void {
++  if(inReach(st,x,y,size))return;
++  let target:[number,number]|undefined;
++  for(let r=0;r<=5&&!target;r++)for(let yy=y-r;yy<y+size+r&&!target;yy++)for(let xx=x-r;xx<x+size+r;xx++) {
++    if(passable(st,xx,yy)&&findPath(st,Math.floor(st.engineer.x),Math.floor(st.engineer.y),xx,yy)?.length){target=[xx,yy];break;}
++  }
++  assert.ok(target,'reachable approach');
++  command(st,[{type:'move',x:target[0]+0.5,y:target[1]+0.5}]);
++  for(let k=0;k<120&&st.engineer.target;k++)advanceFlow(st,1);
++  assert.ok(inReach(st,x,y,size),'walk arrived within reach');
++}
++function generator(st:SimState,bi:number):[number,number] {
++  const sub=ground(st).blocks[bi].sub!;
++  for(let r=3;r<18;r++)for(let y=sub.y-r;y<sub.y+r;y++)for(let x=sub.x-r;x<sub.x+r;x++)if(blockOfTile(st,x,y)===bi&&canPlace(st,'generator',x,y).ok){walk(st,x,y,2);command(st,[{type:'place',item:'generator',x,y},{type:'feed',x,y}]);assert.equal(machineAt(st,x,y)?.kind,'generator');return[x,y];}
++  throw new Error('no generator position');
++}
++function provision(st:SimState):void { command(st,[{type:'chestTake',item:'steel',n:120},{type:'chestTake',item:'copper',n:60},{type:'chestTake',item:'coal',n:20}]); }
++test('project previews and ordinary paid delivery, power, restoration and kit collection agree and survive load',()=>{
++ const st=createCampaign(),site=campaignSite(st,'station')!;
++ const checkpoint=(name:string)=>{if(process.env.UI05_FIXTURES)writeFileSync(`${process.env.UI05_FIXTURES}/${name}.json`,JSON.stringify(makeSave(st,{log:logs.get(st)??[],logComplete:true})));};
++ let row=campaignDiscoveries(st)[0];assert.ok(row.actions[0].reason);assert.ok(row.circuit!.materials.every(m=>!m.transfer&&m.home>0));
++ command(st,[{type:'chestTake',item:'steel',n:12}]);walk(st,site.x,site.y,site.size);
++ row=campaignDiscoveries(st)[0];assert.equal(row.circuit!.materials[0].transfer,12);assert.equal(row.circuit!.powered,false);assert.equal(row.actions[0].reason,'');assert.deepEqual(row.actions[0].commands,[{type:'deliverSite',site:'station'}]);
++ checkpoint('partial');command(st,row.actions[0].commands);assert.equal(site.delivered.steel,12);assert.equal(site.restoredAt,-1);assert.ok(campaignDiscoveries(st)[0].actions[0].reason);
++ const depot=st.flow!.machines.find(m=>m.kind==='depot')!;walk(st,depot.x,depot.y,depot.size);provision(st);
++ const gen=generator(st,site.block);walk(st,site.x,site.y,site.size);row=campaignDiscoveries(st)[0];assert.equal(row.circuit!.materials[0].transfer,18);assert.equal(row.actions[0].label,'Deliver and restore');
++ checkpoint('powered');command(st,row.actions[0].commands);assert.ok(site.restoredAt>=0);assert.deepEqual(site.delivered,{steel:0,copper:0});row=campaignDiscoveries(st)[0];assert.ok(row.circuit!.restored);const reward=structuredClone(st.campaign!.expansion!.reward);
++ command(st,[{type:'restoreSite',site:'station'}]);assert.deepEqual(st.campaign!.expansion!.reward,reward);
++ checkpoint('kit');const preview=row.reward!;command(st,row.actions[0].commands);for(const r of preview)assert.equal(st.campaign!.expansion!.reward[r.item as keyof typeof reward],r.remaining-r.collect);assert.ok(conservation(st).ok);
++ const radio=campaignSite(st,'radio')!;walk(st,radio.x,radio.y,radio.size);advanceFlow(st,.05);checkpoint('radio');
++ row=campaignDiscoveries(st).find(r=>r.id==='radio')!;assert.equal(row.actions[0].reason,'');command(st,row.actions[0].commands);assert.ok(radio.restoredAt>=0);
++ row=campaignDiscoveries(st).find(r=>r.id==='radio')!;assert.equal(row.upgrade!.steel,15);const steel=st.engineer.inv.steel;command(st,row.actions[0].commands);assert.equal(st.engineer.inv.steel,steel-15);assert.ok(st.campaign!.defence!.radioUpgrade);assert.ok(conservation(st).ok);
++ // Labelled outage fixture tests display only, after paid restoration and collection.
++ machineAt(st,...gen)!.inv.coal=0;row=campaignDiscoveries(st)[0];assert.ok(row.circuit!.restored);assert.equal(row.circuit!.powered,false);assert.ok(row.circuit!.materials.every(m=>m.transfer===0));
++ checkpoint('outage');assert.equal(stateHash(loadState(makeSave(st))),stateHash(st));
++});
++
++test('project read model has concrete, separate radio upgrade costs, full-pocket and prerequisite refusals without mutations',()=>{
++ const s=createCampaign(),e=s.campaign!.expansion!,t=s.campaign!.turbine!;s.campaign!.knowledge!.sites.radio=0;t.seenAt=0;
++ s.engineer.x=e.radio.x;s.engineer.y=e.radio.y;s.engineer.inv={steel:50,copper:50};let radio=campaignDiscoveries(s).find(r=>r.id==='radio')!;assert.match(radio.actions[0].reason,/first station/);assert.equal(radio.circuit!.materials[0].required,20);
++ // Labelled completion/capacity fixture isolates read-only fields, not earned progression.
++ e.station.restoredAt=e.radio.restoredAt=0;e.grantedAt=0;e.reward={tram:1,tramstop:2,track:e.route.length};s.engineer.inv={belt:40};s.engineer.x=e.station.x;s.engineer.y=e.station.y;
++ const before=stateHash(s),rows=campaignDiscoveries(s);assert.equal(stateHash(s),before);assert.ok(rows.find(r=>r.id===t.id)!.circuit!.materials.some(m=>m.item==='concrete'));
++ assert.ok(rows.find(r=>r.id==='station')!.reward!.every(r=>!r.collect));radio=rows.find(r=>r.id==='radio')!;assert.equal(radio.upgrade!.steel,CAMPAIGN_THREAT.radioUpgradeSteel);assert.equal(radio.upgrade!.copper,CAMPAIGN_THREAT.radioUpgradeCopper);
++ s.campaign!.defence!.radioUpgrade=true;assert.ok(campaignDiscoveries(s).find(r=>r.id==='radio')!.upgrade!.bought);
++});
++
++test('alerts prioritize actual known threats, resolve from state and withhold unknown targets',()=>{
++ const s=createCampaign(),d=s.campaign!.defence!,base=d.bases[0];let alerts=campaignAlerts(s);assert.equal(alerts[0].id,'schedule');assert.match(alerts[0].title,/Night 3/);
++ // Labelled schedule fixture: no spawned enemy roster is exposed by the query.
++ d.minor={id:1,block:base.block,origin:0,retreat:false};alerts=campaignAlerts(s);assert.equal(alerts[0].id,`threat:${base.block}`);assert.match(alerts[0].title,/Base under attack/);const hash=stateHash(s);campaignAlerts(s);assert.equal(stateHash(s),hash);
++ s.engineer.lastHit=s.t;assert.equal(campaignAlerts(s)[0].id,'engineer:danger');s.engineer.lastHit=-999;d.minor=null;assert.ok(!campaignAlerts(s).some(a=>a.id.startsWith('threat:')));
++ s.campaign!.expansion!.radio.restoredAt=0;d.major={id:2,block:base.block,dawn:0,startsAt:0,origin:0,remaining:60,nextSpawn:0,retreat:false};d.warning=null;
++ alerts=campaignAlerts(s);assert.equal(alerts[0].location,null);assert.equal(alerts[0].id,'assault:unknown');assert.ok(!JSON.stringify(alerts).includes('remaining'));
++ d.major=null;d.nextDawn=6000;assert.match(campaignAlerts(s)[0].title,/Night 6/);
++ const crawler={id:900,hp:12,kind:'crawler',x:s.engineer.x+1,y:s.engineer.y} as Crawler;(s.flow!.threat??=newThreat()).crawlers.push(crawler);assert.equal(campaignAlerts(s)[0].id,'nearby:900');crawler.x+=50;assert.ok(!campaignAlerts(s).some(a=>a.id==='nearby:900'));base.hp-=10;assert.match(campaignAlerts(s)[0].title,/Base damaged/);
++});
+--- UI-04/packages/sim/test/uiGuidance.test.ts
++++ UI-05/packages/sim/test/uiGuidance.test.ts
+@@ -43,7 +43,8 @@
+ });
+ test('UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home',()=>{
+  const st=fresh(),site=st.campaign!.expansion!.station;st.engineer.x=site.x;st.engineer.y=site.y;
+- const target=campaignInteraction(st,{tx:site.x,ty:site.y})!;assert.equal(target.reason,'');assert.deepEqual(target.commands,[{type:'deliverSite',site:'station'},{type:'restoreSite',site:'station'}]);
++ assert.ok(campaignInteraction(st,{tx:site.x,ty:site.y})!.reason,'UI-05 explains a restore refusal when no materials can transfer');
++ st.engineer.inv.steel=7;const target=campaignInteraction(st,{tx:site.x,ty:site.y})!;assert.equal(target.reason,'');assert.deepEqual(target.commands,[{type:'deliverSite',site:'station'}]);
+  const d=st.campaign!.defence!.bases[0];d.hp-=1;st.engineer.x=d.x;st.engineer.y=d.y;const repair=campaignInteraction(st,{tx:d.x,ty:d.y})!;assert.equal(repair.label,'Repair base core');assert.deepEqual(repair.commands,[{type:'repairDefence',x:d.x,y:d.y}]);
+ });
+ 

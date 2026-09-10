@@ -1,0 +1,76 @@
+TAP version 13
+# Subtest: physical truck loads a real chest, travels, builds from cargo, and leaves engineer pockets and position intact
+ok 1 - physical truck loads a real chest, travels, builds from cargo, and leaves engineer pockets and position intact
+  ---
+  duration_ms: 2083.152415
+  type: 'test'
+  ...
+# Subtest: shortages resume after local chest replenishment; pause, cancel and repeat controls retain stock
+ok 2 - shortages resume after local chest replenishment; pause, cancel and repeat controls retain stock
+  ---
+  duration_ms: 409.629369
+  type: 'test'
+  ...
+# Subtest: loading, travelling and partial-build checkpoints continue deterministically without double spending
+ok 3 - loading, travelling and partial-build checkpoints continue deterministically without double spending
+  ---
+  duration_ms: 1937.541708
+  type: 'test'
+  ...
+# Subtest: missing source and occupied destinations wait safely and retry after the obstruction is fixed
+ok 4 - missing source and occupied destinations wait safely and retry after the obstruction is fixed
+  ---
+  duration_ms: 411.465281
+  type: 'test'
+  ...
+# Subtest: manual boarding pauses the automated truck and preserves its cargo and independent orders
+ok 5 - manual boarding pauses the automated truck and preserves its cargo and independent orders
+  ---
+  duration_ms: 437.781
+  type: 'test'
+  ...
+# Subtest: malformed jobs and saved teleport paths are rejected without granting stock or bypassing Foreman
+ok 6 - malformed jobs and saved teleport paths are rejected without granting stock or bypassing Foreman
+  ---
+  duration_ms: 1007.519403
+  type: 'test'
+  ...
+# Subtest: a new obstacle on a saved route stops the swept footprint and work resumes after removal
+ok 7 - a new obstacle on a saved route stops the swept footprint and work resumes after removal
+  ---
+  duration_ms: 495.646453
+  type: 'test'
+  ...
+# Subtest: unrelated full cargo blocks loading without spending source stock and recovers after unloading
+ok 8 - unrelated full cargo blocks loading without spending source stock and recovers after unloading
+  ---
+  duration_ms: 420.270954
+  type: 'test'
+  ...
+# Subtest: paired underground construction uses real cargo and preserves tunnel roles
+ok 9 - paired underground construction uses real cargo and preserves tunnel roles
+  ---
+  duration_ms: 387.000878
+  type: 'test'
+  ...
+# Subtest: ordinary station restoration, Foreman recruitment, paid chest and copied plan fully replay through automated delivery
+ok 10 - ordinary station restoration, Foreman recruitment, paid chest and copied plan fully replay through automated delivery
+  ---
+  duration_ms: 1518.539474
+  type: 'test'
+  ...
+# Subtest: packed machines from a supply chest replace material costs without touching pockets
+ok 11 - packed machines from a supply chest replace material costs without touching pockets
+  ---
+  duration_ms: 369.575974
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14043.578054

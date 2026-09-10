@@ -1,3 +1,13 @@
+import {createSettings} from './settingsPanel';
+import {createAlertInbox} from './alertInbox';
+import {createInspectionPanel} from './inspectionPanel';
+import {createInventoryPanel} from './inventoryPanel';
+import {itemName,truckTransferPreview,handCraftCheck} from '@relight/sim';
+import {createBuildPanel} from './buildPanel';
+import { createUiShell, controlsHelp, el, type UiShell } from './uiShell';
+import { createTruckWorkPanel } from './truckWorkPanel';
+import { createBlueprintLibraryPanel } from './blueprintLibraryPanel';
+import { createClipboardPanel, type ClipboardAction } from './clipboardPanel';
 import { createCampaignGuide } from './campaignGuidePanel';
 import { knownSite } from '@relight/sim';
 import { truckDescription, truckBoardCheck, stationRoute } from '@relight/sim';
@@ -16,7 +26,7 @@ import { shortcut, bound } from './controls';
 import { debugView } from './view';
 import { summarise, exportJson } from './telemetry';
 import { hourReport } from '@relight/sim';
-import { radioUpgradeCheck, campaignWarning, defenceDescription, repairCheck, CAMPAIGN_THREAT } from '@relight/sim';
+import { radioUpgradeCheck, defenceDescription, repairCheck, CAMPAIGN_THREAT } from '@relight/sim';
 import { turbineReachProblem, describeTurbine, campaignSite, describeSite, EXPANSION, SITE_IDS, SITE_LABELS, SiteId, districtGuidance, RECRUITS, recruitDescription, recruitCheck, discoveryDescription, discoveryCheck } from '@relight/sim';
 import { ITEMS, StationRules, freightInbound, isCampaign, rulesetOf, CAMPAIGN_RULESET, LEGACY_RULESET, campaignClock } from '@relight/sim';
 
@@ -25,11 +35,12 @@ export function exportExtra(session: Session): Record<string, unknown> {
   return { commands: session.log, hour: session.hour ? hourReport(session.state, session.hour) : null };
 }
 
-export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void }
+export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void; releaseInput(): void; cancelSelection(): boolean; selectedTool():string; locate(x:number,y:number):void; rotateTool():void; cancelTool():void }
 /** D-B1-5: the build menu (key B) picks a building into the hand; the world scene installs the pick. */
 export type BuildKind = Exclude<Kind, 'depot'>;
 
 export interface Panel {
+  shell: UiShell;
   update(nowMs: number): void;
   setSelectedEdge(e: FrontEdgeView | null): void;
   tooltip(info: ClaimInfo | HeldInfo | null, px: number, py: number): void;
@@ -51,16 +62,12 @@ export interface Panel {
   toggleBuild(): boolean;
   /** Esc: close the pockets and the build menu. */
   closeAll(): void;
-  onPick: ((kind: BuildKind) => void) | null;
+  onRemovalPreview: (() => import('@relight/sim').RemovalPreview|null) | null;
+  onBlueprint: ((action: ClipboardAction) => void) | null;
+  onPick: ((kind: BuildKind|'rifle') => void) | null;
   toast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
 }
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  return e;
-}
 const pct = (v: number) => `${Math.round(v * 100)} %`;
 /** Pips are shape-coded as well as coloured (constitution, Phase 2): ● green, ▲ amber, ✕ red. Same shapes on the map. */
 const PIP_GLYPH: Record<string, string> = { green: '●', amber: '▲', red: '✕' };
@@ -106,7 +113,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const saveNote = el('span', 'hint', '');
   saveRow.append(btnSave, btnLoad, saveNote);
   header.append(saveRow);
-  header.append(el('p', 'hint', campaign ? 'Explore from Home Court to the tram station. Carry materials and build local power to restore it, collect its tram kit, then restore the radio tower. Build walls and supplied turrets. E repairs damaged defences; major assaults begin on Night 3, with lighter raids between.' : 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
+  header.append(el('p', 'hint', campaign ? 'Explore from Home Court to the tram station. Carry materials and build local power to restore the base, then restore the radio tower. Four permanent tram stops are already on the map; power any two for automatic freight service. Build walls and supplied turrets. E repairs damaged defences; major assaults begin on Night 3, with lighter raids between.' : 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
   root.append(header);
   function saveGame(): void {
     try {
@@ -122,13 +129,17 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   }
   if (hasSlot('1', rulesetOf(st))) saveNote.textContent = 'this campaign has a save';
 
-  const guide=campaign?createCampaignGuide(session,root,c=>queue(session,c)):null;
-  if(guide){const discoveries=el('button',undefined,'Discoveries'),items=el('button',undefined,'Items and recipes');discoveries.onclick=()=>guide.openDiscoveries();items.onclick=()=>guide.openItem();header.append(discoveries,items);}
-  let radioUpgradeButton:HTMLButtonElement|null=null,defenceStatus:HTMLElement|null=null;
-  const coreButtons:{block:number;button:HTMLButtonElement}[]=[];
-  if(campaign){const section=el('section');section.append(el('h2',undefined,'Base defence'));defenceStatus=el('p','hint');section.append(defenceStatus);
+  const alerts=campaign?createAlertInbox(session,root,hooks.locate):null;
+  const guide=campaign?createCampaignGuide(session,root,{locate:hooks.locate}):null;
+  const clipboard=campaign?createClipboardPanel(session,root,a=>panelRef.onBlueprint?.(a),()=>panelRef.onRemovalPreview?.()??null):null;
+  const blueprintLibrary=campaign?createBlueprintLibraryPanel(session,root,toast):null;
+  const truckWork=campaign?createTruckWorkPanel(session,root,toast):null;
+  if(guide){const discoveries=el('button',undefined,'Projects'),items=el('button',undefined,'Items and recipes');discoveries.onclick=()=>shell.open('projects');items.onclick=()=>shell.open('help');header.append(discoveries,items);}
+  let radioUpgradeButton:HTMLButtonElement|null=null,defenceStatus:HTMLElement|null=null,defenceSection:HTMLElement|null=null;
+  const coreButtons:{block:number;button:HTMLButtonElement;reason:HTMLElement}[]=[];
+  if(campaign){const section=el('section');defenceSection=section;section.append(el('h2',undefined,'Base defence'));defenceStatus=el('p','hint');section.append(defenceStatus);
     radioUpgradeButton=el('button');radioUpgradeButton.onclick=()=>queue(session,{type:'upgradeRadio'});section.append(radioUpgradeButton);
-    for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block,st.campaign!.districts!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};coreButtons.push({block:base,button});section.append(button);}root.append(section);
+    for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block,st.campaign!.districts!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};const reason=el('p','hint');coreButtons.push({block:base,button,reason});section.append(button,reason);}root.append(section);
   }
   // HUD
   const hudSec = el('section');
@@ -140,11 +151,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const sLost = mk('blocks lost'), sEmpty = mk('empty hoppers'), sClock = mk('sim clock');
   if (campaign) for (const stat of [sFront, sInt, sDem, sLost, sEmpty]) stat.s.remove();
   hudSec.append(stats);
-  const speedRow = el('div', 'row');
-  const speeds: [number, string][] = [[0, 'Pause'], [1, '1×'], [4, '4×'], [16, '16×']];
-  const speedBtns = speeds.map(([m, label]) => { const b = el('button', undefined, label); b.onclick = () => setSpeed(session, m); speedRow.append(b); return { m, b }; });
-  speedRow.append(el('span', 'hint', FACTORY_TEXT.keys));
-  hudSec.append(speedRow);
+
   root.append(hudSec);
 
   // M1 (D5): the pockets (40 stacks) and the Depot chest. Transfers need the engineer within reach of the Depot; the
@@ -154,7 +161,8 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const pocketSec = el('section');
   pocketSec.hidden = true;
   let pocketAt: [number, number] | null = null;   // RI-05: the Supply chest or Tram stop the pockets talk to (E on it); null = the Depot
-  const pocketTarget = () => pocketAt ? machineAt(session.state, pocketAt[0], pocketAt[1]) : undefined;
+  let pocketId:number|null=null, pocketStorage=false;
+  const pocketTarget = () => campaign?(pocketId===null?undefined:machineById(session.state,pocketId)):pocketAt?machineAt(session.state,pocketAt[0],pocketAt[1]):undefined;
   const pocketWhere = () => { const m = pocketTarget(); return !m ? 'the Depot' : m.kind === 'tramstop' ? 'the Tram stop\'s platform' : 'the Supply chest'; };
   pocketSec.append(el('h2', undefined, FACTORY_TEXT.pocketTitle));
   const pocketHead = el('p', 'hint', '');
@@ -215,12 +223,13 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
 
   // D-B1-5: the build menu (B). The hotbar (1–8) is its shortcut; 9 is the rifle. Prompt B M3: the Electricians'
   // three (0, [, ]) are listed locked, with who unlocks them, until the group's block turns Held (rule 8).
+  let buildUi:ReturnType<typeof createBuildPanel>|null=null;
   const buildSec = el('section');
   buildSec.hidden = true;
   if(guide){const browse=el('button',undefined,'Browse items and recipes');browse.onclick=()=>guide.openItem();buildSec.append(browse);}
   buildSec.append(el('h2', undefined, `${FACTORY_TEXT.buildTitle} (${shortcut('build')})`));
   const buildList = el('ul', 'plain');
-  const BUILD = buildCatalogue(campaign);
+  const BUILD = campaign?[]:buildCatalogue(false);
   const buildCarried: { kind: BuildKind; v: HTMLElement; btn: HTMLButtonElement; lock: HTMLElement }[] = [];
   for (const b of BUILD) {
     const li = el('li'), btn = el('button', undefined, b.key ? `${b.key} · ${b.kind}` : b.kind) as HTMLButtonElement;
@@ -252,6 +261,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const routingSec=el('section');routingSec.hidden=true;
   routingSec.setAttribute('aria-label',FACTORY_TEXT.inspectTitle);
   let inspectionId:number|null=null;
+  let inspectionUi:ReturnType<typeof createInspectionPanel>|null=null,inventoryUi:ReturnType<typeof createInventoryPanel>|null=null;
   const inspectionHead=el('h2',undefined,FACTORY_TEXT.inspectTitle),inspectionBody=el('div','inspection-body');
   const recipeSelect=el('select');recipeSelect.setAttribute('aria-label',FACTORY_TEXT.recipeLabel);
   const recipeLabel=el('label',undefined,FACTORY_TEXT.recipeLabel+' ');recipeLabel.append(recipeSelect);
@@ -265,7 +275,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const filterLabel=el('label',undefined,FACTORY_TEXT.filter+' ');filterLabel.append(filterSelect);
   const priorityLabel=el('label',undefined,FACTORY_TEXT.priority+' ');priorityLabel.append(prioritySelect);
   const configure=()=>{
-    if(!routingAt)return;const [x,y]=routingAt,m=machineAt(session.state,x,y);if(!m)return;
+    const m=inspectionId===null?null:machineById(session.state,inspectionId);if(!m)return;const {x,y}=m;
     const r=dispatch(session,{type:'factory',action:{type:'routing',x,y,...(m.kind==='inserter'?{filter:filterSelect.value as Item||null}:{priority:prioritySelect.value as OutputPriority})}});
     toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;
   };
@@ -284,21 +294,21 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     const m=tramAt(session.state,x,y)??machineAt(session.state,x,y);
     if(!m){toast('Point at a factory machine to inspect it');return;}
     transportView.stopId=m.kind==='tramstop'?m.id:null;
-    inspectionId=m.id;inspectionView.machineId=m.id;routingAt=[m.x,m.y];routingSec.hidden=false;lastUpdate=-1e9;update(performance.now());routingSec.scrollIntoView({block:'nearest'});
+    shell.open('inspection');inspectionId=m.id;inspectionView.machineId=m.id;routingAt=[m.x,m.y];routingSec.hidden=false;lastUpdate=-1e9;update(performance.now());routingSec.scrollIntoView({block:'nearest'});
   }
 
   const truckOpen=el('button',undefined,'Truck cargo'),truckSec=el('section','truck-cargo');truckSec.hidden=true;
-  const truckNote=el('p','hint'),truckStock=el('p','mono'),truckBoard=el('button',undefined,'Board truck');
+  const truckNote=el('p','hint'),truckStock=el('p'),truckPockets=el('p'),truckPreview=el('p','hint'),truckResult=el('p','action-result'),truckBoard=el('button',undefined,'Board truck');
   const truckItem=el('select');truckItem.setAttribute('aria-label','Truck cargo item');
   const truckCount=el('input');truckCount.type='number';truckCount.min='1';truckCount.step='1';truckCount.value='50';truckCount.setAttribute('aria-label','Truck cargo amount');
   const cargoRow=el('div','row'),loadCargo=el('button',undefined,'Load cargo'),unloadCargo=el('button',undefined,'Unload cargo');
-  const cargoAction=(put:boolean)=>{const r=dispatch(session,{type:'factory',action:{type:'truckCargo',item:truckItem.value,n:Number(truckCount.value),put}});toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;update(performance.now());};
+  const cargoAction=(put:boolean)=>{const r=dispatch(session,{type:'factory',action:{type:'truckCargo',item:truckItem.value,n:Number(truckCount.value),put}});truckResult.textContent=r.reason;lastUpdate=-1e9;update(performance.now());};
   loadCargo.onclick=()=>cargoAction(true);unloadCargo.onclick=()=>cargoAction(false);
   truckBoard.onclick=()=>{const r=dispatch(session,{type:'factory',action:{type:'truckBoard'}});toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;update(performance.now());};
-  function openTruck():void {truckSec.hidden=false;lastUpdate=-1e9;update(performance.now());truckSec.scrollIntoView({block:'nearest'});}
+  function openTruck():void {shell.open('truck');truckSec.hidden=false;lastUpdate=-1e9;update(performance.now());truckSec.scrollIntoView({block:'nearest'});}
   truckOpen.onclick=openTruck;truckOpen.hidden=!campaign;header.append(truckOpen);
   cargoRow.append(truckItem,truckCount,loadCargo,unloadCargo);
-  truckSec.append(el('h2',undefined,'Truck cargo'),truckNote,truckBoard,truckStock,cargoRow,el('p','hint','200 cargo stacks, separate from 40 pocket stacks. Load and unload within 8 tiles. E boards beside the truck or exits; WASD drives. Cargo stays parked when you leave. F on the truck opens this panel.'));root.append(truckSec);
+  truckSec.append(el('h2',undefined,'Truck cargo'),truckNote,truckBoard,truckPockets,truckStock,cargoRow,truckPreview,truckResult,el('p','hint','200 cargo stacks, separate from 40 Backpack stacks. Load and unload within 8 tiles. E boards beside the truck or exits; WASD drives. Cargo stays parked when you leave. F on the truck opens this panel.'));root.append(truckSec);
   truckSec.addEventListener('keydown',ev=>{ev.stopPropagation();if(bound('cancel',ev.key)){panelRef.closeAll();document.querySelector('canvas')?.focus();}});
   const routeSec=el('section','station-route'),routeHead=el('h2'),routeNote=el('p','hint'),routeMap=el('button',undefined,'Show route on map'),routeClear=el('button',undefined,'Clear route');
   let panelMode:'map'|'world'='world';routeSec.hidden=true;
@@ -424,9 +434,13 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const tip = document.getElementById('tooltip')!;
   const toasts = document.getElementById('toasts')!;
   function toast(msg: string, kind: 'info' | 'bad' | 'good' = 'info'): void {
-    const t = el('div', `toast ${kind === 'info' ? '' : kind}`, msg);
-    toasts.append(t);
-    while (toasts.children.length > 6) toasts.firstElementChild?.remove();
+    alerts?.record(msg,kind);
+    const short=campaign&&msg.length>150?msg.slice(0,147)+'…':msg;
+    const repeated=Array.from(toasts.children).find(n=>(n as HTMLElement).dataset.message===msg&&(n as HTMLElement).dataset.kind===kind) as HTMLElement|undefined;
+    if(repeated){const count=Number(repeated.dataset.count??1)+1;repeated.dataset.count=String(count);repeated.textContent=`${short} ×${count}`;return;}
+    const t = el('div', `toast ${kind === 'info' ? '' : kind}`, short);
+    t.dataset.message=msg;t.dataset.kind=kind;toasts.append(t);
+    while (toasts.children.length > (campaign?3:6)) toasts.firstElementChild?.remove();
     setTimeout(() => t.remove(), 5000);
   }
 
@@ -481,6 +495,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const goalText = goalEl.querySelector('.goal-text')!, goalWhy = goalEl.querySelector('.goal-why')!, goalSupport = goalEl.querySelector('.goal-support') as HTMLElement;
   let goalSecond = -1, goalKey = '';
   function updateGoal(s: SimState): void {
+    if(s.campaign){goalEl.hidden=true;return;}
     const sec = Math.floor(s.t);
     if (sec === goalSecond) return;
     goalSecond = sec;
@@ -504,15 +519,19 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     if(!truckSec.hidden){
       truckNote.textContent=truckDescription(s);truckBoard.textContent=s.engineer.truckSeat?'Exit truck':'Board truck';truckBoard.title=truckBoardCheck(s);
       const keys=[...new Set([...ITEMS,...Object.keys(s.engineer.inv),...Object.keys(s.campaign?.truck?.cargo??{})])].sort(),selected=truckItem.value;
-      if(Array.from(truckItem.options).map(o=>o.value).join('|')!==keys.join('|')){truckItem.replaceChildren(...keys.map(k=>{const o=el('option',undefined,k);o.value=k;return o;}));if(keys.includes(selected))truckItem.value=selected;else truckItem.value='steel';}
-      truckStock.textContent=`Pockets: ${Object.entries(s.engineer.inv).filter(([,n])=>n>0).map(([k,n])=>`${k} ${num(n)}`).join(', ')||'empty'} · Cargo: ${Object.entries(s.campaign?.truck?.cargo??{}).map(([k,n])=>`${k} ${num(n)}`).join(', ')||'empty'}`;
+      if(Array.from(truckItem.options).map(o=>o.value).join('|')!==keys.join('|')){truckItem.replaceChildren(...keys.map(k=>{const o=el('option',undefined,itemName(k));o.value=k;return o;}));if(keys.includes(selected))truckItem.value=selected;else truckItem.value='steel';}
+      truckPockets.textContent=`Backpack: ${Object.entries(s.engineer.inv).filter(([,n])=>n>0).map(([k,n])=>`${itemName(k)} ${num(n)}`).join(', ')||'empty'}`;
+      truckStock.textContent=`Truck cargo: ${Object.entries(s.campaign?.truck?.cargo??{}).filter(([,n])=>n>0).map(([k,n])=>`${itemName(k)} ${num(n)}`).join(', ')||'empty'}`;
+      const load=truckTransferPreview(s,truckItem.value,Number(truckCount.value),true),unload=truckTransferPreview(s,truckItem.value,Number(truckCount.value),false);
+      truckPreview.textContent=`Load: ${load.ok?`${load.moved} available`:load.reason} · Unload: ${unload.ok?`${unload.moved} available`:unload.reason}`;
+      loadCargo.setAttribute('aria-disabled',String(!load.ok));unloadCargo.setAttribute('aria-disabled',String(!unload.ok));
     }
     if(!routingSec.hidden&&inspectionId!==null){
       const m=machineById(s,inspectionId),info=inspectMachine(s,inspectionId),valid=m&&(m.kind==='inserter'||m.kind==='splitter');
       routingAt=m?[m.x,m.y]:null;
       inspectionHead.textContent=info?`${FACTORY_TEXT.inspectTitle} · ${info.title}`:'Inspected machine removed';
-      inspectionBody.replaceChildren();
-      if(info){
+      if(!campaign)inspectionBody.replaceChildren();
+      if(info&&!campaign){
         const line=(text:string,cls='hint')=>inspectionBody.append(el('p',cls,text));
         const glyph=FACTORY_STATUS_GLYPH[info.status.state];
         line(`${glyph} ${info.status.state} — ${info.status.reason}`,'machine-status');line(info.location);
@@ -530,18 +549,20 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
         if(!info.reachable)line('Out of reach — walk closer to change settings.');
       }
       recipeLabel.hidden=m?.kind!=='assembler';recipeSelect.disabled=!info?.reachable;
-      if(info)recipeSelect.value=info.recipeId;
+      if(info&&document.activeElement!==recipeSelect)recipeSelect.value=info.recipeId;
       routingHead.hidden=!valid;routingHead.textContent=valid?routingDescription(s,m):'';
       filterLabel.hidden=m?.kind!=='inserter';priorityLabel.hidden=m?.kind!=='splitter';
       filterSelect.disabled=prioritySelect.disabled=!valid||!inReach(s,m!.x,m!.y,...machineDimensions(m!));
       if(valid){filterSelect.value=m.filter??'';prioritySelect.value=m.priority??'balanced';}
     }
     if(itemStats.open){const stats=factoryStatistics(s);if(stats){statWindow.textContent=windowText(stats.seconds);stats.rows.forEach((r,i)=>[r.produced,r.consumed,r.producedPerMin,r.consumedPerMin].forEach((n,j)=>{statCells[i][j].textContent=num(n);}));}}
+    inspectionUi?.update();if(!pocketSec.hidden)inventoryUi?.update();
     updateGoal(s);
-    if(defenceStatus)defenceStatus.textContent=campaignWarning(s);
+    if(defenceStatus)defenceStatus.textContent='Current threats and received messages are in Projects → Alerts. The urgent HUD remains visible.';
+    alerts?.update();
     if(radioUpgradeButton){radioUpgradeButton.hidden=!knownSite(s,'radio');const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
-    for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;row.button.disabled=!core||!!repairCheck(s,core.x,core.y);if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
-    guide?.update();
+    for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;const why=core?repairCheck(s,core.x,core.y):'';row.button.disabled=!core||!!why;row.button.title=why||'';row.reason.textContent=why||'';row.reason.hidden=!core||!why;if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
+    buildUi?.update();guide?.update();clipboard?.update();blueprintLibrary?.update();truckWork?.update();
     const h = hud(s);
     sHeld.b.textContent = String(h.held); sFront.b.textContent = String(h.front); sInt.b.textContent = String(h.interior);
     const fs = flowSummary(s);
@@ -552,13 +573,12 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     sEmpty.b.textContent = String(h.ammo.emptyHoppers); sEmpty.s.classList.toggle('warn', h.ammo.emptyHoppers > 0);
     sClock.b.textContent = h.clock;
     if (campaign) { const clock = campaignClock(s); sClock.b.textContent = `Day ${clock.day} · ${clock.night ? 'night' : 'daylight'}`; }
-    for (const { m, b } of speedBtns) b.classList.toggle('active', s.speed === m);
     projList.replaceChildren(...projectList(s).map(r => el('li', undefined, describeProject(s, r))));   // RI-05
     if (!pocketSec.hidden) {
       // RI-05: a targeted chest or stop that was picked up or lost sends the pockets back to the Depot
       const tgt = pocketTarget();
-      if (pocketAt && (!tgt || (tgt.kind !== 'chest' && tgt.kind !== 'tramstop'))) pocketAt = null;
-      const e = s.engineer, near = pocketAt && tgt ? inReach(s, tgt.x, tgt.y, MACHINE_SIZE[tgt.kind]) : nearDepot(s), where = pocketWhere();
+      if (!campaign && pocketAt && (!tgt || (tgt.kind !== 'chest' && tgt.kind !== 'tramstop'))) pocketAt = null;
+      const e = s.engineer, near = pocketAt ? !!tgt&&inReach(s,tgt.x,tgt.y,MACHINE_SIZE[tgt.kind]) : nearDepot(s), where = pocketWhere();
       pocketHead.textContent = `${invStacks(e.inv)} / ${INV_STACKS} stacks · ${near ? `at ${where}` : `walk to ${where} to transfer (${REACH} tiles)`}${pocketAt && tgt ? ` · ${tgt.kind === 'tramstop' ? `platform ${Object.values(tgt.inv).reduce((a, b) => a + b, 0)} / ${STOP_CAP}` : `${Object.values(tgt.inv).reduce((a, b) => a + b, 0)} / ${SUPPLY_CHEST_CAP}`}` : ''} · HP ${Math.round(e.hp)}`;
       for (const r of pocketRows) {
         const c = pocketAt && tgt ? ((tgt.kind === 'tramstop' ? tgt.cargo : tgt.inv)?.[r.item] ?? 0) : chestCount(s, r.item);
@@ -584,7 +604,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     }
     if (!buildSec.hidden) for (const b of buildCarried) {
       const n = s.engineer.inv[b.kind] ?? 0; b.v.textContent = FACTORY_TEXT.carried(n);
-      const lk = lockReason(s, b.kind); b.btn.disabled = !!lk; b.lock.textContent = FACTORY_TEXT.locked(lk);
+      const lk = lockReason(s, b.kind); b.btn.disabled = !!lk; if(lk)b.btn.title=lk; b.lock.textContent = FACTORY_TEXT.locked(lk);
     }
     if (!buildSec.hidden) mk2Lock.textContent = survivorJoined(s, 'Arsenal') ? '· the Arsenal are in — the upgrade itself is outside the hour (prompt B M4)' : '· locked: the Arsenal unlock it — hold their block';
     if (vCu) { vCu.textContent = String(Math.floor(s.stock.copper)); vSteel!.textContent = String(Math.floor(s.stock.steel)); vStone!.textContent = String(Math.floor(s.stock.stone)); vPatch!.textContent = String(Math.floor(s.patch.steel)); }
@@ -600,7 +620,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       vLineRate!.textContent = f1(fs.productionMagPerMin); vLineMade!.textContent = String(fs.magsMade);
       vHand!.textContent = `${s.flow.stats.handMined} / ${s.flow.stats.handCrafted}`;
       vBuffer!.textContent = `${Math.floor(s.buffer / SHOT.count)} / ${Math.floor(s.config.bufferCap / SHOT.count)}`; vCoal!.textContent = String(Math.floor(fs.coal)); vCrafts!.textContent = String(fs.craftsQueued);
-      btnCraft!.disabled = s.stock.steel < SHOT.inputs.steel || s.stock.copper < SHOT.inputs.copper;
+      btnCraft!.disabled = !!handCraftCheck(s).reason;
       vPower!.textContent = `${Math.round(fs.loadKw)} / ${Math.round(fs.supplyKw)} (${Math.round(fs.demandKw)})`; vPower!.parentElement!.classList.toggle('warn', fs.demandKw > fs.supplyKw + 1e-9);
       vGens!.textContent = `${fs.generatorsBurning} / ${fs.generators}`; vGens!.parentElement!.classList.toggle('warn', fs.generators > 0 && fs.generatorsBurning === 0);
       vTurrets!.textContent = `${Math.round(fs.turretRounds)} / ${fs.turretCap} · ${fs.beltAmmo}`; vTurrets!.parentElement!.classList.toggle('warn', fs.turrets > 0 && fs.turretRounds === 0);
@@ -620,7 +640,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
       // Phase 7 (STANDARDS dealbreaker 1): from minute one the panel says where blueprints and copy-paste will come from.
       // GAME-ASSUMPTION (GA-EF-3): the row is a fixed line of text ("not yet found"), not a survivor the sim knows; Phase 7
       // replaces it with the real survivor's row and the §8 gift
-      { const l = el('li'); l.append(el('span', undefined, 'Blueprints and copy-paste · Foreman tools (Phase 8)'), el('span', 'muted', 'not available in this build')); survList.append(l); }
+      if(!campaign){ const l = el('li'); l.append(el('span', undefined, 'Blueprints and copy-paste · Foreman tools'), el('span', 'muted', 'available in the exploration campaign')); survList.append(l); }
       for (const f of survs) { const l = el('li'); l.append(el('span', undefined, `${f.tag} · ${f.name} · ${at(f.x, f.y)}`), el('span', f.held ? '' : 'muted', f.held ? 'with us' : 'seen')); survList.append(l); }
       if (!survs.length) survList.append(el('li', 'muted', 'no one else found yet'));
     }
@@ -641,7 +661,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     text.split('\n').forEach((line, i) => tip.append(el('div', i ? 'muted' : undefined, line)));
     tip.hidden = false;
     const w = tip.offsetWidth, h = tip.offsetHeight;
-    tip.style.left = `${Math.min(px + 14, window.innerWidth - w - 8)}px`; tip.style.top = `${Math.min(py + 14, window.innerHeight - h - 8)}px`;
+    tip.style.left = `${Math.max(12, Math.min(px + 14, window.innerWidth - w - 12))}px`; tip.style.top = `${Math.max(12, Math.min(py + 14, window.innerHeight - h - 12))}px`;
   }
   function setView(mode: 'map' | 'world'): void {
     panelMode=mode;
@@ -677,25 +697,74 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
     tip.append(el('div', undefined, line1), el('div', 'muted', line2), el('div', chk.ok ? 'muted' : 'bad', chk.ok ? 'ready — E at its substation activates the claim' : `on foot: ${chk.reason}`));
     tip.hidden = false;
     const w = tip.offsetWidth, hgt = tip.offsetHeight;
-    tip.style.left = `${Math.min(px + 14, window.innerWidth - w - 8)}px`;
+    tip.style.left = `${Math.max(12, Math.min(px + 14, window.innerWidth - w - 12))}px`;
     tip.style.top = `${Math.min(py + 14, window.innerHeight - hgt - 8)}px`;
   }
 
+  const shell = createUiShell(root, {releaseInput: hooks.releaseInput, cancelSelection: hooks.cancelSelection, speed:()=>session.state.speed, setSpeed:speed=>setSpeed(session,speed)});
+  const journal=root.querySelector<HTMLElement>('.campaign-guide:not(.item-guide)');
+  const recipes=root.querySelector<HTMLElement>('.item-guide');
+  const copyPanel=root.querySelector<HTMLElement>('[aria-label="Blueprint clipboard"]');
+  const libraryPanel=root.querySelector<HTMLElement>('[aria-label="Blueprint library and orders"]');
+  const truckPanel=root.querySelector<HTMLElement>('[aria-label="Truck construction"]');
+  buildUi=createBuildPanel(session,buildSec,shell,tool=>panelRef.onPick?.(tool),hooks.selectedTool,hooks.rotateTool,hooks.cancelTool,historyRow,copyPanel,libraryPanel);
+  shell.register('build','Build',[buildSec],()=>{buildSec.hidden=false;});
+  shell.register('inventory','Backpack',[pocketSec],()=>{pocketSec.hidden=false;});
+  shell.register('inspection','Inspection',[routingSec],()=>{routingSec.hidden=false;},()=>{if(!inspectionView.pinned){inspectionView.machineId=null;inspectionId=null;}routingSec.hidden=true;});
+  if(campaign){
+    inspectionUi=createInspectionPanel(session,routingSec,shell,[recipeLabel,routingHead,filterLabel,priorityLabel],{locate:hooks.locate,item:item=>{shell.open('help');guide?.openItem(item);},inventory:(x,y)=>panelRef.openPocketsAt(x,y),route:(x,y)=>panelRef.openStationRoute(x,y)});
+
+  }
+  inventoryUi=createInventoryPanel(session,pocketSec,()=>pocketId,freightForm,()=>pocketStorage);
+  shell.register('truck','Truck cargo',[truckSec]);
+  shell.register('route','Station route',[routeSec]);
+  if(guide&&journal) shell.register('projects','Projects',[journal,...(alerts?[alerts.element]:[])],()=>guide.openDiscoveries());
+  shell.register('help','Help',[controlsHelp(!!session.state.campaign),...[recipes].filter(Boolean) as HTMLElement[]],()=>guide?.openItem());
+  // Keep stock, loss history, exact power/buffers and legacy management out of Developer.
+  debug.hidden=false;
+  const management=[hudSec,itemStats,lineSec,...(defenceSection?[defenceSection]:[]),...(!campaign?[stockSec,ringSec,facSec,sumSec]:[])];
+  shell.register('management','Management',management);
+  if(campaign){const truckAccess=el('button',undefined,'Truck cargo');truckAccess.onclick=openTruck;hudSec.append(truckAccess);}
+  if(campaign&&truckPanel){shell.register('construction','Construction delivery',[truckPanel]);const delivery=el('button',undefined,'Construction delivery');delivery.onclick=()=>shell.open('construction');truckSec.append(delivery);const manage=el('button',undefined,'Construction delivery');manage.onclick=()=>shell.open('construction');hudSec.append(manage);}
+  shell.register('developer','Developer',[header,...(campaign?[sumSec]:[])]);
+  debug.remove();
+  shell.action(`Build (${shortcut('build')})`,()=>panelRef.toggleBuild());
+  shell.action(`Backpack (${shortcut('pockets')})`,()=>panelRef.togglePockets());
+  shell.action(`Map (${shortcut('map')})`,()=>hooks.onToggleView());
+  if(guide)shell.drawerButton('projects',`Projects (${shortcut('projects')})`);
+  shell.drawerButton('management','Management');
+  if(campaign)shell.drawerButton('construction','Construction');
+  shell.drawerButton('help','Help');
+  shell.action('Pause menu',()=>shell.pause());
+  shell.pauseAction(`Save (Ctrl+${shortcut('save')})`,saveGame);
+  shell.pauseAction(`Load (Ctrl+${shortcut('load')})`,loadGame);
+  shell.pauseAction('Download save',()=>btnState.click());
+  shell.pauseAction('Copy seed/settings link',()=>btnLink.click());
+  shell.register('settings','Settings',[createSettings()]);
+  shell.pauseAction('Settings',()=>shell.pauseChild('settings'));
+  shell.pauseAction('Controls and item help',()=>shell.pauseChild('help'));
+  shell.pauseAction('Developer',()=>shell.pauseChild('developer'));
+  const startScreen=el('section'),seedInput=el('input'),seedLabel=el('label',undefined,'City seed');
+  seedInput.type='number';seedInput.min='1';seedInput.max='2147483647';seedInput.step='1';seedInput.value=String(st.seed);seedInput.required=true;seedLabel.append(seedInput);
+  const startButton=el('button','primary','Start city');startButton.onclick=()=>{if(!seedInput.reportValidity())return;if(window.confirm('Start a new city? Unsaved progress will be lost.'))location.href=shareUrl({...session.params,seed:Number(seedInput.value),state:null,autoplay:null});};
+  startScreen.append(el('p',undefined,'Choose a seed for a fresh city. Save your current game before starting again.'),seedLabel,startButton);
+  shell.register('start','Start a city',[startScreen]);shell.pauseAction('Start a new city',()=>shell.pauseChild('start'));
   const panelRef: Panel = {
-    openStationRoute(x,y){const m=machineAt(session.state,x,y);if(m?.kind!=='tramstop')return;transportView.stopId=m.id;lastUpdate=-1e9;update(performance.now());routeSec.scrollIntoView({block:'nearest'});},
+    shell,
+    openStationRoute(x,y){const m=machineAt(session.state,x,y);if(m?.kind!=='tramstop')return;shell.open('route');transportView.stopId=m.id;lastUpdate=-1e9;update(performance.now());routeSec.scrollIntoView({block:'nearest'});},
     openTruck,openRoutingAt:openInspection,openInspectionAt:openInspection,
-    update, tooltip, tooltipText, toast, setView, onPick: null,
-    toggleDebug() { debug.hidden = !debug.hidden; debugView.coords = !debug.hidden; ringKey = ''; lastFacKey = ''; return !debug.hidden; },
-    togglePockets() { pocketAt = null; pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; if (!pocketSec.hidden) pocketSec.scrollIntoView({ block: 'nearest' }); return !pocketSec.hidden; },
+    update, tooltip, tooltipText, toast, setView, onPick: null, onBlueprint: null, onRemovalPreview:null,
+    toggleDebug() { debugView.coords = !debugView.coords; shell.toggle('developer'); ringKey = ''; lastFacKey = ''; return debugView.coords; },
+    togglePockets() { pocketStorage=false;pocketAt=null;pocketId=null; const open=shell.active()!=='inventory'; if(open)shell.open('inventory');else shell.close(); lastUpdate=-1e9;update(performance.now()); return open; },
     openPocketsAt(x, y) {   // RI-05
-      const stop=machineAt(session.state,x,y);transportView.stopId=stop?.kind==='tramstop'?stop.id:null;
+      pocketStorage=true;const stop=machineAt(session.state,x,y);pocketId=stop&&['chest','tramstop'].includes(stop.kind)?stop.id:null;transportView.stopId=stop?.kind==='tramstop'?stop.id:null;
       const same = pocketAt !== null && pocketAt[0] === x && pocketAt[1] === y;
-      if (same && !pocketSec.hidden) { pocketSec.hidden = true; pocketAt = null; } else { pocketAt = [x, y]; pocketSec.hidden = false; }
-      lastUpdate = -1e9;
+      if (same && shell.active()==='inventory') { shell.close(); pocketSec.hidden = true; pocketAt = null; } else { shell.open('inventory'); pocketAt = pocketId===null?null:[x,y]; pocketSec.hidden = false; }
+      lastUpdate = -1e9;update(performance.now());
       if (!pocketSec.hidden) pocketSec.scrollIntoView({ block: 'nearest' });
     },
-    toggleBuild() { buildSec.hidden = !buildSec.hidden; if (!buildSec.hidden) buildSec.scrollIntoView({ block: 'nearest' }); return !buildSec.hidden; },
-    closeAll() { guide?.close();inspectionView.machineId=null;truckSec.hidden=true;transportView.stopId=null;routeSec.hidden=true;pocketSec.hidden = true; buildSec.hidden = true; routingSec.hidden=true; document.querySelector('canvas')?.scrollIntoView({ block: 'nearest' }); },
+    toggleBuild() { shell.toggle('build'); return shell.active()==='build'; },
+    closeAll() { shell.close(); if(!inspectionView.pinned)inspectionView.machineId=null; transportView.stopId=null; routeSec.hidden=true; },
     setSelectedEdge(e) {
       selected = e ? e.id : null; ringKey = '';
       if (e) toast(`${edgeName(session.state, e.id)}${debugView.coords ? ` (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})` : ''} is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);

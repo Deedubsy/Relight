@@ -1,3 +1,4 @@
+import {doorRect} from './city/parcelGeometry';
 /** Prompt B M1 — the ground on faces (D6). One derivation per state, cached on `st.blocks`: every tile's base kind
  *  and owner, each block's buildable tiles, substation, streetlights and rubble layout in dig order (global tile
  *  indices), the HQ lot's origin, and the 32×32 chunk → block overlap lists the renderer keys its cache on. The
@@ -6,6 +7,7 @@
  *  from the block sim and the flow layer at query time; the derivation itself depends only on the seed and the
  *  geometry, never on time. */
 import { SimState, Block, INERT, VOID } from './types';
+import {RIVERFRONT_ID,RIVERFRONT,RIVERFRONT_BUILDINGS,RIVERFRONT_PROPS,riverfrontGeom} from './city/riverfront';
 import { buildUrban, UrbanCity } from './city/urban';
 import { isCampaign } from './rules';
 import { buildOpening, type OpeningGeometry } from './city/opening';
@@ -80,6 +82,7 @@ const cache = new WeakMap<Block[], Ground>();
 /** The city geometry a city state was generated from (cached by generateCity). */
 export function cityGeomOf(st: SimState): CityGeom {
   const c = st.city!;
+  if(c.mapId===RIVERFRONT_ID)return riverfrontGeom();
   return generateCity(c.seed, c.preset as CityPreset, { tw: c.tw, th: c.th });
 }
 
@@ -142,6 +145,7 @@ function latticeGround(st: SimState): Ground {
 // ------------------------------------------------------------------ city
 
 function cityGround(st: SimState): Ground {
+  if(st.city?.mapId===RIVERFRONT_ID)return riverfrontGround(st);
   const c = st.city!, cg = generateCity(c.seed, c.preset as CityPreset, { tw: c.tw, th: c.th });
   const tw = cg.tw, th = cg.th, G = alloc(tw, th, false);
   for (let t = 0; t < tw * th; t++) {
@@ -590,7 +594,7 @@ export function distToRect(px: number, py: number, x: number, y: number, w: numb
 /** D5: the engineer's reach, 8 tiles from where they stand to the nearest edge of the target. */
 export function inReach(st: SimState, tx: number, ty: number, size = 1, height = size): boolean {
   const e = st.engineer;
-  return distToRect(e.x, e.y, tx, ty, size, height) <= REACH;
+  return distToRect(e.x, e.y, tx, ty, size, height) <= REACH && citySight(st,e.x,e.y,Math.max(tx-.01,Math.min(tx+size+.01,e.x)),Math.max(ty-.01,Math.min(ty+height+.01,e.y)));
 }
 
 /** One line for a tooltip. */
@@ -598,6 +602,7 @@ export function describeGround(st: SimState, tx: number, ty: number): string {
   const G = ground(st);
   if (!inGround(G, tx, ty)) return '';
   const shell = G.urban?.structures.find(s => tx >= s.x && tx < s.x + s.w && ty >= s.y && ty < s.y + s.h);
+  if(st.city?.mapId&&shell){const b=RIVERFRONT_BUILDINGS.find(b=>b.id===(shell as {id?:string}).id);return b?`${b.name} · ${b.enterable?'open doorway / physical interior':'boarded building'}${b.note?' · notes inside':''}`:'City building';}
   if (shell) return `tile (${tx},${ty}) · sealed ${shell.role} shell; open door approach on its south side`;
   const v = tileAt(st, tx, ty), bg = v.block >= 0 ? G.blocks[v.block] : null;
   const what = v.kind === T_RUBBLE ? `${bg?.rubble} rubble, density ${v.variant}/${RUBBLE_VARIANTS}` : v.kind === T_DEPOSIT ? `${bg?.deposit} deposit`
@@ -612,3 +617,29 @@ blockAtHook.current = (st, x, y) => {
   const o = G.owner[ty * G.tw + tx];
   return o >= 0 ? o : -1;
 };
+
+/** Authored geography adapter; physical walls are separate from non-solid roofs. */
+function riverfrontGround(st:SimState):Ground {
+ const cg=riverfrontGeom(),G=alloc(cg.tw,cg.th,false);G.hqOrigin=[...RIVERFRONT.homeOrigin];G.railYard=1;
+ for(let t=0;t<G.base.length;t++){G.base[t]=cg.kind[t]===2?T_RIVER:cg.kind[t]===1?T_STREET:T_GROUND;G.owner[t]=cg.owner[t];G.near[t]=cg.near[t];}
+ const solid=new Uint8Array(G.base.length),surface=new Uint8Array(G.base.length);
+ for(const b of cg.blocks){const sub={x:RIVERFRONT.substations[b.id][0],y:RIVERFRONT.substations[b.id][1],size:3};G.blocks.push({i:b.id,tiles:b.tiles,x0:b.x0,y0:b.y0,x1:b.x1,y1:b.y1,sub,lights:[],rubble:null,deposit:null,count:0,order:new Int32Array(),hq:b.id===0,pole:[b.cx,b.cy]});}
+ for(const b of RIVERFRONT_BUILDINGS)for(let y=b.y;y<b.y+b.h;y++)for(let x=b.x;x<b.x+b.w;x++){const wall=x===b.x||y===b.y||x===b.x+b.w-1||y===b.y+b.h-1,d=doorRect(b),door=b.enterable&&b.door&&x>=d.x&&x<d.x+d.w&&y>=d.y&&y<d.y+d.h||b.enterable&&b.doors?.some(([dx,dy,w,h])=>x>=dx&&x<dx+w&&y>=dy&&y<dy+h);solid[y*G.tw+x]=!b.enterable||wall&&!door?1:0;surface[y*G.tw+x]=1;}
+ for(const p of RIVERFRONT_PROPS)if(!st.campaign?.authored?.cleared.includes(p.id)&&!st.campaign?.authored?.opened.includes(p.id))for(let y=p.y;y<p.y+p.h;y++)for(let x=p.x;x<p.x+p.w;x++)solid[y*G.tw+x]=1;
+ for(const [x,y] of RIVERFRONT.substations)for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++)solid[(y+dy)*G.tw+x+dx]=1;
+ for(const p of RIVERFRONT.yards)for(let y=p.y;y<p.y+p.h;y++)for(let x=p.x;x<p.x+p.w;x++)surface[y*G.tw+x]=1;
+ G.urban={profile:'riverside-v1',solid,surface,structures:RIVERFRONT_BUILDINGS.map(b=>({...b,block:G.near[b.y*G.tw+b.x],role:b.kind==='house'?'residential':b.kind==='civic'?'civic':'industrial',door:b.door??[b.x+2,b.y+b.h-1]})),places:RIVERFRONT.regions.map(([name,x,y],block)=>({block,name,role:block===0?'hq':block===3?'civic':block===4||block===5?'residential':'industrial',pad:RIVERFRONT.yards[block]??{x:x-5,y:y-5,w:10,h:10}})),railReserve:{installation:RIVERFRONT.projects.station,feeders:[],loading:{x:RIVERFRONT.stops[1].x,y:RIVERFRONT.stops[1].y-3,w:7,h:3}}};
+ for(const [tx,ty]of RIVERFRONT.lights){const bi=G.near[ty*G.tw+tx];if(bi>=0)G.blocks[bi].lights.push({tx,ty,side:0,broken:false});}
+ G.opening={walls:[],gate:[...Array(6)].map((_,i)=>(RIVERFRONT.court.y+17)*G.tw+RIVERFRONT.court.x-3+i),bounds:{x:RIVERFRONT.homeOrigin[0]-7,y:RIVERFRONT.homeOrigin[1]-1,size:40},direction:2};markPatches(G,G.blocks[0]);buildChunks(G);return G;
+}
+/** Dynamic authored obstacle changes invalidate cached ground and movement collision once. */
+export function invalidateGround(st:SimState):void {cache.delete(st.blocks);if(st.flow)st.flow.rev++;}
+
+const sightWalls=new WeakMap<SimState,{rev:number;tiles:Set<number>}>();
+/** Authored wall sight: roofs never change this result. Endpoints may be equipment. */
+export function citySight(st:SimState,ax:number,ay:number,bx:number,by:number):boolean {
+ if(!st.city?.mapId)return true;const G=ground(st),n=Math.ceil(Math.hypot(bx-ax,by-ay)*4);
+ let walls=sightWalls.get(st);if(!walls||walls.rev!==st.flow?.rev){const tiles=new Set<number>();for(const m of st.flow?.machines??[])if((m.kind==='wall'||m.kind==='barricade')&&m.hp!==0)for(let y=m.y;y<m.y+m.size;y++)for(let x=m.x;x<m.x+m.size;x++)tiles.add(y*G.tw+x);walls={rev:st.flow?.rev??0,tiles};sightWalls.set(st,walls);}const end=Math.floor(by)*G.tw+Math.floor(bx),start=Math.floor(ay)*G.tw+Math.floor(ax);
+ for(let i=1;i<n;i++){const x=Math.floor(ax+(bx-ax)*i/n),y=Math.floor(ay+(by-ay)*i/n);if(!inGround(G,x,y)||G.urban?.solid[y*G.tw+x]||y*G.tw+x!==end&&y*G.tw+x!==start&&walls.tiles.has(y*G.tw+x))return false;}
+ return true;
+}

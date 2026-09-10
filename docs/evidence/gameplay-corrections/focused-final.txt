@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: new entry is empty exploration; explicit legacy entry and state URL do not reinterpret saves
+ok 1 - new entry is empty exploration; explicit legacy entry and state URL do not reinterpret saves
+  ---
+  duration_ms: 1181.457656
+  type: 'test'
+  ...
+# Subtest: unique core and artifact remain at source when full; transfer/attachment/load/packing conserve ownership
+ok 2 - unique core and artifact remain at source when full; transfer/attachment/load/packing conserve ownership
+  ---
+  duration_ms: 1541.199922
+  type: 'test'
+  ...
+# Subtest: actual first-core checkpoint powers chosen plant; supplementary generator burns under real excess load, disconnected grids stay separate and repairs retain core
+ok 3 - actual first-core checkpoint powers chosen plant; supplementary generator burns under real excess load, disconnected grids stay separate and repairs retain core
+  ---
+  duration_ms: 1180.700629
+  type: 'test'
+  ...
+# Subtest: each new processor consumes physical inputs, keeps backpressure and produces real items; artifact/Mk2 affect real processing time
+ok 4 - each new processor consumes physical inputs, keeps backpressure and produces real items; artifact/Mk2 affect real processing time
+  ---
+  duration_ms: 3651.777923
+  type: 'test'
+  ...
+# Subtest: powered Pumpjack extracts finite crude; hand mining cannot bypass it
+ok 5 - powered Pumpjack extracts finite crude; hand mining cannot bypass it
+  ---
+  duration_ms: 862.162659
+  type: 'test'
+  ...
+# Subtest: paid specialist upgrades change whole-round hopper and freight capacity and survive reload
+ok 6 - paid specialist upgrades change whole-round hopper and freight capacity and survive reload
+  ---
+  duration_ms: 580.33386
+  type: 'test'
+  ...
+# Subtest: passenger rides actual powered service with inventory intact; walking/placement blocked; outage reload exits safely
+ok 7 - passenger rides actual powered service with inventory intact; walking/placement blocked; outage reload exits safely
+  ---
+  duration_ms: 1262.310592
+  type: 'test'
+  ...
+# Subtest: commissioned plant receives a real scheduled assault without radio; enemies arrive and damage it while output is off
+ok 8 - commissioned plant receives a real scheduled assault without radio; enemies arrive and damage it while output is off
+  ---
+  duration_ms: 809.559391
+  type: 'test'
+  ...
+# Subtest: truck explicitly recovers a machine with artifact and contents to a chest; interrupted job reload preserves cargo and target
+ok 9 - truck explicitly recovers a machine with artifact and contents to a chest; interrupted job reload preserves cargo and target
+  ---
+  duration_ms: 1341.843896
+  type: 'test'
+  ...
+# Subtest: Cannon consumes Shells against heavy enemies; unlit Shades cannot be shot and lit Shades can
+ok 10 - Cannon consumes Shells against heavy enemies; unlit Shades cannot be shot and lit Shades can
+  ---
+  duration_ms: 603.540811
+  type: 'test'
+  ...
+# Subtest: three distinct paid engineering encounters complete with supplied automated defence, interruptions and saved one-time rewards
+ok 11 - three distinct paid engineering encounters complete with supplied automated defence, interruptions and saved one-time rewards
+  ---
+  duration_ms: 12607.328188
+  type: 'test'
+  ...
+# Subtest: actual core/plant checkpoint receives freight materials and runs a direct-conveyor ammunition factory into a turret
+ok 12 - actual core/plant checkpoint receives freight materials and runs a direct-conveyor ammunition factory into a turret
+  ---
+  duration_ms: 1746.191805
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 31093.430614

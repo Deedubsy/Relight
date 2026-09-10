@@ -84,7 +84,8 @@ test('cul-de-sac across seeds has exactly one four-tile entrance, shared collisi
     applyCommands(st, [{ type: 'place', item: 'assembler', x: place[0], y: place[1] }]);
     assert.ok(st.flow!.machines.some(m => m.kind === 'assembler')); assert.ok(st.engineer.inv.steel < 50);
     assert.deepEqual(conservation(st).unexplained, before);
-    assert.equal(currentGoal(st).goal.id, 'home-explore');
+    assert.equal(currentGoal(st).goal.id, 'home-factory');
+    assert.match(currentGoal(st).next!.text,/Check Assembler/,'a placed but unfed machine needs inspection before exploration');
     assert.deepEqual(ground(loadState(makeSave(st))).opening, opening, 'load regenerates the identical boundary');
   }
 });

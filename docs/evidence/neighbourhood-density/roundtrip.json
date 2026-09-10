@@ -1,0 +1,30 @@
+{
+  "invalid": {
+    "status": 1,
+    "output": "/mnt/e/Factorio2/packages/tools/src/phaserCityModel.ts:57\n  if((dx||dy)&&protectedBuilding(old,manifest.fixedBuildings))throw Error(`${id}: contains an interior or campaign binding and must stay in place.`);\n                                                                    ^\n\n\nError: home-workshop: contains an interior or campaign binding and must stay in place.\n    at draftLayout (/mnt/e/Factorio2/packages/tools/src/phaserCityModel.ts:57:69)\n    at <anonymous> (/mnt/e/Factorio2/packages/tools/src/phaserCity.ts:20:97)\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.18.0\n"
+  },
+  "applied": {
+    "status": 0,
+    "output": "{\n  \"mode\": \"apply\",\n  \"changed\": true,\n  \"mapId\": \"riverfront-arc-v4-editor-9afaabd5aec4\",\n  \"sourceHash\": \"dd8d5de352481a91bab3ced31d6c5c97db9bf0f8368d24211fb9a6bdb3628fd8\",\n  \"previousSourceHash\": \"cf7d8dd329933bce66ce1dd26c81a519efbbd5b6f80e9cd01dc1648a1ab5415a\",\n  \"validation\": {\n    \"errors\": [],\n    \"width\": 864,\n    \"height\": 576,\n    \"land\": 412634,\n    \"accessible\": 371093,\n    \"buildings\": 301,\n    \"roads\": 371,\n    \"railLength\": 1226.5476612469843\n  }\n}\nApplied. Reload the live preview and choose New Game. Existing saves require their matching layout.\n"
+  },
+  "game": {
+    "mapId": "riverfront-arc-v4-editor-9afaabd5aec4",
+    "position": [
+      33,
+      414
+    ],
+    "newId": "editor:roundtrip-new-home",
+    "newSolid": true,
+    "oldWallPassable": true,
+    "newWallPassable": false,
+    "stateProblem": "",
+    "saveHashMatches": true,
+    "oldSaveProblem": "This earlier authored city needs its original build. Original save preserved; choose New Game for Riverfront v4"
+  },
+  "pageErrors": [],
+  "restored": {
+    "status": 0,
+    "output": "{\n  \"mode\": \"apply\",\n  \"changed\": false,\n  \"mapId\": \"riverfront-arc-v4-editor-f72ebc665048\",\n  \"sourceHash\": \"cf7d8dd329933bce66ce1dd26c81a519efbbd5b6f80e9cd01dc1648a1ab5415a\",\n  \"previousSourceHash\": \"dd8d5de352481a91bab3ced31d6c5c97db9bf0f8368d24211fb9a6bdb3628fd8\",\n  \"validation\": {\n    \"errors\": [],\n    \"width\": 864,\n    \"height\": 576,\n    \"land\": 412634,\n    \"accessible\": 371093,\n    \"buildings\": 301,\n    \"roads\": 371,\n    \"railLength\": 1226.5476612469843\n  }\n}\nApplied. Reload the live preview and choose New Game. Existing saves require their matching layout.\n"
+  },
+  "baselineRestored": true
+}

@@ -1,0 +1,177 @@
+--- p9-03/packages/harness/src/cityPopulation.ts
++++ p9-04/packages/harness/src/cityPopulation.ts
+@@ -0,0 +1,27 @@
++/** Append-only population evidence. A resume must agree with the full declared population and source identity. */
++import {createHash,randomUUID} from 'node:crypto';
++import {readFileSync,writeFileSync,renameSync,existsSync,readdirSync} from 'node:fs';
++import {join} from 'node:path';
++import type {cityValidationRun} from './cityValidationRun';
++export type PopulationRow=ReturnType<typeof cityValidationRun>&{processSample:number;pid:number};
++export interface PopulationIdentity {sourceDigest:string;config_hash:string;seeds:number[];runtime:string;version:number}
++const digest=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
++export function checkPopulationIdentity(actual:PopulationIdentity,expected:PopulationIdentity):void {
++ for(const k of ['sourceDigest','config_hash','seeds','runtime','version'] as const)if(JSON.stringify(actual[k])!==JSON.stringify(expected[k]))throw Error(`resume identity differs: ${k}`);
++}
++export function writePopulationRow(out:string,identity:PopulationIdentity,row:PopulationRow):void {
++ const name=join(out,`seed-${row.seed}.json`);if(existsSync(name))throw Error(`seed already recorded: ${row.seed}`);
++ const data={sourceDigest:identity.sourceDigest,config_hash:identity.config_hash,...row},pending=name+'.'+randomUUID()+'.pending';
++ writeFileSync(pending,JSON.stringify({digest:digest(data),data},null,2)+'\n',{flag:'wx'});renameSync(pending,name);
++}
++export function readPopulationRows(out:string,identity:PopulationIdentity):Map<number,PopulationRow>{
++ const rows=new Map<number,PopulationRow>(),seeds=new Set(identity.seeds);
++ for(const name of readdirSync(out).filter(n=>/^seed-.*\.json$/.test(n))){
++  const envelope=JSON.parse(readFileSync(join(out,name),'utf8')),r=envelope.data;
++  if(!r||envelope.digest!==digest(r)||r.sourceDigest!==identity.sourceDigest||r.config_hash!==identity.config_hash||!seeds.has(r.seed)||name!==`seed-${r.seed}.json`||rows.has(r.seed))throw Error(`invalid retained seed: ${name}`);
++  if(!['passed','failed'].includes(r.status)||!Number.isFinite(r.wallMs)||r.wallMs<0||!Number.isInteger(r.processSample)||r.processSample<0||!r.timings)throw Error(`invalid result: ${name}`);
++  if(r.status==='passed'&&(!r.report?.ok||r.report.failures.length||r.report.seed!==r.seed||!r.unchanged||!r.deterministic||!r.loadSame))throw Error(`invalid pass: ${name}`);
++  if(r.status==='failed'&&!r.failure&&!r.report)throw Error(`missing failure: ${name}`);
++  rows.set(r.seed,r);
++ }return rows;
++}
+--- p9-03/packages/harness/src/cityValidationCli.ts
++++ p9-04/packages/harness/src/cityValidationCli.ts
+@@ -1,26 +1,64 @@
+-/** Fresh campaign survey. This CLI writes new evidence only; P9-04 adds resumable population execution. */
+-import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+-import { resolve, relative, join } from 'node:path';
+-import { createHash } from 'node:crypto';
+-import { citySeeds, cityValidationRun } from './cityValidationRun';
+-import { stamp } from './provenance';
++/** P9-04: declared, resumable population with immutable seed records and separate process/query timings. */
++import {readdirSync,readFileSync,writeFileSync,mkdirSync,existsSync,unlinkSync,renameSync} from 'node:fs';
++import {resolve,relative,join} from 'node:path';
++import {createHash,randomUUID} from 'node:crypto';
++import {fork,type ChildProcess} from 'node:child_process';
++import {hostname,cpus} from 'node:os';
++import {citySeeds} from './cityValidationRun';
++import {stamp} from './provenance';
++import {checkPopulationIdentity,readPopulationRows,writePopulationRow,type PopulationRow} from './cityPopulation';
+ 
+ const args=process.argv.slice(2),options=new Map<string,string>();
+-for(let i=0;i<args.length;i+=2){if(!['--seeds','--out'].includes(args[i])||!args[i+1]||options.has(args[i]))throw Error('usage: city:validate --seeds 3,4,5,8,11,13 --out NEW_DIRECTORY');options.set(args[i],args[i+1]);}
+-if(!options.get('--out'))throw Error('--out is required; existing evidence is never overwritten');
+-const seeds=citySeeds(options.get('--seeds')??'3,4,5,8,11,13'),out=resolve(options.get('--out')!);
+-if(existsSync(out))throw Error('output directory exists; choose a new evidence directory');
+-const root=process.cwd(),files:string[]=[];
+-function collect(dir:string){for(const entry of readdirSync(dir,{withFileTypes:true})){const p=join(dir,entry.name);if(entry.isDirectory())collect(p);else if(/\.(ts|json)$/.test(entry.name))files.push(p);}}
+-for(const dir of ['packages/sim/src','packages/harness/src'])collect(resolve(dir));
+-for(const p of ['package.json','package-lock.json','packages/sim/package.json','packages/harness/package.json'])files.push(resolve(p));files.sort();
+-const hashes=()=>Object.fromEntries(files.map(p=>[relative(root,p).replaceAll('\\','/'),createHash('sha256').update(readFileSync(p)).digest('hex')]));
++for(let i=0;i<args.length;i++){
++ const key=args[i];if(!['--seeds','--out','--resume','--workers','--limit'].includes(key)||options.has(key))throw Error('usage: city:validate --seeds 1-10000 --out DIRECTORY [--resume] [--workers 8] [--limit 100]');
++ const value=key==='--resume'?'true':args[++i];if(!value)throw Error(`missing ${key}`);options.set(key,value);
++}
++if(!options.get('--out'))throw Error('--out required');
++const seeds=citySeeds(options.get('--seeds')??'3,4,5,8,11,13'),out=resolve(options.get('--out')!),resume=options.has('--resume');
++const integer=(key:string,fallback:number)=>{const text=options.get(key)??String(fallback);if(!/^\d+$/.test(text)||!Number.isSafeInteger(Number(text))||Number(text)<1)throw Error(`invalid ${key}`);return Number(text);};
++const workers=integer('--workers',1),limit=integer('--limit',10000);if(workers>16)throw Error('at most 16 workers');
++if(existsSync(out)!==resume)throw Error(resume?'resume directory missing':'output directory exists; use --resume with the same population and source');
++const root=process.cwd();
++function hashes(){
++ const files:string[]=[];
++ function collect(dir:string){for(const e of readdirSync(dir,{withFileTypes:true})){const p=join(dir,e.name);if(e.isDirectory())collect(p);else if(/\.(ts|json)$/.test(e.name))files.push(p);}}
++ for(const dir of ['packages/sim/src','packages/harness/src'])collect(resolve(dir));
++ for(const p of ['package.json','package-lock.json','packages/sim/package.json','packages/harness/package.json'])files.push(resolve(p));files.sort();
++ return Object.fromEntries(files.map(p=>[relative(root,p).replaceAll('\\','/'),createHash('sha256').update(readFileSync(p)).digest('hex')]));
++}
+ const sourceFiles=hashes(),sourceDigest=createHash('sha256').update(JSON.stringify(sourceFiles)).digest('hex'),provenance=stamp({kind:'campaign',ruleset:'exploration-v2',opening:'culdesac-v1'});
+-mkdirSync(out,{recursive:true});
++const identity={...provenance,sourceDigest,sourceFiles,seeds,runtime:process.version,version:2};
++if(!resume)mkdirSync(out,{recursive:true});
++const lock=join(out,'run.lock');
++if(existsSync(lock)){
++ const prior=JSON.parse(readFileSync(lock,'utf8'));if(prior.host!==hostname())throw Error('lock belongs to another host');
++ let alive=true;try{process.kill(prior.pid,0);}catch(e){if((e as NodeJS.ErrnoException).code==='ESRCH')alive=false;else throw e;}
++ if(alive)throw Error('population is already running');unlinkSync(lock);
++}
++writeFileSync(lock,JSON.stringify({pid:process.pid,host:hostname()}),{flag:'wx'});
+ const write=(name:string,data:unknown)=>writeFileSync(join(out,name),JSON.stringify(data,null,2)+'\n',{flag:'wx'});
+-write('manifest.json',{...provenance,sourceDigest,sourceFiles,seeds,method:'Fresh current campaign per declared seed; private-copy physical queries; repeated query and saved-state report comparison. Query timings include generation/clone/load and warm caches. No ordinary paid gameplay or human fairness claim. Partial runs retain their seed files; this runner does not resume.',human_play:'not_run'});
+-const rows=[];
+-for(const seed of seeds){const row=cityValidationRun(seed);write(`seed-${seed}.json`,{...provenance,sourceDigest,...row});rows.push({seed,status:row.status,failures:row.report?.failures??[row.failure],wallMs:row.wallMs});console.log(`${seed}: ${row.status}; ${row.report?.failures.length??1} findings`);}
+-const sourceUnchanged=JSON.stringify(hashes())===JSON.stringify(sourceFiles),failed=rows.filter(r=>r.status==='failed').length;
+-write('summary.json',{...provenance,sourceDigest,sourceUnchanged,attempted:seeds.length,passed:seeds.length-failed,failed,rows});
+-if(failed||!sourceUnchanged)process.exitCode=1;
++const children:ChildProcess[]=[];
++try{
++ if(resume)checkPopulationIdentity(JSON.parse(readFileSync(join(out,'manifest.json'),'utf8')),identity);
++ else write('manifest.json',{...identity,method:'Every declared seed: fresh campaign, private-copy physical query, repeat query and save/load query with equality and non-mutation checks. No reroll beyond existing generator attempts. Immutable checksummed seed records; failed seeds stay attempted on resume. Cold means first sample in a fresh worker process, not cold OS disk cache. Warm process samples and per-query phases are separate. Query geometry is not paid logistics or human fairness.',human_play:'not_run'});
++ const rows=readPopulationRows(out,identity),pending=seeds.filter(s=>!rows.has(s)).slice(0,limit),session=randomUUID(),began=performance.now();
++ const start={session,started:new Date().toISOString(),workers:Math.min(workers,pending.length),host:hostname(),cpu:cpus()[0]?.model,runtime:process.version,resume,retained:rows.size,pending:pending.length,...provenance,sourceDigest};
++ write(`session-${session}-start.json`,start);
++ let cursor=0,completed=0;
++ await Promise.all(Array.from({length:Math.min(workers,pending.length)},()=>new Promise<void>((done,reject)=>{
++  const child=fork(new URL('./cityValidationWorker.ts',import.meta.url),[],{execArgv:process.execArgv,stdio:['ignore','inherit','inherit','ipc']});children.push(child);let assigned:number|undefined;
++  const next=()=>{if(cursor>=pending.length){assigned=undefined;child.disconnect();done();return;}assigned=pending[cursor++];child.send(assigned);};
++  child.on('error',reject);child.on('exit',(code)=>{if(assigned!==undefined)reject(Error(`worker exited ${code} on seed ${assigned}; resume retains completed rows`));});
++  child.on('message',(row:PopulationRow)=>{try{
++   if(row.seed!==assigned)throw Error('worker returned an unassigned seed');
++   writePopulationRow(out,identity,row);rows.set(row.seed,row);completed++;
++   console.log(`${rows.size}/${seeds.length}: seed ${row.seed} ${row.status}; ${row.report?.failures.length??1} findings; ${Math.round(row.wallMs)} ms`);next();
++  }catch(e){reject(e);}});next();
++ })));
++ const sourceUnchanged=JSON.stringify(hashes())===JSON.stringify(sourceFiles),ordered=seeds.flatMap(s=>rows.has(s)?[rows.get(s)!]:[]),failed=ordered.filter(r=>r.status==='failed').length;
++ const summary={...provenance,sourceDigest,sourceUnchanged,declared:seeds.length,attempted:rows.size,passed:rows.size-failed,failed,complete:rows.size===seeds.length,rows:ordered.map(r=>({seed:r.seed,status:r.status,failures:r.report?.failures??[r.failure],wallMs:r.wallMs,processSample:r.processSample}))};
++ write(`session-${session}-end.json`,{...start,completed,wallMs:performance.now()-began,sourceUnchanged,attempted:rows.size,failed});
++ const temp=join(out,`summary-${session}.pending`);writeFileSync(temp,JSON.stringify(summary,null,2)+'\n',{flag:'wx'});renameSync(temp,join(out,'summary.json'));
++ if(failed||!sourceUnchanged)process.exitCode=1;
++ console.log(`population ${summary.complete?'complete':'PARTIAL'}: ${rows.size}/${seeds.length}, ${failed} failed; source unchanged: ${sourceUnchanged}`);
++}finally{for(const child of children)if(child.connected)child.kill();unlinkSync(lock);}
+--- p9-03/packages/harness/src/cityValidationRun.ts
++++ p9-04/packages/harness/src/cityValidationRun.ts
+@@ -14,10 +14,14 @@
+ /** A thrown generator is retained as a failed attempted seed, never replaced by a different seed. */
+ export function cityValidationRun(seed:number,create:(seed:number)=>SimState=createCampaign) {
+  const began=performance.now();
++ const timings:{generationMs?:number;firstQueryMs?:number;repeatQueryMs?:number;saveLoadMs?:number;loadedQueryMs?:number}={};
+  try {
+-  const state=create(seed),initial=structuredClone(state),report=validateCampaignCity(state);
+-  const repeated=validateCampaignCity(state),loaded=loadState(makeSave(state));ensureFlow(loaded);
+-  const resumed=validateCampaignCity(loaded),unchanged=JSON.stringify(state)===JSON.stringify(initial),deterministic=JSON.stringify(report)===JSON.stringify(repeated),loadSame=JSON.stringify(report)===JSON.stringify(resumed);
+-  return {seed,status:report.ok&&unchanged&&deterministic&&loadSame?'passed':'failed',report,unchanged,deterministic,loadSame,hash:stateHash(state),wallMs:performance.now()-began};
+- } catch(error){return {seed,status:'failed',failure:{code:'generation-or-run',reason:(error as Error).message},wallMs:performance.now()-began};}
++  const state=create(seed);timings.generationMs=performance.now()-began;
++  const initial=structuredClone(state);let phase=performance.now();const report=validateCampaignCity(state);timings.firstQueryMs=performance.now()-phase;
++  phase=performance.now();const repeated=validateCampaignCity(state);timings.repeatQueryMs=performance.now()-phase;
++  phase=performance.now();const loaded=loadState(makeSave(state));ensureFlow(loaded);timings.saveLoadMs=performance.now()-phase;
++  phase=performance.now();const resumed=validateCampaignCity(loaded);timings.loadedQueryMs=performance.now()-phase;
++  const unchanged=JSON.stringify(state)===JSON.stringify(initial),deterministic=JSON.stringify(report)===JSON.stringify(repeated),loadSame=JSON.stringify(report)===JSON.stringify(resumed);
++  return {seed,status:report.ok&&unchanged&&deterministic&&loadSame?'passed':'failed',report,unchanged,deterministic,loadSame,hash:stateHash(state),timings,wallMs:performance.now()-began};
++ } catch(error){return {seed,status:'failed',failure:{code:'generation-or-run',reason:(error as Error).message},timings,wallMs:performance.now()-began};}
+ }
+--- p9-03/packages/harness/src/cityValidationWorker.ts
++++ p9-04/packages/harness/src/cityValidationWorker.ts
+@@ -0,0 +1,4 @@
++/** Separate processes keep each validator's cache and cold-start measurements independent. */
++import {cityValidationRun} from './cityValidationRun';
++let sample=0;
++process.on('message',(seed:number)=>process.send?.({...cityValidationRun(seed),processSample:sample++,pid:process.pid}));
+--- p9-03/packages/sim/test/cityPopulation.test.ts
++++ p9-04/packages/sim/test/cityPopulation.test.ts
+@@ -0,0 +1,26 @@
++import {test} from 'node:test';
++import assert from 'node:assert/strict';
++import {mkdtempSync,readFileSync,writeFileSync,rmSync} from 'node:fs';
++import {tmpdir} from 'node:os';
++import {join} from 'node:path';
++import {checkPopulationIdentity,readPopulationRows,writePopulationRow} from '../../harness/src/cityPopulation';
++import {cityValidationRun} from '../../harness/src/cityValidationRun';
++const identity={sourceDigest:'source-a',config_hash:'config-a',seeds:[3,4],runtime:'test-runtime',version:2};
++
++test('resumption retains a failed attempted seed byte-for-byte and ignores incomplete temporary writes',t=>{
++ const out=mkdtempSync(join(tmpdir(),'relight-population-'));t.after(()=>rmSync(out,{recursive:true}));
++ const row={...cityValidationRun(3,()=>{throw Error('retained generation failure');}),processSample:0,pid:1};
++ writePopulationRow(out,identity,row);const before=readFileSync(join(out,'seed-3.json'));
++ writeFileSync(join(out,'seed-4.json.interrupted.pending'),'partial');
++ const rows=readPopulationRows(out,identity);assert.equal(rows.size,1);assert.equal(rows.get(3)!.status,'failed');
++ assert.deepEqual(identity.seeds.filter(s=>!rows.has(s)),[4]);assert.throws(()=>writePopulationRow(out,identity,row),/already recorded/);
++ assert.deepEqual(readFileSync(join(out,'seed-3.json')),before);
++});
++test('resumption refuses source, population, runtime and version changes and corrupted retained results',t=>{
++ for(const altered of [{sourceDigest:'source-b'},{config_hash:'config-b'},{seeds:[4,3]},{runtime:'other'},{version:3}])assert.throws(()=>checkPopulationIdentity({...identity,...altered},identity),/identity differs/);
++ const out=mkdtempSync(join(tmpdir(),'relight-population-'));t.after(()=>rmSync(out,{recursive:true}));
++ const row={...cityValidationRun(3,()=>{throw Error('fixture');}),processSample:0,pid:1};writePopulationRow(out,identity,row);
++ assert.throws(()=>readPopulationRows(out,{...identity,seeds:[4]}),/invalid retained seed/);
++ const path=join(out,'seed-3.json'),data=JSON.parse(readFileSync(path,'utf8'));data.data.status='passed';writeFileSync(path,JSON.stringify(data));
++ assert.throws(()=>readPopulationRows(out,identity),/invalid retained seed/);
++});

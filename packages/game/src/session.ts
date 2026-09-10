@@ -1,3 +1,4 @@
+import { EXPANSION_SURVEY_VERSION } from '@relight/sim';
 /** Glue between the sim and the renderer. Engine-free. The prototype holds no game state of its own:
  *  everything is in `state`; this file only forwards commands and drains events. */
 import {
@@ -27,7 +28,7 @@ export function parseUrl(search: string): UrlParams {
   if (ruleset !== null && !isRuleset(ruleset)) throw new Error('Unknown campaign rules');
   return {
     seed: Number.isFinite(seed) ? seed : 3,
-    ...(ruleset ? { ruleset } : {}),
+    ...{ ruleset: ruleset ? ruleset as Ruleset : q.get('state') ? undefined : CAMPAIGN_RULESET },
     economy: q.get('economy') !== '0',
     scatter: q.get('scatter') !== '0',
     autoplay: auto === 'hour' ? 'hour' : auto && (POLICIES as string[]).includes(auto) ? (auto as Policy) : null,
@@ -108,11 +109,17 @@ export async function loadSnapshot(ref: string): Promise<Loaded> {
   try { state = loadState(json); } catch (e) { throw new Error(`${ref}: ${(e as Error).message}`); }
   const saved = isSaveFile(json) ? json : undefined;
   const original = (saved?.state ?? (json as { finalState?: SimState })?.finalState ?? json) as SimState;
+  state.speed = original.speed === 0 ? 0 : 1; state.acc = 0;
   const upgradedHome = original.ruleset === CAMPAIGN_RULESET && (original.campaign?.version ?? 0) < 7;
   const upgradedDefence = original.ruleset === CAMPAIGN_RULESET && (original.campaign?.defence?.version ?? 0) < 2;
+  // A new shelter reservation may intersect old building commands; keep the log without promising its replay.
+  const upgradedProgression=original.ruleset===CAMPAIGN_RULESET&&!original.campaign?.progression;
+  const upgradedConstruction=original.ruleset===CAMPAIGN_RULESET&&(original.campaign?.version??0)<10;
+  const olderSurvey=original.ruleset===CAMPAIGN_RULESET&&original.campaign?.expansion?.surveyVersion!==EXPANSION_SURVEY_VERSION;
+  const upgradedFixedTram=original.ruleset===CAMPAIGN_RULESET&&!original.campaign?.fixedTram;
   const upgradedTransport=original.ruleset===CAMPAIGN_RULESET&&!original.campaign?.truck&&(original.campaign?.expansion?.station.restoredAt??-1)>=0;
   // The old log predates station geometry and local circuits: resume the save, but do not claim a new-factory replay of that history.
-  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && !upgradedHome && !upgradedTransport && !upgradedDefence, ref, saved };
+  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && (!isCampaign(state)||!!state.city?.mapId) && !upgradedHome && !upgradedFixedTram && !upgradedTransport && !upgradedDefence && !upgradedConstruction && !upgradedProgression && !olderSurvey && (original.ruleset!==CAMPAIGN_RULESET||!!original.campaign?.navigation), ref, saved };
 }
 
 export interface Session {
@@ -150,7 +157,7 @@ export function protoConfig(p: UrlParams): SimConfig {
 export function createSession(params: UrlParams, snapshot: Loaded | null = null): Session {
   let state: SimState;
   if (snapshot) {
-    state = loadState(snapshot.state);   // RI-02: the validated deep copy (save.ts), transients reset, paused
+    state = loadState(snapshot.state); state.speed = snapshot.state.speed === 0 ? 0 : 1;   // RI-02: the validated deep copy (save.ts), transients reset, paused
     if (params.ruleset && params.ruleset !== rulesetOf(state)) throw new Error('Saved campaign rules do not match the selected campaign');
     params = { ...params, ruleset: rulesetOf(state), seed: state.seed, economy: state.config.economy, scatter: state.config.scatter, map: state.city ? (state.city.preset as CityPreset) : 'lattice', cityProfile: state.city?.profile ?? 'legacy' };
   } else if (params.ruleset === CAMPAIGN_RULESET) {
@@ -187,7 +194,7 @@ export function createSession(params: UrlParams, snapshot: Loaded | null = null)
   const hour = params.autoplay === 'hour' && state.flow ? createHourBot(params.rifle) : null;
   // RI-02: a save that carried its whole log continues it, so the loaded session replays from tick 0 like a fresh one
   const logComplete = !snapshot || snapshot.logComplete;
-  return { params, state, bot: params.autoplay && params.autoplay !== 'hour' ? createBot(params.autoplay, null, true) : null, hour, telemetry: tel, pending: [], log: snapshot && snapshot.logComplete ? snapshot.log : [],
+  return { params, state, bot: params.autoplay && params.autoplay !== 'hour' ? createBot(params.autoplay, null, true) : null, hour, telemetry: tel, pending: [], log: snapshot ? structuredClone(snapshot.log) : [],
            lastMinute: Math.floor(state.t / 60) * 60, realElapsed: 0, scenario, startT: state.t, logComplete };
 }
 
@@ -212,12 +219,19 @@ export function slotUrl(s: Session, slot = '1'): string {
 
 export { stateHash };
 
-export function queue(s: Session, c: Command): void { s.pending.push(c); }
+export const playerSpeed = (n:number):0|1 => Number.isFinite(n) && n > 0 ? 1 : 0;
+const playerCommand = (c:Command):Command => c.type==='setSpeed'?{...c,mult:playerSpeed(c.mult)}:c;
+function clockPolicy(s:Session,cmds:Command[]){
+ if(s.state.speed!==playerSpeed(s.state.speed)||cmds.some(c=>c.type==='setSpeed'&&c.mult!==s.state.speed))s.state.acc=0;
+ s.state.speed=playerSpeed(s.state.speed);
+ for(let i=0;i<cmds.length;i++)cmds[i]=playerCommand(cmds[i]);
+}
+export function queue(s: Session, c: Command): void { s.pending.push(playerCommand(c)); }
 
 /** Immediate ordinary command dispatch, including while paused. Flush earlier queued inputs in order;
  * record each command once at the current tile tick. Gameplay always mutates inside the sim dispatcher. */
 export function dispatch(s: Session, c: Command): ActionResult {
-  const cmds = [...s.pending, c]; s.pending = [];
+  const cmds = [...s.pending, c]; s.pending = []; clockPolicy(s,cmds);
   for (const command of cmds) record(s, command);
   applyCommands(s.state, cmds);
   return actionResult(s.state);
@@ -231,6 +245,7 @@ export function record(s: Session, c: Command): void {
 }
 
 export function setSpeed(s: Session, mult: number): void {
+  mult=playerSpeed(mult);
   if (s.state.speed === mult) return;
   queue(s, { type: 'setSpeed', mult });
   s.telemetry.speeds.push({ t: s.state.t, realTime: s.realElapsed, speed: mult });
@@ -238,6 +253,8 @@ export function setSpeed(s: Session, mult: number): void {
 
 /** One render frame: apply queued commands, run the ticks the speed allows, return the events for the renderer. */
 export function frame(s: Session, realDt: number): SimEvent[] {
+  // Discard background gaps; preserve the fixed sim timestep and normal foreground wall clock.
+  if(!Number.isFinite(realDt)||realDt<0||realDt>0.25){realDt=0;s.state.acc=0;}
   s.realElapsed += realDt;
   const cmds = s.pending;
   s.pending = [];
@@ -247,6 +264,7 @@ export function frame(s: Session, realDt: number): SimEvent[] {
   if (s.bot) botCommands(s.state, s.bot, cmds);   // player commands first, then the bot's (dev aid only)
   if (s.bot && s.state.flow) botHands(s.state);   // M3: the bot hand-feeds turrets and Generators from the Depot
   if (s.hour) hourCommands(s.state, s.hour, cmds);   // M6: §11's hour from the pockets, through the same commands a player sends
+  clockPolicy(s,cmds);
   for (const c of cmds) record(s, c);
   if (s.state.flow) advanceFlow(s.state, realDt, cmds); else advance(s.state, realDt, cmds);
   const events = takeEvents(s.state);

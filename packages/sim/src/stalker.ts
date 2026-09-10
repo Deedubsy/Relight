@@ -1,3 +1,5 @@
+import {cityStep} from './cityNavigation';
+import {citySight} from './ground';
 /** RI-04 (plan §7, §7.1; D-RI-6; GDD §28.6): the Stalker prototype — the third archetype, introduced alone.
  *
  *  A Stalker guards a bounded territory that belongs to one occupied site. Implementation default (RI-04): the
@@ -147,6 +149,7 @@ function openNear(st: SimState, G: Ground, gx: number, gy: number): number {
 }
 /** One step along a planned path toward (gx, gy); false when there is no way there. */
 function walk(st: SimState, G: Ground, s: Stalker, gx: number, gy: number, step: number): boolean {
+  if(st.city?.mapId)return cityStep(st,s,gx,gy,step);
   const tw = G.tw, sx = Math.floor(s.x), sy = Math.floor(s.y), here = sy * tw + sx;
   const gt = openNear(st, G, gx, gy);
   if (gt < 0) return false;
@@ -188,18 +191,20 @@ export function tickStalkers(st: SimState, T: ThreatState, dt: number, contactR:
     const mem = S.sites[s.site];
     if (mem?.restored && s.mode !== 'return') go(st, s, 'return');
     const dE = Math.hypot(e.x - s.x, e.y - s.y), dH = Math.hypot(s.hx - s.x, s.hy - s.y);
-    if (boundedSite && s.mode !== 'return' && (dH > c.leash || Math.hypot(e.x-s.hx,e.y-s.hy)>c.leash && (s.mode==='pursue'||s.mode==='attack'))) go(st,s,'return');
+    if(boundedSite&&(s.mode==='pursue'||s.mode==='attack')&&(!engUp||dE>20))go(st,s,'return');
     const cue = s.mode === 'guard' || s.mode === 'investigate' ? cueFor(st, S, s, moved, shot, built) : null;
     const walked = (gx: number, gy: number): boolean => {
       const [x,y]=[s.x,s.y];
       if (walk(st, G, s, gx, gy, step)) {
-        if (boundedSite && s.mode!=='return' && Math.hypot(s.x-s.hx,s.y-s.hy)>c.leash) { s.x=x;s.y=y;go(st,s,'return');return false; }
+        if (boundedSite && (s.mode==='guard'||s.mode==='investigate') && Math.hypot(s.x-s.hx,s.y-s.hy)>c.leash) { s.x=x;s.y=y;go(st,s,'return');return false; }
         s.stuck = 0; return true;
       }
       s.stuck += dt; return false;
     };
     switch (s.mode) {
       case 'guard':
+        if(boundedSite&&engUp&&dE<=c.perception){s.px=e.x;s.py=e.y;s.lost=0;S.stats.pursuits++;go(st,s,'pursue');break;}
+        if(boundedSite&&!cue){const angle=((Math.floor(st.t/6)+s.site)%8)*Math.PI/4,x=Math.floor(s.hx+Math.cos(angle)*3)+.5,y=Math.floor(s.hy+Math.sin(angle)*3)+.5;if(passable(st,Math.floor(x),Math.floor(y)))walked(x,y);}
         if (cue) { s.px = cue[0]; s.py = cue[1]; go(st, s, 'investigate'); }
         break;
       case 'investigate':
@@ -210,10 +215,10 @@ export function tickStalkers(st: SimState, T: ThreatState, dt: number, contactR:
         break;
       case 'pursue':
       case 'attack': {
-        if (!engUp || dH > c.leash) { go(st, s, 'return'); break; }
-        if (dE <= c.perception + c.hysteresis) { s.px = e.x; s.py = e.y; s.lost = 0; }
+        if (!engUp || (!boundedSite&&dH > c.leash)) { go(st, s, 'return'); break; }
+        if (dE <= (boundedSite?20:c.perception + c.hysteresis)) { s.px = e.x; s.py = e.y; s.lost = 0; }
         else { s.lost += dt; if (s.lost >= c.lostS) { go(st, s, 'return'); break; } }
-        if (dE <= contactR) {
+        if (citySight(st,s.x,s.y,e.x,e.y) && dE <= contactR) {
           if (s.mode !== 'attack') { go(st, s, 'attack'); if (!s.warmed) s.windup = c.windupS; }
           if (dE > 1e-9) { s.dir[0] = (e.x - s.x) / dE; s.dir[1] = (e.y - s.y) / dE; }
           S.stats.contactS += dt;
@@ -260,5 +265,5 @@ export function stalkerAt(st: SimState, x: number, y: number, r = 0.9): Stalker 
 export function describeStalker(st: SimState, s: Stalker): string {
   const S = stalkerLayer(st)!, b = st.blocks[s.site];
   const what = s.mode === 'attack' ? (s.warmed ? 'attacking' : `winding up (${s.windup.toFixed(1)} s)`) : s.mode === 'pursue' ? 'pursuing you' : s.mode === 'investigate' ? 'investigating' : s.mode === 'return' ? 'returning home' : 'guarding';
-  return `Stalker · ${what} · ${Math.max(0, Math.round(s.hp))}/${stalkerHp(S.cand)} HP · site (${b.x},${b.y}) · leash ${S.cand.leash} tiles from home`;
+  return `Stalker · ${what} · ${Math.max(0, Math.round(s.hp))}/${stalkerHp(S.cand)} HP · site (${b.x},${b.y}) · ${st.campaign?'escape beyond 20 tiles from this Stalker':`leash ${S.cand.leash} tiles from home`}`;
 }

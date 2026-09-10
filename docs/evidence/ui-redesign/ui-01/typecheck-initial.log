@@ -1,0 +1,30 @@
+
+> relight-prototype@0.1.0 typecheck
+> npm run build -w packages/sim && npm run build -w packages/harness && npm run build -w packages/tools && npm run build -w packages/game
+
+
+> @relight/sim@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+
+> @relight/harness@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+
+> @relight/tools@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+
+> @relight/game@0.1.0 build
+> tsc -p tsconfig.json --noEmit && vite build
+
+src/panel.ts(690,25): error TS2488: Type 'HTMLCollection' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/panel.ts(713,25): error TS2488: Type 'NodeListOf<HTMLElement>' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/uiShell.ts(109,25): error TS2488: Type 'NodeListOf<HTMLElement>' must have a '[Symbol.iterator]()' method that returns an iterator.
+npm error Lifecycle script `build` failed with error:
+npm error code 2
+npm error path /mnt/e/Factorio2/packages/game
+npm error workspace @relight/game@0.1.0
+npm error location /mnt/e/Factorio2/packages/game
+npm error command failed
+npm error command sh -c tsc -p tsconfig.json --noEmit && vite build

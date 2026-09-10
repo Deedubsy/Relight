@@ -1,0 +1,31 @@
+
+> relight-prototype@0.1.0 typecheck
+> npm run build -w packages/sim && npm run build -w packages/harness && npm run build -w packages/tools && npm run build -w packages/game
+
+
+> @relight/sim@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+../game/src/buildCatalogue.ts(8,64): error TS2345: Argument of type '"foundry" | "refinery" | "pumpjack" | "assembler2" | "fastbelt" | "cannon" | "arclamp" | "excavator" | "belt" | "inserter" | "assembler" | "turret" | "lamp" | "pole" | "generator" | ... 11 more ... | "barricade"' is not assignable to parameter of type '"map" | "arclamp" | "excavator" | "belt" | "inserter" | "assembler" | "turret" | "lamp" | "pole" | "generator" | "floodlight" | "bigpole" | "substation" | "chest" | "track" | "tramstop" | ... 36 more ... | "inspect"'.
+  Type '"foundry"' is not assignable to type '"map" | "arclamp" | "excavator" | "belt" | "inserter" | "assembler" | "turret" | "lamp" | "pole" | "generator" | "floodlight" | "bigpole" | "substation" | "chest" | "track" | "tramstop" | ... 36 more ... | "inspect"'.
+../game/src/buildCatalogue.ts(8,77): error TS7053: Element implicitly has an 'any' type because expression of type '"foundry" | "refinery" | "pumpjack" | "assembler2" | "fastbelt" | "cannon" | "arclamp" | "excavator" | "belt" | "inserter" | "assembler" | "turret" | "lamp" | "pole" | "generator" | ... 11 more ... | "barricade"' can't be used to index type '{ readonly underground: "Carry items beneath up to four hidden tiles. Click input, then output; Esc cancels."; readonly splitter: "Split two rear inputs across two forward outputs. T selects balanced, left or right priority; blocked priority falls back."; ... 18 more ...; readonly wall: "Shape hostile approaches; re...'.
+  Property 'foundry' does not exist on type '{ readonly underground: "Carry items beneath up to four hidden tiles. Click input, then output; Esc cancels."; readonly splitter: "Split two rear inputs across two forward outputs. T selects balanced, left or right priority; blocked priority falls back."; ... 18 more ...; readonly wall: "Shape hostile approaches; re...'.
+src/flow.ts(362,5): error TS2322: Type '{ coal: number; wire: number; frame: number; board: number; }' is not assignable to type 'Record<"coal" | "wire" | "frame" | "board" | "shell" | "crude" | "fuel" | "polymer" | "ironore" | "copperore" | "core1" | "core2" | "core3" | "artifact1" | "artifact2" | "artifact3", number> & { ...; }'.
+  Type '{ coal: number; wire: number; frame: number; board: number; }' is missing the following properties from type 'Record<"coal" | "wire" | "frame" | "board" | "shell" | "crude" | "fuel" | "polymer" | "ironore" | "copperore" | "core1" | "core2" | "core3" | "artifact1" | "artifact2" | "artifact3", number>': shell, crude, fuel, polymer, and 8 more.
+src/flow.ts(1482,106): error TS2367: This comparison appears to be unintentional because the types '"assembler"' and '"foundry"' have no overlap.
+src/flow.ts(1482,132): error TS2367: This comparison appears to be unintentional because the types '"assembler"' and '"refinery"' have no overlap.
+src/flow.ts(1498,60): error TS2366: Function lacks ending return statement and return type does not include 'undefined'.
+src/flow.ts(2342,110): error TS2454: Variable 'ch' is used before being assigned.
+src/goal.ts(301,63): error TS2366: Function lacks ending return statement and return type does not include 'undefined'.
+src/progression.ts(72,35): error TS2339: Property 'id' does not exist on type '{ type: "deliver" | "activate" | "abort" | "start" | "recover" | "toggle"; id: string; } | { type: "board" | "exit"; }'.
+  Property 'id' does not exist on type '{ type: "board" | "exit"; }'.
+src/progression.ts(87,35): error TS2339: Property 'id' does not exist on type '{ type: "deliver" | "activate" | "abort" | "start" | "recover" | "toggle"; id: string; } | { type: "board" | "exit"; }'.
+  Property 'id' does not exist on type '{ type: "board" | "exit"; }'.
+src/progression.ts(101,211): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'Crawler'.
+npm error Lifecycle script `build` failed with error:
+npm error code 2
+npm error path /mnt/e/Factorio2/packages/sim
+npm error workspace @relight/sim@0.1.0
+npm error location /mnt/e/Factorio2/packages/sim
+npm error command failed
+npm error command sh -c tsc -p tsconfig.json --noEmit

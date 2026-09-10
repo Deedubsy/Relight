@@ -1,3 +1,5 @@
+import {itemName} from './itemNames';
+import {take as pocketTake} from './engineer';
 /** P5-04: one physical campaign truck, separate cargo and ordinary command operations. */
 import type { SimState } from './types';
 import { ground, walkable, distToRect, blockOfTile } from './ground';
@@ -5,8 +7,8 @@ import { machineAt, isItem, isKind, type Dir } from './flow';
 import { INV_STACKS, TRUCK_STACKS, TRUCK_MULT, WALK_TILES_PER_S, invStacks } from './engineer';
 import { T_STREET } from './tiles';
 import { passable } from './walk';
-export const TRUCK_RULES={width:2,length:3,stacks:TRUCK_STACKS,speedMultiplier:TRUCK_MULT,boardReach:1.5,parkingRadius:24,substep:.2} as const;
-export interface TruckState { x:number;y:number;dir:Dir;cargo:Record<string,number>;unlockedAt:number }
+export const TRUCK_RULES={width:2,length:3,stacks:TRUCK_STACKS,speedMultiplier:TRUCK_MULT,boardReach:1.5,parkingRadius:24,substep:.2,serviceReach:8} as const;
+export interface TruckState { x:number;y:number;dir:Dir;cargo:Record<string,number>;unlockedAt:number;work?:import('./truckWork').TruckWork }
 export function truckRect(t:Pick<TruckState,'x'|'y'|'dir'>){const w=t.dir%2?3:2,h=t.dir%2?2:3;return {x:t.x-w/2,y:t.y-h/2,w,h};}
 export function truckOccupies(st:SimState,x:number,y:number):boolean {
  const t=st.campaign?.truck;if(!t)return false;const r=truckRect(t);
@@ -16,7 +18,7 @@ export function truckFits(st:SimState,x:number,y:number,dir:Dir):boolean {
  const G=ground(st),r=truckRect({x,y,dir});
  for(let ty=Math.floor(r.y+1e-8);ty<Math.ceil(r.y+r.h-1e-8);ty++)for(let tx=Math.floor(r.x+1e-8);tx<Math.ceil(r.x+r.w-1e-8);tx++){
   if(!walkable(G,tx,ty)||G.base[ty*G.tw+tx]!==T_STREET)return false;
-  const m=machineAt(st,tx,ty);if(m&&!['belt','track','tram'].includes(m.kind)&&!((m.kind==='wall'||m.kind==='barricade')&&m.hp===0))return false;
+  const m=machineAt(st,tx,ty);if(m&&!['belt','fastbelt','track','tram'].includes(m.kind)&&!((m.kind==='wall'||m.kind==='barricade')&&m.hp===0))return false;
  }
  return true;
 }
@@ -53,6 +55,7 @@ export function truckBoardCheck(st:SimState):string {
 }
 export function boardTruck(st:SimState):string {
  const why=truckBoardCheck(st);if(why)return why;const e=st.engineer,t=st.campaign!.truck!;
+ if(t.work){t.work.enabled=false;t.work.phase='paused';t.work.reason='Manual takeover; cargo and plans retained';t.work.route=[];delete t.work.target;}
  if(e.truckSeat){const p=exitTile(st,t)!;e.x=p[0];e.y=p[1];e.truck=false;delete e.truckSeat;}
  else{e.x=t.x;e.y=t.y;e.truck=true;e.truckSeat=true;}
  e.vel=[0,0];e.target=null;e.dest=-1;e.remaining=0;e.dash=0;e.sprint=false;e.block=blockOfTile(st,e.x,e.y);st.flow!.rev++;return '';
@@ -74,7 +77,7 @@ export function driveTruck(st:SimState,dt:number):void {
  if(moved){e.walked+=dt;const h=Math.floor(st.t/3600);e.walkedHour[h]=(e.walkedHour[h]??0)+dt;}
 }
 const cargoItem=(k:string)=>isItem(k)||(isKind(k)&&k!=='depot')||k==='kit';
-export function truckTransfer(st:SimState,item:string,n:number,put:boolean):{ok:boolean;reason:string;moved?:number}{
+export function truckTransferPreview(st:SimState,item:string,n:number,put:boolean):{ok:boolean;reason:string;moved?:number}{
  const t=st.campaign?.truck,e=st.engineer;
  if(!t||e.down>=0||!cargoItem(item)||!Number.isSafeInteger(n)||n<=0||typeof put!=='boolean')return {ok:false,reason:'Invalid truck cargo transfer'};
  const r=truckRect(t);if(distToRect(e.x,e.y,r.x,r.y,r.w,r.h)>e.reach)return {ok:false,reason:'Walk closer to the truck cargo'};
@@ -83,11 +86,17 @@ export function truckTransfer(st:SimState,item:string,n:number,put:boolean):{ok:
  // Monotonic capacity search includes partial stacks and keeps oversized requests bounded.
  while(moved<hi){const mid=Math.ceil((moved+hi)/2);if(invStacks({...dst,[item]:(dst[item]??0)+mid})<=cap)moved=mid;else hi=mid-1;}
  if(invStacks({...dst,[item]:(dst[item]??0)+amount})<=cap)moved=amount;
+ if(!put)moved=pocketTake({...e,inv:{...e.inv}},item,amount);
  if(!moved)return {ok:false,reason:amount?'Destination inventory is full':'No cargo of that item to transfer'};
- src[item]-=moved;if(src[item]<=0)delete src[item];dst[item]=(dst[item]??0)+moved;return {ok:true,reason:`${moved} ${item} moved ${put?'into truck cargo':'to pockets'}`,moved};
+ return {ok:true,reason:`${moved} ${itemName(item)} moved ${put?'into truck cargo':'to Backpack'}`,moved};
+}
+export function truckTransfer(st:SimState,item:string,n:number,put:boolean):{ok:boolean;reason:string;moved?:number}{
+ const result=truckTransferPreview(st,item,n,put);if(!result.ok)return result;
+ const t=st.campaign!.truck!,src=put?st.engineer.inv:t.cargo,dst=put?t.cargo:st.engineer.inv,moved=result.moved!;
+ src[item]-=moved;if(src[item]<=0)delete src[item];dst[item]=(dst[item]??0)+moved;return result;
 }
 export function truckDescription(st:SimState):string {
- const t=st.campaign?.truck;return !t?'Truck: restore the second-area station; parking requires clear street space':`${st.engineer.truckSeat?'Driving':'Parked'} truck · ${invStacks(t.cargo)}/${TRUCK_STACKS} cargo stacks · WASD drives, E boards/exits; cargo stays with the truck`;
+ const t=st.campaign?.truck;return !t?'Truck: restore the second-area station; parking requires clear street space':`${st.engineer.truckSeat?'Driving':t.work?.enabled?`Automatic ${t.work.phase}`:'Parked'} truck · ${invStacks(t.cargo)}/${TRUCK_STACKS} cargo stacks · WASD drives, E boards/exits; cargo stays with the truck`;
 }
 export function truckProblem(st:SimState):string {
  const t=st.campaign?.truck,e=st.engineer;if(!t)return e.truckSeat?'missing occupied truck':'';

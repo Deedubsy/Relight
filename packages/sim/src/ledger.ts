@@ -57,14 +57,16 @@ export function heldItems(st: SimState): { total: Record<Item, number>; where: R
   for (const bi in f.delivered ?? {}) { add('committed', 'steel', f.delivered[bi].steel); add('committed', 'copper', f.delivered[bi].copper); }
   for (const site of Object.values(st.campaign?.expansion ? { station: st.campaign.expansion.station, radio: st.campaign.expansion.radio } : {})) { add('committed', 'steel', site.delivered.steel); add('committed', 'copper', site.delivered.copper); }
   for(const site of st.campaign?.districts?[st.campaign.districts.station,st.campaign.districts.workshop]:[]){add('committed','steel',site.delivered.steel);add('committed','copper',site.delivered.copper);}
+  for(const s of st.campaign?.progression?.sites??[]){for(const [k,n] of Object.entries(s.delivered))add('committed',k,n);if(s.installed)add('committed',s.installed,1);}
   const turbine=st.campaign?.turbine;
   if(turbine)for(const item of ['steel','copper','concrete'] as const)add('committed',item,turbine.delivered[item]);
   for (const cb of f.heart?.cabinets ?? []) { add('committed', 'steel', cb.delivered.steel); add('committed', 'copper', cb.delivered.copper); }   // RI-06: the feeder cabinets' materials until the Heart is destroyed
   for (const m of f.machines) {
+    if(m.artifact)add('machines',m.artifact,1);
     for (const it of m.items) add('belts', it.k, 1);
     if (m.hold) add(m.kind === 'belt' ? 'belts' : 'machines', m.hold, 1);
     if (m.kind === 'turret') add('machines', 'magazine', (m.inv.rounds ?? 0) / ROUNDS);
-    else { for (const k in m.inv) add('machines', k, m.inv[k]); if (m.out > 0) add('machines', (m.kind === 'assembler'||m.kind==='mixer') ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
+    else { for (const k in m.inv) add('machines', k, m.inv[k]); if (m.out > 0) add('machines', ['assembler','assembler2','mixer','foundry','refinery'].includes(m.kind) ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
     if (m.cargo) for (const k in m.cargo) add('machines', k, m.cargo[k]);   // RI-05: a tram's load, a stop's arrivals
   }
   for(const [k,n] of Object.entries(st.campaign?.truck?.cargo??{}))add('machines',k,n);
@@ -81,6 +83,7 @@ export function ledgerFlows(st: SimState): { sources: Record<Item, number>; sink
   sinks.steel += (s.placed?.steel ?? 0) + (b.spentSteel ?? 0);
   sinks.copper += (s.placed?.copper ?? 0) + (b.spentCopper ?? 0) + (f.repairs ?? 0) * REPAIR_COPPER;
   sinks.concrete += s.placed?.concrete ?? 0;
+  sinks.polymer += s.placed?.polymer ?? 0;
   sinks.coal += s.coalBurned ?? 0;
   sinks.magazine += ((s.fired ?? 0) + (st.engineer.fired ?? 0) + (b.ringFired ?? 0) + (b.roundsLost ?? 0)) / ROUNDS;
   return { sources, sinks };

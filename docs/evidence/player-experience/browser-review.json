@@ -1,0 +1,269 @@
+{
+  "focus": [
+    "Build (B) close -> B works",
+    "Backpack (I) close -> B works",
+    "Projects (F2) close -> B works"
+  ],
+  "opening": {
+    "t": 104,
+    "hp": 100,
+    "inventory": {
+      "steel": 3,
+      "copper": 1
+    },
+    "chests": [
+      {
+        "steel": 3
+      }
+    ],
+    "goal": {
+      "id": "opening-workshop",
+      "title": "Prepare your defence",
+      "text": "Craft Shot magazines at the Home workbench and load a turret",
+      "detail": "Each magazine costs 2 Steel plates + 1 Copper and takes 6 seconds. A turret costs 15 Steel plates + 5 Copper. Conveyors can supply it directly.",
+      "location": {
+        "x": 70,
+        "y": 357
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "kind": "crown",
+      "text": "Blackout Crown\nStalled · 12 / 50 productive seconds · Defeat the remaining defenders\n\n50 Copper delivered to Home storage. Keep two nearby powered lights on and eliminate Conductor sources.\n\nRequired materials\n\nSteel plates: 30/30 delivered; carrying 428.\n\nCopper: 15/15 delivered; carrying 923.\n\nTrack projectShow project location\nPause encounter\n\nEngineering encounter started · keep power and defend the installation",
+      "state": {
+        "t": 19,
+        "site": {
+          "id": "riverfront:crown",
+          "name": "Blackout Crown",
+          "x": 782,
+          "y": 285,
+          "kind": "crown",
+          "size": 3,
+          "block": 3,
+          "seen": true,
+          "recovered": false,
+          "enabled": true,
+          "delivered": {
+            "steel": 30,
+            "copper": 15
+          },
+          "restoredAt": -1,
+          "progress": 12.500000000000043,
+          "started": true,
+          "waves": 1,
+          "attempt": 1,
+          "searchX": 791,
+          "searchY": 292,
+          "guards": [
+            1,
+            2
+          ]
+        },
+        "guards": [
+          {
+            "kind": "crawler",
+            "role": "conductor",
+            "x": 768.5,
+            "y": 273.5,
+            "hp": 80
+          },
+          {
+            "kind": "shade",
+            "x": 767.5,
+            "y": 273.5,
+            "hp": 40
+          }
+        ]
+      }
+    },
+    {
+      "kind": "furnace",
+      "text": "Furnace Walker\nStalled · 10 / 40 productive seconds · Defeat the remaining defenders\n\n50 Steel plates delivered to Home storage. Keep two nearby processors busy through the defence.\n\nRequired materials\n\nSteel plates: 30/30 delivered; carrying 328.\n\nCopper: 15/15 delivered; carrying 885.\n\nTrack projectShow project location\nPause encounter\n\nEngineering encounter started · keep power and defend the installation",
+      "state": {
+        "t": 14,
+        "site": {
+          "id": "riverfront:furnace",
+          "name": "Furnace Walker",
+          "x": 469,
+          "y": 90,
+          "kind": "furnace",
+          "size": 3,
+          "block": 2,
+          "seen": true,
+          "recovered": false,
+          "enabled": true,
+          "delivered": {
+            "steel": 30,
+            "copper": 15
+          },
+          "restoredAt": -1,
+          "progress": 10.000000000000007,
+          "started": true,
+          "waves": 1,
+          "attempt": 1,
+          "searchX": 478,
+          "searchY": 97,
+          "guards": [
+            1,
+            2
+          ]
+        }
+      }
+    },
+    {
+      "kind": "heart",
+      "text": "Junction Heart / Arsenal\nStalled · 0 / 30 productive seconds · Connect powered feeder poles on the west and east side (within 14 tiles)\n\nUnlock the Arsenal: two-barrel rifle and Cannon/Shell plans. Connect a powered feeder pole on each side; 100 kW commissioning load.\n\nRequired materials\n\nSteel plates: 30/30 delivered; carrying 270.\n\nCopper: 15/15 delivered; carrying 745.\n\nTrack projectShow project location\nPause encounter\n\nEngineering encounter started · keep power and defend the installation",
+      "state": {
+        "t": 2,
+        "site": {
+          "id": "riverfront:heart",
+          "name": "Junction Heart / Arsenal",
+          "x": 622,
+          "y": 242,
+          "kind": "heart",
+          "size": 3,
+          "block": 3,
+          "seen": true,
+          "recovered": false,
+          "enabled": true,
+          "delivered": {
+            "steel": 30,
+            "copper": 15
+          },
+          "restoredAt": -1,
+          "progress": 0,
+          "started": true,
+          "waves": 0,
+          "attempt": 1,
+          "searchX": 631,
+          "searchY": 249
+        }
+      }
+    },
+    {
+      "kind": "relay",
+      "darkHp": 40,
+      "after": {
+        "hp": 80.3500000000005,
+        "shade": 32,
+        "lamps": [
+          {
+            "x": 802,
+            "y": 50
+          }
+        ],
+        "warning": "⚠ Alien relay draining health"
+      }
+    },
+    {
+      "kind": "artifact",
+      "before": "Workshop salvage room\nOptional speed artifact\n\n+10% processing capacity on one machine; supplies and output space still limit production.\n\nTrack projectShow project location\nRecover",
+      "after": "Workshop salvage room\nArtifact recovered\n\n+10% processing capacity on one machine; supplies and output space still limit production.\n\nTrack projectShow project location\n\nRecovered Speed artifact 1; source equipment offline",
+      "inv": {
+        "steel": 600,
+        "copper": 1000,
+        "coal": 150,
+        "magazine": 20,
+        "shell": 40,
+        "artifact1": 1
+      }
+    },
+    {
+      "kind": "transport",
+      "state": {
+        "t": 118,
+        "pack": 75,
+        "truck": {
+          "ironore": 25
+        },
+        "stops": [
+          {
+            "id": 1245,
+            "inv": {},
+            "cargo": {}
+          },
+          {
+            "id": 1246,
+            "inv": {},
+            "cargo": {
+              "ironore": 100
+            }
+          },
+          {
+            "id": 1247,
+            "inv": {}
+          },
+          {
+            "id": 1248,
+            "inv": {}
+          }
+        ],
+        "tram": {}
+      }
+    },
+    {
+      "kind": "defence",
+      "state": {
+        "t": 929,
+        "raids": 1,
+        "bases": [
+          {
+            "block": 0,
+            "x": 67,
+            "y": 354,
+            "size": 6,
+            "hp": 300,
+            "commissionedAt": 0
+          }
+        ],
+        "minor": null,
+        "threat": {
+          "spawned": 11,
+          "shades": 0,
+          "turretKills": 11,
+          "rifleKills": 0,
+          "arrivals": 0,
+          "shadeArrivals": 0,
+          "lampsEaten": 0,
+          "turned": 0,
+          "contactS": 0,
+          "lost": 0
+        },
+        "turrets": [
+          {
+            "rounds": 46
+          },
+          {
+            "rounds": 41
+          },
+          {
+            "rounds": 50
+          }
+        ],
+        "chests": [
+          {
+            "magazine": 5
+          },
+          {
+            "magazine": 4
+          },
+          {
+            "magazine": 4
+          }
+        ],
+        "enemies": 0,
+        "engineerHp": 100
+      }
+    }
+  ],
+  "finalUI": {
+    "small": "1100x720 at 125%",
+    "normal": "1366x900 at 100%",
+    "mapDoesNotMove": true,
+    "typingDoesNotMove": true,
+    "tabClosesQuantity": true,
+    "drawerCameraStable": true,
+    "pageErrors": []
+  }
+}

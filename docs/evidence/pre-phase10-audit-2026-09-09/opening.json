@@ -1,0 +1,285 @@
+{
+  "ruleset": "exploration-v2",
+  "stock": {
+    "stone": 50,
+    "copper": 100,
+    "steel": 200
+  },
+  "inv": {},
+  "store": {
+    "coal": 40,
+    "wire": 0,
+    "frame": 0,
+    "board": 0
+  },
+  "machines": [
+    {
+      "kind": "depot",
+      "inv": {}
+    },
+    {
+      "kind": "generator",
+      "inv": {
+        "coal": 40
+      }
+    },
+    {
+      "kind": "tramstop",
+      "inv": {}
+    },
+    {
+      "kind": "tramstop",
+      "inv": {}
+    },
+    {
+      "kind": "tramstop",
+      "inv": {}
+    },
+    {
+      "kind": "tramstop",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "track",
+      "inv": {}
+    },
+    {
+      "kind": "tram",
+      "inv": {}
+    }
+  ],
+  "goal": {
+    "next": {
+      "id": "opening-workshop",
+      "title": "Start your workshop",
+      "text": "Collect your starting supplies from Home",
+      "detail": "Take 10 steel",
+      "location": {
+        "x": 421,
+        "y": 635
+      },
+      "shortage": [
+        {
+          "item": "steel",
+          "count": 10,
+          "home": 200
+        }
+      ]
+    },
+    "goal": {
+      "id": "home-factory",
+      "text": "Start your workshop",
+      "why": "Collect your starting supplies from Home"
+    },
+    "support": {
+      "id": "campaign-threat",
+      "text": "Next major assault: Night 3. Two minor raid opportunities per day; ruins remain dangerous.",
+      "why": "Prepare ammunition and repair defences before dusk."
+    }
+  },
+  "speed": 0
+}

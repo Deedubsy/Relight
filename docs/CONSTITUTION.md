@@ -1,10 +1,12 @@
 # Relight — programme constitution
 
+**Owner implementation direction (2026-09-09):** implement EX-09C-01–09 plus RI-10/RI-12 combat/encounters now. The active campaign uses defended factory/plant sites, never a territorial frontage/ring or adjacent-block-claim economy. Site lifecycle and explicit truck recovery replace the former EX-09C-04 territory scope. Normal new-game entry is to use exploration-v2; explicit legacy saves/mode remain isolated. Real inventory, connected finite power and 1×/pause remain authoritative. Q07 final requirements and human/release gates stay open, not prerequisites of this authorised correction set.
+
 Current version: 2026-09-06, D-EX-01–11. The owner has confirmed Phase 4 complete and authorised the documentation revision. The previous constitution is preserved in [the archive](archive/pre-exploration-defence-2026-09-06/docs/CONSTITUTION.md). Rule numbers remain stable for historical citations.
 
 ## Scope
 
-Relight is a 2D city-reclamation factory game whose revised loop is explore → restore → connect → produce → defend → relight. Free roaming, useful discoveries, specialised districts, a multi-station tram network and intermittent base defence are the adopted direction. [RELIGHT-design.md](RELIGHT-design.md) holds the rules; [EXPLORATION_DEFENCE_PLAN.md](EXPLORATION_DEFENCE_PLAN.md) defines delivery; [PROGRESS.md](PROGRESS.md) alone orders tasks. Phase 4 is the last completed phase; selected later features already exist.
+Relight is a 2D city-reclamation factory game whose revised loop is explore → restore → connect → produce → defend → relight. Free roaming, useful discoveries, specialised districts, a multi-station tram network and intermittent base defence are the adopted direction. [RELIGHT_CONFIRMED_GAMEPLAY.md](RELIGHT_CONFIRMED_GAMEPLAY.md) holds the current owner-confirmed gameplay rules; [RELIGHT-design.md](RELIGHT-design.md) retains implementation and legacy references; [EXPLORATION_DEFENCE_PLAN.md](EXPLORATION_DEFENCE_PLAN.md) defines delivery; [PROGRESS.md](PROGRESS.md) alone orders tasks. Phase 4 is the last completed phase; selected later features already exist.
 
 ## The rules
 
@@ -14,7 +16,7 @@ Relight is a 2D city-reclamation factory game whose revised loop is explore → 
 
 3. **Headless first.** Pure TypeScript simulation owns gameplay through step(state, commands). The renderer draws state and submits commands. A red check is recorded and investigated within its declared profile; legacy behaviour and revised gameplay have separate acceptance.
 
-4. **Gameplay rules live in the GDD.** This file defines authority and process, not a second set of gameplay constants. Decisions record approvals and supersessions; the GDD incorporates their current meaning.
+4. **Gameplay rules live in the design reference.** The owner-designated RELIGHT_CONFIRMED_GAMEPLAY.md takes precedence over earlier GDD and decision wording where they disagree. This file defines authority and process, not a second set of gameplay constants. Decisions record approvals and supersessions; the GDD incorporates their current meaning.
 
 5. **Bots are instruments; people judge experience.** Bots use ordinary player commands, inventories and reach. Debug stock or bypassed commands make a run a labelled scenario. Bot success does not establish enjoyable exploration, warning comprehension or reduced repetition.
 

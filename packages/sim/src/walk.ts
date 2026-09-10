@@ -25,7 +25,7 @@ export function workbenchTile(st: SimState): [number, number] { return hqLot(st,
 /** GAME-ASSUMPTION: the engineer walks through belts and poles (thin), never through other machines or water.
  *  RI-05: and over track (rails in the street) and a tram (it rides the track, is not in `occ`, and moves without
  *  bumping the placement revision this map is rebuilt on). */
-const PASSABLE = new Set(['belt', 'pole', 'track', 'tram']);
+const PASSABLE = new Set(['belt','fastbelt', 'pole', 'track', 'tram']);
 
 const solids = new WeakMap<FlowState, { rev: number; solid: Uint8Array }>();
 function solidMap(st: SimState, G: Ground): Uint8Array | null {
@@ -39,6 +39,7 @@ function solidMap(st: SimState, G: Ground): Uint8Array | null {
     const [width,height]=machineDimensions(m);
     for (let y = m.y; y < m.y + height; y++) for (let x = m.x; x < m.x + width; x++) if (inGround(G, x, y)) solid[y * G.tw + x] = 1;
   }
+  if(st.city?.mapId)for(const p of st.campaign?.progression?.sites??[])if(!p.recovered)for(let y=p.y;y<p.y+p.size;y++)for(let x=p.x;x<p.x+p.size;x++)solid[y*G.tw+x]=1;
   const turbine=st.campaign?.turbine;
   if(turbine)for(let y=turbine.y;y<turbine.y+turbine.size;y++)for(let x=turbine.x;x<turbine.x+turbine.size;x++)solid[y*G.tw+x]=1;
   solids.set(f, { rev: f.rev, solid });
@@ -53,6 +54,8 @@ export function passable(st: SimState, tx: number, ty: number): boolean {
   return !truckOccupies(st,tx,ty) && (!s || s[ty * G.tw + tx] === 0);
 }
 
+/** Physical engineer radius; thin sprites still cannot slide their centre through a corner. */
+export function canStand(st:SimState,x:number,y:number,r=.28):boolean {return [[-r,-r],[r,-r],[-r,r],[r,r]].every(([dx,dy])=>passable(st,Math.floor(x+dx),Math.floor(y+dy)));}
 // ------------------------------------------------------------------ A*
 
 interface Scratch { g: Float64Array; parent: Int32Array; stamp: Int32Array; heap: Int32Array; hf: Float64Array; gen: number }
@@ -71,11 +74,12 @@ const NX = [0, 1, 0, -1, 1, 1, -1, -1], NY = [-1, 0, 1, 0, -1, 1, 1, -1];
 
 /** Shortest walk between two tiles (8-connected, no corner cutting): the tiles to step through, ending on the goal;
  *  null when there is none. `limit` bounds the search for a stuck engineer. */
-export function findPath(st: SimState, sx: number, sy: number, gx: number, gy: number, limit = 250000): Int32Array | null {
+export function findPath(st: SimState, sx: number, sy: number, gx: number, gy: number, limit = 250000, clearance = 0): Int32Array | null {
   const G = ground(st);
   if (!inGround(G, sx, sy) || !inGround(G, gx, gy)) return null;
   const solid = solidMap(st, G), tw = G.tw, th = G.th, base = G.base;
-  const open = (x: number, y: number) => x >= 0 && y >= 0 && x < tw && y < th && base[y * tw + x] !== 4 /* T_RIVER */ && !G.urban?.solid[y * tw + x] && (!solid || solid[y * tw + x] === 0) && !truckOccupies(st,x,y);
+  const tileOpen = (x: number, y: number) => x >= 0 && y >= 0 && x < tw && y < th && base[y * tw + x] !== 4 /* T_RIVER */ && !G.urban?.solid[y * tw + x] && (!solid || solid[y * tw + x] === 0) && !truckOccupies(st,x,y);
+  const open=(x:number,y:number)=>{for(let dy=-clearance;dy<=clearance;dy++)for(let dx=-clearance;dx<=clearance;dx++)if(!tileOpen(x+dx,y+dy))return false;return true;};
   if (!open(gx, gy)) return null;
   const S = scratchOf(G), gen = ++S.gen;
   const start = sy * tw + sx, goal = gy * tw + gx;
@@ -170,6 +174,7 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
     }
     return;
   }
+  if(st.campaign?.progression?.passenger){plans.delete(e);e.vel=[0,0];e.target=null;return;}
   if(e.truckSeat){plans.delete(e);driveTruck(st,dt);}
   else {
   let v = speedOf(e) * dt, moved = false;
@@ -182,8 +187,8 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
     const s = Math.min(dt, e.dash), d = DODGE_TILES / DODGE_S * s;
     e.dash -= s; e.iframes += s;
     const nx = e.x + e.dashDir[0] * d, ny = e.y + e.dashDir[1] * d;
-    if (passable(st, Math.floor(nx), Math.floor(e.y))) e.x = nx;
-    if (passable(st, Math.floor(e.x), Math.floor(ny))) e.y = ny;
+    if (canStand(st,nx,e.y)) e.x = nx;
+    if (canStand(st,e.x,ny)) e.y = ny;
     moved = true; v = 0;   // the dash is the whole of this tick's movement
   } else if (e.sprint && keys && !e.truck) {
     // sprint never takes the bar below one dodge; at the floor Shift just walks (release it to refill)
@@ -202,7 +207,8 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
       if (!path) {
         // no way there: a block walk falls back to the block-level model (distance, then arrival), a click is dropped
         plans.delete(e);
-        if (e.dest >= 0) {
+        if(st.city?.mapId){e.dest=-1;e.target=null;e.remaining=0;}
+        else if (e.dest >= 0) {
           e.remaining -= v; moved = true;
           if (e.remaining <= 0) { e.remaining = 0; e.block = e.dest; e.dest = -1; const p = G.blocks[e.block].pole; e.x = p[0] + 0.5; e.y = p[1] + 0.5; }
         } else e.target = null;
@@ -212,6 +218,7 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
     if (plan && v > 0) {
       while (v > 0 && plan.at < plan.path.length) {
         const t = plan.path[plan.at], tx = t % G.tw, ty = (t - tx) / G.tw, cx = tx + 0.5, cy = ty + 0.5;
+        if(!passable(st,tx,ty)){plans.delete(e);e.target=null;e.dest=-1;break;}
         const dx = cx - e.x, dy = cy - e.y, L = Math.hypot(dx, dy);
         if (L <= v) { e.x = cx; e.y = cy; v -= L; plan.at++; }
         else { e.x += dx / L * v; e.y += dy / L * v; v = 0; }
@@ -228,8 +235,8 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
     plans.delete(e);
     const L = Math.hypot(e.vel[0], e.vel[1]), ux = e.vel[0] / L * v, uy = e.vel[1] / L * v;
     const nx = e.x + ux, ny = e.y + uy;
-    if (passable(st, Math.floor(nx), Math.floor(e.y))) { e.x = nx; moved = true; }
-    if (passable(st, Math.floor(e.x), Math.floor(ny))) { e.y = ny; moved = true; }
+    if (canStand(st,nx,e.y)) { e.x = nx; moved = true; }
+    if (canStand(st,e.x,ny)) { e.y = ny; moved = true; }
   }
   if (moved) {
     e.walked += dt;

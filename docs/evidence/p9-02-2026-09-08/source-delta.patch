@@ -1,0 +1,192 @@
+--- P9-01/packages/game/src/session.ts
++++ P9-02/packages/game/src/session.ts
+@@ -1,3 +1,4 @@
++import { EXPANSION_SURVEY_VERSION } from '@relight/sim';
+ /** Glue between the sim and the renderer. Engine-free. The prototype holds no game state of its own:
+  *  everything is in `state`; this file only forwards commands and drains events. */
+ import {
+@@ -112,9 +113,10 @@
+   const upgradedDefence = original.ruleset === CAMPAIGN_RULESET && (original.campaign?.defence?.version ?? 0) < 2;
+   // A new shelter reservation may intersect old building commands; keep the log without promising its replay.
+   const upgradedConstruction=original.ruleset===CAMPAIGN_RULESET&&(original.campaign?.version??0)<10;
++  const olderSurvey=original.ruleset===CAMPAIGN_RULESET&&original.campaign?.expansion?.surveyVersion!==EXPANSION_SURVEY_VERSION;
+   const upgradedTransport=original.ruleset===CAMPAIGN_RULESET&&!original.campaign?.truck&&(original.campaign?.expansion?.station.restoredAt??-1)>=0;
+   // The old log predates station geometry and local circuits: resume the save, but do not claim a new-factory replay of that history.
+-  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && !upgradedHome && !upgradedTransport && !upgradedDefence && !upgradedConstruction, ref, saved };
++  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && !upgradedHome && !upgradedTransport && !upgradedDefence && !upgradedConstruction && !olderSurvey, ref, saved };
+ }
+ 
+ export interface Session {
+--- P9-01/packages/harness/src/provenance.ts
++++ P9-02/packages/harness/src/provenance.ts
+@@ -1,4 +1,4 @@
+-import { DISTRICT_ECONOMY, DISCOVERY, routingConfig, INSPECTION_WINDOW_TICKS, INSPECTION_SAMPLE_TICKS, TRUCK_RULES, TRUCK_WORK_RULES } from '@relight/sim';
++import { DISTRICT_ECONOMY, DISCOVERY, EXPANSION_SURVEY_VERSION, routingConfig, INSPECTION_WINDOW_TICKS, INSPECTION_SAMPLE_TICKS, TRUCK_RULES, TRUCK_WORK_RULES } from '@relight/sim';
+ /** Provenance stamps for generated files (constitution rule 11, guardrails Step 6). Every file a script writes carries
+  *  the git commit and the config hash it was made from; `npm run freshness:check` (packages/tools/src/freshness.ts)
+  *  recomputes the hash from the current code and fails if either does not match.
+@@ -57,7 +57,7 @@
+ /** Preserve every legacy hash; campaign evidence also fingerprints its rules and geometry. */
+ export function evidenceHash(ref: ConfigRef): string {
+   const config = configOf(ref);
+-  return ref.kind === 'campaign' ? fnv1a(canonicalJson({ config, ruleset: ref.ruleset, rules: CAMPAIGN_RULES, opening: OPENING_LAYOUT, expansion: EXPANSION, power: CAMPAIGN_POWER, defence: DEFENCE, threats: CAMPAIGN_THREAT, districts: DISTRICT_ECONOMY, discovery: DISCOVERY, routing:routingConfig(), inspection:{windowTicks:INSPECTION_WINDOW_TICKS,sampleTicks:INSPECTION_SAMPLE_TICKS}, truck:TRUCK_RULES,truckWork:TRUCK_WORK_RULES })) : configHash(config);
++  return ref.kind === 'campaign' ? fnv1a(canonicalJson({ config, ruleset: ref.ruleset, rules: CAMPAIGN_RULES, opening: OPENING_LAYOUT, expansion: EXPANSION, surveyVersion:EXPANSION_SURVEY_VERSION, power: CAMPAIGN_POWER, defence: DEFENCE, threats: CAMPAIGN_THREAT, districts: DISTRICT_ECONOMY, discovery: DISCOVERY, routing:routingConfig(), inspection:{windowTicks:INSPECTION_WINDOW_TICKS,sampleTicks:INSPECTION_SAMPLE_TICKS}, truck:TRUCK_RULES,truckWork:TRUCK_WORK_RULES })) : configHash(config);
+ }
+ export function evidenceProfileProblem(ref: ConfigRef, file: string, payload?: unknown): string {
+   const profile = evidenceRuleset(ref), campaignPath = file.replace(/\\/g, '/').includes('/campaign/');
+--- P9-01/packages/sim/src/campaignCityValidation.ts
++++ P9-02/packages/sim/src/campaignCityValidation.ts
+@@ -15,7 +15,7 @@
+ interface Rect { x: number; y: number; w: number; h: number }
+ interface Site extends Rect { id: string; block: number }
+ export interface CampaignCityReport {
+- version: number; seed: number; profile: string; configHash: string; metadata: number;
++ version: number; seed: number; profile: string; configHash: string; metadata: number; surveyVersion: number;
+  ok: boolean; failures: CityFailure[];
+  measurements: {
+   reachableTiles: number; routeTiles: number; generatorAttempt: number;
+@@ -29,7 +29,7 @@
+ 
+ export function validateCampaignCity(input: SimState): CampaignCityReport {
+  const report: CampaignCityReport = {version:CITY_VALIDATOR_VERSION,seed:input?.seed??-1,
+-  profile:input?.city?.profile??'',configHash:input?.config?configHash(input.config):'',metadata:input?.campaign?.version??0,
++  profile:input?.city?.profile??'',configHash:input?.config?configHash(input.config):'',metadata:input?.campaign?.version??0,surveyVersion:input?.campaign?.expansion?.surveyVersion??1,
+   ok:false,failures:[],measurements:{reachableTiles:0,routeTiles:0,generatorAttempt:-1,sites:[],resources:[],factory:null,extraction:[],origins:[],truck:{status:'not-unlocked',queries:[]}},
+   scope:'Current physical snapshot. Cardinal connectivity is not travel time or safe combat passage. Placement geometry excludes unlocks, stock and power supply. Truck queries require an existing truck. No paid construction, survival or human fairness is established.'};
+  const fail=(code:CityFailureCode,subject:string,reason:string)=>report.failures.push({code,subject,reason});
+--- P9-01/packages/sim/src/expansion.ts
++++ P9-02/packages/sim/src/expansion.ts
+@@ -1,6 +1,6 @@
+ import { initTruck } from './truck';
+ /** The second-area restoration: real deliveries, local power and a once-only transport crate. */
+-import { SimState, HELD } from './types';
++import { SimState, HELD, DARK } from './types';
+ import { ground, inReach, blockOfTile } from './ground';
+ import { take, drop } from './engineer';
+ import { isCampaign, CampaignSite } from './rules';
+@@ -8,6 +8,8 @@
+ import { campaignWarning, restorationWindow } from './campaignThreat';
+ import { campaignThrottle } from './campaignPower';
+ import { workshopStatus } from './campaignDistricts';
++/** New-generation survey only; missing revision in saved surveys remains revision 1. */
++export const EXPANSION_SURVEY_VERSION = 2;
+ export const EXPANSION = { station: { steel: 30, copper: 15 }, radio: { steel: 20, copper: 10 }, northStation: {steel:40,copper:20}, workshop:{steel:25,copper:15} } as const;
+ export type SiteId = 'station' | 'radio' | 'northStation' | 'workshop';
+ export const SITE_IDS: readonly SiteId[] = ['station','radio','northStation','workshop'];
+@@ -17,7 +19,7 @@
+   const G = ground(st), bi = G.railYard, sub = G.blocks[bi]?.sub;
+   if (!sub) throw new Error('campaign station requires its installation');
+   const n = G.base.length, tw = G.tw;
+-  const clear = (t: number) => t >= 0 && t < n && G.owner[t] !== -2 && !G.urban!.solid[t] && st.flow?.occ[t] === undefined && !G.patch[t];
++  const clear = (t: number) => t >= 0 && t < n && G.owner[t] !== -2 && !G.urban!.solid[t] && st.flow?.occ[t] === undefined && !G.patch[t] && [DARK,HELD].includes(st.blocks[G.near[t]]?.state);
+   const street = (t: number) => clear(t) && G.owner[t] === -1;
+   const rect = (x: number, y: number, size: number) => {
+     for (let yy = y; yy < y + size; yy++) for (let xx = x; xx < x + size; xx++) {
+@@ -63,7 +65,7 @@
+   if(!radio)throw new Error('no radio restoration site');
+   const site=(x:number,y:number,size:number):CampaignSite=>({block:bi,x,y,size,delivered:{steel:0,copper:0},restoredAt:-1});
+   st.campaign!.version=2;
+-  st.campaign!.expansion={station:site(sub.x,sub.y,sub.size),radio:site(radio[0],radio[1],1),route,stops,reward:{track:0,tramstop:0,tram:0},grantedAt:-1};
++  st.campaign!.expansion={surveyVersion:EXPANSION_SURVEY_VERSION,station:site(sub.x,sub.y,sub.size),radio:site(radio[0],radio[1],1),route,stops,reward:{track:0,tramstop:0,tram:0},grantedAt:-1};
+ }
+ export function campaignSite(st: SimState,id: SiteId):CampaignSite|undefined { return id==='northStation'?st.campaign?.districts?.station:id==='workshop'?st.campaign?.districts?.workshop:st.campaign?.expansion?.[id]; }
+ export function campaignSiteAt(st: SimState,x:number,y:number):SiteId|null {
+--- P9-01/packages/sim/src/rules.ts
++++ P9-02/packages/sim/src/rules.ts
+@@ -6,7 +6,7 @@
+ export type Ruleset = typeof LEGACY_RULESET | typeof CAMPAIGN_RULESET;
+ export const CAMPAIGN_RULES = { daySeconds: 1200, daylightSeconds: 900, firstAssaultNight: 3, opening: 'culdesac-v1' } as const;
+ export interface CampaignSite { block: number; x: number; y: number; size: number; delivered: { steel: number; copper: number }; restoredAt: number }
+-export interface ExpansionState { station: CampaignSite; radio: CampaignSite; route: number[]; stops: [number, number][]; reward: { track: number; tramstop: number; tram: number }; grantedAt: number }
++export interface ExpansionState { surveyVersion?: 2; station: CampaignSite; radio: CampaignSite; route: number[]; stops: [number, number][]; reward: { track: number; tramstop: number; tram: number }; grantedAt: number }
+ export interface CampaignState { version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10; plans?: import('./blueprintPlans').BlueprintPlans; clipboard?: import('./blueprintFormat').Blueprint; knowledge?: import('./campaignGuide').CampaignKnowledge; turbine?: import('./campaignTurbine').TurbineSite; recruits?: import('./campaignRecruits').RecruitState; truck?: import('./truck').TruckState; discovery?: import('./campaignDiscovery').DiscoveryState; districts?: import('./campaignDistricts').DistrictState; defence?: import('./campaignDefence').DefenceState; opening: 'culdesac-v1'; homeBlock: number; expansion?: ExpansionState }
+ export function isRuleset(value: unknown): value is Ruleset { return value === LEGACY_RULESET || value === CAMPAIGN_RULESET; }
+ export function rulesetOf(st: Pick<SimState, 'ruleset'>): Ruleset { return st.ruleset ?? LEGACY_RULESET; }
+@@ -26,6 +26,7 @@
+     const e = c.expansion;
+     if (!st.flow) return 'expanded campaign requires the tile simulation';
+     if (!e || !Array.isArray(e.route) || e.route.length < 2 || !e.route.every(Number.isInteger) || e.stops?.length !== 2) return 'invalid campaign route';
++    if(e.surveyVersion!==undefined&&e.surveyVersion!==2)return 'unsupported campaign survey revision';
+     const tw = st.flow.tw, th = st.city?.th ?? 0;
+     if (e.route.some((t,i) => t < 0 || t >= tw * th || (i > 0 && Math.abs(t % tw - e.route[i-1] % tw) + Math.abs(Math.floor(t/tw) - Math.floor(e.route[i-1]/tw)) !== 1))
+       || new Set(e.route).size !== e.route.length || e.stops.some(p => !Array.isArray(p) || p.length !== 2 || !p.every(Number.isInteger) || p[0]<0 || p[0]+2>tw || p[1]<0 || p[1]+2>th)) return 'invalid campaign route geometry';
+--- P9-01/packages/sim/test/blueprint.test.ts
++++ P9-02/packages/sim/test/blueprint.test.ts
+@@ -3,7 +3,7 @@
+ import assert from 'node:assert/strict';
+ import {readFileSync} from 'node:fs';
+ import {createCampaign, applyCommands, actionResult, blueprintCopy, blueprintTransform, blueprintBounds, blueprintCheck,
+-  parseBlueprint, canPlace, inReach, machineAt, stateHash, loadState, conservation, findPath, campaignRecruited,
++  parseBlueprint, canPlace, inReach, machineAt, stateHash, loadState, makeSave, conservation, findPath, campaignRecruited,
+   type SimState, type Command, type Kind, type TilePoint, type BlueprintTransform} from '../src/index';
+ import {expedition, walk} from './transportFixture';
+ import {FactoryDriver, replayInterval} from '../../harness/src/blueprint';
+@@ -129,11 +129,12 @@
+ });
+ 
+ 
+-test('old checkpoint logs are retained with incomplete replay provenance; current clipboard saves remain complete',async()=>{
++test('old checkpoint logs remain incomplete after upgrading; current campaign saves remain complete',async()=>{
+   const old=JSON.parse(readFileSync(new URL('../../../docs/evidence/ex08c-2026-09-08/campaign/network.json',import.meta.url),'utf8'));
+   const before=Object.getOwnPropertyDescriptor(globalThis,'localStorage');let raw=JSON.stringify(old);
+   Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>raw}});
+   try{const loaded=await loadSnapshot('local:old');assert.equal(loaded.logComplete,false);assert.deepEqual(loaded.log,old.log);
+-    raw=JSON.stringify({...old,state:loaded.state,logComplete:true});assert.equal((await loadSnapshot('local:current')).logComplete,true);
++    raw=JSON.stringify({...old,state:loaded.state,logComplete:true});assert.equal((await loadSnapshot('local:upgraded')).logComplete,false,'upgrading metadata cannot change the saved survey revision');
++    raw=JSON.stringify(makeSave(createCampaign(3),{log:[],logComplete:true}));assert.equal((await loadSnapshot('local:current')).logComplete,true);
+   }finally{if(before)Object.defineProperty(globalThis,'localStorage',before);else Reflect.deleteProperty(globalThis,'localStorage');}
+ });
+--- P9-01/packages/sim/test/campaignSurvey.test.ts
++++ P9-02/packages/sim/test/campaignSurvey.test.ts
+@@ -0,0 +1,32 @@
++import {test} from 'node:test';
++import assert from 'node:assert/strict';
++import {readFileSync} from 'node:fs';
++import {createCampaign,loadState,makeSave,stateHash,validateCampaignCity,initExpansion,EXPANSION_SURVEY_VERSION} from '../src/index';
++import {loadSnapshot} from '../../game/src/session';
++
++for(const seed of [6,29])test(`survey revision 2: seed ${seed} composes legal tracks/stops and preserves an older paid save`,()=>{
++ const fresh=createCampaign(seed),report=validateCampaignCity(fresh);
++ assert.equal(fresh.campaign!.expansion!.surveyVersion,EXPANSION_SURVEY_VERSION);assert.ok(report.ok,JSON.stringify(report.failures));
++ assert.deepEqual(validateCampaignCity(loadState(makeSave(fresh))),report);
++ const old=JSON.parse(readFileSync(new URL(`../../../docs/evidence/p9-02-2026-09-08/old-seed-${seed}.json`,import.meta.url),'utf8'));
++ const loaded=loadState(old),hash=stateHash(loaded);assert.equal(hash,old.hash);
++ assert.deepEqual(loaded.campaign!.expansion,old.state.campaign.expansion);assert.deepEqual(loaded.campaign!.districts,old.state.campaign.districts);
++ assert.deepEqual(loaded.engineer.inv,old.state.engineer.inv);assert.deepEqual(loaded.flow!.machines,old.state.flow.machines);
++ initExpansion(loaded);assert.equal(stateHash(loaded),hash,'existing surveys must never regenerate');
++ assert.notDeepEqual(fresh.campaign!.expansion!.route,loaded.campaign!.expansion!.route);
++});
++
++test('old survey logs remain available but cannot claim new-factory replay; new survey saves retain complete logs',async()=>{
++ const old=readFileSync(new URL('../../../docs/evidence/p9-02-2026-09-08/old-seed-6.json',import.meta.url),'utf8'),raw=JSON.parse(old);
++ const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage');let contents=old;
++ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>contents}});
++ try {
++  const loaded=await loadSnapshot('local:survey');assert.equal(loaded.logComplete,false);assert.deepEqual(loaded.log,raw.log);assert.equal(stateHash(loaded.state),raw.hash);
++  contents=JSON.stringify(makeSave(createCampaign(6),{log:[],logComplete:true}));const current=await loadSnapshot('local:survey');assert.equal(current.logComplete,true);assert.equal(current.state.campaign!.expansion!.surveyVersion,2);
++ }finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else Reflect.deleteProperty(globalThis,'localStorage');}
++});
++
++test('unknown survey revision refuses load without treating the saved route as a new survey',()=>{
++ const raw=JSON.parse(JSON.stringify(makeSave(createCampaign(6))));raw.state.campaign.expansion.surveyVersion=3;
++ assert.throws(()=>loadState(raw),/survey revision/);
++});
+--- P9-01/packages/tools/src/campaign-docsync.ts
++++ P9-02/packages/tools/src/campaign-docsync.ts
+@@ -1,7 +1,7 @@
+ /** Separate generated reference for the campaign; never rewrites legacy tables. */
+ import { readFileSync, writeFileSync } from 'node:fs';
+ import { TRUCK_WORK_RULES, BLUEPRINT_LIBRARY_LIMIT, BLUEPRINT_ORDER_LIMIT, BLUEPRINT_TEXT_LIMIT, BUILD_LIMIT, HISTORY_LIMIT, SITE_CLUE_RADIUS, TURBINE, ARC_LAMP_RADIUS, UNDERGROUND_HIDDEN, SPLITTER_CAPACITY, SPLITTER_PER_S, MACHINE_COST, MACHINE_SIZE, RECRUITS, recipeOf, INSPECTION_WINDOW_TICKS, INSPECTION_SAMPLE_TICKS, TRUCK_RULES, INV_STACKS } from '@relight/sim';
+-import { CAMPAIGN_RULESET, CAMPAIGN_RULES, OPENING_LAYOUT, EXPANSION, CAMPAIGN_POWER, DEFENCE, CAMPAIGN_THREAT, DISTRICT_ECONOMY, DISCOVERY, EXCAVATOR_PER_S, MACHINE_KW } from '@relight/sim';
++import { EXPANSION_SURVEY_VERSION, CAMPAIGN_RULESET, CAMPAIGN_RULES, OPENING_LAYOUT, EXPANSION, CAMPAIGN_POWER, DEFENCE, CAMPAIGN_THREAT, DISTRICT_ECONOMY, DISCOVERY, EXCAVATOR_PER_S, MACHINE_KW } from '@relight/sim';
+ export function syncCampaignDocs(path: string, check: boolean): void {
+   const expected = `# Campaign implementation reference
+ 
+@@ -30,6 +30,7 @@
+ | Mixer | ${MACHINE_SIZE.mixer}×${MACHINE_SIZE.mixer}, ${MACHINE_COST.mixer.steel} steel + ${MACHINE_COST.mixer.copper} copper; ${MACHINE_KW.mixer} kW; ${recipeOf({kind:"mixer"}).inputs.stone} stone → 1 concrete every ${recipeOf({kind:"mixer"}).seconds}s; belt/inserter input, inserter output; provisional |
+ | Barricade | ${MACHINE_SIZE.barricade}×${MACHINE_SIZE.barricade}, ${MACHINE_COST.barricade.steel} steel + ${MACHINE_COST.barricade.concrete} concrete; ${DEFENCE.barricadeHp} HP, no power; manual/workshop repair uses the existing paid 40-HP service; provisional |
+ | Station restoration | ${EXPANSION.station.steel} steel + ${EXPANSION.station.copper} copper, real local/connected power; provisional cost |
++| Tram survey | Revision ${EXPANSION_SURVEY_VERSION} for new campaigns: buildable street tracks and complete stop footprints; old surveys and stock are retained unchanged, with incomplete replay provenance against the current new-game factory |
+ | Starter tram kit | One tram, two stops and route-length track, once-only station inventory |
+ | Physical truck | Restored second-area station; ${TRUCK_RULES.width}×${TRUCK_RULES.length} street footprint, rotates; ${TRUCK_RULES.stacks} saved cargo stacks separate from ${INV_STACKS} pocket stacks; speed ×${TRUCK_RULES.speedMultiplier}; local boarding within ${TRUCK_RULES.boardReach} tiles; valid adjacent exit; provisional |
+ | Area removal | Foreman; drag whole machines then explicitly pack the preview; 1–${BUILD_LIMIT} machines / 128×128 tiles; one atomic current-reach/pocket-capacity transaction; stale identities/settings refuse; contents to pockets and loose rounds to available buffer; busy/damaged/fractional/installed machines refuse; undo restores settings, not contents |

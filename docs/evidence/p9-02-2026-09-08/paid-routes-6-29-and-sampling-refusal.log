@@ -1,0 +1,22 @@
+{"seed":6,"assistance":"Fresh campaign, ordinary home stock, threats active; no stock or position injection.","surveyVersion":2,"seconds":162,"tracks":67,"stops":3,"freightDelivered":5,"truck":{"source":[268,657],"destination":[255,650],"routeSteps":37,"start":{"x":266.5,"y":659},"end":{"x":256.5,"y":659},"phases":["loading","travelling","building","complete"],"order":"completed","pocketsUnchanged":true},"conserved":true,"hash":"90b295db","replay":"90b295db","continuation":{"before":"90b295db","after":"16f9bac0","same":true}}
+{"seed":29,"assistance":"Fresh campaign, ordinary home stock, threats active; no stock or position injection.","surveyVersion":2,"seconds":196,"tracks":98,"stops":3,"freightDelivered":5,"truck":{"source":[240,648],"destination":[228,636],"routeSteps":12,"start":{"x":239,"y":647.5},"end":{"x":236,"y":639.5},"phases":["loading","travelling","building","complete"],"order":"completed","pocketsUnchanged":true},"conserved":true,"hash":"ca766101","replay":"ca766101","continuation":{"before":"ca766101","after":"d2c001f5","same":true}}
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.deepEqual(st.engineer.inv,pockets)
+
+    at <anonymous> (/mnt/e/Factorio2/docs/evidence/p9-02-2026-09-08/paid-routes.ts:39:92)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '=='
+}
+
+Node.js v22.18.0

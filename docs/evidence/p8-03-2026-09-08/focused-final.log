@@ -1,0 +1,190 @@
+TAP version 13
+# Subtest: library import/export is bounded, atomic, Foreman-gated and independent of clipboard and orders
+ok 1 - library import/export is bounded, atomic, Foreman-gated and independent of clipboard and orders
+  ---
+  duration_ms: 1548.310704
+  type: 'test'
+  ...
+# Subtest: library limits and metadata rejection preserve allocator and current selection
+ok 2 - library limits and metadata rejection preserve allocator and current selection
+  ---
+  duration_ms: 505.933457
+  type: 'test'
+  ...
+# Subtest: ghost plans consume no stock or occupancy, reject overlap and bounds, and report exact missing stock
+ok 3 - ghost plans consume no stock or occupancy, reject overlap and bounds, and report exact missing stock
+  ---
+  duration_ms: 481.243695
+  type: 'test'
+  ...
+# Subtest: partial manual construction survives save/load; remaining build pays once and completed orders never requeue on undo
+ok 4 - partial manual construction survives save/load; remaining build pays once and completed orders never requeue on undo
+  ---
+  duration_ms: 783.932774
+  type: 'test'
+  ...
+# Subtest: ordinary matching construction completes waiting orders, occupied mismatches and remote builds remain blocked
+ok 5 - ordinary matching construction completes waiting orders, occupied mismatches and remote builds remain blocked
+  ---
+  duration_ms: 324.109691
+  type: 'test'
+  ...
+# Subtest: order limits include history, cancel is terminal and deleting records never recycles IDs
+ok 6 - order limits include history, cancel is terminal and deleting records never recycles IDs
+  ---
+  duration_ms: 339.821872
+  type: 'test'
+  ...
+# Subtest: hostile saved libraries and order lifecycle data are rejected; old optional state remains absent
+ok 7 - hostile saved libraries and order lifecycle data are rejected; old optional state remains absent
+  ---
+  duration_ms: 2669.064544
+  type: 'test'
+  ...
+# Subtest: imported locked machines remain plans and cannot bypass ordinary unlocks
+ok 8 - imported locked machines remain plans and cannot bypass ordinary unlocks
+  ---
+  duration_ms: 298.109933
+  type: 'test'
+  ...
+# Subtest: ordinary opening recruitment, library actions, ghost construction and cancellation replay deterministically
+ok 9 - ordinary opening recruitment, library actions, ghost construction and cancellation replay deterministically
+  ---
+  duration_ms: 1092.367352
+  type: 'test'
+  ...
+# Subtest: partly built underground plans reject interception atomically and preserve the intended pair
+ok 10 - partly built underground plans reject interception atomically and preserve the intended pair
+  ---
+  duration_ms: 470.692653
+  type: 'test'
+  ...
+# Subtest: largest freight-rich portable library entry round-trips within the bounded text size
+ok 11 - largest freight-rich portable library entry round-trips within the bounded text size
+  ---
+  duration_ms: 375.225964
+  type: 'test'
+  ...
+# Subtest: truck unlocks once at the paid restored station, keeps the kit corridor clear and replays its entire driving/cargo trip
+ok 12 - truck unlocks once at the paid restored station, keeps the kit corridor clear and replays its entire driving/cargo trip
+  ---
+  duration_ms: 4269.274527
+  type: 'test'
+  ...
+# Subtest: truck boarding and cargo are local; a parked footprint blocks walking, paths and construction
+ok 13 - truck boarding and cargo are local; a parked footprint blocks walking, paths and construction
+  ---
+  duration_ms: 986.263886
+  type: 'test'
+  ...
+# Subtest: cargo capacity is separate, partial stacks fit, and invalid or distant transfers preserve both inventories
+ok 14 - cargo capacity is separate, partial stacks fit, and invalid or distant transfers preserve both inventories
+  ---
+  duration_ms: 431.60678
+  type: 'test'
+  ...
+# Subtest: driving checks every footprint tile at speed, refuses blocked rotations, and cannot use dodge or auto-walk
+ok 15 - driving checks every footprint tile at speed, refuses blocked rotations, and cannot use dodge or auto-walk
+  ---
+  duration_ms: 391.826175
+  type: 'test'
+  ...
+# Subtest: blocked exit is refused; knockdown parks cargo, respawn does not teleport the truck, and occupied saves resume
+ok 16 - blocked exit is refused; knockdown parks cargo, respawn does not teleport the truck, and occupied saves resume
+  ---
+  duration_ms: 997.63911
+  type: 'test'
+  ...
+# Subtest: old restored previews spawn deterministically on their next tick; malformed truck saves are rejected
+ok 17 - old restored previews spawn deterministically on their next tick; malformed truck saves are rejected
+  ---
+  duration_ms: 2271.844477
+  type: 'test'
+  ...
+# Subtest: selected-stop query matches physical service, reacts to outages and cuts, and never mutates state
+ok 18 - selected-stop query matches physical service, reacts to outages and cuts, and never mutates state
+  ---
+  duration_ms: 535.981867
+  type: 'test'
+  ...
+# Subtest: selected routes expose full arrivals, returning cargo and branches; removing the selected stop clears its query
+ok 19 - selected routes expose full arrivals, returning cargo and branches; removing the selected stop clears its query
+  ---
+  duration_ms: 443.315404
+  type: 'test'
+  ...
+# Subtest: physical truck loads a real chest, travels, builds from cargo, and leaves engineer pockets and position intact
+ok 20 - physical truck loads a real chest, travels, builds from cargo, and leaves engineer pockets and position intact
+  ---
+  duration_ms: 2960.066892
+  type: 'test'
+  ...
+# Subtest: shortages resume after local chest replenishment; pause, cancel and repeat controls retain stock
+ok 21 - shortages resume after local chest replenishment; pause, cancel and repeat controls retain stock
+  ---
+  duration_ms: 519.069082
+  type: 'test'
+  ...
+# Subtest: loading, travelling and partial-build checkpoints continue deterministically without double spending
+ok 22 - loading, travelling and partial-build checkpoints continue deterministically without double spending
+  ---
+  duration_ms: 2428.839706
+  type: 'test'
+  ...
+# Subtest: missing source and occupied destinations wait safely and retry after the obstruction is fixed
+ok 23 - missing source and occupied destinations wait safely and retry after the obstruction is fixed
+  ---
+  duration_ms: 442.898931
+  type: 'test'
+  ...
+# Subtest: manual boarding pauses the automated truck and preserves its cargo and independent orders
+ok 24 - manual boarding pauses the automated truck and preserves its cargo and independent orders
+  ---
+  duration_ms: 476.254687
+  type: 'test'
+  ...
+# Subtest: malformed jobs and saved teleport paths are rejected without granting stock or bypassing Foreman
+ok 25 - malformed jobs and saved teleport paths are rejected without granting stock or bypassing Foreman
+  ---
+  duration_ms: 1139.199107
+  type: 'test'
+  ...
+# Subtest: a new obstacle on a saved route stops the swept footprint and work resumes after removal
+ok 26 - a new obstacle on a saved route stops the swept footprint and work resumes after removal
+  ---
+  duration_ms: 565.547652
+  type: 'test'
+  ...
+# Subtest: unrelated full cargo blocks loading without spending source stock and recovers after unloading
+ok 27 - unrelated full cargo blocks loading without spending source stock and recovers after unloading
+  ---
+  duration_ms: 513.408667
+  type: 'test'
+  ...
+# Subtest: paired underground construction uses real cargo and preserves tunnel roles
+ok 28 - paired underground construction uses real cargo and preserves tunnel roles
+  ---
+  duration_ms: 432.837775
+  type: 'test'
+  ...
+# Subtest: ordinary station restoration, Foreman recruitment, paid chest and copied plan fully replay through automated delivery
+ok 29 - ordinary station restoration, Foreman recruitment, paid chest and copied plan fully replay through automated delivery
+  ---
+  duration_ms: 1570.898166
+  type: 'test'
+  ...
+# Subtest: packed machines from a supply chest replace material costs without touching pockets
+ok 30 - packed machines from a supply chest replace material costs without touching pockets
+  ---
+  duration_ms: 352.047946
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13821.844877

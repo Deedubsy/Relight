@@ -1,0 +1,43 @@
+const {chromium}=require('C:/Users/Admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true}),page=await browser.newPage(),errors=[],rows=[];page.on('pageerror',e=>errors.push(String(e)));
+for(const name of ['fresh','construction','network'])await page.route(u=>u.pathname===`/ui-${name}.json`,r=>r.fulfill({contentType:'application/json',body:fs.readFileSync(path.resolve(__dirname,`../../p9-05-2026-09-09/campaign/${name}.json`))}));
+const nav=()=>page.getByRole('navigation',{name:'Game controls'}),load=async(name)=>{await page.goto(`http://127.0.0.1:5178/?rules=exploration-v2&seed=3&view=world&state=/ui-${name}.json`);await page.waitForFunction(()=>window.__relight?.uiShell&&window.__relight?.world);await page.waitForTimeout(300);};
+const read=async()=>{await page.waitForTimeout(70);return page.evaluate(()=>{const a=window.__relight,s=a.session.state;return {hash:a.stateHash(),t:s.t,speed:s.speed,e:[s.engineer.x,s.engineer.y],inv:s.engineer.inv,tool:a.world.tool,zoom:a.world.zoom,active:a.uiShell.active(),paused:a.uiShell.paused(),drawers:document.querySelectorAll('.ui-drawer:not([hidden])').length,overflow:document.documentElement.scrollWidth>innerWidth,log:a.session.log.length};});};
+const key=async(k)=>{await page.locator('canvas').focus();await page.keyboard.press(k);};
+try{
+ for(const [width,height] of [[1366,768],[900,768]]){
+  await page.setViewportSize({width,height});await load('construction');const initial=await read();assert.equal(initial.active,null);assert.ok(!initial.overflow);assert.equal(initial.speed,0);
+  await key('1');assert.equal((await read()).tool,'belt');await key('b');assert.equal((await read()).active,'build');assert.equal((await read()).drawers,1);
+  const name=page.getByLabel('Blueprint name',{exact:true});await name.fill('WASD testing');const before=await read();await name.pressSequentially('wasd 123 p m h v');await page.keyboard.press('Space');assert.equal((await read()).hash,before.hash);assert.equal((await read()).tool,'belt');
+  const scroll=page.locator('[data-adapter=build]');await scroll.hover();const z=(await read()).zoom;await page.mouse.wheel(0,600);await page.waitForTimeout(150);assert.equal((await read()).zoom,z);assert.ok(await scroll.evaluate(n=>n.scrollTop>0));
+  await page.getByRole('button',{name:'Close panel',exact:true}).click();assert.equal((await read()).hash,before.hash);assert.equal((await read()).tool,'belt');assert.equal((await read()).active,null);
+  await page.keyboard.press('Escape');assert.equal((await read()).tool,'hand');assert.equal((await read()).paused,false);
+  await page.keyboard.press('Escape');assert.equal((await read()).paused,true);assert.equal((await read()).speed,0);
+  await page.getByRole('button',{name:'Controls and item help',exact:true}).click();assert.ok(await page.getByRole('button',{name:'Back to Pause'}).isVisible());
+  for(let i=0;i<25;i++)await page.keyboard.press(i%2?'Shift+Tab':'Tab');assert.ok(await page.evaluate(()=>!!document.activeElement.closest('.ui-modal')));
+  await page.keyboard.press('Escape');assert.equal((await read()).paused,true);assert.ok(await page.getByRole('button',{name:'Resume',exact:true}).isVisible());
+  await page.screenshot({path:path.join(__dirname,`pause-${width}.png`)});
+  await page.keyboard.press('Escape');assert.equal((await read()).speed,1);await key('p');assert.equal((await read()).speed,0);
+  // Held movement is cancelled on drawer capture and stays released when focus returns.
+  await key('p');await page.keyboard.down('w');await page.waitForTimeout(250);await nav().getByRole('button',{name:'Build (B)',exact:true}).click();const stopped=await read();await page.waitForTimeout(350);assert.deepEqual((await read()).e,stopped.e);
+  await name.focus();await page.keyboard.press('Escape');await page.locator('canvas').focus();await page.waitForTimeout(300);assert.deepEqual((await read()).e,stopped.e);await page.keyboard.up('w');await key('p');assert.equal((await read()).speed,0);
+  // One adapter at a time; ordinary panels do not alter speed.
+  for(const label of ['Projects (F2)','Management','Construction','Help','Navigation','Inventory (I)','Build (B)']){
+   await nav().getByRole('button',{name:label,exact:true}).click();assert.equal((await read()).drawers,1);assert.equal((await read()).speed,0);
+  }
+  await page.screenshot({path:path.join(__dirname,`build-${width}.png`)});await page.getByRole('button',{name:'Close panel'}).click();
+  // A partly drawn belt path must not commit when a UI layer captures the gesture.
+  await key('1');const points=await page.evaluate(()=>{const a=window.__relight,e=a.engineer();for(let y=Math.floor(e.y)-3;y<=Math.floor(e.y)+3;y++)for(let x=Math.floor(e.x)-3;x<=Math.floor(e.x)+3;x++){if(a.flow.canPlace('belt',x,y).ok&&a.flow.canPlace('belt',x+1,y).ok){const p=a.world.screenOf(x+.5,y+.5),q=a.world.screenOf(x+1.5,y+.5);if(p[0]>10&&p[0]<innerWidth-80&&p[1]>230&&p[1]<innerHeight-170)return {p,q};}}return null;});assert.ok(points,'reachable empty belt drag cells');
+  const preDrag=await read();await page.mouse.move(...points.p);await page.mouse.down();await page.mouse.move(...points.q);await page.keyboard.press('b');await page.mouse.up();assert.equal((await read()).active,'build');await page.getByRole('button',{name:'Close panel'}).click();assert.equal((await read()).hash,preDrag.hash);
+  await key('Escape');await key('Control+s');page.once('dialog',d=>d.accept());await key('Control+o');await page.waitForURL(/state=local/);await page.waitForFunction(()=>window.__relight?.uiShell);assert.equal((await read()).hash,preDrag.hash);
+  const replay=await page.evaluate(()=>window.__relight.replayHash());assert.ok(replay.same,JSON.stringify(replay));
+  // Pause captures/restores a real nonzero speed through the original speed controls.
+  await nav().getByRole('button',{name:'Management',exact:true}).click();await page.getByRole('button',{name:'4×',exact:true}).click();await page.getByRole('button',{name:'Close panel'}).click();await key('Escape');assert.equal((await read()).speed,0);await page.getByRole('button',{name:'Resume',exact:true}).click();assert.equal((await read()).speed,4);await key('p');
+  rows.push({width,height,typing:true,wheel:true,oneDrawer:true,escapeHierarchy:true,modalFocus:true,heldMovementReleased:true,dragCancelled:true,saveReload:true,replay,resumeSpeed:4});console.log('PASS shell',width);
+ }
+ await page.setViewportSize({width:1280,height:720});await load('fresh');await page.waitForTimeout(5200);await page.screenshot({path:path.join(__dirname,'opening-1280.png')});
+ const contrast=await page.evaluate(()=>{const c=getComputedStyle(document.documentElement),names=['bg','surface','raised','text','secondary','accent','working','danger','border'],v=Object.fromEntries(names.map(n=>[n,c.getPropertyValue('--ui-'+n).trim()]));const l=h=>{const a=h.slice(1).match(/../g).map(n=>parseInt(n,16)/255).map(n=>n<=.04045?n/12.92:((n+.055)/1.055)**2.4);return a[0]*.2126+a[1]*.7152+a[2]*.0722;};const r=(a,b)=>(Math.max(l(a),l(b))+.05)/(Math.min(l(a),l(b))+.05);return {tokens:v,text:['bg','surface','raised'].flatMap(bg=>['text','secondary','accent'].map(fg=>({fg,bg,ratio:r(v[fg],v[bg])}))),borders:['bg','surface','raised'].map(bg=>({bg,ratio:r(v.border,v[bg])})),primary:r(v.bg,v.accent)};});assert.ok(contrast.text.every(r=>r.ratio>=4.5));assert.ok(contrast.borders.every(r=>r.ratio>=3));
+ assert.deepEqual(errors,[]);fs.writeFileSync(path.join(__dirname,'browser-result.json'),JSON.stringify({browser:browser.version(),rows,contrast,errors,method:'Actual production entry with frozen P9-05 ordinary-command prepared starts. UI actions and real keyboard/pointer input; source queries only select legal drag cells. No gameplay stock/position injection. Not human usability acceptance.'},null,2)+'\n');
+}catch(e){await page.screenshot({path:path.join(__dirname,'browser-failure.png')});console.error(await page.locator('body').innerText());throw e;}finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -82,7 +82,7 @@ test('recruitment requires an able engineer on foot and persists through disable
 test('version 5 migration keeps earned plans, existing workshop history and layouts; unearned plans stay locked',()=>{
   const original=JSON.parse(readFileSync(new URL('../../../docs/evidence/ex08b-2026-09-07/campaign/network.json',import.meta.url),'utf8'));
   const migrated=loadState(original);
-  assert.equal(migrated.campaign!.version,9);
+  assert.equal(migrated.campaign!.version,10);
   assert.deepEqual(migrated.flow!.machines,original.state.flow.machines);
   assert.deepEqual(migrated.campaign!.discovery,original.state.campaign.discovery);
   assert.equal(stateHash(loadState(makeSave(migrated))),stateHash(migrated));
@@ -109,6 +109,6 @@ test('current saves reject missing, duplicated or malformed recruits and old log
   const saved=makeSave(st,{log:[],logComplete:true});delete saved.state.campaign!.recruits;delete saved.state.campaign!.turbine;delete saved.state.campaign!.knowledge;saved.state.campaign!.version=5;
   const prior=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
   Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>JSON.stringify(saved)}});
-  try{const loaded=await loadSnapshot('local:p7-old');assert.equal(loaded.logComplete,false);assert.equal(loaded.state.campaign!.version,9);}
+  try{const loaded=await loadSnapshot('local:p7-old');assert.equal(loaded.logComplete,false);assert.equal(loaded.state.campaign!.version,10);}
   finally{if(prior)Object.defineProperty(globalThis,'localStorage',prior);else Reflect.deleteProperty(globalThis,'localStorage');}
 });

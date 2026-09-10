@@ -1,0 +1,4345 @@
+{
+  "id": "a4ccd077-b0cc-418d-9f6e-a81f36a032e0",
+  "sceneType": "SCENE",
+  "settings": {
+    "compilerEnabled": false,
+    "compilerOutputLanguage": "TYPE_SCRIPT",
+    "exportClass": true,
+    "autoImport": true,
+    "sceneKey": "RiverfrontCity",
+    "borderWidth": 27648,
+    "borderHeight": 18432,
+    "snapEnabled": true,
+    "snapWidth": 32,
+    "snapHeight": 32
+  },
+  "displayList": [
+    {
+      "id": "d06e84ba-c2ba-48de-8a36-1662b38a5a55",
+      "label": "REFERENCE_ground_roads_paths_sites",
+      "type": "Image",
+      "displayName": "REFERENCE — terrain, paths, props, tram and sites",
+      "texture": {
+        "key": "editor-riverfront-ground"
+      },
+      "x": 0,
+      "y": 0,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 8,
+      "scaleY": 8
+    },
+    {
+      "id": "f5dba004-aeea-40b6-a3a7-b7afe3a1ea29",
+      "label": "home_workshop",
+      "type": "Image",
+      "displayName": "FIXED · Home workshop [home-workshop]",
+      "texture": {
+        "key": "rf-workshop-roof-1"
+      },
+      "x": 2080,
+      "y": 11104,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.75
+    },
+    {
+      "id": "ef593a15-8297-4abf-be20-e85771e69bca",
+      "label": "home_garage",
+      "type": "Image",
+      "displayName": "Salvage garages [home-garage]",
+      "texture": {
+        "key": "rf-garage-roof-2"
+      },
+      "x": 1632,
+      "y": 10784,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 0.875
+    },
+    {
+      "id": "398834a1-2daa-4819-813b-2bcffe29d04b",
+      "label": "foreman_shelter",
+      "type": "Image",
+      "displayName": "FIXED · Foreman workshop [foreman-shelter]",
+      "texture": {
+        "key": "rf-workshop-roof-0"
+      },
+      "x": 3136,
+      "y": 12576,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.125
+    },
+    {
+      "id": "1fd9488e-e779-4ed9-90c1-fcb34f9acc33",
+      "label": "court_house",
+      "type": "Image",
+      "displayName": "court house [court-house]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 1568,
+      "y": 12224,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "e7f6542e-fe85-4341-a131-7f7ff168bba0",
+      "label": "court_garage",
+      "type": "Image",
+      "displayName": "court garage [court-garage]",
+      "texture": {
+        "key": "rf-garage-roof-2"
+      },
+      "x": 2784,
+      "y": 10720,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "f0ac5eff-2aec-4b0c-be64-b92b0b960b1f",
+      "label": "westridge_garden",
+      "type": "Image",
+      "displayName": "westridge garden [westridge-garden]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 2624,
+      "y": 5024,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "e3315e07-6d79-4ccb-9846-b16e76811ae6",
+      "label": "westridge_rowan",
+      "type": "Image",
+      "displayName": "FIXED · westridge rowan [westridge-rowan]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 3168,
+      "y": 5024,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "366e6188-bbae-450b-9628-9c76101369c5",
+      "label": "westridge_ash",
+      "type": "Image",
+      "displayName": "westridge ash [westridge-ash]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 2624,
+      "y": 5696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "43081a58-f265-49dc-bf15-e43f4eec3489",
+      "label": "oldtown_orchard",
+      "type": "Image",
+      "displayName": "oldtown orchard [oldtown-orchard]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 8000,
+      "y": 6720,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "3c95394f-42a3-4764-b2e3-e9553f2a2609",
+      "label": "oldtown_courtyard",
+      "type": "Image",
+      "displayName": "oldtown courtyard [oldtown-courtyard]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 8512,
+      "y": 6720,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "faba38c8-2046-48d8-84b1-cb52904b76c0",
+      "label": "oldtown_mews",
+      "type": "Image",
+      "displayName": "oldtown mews [oldtown-mews]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 8000,
+      "y": 7488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "9bcb30b1-76a7-4c64-9ea9-52305b5b5ac5",
+      "label": "salvage_workshop",
+      "type": "Image",
+      "displayName": "FIXED · Electrical salvage workshop [salvage-workshop]",
+      "texture": {
+        "key": "rf-workshop-roof-0"
+      },
+      "x": 8032,
+      "y": 5056,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2,
+      "scaleY": 1.625
+    },
+    {
+      "id": "bffb38d2-f6c2-4933-82bd-d749a64e8018",
+      "label": "concrete_shelter",
+      "type": "Image",
+      "displayName": "FIXED · Masonry workshop [concrete-shelter]",
+      "texture": {
+        "key": "rf-workshop-roof-2"
+      },
+      "x": 7872,
+      "y": 12704,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.3,
+      "scaleY": 1.625
+    },
+    {
+      "id": "29c545c9-70f8-4045-bd31-2fc706201efa",
+      "label": "riverside_pump",
+      "type": "Image",
+      "displayName": "FIXED · Riverside pumping tower [riverside-pump]",
+      "texture": {
+        "key": "rf-utility-roof-1"
+      },
+      "x": 9024,
+      "y": 13024,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.5,
+      "scaleY": 2
+    },
+    {
+      "id": "806c00f5-0492-4363-9565-ea7af4c29cdc",
+      "label": "ironworks_hall",
+      "type": "Image",
+      "displayName": "FIXED · Ironworks turbine hall [ironworks-hall]",
+      "texture": {
+        "key": "rf-utility-roof-1"
+      },
+      "x": 12608,
+      "y": 2016,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.7,
+      "scaleY": 2.625
+    },
+    {
+      "id": "c3bb0015-17bd-4650-821b-7b56e6d8369b",
+      "label": "ironworks_gunsmith",
+      "type": "Image",
+      "displayName": "FIXED · Gunsmith machine shop [ironworks-gunsmith]",
+      "texture": {
+        "key": "rf-workshop-roof-1"
+      },
+      "x": 12672,
+      "y": 3008,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.3,
+      "scaleY": 1.5
+    },
+    {
+      "id": "3a5fd5fa-5e1d-42a1-97ad-4b6941f21f43",
+      "label": "railcrew_depot",
+      "type": "Image",
+      "displayName": "FIXED · Rail maintenance depot [railcrew-depot]",
+      "texture": {
+        "key": "rf-warehouse-roof-2"
+      },
+      "x": 14336,
+      "y": 2880,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.3,
+      "scaleY": 1.375
+    },
+    {
+      "id": "870e84b6-0bea-40b0-9f93-eb5bb1fe7b5b",
+      "label": "civic_utility",
+      "type": "Image",
+      "displayName": "FIXED · Civic Utility [civic-utility]",
+      "texture": {
+        "key": "rf-utility-roof-0"
+      },
+      "x": 22368,
+      "y": 12896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.6,
+      "scaleY": 2.25
+    },
+    {
+      "id": "7fd4ea26-7a51-4881-8f17-30d8e71eca19",
+      "label": "civic_dome",
+      "type": "Image",
+      "displayName": "Civic Town Hall [civic-dome]",
+      "texture": {
+        "key": "rf-townhall-roof-2"
+      },
+      "x": 16192,
+      "y": 6656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 3,
+      "scaleY": 3.25
+    },
+    {
+      "id": "1fca9eb6-705b-4f2f-b8f9-3c1f7de57d9e",
+      "label": "lamplighter_house",
+      "type": "Image",
+      "displayName": "FIXED · Lamplighters workshop [lamplighter-house]",
+      "texture": {
+        "key": "rf-workshop-roof-0"
+      },
+      "x": 17760,
+      "y": 8480,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "891df89a-9412-4514-b42b-d093e78a93e5",
+      "label": "freight_stronghold",
+      "type": "Image",
+      "displayName": "FIXED · Northwood freight depot [freight-stronghold]",
+      "texture": {
+        "key": "rf-warehouse-roof-1"
+      },
+      "x": 1792,
+      "y": 1248,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 3,
+      "scaleY": 2.875
+    },
+    {
+      "id": "93a6e4f7-41d4-44be-a3f3-7f21addafde5",
+      "label": "quarry_stronghold",
+      "type": "Image",
+      "displayName": "FIXED · Ravenholm quarry works [quarry-stronghold]",
+      "texture": {
+        "key": "rf-warehouse-roof-1"
+      },
+      "x": 25536,
+      "y": 1312,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 3,
+      "scaleY": 2.875
+    },
+    {
+      "id": "bfff2aef-2676-4eaf-9dd2-4b36cf76ed02",
+      "label": "wharf_stronghold",
+      "type": "Image",
+      "displayName": "FIXED · Occupied warehouse [wharf-stronghold]",
+      "texture": {
+        "key": "rf-warehouse-roof-2"
+      },
+      "x": 26176,
+      "y": 13440,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 3,
+      "scaleY": 2.875
+    },
+    {
+      "id": "b6e89053-263d-428a-9aaf-bfbfe236db0f",
+      "label": "quarry_cache",
+      "type": "Image",
+      "displayName": "FIXED · Old equipment store [quarry-cache]",
+      "texture": {
+        "key": "rf-garage-roof-0"
+      },
+      "x": 24576,
+      "y": 1376,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.625
+    },
+    {
+      "id": "bb371129-3432-468f-b9de-e4fdcfe88c4f",
+      "label": "wharf_cache",
+      "type": "Image",
+      "displayName": "FIXED · Customs store [wharf-cache]",
+      "texture": {
+        "key": "rf-warehouse-roof-1"
+      },
+      "x": 26176,
+      "y": 12448,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.3,
+      "scaleY": 1.875
+    },
+    {
+      "id": "a1d4e534-5922-48ab-ad58-78063ad81dbb",
+      "label": "court_east_home",
+      "type": "Image",
+      "displayName": "Court cottage [court-east-home]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 2784,
+      "y": 13120,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 0.9,
+      "scaleY": 1
+    },
+    {
+      "id": "7494198f-e6ff-4a93-a3fb-5b4f791d5f43",
+      "label": "court_west_garage",
+      "type": "Image",
+      "displayName": "Maintenance garage [court-west-garage]",
+      "texture": {
+        "key": "rf-garage-roof-2"
+      },
+      "x": 1632,
+      "y": 11456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 0.7,
+      "scaleY": 0.875
+    },
+    {
+      "id": "951e700e-d56b-4c52-abad-6ca3e8c77f43",
+      "label": "turbine_hall",
+      "type": "Image",
+      "displayName": "FIXED · Waterside turbine hall [turbine-hall]",
+      "texture": {
+        "key": "rf-utility-roof-1"
+      },
+      "x": 16160,
+      "y": 12864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.4,
+      "scaleY": 2
+    },
+    {
+      "id": "56bc8759-1ac3-4605-a78e-6c94e7ae64a7",
+      "label": "block_2_0",
+      "type": "Image",
+      "displayName": "Freight warehouse [block-2-0]",
+      "texture": {
+        "key": "rf-warehouse-roof-1"
+      },
+      "x": 4352,
+      "y": 896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 2
+    },
+    {
+      "id": "e6f11fea-41bb-4f7b-946b-022b77e30afb",
+      "label": "block_2_0_service",
+      "type": "Image",
+      "displayName": "Service garage [block-2-0-service]",
+      "texture": {
+        "key": "rf-garage-roof-2"
+      },
+      "x": 4352,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "b73ee498-5ada-42a5-ace9-3c1458a34359",
+      "label": "block_3_0",
+      "type": "Image",
+      "displayName": "Freight warehouse [block-3-0]",
+      "texture": {
+        "key": "rf-warehouse-roof-0"
+      },
+      "x": 6080,
+      "y": 896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 2
+    },
+    {
+      "id": "d924a0a4-8f27-44ff-9378-d2f68af430a3",
+      "label": "block_3_0_service",
+      "type": "Image",
+      "displayName": "Service garage [block-3-0-service]",
+      "texture": {
+        "key": "rf-garage-roof-1"
+      },
+      "x": 6080,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "7c597d1f-a375-4879-aa9d-c58fc318769a",
+      "label": "block_4_0",
+      "type": "Image",
+      "displayName": "Freight warehouse [block-4-0]",
+      "texture": {
+        "key": "rf-warehouse-roof-2"
+      },
+      "x": 7808,
+      "y": 896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 2
+    },
+    {
+      "id": "8caebde9-2479-4eef-9089-3bee40354805",
+      "label": "block_4_0_service",
+      "type": "Image",
+      "displayName": "Service garage [block-4-0-service]",
+      "texture": {
+        "key": "rf-garage-roof-0"
+      },
+      "x": 7808,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "dd68e23a-6fc2-47ce-b875-284cfe1f1692",
+      "label": "block_5_0",
+      "type": "Image",
+      "displayName": "Freight warehouse [block-5-0]",
+      "texture": {
+        "key": "rf-warehouse-roof-1"
+      },
+      "x": 9536,
+      "y": 896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 2
+    },
+    {
+      "id": "107149a6-d7e6-43e8-ba44-ce2437802ccd",
+      "label": "block_5_0_service",
+      "type": "Image",
+      "displayName": "Service garage [block-5-0-service]",
+      "texture": {
+        "key": "rf-garage-roof-2"
+      },
+      "x": 9536,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "0e89e71c-3f2a-44ae-ba7e-e663e291a43c",
+      "label": "block_6_0_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-0-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 11232,
+      "y": 864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "32310b0a-9d23-4ff8-bde4-e440ce26350a",
+      "label": "block_6_0_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-0-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 11232,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "efc22b1f-3933-4142-b7ae-6db57395e39b",
+      "label": "block_9_0_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-9-0-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 15840,
+      "y": 864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "ec542d55-c006-4406-85a9-f3911bd27bec",
+      "label": "block_9_0_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-9-0-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 16640,
+      "y": 864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d71ef1de-9f46-4d80-b803-cf6802514fc2",
+      "label": "block_9_0_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-9-0-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 15840,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "622f9489-6495-4284-a8ed-e54b8704d4a0",
+      "label": "block_9_0_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-9-0-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 16640,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "7144737c-3e15-40b9-9f28-82c068adfda3",
+      "label": "block_10_0_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-10-0-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 17568,
+      "y": 864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "1be9dc11-2f3a-4a8a-bbb6-f1e530bdd486",
+      "label": "block_10_0_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-10-0-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 18368,
+      "y": 864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "4c08f072-d8ca-4de9-b25e-c02b18f31431",
+      "label": "block_10_0_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-10-0-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 17568,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "1af3328c-f7f5-4910-bc28-93989314b789",
+      "label": "block_10_0_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-10-0-1-1]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 18368,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "ad0f1b1c-f700-4f1b-8095-6c8646e0537c",
+      "label": "block_11_0_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-11-0-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 19296,
+      "y": 864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "ad7f921a-08eb-44ea-bd24-dde3fb36621f",
+      "label": "block_11_0_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-11-0-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 20096,
+      "y": 864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "f601986a-851a-4675-8ee7-eeaa2eeaf280",
+      "label": "block_11_0_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-11-0-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 19296,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "7f7fbd1d-0720-4237-9ffd-97a108c64595",
+      "label": "block_11_0_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-11-0-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 20096,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "419e402b-2104-4617-93d3-c77015f3ba28",
+      "label": "block_13_0_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-0-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 21600,
+      "y": 864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "1b0b78cd-d46e-4ad2-b74e-16f724f1a870",
+      "label": "block_13_0_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-0-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 21600,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "045e9cf8-9889-4c26-9657-0178ec31103d",
+      "label": "block_14_0_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-0-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 22752,
+      "y": 864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "30b14070-bd2d-4fdc-94bb-aa83646c3274",
+      "label": "block_14_0_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-0-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 23552,
+      "y": 864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "68660c5c-521d-49fa-aadf-ba666c2eb415",
+      "label": "block_14_0_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-0-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 22752,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "0dc7549d-e524-45eb-9e33-c86dfc7488c6",
+      "label": "block_14_0_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-0-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 23552,
+      "y": 1696,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "c3d7d2ac-1c2f-41c4-a00e-99514d460f01",
+      "label": "block_0_1",
+      "type": "Image",
+      "displayName": "Freight warehouse [block-0-1]",
+      "texture": {
+        "key": "rf-warehouse-roof-2"
+      },
+      "x": 896,
+      "y": 2624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 2
+    },
+    {
+      "id": "628b1606-a3c1-4936-bc0e-9e67b785afd8",
+      "label": "block_0_1_service",
+      "type": "Image",
+      "displayName": "Service garage [block-0-1-service]",
+      "texture": {
+        "key": "rf-garage-roof-0"
+      },
+      "x": 896,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "19512401-4888-440f-ab3a-8c1b26946df2",
+      "label": "block_1_1",
+      "type": "Image",
+      "displayName": "Freight warehouse [block-1-1]",
+      "texture": {
+        "key": "rf-warehouse-roof-1"
+      },
+      "x": 2624,
+      "y": 2624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 2
+    },
+    {
+      "id": "a71714e6-179b-4571-b797-b2a68f9cc7ef",
+      "label": "block_1_1_service",
+      "type": "Image",
+      "displayName": "Service garage [block-1-1-service]",
+      "texture": {
+        "key": "rf-garage-roof-2"
+      },
+      "x": 2624,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "131fd5f0-cde9-4bca-b480-8351e5936694",
+      "label": "block_2_1",
+      "type": "Image",
+      "displayName": "Freight warehouse [block-2-1]",
+      "texture": {
+        "key": "rf-warehouse-roof-0"
+      },
+      "x": 4352,
+      "y": 2624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 2
+    },
+    {
+      "id": "da904ad4-73ce-4682-b6b0-fd01e509bd7b",
+      "label": "block_2_1_service",
+      "type": "Image",
+      "displayName": "Service garage [block-2-1-service]",
+      "texture": {
+        "key": "rf-garage-roof-1"
+      },
+      "x": 4352,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "8a879745-569a-40f5-b485-22d67821e159",
+      "label": "block_3_1",
+      "type": "Image",
+      "displayName": "Freight warehouse [block-3-1]",
+      "texture": {
+        "key": "rf-warehouse-roof-2"
+      },
+      "x": 6080,
+      "y": 2624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 2
+    },
+    {
+      "id": "1527fa63-cb75-4c94-bcce-f6676fc4c159",
+      "label": "block_3_1_service",
+      "type": "Image",
+      "displayName": "Service garage [block-3-1-service]",
+      "texture": {
+        "key": "rf-garage-roof-0"
+      },
+      "x": 6080,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "37b17e87-27df-466c-89c8-d394a98f12b0",
+      "label": "block_4_1",
+      "type": "Image",
+      "displayName": "Freight warehouse [block-4-1]",
+      "texture": {
+        "key": "rf-warehouse-roof-1"
+      },
+      "x": 7808,
+      "y": 2624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 2
+    },
+    {
+      "id": "8eb006c3-2654-414d-a34e-f4aa6c07615c",
+      "label": "block_4_1_service",
+      "type": "Image",
+      "displayName": "Service garage [block-4-1-service]",
+      "texture": {
+        "key": "rf-garage-roof-2"
+      },
+      "x": 7808,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "7cc3f250-39f7-4911-ab7d-51d8157bcc38",
+      "label": "block_5_1",
+      "type": "Image",
+      "displayName": "Freight warehouse [block-5-1]",
+      "texture": {
+        "key": "rf-warehouse-roof-0"
+      },
+      "x": 9536,
+      "y": 2624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 2
+    },
+    {
+      "id": "83d246da-e3d4-4401-84ea-54d13c879a1c",
+      "label": "block_5_1_service",
+      "type": "Image",
+      "displayName": "Service garage [block-5-1-service]",
+      "texture": {
+        "key": "rf-garage-roof-1"
+      },
+      "x": 9536,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "6a6d79ce-f0d9-464b-9a8f-9ad161c585f7",
+      "label": "block_6_1_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-1-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 11232,
+      "y": 2592,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "60d556aa-70df-4c4f-933c-e0a9bffccc7a",
+      "label": "block_6_1_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-1-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 11232,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "5cba7b23-5906-4cae-bb67-3c64280a1a50",
+      "label": "block_9_1_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-9-1-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 15840,
+      "y": 2592,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "c5885776-6541-4755-a838-7288cb9c9283",
+      "label": "block_9_1_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-9-1-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 16640,
+      "y": 2592,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "9abe0cd8-2918-45aa-8c62-b82a240f31ff",
+      "label": "block_9_1_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-9-1-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 15840,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "35fa6e1d-52c3-4b8d-b459-8a2877fd4ecc",
+      "label": "block_9_1_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-9-1-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 16640,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "8deaf9c9-4842-4691-ab13-97ffb86e8380",
+      "label": "block_10_1_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-10-1-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 17568,
+      "y": 2592,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "9e66792c-87c4-4c8c-b617-3fdb318318c3",
+      "label": "block_10_1_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-10-1-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 18368,
+      "y": 2592,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "23ee2700-af0b-4bb2-a6b6-835a33d74364",
+      "label": "block_10_1_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-10-1-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 17568,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "c4bdf792-478c-42f0-8422-8c52d84860c5",
+      "label": "block_10_1_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-10-1-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 18368,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "4326adf0-0237-422f-81fd-3d27531dc0d7",
+      "label": "block_11_1_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-11-1-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 19296,
+      "y": 2592,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "511c5c05-c34f-4a86-a37c-58096ac72288",
+      "label": "block_11_1_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-11-1-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 20096,
+      "y": 2592,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "03667a7b-6604-4bf6-9ac6-40968aa64bd9",
+      "label": "block_11_1_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-11-1-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 19296,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "1a0023c7-49c9-4ec5-a1a4-3ce762294b46",
+      "label": "block_11_1_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-11-1-1-1]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 20096,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "572bec4c-795d-4aed-8835-d9d228cbeb40",
+      "label": "block_13_1_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-1-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 21600,
+      "y": 2592,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "189e55e9-8a2f-41b7-86af-0e77a9e4aff6",
+      "label": "block_13_1_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-1-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 21600,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "0b71e2fd-ed86-4672-8a47-f4a3afa8e779",
+      "label": "block_14_1_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-1-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 22752,
+      "y": 2592,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "986672e8-ada4-4d5d-97e5-fa43002c3747",
+      "label": "block_14_1_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-1-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 23552,
+      "y": 2592,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "209592b7-96a0-4ed2-8374-e1ca13460003",
+      "label": "block_14_1_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-1-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 22752,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "64eef3d6-c722-4627-9c0c-fd5718408e0d",
+      "label": "block_14_1_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-1-1-1]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 23552,
+      "y": 3424,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "e37e0fd9-ce90-42a0-acb3-523c01f2cc1f",
+      "label": "block_0_3_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-3-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 864,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "e089ce1d-18f6-40a6-a600-3ab074b54e65",
+      "label": "block_0_3_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-3-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 1664,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "19b6f100-0348-483d-a458-b4535160f239",
+      "label": "block_0_3_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-3-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 864,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "7d0859eb-b0e5-4657-be35-3483e54bbad4",
+      "label": "block_0_3_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-3-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 1664,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "51cec4fc-6395-40b8-9b15-9c56393f176d",
+      "label": "block_2_3_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-3-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 4320,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "c61675e2-cc4f-447d-898a-c122159e8f21",
+      "label": "block_2_3_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-3-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 5120,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "7ace62f0-4910-46b9-bb14-564cdbaffa11",
+      "label": "block_2_3_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-3-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 4320,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d89dac56-fefe-4990-8a34-dcb83c1b15b2",
+      "label": "block_2_3_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-3-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 5120,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "b0be0d0c-b524-48ef-af64-7bb999ee1edf",
+      "label": "block_3_3_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-3-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 6048,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d0f09f5b-25d7-4212-9c5d-3885c4261023",
+      "label": "block_3_3_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-3-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 6848,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "c042b9a8-bd58-4328-90bf-ee7b6c617de2",
+      "label": "block_3_3_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-3-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 6048,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d636768d-d338-4187-8313-3d8d776a50b6",
+      "label": "block_3_3_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-3-1-1]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 6848,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d4cbf760-14f1-43f8-85c2-f26ed7754a55",
+      "label": "block_4_3_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-4-3-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 7776,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "400dd94e-7005-4db5-b99b-805456ad37dd",
+      "label": "block_5_3_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-5-3-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-2"
+      },
+      "x": 9504,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "917cb5d5-2757-4b94-a64a-7acc5b958efa",
+      "label": "block_5_3_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-5-3-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-0"
+      },
+      "x": 10304,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "57d4bd98-ea5e-46ea-88b2-a3328ed88996",
+      "label": "block_5_3_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-5-3-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 9504,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "5e13c18e-14b5-46e6-9b85-8c99e5d85021",
+      "label": "block_5_3_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-5-3-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-2"
+      },
+      "x": 10304,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "656b1771-108d-4b10-af66-eea9316b2198",
+      "label": "block_6_3_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-3-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 11232,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "f4b0acf3-f5f0-4b73-8804-dc7d770d11d5",
+      "label": "block_6_3_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-3-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 11232,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "7310bd64-4cf7-4ecb-b9db-1042cb3d97b4",
+      "label": "block_7_3_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-3-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 12384,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "dbff47c4-c8cd-4be8-9d0a-788c963a9eac",
+      "label": "block_7_3_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-3-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 13184,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "cd92a711-c0a0-47a0-bcb5-6406f163cd73",
+      "label": "block_7_3_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-3-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 12384,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "684acbe6-356c-46a2-b13d-7f48f8f48c1f",
+      "label": "block_7_3_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-3-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 13184,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "8438b6cd-2c6c-499f-b06b-fb45059ac2b3",
+      "label": "block_8_3",
+      "type": "Image",
+      "displayName": "Civic offices [block-8-3]",
+      "texture": {
+        "key": "rf-office-roof-0"
+      },
+      "x": 14240,
+      "y": 4992,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.8,
+      "scaleY": 3.75
+    },
+    {
+      "id": "e2c5fb41-8ed8-4a0c-91f2-7af684468108",
+      "label": "block_9_3",
+      "type": "Image",
+      "displayName": "Harper & Co [block-9-3]",
+      "texture": {
+        "key": "rf-department-roof-1"
+      },
+      "x": 15872,
+      "y": 5024,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 3.4,
+      "scaleY": 3.5
+    },
+    {
+      "id": "0af2b088-df15-4642-b57e-88dec6ccadf1",
+      "label": "block_10_3",
+      "type": "Image",
+      "displayName": "Shopping arcade [block-10-3]",
+      "texture": {
+        "key": "rf-arcade-roof-2"
+      },
+      "x": 17760,
+      "y": 4960,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 4
+    },
+    {
+      "id": "e868db8e-3d31-4c91-a657-2b6222e6fc4b",
+      "label": "block_11_3",
+      "type": "Image",
+      "displayName": "Parking structure [block-11-3]",
+      "texture": {
+        "key": "rf-parking-roof-0"
+      },
+      "x": 19360,
+      "y": 5024,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 3.2,
+      "scaleY": 3.5
+    },
+    {
+      "id": "ea326ed5-ba6c-4ad3-bf76-81afef5e9642",
+      "label": "block_13_3_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-3-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 21600,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "0c242947-37b8-4c4e-b498-12e633218abe",
+      "label": "block_13_3_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-3-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 21600,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "5e70b430-9a37-445f-8cde-0086b9cb9a83",
+      "label": "block_14_3_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-3-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 22752,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d197765a-b940-41ed-90ca-5e83550ea38e",
+      "label": "block_14_3_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-3-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 23552,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "8cf68723-e00b-4788-bd11-f4f2cf0e45cf",
+      "label": "block_14_3_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-3-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 22752,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "7e5084a8-dda0-4a39-aab1-316e32cdb2c1",
+      "label": "block_14_3_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-3-1-1]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 23552,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "fc24f660-5925-41be-b664-dbbbd235e15b",
+      "label": "block_15_3_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-15-3-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 24480,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "cff8d0f2-a428-4b48-a54f-d11d08c3f47e",
+      "label": "block_15_3_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-15-3-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 24480,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "bbac62ba-e6df-4db8-ac5c-3f116b469d11",
+      "label": "block_17_3_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-17-3-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 26208,
+      "y": 4896,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "f095e5ad-c38c-418b-b9f7-0fcaf961df3c",
+      "label": "block_17_3_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-17-3-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 26208,
+      "y": 5728,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "214d6e11-ad78-49cb-a4c5-477e31e35b60",
+      "label": "block_0_4_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-4-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 864,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "1b57870c-d34e-46c9-a92d-f98aaaebebe0",
+      "label": "block_0_4_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-4-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 1664,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "0b134acd-2673-4491-8333-f72cd9193130",
+      "label": "block_0_4_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-4-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 864,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "646e7892-d80f-465d-8dfc-b8bdb8dd7c34",
+      "label": "block_0_4_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-4-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 1664,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "570906c7-5497-4206-8987-a48d08416af9",
+      "label": "block_1_4_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-1-4-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 2592,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "ea3b8af6-ea1d-4917-bdf7-b07de61d9ee0",
+      "label": "block_1_4_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-1-4-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 3392,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "182983a5-47b2-416e-9374-e049e7fbf03a",
+      "label": "block_1_4_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-1-4-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 2592,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "60d458cb-0b11-4fdb-b64e-49eb51bd4db0",
+      "label": "block_1_4_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-1-4-1-1]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 3392,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "5b7e79f6-7845-489e-99d0-d585917bc1a3",
+      "label": "block_2_4_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-4-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 4320,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "19c103c8-561b-4582-9ea2-60d9752477a6",
+      "label": "block_2_4_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-4-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 5120,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d8408cef-5ad2-4e5f-99d8-bec3489737af",
+      "label": "block_2_4_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-4-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 4320,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "e9259d3f-8387-4f77-a4c9-ab5a3bf466df",
+      "label": "block_2_4_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-4-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 5120,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "a4a49aee-5fd1-4573-b62d-cf2c00eeb3a6",
+      "label": "block_3_4_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-4-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 6048,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "aa0c12d2-a842-4753-98d6-d0d23e02de5b",
+      "label": "block_3_4_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-4-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 6848,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "6419951b-6e35-461d-a48e-f87b8541c405",
+      "label": "block_3_4_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-4-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 6048,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "83381ff0-a4f2-4ee4-ae21-30b3d4056492",
+      "label": "block_3_4_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-4-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 6848,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "22fdcae4-6512-4d27-af5a-2386b22a30f7",
+      "label": "block_4_4_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-4-4-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-0"
+      },
+      "x": 8576,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "614a0123-f0cd-4d38-b8be-554c6019cc45",
+      "label": "block_5_4_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-5-4-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-1"
+      },
+      "x": 9504,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d4542a5b-251d-4211-b095-9c5186147533",
+      "label": "block_5_4_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-5-4-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-2"
+      },
+      "x": 10304,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "6a5a9e6b-09b2-44f2-924b-c8c139c042a5",
+      "label": "block_5_4_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-5-4-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-0"
+      },
+      "x": 9504,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "7c82886d-e344-4ab8-905b-d3faaa4ea501",
+      "label": "block_5_4_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-5-4-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 10304,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "b5472612-6329-41e6-bfef-e7d2c2dfced4",
+      "label": "block_6_4_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-4-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 11232,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "21ecab03-e9fb-4160-818a-ab1162c8a862",
+      "label": "block_6_4_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-4-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 11232,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d198de87-6555-4914-ae34-07fb1ae12cca",
+      "label": "block_7_4_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-4-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 12384,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "2d947ec2-5009-4399-b5de-39224a58002b",
+      "label": "block_7_4_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-4-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 13184,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "7bd6a741-6c59-40e7-a1ab-a8fd87adb906",
+      "label": "block_7_4_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-4-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 12384,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "1fa7d248-5959-44e5-ae3a-5bd3bc2930f3",
+      "label": "block_7_4_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-4-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 13184,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "f46bc1e8-8742-46d4-a3a3-9e14a88e5da9",
+      "label": "block_8_4",
+      "type": "Image",
+      "displayName": "Harper & Co [block-8-4]",
+      "texture": {
+        "key": "rf-department-roof-2"
+      },
+      "x": 14144,
+      "y": 6752,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 3.4,
+      "scaleY": 3.5
+    },
+    {
+      "id": "e3a82bae-2822-4f90-9fc8-099ce75c7afb",
+      "label": "block_11_4",
+      "type": "Image",
+      "displayName": "Apartment block [block-11-4]",
+      "texture": {
+        "key": "rf-apartment-roof-0"
+      },
+      "x": 19424,
+      "y": 6848,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.8,
+      "scaleY": 2.75
+    },
+    {
+      "id": "37ea4e57-5213-4dca-9290-a8ec71022cf3",
+      "label": "block_13_4_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-4-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 21600,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "58158eba-1856-4ff8-9d5e-509b957a5138",
+      "label": "block_13_4_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-4-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 21600,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "73676a1d-4fdf-49af-9cef-e9ed6f124436",
+      "label": "block_14_4_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-4-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 22752,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "60ad5529-6b4d-4ab6-992b-8a052854857c",
+      "label": "block_14_4_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-4-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 23552,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "e831bc3f-a8f3-4683-9c1b-6be379a16b26",
+      "label": "block_14_4_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-4-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 22752,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "ba4f5d94-5042-45f9-bf26-f34615f17f25",
+      "label": "block_14_4_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-4-1-1]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 23552,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "cfff0807-2658-419b-9f57-51a00d0901de",
+      "label": "block_15_4_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-15-4-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 24480,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "42dacaa1-5691-47b5-a3cb-81669d948766",
+      "label": "block_15_4_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-15-4-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 24480,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "36c2e3f3-47ba-4bda-a168-e64bc0ea4e50",
+      "label": "block_17_4_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-17-4-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 26208,
+      "y": 6624,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "56528185-7671-4705-a7af-c689292d53ab",
+      "label": "block_17_4_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-17-4-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 26208,
+      "y": 7456,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "736799b2-53a2-4b06-9a98-dd68673f7dad",
+      "label": "block_0_5_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-5-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 864,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "5ee9cf00-d0cb-420e-8be9-8827b4c77a41",
+      "label": "block_0_5_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-5-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 1664,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "56b98950-cba1-467f-97a8-6756ef4e6912",
+      "label": "block_0_5_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-5-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 864,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "8d93095a-c618-469d-b0f9-78172b79a877",
+      "label": "block_0_5_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-0-5-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 1664,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "8096e2d2-cba6-460d-aa7f-607ceff0fe30",
+      "label": "block_1_5_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-1-5-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 2592,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "8d2c6a9b-79ec-43d2-80ff-87c3958b081a",
+      "label": "block_1_5_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-1-5-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 3392,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d6281138-33a4-4d54-8e98-accbc7eb7a08",
+      "label": "block_1_5_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-1-5-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 2592,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "f9e7489c-044e-43c5-a658-a9473a39dd63",
+      "label": "block_1_5_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-1-5-1-1]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 3392,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "2fe2a3f3-4794-4dc8-8d7c-9916cbff160a",
+      "label": "block_2_5_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-5-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 4320,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "63a3923c-f0ac-43cf-9647-8061d64950da",
+      "label": "block_2_5_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-5-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 5120,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "23d227ee-2c95-48e4-9dcd-5d727d3caa98",
+      "label": "block_2_5_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-5-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 4320,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "8df181cc-b8aa-4f63-8410-af30718e0a42",
+      "label": "block_2_5_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-5-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 5120,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "07297119-89d1-4446-b640-73d2dd27c316",
+      "label": "block_3_5_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-5-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 6048,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "88df4ca0-d528-48ad-bc68-3a6f0c40884d",
+      "label": "block_3_5_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-5-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 6848,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "164fd411-6b4c-4997-9bb1-c83661257263",
+      "label": "block_3_5_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-5-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 6048,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d2bf8bd1-119b-4eda-b9cf-4ef7a5a4a85e",
+      "label": "block_3_5_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-5-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 6848,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "e02c1c42-bf66-4fbc-a611-477c5b9457dc",
+      "label": "block_4_5_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-4-5-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-0"
+      },
+      "x": 7776,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "583765f3-ac2b-44c9-882c-70d4627702bf",
+      "label": "block_4_5_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-4-5-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-1"
+      },
+      "x": 8576,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "f735ea38-e6ae-4440-aaa5-4e8a1cf159c5",
+      "label": "block_4_5_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-4-5-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-2"
+      },
+      "x": 7776,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d2d9b6ea-e40b-4255-8e84-ba95d45eab3b",
+      "label": "block_4_5_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-4-5-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-0"
+      },
+      "x": 8576,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "07df4db5-2e3f-46cd-bdc5-c8003da5fb52",
+      "label": "block_5_5_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-5-5-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-1"
+      },
+      "x": 9504,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "4410b49a-c266-4c9e-abaa-e7dd6cfd5308",
+      "label": "block_5_5_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-5-5-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-2"
+      },
+      "x": 10304,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "625b7fee-cf88-4afe-9bef-2c2a17611575",
+      "label": "block_5_5_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-5-5-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-0"
+      },
+      "x": 9504,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "a8df1bf4-609a-450c-b0e2-cc3a50996f84",
+      "label": "block_5_5_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-5-5-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 10304,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "c6b54386-5dbe-4be3-989f-f0e2642953d9",
+      "label": "block_6_5_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-5-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 11232,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "e7f10d02-b408-4410-8710-9794096358ad",
+      "label": "block_6_5_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-5-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 11232,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "3e59adac-6525-4f63-9b53-9a64a5e39421",
+      "label": "block_7_5_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-5-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 12384,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "e8c58d38-8212-4278-981c-6db681431976",
+      "label": "block_7_5_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-5-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 13184,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "1a4b2db0-653b-43fe-a5e9-d887bb25b45c",
+      "label": "block_7_5_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-5-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 12384,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "2b78a9c7-53b9-4b52-beed-712c4e6befb5",
+      "label": "block_7_5_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-7-5-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 13184,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "0e445636-32a2-436d-883d-7b8822e73d1d",
+      "label": "block_8_5",
+      "type": "Image",
+      "displayName": "Shopping arcade [block-8-5]",
+      "texture": {
+        "key": "rf-arcade-roof-2"
+      },
+      "x": 14304,
+      "y": 8416,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.4,
+      "scaleY": 4
+    },
+    {
+      "id": "2a399cc6-f66f-4cf3-89a3-bd5347748ea3",
+      "label": "block_9_5",
+      "type": "Image",
+      "displayName": "Parking structure [block-9-5]",
+      "texture": {
+        "key": "rf-parking-roof-0"
+      },
+      "x": 15904,
+      "y": 8480,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 3.2,
+      "scaleY": 3.5
+    },
+    {
+      "id": "2e868478-29b1-4716-8df2-c369f236ad06",
+      "label": "block_10_5",
+      "type": "Image",
+      "displayName": "Apartment block [block-10-5]",
+      "texture": {
+        "key": "rf-apartment-roof-1"
+      },
+      "x": 17696,
+      "y": 8864,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.8,
+      "scaleY": 2.75
+    },
+    {
+      "id": "1d9cae5b-8448-43a9-aec1-909cf5601650",
+      "label": "block_11_5",
+      "type": "Image",
+      "displayName": "Civic offices [block-11-5]",
+      "texture": {
+        "key": "rf-office-roof-2"
+      },
+      "x": 19424,
+      "y": 8448,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 2.8,
+      "scaleY": 3.75
+    },
+    {
+      "id": "e9c0cacf-1717-41e2-9704-1d9a8e614f61",
+      "label": "block_13_5_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-5-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 21600,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "a1e01def-ecaa-4e77-8b0e-df14e179f9bf",
+      "label": "block_13_5_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-5-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 21600,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "47542110-179b-4e12-b160-c3545b21737e",
+      "label": "block_14_5_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-5-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 22752,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "f910aa07-de1b-40a1-969a-f83706500699",
+      "label": "block_14_5_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-5-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 23552,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "de52db30-f3f2-42f9-be64-8df1088d9b2a",
+      "label": "block_14_5_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-5-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 22752,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "810b66f0-de37-404c-a105-98f2fd4b20b9",
+      "label": "block_14_5_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-5-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 23552,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "9fdc654f-f9d7-4272-b58c-6758cd56469c",
+      "label": "block_15_5_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-15-5-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 24480,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "97efdf93-8dfd-4b3e-a8bd-eff754f40c21",
+      "label": "block_15_5_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-15-5-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 24480,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "15fe7487-90d8-44ae-b236-9ae94731ddb9",
+      "label": "block_17_5_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-17-5-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 26208,
+      "y": 8352,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "34bc665f-828a-4ff1-9229-0ac394423041",
+      "label": "block_17_5_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-17-5-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 26208,
+      "y": 9184,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "b0ddd4de-1e1d-4545-a66f-8839f0cf5325",
+      "label": "block_2_7_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-7-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 4320,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "e8c6bacb-f32e-4147-a6dc-c98c7b41b4d9",
+      "label": "block_2_7_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-7-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 5120,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "b408e18a-c805-4216-ac97-78e1929271d5",
+      "label": "block_2_7_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-7-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 4320,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "07d1eb38-cb9b-41f2-a28b-4a4bb80b4650",
+      "label": "block_2_7_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-7-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 5120,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "b37f019f-2795-47f0-a384-df6172dd84f3",
+      "label": "block_3_7_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-7-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 6048,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "78b9be4f-c3c5-46e6-a6ca-d513a92871d4",
+      "label": "block_3_7_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-7-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 6848,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "3a71bfe8-2550-4c37-bcb2-9a0c3bb6bcc3",
+      "label": "block_3_7_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-7-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 6048,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "13e9441e-f4de-4f98-b996-08f960046315",
+      "label": "block_3_7_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-7-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 6848,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "0217d3e8-6eb6-446d-b017-77961d2816b6",
+      "label": "block_4_7_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-4-7-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 7776,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "214dc19e-3025-470b-bf3a-2dee96d79e65",
+      "label": "block_4_7_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-4-7-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 8576,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "1ffc7029-b510-4724-8247-d912d99aaca0",
+      "label": "block_4_7_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-4-7-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 7776,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "0ef2b55e-68a4-427d-9711-3154c89c5a71",
+      "label": "block_4_7_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-4-7-1-1]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 8576,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "92950f10-52a4-43ce-b5f2-f15a3721c1b3",
+      "label": "block_5_7_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-5-7-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 9504,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "3910df66-f805-4f57-a3e3-576ce8a58b6f",
+      "label": "block_5_7_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-5-7-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 10304,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "9fd9ba52-ee8e-460a-b2e0-7f279425a4fb",
+      "label": "block_5_7_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-5-7-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 9504,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "4acb2ccd-770e-4c5c-86da-6f669846ce17",
+      "label": "block_5_7_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-5-7-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 10304,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "009d6561-e7be-499f-b9e7-5403d725ffc6",
+      "label": "block_6_7_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-7-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 11232,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "de539fc9-f25f-4384-bb08-bbca667328f4",
+      "label": "block_6_7_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-7-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 11232,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "908ba60d-fecf-4be5-88b2-e542b8be4e41",
+      "label": "block_7_7_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-7-7-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-1"
+      },
+      "x": 12384,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "96194031-c979-4f1d-ac4c-7b4da68e3c39",
+      "label": "block_7_7_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-7-7-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-2"
+      },
+      "x": 13184,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d00ec4b4-d14b-4ed1-8958-5e22c693c2d7",
+      "label": "block_7_7_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-7-7-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-0"
+      },
+      "x": 12384,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "95ebcc23-a706-450e-8f49-ec3619970855",
+      "label": "block_7_7_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-7-7-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 13184,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "aff8c1b5-d982-4172-8c05-8316bf3c37ac",
+      "label": "block_8_7_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-8-7-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-2"
+      },
+      "x": 14112,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "bf8f0c35-0a08-4d9b-b016-6dc22cecd5ce",
+      "label": "block_8_7_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-8-7-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-0"
+      },
+      "x": 14912,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "1c474106-5430-4d93-9dc8-daae86e86355",
+      "label": "block_8_7_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-8-7-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 14112,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "c826b070-5d95-42dd-8a21-848d86e13afb",
+      "label": "block_8_7_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-8-7-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-2"
+      },
+      "x": 14912,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "968bf530-5744-4164-a772-4d5ac3f96bf2",
+      "label": "block_9_7_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-9-7-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-0"
+      },
+      "x": 15840,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "fd229cbe-441c-4648-8b6a-68ff387ee3bc",
+      "label": "block_9_7_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-9-7-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-1"
+      },
+      "x": 16640,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "a786541d-2c05-47ed-afa3-1da4f3c5c4d5",
+      "label": "block_9_7_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-9-7-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-2"
+      },
+      "x": 15840,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "2aecd5db-670a-4bcf-8244-0ff6bf237673",
+      "label": "block_9_7_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-9-7-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-0"
+      },
+      "x": 16640,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "469173c1-58b9-4b50-8896-3dc5fd41e423",
+      "label": "block_10_7_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-10-7-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-1"
+      },
+      "x": 17568,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "4447dfb5-3a63-41cf-a3ef-7127f752b2d4",
+      "label": "block_10_7_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-10-7-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-2"
+      },
+      "x": 18368,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "fd82b69c-b2c6-450a-83c2-2942858511c1",
+      "label": "block_10_7_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-10-7-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-0"
+      },
+      "x": 17568,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "e5da1dc2-e71f-4427-84be-9f89192945fe",
+      "label": "block_10_7_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-10-7-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 18368,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "7093fc2b-92b3-4359-8009-b6341f5c0ee8",
+      "label": "block_11_7_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-11-7-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-2"
+      },
+      "x": 19296,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "c74326dd-5ef8-449b-9494-3db4c5c347c3",
+      "label": "block_11_7_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-11-7-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-0"
+      },
+      "x": 20096,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "f5c020dd-ce3d-4a0b-b1a4-7af6590960d0",
+      "label": "block_11_7_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-11-7-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 19296,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "c6aa59d5-f9ba-47ae-a62d-7547d0152afa",
+      "label": "block_11_7_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-11-7-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-2"
+      },
+      "x": 20096,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "f41b2e0c-844a-4fbf-a7df-338954de22c8",
+      "label": "block_13_7_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-7-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 21600,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "4041bbaf-df62-4f26-bf9d-4f4bd60caf9e",
+      "label": "block_13_7_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-13-7-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 21600,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "ac99ea1e-b1a7-494a-a4b0-966e53ee978e",
+      "label": "block_14_7_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-7-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 22752,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "00bcfb85-3c82-442c-894a-ba1270004451",
+      "label": "block_14_7_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-7-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 23552,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "33774145-9cd8-4c7d-9c3c-7232df78746f",
+      "label": "block_14_7_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-7-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 22752,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "615b0532-1008-4a74-abd2-1b694c4ac140",
+      "label": "block_14_7_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-14-7-1-1]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 23552,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "9c520daf-51e7-4a32-b0e9-c3dce2ddf22d",
+      "label": "block_15_7_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-15-7-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 24480,
+      "y": 10656,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "cc14206d-ef63-4028-8738-d6950a4d71a9",
+      "label": "block_15_7_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-15-7-1-0]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 24480,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "2c9b4be0-256f-46a2-8de6-d244e1085617",
+      "label": "block_17_7_service",
+      "type": "Image",
+      "displayName": "Service garage [block-17-7-service]",
+      "texture": {
+        "key": "rf-garage-roof-2"
+      },
+      "x": 26240,
+      "y": 11488,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "d6287ac3-6b71-45c7-8174-d60f1982b727",
+      "label": "block_2_8_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-8-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-0"
+      },
+      "x": 4320,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "32758175-ad85-4b8e-bca1-43c96daf98e6",
+      "label": "block_2_8_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-8-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 5120,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "25735b5c-939d-4bc3-afdb-ecdd931a82a3",
+      "label": "block_2_8_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-8-1-0]",
+      "texture": {
+        "key": "rf-house-roof-2"
+      },
+      "x": 4320,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "b4ced182-727a-4399-8b81-307009eba721",
+      "label": "block_2_8_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-2-8-1-1]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 5120,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "79678348-500f-430a-8dc5-7dd4696b07bc",
+      "label": "block_3_8_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-8-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-1"
+      },
+      "x": 6048,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "7212f7e4-1a6d-48f0-a98e-a2b28af40a64",
+      "label": "block_3_8_0_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-8-0-1]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 6848,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "89f2b631-ff4a-4012-9858-d11e30945c6e",
+      "label": "block_3_8_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-8-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 6048,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "4e9a94fb-f032-4c2c-a496-a41bd597cc2b",
+      "label": "block_3_8_1_1",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-3-8-1-1]",
+      "texture": {
+        "key": "rf-house-roof-1"
+      },
+      "x": 6848,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "218d8b6c-1efc-44c2-8f88-39424fad9128",
+      "label": "block_6_8_0_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-8-0-0]",
+      "texture": {
+        "key": "rf-house-N-roof-2"
+      },
+      "x": 11232,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "df7fb977-3b6c-4b7c-93eb-b98088d84fb0",
+      "label": "block_6_8_1_0",
+      "type": "Image",
+      "displayName": "Neighbourhood home [block-6-8-1-0]",
+      "texture": {
+        "key": "rf-house-roof-0"
+      },
+      "x": 11232,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.25
+    },
+    {
+      "id": "83aed7bd-10dd-474b-8834-f321011a1246",
+      "label": "block_7_8_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-7-8-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-1"
+      },
+      "x": 12384,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "5db5b721-7546-4ef4-86bb-76e535ffddad",
+      "label": "block_7_8_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-7-8-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-2"
+      },
+      "x": 13184,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "48901b7f-f1e0-479f-bc7e-1ff8122b2971",
+      "label": "block_7_8_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-7-8-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-0"
+      },
+      "x": 12384,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "3f20e9bd-f5b4-485a-82d8-ad65c6250fac",
+      "label": "block_7_8_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-7-8-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 13184,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "3fad559e-78c9-469f-8d1b-dce5bf33b569",
+      "label": "block_8_8_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-8-8-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-2"
+      },
+      "x": 14112,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d21f6472-1038-4188-8c89-4db8adcac7fe",
+      "label": "block_8_8_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-8-8-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-0"
+      },
+      "x": 14912,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "8656ff32-c127-43a4-aabd-25f7b473920c",
+      "label": "block_8_8_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-8-8-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 14112,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "9531d4c2-696c-440f-b708-554e12992445",
+      "label": "block_8_8_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-8-8-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-2"
+      },
+      "x": 14912,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "8310cd00-38ff-418b-8c25-7d58119b4d10",
+      "label": "block_9_8_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-9-8-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-0"
+      },
+      "x": 15840,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "3d469a7a-6bc7-4cbc-b125-ea1c9192bc49",
+      "label": "block_9_8_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-9-8-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-1"
+      },
+      "x": 16640,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "8b219c42-ac6d-42b3-8859-9d92c0b47146",
+      "label": "block_10_8_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-10-8-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-2"
+      },
+      "x": 17568,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "95149be1-8e59-46d2-b602-bb4d96817a70",
+      "label": "block_10_8_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-10-8-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-0"
+      },
+      "x": 18368,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "d44dcf3c-f7dc-4dc3-8f69-bb2a8fec6066",
+      "label": "block_10_8_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-10-8-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-1"
+      },
+      "x": 17568,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "269cd9c8-9aa6-4950-9eb6-d8cbc5a8b96b",
+      "label": "block_10_8_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-10-8-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-2"
+      },
+      "x": 18368,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "28af4d78-0a08-4f63-a499-ffa5ca4fa5f5",
+      "label": "block_11_8_0_0",
+      "type": "Image",
+      "displayName": "Terrace row [block-11-8-0-0]",
+      "texture": {
+        "key": "rf-terrace-roof-0"
+      },
+      "x": 19296,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "6390e2e4-28cf-4127-9916-be1b1364cdd6",
+      "label": "block_11_8_0_1",
+      "type": "Image",
+      "displayName": "Terrace row [block-11-8-0-1]",
+      "texture": {
+        "key": "rf-terrace-roof-1"
+      },
+      "x": 20096,
+      "y": 12384,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "6e7b1392-337a-4bcc-bfc0-a3107431483f",
+      "label": "block_11_8_1_0",
+      "type": "Image",
+      "displayName": "High Street shop [block-11-8-1-0]",
+      "texture": {
+        "key": "rf-shop-roof-2"
+      },
+      "x": 19296,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "ee5a10ac-9309-4aae-ba21-a01e682a8dd2",
+      "label": "block_11_8_1_1",
+      "type": "Image",
+      "displayName": "High Street shop [block-11-8-1-1]",
+      "texture": {
+        "key": "rf-shop-roof-0"
+      },
+      "x": 20096,
+      "y": 13216,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1.2,
+      "scaleY": 1.25
+    },
+    {
+      "id": "6f94f330-b080-4673-8d51-783c851f7ab9",
+      "label": "court_northwest_home",
+      "type": "Image",
+      "displayName": "Court gardener’s home [court-northwest-home]",
+      "texture": {
+        "key": "rf-house-E-roof-0"
+      },
+      "x": 992,
+      "y": 11232,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "90992940-eaf5-43bc-8138-697a45a339ef",
+      "label": "court_west_home",
+      "type": "Image",
+      "displayName": "Court brick home [court-west-home]",
+      "texture": {
+        "key": "rf-house-E-roof-1"
+      },
+      "x": 992,
+      "y": 11968,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "7ab74440-cd72-4b96-8c4e-3d62eb26443c",
+      "label": "court_approach_home",
+      "type": "Image",
+      "displayName": "Approach home [court-approach-home]",
+      "texture": {
+        "key": "rf-house-E-roof-2"
+      },
+      "x": 1568,
+      "y": 12928,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 1,
+      "scaleY": 1.125
+    },
+    {
+      "id": "2b2dcefe-3987-4e4c-b1fb-dad289ce7955",
+      "label": "court_east_cottage",
+      "type": "Image",
+      "displayName": "Court cottage [court-east-cottage]",
+      "texture": {
+        "key": "rf-house-W-roof-0"
+      },
+      "x": 2720,
+      "y": 12224,
+      "originX": 0,
+      "originY": 0,
+      "scaleX": 0.9,
+      "scaleY": 0.875
+    }
+  ],
+  "plainObjects": [],
+  "meta": {
+    "app": "Phaser Editor - Scene Editor",
+    "url": "https://phaser.io/editor",
+    "contentType": "phasereditor2d.core.scene.SceneContentType",
+    "version": 5
+  }
+}

@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFAULT_CONFIG, createState, citySpec, ensureFlow, advanceFlow, SimState, HELD, CONTESTED, DARK, claim, layPoles,
+  createProceduralCampaign, makeSave, loadState, DEFAULT_CONFIG, createState, citySpec, ensureFlow, advanceFlow, SimState, HELD, CONTESTED, DARK, claim, layPoles,
   lightMask, litCount, litAt, lightAt, blockLights, canRepair, repairLight, contestProgress, burnOffS, LIGHT_SEQ_PER_S, REPAIR_COPPER,
   ground, place, hqLot, LAMP_RADIUS, FLOODLIGHT_RANGE, subPowered, threatOf,
 } from '../src/index';
@@ -131,4 +131,17 @@ test('repair: E on a broken streetlight costs one copper and lights it; an eaten
     assert.equal(c.ok, false); assert.match(c.reason, /copper/);
   }
   assert.equal(canRepair(st, lx + 1, ly + 1).ok, false, 'no light on a bare lot tile');
+});
+
+
+test('legacy procedural campaign Home remains fully lit after loading; authored finite power is tested in riverfront',()=>{
+  const original=createProceduralCampaign(3);
+  for(const st of [original,loadState(makeSave(original))]){
+    const G=ground(st),home=st.campaign!.homeBlock,mask=lightMask(st);
+    assert.ok(G.blocks[home].tiles.length>0);
+    for(const t of G.blocks[home].tiles){assert.equal(mask[t],1);assert.equal(litAt(st,t%G.tw,Math.floor(t/G.tw)),true);}
+    const count=litCount(st,home,mask);assert.equal(count.lot,count.lotOf);
+    const dark=st.blocks.findIndex((b,i)=>i!==home&&b.state===DARK&&G.blocks[i].tiles.length>0);
+    assert.ok(G.blocks[dark].tiles.some(t=>mask[t]===0),'neighbouring unlit lots remain dark');
+  }
 });

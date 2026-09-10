@@ -1,0 +1,28 @@
+
+> relight-prototype@0.1.0 typecheck
+> npm run build -w packages/sim && npm run build -w packages/harness && npm run build -w packages/tools && npm run build -w packages/game
+
+
+> @relight/sim@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+
+> @relight/harness@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+
+> @relight/tools@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+
+> @relight/game@0.1.0 build
+> tsc -p tsconfig.json --noEmit && vite build
+
+src/worldScene.ts(94,7): error TS2740: Type '{ excavator: number; belt: number; inserter: number; assembler: number; depot: number; arclamp: number; turret: number; lamp: number; pole: number; generator: number; floodlight: number; bigpole: number; ... 9 more ...; tram: number; }' is missing the following properties from type 'Record<Kind, number>': foundry, refinery, pumpjack, assembler2, and 2 more.
+npm error Lifecycle script `build` failed with error:
+npm error code 2
+npm error path /mnt/e/Factorio2/packages/game
+npm error workspace @relight/game@0.1.0
+npm error location /mnt/e/Factorio2/packages/game
+npm error command failed
+npm error command sh -c tsc -p tsconfig.json --noEmit && vite build

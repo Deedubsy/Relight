@@ -1,0 +1,1 @@
+import {createCampaign,rubbleAt,ground} from '../../../packages/sim/src/index';const st=createCampaign(102),G=ground(st);for(const [x,y] of st.campaign!.expansion!.stops){console.log('stop',x,y);for(let yy=y;yy<y+2;yy++)for(let xx=x;xx<x+2;xx++)console.log(xx,yy,rubbleAt(st,xx,yy));}console.log(st.campaign!.districts!.sources);

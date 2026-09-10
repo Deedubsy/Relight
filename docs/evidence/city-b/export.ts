@@ -1,0 +1,1 @@
+import {RIVERFRONT,RIVERFRONT_BUILDINGS,RIVERFRONT_PROPS} from '../../../packages/sim/src/city/riverfront';import{writeFileSync}from'node:fs';writeFileSync('docs/evidence/city-b/baseline-map.json',JSON.stringify({city:RIVERFRONT,buildings:RIVERFRONT_BUILDINGS,props:RIVERFRONT_PROPS},null,2));console.log(RIVERFRONT_BUILDINGS.length);

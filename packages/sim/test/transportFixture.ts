@@ -1,5 +1,7 @@
+import {suppliedCampaign as createCampaign} from './suppliedCampaignFixture';
+// Prepared historical starting stock; current ungranted progression is checked in gameplayCorrections.test.ts.
 import assert from 'node:assert/strict';
-import { createCampaign, ground, findPath, passable, advanceFlow, applyCommands, canPlace, blockOfTile, campaignSite, siteCheck, EXPANSION, campaignThrottle, campaignGrid,
+import { ground, findPath, passable, advanceFlow, applyCommands, canPlace, blockOfTile, campaignSite, siteCheck, EXPANSION, campaignThrottle, campaignGrid,
   conservation, loadState, makeSave, stateHash, lockReason, machineAt, tramRoute, inReach, polePlan, type SimState, type Command, type LoggedCommand } from '../src/index';
 const logs = new WeakMap<SimState, LoggedCommand[]>();
 export function command(st:SimState,commands:Command[]):void { const log=logs.get(st)??[];for(const c of commands)log.push({tick:st.flow!.tick,c});logs.set(st,log);applyCommands(st,commands); }
@@ -28,9 +30,5 @@ function restoreStation(st:SimState):[number,number] {
 /** A paid seed-3 expedition through ordinary commands, with its complete replay log. */
 export function expedition(seed=3){const st=createCampaign(seed);provision(st);restoreStation(st);return {st,log:logs.get(st)!};}
 export function layKit(st:SimState):void {
- const e=st.campaign!.expansion!,G=ground(st);
- const takeKit=()=>{walk(st,e.station.x,e.station.y,e.station.size);command(st,[{type:'collectTramKit'}]);};takeKit();
- for(const t of e.route){if(!(st.engineer.inv.track>0))takeKit();const x=t%G.tw,y=Math.floor(t/G.tw);walk(st,x,y);command(st,[{type:'place',item:'track',x,y}]);assert.equal(machineAt(st,x,y)?.kind,'track');}
- for(const [x,y]of e.stops){walk(st,x,y,2);command(st,[{type:'place',item:'tramstop',x,y}]);assert.equal(machineAt(st,x,y)?.kind,'tramstop');}
- const t=e.route[0],x=t%G.tw,y=Math.floor(t/G.tw);walk(st,x,y);command(st,[{type:'place',item:'tram',x,y}]);
+ const n=st.campaign!.fixedTram!;assert.equal(n.stops.length,4);assert.ok(st.flow!.machines.some(m=>m.id===n.tram));
 }

@@ -1,0 +1,74 @@
+TAP version 13
+# Subtest: paid walls block walking, retain their footprint on defeat, and repair consumes materials once through save/load
+ok 1 - paid walls block walking, retain their footprint on defeat, and repair consumes materials once through save/load
+  ---
+  duration_ms: 1438.515226
+  type: 'test'
+  ...
+# Subtest: one dawn lock coalesces restorations; later nominations wait and a late ending preserves two full quiet cycles
+ok 2 - one dawn lock coalesces restorations; later nominations wait and a late ending preserves two full quiet cycles
+  ---
+  duration_ms: 918.481798
+  type: 'test'
+  ...
+# Subtest: a powered radio receives the real lock; outages retain it and never reroll the target
+ok 3 - a powered radio receives the real lock; outages retain it and never reroll the target
+  ---
+  duration_ms: 476.42075
+  type: 'test'
+  ...
+# Subtest: minor opportunities are shared, finite and suppressed during major combat and recovery without catch-up
+ok 4 - minor opportunities are shared, finite and suppressed during major combat and recovery without catch-up
+  ---
+  duration_ms: 243.489245
+  type: 'test'
+  ...
+# Subtest: unopposed major crawlers follow the home mouth, defeat its core and physically withdraw before paid recovery
+ok 5 - unopposed major crawlers follow the home mouth, defeat its core and physically withdraw before paid recovery
+  ---
+  duration_ms: 608.974189
+  type: 'test'
+  ...
+# Subtest: a sealed court is breached through a player wall instead of losing pathfinding; turret defeat preserves its ammo
+ok 6 - a sealed court is breached through a player wall instead of losing pathfinding; turret defeat preserves its ammo
+  ---
+  duration_ms: 667.992078
+  type: 'test'
+  ...
+# Subtest: ruin guards stay at their own sites and never join the base assault
+ok 7 - ruin guards stay at their own sites and never join the base assault
+  ---
+  duration_ms: 606.109015
+  type: 'test'
+  ...
+# Subtest: ordinary paid and hand-supplied turrets hold the complete finite major roster without the rifle
+ok 8 - ordinary paid and hand-supplied turrets hold the complete finite major roster without the rifle
+  ---
+  duration_ms: 760.700666
+  type: 'test'
+  ...
+# Subtest: old previews gain a preparation interval; malformed schedules, health and orphaned bodies are refused
+ok 9 - old previews gain a preparation interval; malformed schedules, health and orphaned bodies are refused
+  ---
+  duration_ms: 679.863421
+  type: 'test'
+  ...
+# Subtest: ordinary paid defence commands replay from the same fresh campaign factory
+ok 10 - ordinary paid defence commands replay from the same fresh campaign factory
+  ---
+  duration_ms: 656.489376
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12700.536508
+
+> relight-prototype@0.1.0 lint
+> eslint packages/sim/src packages/harness/src packages/tools/src
+

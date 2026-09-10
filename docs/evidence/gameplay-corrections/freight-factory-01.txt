@@ -1,0 +1,91 @@
+TAP version 13
+# Subtest: actual core/plant checkpoint receives freight materials and runs a direct-conveyor ammunition factory into a turret
+not ok 1 - actual core/plant checkpoint receives freight materials and runs a direct-conveyor ammunition factory into a turret
+  ---
+  duration_ms: 1174.137257
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:104:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    ... Skipped lines
+    
+      {
+        artifact1: 0,
+        artifact2: 0,
+        artifact3: 0,
+        board: 0,
+    ...
+        ironore: 0,
+    +   magazine: 0,
+    -   magazine: 1.7763568394002505e-15,
+        polymer: 0,
+        shell: 0,
+        steel: 300,
+        stone: 0,
+        wire: 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    ironore: 0
+    copperore: 0
+    crude: 0
+    fuel: 0
+    polymer: 0
+    shell: 0
+    core1: 0
+    core2: 0
+    core3: 0
+    artifact1: 0
+    artifact2: 0
+    artifact3: 0
+    steel: 300
+    copper: 150
+    stone: 0
+    coal: 0
+    magazine: 1.7763568394002505e-15
+    wire: 0
+    frame: 0
+    board: 0
+    concrete: 0
+  actual:
+    ironore: 0
+    copperore: 0
+    crude: 0
+    fuel: 0
+    polymer: 0
+    shell: 0
+    core1: 0
+    core2: 0
+    core3: 0
+    artifact1: 0
+    artifact2: 0
+    artifact3: 0
+    steel: 300
+    copper: 150
+    stone: 0
+    coal: 0
+    magazine: 0
+    wire: 0
+    frame: 0
+    board: 0
+    concrete: 0
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:112:375)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4939.801353

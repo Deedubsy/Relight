@@ -1,5 +1,7 @@
 # Relight — deferred obligations
 
+**Current UI scheduling:** RI-02B follows Phase 9 engineering/preparation (P9-05), under D-UI-02. See [current acceptance mapping](STANDARDS.md#ui-acceptance-mapping--after-phase-9-d-ui-02). Earlier Phase 12 UI references below retain historical scope; brought-forward portions follow this mapping. No deferred human observation is completed or waived. PROGRESS remains the sole tracker.
+
 Updated 2026-09-06 for Version 2. PROGRESS.md alone schedules work. Historical outstanding details are retained below, with the following routing taking precedence over their old task names/timings.
 
 | Obligation | Current treatment |

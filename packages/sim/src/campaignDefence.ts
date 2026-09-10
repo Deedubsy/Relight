@@ -67,7 +67,7 @@ export function nominateBase(st: SimState, block: number): void {
   const d = st.campaign?.defence; if (!d) return;
   d.nominations = d.nominations.filter(n => n.block !== block); d.nominations.push({ block, at: st.t });
 }
-export function defenceMax(m: Machine): number { return m.kind==='barricade'?DEFENCE.barricadeHp:m.kind === 'wall' ? DEFENCE.wallHp : m.kind === 'turret' ? DEFENCE.turretHp : 0; }
+export function defenceMax(m: Machine): number { return m.kind==='cannon'?140:m.kind==='barricade'?DEFENCE.barricadeHp:m.kind === 'wall' ? DEFENCE.wallHp : m.kind === 'turret' ? DEFENCE.turretHp : 0; }
 export function defenceHp(m: Machine): number { return m.hp ?? defenceMax(m); }
 export function damageDefence(st: SimState, m: Machine, amount: number): void {
   if (!isCampaign(st) || !defenceMax(m) || amount<=0) return;
@@ -95,7 +95,7 @@ export function repairCheck(st: SimState, x: number, y: number): string {
   if (st.engineer.down>=0 || !inReach(st,target.x,target.y,target.size)) return 'walk closer to repair';
   if (core?.hp===0 && (d.major?.block===core.block || d.minor?.block===core.block)) return 'wait for the attackers to leave';
   const steel=core?.hp===0?DEFENCE.coreSteel:DEFENCE.repairSteel, copper=core?.hp===0?DEFENCE.coreCopper:DEFENCE.repairCopper;
-  return (st.engineer.inv.steel??0)<steel || (st.engineer.inv.copper??0)<copper ? `repair needs ${steel} steel and ${copper} copper in your pockets` : '';
+  return (st.engineer.inv.steel??0)<steel || (st.engineer.inv.copper??0)<copper ? `repair needs ${steel} Steel plates and ${copper} Copper in your Backpack` : '';
 }
 export function manualRepairSeconds(st:SimState, disabled=false):number {
   return (disabled?DEFENCE.coreRepairSeconds:DEFENCE.repairSeconds) * ((st.campaign?.discovery?.recoveredAt??-1)>=0?DISCOVERY.repairMultiplier:1);

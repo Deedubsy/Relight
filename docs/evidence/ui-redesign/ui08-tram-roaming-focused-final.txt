@@ -1,0 +1,459 @@
+TAP version 13
+# Subtest: area removal: read-only whole-footprint preview, atomic paid packing, settings undo and saved redo
+ok 1 - area removal: read-only whole-footprint preview, atomic paid packing, settings undo and saved redo
+  ---
+  duration_ms: 1023.103077
+  type: 'test'
+  ...
+# Subtest: area removal: changed identities/settings, new neighbours and changed reach refuse without partial effects
+ok 2 - area removal: changed identities/settings, new neighbours and changed reach refuse without partial effects
+  ---
+  duration_ms: 466.903585
+  type: 'test'
+  ...
+# Subtest: area removal: cumulative pocket capacity refuses the whole group then recovers
+ok 3 - area removal: cumulative pocket capacity refuses the whole group then recovers
+  ---
+  duration_ms: 299.612474
+  type: 'test'
+  ...
+# Subtest: area removal: loaded belts and hidden tunnel items return once; undo does not refill machines
+ok 4 - area removal: loaded belts and hidden tunnel items return once; undo does not refill machines
+  ---
+  duration_ms: 489.56063
+  type: 'test'
+  ...
+# Subtest: area removal: loose turret rounds require buffer space and never disappear
+ok 5 - area removal: loose turret rounds require buffer space and never disappear
+  ---
+  duration_ms: 244.309646
+  type: 'test'
+  ...
+# Subtest: area removal: busy machines, fractional contents, damaged defences and installed facilities stay
+ok 6 - area removal: busy machines, fractional contents, damaged defences and installed facilities stay
+  ---
+  duration_ms: 1367.903155
+  type: 'test'
+  ...
+# Subtest: area removal: cargo, held items and freight/filter/priority settings survive conserved packing history
+ok 7 - area removal: cargo, held items and freight/filter/priority settings survive conserved packing history
+  ---
+  duration_ms: 646.618384
+  type: 'test'
+  ...
+# Subtest: area removal: ordinary paid command comparison records equal layouts/materials without a human tedium claim
+ok 8 - area removal: ordinary paid command comparison records equal layouts/materials without a human tedium claim
+  ---
+  duration_ms: 493.019085
+  type: 'test'
+  ...
+# Subtest: clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard
+ok 9 - clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard
+  ---
+  duration_ms: 1105.761158
+  type: 'test'
+  ...
+# Subtest: rotations and reflections preserve rectangular footprints, tunnel roles and settings with correct left/right priority
+ok 10 - rotations and reflections preserve rectangular footprints, tunnel roles and settings with correct left/right priority
+  ---
+  duration_ms: 4.342083
+  type: 'test'
+  ...
+# Subtest: clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers
+ok 11 - clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers
+  ---
+  duration_ms: 992.690434
+  type: 'test'
+  ...
+# Subtest: occupied, unaffordable and remote stamps are atomic and consume carried machines before materials
+ok 12 - occupied, unaffordable and remote stamps are atomic and consume carried machines before materials
+  ---
+  duration_ms: 252.123549
+  type: 'test'
+  ...
+# Subtest: copied underground pairs reject an intervening destination endpoint and orphan selections
+ok 13 - copied underground pairs reject an intervening destination endpoint and orphan selections
+  ---
+  duration_ms: 249.79471
+  type: 'test'
+  ...
+# Subtest: old post-P7 saves retain every existing site/layout/earned reward and gain an unrecruited Foreman and permanent tram infrastructure
+ok 14 - old post-P7 saves retain every existing site/layout/earned reward and gain an unrecruited Foreman and permanent tram infrastructure
+  ---
+  duration_ms: 2297.203674
+  type: 'test'
+  ...
+# Subtest: Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds
+ok 15 - Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds
+  ---
+  duration_ms: 9011.256188
+  type: 'test'
+  ...
+# Subtest: ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening
+ok 16 - ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening
+  ---
+  duration_ms: 1196.582187
+  type: 'test'
+  ...
+# Subtest: permanent stations retain editable freight rules but copying cannot build another station
+ok 17 - permanent stations retain editable freight rules but copying cannot build another station
+  ---
+  duration_ms: 501.440624
+  type: 'test'
+  ...
+# Subtest: old checkpoint logs remain incomplete after upgrading; current campaign saves remain complete
+ok 18 - old checkpoint logs remain incomplete after upgrading; current campaign saves remain complete
+  ---
+  duration_ms: 1165.508395
+  type: 'test'
+  ...
+# Subtest: legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+ok 19 - legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+  ---
+  duration_ms: 2000.426
+  type: 'test'
+  ...
+# Subtest: campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+ok 20 - campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+  ---
+  duration_ms: 3629.406564
+  type: 'test'
+  ...
+# Subtest: cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+ok 21 - cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+  ---
+  duration_ms: 7539.062913
+  type: 'test'
+  ...
+# Subtest: campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+ok 22 - campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+  ---
+  duration_ms: 2179.706453
+  type: 'test'
+  ...
+# Subtest: composed city query is repeatable, read-only and stable after load; includes every current site
+ok 23 - composed city query is repeatable, read-only and stable after load; includes every current site
+  ---
+  duration_ms: 6109.248376
+  type: 'test'
+  ...
+# Subtest: permanent rail remains geometrically valid and rejects player construction without spending stock
+ok 24 - permanent rail remains geometrically valid and rejects player construction without spending stock
+  ---
+  duration_ms: 1291.704067
+  type: 'test'
+  ...
+# Subtest: bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+not ok 25 - bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+  ---
+  duration_ms: 1868.939924
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignCityValidation.test.ts:23:1'
+  failureType: 'testCodeFailure'
+  error: 'rail-route'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignCityValidation.test.ts:28:114)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: blocked interactions are found from the final shared collision mask, not just the site centre
+ok 26 - blocked interactions are found from the final shared collision mask, not just the site centre
+  ---
+  duration_ms: 879.587755
+  type: 'test'
+  ...
+# Subtest: runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+ok 27 - runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+  ---
+  duration_ms: 2.765338
+  type: 'test'
+  ...
+# Subtest: existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+ok 28 - existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+  ---
+  duration_ms: 3184.44073
+  type: 'test'
+  ...
+# Subtest: malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+ok 29 - malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+  ---
+  duration_ms: 2462.292139
+  type: 'test'
+  ...
+# {"seed":3,"ticks":392,"commands":75,"recoveredAt":17,"hash":"36330d81"}
+# Subtest: the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+ok 30 - the marked workshop side yard is seeded, reachable, optional, and clear of essential routes across seeds
+  ---
+  duration_ms: 12452.398862
+  type: 'test'
+  ...
+# Subtest: guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+ok 31 - guardian telegraphs every strike, accepts a dodge, leaves a downed engineer, and saves mid-windup
+  ---
+  duration_ms: 1287.527832
+  type: 'test'
+  ...
+# Subtest: the guardian chases beyond its home yard, disengages at distance and does not retire with the workshop
+ok 32 - the guardian chases beyond its home yard, disengages at distance and does not retire with the workshop
+  ---
+  duration_ms: 726.512054
+  type: 'test'
+  ...
+# Subtest: a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+ok 33 - a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop
+  ---
+  duration_ms: 2202.750141
+  type: 'test'
+  ...
+# Subtest: field repair retains material costs, paid pauses and existing job duration, including core recovery
+ok 34 - field repair retains material costs, paid pauses and existing job duration, including core recovery
+  ---
+  duration_ms: 650.0389
+  type: 'test'
+  ...
+# Subtest: old previews add one deferred guardian; malformed or missing current reward state is rejected
+ok 35 - old previews add one deferred guardian; malformed or missing current reward state is rejected
+  ---
+  duration_ms: 1719.385172
+  type: 'test'
+  ...
+# Subtest: fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+ok 36 - fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically
+  ---
+  duration_ms: 3968.390812
+  type: 'test'
+  ...
+# Subtest: the records can be recovered by drawing the living guardian away, with no kill requirement
+ok 37 - the records can be recovered by drawing the living guardian away, with no kill requirement
+  ---
+  duration_ms: 906.15244
+  type: 'test'
+  ...
+# Subtest: a paid missed rifle round attracts the workshop guardian even when the engineer stands still
+ok 38 - a paid missed rifle round attracts the workshop guardian even when the engineer stands still
+  ---
+  duration_ms: 508.837066
+  type: 'test'
+  ...
+# Subtest: district sites and specialised sources are reachable, distinct and persistent across seeds and saves
+ok 39 - district sites and specialised sources are reachable, distinct and persistent across seeds and saves
+  ---
+  duration_ms: 7649.915649
+  type: 'test'
+  ...
+# Subtest: powered extraction produces into real local storage without depletion or hand mining; outages stop it
+ok 40 - powered extraction produces into real local storage without depletion or hand mining; outages stop it
+  ---
+  duration_ms: 1779.789863
+  type: 'test'
+  ...
+# Subtest: wall: workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+ok 41 - wall: workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+  ---
+  duration_ms: 2524.349772
+  type: 'test'
+  ...
+# Subtest: barricade: workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+ok 42 - barricade: workshop consumes local supplies at its powered rate, pauses during attacks/outages, and preserves repairs through saves
+  ---
+  duration_ms: 1405.321613
+  type: 'test'
+  ...
+# Subtest: fresh campaign pays for both stations and the workshop through logged commands that replay identically
+ok 43 - fresh campaign pays for both stations and the workshop through logged commands that replay identically
+  ---
+  duration_ms: 1033.312701
+  type: 'test'
+  ...
+# Subtest: paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest
+ok 44 - paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest
+  ---
+  duration_ms: 2715.076779
+  type: 'test'
+  ...
+# Subtest: old district-free previews upgrade once without moving the promised assault or duplicating sources
+ok 45 - old district-free previews upgrade once without moving the promised assault or duplicating sources
+  ---
+  duration_ms: 1109.79718
+  type: 'test'
+  ...
+# Subtest: knowledge starts with the opening clue, records exploration and survives leaving and reloading
+ok 46 - knowledge starts with the opening clue, records exploration and survives leaving and reloading
+  ---
+  duration_ms: 2953.55174
+  type: 'test'
+  ...
+# Subtest: item guide contains only implemented recipes and true current consumers, unlock provenance and no secret locations
+ok 47 - item guide contains only implemented recipes and true current consumers, unlock provenance and no secret locations
+  ---
+  duration_ms: 426.27078
+  type: 'test'
+  ...
+# Subtest: discovery service state follows actual power, switch, partial materials and empty or earned rewards
+ok 48 - discovery service state follows actual power, switch, partial materials and empty or earned rewards
+  ---
+  duration_ms: 1228.379732
+  type: 'test'
+  ...
+# Subtest: ordinary exploration and journal actions replay; read-only browsing does not change simulation state
+ok 49 - ordinary exploration and journal actions replay; read-only browsing does not change simulation state
+  ---
+  duration_ms: 1219.351195
+  type: 'test'
+  ...
+# Subtest: current-code replay of the ordinary P7-03 workload supplies a complete P7-04 checkpoint
+ok 50 - current-code replay of the ordinary P7-03 workload supplies a complete P7-04 checkpoint
+  ---
+  duration_ms: 3752.537012
+  type: 'test'
+  ...
+# Subtest: direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters
+ok 51 - direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters
+  ---
+  duration_ms: 1482.901133
+  type: 'test'
+  ...
+# Subtest: direct belts: any storage side can unload, and pointing inward never steals from the destination
+ok 52 - direct belts: any storage side can unload, and pointing inward never steals from the destination
+  ---
+  duration_ms: 1393.613101
+  type: 'test'
+  ...
+# Subtest: direct belts: incompatible mixed stock stays at its source and full destinations conserve items
+ok 53 - direct belts: incompatible mixed stock stays at its source and full destinations conserve items
+  ---
+  duration_ms: 252.0144
+  type: 'test'
+  ...
+# Subtest: direct belts: Home supplies and turret hoppers can unload without creating stock
+ok 54 - direct belts: Home supplies and turret hoppers can unload without creating stock
+  ---
+  duration_ms: 475.464594
+  type: 'test'
+  ...
+# Subtest: second area is reachable across seeds; restoration costs, local power, radio and permanent transport survive saves
+ok 55 - second area is reachable across seeds; restoration costs, local power, radio and permanent transport survive saves
+  ---
+  duration_ms: 5659.961957
+  type: 'test'
+  ...
+# Subtest: fresh paid expedition powers its permanent line and moves reserved freight between independently powered bases
+ok 56 - fresh paid expedition powers its permanent line and moves reserved freight between independently powered bases
+  ---
+  duration_ms: 1717.940805
+  type: 'test'
+  ...
+# Subtest: old home preview upgrades deterministically without granting a kit; malformed expansion metadata is rejected
+ok 57 - old home preview upgrades deterministically without granting a kit; malformed expansion metadata is rejected
+  ---
+  duration_ms: 1150.06999
+  type: 'test'
+  ...
+# Subtest: physical pole links power a remote installation and picking them up disconnects it
+ok 58 - physical pole links power a remote installation and picking them up disconnects it
+  ---
+  duration_ms: 614.841305
+  type: 'test'
+  ...
+# Subtest: upgrading a home-only save preserves the save but labels its old log as incomplete for the new campaign factory
+ok 59 - upgrading a home-only save preserves the save but labels its old log as incomplete for the new campaign factory
+  ---
+  duration_ms: 889.394059
+  type: 'test'
+  ...
+# Subtest: four permanent stops exist at repeatable positions; infrastructure cannot be built or packed
+ok 60 - four permanent stops exist at repeatable positions; infrastructure cannot be built or packed
+  ---
+  duration_ms: 1058.652308
+  type: 'test'
+  ...
+# Subtest: power any second stop to automatically carry requested cargo; outage parks, reconnect resumes and save continues identically
+ok 61 - power any second stop to automatically carry requested cargo; outage parks, reconnect resumes and save continues identically
+  ---
+  duration_ms: 771.941751
+  type: 'test'
+  ...
+# Subtest: all four powered stops participate and unpowered stops are skipped without unloading there
+ok 62 - all four powered stops participate and unpowered stops are skipped without unloading there
+  ---
+  duration_ms: 385.623692
+  type: 'test'
+  ...
+# Subtest: existing network save adopts its stations and tram once without deleting any stock or machine
+ok 63 - existing network save adopts its stations and tram once without deleting any stock or machine
+  ---
+  duration_ms: 1360.432843
+  type: 'test'
+  ...
+# Subtest: ruin enemies roam, retain chase beyond notice/home radius and disengage only at escape distance; patrol survives save
+ok 64 - ruin enemies roam, retain chase beyond notice/home radius and disengage only at escape distance; patrol survives save
+  ---
+  duration_ms: 306.744253
+  type: 'test'
+  ...
+# Subtest: truck unlocks once at the paid restored station, keeps the kit corridor clear and replays its entire driving/cargo trip
+ok 65 - truck unlocks once at the paid restored station, keeps the kit corridor clear and replays its entire driving/cargo trip
+  ---
+  duration_ms: 2752.57344
+  type: 'test'
+  ...
+# Subtest: truck boarding and cargo are local; a parked footprint blocks walking, paths and construction
+ok 66 - truck boarding and cargo are local; a parked footprint blocks walking, paths and construction
+  ---
+  duration_ms: 662.287147
+  type: 'test'
+  ...
+# Subtest: cargo capacity is separate, partial stacks fit, and invalid or distant transfers preserve both inventories
+ok 67 - cargo capacity is separate, partial stacks fit, and invalid or distant transfers preserve both inventories
+  ---
+  duration_ms: 316.971733
+  type: 'test'
+  ...
+# Subtest: driving checks every footprint tile at speed, refuses blocked rotations, and cannot use dodge or auto-walk
+ok 68 - driving checks every footprint tile at speed, refuses blocked rotations, and cannot use dodge or auto-walk
+  ---
+  duration_ms: 273.938195
+  type: 'test'
+  ...
+# Subtest: blocked exit is refused; knockdown parks cargo, respawn does not teleport the truck, and occupied saves resume
+ok 69 - blocked exit is refused; knockdown parks cargo, respawn does not teleport the truck, and occupied saves resume
+  ---
+  duration_ms: 622.553598
+  type: 'test'
+  ...
+# Subtest: old restored previews spawn deterministically on their next tick; malformed truck saves are rejected
+ok 70 - old restored previews spawn deterministically on their next tick; malformed truck saves are rejected
+  ---
+  duration_ms: 1493.757782
+  type: 'test'
+  ...
+# Subtest: selected permanent route is read-only, reports all four stops and pauses with cargo retained on power loss
+ok 71 - selected permanent route is read-only, reports all four stops and pauses with cargo retained on power loss
+  ---
+  duration_ms: 344.544866
+  type: 'test'
+  ...
+# Subtest: permanent routes expose full arrivals and returning cargo while packing public stops is rejected
+ok 72 - permanent routes expose full arrivals and returning cargo while packing public stops is rejected
+  ---
+  duration_ms: 233.113798
+  type: 'test'
+  ...
+1..72
+# tests 72
+# suites 0
+# pass 71
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 194980.063416

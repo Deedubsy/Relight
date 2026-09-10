@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: inspection: paid assembler exposes nominal recipe rates, completed production and conserved saved continuation
+ok 1 - inspection: paid assembler exposes nominal recipe rates, completed production and conserved saved continuation
+  ---
+  duration_ms: 2564.231345
+  type: 'test'
+  ...
+# Subtest: inspection: recipe changes retain per-item observations; packing/rebuild resets only machine history
+ok 2 - inspection: recipe changes retain per-item observations; packing/rebuild resets only machine history
+  ---
+  duration_ms: 668.417326
+  type: 'test'
+  ...
+# Subtest: inspection: local circuits isolate remote supply, reflect brownout, fuel exhaustion and pole connection
+ok 3 - inspection: local circuits isolate remote supply, reflect brownout, fuel exhaustion and pole connection
+  ---
+  duration_ms: 741.186303
+  type: 'test'
+  ...
+# Subtest: inspection: belt blockage and inserter destination loss report the actual held state
+ok 4 - inspection: belt blockage and inserter destination loss report the actual held state
+  ---
+  duration_ms: 482.88078
+  type: 'test'
+  ...
+# Subtest: inspection: saved sample window is bounded, excludes pause time and rejects malformed observations
+ok 5 - inspection: saved sample window is bounded, excludes pause time and rejects malformed observations
+  ---
+  duration_ms: 2791.536844
+  type: 'test'
+  ...
+# Subtest: inspection: fresh campaign replay includes identical observations and readonly queries add no commands
+ok 6 - inspection: fresh campaign replay includes identical observations and readonly queries add no commands
+  ---
+  duration_ms: 1281.159622
+  type: 'test'
+  ...
+# Subtest: UI-04 simultaneous constraints are readonly and clear independently with real input and power predicates
+ok 7 - UI-04 simultaneous constraints are readonly and clear independently with real input and power predicates
+  ---
+  duration_ms: 349.945399
+  type: 'test'
+  ...
+# Subtest: UI-04 no local load is neutral; disabled core retains the actual primary statement
+ok 8 - UI-04 no local load is neutral; disabled core retains the actual primary statement
+  ---
+  duration_ms: 654.757441
+  type: 'test'
+  ...
+# Subtest: UI-04 hand transfer previews match actual capped moves and never allocate arrivals or mutate state
+ok 9 - UI-04 hand transfer previews match actual capped moves and never allocate arrivals or mutate state
+  ---
+  duration_ms: 526.484017
+  type: 'test'
+  ...
+# Subtest: UI-04 truck preview shares command capacity/reach rules and leaves source stock untouched
+ok 10 - UI-04 truck preview shares command capacity/reach rules and leaves source stock untouched
+  ---
+  duration_ms: 365.590853
+  type: 'test'
+  ...
+# Subtest: UI-04 source locations only name genuine known stock or finite home patches
+ok 11 - UI-04 source locations only name genuine known stock or finite home patches
+  ---
+  duration_ms: 361.364095
+  type: 'test'
+  ...
+# Subtest: UI-08 actual stacks conserve quantities through split, merge, swap, sort and save; stale repeated moves reject
+ok 12 - UI-08 actual stacks conserve quantities through split, merge, swap, sort and save; stale repeated moves reject
+  ---
+  duration_ms: 1921.505654
+  type: 'test'
+  ...
+# Subtest: UI-08 fragmentation and full capacity are authoritative, including partial-stack slack and legacy kit reservations
+ok 13 - UI-08 fragmentation and full capacity are authoritative, including partial-stack slack and legacy kit reservations
+  ---
+  duration_ms: 1039.816259
+  type: 'test'
+  ...
+# Subtest: UI-08 paired transfers conserve stock, consume the selected stack, reject stale and out-of-reach commands
+ok 14 - UI-08 paired transfers conserve stock, consume the selected stack, reject stale and out-of-reach commands
+  ---
+  duration_ms: 533.147824
+  type: 'test'
+  ...
+# Subtest: UI-08 shortcut settings preserve existing arrangements and clear retired identifiers individually
+ok 15 - UI-08 shortcut settings preserve existing arrangements and clear retired identifiers individually
+  ---
+  duration_ms: 0.455525
+  type: 'test'
+  ...
+# Subtest: UI-08 interactive speed clamps every command path, uses elapsed time and discards old accelerated accumulation
+ok 16 - UI-08 interactive speed clamps every command path, uses elapsed time and discards old accelerated accumulation
+  ---
+  duration_ms: 1279.649404
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16689.776097

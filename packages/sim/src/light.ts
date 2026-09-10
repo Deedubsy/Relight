@@ -22,6 +22,8 @@ export function lightMask(st: SimState, into?: Uint8Array): Uint8Array {
   const mask = into && into.length === n ? into : new Uint8Array(n);
   mask.fill(0);
   for (let bi = 0; bi < st.blocks.length; bi++) for (const l of blockLights(st, bi)) if (l.lit) stampLight(mask, G.tw, G.th, l);
+  // Home has built-in area lighting across its entire starting lot, including the base footprint.
+  if(st.campaign&&!st.city?.mapId)for(const tile of G.blocks[st.campaign.homeBlock].tiles)mask[tile]=1;
   return mask;
 }
 

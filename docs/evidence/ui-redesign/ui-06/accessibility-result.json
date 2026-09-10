@@ -1,0 +1,40 @@
+{
+  "rows": [
+    {
+      "case": "motion",
+      "systemBothModes": true,
+      "explicitOverrides": true
+    },
+    {
+      "case": "hint",
+      "dismissPersistReset": true
+    },
+    {
+      "case": "oldCampaignFile",
+      "source": "docs/evidence/p7-03-2026-09-08/browser-save-1366.json",
+      "hash": "d14fa9bc",
+      "rules": "exploration-v2",
+      "replay": {
+        "error": "a snapshot session without its command log does not replay (scenario B)"
+      }
+    },
+    {
+      "case": "performance",
+      "viewport": [
+        1920,
+        1080
+      ],
+      "scale": 100,
+      "pausedFresh": {
+        "frames": 211,
+        "sampled": 211,
+        "meanMs": 16.61,
+        "worstMs": 17,
+        "over50ms": 0,
+        "fps": 60.2
+      },
+      "comparison": "Diagnostic only; no claim that existing light-map performance findings are fixed."
+    }
+  ],
+  "errors": []
+}

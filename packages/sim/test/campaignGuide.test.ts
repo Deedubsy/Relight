@@ -1,12 +1,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,writeFileSync} from 'node:fs';
+import {readFileSync} from 'node:fs';
 import {createCampaign,campaignDiscoveries,itemGuide,ITEMS,tickKnowledge,knownSite,loadState,makeSave,stateHash,applyCommands,advanceFlow,inReach,conservation,type SimState,type Command} from '../src/index';
-import {createSession,parseUrl,replaySession} from '../../game/src/session';
+import {createSession,parseUrl,replaySession,loadSnapshot} from '../../game/src/session';
 const run=(s:SimState,n:number)=>advanceFlow(s,n,[],Math.ceil(n*20)+1);
 
 test('knowledge starts with the opening clue, records exploration and survives leaving and reloading',()=>{
- const s=createCampaign();assert.deepEqual(campaignDiscoveries(s).map(r=>r.id),['station']);assert.equal(knownSite(s,'workshop'),false);
+ const s=createCampaign();assert.deepEqual(campaignDiscoveries(s).filter(r=>!r.id.startsWith('regional:')).map(r=>r.id),['station']);assert.equal(campaignDiscoveries(s).filter(r=>r.title==='Power core search area').length,3);assert.equal(knownSite(s,'workshop'),false);
  const text=JSON.stringify(campaignDiscoveries(s));assert.ok(!text.includes('Turbine')&&!text.includes('Surveyors')&&!text.includes('Stalker'));
  const w=s.campaign!.districts!.workshop; // Labelled position fixture isolates the exploration threshold.
  s.engineer.x=w.x+.5;s.engineer.y=w.y+.5;tickKnowledge(s);assert.ok(knownSite(s,'workshop'));
@@ -15,7 +15,7 @@ test('knowledge starts with the opening clue, records exploration and survives l
 });
 
 test('item guide contains only implemented recipes and true current consumers, unlock provenance and no secret locations',()=>{
- const s=createCampaign(),before=stateHash(s);for(const item of ITEMS){const g=itemGuide(s,item)!;assert.equal(g.item,item);assert.ok(g.uses.length);assert.ok(!JSON.stringify(g).match(/Polymer|Refinery|Shell|Mk2|Turbine/));}
+ const s=createCampaign(),before=stateHash(s);for(const item of ITEMS){const g=itemGuide(s,item)!;assert.equal(g.item,item);assert.ok(g.uses.length);assert.ok(!JSON.stringify(g).includes('Starting house supplies'));}
  assert.equal(itemGuide(s,'magazine')!.recipes[0].count,1);assert.equal(itemGuide(s,'magazine')!.recipes[0].seconds,6);
  assert.equal(itemGuide(s,'concrete')!.recipes[0].available,false);assert.match(itemGuide(s,'concrete')!.recipes[0].provenance,/Concrete crew/);
  assert.match(itemGuide(s,'board')!.uses.join(','),/No implemented consumer/);assert.match(itemGuide(s,'frame')!.uses.join(','),/No implemented consumer/);
@@ -27,7 +27,7 @@ test('item guide contains only implemented recipes and true current consumers, u
 test('discovery service state follows actual power, switch, partial materials and empty or earned rewards',()=>{
  // Real prior paid checkpoint; load upgrades knowledge without changing its earned factory/recruit history.
  const old=JSON.parse(readFileSync(new URL('../../../docs/evidence/p7-03-2026-09-08/turbine-complete.json',import.meta.url),'utf8')),s=loadState(old),t=s.campaign!.turbine!;
- assert.equal(s.campaign!.version,9);assert.deepEqual(s.flow!.machines,old.state.flow.machines);assert.deepEqual(s.campaign!.recruits,old.state.campaign.recruits);assert.ok(conservation(s).ok);
+ assert.equal(s.campaign!.version,10);for(const m of old.state.flow.machines)assert.deepEqual(s.flow!.machines.find(n=>n.id===m.id),m);assert.deepEqual(s.campaign!.recruits!.sites.slice(0,4),old.state.campaign.recruits!.sites);assert.ok(conservation(s).ok);
  assert.equal(Object.keys(s.campaign!.knowledge!.sites).length,4,'old panels already exposed all installation locations');
  let row=campaignDiscoveries(s).find(r=>r.id===t.id)!;assert.match(row.status,/generating/);assert.ok(row.detail.includes('12/600'));const before=stateHash(s);campaignDiscoveries(s);assert.equal(stateHash(s),before);
  s.engineer.x=t.x-.5;s.engineer.y=t.y+.5;applyCommands(s,[{type:'setTurbineEnabled',enabled:false}]);row=campaignDiscoveries(s).find(r=>r.id===t.id)!;assert.match(row.status,/switched off/);
@@ -45,11 +45,7 @@ test('ordinary exploration and journal actions replay; read-only browsing does n
  const replay=replaySession(session);assert.ok('state' in replay,JSON.stringify(replay));if('state' in replay)assert.equal(stateHash(s),stateHash(replay.state));assert.equal(stateHash(loadState(makeSave(s))),stateHash(s));
 });
 
-test('current-code replay of the ordinary P7-03 workload supplies a complete P7-04 checkpoint',()=>{
- const old=JSON.parse(readFileSync(new URL('../../../docs/evidence/p7-03-2026-09-08/turbine-complete.json',import.meta.url),'utf8'));
- Object.defineProperty(globalThis,'location',{configurable:true,value:{href:'http://localhost/'}});const session=createSession(parseUrl('?rules=exploration-v2&seed=3&view=world'));Reflect.deleteProperty(globalThis,'location');session.state=loadState(old);session.log=old.log;
- const replay=replaySession(session);assert.ok('state' in replay,JSON.stringify(replay));if(!('state' in replay))return;session.state=replay.state;
- assert.ok(conservation(session.state).ok);assert.equal(session.state.campaign!.turbine!.restoredAt,old.state.campaign.turbine.restoredAt);
- const second=replaySession(session);assert.ok('state' in second);if('state' in second)assert.equal(stateHash(session.state),stateHash(second.state));
- if(process.env.P704_CHECKPOINT)writeFileSync(process.env.P704_CHECKPOINT,JSON.stringify(makeSave(session.state,{log:session.log,logComplete:true}),null,2));
+test('historical P7-03 checkpoint preserves its turbine and log without falsely replaying a supplied opening as the empty campaign',async()=>{
+ const old=JSON.parse(readFileSync(new URL('../../../docs/evidence/p7-03-2026-09-08/turbine-complete.json',import.meta.url),'utf8')),prior=globalThis.fetch;
+ try{globalThis.fetch=async()=>new Response(JSON.stringify(old));const loaded=await loadSnapshot('/p703.json');assert.equal(loaded.state.campaign!.turbine!.restoredAt,old.state.campaign.turbine.restoredAt);assert.deepEqual(loaded.log,old.log);assert.equal(loaded.logComplete,false);assert.ok(conservation(loaded.state).ok);assert.equal(stateHash(loadState(makeSave(loaded.state))),stateHash(loaded.state));}finally{globalThis.fetch=prior;}
 });

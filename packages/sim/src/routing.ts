@@ -11,7 +11,7 @@ export function routingConfig(){return {undergroundHidden:UNDERGROUND_HIDDEN,spl
 export type OutputPriority = 'balanced' | 'left' | 'right';
 export type UndergroundMode = 'input' | 'output';
 export const isRouting = (m: Machine): boolean => m.kind === 'underground' || m.kind === 'splitter';
-export const isConveyor = (m: Machine): boolean => m.kind === 'belt' || isRouting(m);
+export const isConveyor = (m: Machine): boolean => m.kind === 'belt' || m.kind==='fastbelt' || isRouting(m);
 export function undergroundMate(st: SimState, m: Machine): Machine | undefined {
   if (m.kind !== 'underground') return;
   const sign = m.underground === 'output' ? -1 : 1;
@@ -115,6 +115,7 @@ export function routingDescription(st:SimState,m:Machine):string {
 }
 export function routingProblem(st:SimState):string {
   for(const m of st.flow?.machines??[]){
+    if(m.pickupNext!==undefined&&(!isConveyor(m)||!Number.isInteger(m.pickupNext)||m.pickupNext<0||m.pickupNext>=32))return 'invalid conveyor pickup cursor';
     if(m.filter!==undefined&&(m.kind!=='inserter'||!isItem(m.filter)))return 'invalid inserter filter';
     if(m.priority!==undefined&&(m.kind!=='splitter'||!['balanced','left','right'].includes(m.priority)))return 'invalid splitter priority';
     if(m.routingNext!==undefined&&(m.kind!=='splitter'||![0,1].includes(m.routingNext)))return 'invalid splitter alternation';

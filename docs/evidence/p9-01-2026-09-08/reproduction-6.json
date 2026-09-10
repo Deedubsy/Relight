@@ -1,0 +1,134 @@
+{
+  "seed": 6,
+  "tile": 501122,
+  "x": 322,
+  "y": 626,
+  "owner": -1,
+  "near": 338,
+  "blockState": 3,
+  "refusal": "not buildable ground",
+  "pockets": {
+    "steel": 140,
+    "copper": 75,
+    "tram": 1,
+    "tramstop": 2,
+    "track": 32
+  },
+  "seconds": 27,
+  "log": [
+    {
+      "tick": 0,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "chestTake",
+          "item": "steel",
+          "n": 200
+        }
+      }
+    },
+    {
+      "tick": 0,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "chestTake",
+          "item": "copper",
+          "n": 100
+        }
+      }
+    },
+    {
+      "tick": 0,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "chestTake",
+          "item": "coal",
+          "n": 20
+        }
+      }
+    },
+    {
+      "tick": 0,
+      "c": {
+        "type": "move",
+        "x": 262.5,
+        "y": 642.5
+      }
+    },
+    {
+      "tick": 300,
+      "c": {
+        "type": "construct",
+        "edits": [
+          {
+            "action": "place",
+            "item": "generator",
+            "x": 263,
+            "y": 643,
+            "dir": 0
+          }
+        ]
+      }
+    },
+    {
+      "tick": 300,
+      "c": {
+        "type": "factory",
+        "action": {
+          "type": "feed",
+          "x": 263,
+          "y": 643
+        }
+      }
+    },
+    {
+      "tick": 300,
+      "c": {
+        "type": "deliverSite",
+        "site": "station"
+      }
+    },
+    {
+      "tick": 300,
+      "c": {
+        "type": "restoreSite",
+        "site": "station"
+      }
+    },
+    {
+      "tick": 300,
+      "c": {
+        "type": "collectTramKit"
+      }
+    },
+    {
+      "tick": 300,
+      "c": {
+        "type": "move",
+        "x": 321.5,
+        "y": 625.5
+      }
+    },
+    {
+      "tick": 540,
+      "c": {
+        "type": "construct",
+        "edits": [
+          {
+            "action": "place",
+            "item": "track",
+            "x": 322,
+            "y": 626,
+            "dir": 0
+          }
+        ]
+      }
+    }
+  ],
+  "hash": "16ff4398",
+  "replay": "16ff4398",
+  "conserved": true,
+  "assistance": "Ordinary starting stock, paid station generator and restoration, earned tram kit, on-foot approach and real rejected track command. No stock, position or clock injection. Diagnostic automation, not human play."
+}

@@ -1,11 +1,20 @@
 # Relight — decisions
 
+**Owner implementation direction (2026-09-09):** implement EX-09C-01–09 plus RI-10/RI-12 combat/encounters now. The active campaign uses defended factory/plant sites, never a territorial frontage/ring or adjacent-block-claim economy. Site lifecycle and explicit truck recovery replace the former EX-09C-04 territory scope. Normal new-game entry is to use exploration-v2; explicit legacy saves/mode remain isolated. Real inventory, connected finite power and 1×/pause remain authoritative. Q07 final requirements and human/release gates stay open, not prerequisites of this authorised correction set.
+
+**Current gameplay authority (2026-09-09):** [RELIGHT_CONFIRMED_GAMEPLAY.md](RELIGHT_CONFIRMED_GAMEPLAY.md) is the owner-designated reference for this audit and subsequent implementation. Where older text disagrees, the confirmed document takes precedence; completed work and historical evidence remain credited under their original scope. See [the pre-Phase-10 audit](Implementation/PRE_PHASE10_GAMEPLAY_AUDIT.md) and PROGRESS for corrective ownership. Unspecified tuning and Q07 endgame choices remain undecided.
+
+Audit provenance: the owner’s attached request explicitly says to use RELIGHT_CONFIRMED_GAMEPLAY.md and correct missing task coverage. This is a precedence clarification, not an invented approval of new numbers. The supplied opening and missing plant lifecycle are superseded by corrected §§3/7/10; no-frontage exploration is explicitly retained. D-UI-12 direct conveyor access and D-UI-13 powered tram service must not be relocked by Gunsmith/Rail crew tasks. Specialist improvements beyond those baseline capabilities need a concrete proposal; Q07 still owns endgame requirements. No prior decision row or human verdict is rewritten as newly approved.
+
 ## Current direction — 2026-09-06
 
 The rows below govern Version 2. The owner is the current user in the voice conversation; no additional identity is inferred. Direction approval does not validate numbers or mean implementation exists. Earlier counts and the former outstanding-question list below are historical. D-EX-Q01–06 are adopted through D-EX-11; D-EX-Q07 remains open for later progression. Earlier questions apply only where retained by the new contract.
 
 | id | decision | status | decided by | on | via | effect / current document |
 |---|---|---|---|---|---|---|
+| D-CITY-03 | Extend the approved CITY-E density approach to the rest of the city before new artwork. | decided | owner (current user) | 2026-09-10 | "Yes I like that. Lets expand it to the rest of the city" | CITY-F district-specific infill/replacement of generic scenery; preserve the approved starting neighbourhood, campaign sites, factories and transport. Placement choices are implementation details; no new progression or reward rules. |
+| D-CITY-02 | Focused Founders Court and adjoining street density pass before new artwork; extend Phaser authoring to add background buildings and edit plots. | decided | owner (current user) | 2026-09-10 | Acceptance of the layout review recommendation: "Ok lets go with your recommendation. I'll add the new artwork package after that". | CITY-E; preserve factory yards, transport and campaign bindings. Specific placements are implementation choices; new scenery adds no gameplay rewards. Artwork integration and human visual acceptance remain separate. |
+| D-CITY-01 | Fixed authored Riverfront Arc replaces procedural new-game geography; Home → Riverside → Ironworks → Civic tram, physical neighbourhoods/interiors, existing rewards and encounters in intentional parcels, shared obstacle-aware navigation, no frontage. | decided | owner (current user) | 2026-09-09 | Attached “Relight — Authored Riverfront City Rebuild” brief and A — Riverfront Arc reference. | Confirmed Gameplay §3 and Implementation/RIVERFRONT_CITY.md; preserve old save geometry. Focused visual/functional evidence required; no push/deploy and no human or release verdict inferred. |
 | D-EX-01 | Free roaming beyond powered territory, organic useful/rare discoveries and distinctive site encounters. | decided | owner (current user) | 2026-09-06 | Voice: "it's more free roaming" and "explore and find things organically"; request for "rare things that the player can find" and "unique ... enemies". | GDD §3/7/8/10/17. Supersedes treating expeditions solely as extending a supply line. Exact reward catalogue remains Q05/Q06. |
 | D-EX-02 | House in a defensible cul-de-sac with one early hostile approach; second area opens tram access and the opportunity for radio restoration. | decided | owner (current user) | 2026-09-06 | Voice: "You start in a little cul-de-sac that's easily defendable"; "the tram station becomes unlocked straight away" in discussion of the second area. | GDD §5/6/8/11. Supersedes old opening/enclosure sequence and any inherited requirement that the Heart delay tram access. Exact unlock meaning/costs remain Q04. |
 | D-EX-03 | Scheduled major assaults plus major restoration responses; only one major target base at a time. Smaller raids and creatures at ruins provide background danger. | decided | owner (current user) | 2026-09-06 | Voice: "a bit of both"; "Only one base would get attacked at a time"; "little raids"; later "Yes, that is exactly what I am thinking." | GDD §7. Supersedes the timed-horde rejection and continuous per-edge attack demand as the governing threat loop. Shared minor-raid frequency is accepted direction, exact rate/strength Q02. |
@@ -54,6 +63,7 @@ The rows below govern Version 2. The owner is the current user in the voice conv
 
 | D-EX-35 | Adopt the reviewed P7 catalogue and continue with P7-01. | decided | owner (current user) | 2026-09-07 | “All looks good! Continue on with P7”. | Q09 adopted; P7-01 implements saved recruits and explicit local Electricians recruitment with earned-unlock/save compatibility. Later increments follow PROGRESS. Post-P7 play remains required; no phase verdict, commit or push implied. |
 | D-EX-36 | Implement P7-02 concrete production and Barricades. | decided | owner (current user) | 2026-09-08 | “Ok onto P7-02”. | Approved catalogue increment; initial Mixer 20 steel + 10 copper, 3×3, 60 kW, 2 stone → 1 concrete / 2s; Barricade 2 steel + 4 concrete, 240 HP. These are implementation tuning defaults, not a balance verdict. Shared play follows P7. |
+| D-EX-39 | Start Phase 8 and move shared playtesting after it. | decided | owner (current user) | 2026-09-08 | “Lets do the next phase then playtest”. | Supersedes D-EX-34 sequencing only: review and implement independent Phase 8 construction tools, prepare EX-08D, then shared human observations. Preserve EX-08C/port 5179; no human criteria are passed or waived. Q10 records the Line truck adaptation separately; Q07 still governs full progression/endgame. No commit or push implied. |
 
 ### Supersession boundaries
 
@@ -80,6 +90,7 @@ The six decided rows below share D-EX-11's owner/date/quote provenance. EX-02 re
 | D-EX-Q07 | Full project progression, endgame kit/defence and campaign length. | open | Retain the Relight goal but derive requirements from the tested station economy after EX-08. | EX-09/10 |
 | D-EX-Q08 | Campaign location/unlock for the driven truck. | decided | Owner (current user), 2026-09-07, selected “At the restored second-area tram station (recommended)” in response to the Phase 5 truck question. Make a persistent truck available there after restoration. This adopts location/unlock, not a truck added to the carried tram kit, a new fuel chain or automatic Line truck behaviour; mechanical/capacity defaults are specified before implementation. | P5-04; active GDD §14 |
 | D-EX-Q09 | Revised Phase 7 facility/recruit catalogue and Phase 8 boundary. | decided | Owner (current user), 2026-09-07: “All looks good! Continue on with P7”, accepting PHASE_7_SCOPE_REPORT.md and the catalogue question. Local Electricians recruitment; Concrete crew with Mixer/Concrete/Barricade; riverside Turbine hall; optional Lamplighters/Arc lamp and Surveyors/district information; truthful discovery/recipe UI. Credit existing tram/radio/workshop/repair and direct turret feed. Foundry/Arsenal/Refinery/Chemist/endgame stay with wider reconciliation; Foreman/blueprint recruitment ships with working Phase 8 tools. Costs/rates/placement remain provisional; Q07 remains open. | P7-01–05 |
+| D-EX-Q10 | Campaign role of the Foreman’s automated Line truck. | decided | Owner (current user), 2026-09-08, chose “Yes—use the truck for queued construction (recommended)” in response to whether it should deliver and build queued blueprints from a chosen local supply chest using the existing truck. Adopt physical chest-to-truck-to-build delivery for player-selected plans, replacing legacy automatic border rebuilding. Keep the existing manual vehicle and its unlock; exact queue limits, service reach and timing are provisional implementation choices. | P8-02/03/04; active GDD §14; PHASE_8_SCOPE_REPORT.md |
 
 ## Earlier decision register — historical and retained-rule provenance
 
@@ -267,3 +278,219 @@ The owner’s “Ok onto P7-0” follows the completed P7-02 handoff naming P7-0
 ### D-EX-38 — P7-04 implementation (2026-09-08)
 
 The owner requests “OK move onto P7-04”, authorising the adopted Q09 discovery and recipe information increment. Keep the opening station clue; remember other installation discoveries through exploration, preserve locations already exposed by old saves, and show actual service state and implemented item production/uses. Foreman/clipboard tools remain Phase 8. No gameplay tuning, human verdict or commit/push is implied.
+
+
+### D-EX-40 — P8-01 Foreman and clipboard implementation (2026-09-08)
+
+The owner requests “Lets go ahead with this” after the Phase 8 review handoff explicitly naming P8-01. Implements the adopted Foreman/clipboard boundary: permanent local recruitment, copy/paste of complete nearby machines and settings, rotation/reflection and paid atomic stamps. One saved clipboard, 128 entities/128-tile selection bounds, current reach and 50 construction-history groups are implementation defaults, not a human balance verdict. Campaign metadata 10/recruits 4 retain earlier sites and earned rewards; historical saves keep their logs with incomplete fresh-campaign replay provenance where the new shelter reservation can change old building commands. Library/ghost orders and automated truck execution remain the later P8 increments under Q10. Shared play stays after P8; no commit or push is implied.
+
+
+### D-EX-41 — P8-02 saved library and ghost orders (2026-09-08)
+
+**Authority: decided task scope.** The owner requested “continue with P8-02” after the completed P8-01 handoff. Implement the approved Phase 8 scope's saved library, validated import/export and inert queue. Q10 continues to govern physical truck delivery in P8-03; this task does not authorise its implementation or a commit/push.
+
+**Provisional implementation choices (agent, within authorised scope):** optional plan schema 1 under metadata 10; 32 library entries and 32 order records; 120-character names, 64-character single folder labels, catalogue-kind icon tags and 262144-character portable JSON; existing 128-entity and 128×128-tile layout bounds. Monotonic IDs are not recycled. Orders own independent definitions; overlapping waiting plans are rejected. Manual matching construction counts as progress and Build remaining is an ordinary atomic paid construction group. Cancellation/completion is terminal, including after later undo/damage; removing a terminal record frees space. These are reversible engineering defaults, not attributed owner balance choices. Human play remains after P8 review/EX-08D under D-EX-39. [Implementation evidence](P8_02_LIBRARY_REPORT.md).
+
+
+### D-EX-42 — P8-03 physical truck construction (2026-09-08)
+
+**Authority: decided task scope.** The owner requested “Continue” after the P8-02 completion/handoff naming P8-03. Implement the existing truck's physical chest-supplied blueprint executor under Q10. No commit or push was requested.
+
+**Provisional implementation choices (agent):** optional truck-work schema 1 under unchanged metadata 10; explicit source chest and up to 32 selected waiting order IDs; 3-tile loading reach, up to 20 items/s, 8-tile build service reach and one part (or tunnel pair) per second. Reuse the manual truck's street footprint/speed, with swept 0.2-tile checks, deterministic forward/reverse/quarter-turn A*, 12000 search-node and 2048-step limits, and 2-second retries. Physical chests accept locally transferred packed machines so both packed and material-cost construction are usable. Automatic builds use real cargo and do not add to the engineer's manual undo history. Pause, stop, order cancellation and manual takeover retain cargo and built parts; resumption is explicit after takeover. These are implementation defaults, not owner-approved balance values. P8-04/05 and EX-08D still precede shared human play. [Evidence](P8_03_TRUCK_REPORT.md).
+
+
+### D-EX-43 — P8-04 conserved removal and order controls (2026-09-08)
+
+**Authority: decided task scope.** The owner requested “OK onto P8-04”. Implement the scope report's area packing, interruption/order controls and measured command comparison. No commit or push was requested.
+
+**Provisional implementation choices (agent):** explicit drag preview followed by Pack selected machines; 1–128 complete machine footprints in a 128×128 selection; captured identities/settings with current-content, reach and capacity revalidation; one atomic transaction and one undo group, with no partial success. Undo rebuilds settings from current pockets and leaves recovered contents in pockets. Loose turret rounds require buffer room; installed facilities remain. An optional order `paused` flag preserves schema 1, reserves its ghost footprint and stops automatic building of that order. Matching manual construction may still complete it. Immediate waiting-job retry and explicit source reassignment retain cargo; repeated controls do not restart identical work. Changed destinations use cancellation and a new order, preserving existing paid machines. These are implementation defaults within authorised scope, not an owner usability verdict. [Evidence](P8_04_REMOVAL_REPORT.md). P8-05 and EX-08D precede shared play; human rows remain open.
+
+
+### D-EX-44 — P8-05 construction engineering review (2026-09-08)
+
+**Authority: decided task scope.** The owner requested “Go ahead with P8-05”. Complete the retained integration acceptance and repair findings within existing rules; no commit or push requested.
+
+**Engineering result, not a human verdict:** six fresh campaign runs use ordinary opening stock, steel mining, actual station power/restoration, recruitment and paid repeated ammunition construction. Odd seeds use Foreman-before-station/input-first builds; even seeds use Electricians-before-station, then Foreman/turret-first builds. A 16-seed query sweep covers fixed destinations and current valid/blocked turns. Natural raid coexistence is measured separately from survival: the unattended home is disabled during the browser continuation. Only status wording changes: active automatic trucks no longer say Parked; order missing materials are labelled as pocket shortages. No gameplay constants were changed. [Review and exact checks](P8_05_REVIEW_REPORT.md). P8 implementation/engineering review can hand off to EX-08D; human rows, P6-AMMO retest and prior performance findings remain open.
+
+### D-EX-45 — EX-08D post-P8 playtest preparation (2026-09-08)
+
+**Authority:** owner (current user), “OK do EX-08D”. Prepare the post-P8 shared playtest under D-EX-39; preserve earlier evidence.
+
+**Preparation choice (agent):** freeze the reviewed local P8-05 source and compiled files on separate loopback port 5180; provide fresh, early chest-supplied construction, defended pre-warning network and optional Turbine starts with complete ordinary command histories and disclosed scripted/design assistance. Use an unscored guide and a new blank record covering P5/P6/P7/P8, the ammo retest and unresolved performance/exit positions. [Evidence](EX08D_PREPARATION_REPORT.md). Preparation and automated checks do not constitute human observations, approval of tuning, a phase verdict or a diagnosis of the original ammo report. No commit or push is authorised by this request.
+
+### D-EX-46 — begin independent Phase 9 city work (2026-09-08)
+
+**Authority:** owner (current user), “Ok lets continue with P9”. Begin Phase 9 with current-source scope reconciliation and independent city implementation. This supersedes requiring shared play to finish before this extracted city work; it does not state that play occurred or waive any human criterion.
+
+**Reconciled scope (agent):** [Phase 9 review](PHASE_9_SCOPE_REPORT.md) maps composed campaign validation, evidence-led generation/reservation fixes, saved naming and wayfinding, the retained 10,000-seed campaign sweep, engineering preparation and human ten-seed review. Reuse the integrated urban baseline, preserve EX-08D/5180 and its unfilled record, and leave existing human tasks available. Wider project progression, mystery and endgame remain EX-09/Q07. Technical bounds and concrete fixes are recorded with their implementation; this is not a balance or phase-pass decision and authorises no commit or push.
+
+### D-EX-47 — P9-01 completed-map validator and evidence runner (2026-09-08)
+
+**Authority:** owner (current user), “Lets do P9-01”. Implement the reviewed composed campaign validator and evidence runner.
+
+**Implementation choices (agent):** version-1 reports query a private clone of initialized metadata-10 campaign state, reuse physical placement rules separately from unlock/stock/reach checks, and explicitly distinguish connectivity, truck queries and gameplay/human evidence. Seeds 1–32 form the small diagnostic sweep, including 3/4/5 and holdouts 8/11/13; source hashes, all attempts and failures are retained with repeat/load/unchanged-state checks. Existing output is refused. Resumable 10,000-seed execution remains P9-04. [Report](P9_01_CITY_VALIDATION_REPORT.md) records 30 passing seeds and paid-command confirmation of survey-placement failures on 6/29; P9-02 owns those fixes. No reroll, geometry repair, balance change, human pass, commit or push is implied.
+
+
+### D-UI-01 — Intuitive UI and Visual Identity phase (2026-09-08)
+
+**Sequencing superseded by D-UI-02 below:** RI-02B now follows P9-05. The original placement and reuse direction in this record are historical; the UI design remains adopted.
+
+**Authority: decided design direction and documentation scope.** The owner supplied “Create the Intuitive UI and Visual Identity phase” and explicitly requested an implementation-ready plan, tracker integration and CLAUDE update, without production implementation in this run. [RI-02B specification](RI-02B_UI_SPEC.md) records the selected municipal electrical-equipment direction and seven bounded tasks. Its numerical visual tokens/layout sizes are agent-chosen tunable starting values within that direction; they are not measured usability results.
+
+RI-02B expands completed RI-02, complements integrated RI-02A and reuses P5–P8. It precedes remaining P9 engineering and broad EX-08 assessment/major expansion, without reopening completed P9-01 or waiting for city fixes. Existing human sessions remain available as historical-build observations. Phase 12/RI-13 consume the brought-forward UI evidence; P9-03 retains saved names/pins and reuses the shell/minimap. Gameplay, progression, physical reach, costs, discovery, warning schedule and existing command validation stay authoritative. New Pause explicitly uses existing time controls; ordinary panels preserve running state. The local optional UI preference record is presentation-only. No human gate is waived; no commit, push, merge, deploy or external tracker change is authorised.
+
+
+### D-UI-02 — UI redesign after Phase 9 (2026-09-08)
+
+**Authority: decided sequencing correction.** The owner asks “Can it be after phase 9?” Schedule RI-02B after Phase 9 engineering and refreshed preparation (P9-05), before broad EX-08 assessment/major expansion. This supersedes D-UI-01's placement before remaining P9 work, not its UI design. P9-02 resumes as the next implementation task; UI-01 waits on P9-05. P9-03 first supplies saved names/pins/navigation using existing UI, then RI-02B integrates and preserves it. P9-H and other human verdicts remain separately required, not inferred or waived; they do not block the subsequent UI engineering. Completed work and historical records remain unchanged.
+
+
+### D-EX-48 — P9-02 buildable tram surveys and saved-layout compatibility (2026-09-08)
+
+**Authority:** owner (current user), “Ok lets do P9-02”. Address the demonstrated seed-6/29 failures under the Phase 9 scope. D-UI-02 places the UI redesign after P9-05; that sequencing remains intact.
+
+**Implementation choices (agent):** the existing bounded first-route search now rejects ground outside DARK/HELD, including every stop-pad tile, matching ordinary construction and the later district search. New campaigns record survey revision 2 and campaign fingerprint `9fc92bfc`; missing revision denotes the preserved older survey. Loading never reroutes an existing survey or changes its stock; older command histories cannot claim replay from the revised fresh factory. [P9-02 report](P9_02_SURVEY_RELIABILITY_REPORT.md) records geometry, ordinary paid routes, compatibility and refreshed evidence. The city algorithm, prices, human gates and broader 10,000-seed obligation are unchanged. No commit or push is authorised.
+
+
+### D-EX-49 — P9-03 saved naming and wayfinding (2026-09-08)
+
+**Authority:** owner (current user), “Continue with P9-03”. Implement the reviewed saved naming, pins and knowledge-aware navigation subset.
+
+**Implementation choices (agent):** reuse generated city names and discovery knowledge, with optional version-1 annotations/physical visit records. Bounds are 64 characters, 80 name overrides and 32 pins; IDs are independent of names. Pins target known districts; camera/selection never grant knowledge or issue travel. Existing saves keep geometry/stock and begin recording visits on resume, with honest incomplete old-log replay provenance. New fingerprint `bd3b8939` includes navigation rules. [Report](P9_03_WAYFINDING_REPORT.md) records actual checks and source differences. RI-02B remains after P9-05; human gates, broader seed evidence and Q07 remain separate. No commit or push is authorised.
+
+
+### D-EX-50 — P9-04 declared population evidence and measured repair follow-up (2026-09-08)
+
+**Authority:** owner (current user), “Onto P9-04”. Complete the reviewed declared population, resumable evidence runner and ordinary representative/holdout probes.
+
+**Implementation and measurement choices (agent):** declare seeds 1–10,000 inclusive; use 12 workers, immutable checksummed seed records, source/runtime/seed identity checks and explicit process-first versus warm timing. All 10,000 attempted seeds are retained: 9742 pass, 258 fail in 6 classes. No map, gameplay rule, config fingerprint or acceptance check was changed to improve this result. [Report](P9_04_POPULATION_REPORT.md) distinguishes passing code/short paid probes from the failed population and longer unattended seed-102 scenario.
+
+**Follow-up (agent):** P9-04R records the demonstrated generation/survey repairs before P9-05. Preserve this baseline and old saves/logs, version future generation changes, exercise the failure classes and retain a fresh complete population comparison. This records required engineering work, not approval of new progression or a waived validator check. Human ten-seed/shared play, RI-02B after P9-05, Q07 and performance obligations remain separate. No human verdict, commit or push is authorised by this measurement.
+
+
+### D-EX-51 — P9-04R composed survey repair and retained comparison (2026-09-09)
+
+**Authority:** owner (current user), “Ok continue with p9-04r”. Implement the measured repair follow-up defined by D-EX-50 and PROGRESS; preserve old evidence, saved layouts and logs.
+
+**Implementation choices (agent):** fresh survey revision 3 accepts initial/later route and stop arrangements only after complete district source/workshop/cache/recruit/Turbine composition succeeds. Reject rubble throughout stop footprints; use actual district-owned facility tiles and search beyond a preferred pad before rejecting the district. Stable candidate ordering uses the original seed and unchanged base city. Candidate metadata/events/revision are discarded on placement failure; existing safety distances, rewards, costs and validator rules remain unchanged. Older saved surveys are not rerouted, and incomplete historical session logs survive resaving without a fresh-factory replay promise.
+
+**Evidence:** the separate complete 1–10,000 comparison passes every seed: 258 failed → passed, 9742 passed → passed, no base-generator retry-index changes. The failed P9-04 baseline remains unchanged. 351 full + 24 focused tests, 12 paid freight/truck probes, 36 powered extraction probes, 78 campaign experiment checks and eight browser save/reload cases pass. [Report](P9_04R_REPAIR_REPORT.md) retains preliminary failures, source provenance and test scope.
+
+**Handoff:** P9-05 is runnable for engineering review and human preparation. RI-02B remains after P9-05. Human ten-seed/shared play, P6-AMMO, reference performance and Q07 remain separate; no phase verdict, commit or push is inferred.
+
+### D-EX-52 — P9-05 engineering readiness and separate human checkpoint (2026-09-09)
+
+**Authority:** owner (current user), “Ok onto P9-05”. Complete the approved city engineering review and refreshed human preparation. No new gameplay rule, human result, commit or push is implied.
+
+**Measured implementation (agent):** final P9-04R's 205 source inputs and six production files match the freshly rebuilt handoff. New 351 full + 29 focused tests, typechecks/build/lint/legacy snapshot, 20 current city and two historical-save browser cases, eight prepared start/save cases, both-width truck/direct-ammo and paid Turbine controls, natural warning and 80 live edits pass. The exact-source 10,000/10,000 population and 78 campaign checks are retained and integrity checked, not rerun or relabelled. Existing session-log provenance exception in those experiments remains explicit. [Readiness report](P9_05_READINESS_REPORT.md) records boundaries and fresh evidence.
+
+**Preparation choices (agent):** separate frozen port 5181, ten declared fresh seeds 3/4/5/8/11/13/80/88/102/842, ordinary-command assisted construction/network/Turbine starts, a comparable ten-seed protocol and blank human record. No stock/HP/clock/position injection; supplied prefixes/designs disclose assistance. Preserve EX-08D/5180, older checkpoints and prior owner Phase 5 success. Current sample frame intervals reach 116.8 ms; no performance fix or ammo diagnosis is claimed.
+
+**Handoff:** P9-05 is done; P9-H is available and RI-02B-UI-01 is the next implementation under D-UI-02. Human city fairness/recognition/route choices and P6/P7/P8/EX-08/T18 verdicts remain separate and open; P6-AMMO awaits actual retest, reference performance remains unresolved, and wider Q07 progression/endgame is unchanged.
+
+### D-UI-03 — UI-01 shared shell and input foundations (2026-09-09)
+
+**Authority:** owner (current user), “Let’s move into RI-02B-UI-01”. Implement the adopted D-UI-01 specification after completed P9-05 under D-UI-02. Delivered-interface human approval/play is not yet recorded.
+
+**Implementation choices (agent):** extract uiShell.ts with shared DOM controls, capability adapters, one drawer, modal Pause/start/save actions and explicit input/focus ownership. Existing simulation commands and domain panels remain authoritative. UI capture cancels unfinished belt/blueprint drags before pointer-up can commit them. The first city click while a drawer is open dismisses it without acting underneath. Camera framing reserves top/bottom/drawer space without moving the engineer. Readability refinement changes the candidate border from #69837D to #8DA79F after a failed raised-control contrast check; final shared normal-text/border minimums are 5.60:1 / 4.00:1. This is measured presentation tuning, not a core gameplay rule or comprehensive accessibility acceptance.
+
+**Evidence/handoff:** [UI-01 evidence](evidence/ui-redesign/README.md) records 351 full tests, types/build/lint, both-width actual UI input/save/replay, adapter/legacy/missing-save checks and opened screenshots. Simulation/harness and save schema are unchanged, campaign fingerprint remains ba11e896, and frozen P9/EX-08D checkpoints remain intact. UI-01 is complete; UI-02 is next for core HUD/contextual interaction/truthful objectives. Later UI settings/content, existing performance findings, human gates and wider Q07 remain separate. No commit or push.
+
+### D-UI-04 — UI-02 core HUD and truthful next actions (2026-09-09)
+
+**Authority:** owner (current user), “Ok lets move to UI-02”. Implements the adopted D-UI-01 specification after UI-01 under D-UI-02. This is implementation authority, not a human gameplay verdict.
+
+**Implementation choices (agent):** a single DOM campaign HUD replaces the four canvas corners. Existing clock/speed, warnings, names, navigation and discovery filters remain authoritative. A read-only sim query selects the same action for the prompt and E: pointed object first; otherwise reachable Home supplies first, then the nearest available interaction. Down prevents interaction; repairs retain priority over the damaged object. Existing commands and transfers enforce payment/reach. Construction affordability and hand-craft availability are extracted from their existing validators, with unchanged costs/queue behaviour. Opening guidance follows carried stock, real Home stock, existing machine operation, saved production and restoration; no quest/save schema or persistent UI achievement is added. The opening ID is distinct from the later repair workshop. Projects exposes one optional known objective; selection and Show location remain presentation only. Warnings use amber ahead of dusk and danger colour for active raids/assaults.
+
+**Evidence/handoff:** [UI-02 evidence](evidence/ui-redesign/README.md) records 359 full and 22 focused tests, types/build/lint, actual two-width opening/shell/save/replay checks, prepared states and natural warning visible in Pause. UI-03 is next. Final catalogue, deeper inspection/restoration, settings/scaling, formal human review, existing performance findings and Q07 remain separate. Frozen P9/EX-08D evidence, save schema and campaign fingerprint ba11e896 are preserved. No commit or push.
+
+### D-UI-05 — UI-03 building controls and stable shortcuts (2026-09-09)
+
+**Authority:** owner (current user), “Ok onto UI-03”. Implements D-UI-01 after UI-01/UI-02. This is implementation authority, not a human gameplay verdict.
+
+**Implementation choices (agent):** Equipment groups Production/Logistics/Power/Defence; Infrastructure and Library retain existing blueprint/history controls. A read-only sim knowledge projection hides unknown plans and exposes discovered locked requirements. Ten fixed slots use the specified belt/inserter/excavator/assembler/turret/lamp/pole/generator/rifle/floodlight defaults on 1–9/0. Explicit assignment swaps duplicates; clear and adjacent moves preserve other positions. Unknown saved assignments remain anonymous reserved slots. Optional `relight.ui.v1` stores version-one preferences outside gameplay saves/replay, repairs malformed records on explicit edits and falls back to session-only changes when storage is unavailable. Rifle and existing letter bindings remain. UI-06 owns the rest of preferences/rebinding/scaling.
+
+Stock, prices, shortages and packed-first payment use sim queries and ordinary construct commands. Selection closes the drawer and restores canvas focus; rejected placement retains the tool with one cursor reason. R/Escape/repeated building and right-click packing retain their commands. Less frequent navigation actions sit in More; its Escape/focus and existing shell input capture apply. Existing blueprint copy/queue/removal/library adapters are integrated without new construction mechanics.
+
+**Evidence/handoff:** [UI-03 evidence](evidence/ui-redesign/README.md): 365 full and 43 focused tests, types/build/lint, both-width paid placement/packing/shortcut/save/replay and input checks, preference failure checks and actual-game images. UI-04 is next. Existing save schema, campaign fingerprint ba11e896, city generation, harness and frozen UI-02/P9/EX-08D evidence remain unchanged. Formal human gates, performance findings, P6-AMMO and Q07 remain open. No commit or push.
+
+### D-UI-06 — UI-04 inspection, scoped inventory and diagnostics (2026-09-09)
+
+**Authority:** owner (current user), “Ok onto UI-04”. Implements D-UI-01 after UI-03. Engineering implementation is separate from human usability/gameplay acceptance.
+
+**Implementation choices (agent):** one identity-based inspector orders name/location, operating statement, measured useful output, inputs, current constraints, existing actions and collapsible detailed rates/circuit/contents. Pin retains identity through building and Escape cancellation; a removed ID shows a dismissible removed card and never retargets replacement coordinates. A read-only sim constraint query combines the existing power/disabled and operating predicates; current missing inputs and output space are independent, while shortages for an already-running next batch are labelled separately. No-load remains neutral, and unmeasured throughput remains unavailable. Missing-input help links the existing item guide and only real known Home supplies/finite patches. Camera location is presentation only.
+
+One transfer drawer keeps pockets, Home/chest stock, stop platform, arrivals and reserved inbound distinct. Target identity is preserved when removed. Existing transfer quantities/actions remain; read-only previews use pool/reach/stack/capacity predicates, including partial amounts and arrival-first station withdrawal. Truck preview is extracted from its command validator; cargo remains physically separate. Recipe/filter/priority, hand craft, station requests and construction delivery retain normal validated commands. Precise production/power figures remain in Management and inspection Details, outside Developer. UI-05 owns project circuits/alerts and UI-06 owns full settings/scaling/integration.
+
+**Evidence/handoff:** [UI-04 evidence](evidence/ui-redesign/README.md): 370 full and 35 focused tests, types/build/lint, both-width paid identity/settings/transfers/save/replay and input checks plus actual working/stalled images. UI-05 is next. Save/session schema, campaign fingerprint ba11e896, city generation, harness and frozen UI-03/P9/EX-08D evidence are preserved. Human gates, P6-AMMO, Q07 and performance findings remain open. No commit or push.
+
+### D-UI-07 — UI-05 Projects and actionable alerts (2026-09-09)
+
+**Authority:** owner (current user), “Continue”, following UI-04 completion and the established next-task order. Implements the existing UI-05 specification; engineering checks do not substitute for human play.
+
+**Implementation choices (agent):** one known-project selector and the existing single tracked objective. Sim queries expose actual material requirements/delivered stock, carried amounts, separately identified Home stock, local power and capacity-limited kit collection. The existing site delivery prerequisite/reach check is shared with its command. Partial delivery can run without power; ready delivery submits deliver/restore; empty pockets explain refusal or allow Restore when ready. Completion uses restoredAt despite consumed/reset buffers. Radio restoration and precision purchase remain different costs and commands. Current-state local actions dispatch ordinary logged commands immediately; a brief per-gesture lock prevents a double-click spilling into collection or another purchase. No gameplay costs, rewards, timers, power rules or schema change.
+
+**Alerts:** read-only knownCampaignThreat/campaignWarning, saved schedule/received warning, existing close-range visible hostile facts, commissioned core HP and known machine blockers supply keyed conditions. No hidden roster or target query. Engineer/base danger outranks schedule, then production. One highest-priority HUD condition stays visible beside a narrow drawer and during Pause; at most three short transient notices coalesce repeats. The session inbox preserves dismissed messages and resolved conditions; dismissal does not alter gameplay or the live HUD. Saved received intelligence is shown after a radio outage. Inbox dismissal/history and tracked selection are presentation state; new persistent notification settings are outside this task.
+
+**Evidence:** docs/evidence/ui-redesign/README.md UI-05; 373 full and 16 focused tests, types/build/lint/docs and actual-game checks at 1366×768 and 900×768. Paid walked checkpoints, labelled outage/threat fixtures and exact replay are distinguished. UI-06 is next; existing human gates and performance findings remain open. No commit or push.
+
+### D-UI-08 — UI-06 scaling, preferences and integration (2026-09-09)
+
+**Authority:** owner (current user), “Continue”, following the UI-01–05 sequence. Implements the existing UI-06 specification; developer browser QA is not human acceptance.
+
+**Implementation choices (agent):** 100/125/150% UI scale changes shared text/control geometry independently of camera zoom. Layout uses logical viewport size to reflow compact and short screens; all ten quickbar slots retain their order. Settings offers system motion by default and explicit reduced/full overrides. The versioned browser preference record extends the existing quickbar format with scale, motion, validated binding overrides and opening-hint dismissal. Corrupt fields recover independently; denied storage keeps session settings and explains retry. Saves and simulation state contain none of these settings.
+
+Bindings are live in handlers, held movement, buttons and Help. Same-context collisions are rejected; Ctrl/Cmd and blueprint contexts retain their established distinction. Escape, Tab navigation and numbered slot keys stay fixed; Build edits slot contents. Applying preferences releases held world input. UI target handlers receive key events before bubbling is blocked from the world. Drawer, More menu and Pause layers preserve accessible controls and focus. Existing profile-separated save/load/export and unsaved-change confirmation are retained.
+
+**Evidence:** docs/evidence/ui-redesign/README.md UI-06; 376 full and 17 focused tests, types/build/lint/docs, eight PC scale cases, current campaign/legacy exact replay, older campaign migration, library/order/truck/freight and prior UI flows. The old P7 save loads through existing upgrades and truthfully loses complete replay eligibility; no migration or replay policy changed. Simulation, harness, city generation, costs and save schema are unchanged. UI-07 is next. Human gates and existing performance findings remain open; no commit or push.
+
+### D-UI-09 — UI-07 actual review and bounded refinement (2026-09-09)
+
+**Authority:** owner (current user), “Continue”, after verified UI-06. Executes the existing UI-07 review scope, including one targeted refinement pass; this is not human usability approval.
+
+**Observed and corrected:** the startup notice and core HP label obscured the fresh engineer; a brief “You” label now identifies the character until two tiles have been walked, the core label sits above its building and the fresh paused opening uses its existing HUD instead of a transient load notice. Ordinary loaded campaigns retain a concise load acknowledgement. At high scale on short screens, reduced secondary spacing leaves more city visible; while a drawer and urgent warning are open, the compact objective card yields to danger (Projects retains its full information). HP, equipment, stock, speed and warning controls remain visible. Ultrawide drawer/camera reservations now include its actual safe margin, preventing the warning strip from covering the drawer header. All changes are presentation-only in five game files.
+
+**Evidence and limits:** docs/evidence/ui-redesign/README.md UI-07, exact UI-06 comparison and preserved P9-05 prepared starts. Opened baseline is 1280×720, seed 3, time 0:00, camera 0.65. Paid commands verify supplies/build/inspection/project delivery; explicit prepared urgent fixtures cover ten states at two sizes. 376 full + 17 focused tests, types/build/lint/docs, eight scales and save/replay/input checks pass. No new simulation batches or content. The immutable UI-07 build is served on port 5182; mutable 5178 and frozen 5177/5179/5180/5181 remain separate.
+
+Fresh-player observation is recommended and pending; its blank current-build observation area stays in the shared evidence note. No intuition score or unaided-play success is inferred. UI-07 engineering is complete; EX-08 remains blocked on EX-08H and broader progression retains Q07 and its other prerequisites. Existing formal human gates and performance findings remain open. No commit or push.
+
+### D-UI-10 — Approved illustrated UI implementation and normal player time (2026-09-09)
+
+Authority: owner’s pasted implementation request and accompanying approved concept image in this conversation. Extends RI-02B through UI-08 and supersedes prior prefilled text shortcuts, resource cards and time-acceleration retention. Implement now: ten icon shortcuts with catalogue replacement/bar swaps and accessible alternatives; compact discovered catalogue; temporary real-stack Backpack and paired legal storage transfers; quiet local minimap/HUD; player speed 0/1 only. Keep existing capacities, costs, discovery, raid timing, city artwork and headless runners. Original SVG icons are permitted. Existing optional UI preferences preserve arrangements; optional authoritative stack allocation supports split/move without a second UI inventory. Verification is focused checks plus inspected actual-game screenshots, not a new broad simulation campaign. Completed UI-01–07 evidence and human gates remain separate. See docs/RI-02B_UI_SPEC.md and docs/evidence/ui-redesign/README.md.
+
+### D-UI-11 — Mouse flashlight and fully lit Home (2026-09-09)
+
+Owner request: “I want the player to have a flashlight that points in the direction of the mouse. Also the main starting base isn't fully light up, it should be”. This supersedes D-B5-1's no-player-light choice for the exploration campaign. Campaign players now start with a mouse-aimed visibility beam; Home's complete lot receives built-in lighting in both the render mask and simulation light queries, including old saves. As a bounded implementation choice, the personal beam only improves visibility and does not supply power, clear rot or make shades vulnerable. The beam's 12-tile reach, 60-degree width and soft falloff are provisional visual tuning, not owner-specified values. Legacy entry keeps its prior default with the existing opt-in preview hook. Broader human gates remain open.
+
+### D-UI-12 — Direct conveyor loading and unloading (2026-09-09)
+
+Owner: “I don't want to have to put inserters. Conveyors should be able to deliver to and take from anything”, after describing Chest → conveyor → machine → conveyor → chest → conveyor → Turret. This explicitly supersedes mandatory inserter extraction in the exploration campaign. Conveyors touching a machine/storage side and pointing away withdraw transferable contents; inward conveyors deliver accepted items. Assemblers/Mixers export finished products, Excavators export mined items, Home and supply chests export stored materials/magazines, generators export unused coal, turrets export whole magazines, and stations export arrivals before platform stock. Conveyor entrances include underground inputs and splitter rear ports. Existing item types, recipe acceptance, belt rates and production power requirements remain; inserters remain optional filtered transport. Legacy simulation retains its earlier extraction behavior.
+
+Implementation choices: fair saved item selection, downstream ingredient/capacity checks accounting for material already on conveyors, conserved transfers only when the receiving conveyor has room, and cyan IN / amber OUT markers matching real footprint edges. Partial turret rounds and packed machines are not converted into unsupported belt items. Existing campaign saves acquire direct connections on load; no user layout migration is needed. This changes current replay behavior from older code, so historical recorded evidence remains tied to its original build.
+
+### D-UI-13 — Permanent tram stops, roaming enemies and map inspection (2026-09-09)
+
+Authority: the owner's three gameplay requests in this conversation. The exploration campaign has four fixed, non-buildable tram stops. Power at least two for the existing tram to automatically serve the powered stops; an outage below two parks it without discarding freight. The surveyed trunk is permanent infrastructure. Home, the first outpost and the later outpost retain their locations where clear; the fourth platform occupies another district along the line, extending along existing streets if needed. Empty new infrastructure has no item cost or pickup reward. Existing saves adopt compatible stations/vehicle, keep all existing inventories and machinery, and retain any already-earned kit. Additional old trams park; an old save whose reserved platform is occupied uses a clear nearby platform in that district. No new kit or player-built track/stops/trams are required. Restoration still commissions bases and unlocks the truck; powering a platform itself is sufficient for tram service. Existing freight requests, exports, capacity, return cargo and local power rules remain authoritative.
+
+Ruin crawlers roam locally, detect the player and retain pursuit beyond the starting area until the player escapes. Provisional tuning: 6-tile patrol radius, 8-tile detection and 20-tile player-to-enemy escape distance. The optional Stalker also roams its yard and chases beyond it, with 5-tile detection and the same 20-tile escape distance; legacy archetype behaviour is unchanged. Base raids retain their base objective but retaliation uses the larger escape distance. These values are implementation choices, not owner-specified balance numbers.
+
+The map is for inspection and pins, with a prominent outlined player marker and YOU label. Clicking it never submits a move command. The local minimap gets a stronger marker too. This supersedes campaign build-your-own tram, site-home leash and city-map click-to-walk directions; historic evidence remains tied to its source build. Migrated old command logs are marked incomplete for the revised factory. Human gameplay acceptance remains pending.
+
+### D-EX-CORRECTIONS — implemented initial defaults (2026-09-09)
+
+The owner requested the full audit corrections and rejected the old frontage economy. EX-09C-04 covers defended site lifecycle and explicit equipment recovery. One removable +10% speed slot and paid +25% whole-round hopper/freight improvements are initial defaults, with no baseline service relocking. Three 600 kW plants, three physical cores and optional artifact caches; 15/18-minute first-day minor slots; production costs, relay equipment, Cannon/role tuning and the Heart/Furnace/Crown transition designs are new reversible implementation choices recorded in docs/Implementation/GAMEPLAY_CORRECTIONS.md and central code. Efficient empty-start measurements motivate the preparation window; they are not fresh-player balance approval. Q07 ending and human/release judgments remain open.
+
+### D-PE-01 — Player-experience correction planning; preserve component recipes (2026-09-10)
+
+Authority: the owner requested, “Lets plan everything except 6, We will add in more turrets that use these resources,” referring to findings in docs/Implementation/PLAYER_CLARITY_AND_FUN_AUDIT_2026-09-10.md. Plan findings 1–5 and 7–9. Exclude finding 6's recipe removal/simplification recommendation: keep Wire, Frame and Board production and existing stocks for future turret consumers. This is a planning request; it does not specify turret types, costs, ammunition, unlocks or balance, and does not implement the correction set.
+
+The proposed implementation and acceptance scope is docs/Implementation/PLAYER_EXPERIENCE_CORRECTION_PLAN.md. Proposed stack values, initial retention of powered-light Shade vulnerability, and later evidence-led encounter revisions are agent recommendations, not separately owner-approved balance choices. Preserve the original audit as evidence; PROGRESS remains the sole execution list.
+
+## D-PE-02 — Implement player-experience corrections (2026-09-10)
+
+Decided: the owner requested “Lets implement these changes” following PE-PLAN. Implement A–H, excluding audit finding 6. Retain powered-light Shade vulnerability and cosmetic flashlight; use the proposed bulk stacks of 50 and Shell stacks of 20 as initial correction defaults. Preserve component recipes for future turrets; no new turret designs or reward/balance changes are specified. Human usability/fun verdicts remain separate.
+
+
+## D-PE-03 — Owner playtest inventory and opening corrections (2026-09-10)
+
+The owner requested Generator → Excavator → Storage → Belts with amounts, a turret before ammunition, visible workshop crafting, persistent named power outages with map icons, quantity-controlled machine inventories, and mouse-following stack icons. PE-PLAYTEST-02 implements those corrections using existing prices, recipes, physical stock, reach and capacity. Whole magazines remain the transferable turret unit; loose rounds stay loaded. Future turret specifications and the earlier finding-6 exclusion are unchanged.

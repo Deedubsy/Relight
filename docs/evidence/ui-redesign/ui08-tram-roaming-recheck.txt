@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: composed city query is repeatable, read-only and stable after load; includes every current site
+ok 1 - composed city query is repeatable, read-only and stable after load; includes every current site
+  ---
+  duration_ms: 2419.390856
+  type: 'test'
+  ...
+# Subtest: permanent rail remains geometrically valid and rejects player construction without spending stock
+ok 2 - permanent rail remains geometrically valid and rejects player construction without spending stock
+  ---
+  duration_ms: 500.354705
+  type: 'test'
+  ...
+# Subtest: bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+ok 3 - bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+  ---
+  duration_ms: 723.508945
+  type: 'test'
+  ...
+# Subtest: blocked interactions are found from the final shared collision mask, not just the site centre
+ok 4 - blocked interactions are found from the final shared collision mask, not just the site centre
+  ---
+  duration_ms: 367.923935
+  type: 'test'
+  ...
+# Subtest: runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+ok 5 - runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+  ---
+  duration_ms: 2.722077
+  type: 'test'
+  ...
+# Subtest: existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+ok 6 - existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+  ---
+  duration_ms: 927.908003
+  type: 'test'
+  ...
+# Subtest: malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+ok 7 - malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+  ---
+  duration_ms: 1052.96799
+  type: 'test'
+  ...
+# Subtest: four permanent stops exist at repeatable positions; infrastructure cannot be built or packed
+ok 8 - four permanent stops exist at repeatable positions; infrastructure cannot be built or packed
+  ---
+  duration_ms: 1003.387644
+  type: 'test'
+  ...
+# Subtest: power any second stop to automatically carry requested cargo; outage parks, reconnect resumes and save continues identically
+ok 9 - power any second stop to automatically carry requested cargo; outage parks, reconnect resumes and save continues identically
+  ---
+  duration_ms: 835.51269
+  type: 'test'
+  ...
+# Subtest: all four powered stops participate and unpowered stops are skipped without unloading there
+ok 10 - all four powered stops participate and unpowered stops are skipped without unloading there
+  ---
+  duration_ms: 327.4401
+  type: 'test'
+  ...
+# Subtest: existing network save adopts its stations and tram once without deleting any stock or machine
+ok 11 - existing network save adopts its stations and tram once without deleting any stock or machine
+  ---
+  duration_ms: 1040.764804
+  type: 'test'
+  ...
+# Subtest: ruin enemies roam, retain chase beyond notice/home radius and disengage only at escape distance; patrol survives save
+ok 12 - ruin enemies roam, retain chase beyond notice/home radius and disengage only at escape distance; patrol survives save
+  ---
+  duration_ms: 266.29224
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 14976.271292

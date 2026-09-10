@@ -1,0 +1,1 @@
+import{createCampaign,stateProblem}from'../../../packages/sim/src/index';import{validateRiverfront}from'../../../packages/sim/src/city/validateRiverfront';import{writeFileSync}from'node:fs';const s=createCampaign(),{reachable,...v}=validateRiverfront(s);console.log(v,stateProblem(s));writeFileSync('docs/evidence/city-c/validation.json',JSON.stringify(v,null,2));

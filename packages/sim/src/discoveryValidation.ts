@@ -5,7 +5,7 @@ import { stalkerHp } from './stalker';
 export function discoveryProblem(st: SimState): string {
   const c=st.campaign,d=c?.discovery;
   if ((c?.version??0)<5) return d?'discovery requires campaign metadata version 5':'';
-  if (!d || d.version!==1 || !st.flow || !st.city || d.id!==discoveryId(st.seed) || d.block!==c!.districts!.workshop.block) return 'invalid campaign discovery';
+  if (!d || d.version!==1 || !st.flow || !st.city || d.id!==discoveryId(st.seed) || (!st.city.mapId&&d.block!==c!.districts!.workshop.block)) return 'invalid campaign discovery';
   const num=(n:unknown):n is number=>typeof n==='number'&&Number.isFinite(n);
   const int=(n:unknown,min=0):n is number=>num(n)&&Number.isSafeInteger(n)&&n>=min;
   const time=(n:unknown)=>int(n,-1)&&(n as number)<=st.t;

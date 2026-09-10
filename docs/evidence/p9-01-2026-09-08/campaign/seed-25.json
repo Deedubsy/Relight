@@ -1,0 +1,177 @@
+{
+  "source_commit": "8e54ed602da159905b0428f316f6e75cb25ae351",
+  "config_hash": "9d725a52",
+  "config_ref": {
+    "kind": "campaign",
+    "ruleset": "exploration-v2",
+    "opening": "culdesac-v1"
+  },
+  "sourceDigest": "2652082b45f7a5e196e5c0c5b0c958f2d8e753184a92c3d20f772e8b4e85c93a",
+  "seed": 25,
+  "status": "passed",
+  "report": {
+    "version": 1,
+    "seed": 25,
+    "profile": "riverside-v1",
+    "configHash": "d51dfee0",
+    "metadata": 10,
+    "ok": true,
+    "failures": [],
+    "measurements": {
+      "reachableTiles": 539751,
+      "routeTiles": 62,
+      "generatorAttempt": 0,
+      "sites": [
+        {
+          "id": "station",
+          "approach": 549301,
+          "cardinalSteps": 72
+        },
+        {
+          "id": "radio",
+          "approach": 531690,
+          "cardinalSteps": 81
+        },
+        {
+          "id": "northStation",
+          "approach": 518898,
+          "cardinalSteps": 89
+        },
+        {
+          "id": "workshop",
+          "approach": 502882,
+          "cardinalSteps": 125
+        },
+        {
+          "id": "turbine",
+          "approach": 550146,
+          "cardinalSteps": 28
+        },
+        {
+          "id": "discovery",
+          "approach": 511683,
+          "cardinalSteps": 113
+        },
+        {
+          "id": "recruit:electricians",
+          "approach": 543745,
+          "cardinalSteps": 19
+        },
+        {
+          "id": "recruit:concrete",
+          "approach": 530141,
+          "cardinalSteps": 32
+        },
+        {
+          "id": "recruit:lamplighters",
+          "approach": 541372,
+          "cardinalSteps": 49
+        },
+        {
+          "id": "recruit:surveyors",
+          "approach": 529324,
+          "cardinalSteps": 50
+        },
+        {
+          "id": "recruit:foreman",
+          "approach": 527760,
+          "cardinalSteps": 54
+        },
+        {
+          "id": "source:steel",
+          "approach": 531695,
+          "cardinalSteps": 76
+        },
+        {
+          "id": "source:copper",
+          "approach": 506087,
+          "cardinalSteps": 116
+        },
+        {
+          "id": "source:coal",
+          "approach": 507727,
+          "cardinalSteps": 74
+        }
+      ],
+      "resources": [
+        {
+          "item": "steel",
+          "reachableTiles": 25,
+          "units": 7679.999999999997
+        },
+        {
+          "item": "copper",
+          "reachableTiles": 12,
+          "units": 1200
+        },
+        {
+          "item": "coal",
+          "reachableTiles": 9,
+          "units": 700
+        }
+      ],
+      "factory": {
+        "x": 516,
+        "y": 666,
+        "w": 3,
+        "h": 3
+      },
+      "extraction": [
+        {
+          "item": "steel",
+          "footprint": {
+            "x": 484,
+            "y": 669,
+            "w": 3,
+            "h": 3
+          }
+        },
+        {
+          "item": "copper",
+          "footprint": {
+            "x": 476,
+            "y": 623,
+            "w": 3,
+            "h": 3
+          }
+        },
+        {
+          "item": "coal",
+          "footprint": {
+            "x": 516,
+            "y": 625,
+            "w": 3,
+            "h": 3
+          }
+        }
+      ],
+      "origins": [
+        {
+          "block": 362,
+          "origin": 535748,
+          "staging": 535748
+        },
+        {
+          "block": 363,
+          "origin": 533279,
+          "staging": 533279
+        },
+        {
+          "block": 337,
+          "origin": 519675,
+          "staging": 519675
+        }
+      ],
+      "truck": {
+        "status": "not-unlocked",
+        "queries": []
+      }
+    },
+    "scope": "Current physical snapshot. Cardinal connectivity is not travel time or safe combat passage. Placement geometry excludes unlocks, stock and power supply. Truck queries require an existing truck. No paid construction, survival or human fairness is established."
+  },
+  "unchanged": true,
+  "deterministic": true,
+  "loadSame": true,
+  "hash": "7e164507",
+  "wallMs": 1718.0250990000059
+}

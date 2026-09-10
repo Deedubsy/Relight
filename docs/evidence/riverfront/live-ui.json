@@ -1,0 +1,35 @@
+{
+  "results": [
+    "TAB open/close preserves camera",
+    "Map clicks select without movement; secret core remains broad search",
+    "Reloaded plant/core/artifact/recruit progress shown on authored map",
+    {
+      "scene": "raid",
+      "actors": 11,
+      "simulationSeconds": 3,
+      "frames": 180,
+      "p50": 16.699999999999818,
+      "p95": 16.799999999999955,
+      "max": 16.800000000000182,
+      "draw": {
+        "ema": 1.42,
+        "worst": 9.1
+      }
+    },
+    {
+      "scene": "plant-raid",
+      "actors": 9,
+      "simulationSeconds": 3,
+      "frames": 180,
+      "p50": 16.699999999999818,
+      "p95": 16.800000000000182,
+      "max": 16.800000000000182,
+      "draw": {
+        "ema": 1.48,
+        "worst": 8.4
+      }
+    }
+  ],
+  "errors": [],
+  "environment": "Windows Chrome headless 1600x1000; saved raid fixtures at normal 1x"
+}

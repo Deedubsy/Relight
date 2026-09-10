@@ -1,0 +1,2097 @@
+
+> relight-prototype@0.1.0 test
+> npm test -w packages/sim
+
+
+> @relight/sim@0.1.0 test
+> tsx --test --test-concurrency=1 test/*.test.ts
+
+TAP version 13
+# Subtest: area removal: read-only whole-footprint preview, atomic paid packing, settings undo and saved redo
+ok 1 - area removal: read-only whole-footprint preview, atomic paid packing, settings undo and saved redo
+  ---
+  duration_ms: 2132.843131
+  type: 'test'
+  ...
+# Subtest: area removal: changed identities/settings, new neighbours and changed reach refuse without partial effects
+ok 2 - area removal: changed identities/settings, new neighbours and changed reach refuse without partial effects
+  ---
+  duration_ms: 780.694816
+  type: 'test'
+  ...
+# Subtest: area removal: cumulative pocket capacity refuses the whole group then recovers
+ok 3 - area removal: cumulative pocket capacity refuses the whole group then recovers
+  ---
+  duration_ms: 676.57863
+  type: 'test'
+  ...
+# Subtest: area removal: loaded belts and hidden tunnel items return once; undo does not refill machines
+ok 4 - area removal: loaded belts and hidden tunnel items return once; undo does not refill machines
+  ---
+  duration_ms: 1186.05031
+  type: 'test'
+  ...
+# Subtest: area removal: loose turret rounds require buffer space and never disappear
+ok 5 - area removal: loose turret rounds require buffer space and never disappear
+  ---
+  duration_ms: 436.070424
+  type: 'test'
+  ...
+# Subtest: area removal: busy machines, fractional contents, damaged defences and installed facilities stay
+ok 6 - area removal: busy machines, fractional contents, damaged defences and installed facilities stay
+  ---
+  duration_ms: 2254.710357
+  type: 'test'
+  ...
+# Subtest: area removal: cargo, held items and freight/filter/priority settings survive conserved packing history
+not ok 7 - area removal: cargo, held items and freight/filter/priority settings survive conserved packing history
+  ---
+  duration_ms: 1908.95493
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:52:1'
+  failureType: 'testCodeFailure'
+  error: 'No reachable site'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    spot (/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:8:350)
+    put (/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:9:52)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:53:255)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: area removal: ordinary paid command comparison records equal layouts/materials without a human tedium claim
+ok 8 - area removal: ordinary paid command comparison records equal layouts/materials without a human tedium claim
+  ---
+  duration_ms: 2149.628576
+  type: 'test'
+  ...
+# Subtest: clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard
+ok 9 - clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard
+  ---
+  duration_ms: 2311.345068
+  type: 'test'
+  ...
+# Subtest: rotations and reflections preserve rectangular footprints, tunnel roles and settings with correct left/right priority
+ok 10 - rotations and reflections preserve rectangular footprints, tunnel roles and settings with correct left/right priority
+  ---
+  duration_ms: 3.839881
+  type: 'test'
+  ...
+# Subtest: clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers
+ok 11 - clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers
+  ---
+  duration_ms: 1869.578769
+  type: 'test'
+  ...
+# Subtest: occupied, unaffordable and remote stamps are atomic and consume carried machines before materials
+ok 12 - occupied, unaffordable and remote stamps are atomic and consume carried machines before materials
+  ---
+  duration_ms: 540.096781
+  type: 'test'
+  ...
+# Subtest: copied underground pairs reject an intervening destination endpoint and orphan selections
+ok 13 - copied underground pairs reject an intervening destination endpoint and orphan selections
+  ---
+  duration_ms: 615.232702
+  type: 'test'
+  ...
+# Subtest: old post-P7 saves retain every existing site/layout/earned reward and gain only an unrecruited Foreman
+not ok 14 - old post-P7 saves retain every existing site/layout/earned reward and gain only an unrecruited Foreman
+  ---
+  duration_ms: 939.919929
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:86:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    ... Skipped lines
+    
+      [
+        {
+          busy: false,
+          dir: 0,
+          hold: null,
+    ...
+        },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 3,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'tramstop',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 2,
+    +     timer: 0,
+    +     x: 434,
+    +     y: 635
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 4,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'tramstop',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 2,
+    +     timer: 0,
+    +     x: 403,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 5,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'tramstop',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 2,
+    +     timer: 0,
+    +     x: 403,
+    +     y: 615
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 6,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'tramstop',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 2,
+    +     timer: 0,
+    +     x: 422,
+    +     y: 620
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 7,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 635
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 8,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 634
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 9,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 633
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 10,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 632
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 11,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 631
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 12,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 630
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 13,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 629
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 14,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 628
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 15,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 627
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 16,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 626
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 17,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 625
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 18,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 624
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 19,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 623
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 20,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 622
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 21,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 621
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 22,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 620
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 23,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 24,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 435,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 25,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 434,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 26,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 433,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 27,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 432,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 28,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 431,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 29,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 430,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 30,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 429,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 31,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 428,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 32,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 427,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 33,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 426,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 34,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 425,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 35,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 424,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 36,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 423,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 37,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 422,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 38,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 421,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 39,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 420,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 40,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 419,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 41,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 418,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 42,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 417,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 43,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 416,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 44,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 415,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 45,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 414,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 46,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 413,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 47,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 412,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 48,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 411,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 49,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 410,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 50,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 409,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 51,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 408,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 52,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 407,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 53,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 406,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 54,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 405,
+    +     y: 619
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 55,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 405,
+    +     y: 618
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 56,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 405,
+    +     y: 617
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 57,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 405,
+    +     y: 616
+    +   },
+    +   {
+    +     busy: false,
+    +     dir: 0,
+    +     hold: null,
+    +     id: 58,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'track',
+    +     out: 0,
+    +     phase: 0,
+    +     size: 1,
+    +     timer: 0,
+    +     x: 405,
+    +     y: 615
+    +   },
+    +   {
+    +     busy: false,
+    +     cargo: {},
+    +     dir: 0,
+    +     hold: null,
+    +     id: 59,
+    +     inv: {},
+    +     items: [],
+    +     kind: 'tram',
+    +     out: 0,
+    +     phase: 0,
+    +     run: {
+    +       fwd: true,
+    +       stop: -1
+    +     },
+    +     size: 1,
+    +     timer: 0,
+    +     x: 436,
+    +     y: 635
+    +   }
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0:
+      id: 1
+      kind: 'depot'
+      x: 418
+      y: 632
+      dir: 0
+      size: 6
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    1:
+      id: 2
+      kind: 'generator'
+      x: 428
+      y: 631
+      dir: 0
+      size: 2
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+        coal: 40
+      out: 0
+      busy: false
+  actual:
+    0:
+      id: 1
+      kind: 'depot'
+      x: 418
+      y: 632
+      dir: 0
+      size: 6
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    1:
+      id: 2
+      kind: 'generator'
+      x: 428
+      y: 631
+      dir: 0
+      size: 2
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+        coal: 40
+      out: 0
+      busy: false
+    2:
+      id: 3
+      kind: 'tramstop'
+      x: 434
+      y: 635
+      dir: 0
+      size: 2
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    3:
+      id: 4
+      kind: 'tramstop'
+      x: 403
+      y: 619
+      dir: 0
+      size: 2
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    4:
+      id: 5
+      kind: 'tramstop'
+      x: 403
+      y: 615
+      dir: 0
+      size: 2
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    5:
+      id: 6
+      kind: 'tramstop'
+      x: 422
+      y: 620
+      dir: 0
+      size: 2
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    6:
+      id: 7
+      kind: 'track'
+      x: 436
+      y: 635
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    7:
+      id: 8
+      kind: 'track'
+      x: 436
+      y: 634
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    8:
+      id: 9
+      kind: 'track'
+      x: 436
+      y: 633
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    9:
+      id: 10
+      kind: 'track'
+      x: 436
+      y: 632
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    10:
+      id: 11
+      kind: 'track'
+      x: 436
+      y: 631
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    11:
+      id: 12
+      kind: 'track'
+      x: 436
+      y: 630
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    12:
+      id: 13
+      kind: 'track'
+      x: 436
+      y: 629
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    13:
+      id: 14
+      kind: 'track'
+      x: 436
+      y: 628
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    14:
+      id: 15
+      kind: 'track'
+      x: 436
+      y: 627
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    15:
+      id: 16
+      kind: 'track'
+      x: 436
+      y: 626
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    16:
+      id: 17
+      kind: 'track'
+      x: 436
+      y: 625
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    17:
+      id: 18
+      kind: 'track'
+      x: 436
+      y: 624
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    18:
+      id: 19
+      kind: 'track'
+      x: 436
+      y: 623
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    19:
+      id: 20
+      kind: 'track'
+      x: 436
+      y: 622
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    20:
+      id: 21
+      kind: 'track'
+      x: 436
+      y: 621
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    21:
+      id: 22
+      kind: 'track'
+      x: 436
+      y: 620
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    22:
+      id: 23
+      kind: 'track'
+      x: 436
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    23:
+      id: 24
+      kind: 'track'
+      x: 435
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    24:
+      id: 25
+      kind: 'track'
+      x: 434
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    25:
+      id: 26
+      kind: 'track'
+      x: 433
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    26:
+      id: 27
+      kind: 'track'
+      x: 432
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    27:
+      id: 28
+      kind: 'track'
+      x: 431
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    28:
+      id: 29
+      kind: 'track'
+      x: 430
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    29:
+      id: 30
+      kind: 'track'
+      x: 429
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    30:
+      id: 31
+      kind: 'track'
+      x: 428
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    31:
+      id: 32
+      kind: 'track'
+      x: 427
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    32:
+      id: 33
+      kind: 'track'
+      x: 426
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    33:
+      id: 34
+      kind: 'track'
+      x: 425
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    34:
+      id: 35
+      kind: 'track'
+      x: 424
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    35:
+      id: 36
+      kind: 'track'
+      x: 423
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    36:
+      id: 37
+      kind: 'track'
+      x: 422
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    37:
+      id: 38
+      kind: 'track'
+      x: 421
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    38:
+      id: 39
+      kind: 'track'
+      x: 420
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    39:
+      id: 40
+      kind: 'track'
+      x: 419
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    40:
+      id: 41
+      kind: 'track'
+      x: 418
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    41:
+      id: 42
+      kind: 'track'
+      x: 417
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    42:
+      id: 43
+      kind: 'track'
+      x: 416
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    43:
+      id: 44
+      kind: 'track'
+      x: 415
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    44:
+      id: 45
+      kind: 'track'
+      x: 414
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    45:
+      id: 46
+      kind: 'track'
+      x: 413
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    46:
+      id: 47
+      kind: 'track'
+      x: 412
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    47:
+      id: 48
+      kind: 'track'
+      x: 411
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    48:
+      id: 49
+      kind: 'track'
+      x: 410
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    49:
+      id: 50
+      kind: 'track'
+      x: 409
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    50:
+      id: 51
+      kind: 'track'
+      x: 408
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    51:
+      id: 52
+      kind: 'track'
+      x: 407
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    52:
+      id: 53
+      kind: 'track'
+      x: 406
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    53:
+      id: 54
+      kind: 'track'
+      x: 405
+      y: 619
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    54:
+      id: 55
+      kind: 'track'
+      x: 405
+      y: 618
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    55:
+      id: 56
+      kind: 'track'
+      x: 405
+      y: 617
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    56:
+      id: 57
+      kind: 'track'
+      x: 405
+      y: 616
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    57:
+      id: 58
+      kind: 'track'
+      x: 405
+      y: 615
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+    58:
+      id: 59
+      kind: 'tram'
+      x: 436
+      y: 635
+      dir: 0
+      size: 1
+      items:
+      hold: ~
+      timer: 0
+      phase: 0
+      inv:
+      out: 0
+      busy: false
+      cargo:
+      run:
+        fwd: true
+        stop: -1
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:91:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds
+ok 15 - Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds
+  ---
+  duration_ms: 17586.921212
+  type: 'test'
+  ...
+# Subtest: ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening
+ok 16 - ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening
+  ---
+  duration_ms: 3751.127303
+  type: 'test'
+  ...
+# Subtest: a copied station retains freight request/export rules through paid placement and undo/redo without copying cargo
+not ok 17 - a copied station retains freight request/export rules through paid placement and undo/redo without copying cargo
+  ---
+  duration_ms: 1097.374223
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:119:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Permanent tram network: power the existing stops
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    send (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:10:75)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:125:24)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: old checkpoint logs remain incomplete after upgrading; current campaign saves remain complete
+ok 18 - old checkpoint logs remain incomplete after upgrading; current campaign saves remain complete
+  ---
+  duration_ms: 2025.466509
+  type: 'test'
+  ...
+# Subtest: library import/export is bounded, atomic, Foreman-gated and independent of clipboard and orders
+ok 19 - library import/export is bounded, atomic, Foreman-gated and independent of clipboard and orders
+  ---
+  duration_ms: 2928.854155
+  type: 'test'
+  ...
+# Subtest: library limits and metadata rejection preserve allocator and current selection
+ok 20 - library limits and metadata rejection preserve allocator and current selection
+  ---
+  duration_ms: 1070.228176
+  type: 'test'
+  ...
+# Subtest: ghost plans consume no stock or occupancy, reject overlap and bounds, and report exact missing stock
+ok 21 - ghost plans consume no stock or occupancy, reject overlap and bounds, and report exact missing stock
+  ---
+  duration_ms: 735.182682
+  type: 'test'
+  ...
+# Subtest: partial manual construction survives save/load; remaining build pays once and completed orders never requeue on undo
+ok 22 - partial manual construction survives save/load; remaining build pays once and completed orders never requeue on undo
+  ---
+  duration_ms: 1201.909773
+  type: 'test'
+  ...
+# Subtest: ordinary matching construction completes waiting orders, occupied mismatches and remote builds remain blocked
+ok 23 - ordinary matching construction completes waiting orders, occupied mismatches and remote builds remain blocked
+  ---
+  duration_ms: 642.30426
+  type: 'test'
+  ...
+# Subtest: order limits include history, cancel is terminal and deleting records never recycles IDs
+ok 24 - order limits include history, cancel is terminal and deleting records never recycles IDs
+  ---
+  duration_ms: 394.483973
+  type: 'test'
+  ...
+# Subtest: hostile saved libraries and order lifecycle data are rejected; old optional state remains absent
+ok 25 - hostile saved libraries and order lifecycle data are rejected; old optional state remains absent
+  ---
+  duration_ms: 2234.839471
+  type: 'test'
+  ...
+# Subtest: imported locked machines remain plans and cannot bypass ordinary unlocks
+ok 26 - imported locked machines remain plans and cannot bypass ordinary unlocks
+  ---
+  duration_ms: 238.904511
+  type: 'test'
+  ...
+# Subtest: ordinary opening recruitment, library actions, ghost construction and cancellation replay deterministically
+ok 27 - ordinary opening recruitment, library actions, ghost construction and cancellation replay deterministically
+  ---
+  duration_ms: 1204.936494
+  type: 'test'
+  ...
+# Subtest: partly built underground plans reject interception atomically and preserve the intended pair
+ok 28 - partly built underground plans reject interception atomically and preserve the intended pair
+  ---
+  duration_ms: 392.798256
+  type: 'test'
+  ...
+# Subtest: largest freight-rich portable library entry round-trips within the bounded text size
+ok 29 - largest freight-rich portable library entry round-trips within the bounded text size
+  ---
+  duration_ms: 435.53426
+  type: 'test'
+  ...
+# Subtest: sprint runs at 1.6× walk, drains the bar to one dodge's worth and never below; releasing Shift refills it
+ok 30 - sprint runs at 1.6× walk, drains the bar to one dodge's worth and never below; releasing Shift refills it
+  ---
+  duration_ms: 480.170338
+  type: 'test'
+  ...
+# Subtest: the dodge is 3 tiles in 0.25 s in the movement direction (or the facing), on a 1 s cooldown, costing a quarter of the bar
+ok 31 - the dodge is 3 tiles in 0.25 s in the movement direction (or the facing), on a 1 s cooldown, costing a quarter of the bar
+  ---
+  duration_ms: 83.52207
+  type: 'test'
+  ...
+# Subtest: a walk-here target survives a key release and is cancelled by any WASD input; a dodge cancels it too
+ok 32 - a walk-here target survives a key release and is cancelled by any WASD input; a dodge cancels it too
+  ---
+  duration_ms: 48.106081
+  type: 'test'
+  ...
+# Subtest: the rifle aimed at empty street spends a round a shot and hits nothing; aimed at an engaged edge it kills what the turrets missed, draws retaliation and counts as danger
+ok 33 - the rifle aimed at empty street spends a round a shot and hits nothing; aimed at an engaged edge it kills what the turrets missed, draws retaliation and counts as danger
+  ---
+  duration_ms: 108.28937
+  type: 'test'
+  ...
+# Subtest: legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+ok 34 - legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+  ---
+  duration_ms: 1012.529942
+  type: 'test'
+  ...
+# Subtest: campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+ok 35 - campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+  ---
+  duration_ms: 2906.64268
+  type: 'test'
+  ...
+# Subtest: cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+not ok 36 - cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+  ---
+  duration_ms: 1814.990044
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaign.test.ts:54:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    single mouth on seed 4
+    
+    2 !== 4
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 4
+  actual: 2
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaign.test.ts:68:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+ok 37 - campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+  ---
+  duration_ms: 1427.577682
+  type: 'test'
+  ...
+# Subtest: composed city query is repeatable, read-only and stable after load; includes every current site
+ok 38 - composed city query is repeatable, read-only and stable after load; includes every current site
+  ---
+  duration_ms: 4552.728407
+  type: 'test'
+  ...
+# Subtest: physical survey uses ordinary placement geometry without granting the tram unlock or pocket stock
+not ok 39 - physical survey uses ordinary placement geometry without granting the tram unlock or pocket stock
+  ---
+  duration_ms: 435.588422
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignCityValidation.test.ts:14:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /restore/. Input:
+    
+    'Permanent tram network: power the existing stops'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'Permanent tram network: power the existing stops'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignCityValidation.test.ts:16:9)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+ok 40 - bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+  ---
+  duration_ms: 1028.9867
+  type: 'test'
+  ...
+# Subtest: blocked interactions are found from the final shared collision mask, not just the site centre
+ok 41 - blocked interactions are found from the final shared collision mask, not just the site centre
+  ---
+  duration_ms: 655.203166
+  type: 'test'
+  ...
+# Subtest: runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+ok 42 - runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+  ---
+  duration_ms: 2.03892
+  type: 'test'
+  ...
+# Subtest: existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+ok 43 - existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+  ---
+  duration_ms: 1775.561612
+  type: 'test'
+  ...
+# Subtest: malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+ok 44 - malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+  ---
+  duration_ms: 1794.571464
+  type: 'test'
+  ...

@@ -1,0 +1,142 @@
+TAP version 13
+# Subtest: legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+ok 1 - legacy defaults retain their identity; campaign schema rejects mixed rules, metadata, candidates and evidence
+  ---
+  duration_ms: 1429.266507
+  type: 'test'
+  ...
+# Subtest: campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+ok 2 - campaign has no legacy ammo ring, wake blooms, automatic attacks, claims or passive territory loss; clock and load continuation agree
+  ---
+  duration_ms: 2414.23602
+  type: 'test'
+  ...
+# Subtest: cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+ok 3 - cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space
+  ---
+  duration_ms: 4488.710096
+  type: 'test'
+  ...
+# Subtest: campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+ok 4 - campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions
+  ---
+  duration_ms: 1213.861273
+  type: 'test'
+  ...
+# Subtest: knowledge starts with the opening clue, records exploration and survives leaving and reloading
+ok 5 - knowledge starts with the opening clue, records exploration and survives leaving and reloading
+  ---
+  duration_ms: 2651.645537
+  type: 'test'
+  ...
+# Subtest: item guide contains only implemented recipes and true current consumers, unlock provenance and no secret locations
+ok 6 - item guide contains only implemented recipes and true current consumers, unlock provenance and no secret locations
+  ---
+  duration_ms: 452.584301
+  type: 'test'
+  ...
+# Subtest: discovery service state follows actual power, switch, partial materials and empty or earned rewards
+ok 7 - discovery service state follows actual power, switch, partial materials and empty or earned rewards
+  ---
+  duration_ms: 886.769482
+  type: 'test'
+  ...
+# Subtest: ordinary exploration and journal actions replay; read-only browsing does not change simulation state
+ok 8 - ordinary exploration and journal actions replay; read-only browsing does not change simulation state
+  ---
+  duration_ms: 925.423039
+  type: 'test'
+  ...
+# Subtest: current-code replay of the ordinary P7-03 workload supplies a complete P7-04 checkpoint
+ok 9 - current-code replay of the ordinary P7-03 workload supplies a complete P7-04 checkpoint
+  ---
+  duration_ms: 2294.442164
+  type: 'test'
+  ...
+# Subtest: navigation uses existing deterministic names and known sites without revealing hidden destinations
+ok 10 - navigation uses existing deterministic names and known sites without revealing hidden destinations
+  ---
+  duration_ms: 4179.217889
+  type: 'test'
+  ...
+# Subtest: names, defaults and pins use atomic bounded commands, stable identities and literal text
+ok 11 - names, defaults and pins use atomic bounded commands, stable identities and literal text
+  ---
+  duration_ms: 378.931193
+  type: 'test'
+  ...
+# Subtest: physical travel records visits; annotations and visits replay and continue through saves
+ok 12 - physical travel records visits; annotations and visits replay and continue through saves
+  ---
+  duration_ms: 2111.641545
+  type: 'test'
+  ...
+# Subtest: invalid saved navigation refuses versions, unknown targets, uncharted pins and malformed records
+ok 13 - invalid saved navigation refuses versions, unknown targets, uncharted pins and malformed records
+  ---
+  duration_ms: 1416.091619
+  type: 'test'
+  ...
+# Subtest: old revision-2 saves retain geometry and stock but do not claim replay before visit tracking
+ok 14 - old revision-2 saves retain geometry and stock but do not claim replay before visit tracking
+  ---
+  duration_ms: 1230.760329
+  type: 'test'
+  ...
+# Subtest: UI-02 fresh and paused load point to real Home stock; partial pockets name only the remainder
+ok 15 - UI-02 fresh and paused load point to real Home stock; partial pockets name only the remainder
+  ---
+  duration_ms: 1736.552959
+  type: 'test'
+  ...
+# Subtest: UI-02 packed machines skip collection, exhausted Home suggests a real known patch, not impossible supplies
+ok 16 - UI-02 packed machines skip collection, exhausted Home suggests a real known patch, not impossible supplies
+  ---
+  duration_ms: 375.533501
+  type: 'test'
+  ...
+# Subtest: UI-02 existing machinery is inspected, with saved facts surviving load and removal
+ok 17 - UI-02 existing machinery is inspected, with saved facts surviving load and removal
+  ---
+  duration_ms: 854.012574
+  type: 'test'
+  ...
+# Subtest: UI-02 restored milestones remain restored while missing machinery needs rebuilding; down takes priority over tracking
+ok 18 - UI-02 restored milestones remain restored while missing machinery needs rebuilding; down takes priority over tracking
+  ---
+  duration_ms: 327.786994
+  type: 'test'
+  ...
+# Subtest: UI-02 tracking and minimap use known stable identities; invalid IDs fall back without revealing unknown sites
+ok 19 - UI-02 tracking and minimap use known stable identities; invalid IDs fall back without revealing unknown sites
+  ---
+  duration_ms: 345.525275
+  type: 'test'
+  ...
+# Subtest: UI-02 Home, workbench, machine and out-of-reach prompts resolve their actual E action without mutation
+ok 20 - UI-02 Home, workbench, machine and out-of-reach prompts resolve their actual E action without mutation
+  ---
+  duration_ms: 316.444314
+  type: 'test'
+  ...
+# Subtest: UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home
+ok 21 - UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home
+  ---
+  duration_ms: 372.477538
+  type: 'test'
+  ...
+# Subtest: UI-02 machine reach is measured from the whole footprint, independent of which corner is pointed at
+ok 22 - UI-02 machine reach is measured from the whole footprint, independent of which corner is pointed at
+  ---
+  duration_ms: 248.530116
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12007.79608

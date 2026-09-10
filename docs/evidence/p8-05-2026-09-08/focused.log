@@ -1,0 +1,466 @@
+TAP version 13
+# Subtest: area removal: read-only whole-footprint preview, atomic paid packing, settings undo and saved redo
+ok 1 - area removal: read-only whole-footprint preview, atomic paid packing, settings undo and saved redo
+  ---
+  duration_ms: 2674.284326
+  type: 'test'
+  ...
+# Subtest: area removal: changed identities/settings, new neighbours and changed reach refuse without partial effects
+ok 2 - area removal: changed identities/settings, new neighbours and changed reach refuse without partial effects
+  ---
+  duration_ms: 1016.350197
+  type: 'test'
+  ...
+# Subtest: area removal: cumulative pocket capacity refuses the whole group then recovers
+ok 3 - area removal: cumulative pocket capacity refuses the whole group then recovers
+  ---
+  duration_ms: 878.755465
+  type: 'test'
+  ...
+# Subtest: area removal: loaded belts and hidden tunnel items return once; undo does not refill machines
+ok 4 - area removal: loaded belts and hidden tunnel items return once; undo does not refill machines
+  ---
+  duration_ms: 1322.695929
+  type: 'test'
+  ...
+# Subtest: area removal: loose turret rounds require buffer space and never disappear
+ok 5 - area removal: loose turret rounds require buffer space and never disappear
+  ---
+  duration_ms: 561.04375
+  type: 'test'
+  ...
+# Subtest: area removal: busy machines, fractional contents, damaged defences and installed facilities stay
+ok 6 - area removal: busy machines, fractional contents, damaged defences and installed facilities stay
+  ---
+  duration_ms: 2966.005034
+  type: 'test'
+  ...
+# Subtest: area removal: cargo, held items and freight/filter/priority settings survive conserved packing history
+ok 7 - area removal: cargo, held items and freight/filter/priority settings survive conserved packing history
+  ---
+  duration_ms: 3437.335721
+  type: 'test'
+  ...
+# Subtest: area removal: ordinary paid command comparison records equal layouts/materials without a human tedium claim
+ok 8 - area removal: ordinary paid command comparison records equal layouts/materials without a human tedium claim
+  ---
+  duration_ms: 1183.115821
+  type: 'test'
+  ...
+# Subtest: clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard
+ok 9 - clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard
+  ---
+  duration_ms: 3114.650149
+  type: 'test'
+  ...
+# Subtest: rotations and reflections preserve rectangular footprints, tunnel roles and settings with correct left/right priority
+ok 10 - rotations and reflections preserve rectangular footprints, tunnel roles and settings with correct left/right priority
+  ---
+  duration_ms: 4.019213
+  type: 'test'
+  ...
+# Subtest: clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers
+ok 11 - clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers
+  ---
+  duration_ms: 2274.726047
+  type: 'test'
+  ...
+# Subtest: occupied, unaffordable and remote stamps are atomic and consume carried machines before materials
+ok 12 - occupied, unaffordable and remote stamps are atomic and consume carried machines before materials
+  ---
+  duration_ms: 559.739112
+  type: 'test'
+  ...
+# Subtest: copied underground pairs reject an intervening destination endpoint and orphan selections
+ok 13 - copied underground pairs reject an intervening destination endpoint and orphan selections
+  ---
+  duration_ms: 634.95989
+  type: 'test'
+  ...
+# Subtest: old post-P7 saves retain every existing site/layout/earned reward and gain only an unrecruited Foreman
+ok 14 - old post-P7 saves retain every existing site/layout/earned reward and gain only an unrecruited Foreman
+  ---
+  duration_ms: 5582.155943
+  type: 'test'
+  ...
+# Subtest: Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds
+ok 15 - Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds
+  ---
+  duration_ms: 13000.01649
+  type: 'test'
+  ...
+# Subtest: ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening
+ok 16 - ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening
+  ---
+  duration_ms: 1365.34115
+  type: 'test'
+  ...
+# Subtest: a copied station retains freight request/export rules through paid placement and undo/redo without copying cargo
+ok 17 - a copied station retains freight request/export rules through paid placement and undo/redo without copying cargo
+  ---
+  duration_ms: 560.151472
+  type: 'test'
+  ...
+# Subtest: old checkpoint logs are retained with incomplete replay provenance; current clipboard saves remain complete
+ok 18 - old checkpoint logs are retained with incomplete replay provenance; current clipboard saves remain complete
+  ---
+  duration_ms: 988.251815
+  type: 'test'
+  ...
+# Subtest: library import/export is bounded, atomic, Foreman-gated and independent of clipboard and orders
+ok 19 - library import/export is bounded, atomic, Foreman-gated and independent of clipboard and orders
+  ---
+  duration_ms: 3318.882277
+  type: 'test'
+  ...
+# Subtest: library limits and metadata rejection preserve allocator and current selection
+ok 20 - library limits and metadata rejection preserve allocator and current selection
+  ---
+  duration_ms: 1072.168487
+  type: 'test'
+  ...
+# Subtest: ghost plans consume no stock or occupancy, reject overlap and bounds, and report exact missing stock
+ok 21 - ghost plans consume no stock or occupancy, reject overlap and bounds, and report exact missing stock
+  ---
+  duration_ms: 892.482433
+  type: 'test'
+  ...
+# Subtest: partial manual construction survives save/load; remaining build pays once and completed orders never requeue on undo
+ok 22 - partial manual construction survives save/load; remaining build pays once and completed orders never requeue on undo
+  ---
+  duration_ms: 1085.595041
+  type: 'test'
+  ...
+# Subtest: ordinary matching construction completes waiting orders, occupied mismatches and remote builds remain blocked
+ok 23 - ordinary matching construction completes waiting orders, occupied mismatches and remote builds remain blocked
+  ---
+  duration_ms: 789.909427
+  type: 'test'
+  ...
+# Subtest: order limits include history, cancel is terminal and deleting records never recycles IDs
+ok 24 - order limits include history, cancel is terminal and deleting records never recycles IDs
+  ---
+  duration_ms: 469.7984
+  type: 'test'
+  ...
+# Subtest: hostile saved libraries and order lifecycle data are rejected; old optional state remains absent
+ok 25 - hostile saved libraries and order lifecycle data are rejected; old optional state remains absent
+  ---
+  duration_ms: 4700.558452
+  type: 'test'
+  ...
+# Subtest: imported locked machines remain plans and cannot bypass ordinary unlocks
+ok 26 - imported locked machines remain plans and cannot bypass ordinary unlocks
+  ---
+  duration_ms: 505.629965
+  type: 'test'
+  ...
+# Subtest: ordinary opening recruitment, library actions, ghost construction and cancellation replay deterministically
+ok 27 - ordinary opening recruitment, library actions, ghost construction and cancellation replay deterministically
+  ---
+  duration_ms: 1814.520241
+  type: 'test'
+  ...
+# Subtest: partly built underground plans reject interception atomically and preserve the intended pair
+ok 28 - partly built underground plans reject interception atomically and preserve the intended pair
+  ---
+  duration_ms: 530.707945
+  type: 'test'
+  ...
+# Subtest: largest freight-rich portable library entry round-trips within the bounded text size
+ok 29 - largest freight-rich portable library entry round-trips within the bounded text size
+  ---
+  duration_ms: 447.554115
+  type: 'test'
+  ...
+# Subtest: construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+ok 30 - construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+  ---
+  duration_ms: 2193.069247
+  type: 'test'
+  ...
+# Subtest: construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+ok 31 - construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+  ---
+  duration_ms: 1812.288453
+  type: 'test'
+  ...
+# Subtest: construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+ok 32 - construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+  ---
+  duration_ms: 1485.151942
+  type: 'test'
+  ...
+# Subtest: construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+ok 33 - construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+  ---
+  duration_ms: 1158.13681
+  type: 'test'
+  ...
+# Subtest: construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+ok 34 - construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+  ---
+  duration_ms: 4002.362134
+  type: 'test'
+  ...
+# Subtest: construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+ok 35 - construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+  ---
+  duration_ms: 2553.567695
+  type: 'test'
+  ...
+# Subtest: construction: packing refuses an unfinished recipe, fractional stock or loose-round overflow atomically
+ok 36 - construction: packing refuses an unfinished recipe, fractional stock or loose-round overflow atomically
+  ---
+  duration_ms: 958.335719
+  type: 'test'
+  ...
+# Subtest: construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+ok 37 - construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+  ---
+  duration_ms: 1.183713
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 3: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 38 - P8 integration seed 3: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 16546.534545
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 4: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 39 - P8 integration seed 4: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 4502.530689
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 5: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 40 - P8 integration seed 5: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 2635.831409
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 8: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 41 - P8 integration seed 8: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 3190.49045
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 11: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 42 - P8 integration seed 11: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 3089.379812
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 13: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 43 - P8 integration seed 13: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 2614.776686
+  type: 'test'
+  ...
+# Subtest: P8 broader sweep: seeds 1–16, eight destinations, rotated placements and valid/blocked turns remain bounded and read-only
+ok 44 - P8 broader sweep: seeds 1–16, eight destinations, rotated placements and valid/blocked turns remain bounded and read-only
+  ---
+  duration_ms: 11589.82962
+  type: 'test'
+  ...
+# Subtest: routing: underground span boundaries, paired construction and atomic interference/material/reach refusals
+ok 45 - routing: underground span boundaries, paired construction and atomic interference/material/reach refusals
+  ---
+  duration_ms: 2843.174591
+  type: 'test'
+  ...
+# Subtest: routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication
+ok 46 - routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication
+  ---
+  duration_ms: 2165.538176
+  type: 'test'
+  ...
+# Subtest: routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load
+ok 47 - routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load
+  ---
+  duration_ms: 1115.722654
+  type: 'test'
+  ...
+# Subtest: routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item
+ok 48 - routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item
+  ---
+  duration_ms: 1616.630795
+  type: 'test'
+  ...
+# Subtest: routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change
+ok 49 - routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change
+  ---
+  duration_ms: 2764.368986
+  type: 'test'
+  ...
+# Subtest: routing: paired commands and settings replay at a paused boundary and survive saved history
+ok 50 - routing: paired commands and settings replay at a paused boundary and survive saved history
+  ---
+  duration_ms: 1599.483549
+  type: 'test'
+  ...
+# Subtest: routing: crossing tunnels pair independently and an intervening endpoint refuses a new pair atomically
+ok 51 - routing: crossing tunnels pair independently and an intervening endpoint refuses a new pair atomically
+  ---
+  duration_ms: 920.55465
+  type: 'test'
+  ...
+# Subtest: routing: filter applies to mixed belt and station-arrival source fixtures
+ok 52 - routing: filter applies to mixed belt and station-arrival source fixtures
+  ---
+  duration_ms: 907.394734
+  type: 'test'
+  ...
+# Subtest: routing: rectangular occupancy follows all four rotations, including the ordinary command path
+ok 53 - routing: rectangular occupancy follows all four rotations, including the ordinary command path
+  ---
+  duration_ms: 1672.763059
+  type: 'test'
+  ...
+# Subtest: routing: saturated splitter and underground throughput stay bounded and conserve their circulating fixture stock
+ok 54 - routing: saturated splitter and underground throughput stay bounded and conserve their circulating fixture stock
+  ---
+  duration_ms: 841.309575
+  type: 'test'
+  ...
+# Subtest: routing: all four recipes run through a paid chest/inserter/belt/underground/splitter line reached on foot
+ok 55 - routing: all four recipes run through a paid chest/inserter/belt/underground/splitter line reached on foot
+  ---
+  duration_ms: 3683.901337
+  type: 'test'
+  ...
+# Subtest: truck unlocks once at the paid restored station, keeps the kit corridor clear and replays its entire driving/cargo trip
+ok 56 - truck unlocks once at the paid restored station, keeps the kit corridor clear and replays its entire driving/cargo trip
+  ---
+  duration_ms: 7859.271916
+  type: 'test'
+  ...
+# Subtest: truck boarding and cargo are local; a parked footprint blocks walking, paths and construction
+ok 57 - truck boarding and cargo are local; a parked footprint blocks walking, paths and construction
+  ---
+  duration_ms: 1554.666164
+  type: 'test'
+  ...
+# Subtest: cargo capacity is separate, partial stacks fit, and invalid or distant transfers preserve both inventories
+ok 58 - cargo capacity is separate, partial stacks fit, and invalid or distant transfers preserve both inventories
+  ---
+  duration_ms: 825.492328
+  type: 'test'
+  ...
+# Subtest: driving checks every footprint tile at speed, refuses blocked rotations, and cannot use dodge or auto-walk
+ok 59 - driving checks every footprint tile at speed, refuses blocked rotations, and cannot use dodge or auto-walk
+  ---
+  duration_ms: 666.443672
+  type: 'test'
+  ...
+# Subtest: blocked exit is refused; knockdown parks cargo, respawn does not teleport the truck, and occupied saves resume
+ok 60 - blocked exit is refused; knockdown parks cargo, respawn does not teleport the truck, and occupied saves resume
+  ---
+  duration_ms: 1543.820904
+  type: 'test'
+  ...
+# Subtest: old restored previews spawn deterministically on their next tick; malformed truck saves are rejected
+ok 61 - old restored previews spawn deterministically on their next tick; malformed truck saves are rejected
+  ---
+  duration_ms: 3423.135923
+  type: 'test'
+  ...
+# Subtest: selected-stop query matches physical service, reacts to outages and cuts, and never mutates state
+ok 62 - selected-stop query matches physical service, reacts to outages and cuts, and never mutates state
+  ---
+  duration_ms: 829.906403
+  type: 'test'
+  ...
+# Subtest: selected routes expose full arrivals, returning cargo and branches; removing the selected stop clears its query
+ok 63 - selected routes expose full arrivals, returning cargo and branches; removing the selected stop clears its query
+  ---
+  duration_ms: 625.421514
+  type: 'test'
+  ...
+# Subtest: physical truck loads a real chest, travels, builds from cargo, and leaves engineer pockets and position intact
+ok 64 - physical truck loads a real chest, travels, builds from cargo, and leaves engineer pockets and position intact
+  ---
+  duration_ms: 5850.692851
+  type: 'test'
+  ...
+# Subtest: shortages resume after local chest replenishment; pause, cancel and repeat controls retain stock
+ok 65 - shortages resume after local chest replenishment; pause, cancel and repeat controls retain stock
+  ---
+  duration_ms: 904.979104
+  type: 'test'
+  ...
+# Subtest: loading, travelling and partial-build checkpoints continue deterministically without double spending
+ok 66 - loading, travelling and partial-build checkpoints continue deterministically without double spending
+  ---
+  duration_ms: 4357.545244
+  type: 'test'
+  ...
+# Subtest: missing source and occupied destinations wait safely and retry after the obstruction is fixed
+ok 67 - missing source and occupied destinations wait safely and retry after the obstruction is fixed
+  ---
+  duration_ms: 703.214911
+  type: 'test'
+  ...
+# Subtest: manual boarding pauses the automated truck and preserves its cargo and independent orders
+ok 68 - manual boarding pauses the automated truck and preserves its cargo and independent orders
+  ---
+  duration_ms: 713.989372
+  type: 'test'
+  ...
+# Subtest: malformed jobs and saved teleport paths are rejected without granting stock or bypassing Foreman
+ok 69 - malformed jobs and saved teleport paths are rejected without granting stock or bypassing Foreman
+  ---
+  duration_ms: 1708.53692
+  type: 'test'
+  ...
+# Subtest: a new obstacle on a saved route stops the swept footprint and work resumes after removal
+ok 70 - a new obstacle on a saved route stops the swept footprint and work resumes after removal
+  ---
+  duration_ms: 658.539012
+  type: 'test'
+  ...
+# Subtest: unrelated full cargo blocks loading without spending source stock and recovers after unloading
+ok 71 - unrelated full cargo blocks loading without spending source stock and recovers after unloading
+  ---
+  duration_ms: 604.563978
+  type: 'test'
+  ...
+# Subtest: paired underground construction uses real cargo and preserves tunnel roles
+ok 72 - paired underground construction uses real cargo and preserves tunnel roles
+  ---
+  duration_ms: 674.201
+  type: 'test'
+  ...
+# Subtest: ordinary station restoration, Foreman recruitment, paid chest and copied plan fully replay through automated delivery
+ok 73 - ordinary station restoration, Foreman recruitment, paid chest and copied plan fully replay through automated delivery
+  ---
+  duration_ms: 2308.349435
+  type: 'test'
+  ...
+# Subtest: packed machines from a supply chest replace material costs without touching pockets
+ok 74 - packed machines from a supply chest replace material costs without touching pockets
+  ---
+  duration_ms: 529.267948
+  type: 'test'
+  ...
+# Subtest: order pause/resume, retry and source reassignment are idempotent and retain cargo through interruptions
+ok 75 - order pause/resume, retry and source reassignment are idempotent and retain cargo through interruptions
+  ---
+  duration_ms: 1012.865033
+  type: 'test'
+  ...
+# Subtest: area removal packs an overlaid tram before its track and restores freight cargo without duplication
+ok 76 - area removal packs an overlaid tram before its track and restores freight cargo without duplication
+  ---
+  duration_ms: 490.656612
+  type: 'test'
+  ...
+1..76
+# tests 76
+# suites 0
+# pass 76
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 47584.4521

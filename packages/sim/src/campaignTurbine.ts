@@ -1,3 +1,4 @@
+import { SurveyPlacementError } from './campaignSurvey';
 /** Optional found infrastructure: real deliveries and fuel-free local generation. */
 import { type SimState, HELD, DARK } from './types';
 import { ground, inReach } from './ground';
@@ -49,7 +50,7 @@ export function initTurbine(st:SimState):void {
     }
     for(const [xx,yy] of [[x,y-1],[x+1,y],[x,y+1],[x-1,y]]){const q=yy*G.tw+xx;if(xx<0||yy<0||xx>=G.tw||yy>=G.th||seen[q]||!safe(q))continue;seen[q]=1;queue.push(q);}
   }
-  throw new Error('campaign requires an accessible riverside Turbine hall');
+  throw new SurveyPlacementError('campaign requires an accessible riverside Turbine hall');
 }
 export function turbineAt(st:SimState,x:number,y:number):TurbineSite|undefined {
   const s=st.campaign?.turbine;return s&&x>=s.x&&x<s.x+s.size&&y>=s.y&&y<s.y+s.size?s:undefined;

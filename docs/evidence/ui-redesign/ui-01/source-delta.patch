@@ -1,0 +1,674 @@
+--- P9-05/packages/game/index.html
++++ UI-01/packages/game/index.html
+@@ -8,12 +8,12 @@
+ </head>
+ <body>
+   <div id="app">
+-    <div id="map"></div>
++    <main id="map" aria-label="City world"></main>
+     <aside id="panel"></aside>
+   </div>
+   <div id="goal" hidden><div class="goal-text"></div><div class="goal-why"></div><div class="goal-support" hidden></div></div>
+   <div id="tooltip" hidden></div>
+-  <div id="toasts"></div>
++  <div id="toasts" role="status" aria-live="polite"></div>
+   <script type="module" src="/src/main.ts"></script>
+ </body>
+ </html>
+--- P9-05/packages/game/src/cityMapScene.ts
++++ UI-01/packages/game/src/cityMapScene.ts
+@@ -1,3 +1,4 @@
++import { uiInput } from './uiShell';
+ import {navigationTargets,knownDistrict,blockName} from '@relight/sim';
+ import {navigationView} from './view';
+ import {dispatch} from './session';
+@@ -159,6 +160,7 @@
+     else this.hooks.onHover(null, 0, 0);
+   }
+   private onDown(p: Phaser.Input.Pointer): void {
++    if(uiInput.blocked)return;
+     if(this.session.state.campaign){if(!p.leftButtonDown())return;const st=this.session.state,x=Math.floor((p.x-this.ox)/this.ppt),y=Math.floor((p.y-this.oy)/this.ppt);
+       if(p.event.shiftKey){const r=dispatch(this.session,{type:'navigation',action:{type:'pin',x,y,name:''}});this.hooks.onToast(r.reason);if(r.ok)navigationView.targetId=`pin:${st.campaign!.navigation!.pins.at(-1)!.id}`;return;}
+       const target=navigationTargets(st).filter(t=>t.kind!=='district').map(t=>({t,d:Math.hypot(this.ox+t.x*this.ppt-p.x,this.oy+t.y*this.ppt-p.y)})).filter(v=>v.d<=7).sort((a,b)=>a.d-b.d)[0];if(target){navigationView.targetId=target.t.id;return;}
+--- P9-05/packages/game/src/controls.ts
++++ UI-01/packages/game/src/controls.ts
+@@ -3,7 +3,7 @@
+   copy: ['c'], paste: ['v'], mirrorX: ['h'], mirrorY: ['v'],
+   north: ['w', 'ArrowUp'], west: ['a', 'ArrowLeft'], south: ['s', 'ArrowDown'], east: ['d', 'ArrowRight'],
+   sprint: ['Shift'], dodge: [' '], pause: ['p'], slower: ['-', '_'], faster: ['=', '+'], map: ['m'],
+-  threat: ['g'], engineer: ['k'], pockets: ['i', 'Tab'], build: ['b'], debug: ['`'], cancel: ['Escape'], pipette: ['q'], rotate: ['r'],
++  threat: ['g'], engineer: ['k'], pockets: ['i', 'Tab'], build: ['b'], debug: ['`'], projects: ['F2'], cancel: ['Escape'], pipette: ['q'], rotate: ['r'],
+   recipe: ['t'], interact: ['e'], inspect: ['f'], abort: ['x'], save: ['s'], load: ['o'], undo: ['z'], redo: ['y'],
+   belt: ['1'], inserter: ['2'], excavator: ['3'], assembler: ['4'], turret: ['5'], lamp: ['6'], pole: ['7'],
+   generator: ['8'], rifle: ['9'], floodlight: ['0'], bigpole: ['['], substation: [']'], chest: ['c'],
+--- P9-05/packages/game/src/main.ts
++++ UI-01/packages/game/src/main.ts
+@@ -1,3 +1,4 @@
++import { uiInput } from './uiShell';
+ import Phaser from 'phaser';
+ import {navigationTargets} from '@relight/sim';
+ import {navigationView} from './view';
+@@ -25,6 +26,7 @@
+   session = createSession(params, params.state ? await loadSnapshot(params.state) : null);
+ } catch (e) {
+   // Fail closed: a rejected save/profile must never silently become a different campaign.
++  document.body.classList.add('ui-entry-error');
+   const panel = document.getElementById('panel')!;
+   const title = document.createElement('h2'), reason = document.createElement('p');
+   title.textContent = 'This session could not be opened';
+@@ -34,6 +36,7 @@
+     const line = document.createElement('p'), link = document.createElement('a');
+     link.textContent = label; link.href = `?rules=${rules}&view=world`; line.append(link); panel.append(line);
+   }
++  panel.setAttribute('role','alert');
+   throw e;
+ }
+ const params = session.params;
+@@ -45,6 +48,8 @@
+ const panel = createPanel(session, document.getElementById('panel')!, {
+   onSelectEdge(id) { mapScene.selectEdge(id); },
+   onToggleView() { toggleView(); },
++  releaseInput() { worldScene.releaseInput(); },
++  cancelSelection() { return worldScene.cancelSelection(); },
+ });
+ if (session.scenario === 'B') panel.toast(`${params.state?.startsWith('local:') ? 'Save' : 'Snapshot'} loaded at ${clockOf(session.startT)} (state ${stateHash(session.state)}) — paused. Press P or a speed to begin.`, 'good');
+ 
+@@ -164,14 +169,16 @@
+ worldScene.handLamp = new URLSearchParams(location.search).get('handlamp') === '1';   // D-B5-1 preview only
+ panel.onPick = kind => { worldScene.setTool(kind); panel.closeAll(); panel.toast(FACTORY_TEXT.picked(kind)); };
+ panel.onRemovalPreview = () => worldScene.removal;
+-panel.onBlueprint = action => {if(view.mode!=='world')toggleView();worldScene.blueprint(action);const canvas=document.querySelector('canvas');canvas?.scrollIntoView({block:'nearest'});canvas?.focus({preventScroll:true});};
++panel.onBlueprint = action => {if(view.mode!=='world')toggleView();worldScene.blueprint(action);if(['copy','paste','queue','removeArea'].includes(action))panel.closeAll();const canvas=document.querySelector('canvas');canvas?.scrollIntoView({block:'nearest'});canvas?.focus({preventScroll:true});};
+ game.scene.add('map', mapScene, view.mode === 'map');
+ game.scene.add('world', worldScene, view.mode === 'world');
+ if (view.mode === 'world') worldScene.centreOn(view.focus[0], view.focus[1]);
+ panel.setView(view.mode);
+ 
+ const showNavigationCanvas=()=>document.querySelector('canvas')?.scrollIntoView({block:'start'});
+-const navigation=session.state.campaign?createNavigationPanel(session,document.getElementById('panel')!,t=>{if(view.mode==='map')toggleView();worldScene.viewLocation(t.x,t.y);showNavigationCanvas();},()=>{toggleView();showNavigationCanvas();},()=>{if(view.mode==='map')toggleView();worldScene.returnToEngineer();showNavigationCanvas();},()=>worldScene.releaseInput()):null;
++const navigationRoot=document.createElement('div');
++const navigation=session.state.campaign?createNavigationPanel(session,navigationRoot,t=>{if(view.mode==='map')toggleView();worldScene.viewLocation(t.x,t.y);showNavigationCanvas();},()=>{toggleView();showNavigationCanvas();},()=>{if(view.mode==='map')toggleView();worldScene.returnToEngineer();showNavigationCanvas();},()=>worldScene.releaseInput()):null;
++if(navigation){const node=navigationRoot.querySelector<HTMLElement>('.navigation-panel')!; panel.shell.register('navigation','Map and navigation',[node],()=>{(node as HTMLDetailsElement).open=true;});panel.shell.drawerButton('navigation','Navigation');}
+ const navCue=document.createElement('div');navCue.id='navigation-cue';navCue.hidden=true;document.getElementById('map')!.append(navCue);
+ let lastNavigationUpdate=-Infinity;
+ // The sim runs once per game step whichever view is up; the map view consumes the events for its pulses.
+@@ -184,6 +191,7 @@
+   // RI-02: the world view's top HUD corners sit under the goal overlay (measured here, not per frame — the panel throttles)
+   const goalEl = document.getElementById('goal');
+   hudInset.top = goalEl && !goalEl.hidden ? goalEl.offsetHeight + 4 : 0;
++  document.documentElement.style.setProperty('--ui-top-inset',hudInset.top+'px');
+ });
+ 
+ /** The block the engineer stands in (or last stood in), for the map's marker. */
+@@ -248,7 +256,9 @@
+ const SPEEDS = [1, 4, 16];
+ window.addEventListener('keydown', ev => {
+   if ((ev.target as HTMLElement)?.closest('input, textarea, select, [contenteditable=true]')) return;
++  if(ev.repeat)return;
+   const k = ev.key;
++  if(uiInput.blocked && !((ev.ctrlKey||ev.metaKey)&&(bound('save',k)||bound('load',k))))return;
+   if ((ev.ctrlKey || ev.metaKey) && (bound('copy', k) || bound('paste', k))) {
+     ev.preventDefault();if(ev.repeat)return;
+     panel.onBlueprint?.(bound('copy',k)?'copy':'paste');return;
+@@ -283,7 +293,7 @@
+   else if (bound('pockets', k)) { ev.preventDefault(); panel.togglePockets(); }   // M1: the pockets and the Depot chest
+   else if (bound('build', k)) panel.toggleBuild();
+   else if (bound('debug', k)) panel.toggleDebug();
+-  else if (bound('cancel', k)) { panel.closeAll(); if (view.mode === 'world') worldScene.key(k); }
++  else if (bound('projects', k)) {ev.preventDefault();panel.shell.open('projects');}
+   else if (bound('dodge', k)) { if (view.mode === 'world') ev.preventDefault(); }   // the dodge (worldScene reads the key itself)
+   else if (view.mode === 'world' && worldScene.key(k)) ev.preventDefault();
+ });
+@@ -292,7 +302,7 @@
+ let frames = 0, frameMs: number[] = [];
+ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { frames++; if (frameMs.length < 100000) frameMs.push(delta); });
+ (window as unknown as { __relight: unknown }).__relight = {
+-  session, view,
++  session, view, uiShell: panel.shell,
+   navigation:()=>({targets:navigationTargets(session.state),selected:navigationView.targetId}),
+   run: (ticks: number) => { runTicks(session, ticks); panel.update(performance.now()); return summarise(session.telemetry, session.state); },
+   summary: () => summarise(session.telemetry, session.state),
+--- P9-05/packages/game/src/mapScene.ts
++++ UI-01/packages/game/src/mapScene.ts
+@@ -1,3 +1,4 @@
++import { uiInput } from './uiShell';
+ /** The map view: a 24×24 grid of city blocks drawn from sim state every frame. Flat colour only. The sim is stepped
+  *  by main.ts once per game step; this scene draws, consumes events for its pulses, and hands E the hovered block. */
+ import Phaser from 'phaser';
+@@ -132,6 +133,7 @@
+   }
+ 
+   private onDown(p: Phaser.Input.Pointer): void {
++    if(uiInput.blocked)return;
+     const pip = this.pipAt(p.x, p.y);
+     if (pip) {
+       this.selectedEdge = this.selectedEdge === pip.id ? null : pip.id;
+--- P9-05/packages/game/src/panel.ts
++++ UI-01/packages/game/src/panel.ts
+@@ -1,3 +1,4 @@
++import { createUiShell, controlsHelp, el, type UiShell } from './uiShell';
+ import { createTruckWorkPanel } from './truckWorkPanel';
+ import { createBlueprintLibraryPanel } from './blueprintLibraryPanel';
+ import { createClipboardPanel, type ClipboardAction } from './clipboardPanel';
+@@ -28,11 +29,12 @@
+   return { commands: session.log, hour: session.hour ? hourReport(session.state, session.hour) : null };
+ }
+ 
+-export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void }
++export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void; releaseInput(): void; cancelSelection(): boolean }
+ /** D-B1-5: the build menu (key B) picks a building into the hand; the world scene installs the pick. */
+ export type BuildKind = Exclude<Kind, 'depot'>;
+ 
+ export interface Panel {
++  shell: UiShell;
+   update(nowMs: number): void;
+   setSelectedEdge(e: FrontEdgeView | null): void;
+   tooltip(info: ClaimInfo | HeldInfo | null, px: number, py: number): void;
+@@ -60,12 +62,6 @@
+   toast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
+ }
+ 
+-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
+-  const e = document.createElement(tag);
+-  if (cls) e.className = cls;
+-  if (text !== undefined) e.textContent = text;
+-  return e;
+-}
+ const pct = (v: number) => `${Math.round(v * 100)} %`;
+ /** Pips are shape-coded as well as coloured (constitution, Phase 2): ● green, ▲ amber, ✕ red. Same shapes on the map. */
+ const PIP_GLYPH: Record<string, string> = { green: '●', amber: '▲', red: '✕' };
+@@ -131,12 +127,12 @@
+   const clipboard=campaign?createClipboardPanel(session,root,a=>panelRef.onBlueprint?.(a),()=>panelRef.onRemovalPreview?.()??null):null;
+   const blueprintLibrary=campaign?createBlueprintLibraryPanel(session,root,toast):null;
+   const truckWork=campaign?createTruckWorkPanel(session,root,toast):null;
+-  if(guide){const discoveries=el('button',undefined,'Discoveries'),items=el('button',undefined,'Items and recipes');discoveries.onclick=()=>guide.openDiscoveries();items.onclick=()=>guide.openItem();header.append(discoveries,items);}
+-  let radioUpgradeButton:HTMLButtonElement|null=null,defenceStatus:HTMLElement|null=null;
+-  const coreButtons:{block:number;button:HTMLButtonElement}[]=[];
+-  if(campaign){const section=el('section');section.append(el('h2',undefined,'Base defence'));defenceStatus=el('p','hint');section.append(defenceStatus);
++  if(guide){const discoveries=el('button',undefined,'Discoveries'),items=el('button',undefined,'Items and recipes');discoveries.onclick=()=>shell.open('projects');items.onclick=()=>shell.open('help');header.append(discoveries,items);}
++  let radioUpgradeButton:HTMLButtonElement|null=null,defenceStatus:HTMLElement|null=null,defenceSection:HTMLElement|null=null;
++  const coreButtons:{block:number;button:HTMLButtonElement;reason:HTMLElement}[]=[];
++  if(campaign){const section=el('section');defenceSection=section;section.append(el('h2',undefined,'Base defence'));defenceStatus=el('p','hint');section.append(defenceStatus);
+     radioUpgradeButton=el('button');radioUpgradeButton.onclick=()=>queue(session,{type:'upgradeRadio'});section.append(radioUpgradeButton);
+-    for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block,st.campaign!.districts!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};coreButtons.push({block:base,button});section.append(button);}root.append(section);
++    for(const base of [st.campaign!.homeBlock,st.campaign!.expansion!.station.block,st.campaign!.districts!.station.block]){const button=el('button',undefined,'Repair core');button.onclick=()=>{const core=session.state.campaign?.defence?.bases.find(b=>b.block===base);if(core)queue(session,{type:'repairDefence',x:core.x,y:core.y});};const reason=el('p','hint');coreButtons.push({block:base,button,reason});section.append(button,reason);}root.append(section);
+   }
+   // HUD
+   const hudSec = el('section');
+@@ -292,7 +288,7 @@
+     const m=tramAt(session.state,x,y)??machineAt(session.state,x,y);
+     if(!m){toast('Point at a factory machine to inspect it');return;}
+     transportView.stopId=m.kind==='tramstop'?m.id:null;
+-    inspectionId=m.id;inspectionView.machineId=m.id;routingAt=[m.x,m.y];routingSec.hidden=false;lastUpdate=-1e9;update(performance.now());routingSec.scrollIntoView({block:'nearest'});
++    shell.open('inspection');inspectionId=m.id;inspectionView.machineId=m.id;routingAt=[m.x,m.y];routingSec.hidden=false;lastUpdate=-1e9;update(performance.now());routingSec.scrollIntoView({block:'nearest'});
+   }
+ 
+   const truckOpen=el('button',undefined,'Truck cargo'),truckSec=el('section','truck-cargo');truckSec.hidden=true;
+@@ -303,7 +299,7 @@
+   const cargoAction=(put:boolean)=>{const r=dispatch(session,{type:'factory',action:{type:'truckCargo',item:truckItem.value,n:Number(truckCount.value),put}});toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;update(performance.now());};
+   loadCargo.onclick=()=>cargoAction(true);unloadCargo.onclick=()=>cargoAction(false);
+   truckBoard.onclick=()=>{const r=dispatch(session,{type:'factory',action:{type:'truckBoard'}});toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;update(performance.now());};
+-  function openTruck():void {truckSec.hidden=false;lastUpdate=-1e9;update(performance.now());truckSec.scrollIntoView({block:'nearest'});}
++  function openTruck():void {shell.open('truck');truckSec.hidden=false;lastUpdate=-1e9;update(performance.now());truckSec.scrollIntoView({block:'nearest'});}
+   truckOpen.onclick=openTruck;truckOpen.hidden=!campaign;header.append(truckOpen);
+   cargoRow.append(truckItem,truckCount,loadCargo,unloadCargo);
+   truckSec.append(el('h2',undefined,'Truck cargo'),truckNote,truckBoard,truckStock,cargoRow,el('p','hint','200 cargo stacks, separate from 40 pocket stacks. Load and unload within 8 tiles. E boards beside the truck or exits; WASD drives. Cargo stays parked when you leave. F on the truck opens this panel.'));root.append(truckSec);
+@@ -548,7 +544,7 @@
+     updateGoal(s);
+     if(defenceStatus)defenceStatus.textContent=campaignWarning(s);
+     if(radioUpgradeButton){radioUpgradeButton.hidden=!knownSite(s,'radio');const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
+-    for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;row.button.disabled=!core||!!repairCheck(s,core.x,core.y);if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
++    for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;const why=core?repairCheck(s,core.x,core.y):'';row.button.disabled=!core||!!why;row.button.title=why||'';row.reason.textContent=why||'';row.reason.hidden=!core||!why;if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
+     guide?.update();clipboard?.update();blueprintLibrary?.update();truckWork?.update();
+     const h = hud(s);
+     sHeld.b.textContent = String(h.held); sFront.b.textContent = String(h.front); sInt.b.textContent = String(h.interior);
+@@ -592,7 +588,7 @@
+     }
+     if (!buildSec.hidden) for (const b of buildCarried) {
+       const n = s.engineer.inv[b.kind] ?? 0; b.v.textContent = FACTORY_TEXT.carried(n);
+-      const lk = lockReason(s, b.kind); b.btn.disabled = !!lk; b.lock.textContent = FACTORY_TEXT.locked(lk);
++      const lk = lockReason(s, b.kind); b.btn.disabled = !!lk; if(lk)b.btn.title=lk; b.lock.textContent = FACTORY_TEXT.locked(lk);
+     }
+     if (!buildSec.hidden) mk2Lock.textContent = survivorJoined(s, 'Arsenal') ? '· the Arsenal are in — the upgrade itself is outside the hour (prompt B M4)' : '· locked: the Arsenal unlock it — hold their block';
+     if (vCu) { vCu.textContent = String(Math.floor(s.stock.copper)); vSteel!.textContent = String(Math.floor(s.stock.steel)); vStone!.textContent = String(Math.floor(s.stock.stone)); vPatch!.textContent = String(Math.floor(s.patch.steel)); }
+@@ -649,7 +645,7 @@
+     text.split('\n').forEach((line, i) => tip.append(el('div', i ? 'muted' : undefined, line)));
+     tip.hidden = false;
+     const w = tip.offsetWidth, h = tip.offsetHeight;
+-    tip.style.left = `${Math.min(px + 14, window.innerWidth - w - 8)}px`; tip.style.top = `${Math.min(py + 14, window.innerHeight - h - 8)}px`;
++    tip.style.left = `${Math.max(12, Math.min(px + 14, window.innerWidth - w - 12))}px`; tip.style.top = `${Math.max(12, Math.min(py + 14, window.innerHeight - h - 12))}px`;
+   }
+   function setView(mode: 'map' | 'world'): void {
+     panelMode=mode;
+@@ -685,25 +681,66 @@
+     tip.append(el('div', undefined, line1), el('div', 'muted', line2), el('div', chk.ok ? 'muted' : 'bad', chk.ok ? 'ready — E at its substation activates the claim' : `on foot: ${chk.reason}`));
+     tip.hidden = false;
+     const w = tip.offsetWidth, hgt = tip.offsetHeight;
+-    tip.style.left = `${Math.min(px + 14, window.innerWidth - w - 8)}px`;
++    tip.style.left = `${Math.max(12, Math.min(px + 14, window.innerWidth - w - 12))}px`;
+     tip.style.top = `${Math.min(py + 14, window.innerHeight - hgt - 8)}px`;
+   }
+ 
++  const shell = createUiShell(root, {releaseInput: hooks.releaseInput, cancelSelection: hooks.cancelSelection, speed:()=>session.state.speed, setSpeed:speed=>setSpeed(session,speed)});
++  const journal=root.querySelector<HTMLElement>('.campaign-guide:not(.item-guide)');
++  const recipes=root.querySelector<HTMLElement>('.item-guide');
++  const copyPanel=root.querySelector<HTMLElement>('[aria-label="Blueprint clipboard"]');
++  const libraryPanel=root.querySelector<HTMLElement>('[aria-label="Blueprint library and orders"]');
++  const truckPanel=root.querySelector<HTMLElement>('[aria-label="Truck construction"]');
++  shell.register('build','Build',[buildSec,...[copyPanel,libraryPanel].filter(Boolean) as HTMLElement[]],()=>{buildSec.hidden=false;});
++  shell.register('inventory','Inventory',[pocketSec],()=>{pocketSec.hidden=false;});
++  shell.register('inspection','Inspection',[routingSec],undefined,()=>{inspectionView.machineId=null;inspectionId=null;routingSec.hidden=true;});
++  shell.register('truck','Truck cargo',[truckSec]);
++  shell.register('route','Station route',[routeSec]);
++  if(guide&&journal) shell.register('projects','Projects',[journal],()=>guide.openDiscoveries());
++  shell.register('help','Help',[controlsHelp(),...[recipes].filter(Boolean) as HTMLElement[]],()=>guide?.openItem());
++  // Keep stock, loss history, exact power/buffers and legacy management out of Developer.
++  debug.hidden=false;
++  const management=[hudSec,itemStats,lineSec,...(defenceSection?[defenceSection]:[]),...(!campaign?[stockSec,ringSec,facSec,sumSec]:[])];
++  shell.register('management','Management',management);
++  if(campaign){const truckAccess=el('button',undefined,'Truck cargo');truckAccess.onclick=openTruck;hudSec.append(truckAccess);}
++  if(campaign&&truckPanel)shell.register('construction','Construction delivery',[truckPanel]);
++  shell.register('developer','Developer',[header,...(campaign?[sumSec]:[])]);
++  debug.remove();
++  shell.action(`Build (${shortcut('build')})`,()=>panelRef.toggleBuild());
++  shell.action(`Inventory (${shortcut('pockets')})`,()=>panelRef.togglePockets());
++  shell.action(`Map (${shortcut('map')})`,()=>hooks.onToggleView());
++  if(guide)shell.drawerButton('projects',`Projects (${shortcut('projects')})`);
++  shell.drawerButton('management','Management');
++  if(campaign)shell.drawerButton('construction','Construction');
++  shell.drawerButton('help','Help');
++  shell.action('Pause menu',()=>shell.pause());
++  shell.pauseAction(`Save (Ctrl+${shortcut('save')})`,saveGame);
++  shell.pauseAction(`Load (Ctrl+${shortcut('load')})`,loadGame);
++  shell.pauseAction('Download save',()=>btnState.click());
++  shell.pauseAction('Copy seed/settings link',()=>btnLink.click());
++  shell.pauseAction('Controls and item help',()=>shell.pauseChild('help'));
++  shell.pauseAction('Developer',()=>shell.pauseChild('developer'));
++  const startScreen=el('section'),seedInput=el('input'),seedLabel=el('label',undefined,'City seed');
++  seedInput.type='number';seedInput.min='1';seedInput.max='2147483647';seedInput.step='1';seedInput.value=String(st.seed);seedInput.required=true;seedLabel.append(seedInput);
++  const startButton=el('button','primary','Start city');startButton.onclick=()=>{if(!seedInput.reportValidity())return;if(window.confirm('Start a new city? Unsaved progress will be lost.'))location.href=shareUrl({...session.params,seed:Number(seedInput.value),state:null,autoplay:null});};
++  startScreen.append(el('p',undefined,'Choose a seed for a fresh city. Save your current game before starting again.'),seedLabel,startButton);
++  shell.register('start','Start a city',[startScreen]);shell.pauseAction('Start a new city',()=>shell.pauseChild('start'));
+   const panelRef: Panel = {
+-    openStationRoute(x,y){const m=machineAt(session.state,x,y);if(m?.kind!=='tramstop')return;transportView.stopId=m.id;lastUpdate=-1e9;update(performance.now());routeSec.scrollIntoView({block:'nearest'});},
++    shell,
++    openStationRoute(x,y){const m=machineAt(session.state,x,y);if(m?.kind!=='tramstop')return;shell.open('route');transportView.stopId=m.id;lastUpdate=-1e9;update(performance.now());routeSec.scrollIntoView({block:'nearest'});},
+     openTruck,openRoutingAt:openInspection,openInspectionAt:openInspection,
+     update, tooltip, tooltipText, toast, setView, onPick: null, onBlueprint: null, onRemovalPreview:null,
+-    toggleDebug() { debug.hidden = !debug.hidden; debugView.coords = !debug.hidden; ringKey = ''; lastFacKey = ''; return !debug.hidden; },
+-    togglePockets() { pocketAt = null; pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; if (!pocketSec.hidden) pocketSec.scrollIntoView({ block: 'nearest' }); return !pocketSec.hidden; },
++    toggleDebug() { debugView.coords = !debugView.coords; shell.toggle('developer'); ringKey = ''; lastFacKey = ''; return debugView.coords; },
++    togglePockets() { pocketAt=null; const open=shell.active()!=='inventory'; if(open)shell.open('inventory');else shell.close(); lastUpdate=-1e9; return open; },
+     openPocketsAt(x, y) {   // RI-05
+       const stop=machineAt(session.state,x,y);transportView.stopId=stop?.kind==='tramstop'?stop.id:null;
+       const same = pocketAt !== null && pocketAt[0] === x && pocketAt[1] === y;
+-      if (same && !pocketSec.hidden) { pocketSec.hidden = true; pocketAt = null; } else { pocketAt = [x, y]; pocketSec.hidden = false; }
++      if (same && shell.active()==='inventory') { shell.close(); pocketSec.hidden = true; pocketAt = null; } else { shell.open('inventory'); pocketAt = [x, y]; pocketSec.hidden = false; }
+       lastUpdate = -1e9;
+       if (!pocketSec.hidden) pocketSec.scrollIntoView({ block: 'nearest' });
+     },
+-    toggleBuild() { buildSec.hidden = !buildSec.hidden; if (!buildSec.hidden) buildSec.scrollIntoView({ block: 'nearest' }); return !buildSec.hidden; },
+-    closeAll() { guide?.close();inspectionView.machineId=null;truckSec.hidden=true;transportView.stopId=null;routeSec.hidden=true;pocketSec.hidden = true; buildSec.hidden = true; routingSec.hidden=true; document.querySelector('canvas')?.scrollIntoView({ block: 'nearest' }); },
++    toggleBuild() { shell.toggle('build'); return shell.active()==='build'; },
++    closeAll() { shell.close(); inspectionView.machineId=null; transportView.stopId=null; routeSec.hidden=true; },
+     setSelectedEdge(e) {
+       selected = e ? e.id : null; ringKey = '';
+       if (e) toast(`${edgeName(session.state, e.id)}${debugView.coords ? ` (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})` : ''} is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);
+--- P9-05/packages/game/src/style.css
++++ UI-01/packages/game/src/style.css
+@@ -116,3 +116,77 @@
+ .navigation-actions button { min-height:36px; }
+ #map { position:relative; }
+ #navigation-cue { position:absolute; bottom:72px; left:12px; max-width:calc(100% - 40px); padding:8px 12px; background:#151d1ef2; color:#f3ecdd; border:1px solid #e3b96f; border-radius:6px; font-size:15px; overflow-wrap:anywhere; pointer-events:none; }
++/* RI-02B shared presentation tokens. Legacy names are adapters for existing domain panels. */
++:root {
++  --ui-bg:#151d1e; --ui-surface:#203536; --ui-raised:#2b4546;
++  --ui-text:#f3ecdd; --ui-secondary:#c2ceca; --ui-accent:#e3b96f;
++  --ui-working:#92d8b5; --ui-danger:#ff8a80; --ui-border:#8da79f;
++  --ui-space-1:4px; --ui-space-2:8px; --ui-space-3:12px; --ui-space-4:16px; --ui-space-6:24px; --ui-space-8:32px;
++  --ui-radius:6px; --ui-body:17px; --ui-small:16px; --ui-heading:20px; --ui-title:24px;
++  --ui-world:0; --ui-hud:10; --ui-drawer:20; --ui-inventory:21; --ui-tooltip:30; --ui-modal:40; --ui-alert:50;
++  --ui-nav-height:64px; --ui-drawer-inset:0px;
++  --bg:var(--ui-bg); --panel:var(--ui-surface); --panel-2:var(--ui-raised); --ink:var(--ui-text); --muted:var(--ui-secondary);
++  --amber:var(--ui-accent); --red:var(--ui-danger); --green:var(--ui-working); --amber-pip:var(--ui-accent); --line:var(--ui-border);
++  font-family:"Segoe UI",system-ui,sans-serif; font-size:var(--ui-body); line-height:1.45;
++}
++[hidden] { display:none !important; }
++body.ui-shell { overflow:hidden; }
++.ui-shell #app { display:block; padding:0; height:100dvh; }
++.ui-shell #map { position:absolute; inset:0; width:100%; height:100%; min-width:0; border-radius:0; z-index:var(--ui-world); }
++.ui-shell #panel { position:fixed; inset:0; max-width:none; max-height:none; width:100%; pointer-events:none; font-size:var(--ui-body); z-index:var(--ui-drawer); overflow:visible; }
++.ui-shell #panel section { padding:var(--ui-space-4); border-radius:var(--ui-radius); }
++.ui-shell #panel h1 { font-size:var(--ui-title); }
++.ui-shell #panel h2 { font-size:var(--ui-heading); text-transform:none; letter-spacing:0; color:var(--ui-text); }
++button, input, select, textarea, summary { font:inherit; }
++button, select, input:not([type=checkbox]), summary { min-height:40px; }
++button { min-width:40px; padding:8px 12px; border-radius:var(--ui-radius); }
++button:disabled { opacity:1; color:var(--ui-secondary); background:var(--ui-bg); border-style:dashed; cursor:not-allowed; }
++button.active, button.primary { background:var(--ui-accent); color:var(--ui-bg); border:2px solid var(--ui-accent); }
++button[aria-expanded=true] { border:2px solid var(--ui-accent); }
++button[aria-expanded=true]::after { content:' · open'; color:var(--ui-accent); }
++:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline:3px solid var(--ui-text); outline-offset:2px; }
++a { color:var(--ui-accent); }
++input, select, textarea { background:var(--ui-bg); color:var(--ui-text); border:1px solid var(--ui-border); border-radius:var(--ui-radius); padding:8px; max-width:100%; }
++.ui-shell .hint, .ui-shell kbd, .ui-shell .badge, .ui-shell .stat span, .ui-shell .item-statistics table, .ui-shell #threat-controls, .ui-shell #threat-controls button { font-size:var(--ui-small); }
++.ui-shell .stat b { font-size:var(--ui-title); }
++.ui-shell .navigation-panel input, .ui-shell .navigation-panel select { font-size:var(--ui-body); }
++.ui-shell .navigation-actions button { min-height:40px; }
++.ui-navigation { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; padding:12px; width:max-content; max-width:min(1920px,calc(100vw - 24px)); background:var(--ui-bg); border:1px solid var(--ui-border); border-top:3px solid var(--ui-accent); border-radius:var(--ui-radius); z-index:var(--ui-hud); }
++.ui-brand { font-weight:600; letter-spacing:.15em; font-size:var(--ui-small); margin:0 12px; }
++.ui-shell #panel .ui-drawer { position:absolute; right:max(12px,calc((100vw - 1920px)/2)); top:16px; bottom:calc(var(--ui-nav-height) + 24px); width:min(420px,calc(100vw - 32px)); display:flex; flex-direction:column; padding:0; pointer-events:auto; overflow:hidden; box-shadow:0 8px 32px #0006; }
++.ui-drawer-heading { padding:16px; border-bottom:1px solid var(--ui-border); flex:none; }
++.ui-shell #panel .ui-drawer-heading h2 { margin:0; }
++.ui-drawer-body { overflow:auto; overscroll-behavior:contain; min-height:0; padding:16px; overflow-wrap:anywhere; }
++.ui-drawer-body > section, .ui-drawer-body > details { margin-bottom:16px; }
++.ui-drawer-body .row { gap:8px; }
++.ui-drawer-body ul.plain li { flex-wrap:wrap; }
++.ui-controls { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; }
++.ui-controls dt { text-transform:capitalize; }
++.ui-controls dd { margin:0; color:var(--ui-accent); }
++.ui-shell #panel .ui-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:min(560px,calc(100vw - 32px)); max-height:calc(100dvh - 48px); overflow:auto; overscroll-behavior:contain; pointer-events:auto; z-index:var(--ui-modal); border-top:3px solid var(--ui-accent); box-shadow:0 0 0 100vmax #151d1eaa; }
++.ui-pause-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
++.ui-pause-actions .primary { grid-column:1/-1; }
++.ui-modal-child .ui-drawer-body { padding:0; }
++.ui-shell #goal { position:fixed; left:calc((100vw - var(--ui-drawer-inset))/2); max-width:min(640px,calc(100vw - var(--ui-drawer-inset) - 32px)); background:var(--ui-bg); z-index:var(--ui-alert); }
++.ui-shell #goal .goal-text { font-size:var(--ui-heading); }
++.ui-shell #goal .goal-why, .ui-shell #goal .goal-support { font-size:var(--ui-small); }
++.ui-shell #toasts { left:calc((100vw - var(--ui-drawer-inset))/2); bottom:calc(var(--ui-nav-height) + 24px); z-index:var(--ui-tooltip); }
++.ui-shell .toast { background:var(--ui-bg); font-size:var(--ui-small); max-width:min(420px,calc(100vw - 32px)); }
++.ui-shell #tooltip { background:var(--ui-bg); max-width:min(320px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; font-size:var(--ui-small); z-index:var(--ui-tooltip); }
++.ui-shell #navigation-cue { bottom:calc(var(--ui-nav-height) + 96px); background:var(--ui-bg); color:var(--ui-text); border-color:var(--ui-accent); font-size:var(--ui-small); }
++.pip.red { animation:none; }
++@media(max-width:1000px) {
++  .ui-brand { display:none; }
++  .ui-navigation { width:calc(100vw - 24px); justify-content:flex-start; }
++  .ui-shell #panel .ui-drawer { width:min(390px,calc(100vw - 32px)); }
++}
++@media(prefers-reduced-motion:no-preference) { .ui-drawer, .ui-modal { animation:toast-in 150ms ease-out; } }
++@media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none!important; transition:none!important; } }
++.ui-entry-error #app { display:block; height:auto; padding:24px; }
++.ui-entry-error #map { display:none; }
++.ui-entry-error #panel { max-width:640px; width:100%; max-height:none; font-size:var(--ui-body); margin:10vh auto; padding:24px; background:var(--ui-surface); border:1px solid var(--ui-border); }
++
++.ui-shell #panel .ui-modal { top:calc(var(--ui-top-inset, 160px) + 24px); transform:translateX(-50%); max-height:calc(100dvh - var(--ui-top-inset, 160px) - 40px); }
++
++.ui-shell #panel { z-index:auto; }
++.ui-shell #panel .ui-drawer { z-index:var(--ui-drawer); }
+--- P9-05/packages/game/src/uiShell.ts
++++ UI-01/packages/game/src/uiShell.ts
+@@ -0,0 +1,146 @@
++import { bound, BINDINGS, shortcut } from './controls';
++import { hudInset } from './view';
++
++/** DOM presentation only. Domain panels keep their queries and command handlers. */
++export function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
++  const node = document.createElement(tag);
++  if (cls) node.className = cls;
++  if (text !== undefined) node.textContent = text;
++  return node;
++}
++export const uiInput = { blocked: false, modal: false };
++export function uiPalette() {
++  const css = getComputedStyle(document.documentElement);
++  return { color: css.getPropertyValue('--ui-secondary').trim(), backgroundColor: css.getPropertyValue('--ui-bg').trim(), fontFamily: css.fontFamily, fontSize: '16px' };
++}
++type Adapter = { body: HTMLElement; title: string; enter?: () => void; leave?: () => void };
++export interface ShellHooks { releaseInput(): void; cancelSelection(): boolean; speed(): number; setSpeed(speed: number): void }
++
++export function createUiShell(root: HTMLElement, hooks: ShellHooks) {
++  document.body.classList.add('ui-shell');
++  root.setAttribute('aria-label', 'Game panels');
++  const nav = el('nav', 'ui-navigation'); nav.setAttribute('aria-label', 'Game controls');
++  const brand = el('span', 'ui-brand', 'RELIGHT'); nav.append(brand);
++  const drawer = el('section', 'ui-drawer'); drawer.hidden = true;
++  const heading = el('header', 'ui-drawer-heading'), title = el('h2'); title.id = 'ui-drawer-title';
++  const close = el('button', undefined, 'Close'); close.setAttribute('aria-label', 'Close panel');
++  heading.append(title, close); drawer.append(heading); drawer.setAttribute('aria-labelledby', title.id);
++  const modal = el('section', 'ui-modal'); modal.hidden = true; modal.tabIndex = -1;
++  modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-labelledby', 'pause-title');
++  const pauseTitle = el('h1', undefined, 'Paused'); pauseTitle.id = 'pause-title';
++  const pauseActions = el('div', 'ui-pause-actions'), child = el('div', 'ui-modal-child'); child.hidden = true;
++  const resume = el('button', 'primary', 'Resume'); pauseActions.append(resume); modal.append(pauseTitle, pauseActions, child);
++  root.append(drawer, modal); document.getElementById('app')!.append(nav);
++  const adapters = new Map<string, Adapter>();
++  let active: string | null = null, childId: string | null = null, previousSpeed = 1;
++  let returnFocus: HTMLElement | null = null, pauseFocus: HTMLElement | null = null;
++  const held = new Set<string>(), suppressed = new Set<string>();
++  const canvas = () => document.querySelector('canvas');
++  const inUi = (target: EventTarget | null) => target instanceof Element && !!target.closest('#panel, .ui-navigation, #threat-controls');
++  function release() { for (const key of held) suppressed.add(key); hooks.releaseInput(); document.getElementById('tooltip')!.hidden = true; }
++  function sync() {
++    uiInput.modal = !modal.hidden; uiInput.blocked = !modal.hidden || active !== null || inUi(document.activeElement);
++    hudInset.right = active && modal.hidden ? drawer.getBoundingClientRect().width + 24 : 0;
++    hudInset.bottom = nav.offsetHeight + 24;
++    document.documentElement.style.setProperty('--ui-nav-height', nav.offsetHeight+'px');
++    document.documentElement.style.setProperty('--ui-drawer-inset',hudInset.right+'px');
++    nav.querySelectorAll<HTMLButtonElement>('[data-drawer]').forEach(b => b.setAttribute('aria-expanded', String(b.dataset.drawer === active)));
++  }
++  function restore(target: HTMLElement | null) {
++    const valid = target?.isConnected && target.getClientRects().length && !target.closest('[hidden]');
++    (valid ? target : canvas())?.focus({ preventScroll: true }); sync();
++  }
++  function closeDrawer(focus = true) {
++    if (!active) return;
++    const adapter = adapters.get(active)!; adapter.body.hidden = true; adapter.leave?.(); active = null; drawer.hidden = true;
++    release(); if (focus) restore(returnFocus); sync();
++  }
++  function open(id: string) {
++    const adapter = adapters.get(id); if (!adapter || !modal.hidden) return;
++    if (active !== id) {
++      const focus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
++      closeDrawer(false); returnFocus = focus; active = id;
++      adapter.body.hidden = false; drawer.hidden = false; title.textContent = adapter.title;
++    }
++    release(); adapter.enter?.(); close.focus({ preventScroll: true }); sync();
++  }
++  function closeChild() {
++    if (!childId) return;
++    const adapter = adapters.get(childId)!; adapter.body.hidden = true; drawer.append(adapter.body); adapter.leave?.();
++    childId = null; child.replaceChildren(); child.hidden = true; pauseActions.hidden = false; resume.focus(); sync();
++  }
++  function pause() {
++    if (!modal.hidden) return;
++    pauseFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
++    if (hooks.speed() > 0) previousSpeed = hooks.speed();
++    release(); closeDrawer(false); hooks.setSpeed(0); modal.hidden = false; nav.inert = true;
++    resume.focus({ preventScroll: true }); sync();
++  }
++  function unpause() {
++    closeChild(); modal.hidden = true; nav.inert = false; release(); hooks.setSpeed(previousSpeed); restore(pauseFocus); sync();
++  }
++  function pauseChild(id: string) {
++    const adapter = adapters.get(id); if (!adapter) return;
++    closeChild(); childId = id; pauseActions.hidden = true; child.hidden = false;
++    const back = el('button', undefined, 'Back to Pause'); back.onclick = closeChild;
++    child.append(back, el('h2', undefined, adapter.title), adapter.body); adapter.body.hidden = false; adapter.enter?.(); back.focus(); sync();
++  }
++  function action(label: string, run: () => void, destination: HTMLElement = nav) {
++    const b = el('button', undefined, label); b.type = 'button'; b.onclick = run; destination.append(b); return b;
++  }
++  function register(id: string, label: string, nodes: HTMLElement[], enter?: () => void, leave?: () => void) {
++    if (adapters.has(id)) throw Error(`Duplicate UI adapter: ${id}`);
++    const body = el('div', 'ui-drawer-body'); body.dataset.adapter = id; body.hidden = true; body.append(...nodes); drawer.append(body);
++    adapters.set(id, { body, title: label, enter, leave });
++  }
++  function toggle(id: string) { if (active === id) closeDrawer(); else open(id); }
++  function drawerButton(id: string, label: string) { const b = action(label, () => toggle(id)); b.dataset.drawer = id; b.setAttribute('aria-expanded', 'false'); return b; }
++  close.onclick = () => closeDrawer(); resume.onclick = unpause;
++  // Capture before Phaser's window handlers; native form editing remains local to the UI.
++  window.addEventListener('keydown', event => {
++    const key = event.code || event.key; if(!event.repeat)suppressed.delete(key); held.add(key);
++    if (suppressed.has(key)) { event.stopImmediatePropagation(); if (!inUi(event.target)) event.preventDefault(); return; }
++    if (bound('cancel', event.key)) {
++      event.preventDefault(); event.stopImmediatePropagation(); if (event.repeat) return;
++      if (childId) closeChild(); else if (!modal.hidden) unpause(); else if (active) closeDrawer(); else if (!hooks.cancelSelection()) pause();
++      return;
++    }
++    if (!modal.hidden && event.key === 'Tab') {
++      const nodes = Array.from(modal.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')).filter(n => n.getClientRects().length > 0 && !n.closest('[hidden]'));
++      const index = nodes.indexOf(document.activeElement as HTMLElement), next = (index + (event.shiftKey ? -1 : 1) + nodes.length) % nodes.length;
++      event.preventDefault(); event.stopImmediatePropagation(); (nodes[next] ?? modal).focus(); return;
++    }
++    const textFocus = event.target instanceof Element && !!event.target.closest('input, textarea, select, [contenteditable=true]');
++    if(!textFocus && (event.ctrlKey||event.metaKey) && (bound('save',event.key)||bound('load',event.key)))return;
++    if (!modal.hidden || active || inUi(event.target)) { event.stopPropagation(); }
++  }, true);
++  window.addEventListener('keyup', event => { held.delete(event.code || event.key); suppressed.delete(event.code || event.key); }, true);
++  window.addEventListener('pointerdown', event => {
++    if (inUi(event.target)) { release(); return; }
++    if (!modal.hidden || active) { event.preventDefault(); event.stopImmediatePropagation(); if (modal.hidden) closeDrawer(); return; }
++    if(event.target === canvas()){canvas()?.focus({preventScroll:true});sync();}
++  }, true);
++  window.addEventListener('pointerup', event => { if (inUi(event.target) || event.target !== canvas()) release(); }, true);
++  window.addEventListener('focusin', event => { if (inUi(event.target)) release(); if (!modal.hidden && !modal.contains(event.target as Node)) resume.focus(); sync(); });
++  window.addEventListener('blur', () => { release(); held.clear(); });
++  document.addEventListener('visibilitychange', () => { if (document.hidden) { release(); held.clear(); } });
++  for (const surface of [root, nav, document.getElementById('threat-controls')].filter(Boolean) as HTMLElement[]) {
++    for (const name of ['pointerdown', 'pointerup', 'click', 'contextmenu', 'wheel']) surface.addEventListener(name, event => event.stopPropagation());
++  }
++  new ResizeObserver(sync).observe(nav); new ResizeObserver(sync).observe(drawer);
++  return { register, open, toggle, close: closeDrawer, action, drawerButton, pause, pauseChild,
++    pauseAction: (label: string, run: () => void) => action(label, run, pauseActions),
++    active: () => active, paused: () => !modal.hidden, sync,
++  };
++}
++export type UiShell = ReturnType<typeof createUiShell>;
++
++export function controlsHelp() {
++  const body = el('section'); body.append(el('h2', undefined, 'Controls'), el('p', 'hint', 'Click the city to return to world controls. Escape closes one layer, cancels placement, then opens Pause.'));
++  const list = el('dl', 'ui-controls');
++  for (const [name, keys] of Object.entries(BINDINGS)) if (keys.length) {
++    const modifier = ['copy', 'paste', 'save', 'load', 'undo', 'redo'].includes(name) ? 'Ctrl / Cmd + ' : '';
++    list.append(el('dt', undefined, name), el('dd', undefined, modifier + keys.map(k => k === ' ' ? 'Space' : k).join(' / ')));
++  }
++  body.append(list, el('p', 'hint', `Projects: ${shortcut('projects')}. H / V mirror while pasting a blueprint; plain C / H / V select chest / stop / tram in world mode. Binding and scaling editors arrive with Settings.`)); return body;
++}
+--- P9-05/packages/game/src/view.ts
++++ UI-01/packages/game/src/view.ts
+@@ -8,13 +8,13 @@
+   switchedAt: number;
+ }
+ 
+-/** RI-02 (§11.2 "debug coordinates behind a toggle"): the HUD, tooltips and toasts name blocks and streets
+- *  (names.ts); block and tile coordinates appear only while this is on — the ` key toggles it with the debug panel.
++/** RI-02 (Â§11.2 "debug coordinates behind a toggle"): the HUD, tooltips and toasts name blocks and streets
++ *  (names.ts); block and tile coordinates appear only while this is on â€” the ` key toggles it with the debug panel.
+  *  Renderer-only state, shared by the panel and both scenes. */
+ export const debugView = { coords: false };
+ /** RI-02: the height the goal overlay (#goal) takes at the top of the canvas, so the world view's top HUD corners
+  *  sit under it instead of behind it. main.ts measures it once a panel update; 0 while the overlay is hidden. */
+-export const hudInset = { top: 0 };
++export const hudInset = { top: 0, right: 0, bottom: 0 };
+ 
+ /** Selected stop is presentation only: selecting a route never dispatches a movement command. */
+ export const transportView: { stopId:number|null } = { stopId:null };
+--- P9-05/packages/game/src/worldScene.ts
++++ UI-01/packages/game/src/worldScene.ts
+@@ -1,3 +1,4 @@
++import { uiInput, uiPalette } from './uiShell';
+ import { removalPreview, type RemovalPreview, blueprintGate, blueprintCheck, blueprintQueueCheck, blueprintEntityBuilt, type BlueprintTransform } from '@relight/sim';
+ import { truckRect, truckOccupies, truckDescription } from '@relight/sim';
+ /** World view (Phase 4 M1 + M2, prompt B M1): the city at tile level, on foot. Every tile is drawn from the ground
+@@ -217,7 +218,7 @@
+     this.gThreat = this.add.graphics().setDepth(3);
+     this.gEng = this.add.graphics().setDepth(3);
+     this.depotText = this.add.text(0, 0, 'Depot', { fontSize: '20px', color: '#e8ecf4', fontStyle: 'bold' }).setDepth(3).setOrigin(0.5).setVisible(false);
+-    const hud = { fontFamily: 'Segoe UI, sans-serif', fontSize: '14px', color: '#c7cfe0', backgroundColor: '#0b0e1acc', padding: { x: 8, y: 6 } };
++    const hud = { ...uiPalette(), padding: { x: 8, y: 6 } };
+     this.keyText = this.add.text(0, 0, '', hud).setScrollFactor(0).setDepth(10).setOrigin(0, 0);
+     this.terrText = this.add.text(0, 0, '', { ...hud, align: 'right' }).setScrollFactor(0).setDepth(10).setOrigin(1, 0);
+     this.powText = this.add.text(0, 0, '', hud).setScrollFactor(0).setDepth(10).setOrigin(0, 1);
+@@ -233,11 +234,12 @@
+     this.input.keyboard!.on('keyup', (event: KeyboardEvent) => { this.modifiedKey = event.ctrlKey || event.metaKey || event.altKey; });
+     // Clicking back into the world leaves station inputs, restoring game keyboard controls.
+     this.game.canvas.tabIndex = 0;
+-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { this.game.canvas.focus({ preventScroll: true }); this.onDown(p); });
+-    this.input.on('pointerup', () => this.onUp());
+-    this.input.on('gameout', () => { this.beltPath = null; this.undergroundStart = null; this.onUp(); this.hoverTile = null; this.hooks.onHoverText(null, 0, 0); });
+-    this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
++    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { if(uiInput.blocked)return;this.game.canvas.focus({ preventScroll: true }); this.onDown(p); });
++    this.input.on('pointerup', () => {if(uiInput.blocked)this.releaseInput();else this.onUp();});
++    this.input.on('gameout', () => { this.releaseInput(); this.hoverTile = null; this.hooks.onHoverText(null, 0, 0); });
++    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {if(!uiInput.blocked)this.onMove(p);});
+     this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
++      if(uiInput.blocked)return;
+       const f = dy > 0 ? 1 / ZOOM_STEP : ZOOM_STEP;
+       if (this.onFoot) this.zoomAt(...this.engineerScreen(), f); else this.zoomAt(p.x, p.y, f);
+     });
+@@ -400,7 +402,16 @@
+     this.viewingThreat=true;
+     this.cameras.main.centerOn(target.x*TILE_PX,target.y*TILE_PX);
+   }
+-  releaseInput():void {if(!this.keys)return;this.input.keyboard?.resetKeys();this.modifiedKey=false;this.sendWalk(0,0);this.sendSprint(false);this.onUp();}
++  releaseInput():void {
++    if(!this.keys)return;
++    // Capture cancels unfinished drags: normal pointer-up would commit a belt path or blueprint selection.
++    this.beltPath=null;this.copyStart=null;this.undergroundStart=null;this.hoverTile=null;
++    this.input.keyboard?.resetKeys();this.modifiedKey=false;this.sendWalk(0,0);this.sendSprint(false);this.onUp();
++  }
++  cancelSelection():boolean {
++    if(this.tool==='hand'&&!this.blueprintMode&&!this.removal&&!this.beltPath&&!this.undergroundStart&&!inspectionView.machineId)return false;
++    this.releaseInput();this.blueprint('cancel');this.setTool('hand');inspectionView.machineId=null;return true;
++  }
+   viewLocation(x:number,y:number):void {this.viewingThreat=true;this.cameras.main.centerOn(x*TILE_PX,y*TILE_PX);}
+   returnToEngineer():void {this.viewingThreat=false;this.snapped=false;}
+ 
+@@ -830,7 +841,7 @@
+   private hoverRefreshedAt=0;
+   update(_time: number, delta: number): void {
+     const cam = this.cameras.main, dt = Math.min(0.1, delta / 1000);
+-    const typing = this.modifiedKey || !!document.activeElement?.closest('input, textarea, select, [contenteditable=true]');
++    const typing = uiInput.blocked || this.modifiedKey || !!document.activeElement?.closest('input, textarea, select, [contenteditable=true]');
+     const right = !typing && (this.keys.D.isDown || this.keys.RIGHT.isDown), left = !typing && (this.keys.A.isDown || this.keys.LEFT.isDown);
+     const down = !typing && (this.keys.S.isDown || this.keys.DOWN.isDown), up = !typing && (this.keys.W.isDown || this.keys.UP.isDown);
+     if (this.onFoot) {
+@@ -841,7 +852,7 @@
+       if (!typing && Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) queue(this.session, { type: 'dodge' });
+       if(typing&&this.firing){this.firing=false;this.sendAim(null);}
+       if (this.firing) this.sendAim(this.aimAt(this.input.activePointer));
+-      const e = this.st.engineer, gx = e.x * TILE_PX - cam.width / 2, gy = e.y * TILE_PX - cam.height / 2;
++      const e = this.st.engineer, gx = e.x * TILE_PX - cam.width / 2 + hudInset.right / (2 * cam.zoom), gy = e.y * TILE_PX - cam.height / 2 + (hudInset.bottom - hudInset.top - 112) / (2 * cam.zoom);
+       if(left||right||up||down)this.viewingThreat=false;
+       if(this.viewingThreat){ /* Hold the explicitly selected camera position. */ }
+       else if (!this.snapped) { cam.setScroll(gx, gy); this.snapped = true; }
+@@ -854,7 +865,7 @@
+       if (down) cam.scrollY += pan;
+     }
+     const t0 = performance.now();
+-    if(this.hoverTile&&!this.input.activePointer.isDown&&t0-this.hoverRefreshedAt>=150){this.hoverRefreshedAt=t0;this.onMove(this.input.activePointer,true);}
++    if(!uiInput.blocked&&this.hoverTile&&!this.input.activePointer.isDown&&t0-this.hoverRefreshedAt>=150){this.hoverRefreshedAt=t0;this.onMove(this.input.activePointer,true);}
+     this.draw();
+     const ms = performance.now() - t0;
+     this.drawMs += (ms - this.drawMs) * 0.05; if (ms > this.drawWorstMs) this.drawWorstMs = ms;
+@@ -1060,7 +1071,8 @@
+ 
+     // top-left: the key strip (STANDARDS 4.3, the keys visible rather than in a tooltip) and what is in the hand,
+     // wrapped to a little over half the viewport so it never runs under the territory block opposite it
+-    const wrap = Math.round(cam.width * KEY_STRIP_FRAC);
++    const wrap = Math.round((cam.width - hudInset.right) * KEY_STRIP_FRAC);
++    this.terrText.setVisible(hudInset.right===0);
+     const directions = G.urban && this.cg ? G.urban.places.filter(p => (p.role === 'rail' || p.role === 'residential') && this.cg!.blocks[this.cg!.hq].nb.includes(p.block))
+       .map(p => `${bearingOf(st, this.cg!.hq, p.block)} · ${blockName(st,p.block)}`).slice(0, 2).join('     /     ') : '';
+     if (this.keyWrap !== wrap) { this.keyWrap = wrap; this.keyText.setWordWrapWidth(wrap); }
+@@ -1068,18 +1080,18 @@
+       .setText(G.urban ? `${FACTORY_TEXT.worldKeys}\n${this.tool === 'hand' ? FACTORY_TEXT.miningHand : FACTORY_TEXT.inHand(inHand)} ${this.ghostReason || ''}\n${directions}` : `${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}${st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}` : ''}`);
+ 
+     // top-right: territory — the block under the engineer, what the view holds, the zoom
+-    this.terrText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8, 8 + hudInset.top))
++    this.terrText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8 - hudInset.right, 8 + hudInset.top))
+       .setText(`World view · ${n} tiles · zoom ${cam.zoom.toFixed(2)}×${fi >= 0 ? `\n${this.blockLine(fi)}` : ''}`);
+ 
+     // bottom-left: power and pockets (the two stocks that decide the hour)
+     const pockets = this.onFoot ? `Pockets ${invStacks(e.inv)}/${INV_STACKS} stacks${e.inv.kit ? ` · ${e.inv.kit} kit${e.inv.kit === 1 ? '' : 's'}` : ''}${e.hp < ENGINEER_HP ? ` · HP ${Math.round(e.hp)}/${ENGINEER_HP}` : ''}${threatLine}` : threatLine.replace(/^ · /, '');
+     const power = this.powerLine().replace(/^\n/, '');
+     if (this.powWrap !== wrap) { this.powWrap = wrap; this.powText.setWordWrapWidth(wrap); }
+-    this.powText.setScale(1 / cam.zoom).setPosition(...pin(8, cam.height - 8))
++    this.powText.setScale(1 / cam.zoom).setPosition(...pin(8, cam.height - 8 - hudInset.bottom))
+       .setText([pockets, power].filter(Boolean).join('\n') || ' ');
+ 
+     // bottom-right: the clock and the speed the sim is running at (P pauses, - / = change it)
+-    this.clockText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8, cam.height - 8))
++    this.clockText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8 - hudInset.right, cam.height - 8 - hudInset.bottom))
+       .setText(`${clock(st.t)}\n${st.speed <= 0 ? 'PAUSED (P)' : `${st.speed}× speed`}`);
+     // the Depot beacon (STANDARDS C.2: the landmark reads from the far edge of the viewport): when the Depot is out
+     // of view, its direction and distance sit on the edge of the screen nearest it

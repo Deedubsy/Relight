@@ -1,0 +1,5 @@
+const {chromium}=require('C:/Users/Admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs'),path=require('node:path');
+(async()=>{const b=await chromium.launch({channel:'chrome',headless:true}),p=await b.newPage(),errors=[];p.on('pageerror',e=>errors.push(String(e)));
+await p.route(u=>u.pathname==='/ui-fresh.json',r=>r.fulfill({contentType:'application/json',body:fs.readFileSync(path.resolve(__dirname,'../../p9-05-2026-09-09/campaign/fresh.json'))}));
+for(const width of [1280,900]){await p.setViewportSize({width,height:720});await p.goto('http://127.0.0.1:5178/?rules=exploration-v2&seed=3&view=world&state=/ui-fresh.json');await p.waitForFunction(()=>window.__relight?.uiShell);await p.waitForTimeout(6000);await p.screenshot({path:path.join(__dirname,`opening-${width}.png`)});console.log(width,await p.locator('body').innerText());}console.log('ERRORS',errors);await b.close();})().catch(e=>{console.error(e);process.exitCode=1});

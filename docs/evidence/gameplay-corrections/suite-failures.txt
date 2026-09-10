@@ -1,0 +1,442 @@
+/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:12:1 |  area removal: read-only whole-footprint preview, atomic paid packing, settings undo and saved redo | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:19:1 |  area removal: changed identities/settings, new neighbours and changed reach refuse without partial effects | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:27:1 |  area removal: cumulative pocket capacity refuses the whole group then recovers | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:33:1 |  area removal: loaded belts and hidden tunnel items return once; undo does not refill machines | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:39:1 |  area removal: loose turret rounds require buffer space and never disappear | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:43:1 |  area removal: busy machines, fractional contents, damaged defences and installed facilities stay | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:51:1 |  area removal: cargo, held items and freight/filter/priority settings survive conserved packing history | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/areaRemoval.test.ts:56:1 |  area removal: ordinary paid command comparison records equal layouts/materials without a human tedium claim | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:23:1 |  clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:48:1 |  clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:68:1 |  occupied, unaffordable and remote stamps are atomic and consume carried machines before materials | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:78:1 |  copied underground pairs reject an intervening destination endpoint and orphan selections | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:86:1 |  old post-P7 saves retain every existing site/layout/earned reward and gain an unrecruited Foreman and permanent tram infrastructure | |-
+    Expected values to be strictly equal:
+    
+    5 !== 4
+    
+/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:98:1 |  Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds | |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'railcrew'
+    - 'foreman'
+    
+/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:106:1 |  ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:119:1 |  permanent stations retain editable freight rules but copying cannot build another station | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:14:1 |  library import/export is bounded, atomic, Foreman-gated and independent of clipboard and orders | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:26:1 |  library limits and metadata rejection preserve allocator and current selection | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:32:1 |  ghost plans consume no stock or occupancy, reject overlap and bounds, and report exact missing stock | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:41:1 |  partial manual construction survives save/load; remaining build pays once and completed orders never requeue on undo | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:47:1 |  ordinary matching construction completes waiting orders, occupied mismatches and remote builds remain blocked | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:54:1 |  order limits include history, cancel is terminal and deleting records never recycles IDs | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:59:1 |  hostile saved libraries and order lifecycle data are rejected; old optional state remains absent | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:67:1 |  imported locked machines remain plans and cannot bypass ordinary unlocks | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:71:1 |  ordinary opening recruitment, library actions, ghost construction and cancellation replay deterministically | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:77:1 |  partly built underground plans reject interception atomically and preserve the intended pair | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/blueprintPlans.test.ts:87:1 |  largest freight-rich portable library entry round-trips within the bounded text size | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/campaign.test.ts:54:1 |  cul-de-sac across seeds has exactly one four-tile entrance, shared collision, reachable supplies/resources and buildable factory space | |-
+    Expected values to be strictly equal:
+    
+    0 !== 50
+    
+/mnt/e/Factorio2/packages/sim/test/campaign.test.ts:93:1 |  campaign session, share/load identity, replay and browser save slots remain isolated from legacy sessions | |-
+    Expected values to be strictly equal:
+    
+    undefined !== 20
+    
+/mnt/e/Factorio2/packages/sim/test/campaignCityValidation.test.ts:7:1 |  composed city query is repeatable, read-only and stable after load; includes every current site | |-
+    Expected values to be strictly equal:
+    
+    16 !== 14
+    
+/mnt/e/Factorio2/packages/sim/test/campaignDefence.test.ts:26:1 |  paid walls block walking, retain their footprint on defeat, and repair consumes materials once through save/load | |-
+    The expression evaluated to a falsy value:
+    
+      createCampaign()
+    
+/mnt/e/Factorio2/packages/sim/test/campaignDefence.test.ts:55:1 |  a powered radio receives the real lock; outages retain it and never reroll the target | "Cannot set properties of undefined (setting 'x')"
+/mnt/e/Factorio2/packages/sim/test/campaignDefence.test.ts:84:1 |  unopposed major crawlers follow the home mouth, defeat its core and physically withdraw before paid recovery | |-
+    Expected values to be strictly equal:
+    
+    0 !== 300
+    
+/mnt/e/Factorio2/packages/sim/test/campaignDefence.test.ts:99:1 |  a sealed court is breached through a player wall instead of losing pathfinding; turret defeat preserves its ammo | 'false == true'
+/mnt/e/Factorio2/packages/sim/test/campaignDefence.test.ts:120:1 |  ordinary paid and hand-supplied turrets hold the complete finite major roster without the rifle | |-
+    Expected values to be strictly equal:
+    
+    0 !== 4
+    
+/mnt/e/Factorio2/packages/sim/test/campaignDefence.test.ts:150:1 |  ordinary paid defence commands replay from the same fresh campaign factory | 'undefined == true'
+/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:132:1 |  fresh campaign reaches and recovers the discovery through ordinary commands, then replays and reloads identically | 'false == true'
+/mnt/e/Factorio2/packages/sim/test/campaignDiscovery.test.ts:168:1 |  a paid missed rifle round attracts the workshop guardian even when the engineer stands still | |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+/mnt/e/Factorio2/packages/sim/test/campaignDistricts.test.ts:147:1 |  fresh campaign pays for both stations and the workshop through logged commands that replay identically | 'no generator pad near 386,632'
+/mnt/e/Factorio2/packages/sim/test/campaignDistricts.test.ts:160:1 |  paid three-base tram route reserves onward supply, returns district goods and requires repeated actual home deliveries for shorter rest | |-
+    The expression evaluated to a falsy value:
+    
+      walk(st,e.station.x,e.station.y,e.station.size)
+    
+/mnt/e/Factorio2/packages/sim/test/campaignGuide.test.ts:8:1 |  knowledge starts with the opening clue, records exploration and survives leaving and reloading | |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        'station',
+    +   'regional:plant:0',
+    +   'regional:core:1',
+    +   'regional:p
+/mnt/e/Factorio2/packages/sim/test/campaignGuide.test.ts:17:1 |  item guide contains only implemented recipes and true current consumers, unlock provenance and no secret locations | |-
+    The expression evaluated to a falsy value:
+    
+      stateHash(s)
+    
+/mnt/e/Factorio2/packages/sim/test/campaignGuide.test.ts:48:1 |  current-code replay of the ordinary P7-03 workload supplies a complete P7-04 checkpoint | |-
+    Expected values to be strictly equal:
+    
+    -1 !== 197
+    
+/mnt/e/Factorio2/packages/sim/test/campaignInformation.test.ts:43:1 |  immediate wall breach uses the damage tick decision, including blocked withdrawal and saved continuation | "Cannot read properties of undefined (reading 'kind')"
+/mnt/e/Factorio2/packages/sim/test/campaignInformation.test.ts:62:1 |  nearby turret attack and engineer contact supersede the strategic core and match real damage | |-
+    The expression evaluated to a falsy value:
+    
+      fixture()
+    
+/mnt/e/Factorio2/packages/sim/test/campaignRecruits.test.ts:28:1 |  ordinary walk and recruitment grant real electrical plans once, preserve stock and replay | 'floodlight'
+/mnt/e/Factorio2/packages/sim/test/campaignRecruits.test.ts:82:1 |  version 5 migration keeps earned plans, existing workshop history and layouts; unearned plans stay locked | |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    ... Skipped lines
+    
+      [
+        {
+          busy: false,
+          dir: 0,
+          hold: null
+/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:38:1 |  post-lock paid structures or player presence reroute staging on the same approach across three bases and holdout seeds | 'seed 3: pole at 441,626: not enough in the pockets (1 steel + 1 Cu)'
+/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:60:1 |  no staging ground explicitly defers without losing roster, resumes after paid obstruction removal, and reloads deterministically | 'seed 3: belt at 441,626: rubble in the way'
+/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:77:1 |  staging fallback preserves received radio precision and a locked remote target through an outage and load | "Cannot set properties of undefined (setting 'x')"
+/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:91:1 |  withdrawing bodies breach a newly blocked birth tile and prevent recovery or rest completion until they physically exit | 'seed 3: wall at 441,626: rubble in the way'
+/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:103:1 |  minor withdrawal at dusk is physical, saved and exclusive with the major roster | 'seed 3: wall at 386,646: not enough in the pockets (2 steel)'
+/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:118:1 |  restoration ties, disabled targets, recommissioning and post-lock nominations retain one promised schedule through saves | 'null == true'
+/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:136:1 |  old defence saves retain attacks and paid jobs while incompatible old command histories stop claiming full replay | 'seed 3: wall at 441,626: rubble in the way'
+/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:168:1 |  paid obstruction, ordinary walking and the resulting assault replay from a declared pre-dusk checkpoint | |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + undefined
+    - 'wall'
+    
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:7:26 |  current survey: seed 6 composes legal tracks/stops and preserves an older paid save | '[{"code":"opening","subject":"exit:516319","reason":"exterior approach is unreachable"},{"code":"opening","subject":"exit:517119","reason":"exterior approach is unreachable"}]'
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:7:26 |  current survey: seed 29 composes legal tracks/stops and preserves an older paid save | |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + '5ffa9f9f'
+    - '7e8cb695'
+    
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:19:1 |  old survey logs remain available but cannot claim new-factory replay; new survey saves retain complete logs | |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + '2f716fa4'
+    - '16ff4398'
+    
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:34:69 |  population repair: seed 305 has complete legal reservations | '[{"code":"rail-placement","subject":"tile:509962","reason":"not buildable ground"},{"code":"rail-placement","subject":"tile:510762","reason":"not buildable ground"}]'
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:34:69 |  population repair: seed 842 has complete legal reservations | '[{"code":"opening","subject":"exit:535725","reason":"exterior approach is unreachable"},{"code":"opening","subject":"exit:536525","reason":"exterior approach is unreachable"}]'
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:34:69 |  population repair: seed 1340 has complete legal reservations | '[{"code":"opening","subject":"exit:521880","reason":"exterior approach is unreachable"},{"code":"opening","subject":"exit:522680","reason":"exterior approach is unreachable"}]'
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:34:69 |  population repair: seed 2313 has complete legal reservations | '[{"code":"opening","subject":"exit:557989","reason":"exterior approach is unreachable"},{"code":"opening","subject":"exit:558789","reason":"exterior approach is unreachable"}]'
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:34:69 |  population repair: seed 3610 has complete legal reservations | '[{"code":"rail-placement","subject":"tile:541244","reason":"a regional installation is here"}]'
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:34:69 |  population repair: seed 8102 has complete legal reservations | '[{"code":"rail-placement","subject":"tile:490054","reason":"a regional installation is here"}]'
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:42:1 |  revision 2 paid saves retain geometry, stock and logs under revision 3 | |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + '369d9e3d'
+    - '8171622c'
+    
+/mnt/e/Factorio2/packages/sim/test/campaignSurvey.test.ts:52:1 |  resaving a prior survey preserves its complete historical log without promising fresh-factory replay | |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + '369d9e3d'
+    - '8171622c'
+    
+/mnt/e/Factorio2/packages/sim/test/campaignTurbine.test.ts:28:1 |  ordinary optional recruitment works in both orders, grants paid Arc coverage and district-only survey, and replays | 'undefined == true'
+/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:51:1 |  ordinary recruitment and paid stone → belt → Mixer → concrete chest chain save and replay | 'no home concrete line layout'
+/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:77:1 |  Mixer pauses without power, retains a paid partial craft, refuses busy packing and stops at full output | 'no home concrete line layout'
+/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:93:1 |  paid Barricades conserve concrete through history, damage, saved repair and packing | 'no home concrete line layout'
+/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:109:1 |  concrete saves reject corrupt production and counters; construction requires concrete | 'no home concrete line layout'
+/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:123:1 |  crawlers physically breach a sealed Barricade court | |-
+    The expression evaluated to a falsy value:
+    
+      loadState(overlap)
+    
+/mnt/e/Factorio2/packages/sim/test/construction.test.ts:1:1 |  test/construction.test.ts | 'test failed'
+/mnt/e/Factorio2/packages/sim/test/constructionIntegration.test.ts:23:35 |  P8 integration seed 3: repeated paid ammunition pattern, station chest, truck, powered belts and replay | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/constructionIntegration.test.ts:23:35 |  P8 integration seed 4: repeated paid ammunition pattern, station chest, truck, powered belts and replay | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/constructionIntegration.test.ts:23:35 |  P8 integration seed 5: repeated paid ammunition pattern, station chest, truck, powered belts and replay | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/constructionIntegration.test.ts:23:35 |  P8 integration seed 8: repeated paid ammunition pattern, station chest, truck, powered belts and replay | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/constructionIntegration.test.ts:23:35 |  P8 integration seed 11: repeated paid ammunition pattern, station chest, truck, powered belts and replay | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/constructionIntegration.test.ts:23:35 |  P8 integration seed 13: repeated paid ammunition pattern, station chest, truck, powered belts and replay | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/constructionIntegration.test.ts:51:1 |  P8 broader sweep: seeds 1–16, eight destinations, rotated placements and valid/blocked turns remain bounded and read-only | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/defenceHarness.test.ts:8:1 |  defence observation preserves ordinary commands, clock, live raid and replay | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/defenceHarness.test.ts:26:1 |  seed 8 survey avoids forbidden street tiles and supports a paid three-stop line from ordinary stock | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/directConveyor.test.ts:23:1 |  direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/directConveyor.test.ts:42:1 |  direct belts: any storage side can unload, and pointing inward never steals from the destination | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/directConveyor.test.ts:50:1 |  direct belts: incompatible mixed stock stays at its source and full destinations conserve items | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/directConveyor.test.ts:58:1 |  direct belts: Home supplies and turret hoppers can unload without creating stock | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/expansion.test.ts:29:1 |  second area is reachable across seeds; restoration costs, local power, radio and permanent transport survive saves | |-
+    Expected values to be strictly equal:
+    
+    0 !== 30
+    
+/mnt/e/Factorio2/packages/sim/test/expansion.test.ts:44:1 |  fresh paid expedition powers its permanent line and moves reserved freight between independently powered bases | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/expansion.test.ts:64:1 |  physical pole links power a remote installation and picking them up disconnects it | |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + undefined
+    - 'pole'
+    
+/mnt/e/Factorio2/packages/sim/test/factoryHarness.test.ts:26:1 |  a blueprint walks and pays from ordinary stock, keeps the engineer clear, and replays all construction/settings from a fresh campaign | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/factoryHarness.test.ts:34:1 |  failed blueprint retains only paid completed work and reports the failing entity; invalid replay intervals are rejected | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/fixedTram.test.ts:13:1 |  four permanent stops exist at repeatable positions; infrastructure cannot be built or packed | |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+/mnt/e/Factorio2/packages/sim/test/fixedTram.test.ts:22:1 |  power any second stop to automatically carry requested cargo; outage parks, reconnect resumes and save continues identically | |-
+    Expected values to be strictly equal:
+    
+    1 !== 2
+    
+/mnt/e/Factorio2/packages/sim/test/fixedTram.test.ts:32:1 |  all four powered stops participate and unpowered stops are skipped without unloading there | |-
+    Expected values to be strictly equal:
+    
+    3 !== 4
+    
+/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:23:1 |  inspection: paid assembler exposes nominal recipe rates, completed production and conserved saved continuation | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:35:1 |  inspection: recipe changes retain per-item observations; packing/rebuild resets only machine history | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:47:1 |  inspection: local circuits isolate remote supply, reflect brownout, fuel exhaustion and pole connection | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:64:1 |  inspection: belt blockage and inserter destination loss report the actual held state | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:73:1 |  inspection: saved sample window is bounded, excludes pause time and rejects malformed observations | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:97:1 |  UI-04 simultaneous constraints are readonly and clear independently with real input and power predicates | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:108:1 |  UI-04 no local load is neutral; disabled core retains the actual primary statement | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:115:1 |  UI-04 hand transfer previews match actual capped moves and never allocate arrivals or mutate state | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:124:1 |  UI-04 truck preview shares command capacity/reach rules and leaves source stock untouched | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/inspection.test.ts:130:1 |  UI-04 source locations only name genuine known stock or finite home patches | 'no steel in the Depot'
+/mnt/e/Factorio2/packages/sim/test/navigation.test.ts:8:1 |  navigation uses existing deterministic names and known sites without revealing hidden destinations | |-
+    Expected values to be strictly equal:
+    
+    7 !== 1
+    
+/mnt/e/Factorio2/packages/sim/test/navigation.test.ts:32:1 |  old revision-2 saves retain geometry and stock but do not claim replay before visit tracking | |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'e6da5741'
+    - 'f1cea485'
+    
+/mnt/e/Factorio2/packages/sim/test/projects.test.ts:24:1 |  project previews and ordinary paid delivery, power, restoration and kit collection agree and survive load | 'false == true'
+/mnt/e/Factorio2/packages/sim/test/projects.test.ts:54:1 |  alerts prioritize actual known threats, resolve from state and withhold unknown targets | |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + {
+    +   x: 421,
+    +   y: 635
+    + }
+    - null
+    
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:28:1 |  routing: underground span boundaries, paired construction and atomic interference/material/reach refusals | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:43:1 |  routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:57:1 |  routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:69:1 |  routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:84:1 |  routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:94:1 |  routing: paired commands and settings replay at a paused boundary and survive saved history | 'false == true'
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:105:1 |  routing: crossing tunnels pair independently and an intervening endpoint refuses a new pair atomically | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:116:1 |  routing: filter applies to mixed belt and station-arrival source fixtures | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:131:1 |  routing: rectangular occupancy follows all four rotations, including the ordinary command path | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:142:1 |  routing: saturated splitter and underground throughput stay bounded and conserve their circulating fixture stock | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/routing.test.ts:162:1 |  routing: all four recipes run through a paid chest/inserter/belt/underground/splitter line reached on foot | |-
+    no steel in the Depot
+    
+    false !== true
+    
+/mnt/e/Factorio2/packages/sim/test/transport.test.ts:25:1 |  truck unlocks once at the paid restored station, keeps the kit corridor clear and replays its entire driving/cargo trip | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/transport.test.ts:40:1 |  truck boarding and cargo are local; a parked footprint blocks walking, paths and construction | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/transport.test.ts:47:1 |  cargo capacity is separate, partial stacks fit, and invalid or distant transfers preserve both inventories | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/transport.test.ts:59:1 |  driving checks every footprint tile at speed, refuses blocked rotations, and cannot use dodge or auto-walk | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/transport.test.ts:75:1 |  blocked exit is refused; knockdown parks cargo, respawn does not teleport the truck, and occupied saves resume | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/transport.test.ts:86:1 |  old restored previews spawn deterministically on their next tick; malformed truck saves are rejected | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/transport.test.ts:93:1 |  selected permanent route is read-only, reports all four stops and pauses with cargo retained on power loss | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/transport.test.ts:102:1 |  permanent routes expose full arrivals and returning cargo while packing public stops is rejected | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:20:1 |  physical truck loads a real chest, travels, builds from cargo, and leaves engineer pockets and position intact | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:26:1 |  shortages resume after local chest replenishment; pause, cancel and repeat controls retain stock | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:31:1 |  loading, travelling and partial-build checkpoints continue deterministically without double spending | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:40:1 |  missing source and occupied destinations wait safely and retry after the obstruction is fixed | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:46:1 |  manual boarding pauses the automated truck and preserves its cargo and independent orders | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:52:1 |  malformed jobs and saved teleport paths are rejected without granting stock or bypassing Foreman | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:59:1 |  a new obstacle on a saved route stops the swept footprint and work resumes after removal | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:66:1 |  unrelated full cargo blocks loading without spending source stock and recovers after unloading | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:72:1 |  paired underground construction uses real cargo and preserves tunnel roles | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:79:1 |  ordinary station restoration, Foreman recruitment, paid chest and copied plan fully replay through automated delivery | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:87:1 |  packed machines from a supply chest replace material costs without touching pockets | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:95:1 |  order pause/resume, retry and source reassignment are idempotent and retain cargo through interruptions | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/truckWork.test.ts:107:1 |  area removal packs an overlaid tram before its track and restores freight cargo without duplication | 'no generator position'
+/mnt/e/Factorio2/packages/sim/test/uiBuild.test.ts:1:1 |  test/uiBuild.test.ts | 'test failed'
+/mnt/e/Factorio2/packages/sim/test/uiGuidance.test.ts:7:1 |  UI-02 fresh and paused load point to real Home stock; partial pockets name only the remainder | |-
+    The input did not match the regular expression /Collect your starting supplies from Home/. Input:
+    
+    'Mine the remaining materials by hand'
+    
+/mnt/e/Factorio2/packages/sim/test/uiGuidance.test.ts:17:1 |  UI-02 existing machinery is inspected, with saved facts surviving load and removal | 'No legal opening pad'
+/mnt/e/Factorio2/packages/sim/test/uiRedesign.test.ts:20:1 |  UI-08 paired transfers conserve stock, consume the selected stack, reject stale and out-of-reach commands | |-
+    The expression evaluated to a falsy value:
+    
+      applyCommands(st,[{type:'factory',action:{type:'chestTake',item:'steel',n:40}}])
+    

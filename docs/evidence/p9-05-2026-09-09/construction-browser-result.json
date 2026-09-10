@@ -1,0 +1,690 @@
+{
+  "rows": [
+    {
+      "width": 1366,
+      "paused": {
+        "hash": "2ef113a0",
+        "t": 95,
+        "pockets": {
+          "steel": 13,
+          "copper": 8,
+          "belt": 2
+        },
+        "work": {
+          "version": 1,
+          "sourceId": 4,
+          "orderIds": [
+            3
+          ],
+          "enabled": false,
+          "phase": "paused",
+          "reason": "Paused; cargo and plans retained",
+          "route": [],
+          "nextActionTick": 1900
+        },
+        "cargo": {},
+        "orders": [
+          {
+            "id": 1,
+            "blueprint": {
+              "version": 1,
+              "name": "Copied layout",
+              "entities": [
+                {
+                  "id": "machine0",
+                  "kind": "belt",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "machine1",
+                  "kind": "belt",
+                  "x": 1,
+                  "y": 0,
+                  "dir": 1
+                }
+              ]
+            },
+            "x": 364,
+            "y": 622,
+            "createdAt": 25,
+            "status": "cancelled",
+            "finishedAt": 25
+          },
+          {
+            "id": 3,
+            "blueprint": {
+              "version": 1,
+              "name": "Belt-fed ammunition cell",
+              "entities": [
+                {
+                  "id": "input",
+                  "kind": "chest",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 0
+                },
+                {
+                  "id": "feed",
+                  "kind": "inserter",
+                  "x": 2,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "assembler",
+                  "kind": "assembler",
+                  "x": 3,
+                  "y": 0,
+                  "dir": 0,
+                  "recipe": "shot"
+                },
+                {
+                  "id": "out",
+                  "kind": "inserter",
+                  "x": 6,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "belt",
+                  "kind": "belt",
+                  "x": 7,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "turret",
+                  "kind": "turret",
+                  "x": 8,
+                  "y": 1,
+                  "dir": 0
+                }
+              ]
+            },
+            "x": 373,
+            "y": 635,
+            "createdAt": 25,
+            "status": "waiting"
+          }
+        ],
+        "source": {
+          "steel": 68,
+          "copper": 27
+        },
+        "rounds": 0
+      },
+      "built": {
+        "hash": "e25e03e1",
+        "t": 105,
+        "pockets": {
+          "steel": 13,
+          "copper": 8,
+          "belt": 2
+        },
+        "work": {
+          "version": 1,
+          "sourceId": 4,
+          "orderIds": [
+            3
+          ],
+          "enabled": false,
+          "phase": "complete",
+          "reason": "Selected orders finished or cancelled; cargo retained",
+          "route": [],
+          "nextActionTick": 2122
+        },
+        "cargo": {},
+        "orders": [
+          {
+            "id": 1,
+            "blueprint": {
+              "version": 1,
+              "name": "Copied layout",
+              "entities": [
+                {
+                  "id": "machine0",
+                  "kind": "belt",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "machine1",
+                  "kind": "belt",
+                  "x": 1,
+                  "y": 0,
+                  "dir": 1
+                }
+              ]
+            },
+            "x": 364,
+            "y": 622,
+            "createdAt": 25,
+            "status": "cancelled",
+            "finishedAt": 25
+          },
+          {
+            "id": 3,
+            "blueprint": {
+              "version": 1,
+              "name": "Belt-fed ammunition cell",
+              "entities": [
+                {
+                  "id": "input",
+                  "kind": "chest",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 0
+                },
+                {
+                  "id": "feed",
+                  "kind": "inserter",
+                  "x": 2,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "assembler",
+                  "kind": "assembler",
+                  "x": 3,
+                  "y": 0,
+                  "dir": 0,
+                  "recipe": "shot"
+                },
+                {
+                  "id": "out",
+                  "kind": "inserter",
+                  "x": 6,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "belt",
+                  "kind": "belt",
+                  "x": 7,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "turret",
+                  "kind": "turret",
+                  "x": 8,
+                  "y": 1,
+                  "dir": 0
+                }
+              ]
+            },
+            "x": 373,
+            "y": 635,
+            "createdAt": 25,
+            "status": "completed",
+            "finishedAt": 105
+          }
+        ],
+        "source": {},
+        "rounds": 0
+      },
+      "final": {
+        "hash": "145f3eb0",
+        "t": 146,
+        "pockets": {
+          "belt": 2
+        },
+        "work": {
+          "version": 1,
+          "sourceId": 4,
+          "orderIds": [
+            3
+          ],
+          "enabled": false,
+          "phase": "complete",
+          "reason": "Selected orders finished or cancelled; cargo retained",
+          "route": [],
+          "nextActionTick": 2122
+        },
+        "cargo": {},
+        "orders": [
+          {
+            "id": 1,
+            "blueprint": {
+              "version": 1,
+              "name": "Copied layout",
+              "entities": [
+                {
+                  "id": "machine0",
+                  "kind": "belt",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "machine1",
+                  "kind": "belt",
+                  "x": 1,
+                  "y": 0,
+                  "dir": 1
+                }
+              ]
+            },
+            "x": 364,
+            "y": 622,
+            "createdAt": 25,
+            "status": "cancelled",
+            "finishedAt": 25
+          },
+          {
+            "id": 3,
+            "blueprint": {
+              "version": 1,
+              "name": "Belt-fed ammunition cell",
+              "entities": [
+                {
+                  "id": "input",
+                  "kind": "chest",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 0
+                },
+                {
+                  "id": "feed",
+                  "kind": "inserter",
+                  "x": 2,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "assembler",
+                  "kind": "assembler",
+                  "x": 3,
+                  "y": 0,
+                  "dir": 0,
+                  "recipe": "shot"
+                },
+                {
+                  "id": "out",
+                  "kind": "inserter",
+                  "x": 6,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "belt",
+                  "kind": "belt",
+                  "x": 7,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "turret",
+                  "kind": "turret",
+                  "x": 8,
+                  "y": 1,
+                  "dir": 0
+                }
+              ]
+            },
+            "x": 373,
+            "y": 635,
+            "createdAt": 25,
+            "status": "completed",
+            "finishedAt": 105
+          }
+        ],
+        "source": {},
+        "rounds": 40
+      },
+      "replay": {
+        "same": true,
+        "replayed": "145f3eb0",
+        "played": "145f3eb0",
+        "tick": 2926
+      }
+    },
+    {
+      "width": 900,
+      "paused": {
+        "hash": "2ef113a0",
+        "t": 95,
+        "pockets": {
+          "steel": 13,
+          "copper": 8,
+          "belt": 2
+        },
+        "work": {
+          "version": 1,
+          "sourceId": 4,
+          "orderIds": [
+            3
+          ],
+          "enabled": false,
+          "phase": "paused",
+          "reason": "Paused; cargo and plans retained",
+          "route": [],
+          "nextActionTick": 1900
+        },
+        "cargo": {},
+        "orders": [
+          {
+            "id": 1,
+            "blueprint": {
+              "version": 1,
+              "name": "Copied layout",
+              "entities": [
+                {
+                  "id": "machine0",
+                  "kind": "belt",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "machine1",
+                  "kind": "belt",
+                  "x": 1,
+                  "y": 0,
+                  "dir": 1
+                }
+              ]
+            },
+            "x": 364,
+            "y": 622,
+            "createdAt": 25,
+            "status": "cancelled",
+            "finishedAt": 25
+          },
+          {
+            "id": 3,
+            "blueprint": {
+              "version": 1,
+              "name": "Belt-fed ammunition cell",
+              "entities": [
+                {
+                  "id": "input",
+                  "kind": "chest",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 0
+                },
+                {
+                  "id": "feed",
+                  "kind": "inserter",
+                  "x": 2,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "assembler",
+                  "kind": "assembler",
+                  "x": 3,
+                  "y": 0,
+                  "dir": 0,
+                  "recipe": "shot"
+                },
+                {
+                  "id": "out",
+                  "kind": "inserter",
+                  "x": 6,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "belt",
+                  "kind": "belt",
+                  "x": 7,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "turret",
+                  "kind": "turret",
+                  "x": 8,
+                  "y": 1,
+                  "dir": 0
+                }
+              ]
+            },
+            "x": 373,
+            "y": 635,
+            "createdAt": 25,
+            "status": "waiting"
+          }
+        ],
+        "source": {
+          "steel": 68,
+          "copper": 27
+        },
+        "rounds": 0
+      },
+      "built": {
+        "hash": "7d58a0a9",
+        "t": 105,
+        "pockets": {
+          "steel": 13,
+          "copper": 8,
+          "belt": 2
+        },
+        "work": {
+          "version": 1,
+          "sourceId": 4,
+          "orderIds": [
+            3
+          ],
+          "enabled": true,
+          "phase": "building",
+          "reason": "Built 1 part of order #3 from cargo",
+          "route": [],
+          "nextActionTick": 2122
+        },
+        "cargo": {},
+        "orders": [
+          {
+            "id": 1,
+            "blueprint": {
+              "version": 1,
+              "name": "Copied layout",
+              "entities": [
+                {
+                  "id": "machine0",
+                  "kind": "belt",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "machine1",
+                  "kind": "belt",
+                  "x": 1,
+                  "y": 0,
+                  "dir": 1
+                }
+              ]
+            },
+            "x": 364,
+            "y": 622,
+            "createdAt": 25,
+            "status": "cancelled",
+            "finishedAt": 25
+          },
+          {
+            "id": 3,
+            "blueprint": {
+              "version": 1,
+              "name": "Belt-fed ammunition cell",
+              "entities": [
+                {
+                  "id": "input",
+                  "kind": "chest",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 0
+                },
+                {
+                  "id": "feed",
+                  "kind": "inserter",
+                  "x": 2,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "assembler",
+                  "kind": "assembler",
+                  "x": 3,
+                  "y": 0,
+                  "dir": 0,
+                  "recipe": "shot"
+                },
+                {
+                  "id": "out",
+                  "kind": "inserter",
+                  "x": 6,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "belt",
+                  "kind": "belt",
+                  "x": 7,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "turret",
+                  "kind": "turret",
+                  "x": 8,
+                  "y": 1,
+                  "dir": 0
+                }
+              ]
+            },
+            "x": 373,
+            "y": 635,
+            "createdAt": 25,
+            "status": "completed",
+            "finishedAt": 105
+          }
+        ],
+        "source": {},
+        "rounds": 0
+      },
+      "final": {
+        "hash": "4f5e544b",
+        "t": 146,
+        "pockets": {
+          "belt": 2
+        },
+        "work": {
+          "version": 1,
+          "sourceId": 4,
+          "orderIds": [
+            3
+          ],
+          "enabled": false,
+          "phase": "complete",
+          "reason": "Selected orders finished or cancelled; cargo retained",
+          "route": [],
+          "nextActionTick": 2122
+        },
+        "cargo": {},
+        "orders": [
+          {
+            "id": 1,
+            "blueprint": {
+              "version": 1,
+              "name": "Copied layout",
+              "entities": [
+                {
+                  "id": "machine0",
+                  "kind": "belt",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "machine1",
+                  "kind": "belt",
+                  "x": 1,
+                  "y": 0,
+                  "dir": 1
+                }
+              ]
+            },
+            "x": 364,
+            "y": 622,
+            "createdAt": 25,
+            "status": "cancelled",
+            "finishedAt": 25
+          },
+          {
+            "id": 3,
+            "blueprint": {
+              "version": 1,
+              "name": "Belt-fed ammunition cell",
+              "entities": [
+                {
+                  "id": "input",
+                  "kind": "chest",
+                  "x": 0,
+                  "y": 0,
+                  "dir": 0
+                },
+                {
+                  "id": "feed",
+                  "kind": "inserter",
+                  "x": 2,
+                  "y": 0,
+                  "dir": 1
+                },
+                {
+                  "id": "assembler",
+                  "kind": "assembler",
+                  "x": 3,
+                  "y": 0,
+                  "dir": 0,
+                  "recipe": "shot"
+                },
+                {
+                  "id": "out",
+                  "kind": "inserter",
+                  "x": 6,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "belt",
+                  "kind": "belt",
+                  "x": 7,
+                  "y": 1,
+                  "dir": 1
+                },
+                {
+                  "id": "turret",
+                  "kind": "turret",
+                  "x": 8,
+                  "y": 1,
+                  "dir": 0
+                }
+              ]
+            },
+            "x": 373,
+            "y": 635,
+            "createdAt": 25,
+            "status": "completed",
+            "finishedAt": 105
+          }
+        ],
+        "source": {},
+        "rounds": 40
+      },
+      "replay": {
+        "same": true,
+        "replayed": "4f5e544b",
+        "played": "4f5e544b",
+        "tick": 2926
+      }
+    }
+  ],
+  "errors": [],
+  "method": "Headless Chrome DOM job/order/save/chest controls. Ordinary walking and time-advance helpers; no state injection. Player has not performed this scenario."
+}

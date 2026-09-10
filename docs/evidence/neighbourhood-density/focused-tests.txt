@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: full corridor intersections catch crossings with no footprint corner or centre on the road
+ok 1 - full corridor intersections catch crossings with no footprint corner or centre on the road
+  ---
+  duration_ms: 0.701104
+  type: 'test'
+  ...
+# Subtest: all four doors, approach targets, collision and roof entry agree without replacing navigation
+ok 2 - all four doors, approach targets, collision and roof entry agree without replacing navigation
+  ---
+  duration_ms: 407.718025
+  type: 'test'
+  ...
+# Subtest: four explicit Home houses and retained paths validate; yard capacity and saved map isolation remain
+ok 3 - four explicit Home houses and retained paths validate; yard capacity and saved map isolation remain
+  ---
+  duration_ms: 231.911527
+  type: 'test'
+  ...
+# Subtest: opening daylight and cycle seam are bright; dusk/dawn smooth and night/interiors retained
+ok 4 - opening daylight and cycle seam are bright; dusk/dawn smooth and night/interiors retained
+  ---
+  duration_ms: 0.300983
+  type: 'test'
+  ...
+# Subtest: bounded neighbourhood density preserves all other buildings, factory reservations and transport geometry
+ok 5 - bounded neighbourhood density preserves all other buildings, factory reservations and transport geometry
+  ---
+  duration_ms: 9.282027
+  type: 'test'
+  ...
+# Subtest: new street and garden routes remain walkable, truck access remains clear and saves retain layout identity
+ok 6 - new street and garden routes remain walkable, truck access remains clear and saves retain layout identity
+  ---
+  duration_ms: 307.308481
+  type: 'test'
+  ...
+# Subtest: editor no-op round trip preserves every authored map record
+ok 7 - editor no-op round trip preserves every authored map record
+  ---
+  duration_ms: 38.69596
+  type: 'test'
+  ...
+# Subtest: a duplicated roof becomes a new solid background building with a reachable entrance
+ok 8 - a duplicated roof becomes a new solid background building with a reachable entrance
+  ---
+  duration_ms: 305.517575
+  type: 'test'
+  ...
+# Subtest: moving a plot and its building updates authoritative collision and access beyond the old plot
+ok 9 - moving a plot and its building updates authoritative collision and access beyond the old plot
+  ---
+  duration_ms: 182.77505
+  type: 'test'
+  ...
+# Subtest: new images cannot introduce unvalidated transforms, duplicate labels or campaign plot edits
+ok 10 - new images cannot introduce unvalidated transforms, duplicate labels or campaign plot edits
+  ---
+  duration_ms: 23.073769
+  type: 'test'
+  ...
+# Subtest: building move carries the door, visual and owned props and rejoins the original street path
+ok 11 - building move carries the door, visual and owned props and rejoins the original street path
+  ---
+  duration_ms: 9.554077
+  type: 'test'
+  ...
+# Subtest: roof variants import while scaling, rotation, off-grid moves, missing objects and campaign moves fail
+ok 12 - roof variants import while scaling, rotation, off-grid moves, missing objects and campaign moves fail
+  ---
+  duration_ms: 41.476002
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2915.511728

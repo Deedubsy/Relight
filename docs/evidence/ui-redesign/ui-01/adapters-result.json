@@ -1,0 +1,38 @@
+{
+  "browser": "153.0.8010.27",
+  "rows": [
+    {
+      "case": "existing-adapters",
+      "truckPause": true,
+      "orderPauseResume": true,
+      "libraryExport": true,
+      "cargo": true,
+      "inspection": true,
+      "drawerSaveReload": true,
+      "baseline": "19de934f"
+    },
+    {
+      "case": "new-city",
+      "unsavedCancel": true
+    },
+    {
+      "case": "blur",
+      "noGameplayMutation": true,
+      "freshPress": true
+    },
+    {
+      "case": "legacy",
+      "management": true
+    },
+    {
+      "case": "missing-save",
+      "preservedStorage": true,
+      "failClosed": true,
+      "expectedErrors": [
+        "Error: save slot missing-ui-test is empty in this browser"
+      ]
+    }
+  ],
+  "errors": [],
+  "method": "Ordinary current-code UI actions on frozen P9-05 prepared starts; legacy entry, isolated browser storage and rejected empty-slot entry. No resource or position injection."
+}

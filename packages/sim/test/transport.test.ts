@@ -1,8 +1,10 @@
+import {suppliedCampaign as createCampaign} from './suppliedCampaignFixture';
+// Prepared historical starting stock; current ungranted progression is checked in gameplayCorrections.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { expedition, command, layKit } from './transportFixture';
-import { createCampaign, truckRect, truckFits, truckOccupies, truckBoardCheck, boardTruck, driveTruck, truckTransfer, truckProblem, initTruck,
+import { truckRect, truckFits, truckOccupies, truckBoardCheck, boardTruck, driveTruck, truckTransfer, truckProblem, initTruck,
  invCap, invStacks, stackSize, passable, findPath, canPlace, ground, applyCommands, actionResult, advanceFlow, conservation, hurt, loadState, makeSave, stateHash,
  stationRoute, machineAt, tramRoute, type SimState, type Dir, type Machine } from '../src/index';
 import { createSession, parseUrl, replaySession } from '../../game/src/session';
@@ -90,27 +92,18 @@ test('old restored previews spawn deterministically on their next tick; malforme
  const fresh=createCampaign();command(fresh,[{type:'enterTruck'}]);assert.equal(fresh.engineer.truck,false);assert.equal(fresh.campaign!.truck,undefined);
 });
 
-test('selected-stop query matches physical service, reacts to outages and cuts, and never mutates state',()=>{
+test('selected permanent route is read-only, reports all four stops and pauses with cargo retained on power loss',()=>{
  const {st}=expedition();layKit(st);const [a,b]=st.campaign!.expansion!.stops.map(([x,y])=>machineAt(st,x,y)!);
- const tram=st.flow!.machines.find(m=>m.kind==='tram')!,before=stateHash(st),route=stationRoute(st,a.id)!;
- assert.equal(route.stops.length,2);assert.deepEqual(route.paths[0],tramRoute(st,tram));assert.equal(route.trams.length,1);assert.equal(stateHash(st),before);
- const remote=st.flow!.machines.find(m=>m.kind==='generator'&&m.x!==st.flow!.machines.find(m=>m.kind==='generator')!.x)!;remote.inv.coal=0;
- assert.ok(stationRoute(st,a.id)!.stops.some(s=>s.status==='unpowered'));
- // Labelled freight failure fixture on the paid line; the query must reflect a paused cut immediately.
+ const tram=st.flow!.machines.find(m=>m.id===st.campaign!.fixedTram!.tram)!,before=stateHash(st),route=stationRoute(st,a.id)!;
+ assert.equal(route.stops.length,4);assert.deepEqual(route.paths[0],tramRoute(st,tram));assert.equal(route.trams.length,1);assert.equal(stateHash(st),before);
+ for(const m of st.flow!.machines)if(m.kind==='generator')m.inv.coal=0;
  tram.cargo={steel:5};tram.manifest=[{item:'steel',n:5,origin:a.id,destination:b.id,returning:false}];
- const path=tramRoute(st,tram),tile=path[Math.floor(path.length/2)],track=machineAt(st,tile%st.flow!.tw,Math.floor(tile/st.flow!.tw))!;
- st.flow!.machines=st.flow!.machines.filter(m=>m.id!==track.id);delete st.flow!.occ[tile];st.flow!.rev++;
- const cut=stationRoute(st,b.id)!;assert.ok(cut.interrupted);assert.ok(cut.trams.some(t=>t.status==='disconnected'));assert.ok(cut.paths.every(p=>!p.includes(tile)));assert.equal(stationRoute(st,-100),null);
+ advanceFlow(st,.1);const stopped=stationRoute(st,b.id)!;assert.match(stopped.summary,/0\/4 stops powered/);assert.equal(stopped.trams[0].status,'waiting for power');assert.equal(tram.cargo.steel,5);assert.equal(stationRoute(st,-100),null);
 });
 
-test('selected routes expose full arrivals, returning cargo and branches; removing the selected stop clears its query',()=>{
- const {st}=expedition();layKit(st);const f=st.flow!,[a,b]=st.campaign!.expansion!.stops.map(([x,y])=>machineAt(st,x,y)!);
- const tram=f.machines.find(m=>m.kind==='tram')!;a.cargo={steel:200};tram.cargo={steel:5};tram.manifest=[{item:'steel',n:5,origin:a.id,destination:b.id,returning:true}];
- assert.equal(stationRoute(st,a.id)!.stops.find(s=>s.machine.id===a.id)!.status,'full');assert.match(stationRoute(st,a.id)!.summary,/Return cargo aboard/);
- const path=tramRoute(st,tram),tiles=new Set(path);let at:number|undefined;
- for(const tile of path.slice(2,-2)){for(const off of [1,-1,f.tw,-f.tw]){const next=tile+off;if(!machineAt(st,next%f.tw,Math.floor(next/f.tw))&&[1,-1,f.tw,-f.tw].filter(d=>tiles.has(next+d)).length===1){at=next;break;}}if(at!==undefined)break;}
- assert.notEqual(at,undefined);const branch:Machine={...machineAt(st,path[2]%f.tw,Math.floor(path[2]/f.tw))!,id:f.next++,x:at!%f.tw,y:Math.floor(at!/f.tw)};
- f.machines.push(branch);f.occ[at!]=branch.id;f.rev++;
- const before=stateHash(st),route=stationRoute(st,a.id)!;assert.match(route.summary,/Branched track/);assert.deepEqual(route.paths,[]);assert.equal(stateHash(st),before);
- f.machines=f.machines.filter(m=>m.id!==a.id);f.rev++;assert.equal(stationRoute(st,a.id),null);
+test('permanent routes expose full arrivals and returning cargo while packing public stops is rejected',()=>{
+ const {st}=expedition();const [a,b]=st.campaign!.expansion!.stops.map(([x,y])=>machineAt(st,x,y)!);
+ const tram=st.flow!.machines.find(m=>m.id===st.campaign!.fixedTram!.tram)!;a.cargo={steel:200};tram.cargo={steel:5};tram.manifest=[{item:'steel',n:5,origin:a.id,destination:b.id,returning:true}];
+ const before=stateHash(st),route=stationRoute(st,a.id)!;assert.equal(route.stops.find(s=>s.machine.id===a.id)!.status,'full');assert.match(route.summary,/Return cargo aboard/);assert.equal(stateHash(st),before);
+ assert.equal(route.stops.length,4);
 });

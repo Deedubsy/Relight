@@ -1,6 +1,8 @@
+import {suppliedCampaign as createCampaign} from './suppliedCampaignFixture';
+// Prepared historical starting stock; current ungranted progression is checked in gameplayCorrections.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createCampaign, ensureFlow, applyCommands, actionResult, canPlace, inReach, machineAt, stateHash,
+import { ensureFlow, applyCommands, actionResult, canPlace, inReach, machineAt, stateHash,
   makeSave, loadState, conservation, extendBuildPath, pathEdits, advanceFlow, HISTORY_LIMIT,
   type SimState, type Command, type Kind, type TilePoint } from '../src/index';
 import { createSession, parseUrl, dispatch, queue, frame, replaySession, makeSessionSave } from '../../game/src/session';

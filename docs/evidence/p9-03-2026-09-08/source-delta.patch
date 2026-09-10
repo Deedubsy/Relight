@@ -1,0 +1,561 @@
+--- P9-02/packages/game/src/cityMapScene.ts
++++ P9-03/packages/game/src/cityMapScene.ts
+@@ -1,3 +1,6 @@
++import {navigationTargets,knownDistrict,blockName} from '@relight/sim';
++import {navigationView} from './view';
++import {dispatch} from './session';
+ import { campaignDiscoveries, stationRoute, truckRect } from '@relight/sim';
+ import { transportView } from './view';
+ /** The map view on a street-first city (D6): every block is the polygon the generator rasterised, drawn from sim
+@@ -156,6 +159,10 @@
+     else this.hooks.onHover(null, 0, 0);
+   }
+   private onDown(p: Phaser.Input.Pointer): void {
++    if(this.session.state.campaign){if(!p.leftButtonDown())return;const st=this.session.state,x=Math.floor((p.x-this.ox)/this.ppt),y=Math.floor((p.y-this.oy)/this.ppt);
++      if(p.event.shiftKey){const r=dispatch(this.session,{type:'navigation',action:{type:'pin',x,y,name:''}});this.hooks.onToast(r.reason);if(r.ok)navigationView.targetId=`pin:${st.campaign!.navigation!.pins.at(-1)!.id}`;return;}
++      const target=navigationTargets(st).filter(t=>t.kind!=='district').map(t=>({t,d:Math.hypot(this.ox+t.x*this.ppt-p.x,this.oy+t.y*this.ppt-p.y)})).filter(v=>v.d<=7).sort((a,b)=>a.d-b.d)[0];if(target){navigationView.targetId=target.t.id;return;}
++    }
+     if(p.leftButtonDown()&&this.session.state.flow){
+       const st=this.session.state,near=st.flow!.machines.filter(m=>m.kind==='tramstop').map(m=>({m,d:Math.hypot(this.ox+(m.x+m.size/2)*this.ppt-p.x,this.oy+(m.y+m.size/2)*this.ppt-p.y)})).filter(v=>v.d<=8).sort((a,b)=>a.d-b.d)[0];
+       if(near){if(transportView.stopId===near.m.id)transportView.stopId=null;else{transportView.stopId=near.m.id;this.hooks.onStationSelect?.(near.m.x,near.m.y);}this.lastPaint=-1e9;return;}
+@@ -288,8 +295,8 @@
+   private draw(now: number): void {
+     const st = this.session.state;
+     if(isCampaign(st)){
+-      const district=surveyedDistrict(st,this.hover),name=district?({civ:'Civic',res:'Residential',ind:'Industrial',out:'Outskirts'})[district]:'';
+-      this.headText.setText(this.registry.get('knownSiteHover') || (campaignRecruited(st,'surveyors')?`Survey · ${name||'hover a district'} · yellow Civic / blue Residential / rust Industrial / green Outskirts`:`Seed ${st.seed} · known sites marked with squares; hover to inspect`)).setColor('#c5d2df').setFontSize(12).setBackgroundColor('#0b0e1a').setPadding(4).setWordWrapWidth(this.W-24).setPosition(this.ox+8,this.oy+this.H-48);
++      const district=surveyedDistrict(st,this.hover),districtName=knownDistrict(st,this.hover)?blockName(st,this.hover):'Uncharted district',name=district?({civ:'Civic',res:'Residential',ind:'Industrial',out:'Outskirts'})[district]:'';
++      this.headText.setText(this.registry.get('knownSiteHover') || (this.hover>=0?`${districtName} · ${!knownDistrict(st,this.hover)?'Uncharted':st.campaign?.navigation?.visitedBlocks.includes(this.hover)?'Visited':'Known / no visit recorded'}${name?' · '+name:''}`:'') || (campaignRecruited(st,'surveyors')?`Survey · ${name||'hover a district'} · yellow Civic / blue Residential / rust Industrial / green Outskirts`:`Seed ${st.seed} · known sites marked with squares; hover to inspect`)).setColor('#c5d2df').setFontSize(12).setBackgroundColor('#0b0e1a').setPadding(4).setWordWrapWidth(this.W-24).setPosition(this.ox+8,this.oy+this.H-48);
+     }
+     const g = this.gFx;
+     g.clear();
+@@ -319,6 +326,7 @@
+         if (!b.subOn) { g.fillStyle(C.red, 0.9); g.fillRect(px - 2, py - 2, 4, 4); }
+       }
+     }
++    for(const t of navigationTargets(st)){const x=this.ox+t.x*this.ppt,y=this.oy+t.y*this.ppt;g.lineStyle(t.id===navigationView.targetId?3:1,t.kind==='pin'?0xf5c24f:t.visited?0x92d8b5:0x69837d,1);if(t.kind==='pin')g.strokeCircle(x,y,5);else if(t.kind==='district')g.strokeCircle(x,y,3);if(t.id===navigationView.targetId)g.strokeCircle(x,y,9);}
+     for(const site of campaignDiscoveries(st)){const x=this.ox+(site.x+site.size/2)*this.ppt,y=this.oy+(site.y+site.size/2)*this.ppt;g.lineStyle(1,0xb9e3ff,1);g.strokeRect(x-3,y-3,6,6);}
+     // start marker
+     { const i = idxOf(st, st.start[0], st.start[1]); g.lineStyle(1, C.white, 0.7); g.strokeRect(this.px(i) - 5, this.py(i) - 5, 10, 10); }
+--- P9-02/packages/game/src/main.ts
++++ P9-03/packages/game/src/main.ts
+@@ -1,4 +1,7 @@
+ import Phaser from 'phaser';
++import {navigationTargets} from '@relight/sim';
++import {navigationView} from './view';
++import {createNavigationPanel} from './navigationPanel';
+ import { rulesetOf, knownCampaignThreat, blockName } from '@relight/sim';
+ import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
+   hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
+@@ -167,12 +170,17 @@
+ if (view.mode === 'world') worldScene.centreOn(view.focus[0], view.focus[1]);
+ panel.setView(view.mode);
+ 
++const showNavigationCanvas=()=>document.querySelector('canvas')?.scrollIntoView({block:'start'});
++const navigation=session.state.campaign?createNavigationPanel(session,document.getElementById('panel')!,t=>{if(view.mode==='map')toggleView();worldScene.viewLocation(t.x,t.y);showNavigationCanvas();},()=>{toggleView();showNavigationCanvas();},()=>{if(view.mode==='map')toggleView();worldScene.returnToEngineer();showNavigationCanvas();},()=>worldScene.releaseInput()):null;
++const navCue=document.createElement('div');navCue.id='navigation-cue';navCue.hidden=true;document.getElementById('map')!.append(navCue);
++let lastNavigationUpdate=-Infinity;
+ // The sim runs once per game step whichever view is up; the map view consumes the events for its pulses.
+ game.events.on(Phaser.Core.Events.STEP, (time: number, delta: number) => {
+   const events = frame(session, Math.min(0.1, delta / 1000));
+   if (events.length) { mapScene.consume(events, time); describe(events); }
+   panel.update(performance.now());
+   updateThreatControls();
++  if(time-lastNavigationUpdate>150){lastNavigationUpdate=time;navigation?.update();const t=navigationTargets(session.state).find(t=>t.id===navigationView.targetId);navCue.hidden=!t;if(t){const e=session.state.engineer,distance=Math.round(Math.hypot(t.x-e.x,t.y-e.y)),angle=(Math.round(Math.atan2(t.y-e.y,t.x-e.x)/(Math.PI/4))+8)%8;const [x,y]=view.mode==='world'?worldScene.screenOf(t.x,t.y):[0,0];const cam=game.canvas;const off=view.mode==='world'&&(x<0||y<0||x>cam.clientWidth||y>cam.clientHeight);navCue.textContent=`${['E','SE','S','SW','W','NW','N','NE'][angle]} · ${t.name} · ${distance} tiles from you${off?' · off-screen':''}`;}}
+   // RI-02: the world view's top HUD corners sit under the goal overlay (measured here, not per frame — the panel throttles)
+   const goalEl = document.getElementById('goal');
+   hudInset.top = goalEl && !goalEl.hidden ? goalEl.offsetHeight + 4 : 0;
+@@ -285,6 +293,7 @@
+ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { frames++; if (frameMs.length < 100000) frameMs.push(delta); });
+ (window as unknown as { __relight: unknown }).__relight = {
+   session, view,
++  navigation:()=>({targets:navigationTargets(session.state),selected:navigationView.targetId}),
+   run: (ticks: number) => { runTicks(session, ticks); panel.update(performance.now()); return summarise(session.telemetry, session.state); },
+   summary: () => summarise(session.telemetry, session.state),
+   exportJson: () => exportJson(session.telemetry, session.state, exportExtra(session)),
+--- P9-02/packages/game/src/navigationPanel.ts
++++ P9-03/packages/game/src/navigationPanel.ts
+@@ -0,0 +1,39 @@
++import {navigationTargets,NAVIGATION_RULES,type NavigationAction,type NavigationTarget} from '@relight/sim';
++import {dispatch,type Session} from './session';
++import {navigationView} from './view';
++const el=<K extends keyof HTMLElementTagNameMap>(tag:K,text='')=>{const n=document.createElement(tag);n.textContent=text;return n;};
++/** Ordinary sim commands for annotations; locate and target selection never move the engineer. */
++export function createNavigationPanel(session:Session,root:HTMLElement,locate:(t:NavigationTarget)=>void,toggleMap:()=>void,returnToEngineer:()=>void,captureInput:()=>void){
++ const section=el('details');section.className='campaign-guide navigation-panel';section.append(el('summary','Map and navigation'));
++ const select=el('select');select.setAttribute('aria-label','Navigation destination');
++ const name=el('input');name.maxLength=NAVIGATION_RULES.nameLength;name.setAttribute('aria-label','Destination name');name.placeholder='Choose a name';
++ const status=el('p'),feedback=el('p');feedback.setAttribute('role','status');
++ const actions=el('div');actions.className='navigation-actions';
++ const button=(label:string,fn:()=>void)=>{const b=el('button',label);b.type='button';b.onclick=fn;actions.append(b);return b;};
++ const send=(action:NavigationAction)=>{const result=dispatch(session,{type:'navigation',action});feedback.textContent=result.reason;update(true);};
++ const target=()=>navigationTargets(session.state).find(t=>t.id===navigationView.targetId);
++ button('Map / world',toggleMap);
++ const show=button('Show destination',()=>{const t=target();if(t)locate(t);});button('Return to engineer',returnToEngineer);
++ const rename=button('Save name',()=>{if(navigationView.targetId)send({type:'rename',id:navigationView.targetId,name:name.value.trim()});});
++ const reset=button('Restore default name',()=>{if(navigationView.targetId)send({type:'rename',id:navigationView.targetId,name:''});});
++ button('Pin my position',()=>{const e=session.state.engineer;send({type:'pin',x:Math.floor(e.x),y:Math.floor(e.y),name:''});const pin=session.state.campaign?.navigation?.pins.at(-1);if(pin)navigationView.targetId=`pin:${pin.id}`;update(true);});
++ const remove=button('Remove pin',()=>{const t=target();if(t?.kind==='pin'){send({type:'removePin',id:Number(t.id.slice(4))});navigationView.targetId=null;update(true);}});
++ button('Clear destination',()=>{navigationView.targetId=null;update(true);});
++ section.append(el('p','Select a known place or visited district. Shift-click the map to add a pin in a known district; click its marker to select it. Show destination only moves the camera.'),select,status,name,actions,feedback);
++ root.insertBefore(section,root.querySelector('.campaign-guide'));
++ section.addEventListener('focusin',captureInput);
++ section.addEventListener('pointerdown',captureInput);
++ // Phaser sees the same document keys; reset held input when the panel captures focus.
++ for(const event of ['pointerdown','pointerup','click','wheel','contextmenu'])section.addEventListener(event,e=>e.stopPropagation());
++ section.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape'){section.open=false;document.querySelector('canvas')?.focus();}else if(e.key==='Enter'&&e.target===name){e.preventDefault();rename.click();}});
++ select.onchange=()=>{navigationView.targetId=select.value||null;update(true);};
++ let key='',chosen='';
++ function update(force=false){const rows=navigationTargets(session.state),next=JSON.stringify(rows.map(t=>[t.id,t.name,t.visited]));
++  if(next!==key){key=next;select.replaceChildren(el('option','No destination'));(select.firstChild as HTMLOptionElement).value='';for(const t of rows){const o=el('option',`${t.name} · ${t.visited?'Visited':'Known'} · ${t.kind==='pin'?t.id:t.kind}`);o.value=t.id;select.append(o);}}
++  const t=rows.find(t=>t.id===navigationView.targetId);if(!t)navigationView.targetId=null;select.value=t?.id??'';
++  if(force||chosen!==select.value){chosen=select.value;name.value=t?.name??'';}
++  status.textContent=t?`${t.visited?'Visited':'Known — no visit recorded'} · Default: ${t.defaultName} · ${t.id}`:'No destination selected.';
++  show.disabled=rename.disabled=reset.disabled=name.disabled=!t;remove.hidden=t?.kind!=='pin';
++ }
++ return {update,open(){section.open=true;update(true);section.scrollIntoView({block:'nearest'});select.focus();}};
++}
+--- P9-02/packages/game/src/session.ts
++++ P9-03/packages/game/src/session.ts
+@@ -116,7 +116,7 @@
+   const olderSurvey=original.ruleset===CAMPAIGN_RULESET&&original.campaign?.expansion?.surveyVersion!==EXPANSION_SURVEY_VERSION;
+   const upgradedTransport=original.ruleset===CAMPAIGN_RULESET&&!original.campaign?.truck&&(original.campaign?.expansion?.station.restoredAt??-1)>=0;
+   // The old log predates station geometry and local circuits: resume the save, but do not claim a new-factory replay of that history.
+-  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && !upgradedHome && !upgradedTransport && !upgradedDefence && !upgradedConstruction && !olderSurvey, ref, saved };
++  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && !upgradedHome && !upgradedTransport && !upgradedDefence && !upgradedConstruction && !olderSurvey && (original.ruleset!==CAMPAIGN_RULESET||!!original.campaign?.navigation), ref, saved };
+ }
+ 
+ export interface Session {
+--- P9-02/packages/game/src/style.css
++++ P9-03/packages/game/src/style.css
+@@ -110,3 +110,9 @@
+ .campaign-guide p, .campaign-guide li { line-height:1.5; }
+ .campaign-guide select { max-width:100%; margin:12px 0; }
+ .campaign-guide button { max-width:100%; white-space:normal; }
++
++.navigation-panel input, .navigation-panel select { box-sizing:border-box; width:100%; min-width:0; font-size:15px; padding:8px; }
++.navigation-actions { display:flex; flex-wrap:wrap; gap:6px; }
++.navigation-actions button { min-height:36px; }
++#map { position:relative; }
++#navigation-cue { position:absolute; bottom:72px; left:12px; max-width:calc(100% - 40px); padding:8px 12px; background:#151d1ef2; color:#f3ecdd; border:1px solid #e3b96f; border-radius:6px; font-size:15px; overflow-wrap:anywhere; pointer-events:none; }
+--- P9-02/packages/game/src/view.ts
++++ P9-03/packages/game/src/view.ts
+@@ -21,3 +21,6 @@
+ 
+ /** Inspected machine identity is presentation only. */
+ export const inspectionView:{machineId:number|null}={machineId:null};
++
++/** P9-03 selected navigation identity is presentation-only. */
++export const navigationView:{targetId:string|null}={targetId:null};
+--- P9-02/packages/game/src/worldScene.ts
++++ P9-03/packages/game/src/worldScene.ts
+@@ -40,6 +40,7 @@
+ import { Session, queue, dispatch } from './session';
+ import { View, debugView, hudInset, inspectionView } from './view';
+ import { coreAt, defenceMax, defenceHp, defenceDescription, repairCheck } from '@relight/sim';
++import {navigationName,knownDistrict,blockName,campaignDiscoveries} from '@relight/sim';
+ import { knownSite, turbineAt, describeTurbine, ARC_LAMP_RADIUS, campaignSiteAt, campaignSite, describeSite, SITE_IDS, persistentSource, recruitAt, recruitCheck, recruitDescription, RECRUITS, discoveryAt, discoveryCheck, discoveryDescription, stalkerLayer } from '@relight/sim';
+ import { extendBuildPath, pathEdits, constructionCheck, type TilePoint } from '@relight/sim';
+ import { bound, MOVEMENT_KEYS } from './controls';
+@@ -399,6 +400,8 @@
+     this.viewingThreat=true;
+     this.cameras.main.centerOn(target.x*TILE_PX,target.y*TILE_PX);
+   }
++  releaseInput():void {if(!this.keys)return;this.input.keyboard?.resetKeys();this.modifiedKey=false;this.sendWalk(0,0);this.sendSprint(false);this.onUp();}
++  viewLocation(x:number,y:number):void {this.viewingThreat=true;this.cameras.main.centerOn(x*TILE_PX,y*TILE_PX);}
+   returnToEngineer():void {this.viewingThreat=false;this.snapped=false;}
+ 
+   /** The block the map view gets on M: the engineer's on foot, else the one under the camera's centre. */
+@@ -751,7 +754,7 @@
+     const recruit=recruitAt(st,tx,ty);if(recruit&&recruit.seenAt>=0)lines.unshift(recruitDescription(st,recruit));
+     if(discoveryAt(st,tx,ty)&&(st.campaign?.discovery?.seenAt??-1)>=0)lines.unshift(discoveryDescription(st));
+     const campaignInstallation = campaignSiteAt(st, tx, ty);
+-    if (campaignInstallation && knownSite(st,campaignInstallation)) lines.unshift(describeSite(st, campaignInstallation));
++    if (campaignInstallation && knownSite(st,campaignInstallation)) lines.unshift((campaignDiscoveries(st).find(s=>s.id===campaignInstallation)?.title??campaignInstallation)+' · '+describeSite(st, campaignInstallation));
+     else if (m) { lines.unshift(describeMachine(st, m)); if (STATUS_KIND.has(m.kind)) lines.unshift(this.statusLine(m)); }
+     else if (!st.campaign && st.flow && isSubstationTile(st, tx, ty)) {
+       const sub = bi >= 0 ? substationAt(st, st.blocks[bi].x, st.blocks[bi].y) : null;
+@@ -763,6 +766,7 @@
+         lines.unshift(`Substation · Dark · ${materials}${chk.ok ? 'ready — E activates the claim' : `to claim: ${chk.reason}${/more steel|more Cu/.test(chk.reason) ? ' (E delivers from the pockets)' : ''}`}`);
+       } else if (sub) lines.unshift(`Substation · ${sub.on ? `on · draws ${sub.kw} kW · streetlights lit` : sub.kw === 0 ? 'Dark · string poles to it to claim' : 'off · no power (the block is unfed, or the grid is dead)'}`);
+     }
++    const namedPlace=campaignDiscoveries(st).find(s=>tx>=s.x&&tx<s.x+s.size&&ty>=s.y&&ty<s.y+s.size);if(namedPlace&&!campaignInstallation)lines.unshift(namedPlace.title);
+     // M5: a light under the cursor — its state, and the repair rule when it is broken or eaten
+     const light = lightAt(st, tx, ty);
+     if (light && (light.l.kind === 'streetlight' || light.l.why)) {
+@@ -835,6 +839,7 @@
+       this.sendWalk((right ? 1 : 0) - (left ? 1 : 0), (down ? 1 : 0) - (up ? 1 : 0));
+       this.sendSprint(!typing && this.keys.SHIFT.isDown);
+       if (!typing && Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) queue(this.session, { type: 'dodge' });
++      if(typing&&this.firing){this.firing=false;this.sendAim(null);}
+       if (this.firing) this.sendAim(this.aimAt(this.input.activePointer));
+       const e = this.st.engineer, gx = e.x * TILE_PX - cam.width / 2, gy = e.y * TILE_PX - cam.height / 2;
+       if(left||right||up||down)this.viewingThreat=false;
+@@ -964,14 +969,15 @@
+       if (!t) { t = this.add.text(0, 0, '', { fontSize: '12px', color: '#c7cfe0', backgroundColor: '#0b0e1aaa', padding: { x: 4, y: 2 } }).setDepth(5); this.labels.push(t); }
+       const place = G.urban?.places.find(p => p.block === i);
+       t.setFontFamily('Segoe UI, sans-serif').setFontSize(14);
+-      t.setText(G.urban && !debugView.coords ? place?.name ?? '' : this.blockLine(i))
++      t.setText(G.urban && !debugView.coords ? (st.campaign&&!knownDistrict(st,i)?'Uncharted district':blockName(st,i)) : this.blockLine(i))
+         .setPosition((place ? place.pad.x : p[0]) * TILE_PX + 6, (place ? place.pad.y - 1 : p[1]) * TILE_PX + 6).setScale(1 / cam.zoom).setVisible(true);
+       li++;
+     }
++    for(const p of st.campaign?.navigation?.pins??[]){if(p.x<tx0||p.x>tx1||p.y<ty0||p.y>ty1)continue;g.lineStyle(2/cam.zoom,0xe3b96f,1);g.strokeCircle(p.x*TILE_PX,p.y*TILE_PX,6/cam.zoom);const label=this.labels[li]??(this.labels[li]=this.add.text(0,0,'',{fontSize:'14px',color:'#f3ecdd',backgroundColor:'#151d1ef2',wordWrap:{width:260}}).setDepth(5));label.setText(p.name).setPosition(p.x*TILE_PX+8/cam.zoom,p.y*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;}
+     if (st.campaign?.expansion) {
+       for (const id of SITE_IDS) {
+         if(!knownSite(st,id))continue;
+-        const site=campaignSite(st,id)!; const name=id==='northStation'?'LATER STATION / E':id==='workshop'?'REPAIR WORKSHOP / E':id==='station'?'TRAM STATION / E':'RADIO TOWER / E';
++        const site=campaignSite(st,id)!; const name=(campaignDiscoveries(st).find(s=>s.id===id)?.title??id)+' / E';
+         if (site.x < tx0 || site.x > tx1 || site.y < ty0 || site.y > ty1) continue;
+         let label = this.labels[li]; if (!label) { label = this.add.text(0, 0, '', { fontSize: '12px', color: '#f2d38b', backgroundColor: '#0b0e1aaa', padding: { x: 4, y: 2 } }).setDepth(5); this.labels.push(label); }
+         label.setText(name).setPosition(site.x * TILE_PX, (site.y - (id==='workshop'?2:1)) * TILE_PX).setScale(1 / cam.zoom).setVisible(true); li++;
+@@ -982,18 +988,18 @@
+       g.fillStyle(hall.restoredAt>=0&&hall.enabled?0x589f9e:0x655a51,1);g.fillRect(hall.x*TILE_PX,hall.y*TILE_PX,hall.size*TILE_PX,hall.size*TILE_PX);
+       g.lineStyle(2/cam.zoom,0xbadbd7,1);g.strokeRect(hall.x*TILE_PX,hall.y*TILE_PX,hall.size*TILE_PX,hall.size*TILE_PX);
+       const label=this.labels[li]??(this.labels[li]=this.add.text(0,0,'',{fontSize:'12px',color:'#dcece9',backgroundColor:'#10191de0'}).setDepth(15));
+-      label.setText(`TURBINE / ${hall.restoredAt<0?'RESTORE':hall.enabled?'ON':'OFF'} / E`).setPosition(hall.x*TILE_PX,(hall.y-1)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
++      label.setText(`${navigationName(st,`site:${hall.id}`,'Turbine hall')} / ${hall.restoredAt<0?'RESTORE':hall.enabled?'ON':'OFF'} / E`).setPosition(hall.x*TILE_PX,(hall.y-1)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
+     }
+     for(const s of st.campaign?.recruits?.sites??[]) {
+       if(s.seenAt<0||s.x<tx0||s.x>tx1||s.y<ty0||s.y>ty1)continue;
+       let label=this.labels[li];if(!label){label=this.add.text(0,0,'',{fontSize:'12px',color:'#c5e4ff',backgroundColor:'#0b0e1add',padding:{x:4,y:2}}).setDepth(5);this.labels.push(label);}
+-      label.setText(`${RECRUITS[s.kind].name.toUpperCase()} / ${s.recruitedAt>=0?'RECRUITED':'E'}`).setPosition(s.x*TILE_PX,(s.y-1)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
++      label.setText(`${navigationName(st,`site:${s.id}`,RECRUITS[s.kind].name)} / ${s.recruitedAt>=0?'RECRUITED':'E'}`).setPosition(s.x*TILE_PX,(s.y-1)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
+       g.fillStyle(s.recruitedAt>=0?0x526c67:0x97cdff,1);g.fillRect((s.x+.1)*TILE_PX,(s.y+.1)*TILE_PX,.8*TILE_PX,.8*TILE_PX);
+     }
+     const discovery=st.campaign?.discovery;
+     if(discovery&&discovery.seenAt>=0&&discovery.x>=tx0&&discovery.x<=tx1&&discovery.y>=ty0&&discovery.y<=ty1){
+       const d=discovery;let label=this.labels[li];if(!label){label=this.add.text(0,0,'',{fontSize:'12px',color:'#9de9d2',backgroundColor:'#0b0e1add',padding:{x:4,y:2}}).setDepth(5);this.labels.push(label);}
+-      label.setText(d.recoveredAt>=0?'WORKSHOP RECORDS / EMPTY':'OPTIONAL: WORKSHOP RECORDS / E').setPosition(d.x*TILE_PX,(d.y-2)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
++      label.setText(navigationName(st,`site:${d.id}`,'Workshop records')+(d.recoveredAt>=0?' / EMPTY':' / E')).setPosition(d.x*TILE_PX,(d.y-2)*TILE_PX).setScale(1/cam.zoom).setVisible(true);li++;
+       g.fillStyle(d.recoveredAt>=0?0x526c67:0x75d3b7,1);g.fillRect((d.x+.15)*TILE_PX,(d.y+.15)*TILE_PX,.7*TILE_PX,.7*TILE_PX);
+       g.lineStyle(2/cam.zoom,0x102c29,1);g.strokeRect((d.x+.3)*TILE_PX,(d.y+.25)*TILE_PX,.4*TILE_PX,.5*TILE_PX);
+     }
+@@ -1056,7 +1062,7 @@
+     // wrapped to a little over half the viewport so it never runs under the territory block opposite it
+     const wrap = Math.round(cam.width * KEY_STRIP_FRAC);
+     const directions = G.urban && this.cg ? G.urban.places.filter(p => (p.role === 'rail' || p.role === 'residential') && this.cg!.blocks[this.cg!.hq].nb.includes(p.block))
+-      .map(p => `${bearingOf(st, this.cg!.hq, p.block)} · ${p.name}`).slice(0, 2).join('     /     ') : '';
++      .map(p => `${bearingOf(st, this.cg!.hq, p.block)} · ${blockName(st,p.block)}`).slice(0, 2).join('     /     ') : '';
+     if (this.keyWrap !== wrap) { this.keyWrap = wrap; this.keyText.setWordWrapWidth(wrap); }
+     this.keyText.setScale(1 / cam.zoom).setPosition(...pin(8, 8 + hudInset.top))
+       .setText(G.urban ? `${FACTORY_TEXT.worldKeys}\n${this.tool === 'hand' ? FACTORY_TEXT.miningHand : FACTORY_TEXT.inHand(inHand)} ${this.ghostReason || ''}\n${directions}` : `${moveLine} (${ZOOM_MIN}–${ZOOM_MAX}×) · P pause · - / = speed${st.flow ? `\n${TOOL_KEY_LINE}` : ''}${st.flow ? `\nIn hand: ${inHand}${this.ghostReason ? ` · ${this.ghostReason}` : ''}` : ''}`);
+--- P9-02/packages/harness/src/provenance.ts
++++ P9-03/packages/harness/src/provenance.ts
+@@ -1,4 +1,4 @@
+-import { DISTRICT_ECONOMY, DISCOVERY, EXPANSION_SURVEY_VERSION, routingConfig, INSPECTION_WINDOW_TICKS, INSPECTION_SAMPLE_TICKS, TRUCK_RULES, TRUCK_WORK_RULES } from '@relight/sim';
++import { NAVIGATION_RULES, DISTRICT_ECONOMY, DISCOVERY, EXPANSION_SURVEY_VERSION, routingConfig, INSPECTION_WINDOW_TICKS, INSPECTION_SAMPLE_TICKS, TRUCK_RULES, TRUCK_WORK_RULES } from '@relight/sim';
+ /** Provenance stamps for generated files (constitution rule 11, guardrails Step 6). Every file a script writes carries
+  *  the git commit and the config hash it was made from; `npm run freshness:check` (packages/tools/src/freshness.ts)
+  *  recomputes the hash from the current code and fails if either does not match.
+@@ -57,7 +57,7 @@
+ /** Preserve every legacy hash; campaign evidence also fingerprints its rules and geometry. */
+ export function evidenceHash(ref: ConfigRef): string {
+   const config = configOf(ref);
+-  return ref.kind === 'campaign' ? fnv1a(canonicalJson({ config, ruleset: ref.ruleset, rules: CAMPAIGN_RULES, opening: OPENING_LAYOUT, expansion: EXPANSION, surveyVersion:EXPANSION_SURVEY_VERSION, power: CAMPAIGN_POWER, defence: DEFENCE, threats: CAMPAIGN_THREAT, districts: DISTRICT_ECONOMY, discovery: DISCOVERY, routing:routingConfig(), inspection:{windowTicks:INSPECTION_WINDOW_TICKS,sampleTicks:INSPECTION_SAMPLE_TICKS}, truck:TRUCK_RULES,truckWork:TRUCK_WORK_RULES })) : configHash(config);
++  return ref.kind === 'campaign' ? fnv1a(canonicalJson({ config, ruleset: ref.ruleset, rules: CAMPAIGN_RULES, opening: OPENING_LAYOUT, expansion: EXPANSION, surveyVersion:EXPANSION_SURVEY_VERSION, navigation:NAVIGATION_RULES, power: CAMPAIGN_POWER, defence: DEFENCE, threats: CAMPAIGN_THREAT, districts: DISTRICT_ECONOMY, discovery: DISCOVERY, routing:routingConfig(), inspection:{windowTicks:INSPECTION_WINDOW_TICKS,sampleTicks:INSPECTION_SAMPLE_TICKS}, truck:TRUCK_RULES,truckWork:TRUCK_WORK_RULES })) : configHash(config);
+ }
+ export function evidenceProfileProblem(ref: ConfigRef, file: string, payload?: unknown): string {
+   const profile = evidenceRuleset(ref), campaignPath = file.replace(/\\/g, '/').includes('/campaign/');
+--- P9-02/packages/sim/src/campaign.ts
++++ P9-03/packages/sim/src/campaign.ts
+@@ -1,4 +1,5 @@
+ /** Explicit new-session factory. Never converts a running legacy state. */
++import {initNavigation} from './navigation';
+ import { DEFAULT_CONFIG, createState } from './sim';
+ import { protoCalibrated, type SimConfig, type SimState } from './types';
+ import { citySpec } from './city';
+@@ -20,6 +21,6 @@
+   ensureFlow(st);
+   initExpansion(st);
+   initDefence(st);
+-  initDistricts(st); initDiscovery(st); initRecruits(st); initTurbine(st); initForeman(st); initKnowledge(st,true);
++  initDistricts(st); initDiscovery(st); initRecruits(st); initTurbine(st); initForeman(st); initKnowledge(st,true); initNavigation(st);
+   return st;
+ }
+--- P9-02/packages/sim/src/campaignGuide.ts
++++ P9-03/packages/sim/src/campaignGuide.ts
+@@ -1,4 +1,5 @@
+ /** P7-04: saved installation knowledge and read-only player-facing discovery information. */
++import {navigationName} from './navigation';
+ import type { Command, SimState } from './types';
+ import { isCampaign } from './rules';
+ import { inReach } from './ground';
+@@ -39,14 +40,14 @@
+ }
+ export interface GuideAction { label:string; reason:string; commands:Command[] }
+ export interface DiscoveryInfo {
+-  id:string; title:string; status:string; detail:string; x:number; y:number; size:number;
++  id:string; title:string; defaultTitle:string; status:string; detail:string; x:number; y:number; size:number;
+   needs:{item:string;delivered:number;required:number}[]; actions:GuideAction[];
+ }
+ const local=(st:SimState,s:{x:number;y:number;size:number}):string=>st.engineer.down>=0||st.engineer.truckSeat||!inReach(st,s.x,s.y,s.size)?'Walk closer on foot to interact.':'';
+ /** Only known locations. No hidden counters, locations, roster or attack query enters this model. */
+ export function campaignDiscoveries(st:SimState):DiscoveryInfo[] {
+   if(!isCampaign(st))return [];
+-  const out:DiscoveryInfo[]=[];
++  const out:Omit<DiscoveryInfo,'defaultTitle'>[]=[];
+   for(const id of SITE_IDS){if(!knownSite(st,id))continue;const s=campaignSite(st,id)!;
+     const restored=s.restoredAt>=0,powered=campaignThrottle(st,s.block)>0;
+     const disabled=st.campaign!.defence!.bases.some(b=>b.block===s.block&&b.hp===0);
+@@ -71,5 +72,5 @@
+   }
+   const d=st.campaign!.discovery;
+   if(d&&(d.seenAt>=0||d.recoveredAt>=0))out.push({id:d.id,title:'Workshop records',status:d.recoveredAt>=0?'Recovered · field-repair tool fitted':'Discovered · records available',detail:discoveryDescription(st),x:d.x,y:d.y,size:1,needs:[],actions:[{label:d.recoveredAt>=0?'Field-repair tool fitted':'Recover field-repair schematic',reason:discoveryCheck(st,d.id),commands:[{type:'recoverSchematic',id:d.id}]}]});
+-  return out;
++  return out.map(s=>({...s,defaultTitle:s.title,title:navigationName(st,`site:${s.id}`,s.title)}));
+ }
+--- P9-02/packages/sim/src/construction.ts
++++ P9-03/packages/sim/src/construction.ts
+@@ -1,4 +1,5 @@
+ import { truckWorkCommand } from './truckWork';
++import {navigationCommand} from './navigation';
+ import { blueprintLibrary, blueprintOrder } from './blueprintPlans';
+ import { TRUCK_RULES, boardTruck, truckTransfer } from './truck';
+ /** P5-01: bounded, saved construction history. Inverses use current stock and reach, never rewind the world. */
+@@ -255,6 +256,7 @@
+ export function constructionCommand(st: SimState, c: Command): boolean {
+   let r: ActionResult;
+   switch (c.type) {
++    case 'navigation': r=navigationCommand(st,c.action);break;
+     case 'removeArea': r=removeArea(st,c.selection);break;
+     case 'truckWork': r=truckWorkCommand(st,c.action);break;
+     case 'blueprintLibrary': r=blueprintLibrary(st,c.action);break;
+--- P9-02/packages/sim/src/engineer.ts
++++ P9-03/packages/sim/src/engineer.ts
+@@ -265,7 +265,7 @@
+       break;
+     case 'aim': e.aim = e.down < 0 ? c.at : null; break;
+     case 'enterTruck': if(st.campaign){handHook.current?.(st,{type:'factory',action:{type:'truckBoard'}});break;} if (e.truckFound && e.down < 0) e.truck = !e.truck; break;
+-    case 'removeArea': case 'truckWork': case 'blueprintLibrary': case 'blueprintOrder': case 'blueprintCopy': case 'blueprintTransform': case 'blueprintPaste':
++    case 'navigation': case 'removeArea': case 'truckWork': case 'blueprintLibrary': case 'blueprintOrder': case 'blueprintCopy': case 'blueprintTransform': case 'blueprintPaste':
+     case 'construct': case 'buildPath': case 'undergroundPair': case 'undoBuild': case 'redoBuild': case 'factory':
+     case 'mineAt': case 'craft': case 'place': case 'pickUp': case 'chestTake': case 'chestPut': case 'feed': case 'repair': case 'rotate':
+     case 'deliverSite': case 'restoreSite': case 'collectTramKit':
+--- P9-02/packages/sim/src/index.ts
++++ P9-03/packages/sim/src/index.ts
+@@ -76,3 +76,5 @@
+ export type {RemovalSelection,RemovalPreview} from './construction';
+ 
+ export * from './campaignCityValidation';
++
++export * from './navigation';
+--- P9-02/packages/sim/src/names.ts
++++ P9-03/packages/sim/src/names.ts
+@@ -60,6 +60,7 @@
+ 
+ /** The block's stable name (see the header). */
+ export function blockName(st: SimState, i: number): string {
++  const custom=st.campaign?.navigation?.names[`block:${i}`];if(custom)return custom;
+   const place = ground(st).urban?.places.find(p => p.block === i);
+   if (place) return place.name;
+   return i >= 0 && i < st.blocks.length ? names(st)[i] : 'nowhere';
+--- P9-02/packages/sim/src/navigation.ts
++++ P9-03/packages/sim/src/navigation.ts
+@@ -0,0 +1,87 @@
++/** P9-03: saved annotations and visits; camera/selection stay in the renderer. */
++import type {SimState} from './types';
++import {isCampaign} from './rules';
++import {ground} from './ground';
++import {blockName} from './names';
++import {campaignDiscoveries,knownSite} from './campaignGuide';
++import {campaignSite,SITE_IDS} from './expansion';
++import {campaignRecruited} from './campaignRecruits';
++import type {ActionResult} from './construction';
++export const NAVIGATION_RULES={version:1,nameLength:64,names:80,pins:32} as const;
++export interface Navigation {version:1;names:Record<string,string>;pins:{id:number;x:number;y:number;name:string}[];nextId:number;visitedBlocks:number[];visitedSites:string[]}
++export type NavigationAction={type:'rename';id:string;name:string}|{type:'pin';x:number;y:number;name:string}|{type:'removePin';id:number};
++export interface NavigationTarget {id:string;name:string;defaultName:string;x:number;y:number;visited:boolean;kind:'district'|'place'|'pin'}
++export function navigationName(st:SimState,id:string,fallback:string):string{return st.campaign?.navigation?.names[id]??fallback;}
++export function initNavigation(st:SimState):void {
++ if(isCampaign(st)&&!st.campaign!.navigation)st.campaign!.navigation={version:1,names:{},pins:[],nextId:1,visitedBlocks:[st.campaign!.homeBlock],visitedSites:[]};
++}
++/** Lightweight knowledge positions: avoid service/power descriptions in the 20 Hz visit tick. */
++function knownLocations(st:SimState):{id:string;x:number;y:number;size:number}[]{
++ const c=st.campaign!;const sites=SITE_IDS.filter(id=>knownSite(st,id)).map(id=>({id,...campaignSite(st,id)!}));
++ const out:{id:string;x:number;y:number;size:number}[]=[...sites,...(c.recruits?.sites??[]).filter(s=>s.seenAt>=0||s.recruitedAt>=0).map(s=>({...s,size:1}))];
++ if(c.turbine&&(c.turbine.seenAt>=0||c.turbine.restoredAt>=0))out.push(c.turbine);
++ if(c.discovery&&(c.discovery.seenAt>=0||c.discovery.recoveredAt>=0))out.push({...c.discovery,size:1});return out;
++}
++export function tickNavigation(st:SimState):void {
++ if(!isCampaign(st))return;initNavigation(st);const n=st.campaign!.navigation!,G=ground(st),e=st.engineer;
++ const tile=Math.floor(e.y)*G.tw+Math.floor(e.x),block=G.near[tile];
++ if(block>=0&&!n.visitedBlocks.includes(block)){n.visitedBlocks.push(block);n.visitedBlocks.sort((a,b)=>a-b);}
++ for(const s of knownLocations(st))if(Math.hypot(e.x-s.x-s.size/2,e.y-s.y-s.size/2)<=s.size/2+4&&!n.visitedSites.includes(s.id)){n.visitedSites.push(s.id);n.visitedSites.sort();}
++}
++export function knownDistrict(st:SimState,i:number):boolean {
++ if(!isCampaign(st)||!st.blocks[i])return false;
++ if(i===st.campaign!.homeBlock||st.campaign?.navigation?.visitedBlocks.includes(i)||campaignRecruited(st,'surveyors'))return true;
++ const G=ground(st);return knownLocations(st).some(s=>G.near[s.y*G.tw+s.x]===i);
++}
++export function navigationTargets(st:SimState):NavigationTarget[]{
++ if(!isCampaign(st))return [];const G=ground(st),n=st.campaign!.navigation;
++ const out:NavigationTarget[]=campaignDiscoveries(st).map(s=>({id:`site:${s.id}`,name:s.title,defaultName:s.defaultTitle,x:s.x+s.size/2,y:s.y+s.size/2,visited:!!n?.visitedSites.includes(s.id),kind:'place'}));
++ const known=new Set([st.campaign!.homeBlock,...(n?.visitedBlocks??[]),...out.map(t=>G.near[Math.floor(t.y)*G.tw+Math.floor(t.x)])]),surveyed=campaignRecruited(st,'surveyors');
++ for(const p of G.urban?.places??[])if(surveyed||known.has(p.block))out.push({id:`block:${p.block}`,name:blockName(st,p.block),defaultName:p.name,x:p.pad.x+p.pad.w/2,y:p.pad.y+p.pad.h/2,visited:p.block===st.campaign!.homeBlock||!!n?.visitedBlocks.includes(p.block),kind:'district'});
++ for(const p of n?.pins??[])out.push({id:`pin:${p.id}`,name:p.name,defaultName:`Pin ${p.id}`,x:p.x,y:p.y,visited:!!n?.visitedBlocks.includes(G.near[Math.floor(p.y)*G.tw+Math.floor(p.x)]),kind:'pin'});
++ return out;
++}
++// eslint-disable-next-line no-control-regex -- Player names must reject control and bidi override characters.
++const textOK=(s:unknown):s is string=>typeof s==='string'&&s.length<=NAVIGATION_RULES.nameLength&&!/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/u.test(s)&&s===s.trim();
++export function navigationCommand(st:SimState,a:NavigationAction):ActionResult {
++ try{
++  if(!isCampaign(st)||!a)throw Error('Navigation belongs to the exploration campaign.');
++  // Validate against known targets before allocating or changing any saved state.
++  const current=st.campaign!.navigation,targets=navigationTargets(st);
++  if(a.type==='rename'){
++   const target=targets.find(t=>t.id===a.id);if(!target)throw Error('Choose a known destination.');
++   if(!textOK(a.name))throw Error('Use up to 64 characters without control characters.');
++   const name=a.name||target.defaultName;
++   if(targets.some(t=>t.id!==a.id&&t.name.toLowerCase()===name.toLowerCase()))throw Error('Another known destination uses that name.');
++   if(a.name&&target.kind!=='pin'&&!current?.names[a.id]&&Object.keys(current?.names??{}).length>=NAVIGATION_RULES.names)throw Error('Name limit reached (80). Reset a name first.');
++   initNavigation(st);const n=st.campaign!.navigation!;
++   if(target.kind==='pin')n.pins.find(p=>`pin:${p.id}`===a.id)!.name=name;
++   else if(!a.name||a.name===target.defaultName)delete n.names[a.id];else n.names[a.id]=a.name;
++  }else if(a.type==='pin'){
++   const G=ground(st);if(!Number.isInteger(a.x)||!Number.isInteger(a.y)||a.x<0||a.y<0||a.x>=G.tw||a.y>=G.th||!knownDistrict(st,G.near[a.y*G.tw+a.x]))throw Error('Place pins inside known districts.');
++   if(!textOK(a.name))throw Error('Use up to 64 characters without control characters.');
++   if((current?.pins.length??0)>=NAVIGATION_RULES.pins||(current?.nextId??1)>=Number.MAX_SAFE_INTEGER)throw Error('Pin limit reached (32). Remove a pin first.');
++   initNavigation(st);const n=st.campaign!.navigation!,id=n.nextId++;n.pins.push({id,x:a.x,y:a.y,name:a.name||`Pin ${id}`});
++  }else if(a.type==='removePin'){
++   if(!Number.isSafeInteger(a.id)||!current?.pins.some(p=>p.id===a.id))throw Error('Choose an existing pin.');
++   current.pins=current.pins.filter(p=>p.id!==a.id);
++  }else throw Error('Unknown navigation action.');
++  return {ok:true,reason:'Navigation updated.'};
++ }catch(e){return {ok:false,reason:(e as Error).message};}
++}
++export function navigationProblem(st:SimState):string {
++ const n=st.campaign?.navigation;if(n===undefined)return '';
++ const bad='Invalid saved navigation';
++ if(!n||n.version!==1||!n.names||typeof n.names!=='object'||Array.isArray(n.names)||!Array.isArray(n.pins)||!Array.isArray(n.visitedBlocks)||!Array.isArray(n.visitedSites)||!Number.isSafeInteger(n.nextId)||n.nextId<1)return bad;
++ if(Object.keys(n).some(k=>!['version','names','pins','nextId','visitedBlocks','visitedSites'].includes(k))||Object.keys(n.names).length>NAVIGATION_RULES.names||n.pins.length>NAVIGATION_RULES.pins||n.visitedBlocks.length>st.blocks.length||n.visitedSites.length>20)return bad;
++ if(n.visitedBlocks.some(i=>!Number.isInteger(i)||!st.blocks[i])||new Set(n.visitedBlocks).size!==n.visitedBlocks.length||new Set(n.visitedSites).size!==n.visitedSites.length)return bad;
++ const sites=campaignDiscoveries(st),ids=new Set(sites.map(s=>s.id));if(n.visitedSites.some(id=>!ids.has(id)))return bad;
++ const G=ground(st);
++ if(n.pins.some(p=>!p||Object.keys(p).some(k=>!['id','x','y','name'].includes(k))||!Number.isSafeInteger(p.id)||p.id<1||p.id>=n.nextId||!Number.isInteger(p.x)||!Number.isInteger(p.y)||p.x<0||p.y<0||p.x>=G.tw||p.y>=G.th||!textOK(p.name)||!p.name||!knownDistrict(st,G.near[p.y*G.tw+p.x]))||new Set(n.pins.map(p=>p.id)).size!==n.pins.length)return bad;
++ for(const [id,name] of Object.entries(n.names)){
++  if(!textOK(name)||!name)return bad;
++  if(id.startsWith('block:')){if(!/^block:\d+$/.test(id)||!knownDistrict(st,Number(id.slice(6))))return bad;}
++  else if(!id.startsWith('site:')||!ids.has(id.slice(5)))return bad;
++ }
++ return '';
++}
+--- P9-02/packages/sim/src/rules.ts
++++ P9-03/packages/sim/src/rules.ts
+@@ -7,7 +7,7 @@
+ export const CAMPAIGN_RULES = { daySeconds: 1200, daylightSeconds: 900, firstAssaultNight: 3, opening: 'culdesac-v1' } as const;
+ export interface CampaignSite { block: number; x: number; y: number; size: number; delivered: { steel: number; copper: number }; restoredAt: number }
+ export interface ExpansionState { surveyVersion?: 2; station: CampaignSite; radio: CampaignSite; route: number[]; stops: [number, number][]; reward: { track: number; tramstop: number; tram: number }; grantedAt: number }
+-export interface CampaignState { version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10; plans?: import('./blueprintPlans').BlueprintPlans; clipboard?: import('./blueprintFormat').Blueprint; knowledge?: import('./campaignGuide').CampaignKnowledge; turbine?: import('./campaignTurbine').TurbineSite; recruits?: import('./campaignRecruits').RecruitState; truck?: import('./truck').TruckState; discovery?: import('./campaignDiscovery').DiscoveryState; districts?: import('./campaignDistricts').DistrictState; defence?: import('./campaignDefence').DefenceState; opening: 'culdesac-v1'; homeBlock: number; expansion?: ExpansionState }
++export interface CampaignState { navigation?: import('./navigation').Navigation; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10; plans?: import('./blueprintPlans').BlueprintPlans; clipboard?: import('./blueprintFormat').Blueprint; knowledge?: import('./campaignGuide').CampaignKnowledge; turbine?: import('./campaignTurbine').TurbineSite; recruits?: import('./campaignRecruits').RecruitState; truck?: import('./truck').TruckState; discovery?: import('./campaignDiscovery').DiscoveryState; districts?: import('./campaignDistricts').DistrictState; defence?: import('./campaignDefence').DefenceState; opening: 'culdesac-v1'; homeBlock: number; expansion?: ExpansionState }
+ export function isRuleset(value: unknown): value is Ruleset { return value === LEGACY_RULESET || value === CAMPAIGN_RULESET; }
+ export function rulesetOf(st: Pick<SimState, 'ruleset'>): Ruleset { return st.ruleset ?? LEGACY_RULESET; }
+ export function isCampaign(st: Pick<SimState, 'ruleset'>): boolean { return rulesetOf(st) === CAMPAIGN_RULESET; }
+--- P9-02/packages/sim/src/save.ts
++++ P9-03/packages/sim/src/save.ts
+@@ -14,6 +14,7 @@
+ import { inspectionProblem } from './inspection';
+ import { initExpansion } from './expansion';
+ import { initDefence } from './campaignDefence';
++import {navigationProblem} from './navigation';
+ import { initKnowledge, knowledgeProblem } from './campaignGuide';
+ import { initTurbine, turbineProblem } from './campaignTurbine';
+ import { initForeman, initRecruits, recruitsProblem } from './campaignRecruits';
+@@ -89,7 +90,7 @@
+   if (!Array.isArray(st.ring)) return 'no ring';
+   if (!st.engineer || typeof st.engineer !== 'object') return 'no engineer';
+   if (st.city?.profile && st.city.profile !== 'riverside-v1') return `unsupported city profile ${st.city.profile}`;
+-  return rulesetProblem(st as SimState) || concreteProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || discoveryProblem(st as SimState) || recruitsProblem(st as SimState) || turbineProblem(st as SimState) || knowledgeProblem(st as SimState) || freightProblem(st as SimState) || blueprintPlansProblem(st as SimState) || clipboardProblem(st as SimState) || constructionProblem(st as SimState) || routingProblem(st as SimState) || inspectionProblem(st as SimState) || truckProblem(st as SimState) || truckWorkProblem(st as SimState);
++  return rulesetProblem(st as SimState) || concreteProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || discoveryProblem(st as SimState) || recruitsProblem(st as SimState) || turbineProblem(st as SimState) || knowledgeProblem(st as SimState) || freightProblem(st as SimState) || blueprintPlansProblem(st as SimState) || clipboardProblem(st as SimState) || constructionProblem(st as SimState) || routingProblem(st as SimState) || inspectionProblem(st as SimState) || truckProblem(st as SimState) || truckWorkProblem(st as SimState) || navigationProblem(st as SimState);
+ }
+ 
+ /** A validated deep copy of a saved state — a SaveFile, a telemetry export (its `finalState`) or a raw SimState —
+--- P9-02/packages/sim/src/threat.ts
++++ P9-03/packages/sim/src/threat.ts
+@@ -23,6 +23,7 @@
+  *  be read off unlit ground without being lit; the Stalker (stalker.ts) rides this tick when `enableStalkers` has put
+  *  its candidate on the state (`stalk`), and the turrets and the rifle treat it as one more body. */
+ import { tickRecruits } from './campaignRecruits';
++import {tickNavigation} from './navigation';
+ import { tickKnowledge } from './campaignGuide';
+ import { tickTurbine } from './campaignTurbine';
+ import { tickDiscovery } from './campaignDiscovery';
+@@ -232,7 +233,7 @@
+ function tick(st: SimState, dt: number): void {
+   if (!threatActive(st)) return;
+   const f = st.flow!, T = threatOf(f), G = ground(st), tw = G.tw, e = st.engineer;
+-  if (isCampaign(st)) { tickCampaignThreat(st,T,dt); tickDiscovery(st,dt); tickRecruits(st); tickTurbine(st); tickKnowledge(st); tickWeapons(st,dt); return; }
++  if (isCampaign(st)) { tickCampaignThreat(st,T,dt); tickDiscovery(st,dt); tickRecruits(st); tickTurbine(st); tickKnowledge(st); tickNavigation(st); tickWeapons(st,dt); return; }
+   const cs = T.crawlers;
+   // crawlers whose block already fell (or was lost) have nothing left to walk to
+   let w = 0;
+--- P9-02/packages/sim/src/types.ts
++++ P9-03/packages/sim/src/types.ts
+@@ -172,6 +172,7 @@
+   | { type: 'removeArea'; selection: import('./construction').RemovalSelection }
+   | { type: 'truckWork'; action: import('./truckWork').TruckWorkAction }
+   | { type: 'blueprintLibrary'; action: import('./blueprintPlans').BlueprintLibraryAction }
++  | { type: 'navigation'; action: import('./navigation').NavigationAction }
+   | { type: 'blueprintOrder'; action: import('./blueprintPlans').BlueprintOrderAction }
+   | { type: 'blueprintCopy'; from: import('./construction').TilePoint; to: import('./construction').TilePoint }
+   | { type: 'blueprintTransform'; operation: import('./blueprint').BlueprintTransform }
+--- P9-02/packages/sim/test/navigation.test.ts
++++ P9-03/packages/sim/test/navigation.test.ts
+@@ -0,0 +1,38 @@
++import {test} from 'node:test';
++import assert from 'node:assert/strict';
++import {readFileSync} from 'node:fs';
++import {createCampaign,navigationTargets,navigationProblem,applyCommands,actionResult,stateHash,makeSave,loadState,ground,blockName,campaignDiscoveries,conservation,advanceFlow,type NavigationAction} from '../src/index';
++import {FactoryDriver,replayInterval,savedContinuation} from '../../harness/src/blueprint';
++import {loadSnapshot} from '../../game/src/session';
++const send=(st:ReturnType<typeof createCampaign>,action:NavigationAction,ok=true)=>{applyCommands(st,[{type:'navigation',action}]);assert.equal(actionResult(st).ok,ok,actionResult(st).reason);};
++test('navigation uses existing deterministic names and known sites without revealing hidden destinations',()=>{
++ for(const seed of [3,6,29]){const st=createCampaign(seed),hash=stateHash(st),rows=navigationTargets(st);assert.deepEqual(rows,navigationTargets(loadState(st)));assert.equal(stateHash(st),hash);assert.equal(rows.filter(t=>t.kind==='place').length,1);assert.equal(rows.find(t=>t.id==='site:station')!.visited,false);assert.equal(rows.find(t=>t.id===`block:${st.campaign!.homeBlock}`)!.visited,true);assert.equal(new Set(rows.map(t=>t.id)).size,rows.length);}
++});
++test('names, defaults and pins use atomic bounded commands, stable identities and literal text',()=>{
++ const st=createCampaign(3),id=`block:${st.campaign!.homeBlock}`,e=st.engineer,original=blockName(st,st.campaign!.homeBlock);
++ send(st,{type:'rename',id,name:'<b>Harbour</b>'});assert.equal(blockName(st,st.campaign!.homeBlock),'<b>Harbour</b>');
++ send(st,{type:'rename',id:'site:station',name:'Western Terminus'});assert.equal(campaignDiscoveries(st)[0].title,'Western Terminus');
++ for(const action of [{type:'rename',id:'site:workshop',name:'Hidden'},{type:'rename',id,name:'x'.repeat(65)},{type:'rename',id,name:'bad\nname'},{type:'rename',id,name:'Western Terminus'},{type:'pin',x:-1,y:0,name:'Outside'}] as NavigationAction[]){const hash=stateHash(st);send(st,action,false);assert.equal(stateHash(st),hash);}
++ send(st,{type:'rename',id,name:''});assert.equal(blockName(st,st.campaign!.homeBlock),original);
++ for(let i=0;i<32;i++)send(st,{type:'pin',x:Math.floor(e.x),y:Math.floor(e.y),name:`Depot ${i}`});const hash=stateHash(st);send(st,{type:'pin',x:Math.floor(e.x),y:Math.floor(e.y),name:'overflow'},false);assert.equal(stateHash(st),hash);
++ send(st,{type:'removePin',id:1});send(st,{type:'pin',x:Math.floor(e.x),y:Math.floor(e.y),name:''});assert.equal(st.campaign!.navigation!.pins.at(-1)!.id,33);assert.equal(navigationProblem(st),'');assert.ok(conservation(st).ok);
++});
++test('physical travel records visits; annotations and visits replay and continue through saves',()=>{
++ const st=createCampaign(6),initial=structuredClone(st),d=new FactoryDriver(st),s=st.campaign!.expansion!.station;
++ d.send({type:'navigation',action:{type:'rename',id:'site:station',name:'West line'}});d.approach(s.x,s.y,s.size);d.run(1);
++ assert.ok(st.campaign!.navigation!.visitedSites.includes('station'));
++ d.send({type:'navigation',action:{type:'pin',x:Math.floor(st.engineer.x),y:Math.floor(st.engineer.y),name:'Return here'}});
++ const saved=makeSave(st,{log:d.log,logComplete:true});assert.equal(stateHash(loadState(saved)),stateHash(st));assert.equal(stateHash(replayInterval(initial,d.log,st.flow!.tick)),stateHash(st));assert.ok(savedContinuation(st).same);assert.ok(conservation(st).ok);
++});
++test('invalid saved navigation refuses versions, unknown targets, uncharted pins and malformed records',()=>{
++ const st=createCampaign(3),G=ground(st),unknown=G.urban!.places.find(p=>!navigationTargets(st).some(t=>t.id===`block:${p.block}`))!;
++ const mutate=[(n:any)=>n.version=2,(n:any)=>n.names=JSON.parse('{"__proto__":"bad"}'),(n:any)=>n.visitedBlocks=[-1],(n:any)=>n.visitedSites=['hidden'],(n:any)=>n.pins=[{id:1,x:unknown.pad.x,y:unknown.pad.y,name:'Hidden'}],(n:any)=>n.pins=null,(n:any)=>n.names=[]];
++ for(const fn of mutate){const copy=structuredClone(st);fn(copy.campaign!.navigation);assert.throws(()=>loadState(copy),/navigation/i);}
++});
++test('old revision-2 saves retain geometry and stock but do not claim replay before visit tracking',async()=>{
++ const old=JSON.parse(readFileSync(new URL('../../../docs/evidence/p9-02-2026-09-08/paid/save-6.json',import.meta.url),'utf8')),loaded=loadState(old);
++ assert.equal(stateHash(loaded),old.hash);assert.equal(loaded.campaign!.navigation,undefined);assert.deepEqual(loaded.campaign!.expansion,old.state.campaign.expansion);
++ const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage');Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>JSON.stringify(old)}});
++ try{const snapshot=await loadSnapshot('local:old');assert.equal(snapshot.logComplete,false);assert.deepEqual(snapshot.log,old.log);}finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else Reflect.deleteProperty(globalThis,'localStorage');}
++ loaded.speed=1;advanceFlow(loaded,.05);assert.ok(loaded.campaign!.navigation);assert.equal(navigationProblem(loaded),'');
++});
+--- P9-02/packages/tools/src/campaign-docsync.ts
++++ P9-03/packages/tools/src/campaign-docsync.ts
+@@ -1,7 +1,7 @@
+ /** Separate generated reference for the campaign; never rewrites legacy tables. */
+ import { readFileSync, writeFileSync } from 'node:fs';
+ import { TRUCK_WORK_RULES, BLUEPRINT_LIBRARY_LIMIT, BLUEPRINT_ORDER_LIMIT, BLUEPRINT_TEXT_LIMIT, BUILD_LIMIT, HISTORY_LIMIT, SITE_CLUE_RADIUS, TURBINE, ARC_LAMP_RADIUS, UNDERGROUND_HIDDEN, SPLITTER_CAPACITY, SPLITTER_PER_S, MACHINE_COST, MACHINE_SIZE, RECRUITS, recipeOf, INSPECTION_WINDOW_TICKS, INSPECTION_SAMPLE_TICKS, TRUCK_RULES, INV_STACKS } from '@relight/sim';
+-import { EXPANSION_SURVEY_VERSION, CAMPAIGN_RULESET, CAMPAIGN_RULES, OPENING_LAYOUT, EXPANSION, CAMPAIGN_POWER, DEFENCE, CAMPAIGN_THREAT, DISTRICT_ECONOMY, DISCOVERY, EXCAVATOR_PER_S, MACHINE_KW } from '@relight/sim';
++import { NAVIGATION_RULES, EXPANSION_SURVEY_VERSION, CAMPAIGN_RULESET, CAMPAIGN_RULES, OPENING_LAYOUT, EXPANSION, CAMPAIGN_POWER, DEFENCE, CAMPAIGN_THREAT, DISTRICT_ECONOMY, DISCOVERY, EXCAVATOR_PER_S, MACHINE_KW } from '@relight/sim';
+ export function syncCampaignDocs(path: string, check: boolean): void {
+   const expected = `# Campaign implementation reference
+ 
+@@ -30,6 +30,7 @@
+ | Mixer | ${MACHINE_SIZE.mixer}×${MACHINE_SIZE.mixer}, ${MACHINE_COST.mixer.steel} steel + ${MACHINE_COST.mixer.copper} copper; ${MACHINE_KW.mixer} kW; ${recipeOf({kind:"mixer"}).inputs.stone} stone → 1 concrete every ${recipeOf({kind:"mixer"}).seconds}s; belt/inserter input, inserter output; provisional |
+ | Barricade | ${MACHINE_SIZE.barricade}×${MACHINE_SIZE.barricade}, ${MACHINE_COST.barricade.steel} steel + ${MACHINE_COST.barricade.concrete} concrete; ${DEFENCE.barricadeHp} HP, no power; manual/workshop repair uses the existing paid 40-HP service; provisional |
+ | Station restoration | ${EXPANSION.station.steel} steel + ${EXPANSION.station.copper} copper, real local/connected power; provisional cost |
++| Names and navigation | Optional saved revision ${NAVIGATION_RULES.version}; ${NAVIGATION_RULES.names} name overrides of ${NAVIGATION_RULES.nameLength} characters, ${NAVIGATION_RULES.pins} pins in known districts, physical visit records; old layouts preserved, camera/selection remain presentation-only |
+ | Tram survey | Revision ${EXPANSION_SURVEY_VERSION} for new campaigns: buildable street tracks and complete stop footprints; old surveys and stock are retained unchanged, with incomplete replay provenance against the current new-game factory |
+ | Starter tram kit | One tram, two stops and route-length track, once-only station inventory |
+ | Physical truck | Restored second-area station; ${TRUCK_RULES.width}×${TRUCK_RULES.length} street footprint, rotates; ${TRUCK_RULES.stacks} saved cargo stacks separate from ${INV_STACKS} pocket stacks; speed ×${TRUCK_RULES.speedMultiplier}; local boarding within ${TRUCK_RULES.boardReach} tiles; valid adjacent exit; provisional |

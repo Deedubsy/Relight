@@ -1,0 +1,10 @@
+
+> relight-prototype@0.1.0 city:validate
+> tsx packages/harness/src/cityValidationCli.ts --seeds 305,1340,7384,8102,9711 --out docs/evidence/p9-04r-2026-09-09/pads-2 --workers 5
+
+1/5: seed 305 passed; 0 findings; 4731 ms
+2/5: seed 7384 failed; 1 findings; 4613 ms
+3/5: seed 9711 failed; 1 findings; 4790 ms
+4/5: seed 8102 failed; 1 findings; 4720 ms
+5/5: seed 1340 failed; 1 findings; 5425 ms
+population complete: 5/5, 4 failed; source unchanged: true

@@ -1,0 +1,232 @@
+TAP version 13
+# Subtest: knowledge starts with the opening clue, records exploration and survives leaving and reloading
+ok 1 - knowledge starts with the opening clue, records exploration and survives leaving and reloading
+  ---
+  duration_ms: 5172.03691
+  type: 'test'
+  ...
+# Subtest: item guide contains only implemented recipes and true current consumers, unlock provenance and no secret locations
+ok 2 - item guide contains only implemented recipes and true current consumers, unlock provenance and no secret locations
+  ---
+  duration_ms: 794.833513
+  type: 'test'
+  ...
+# Subtest: discovery service state follows actual power, switch, partial materials and empty or earned rewards
+ok 3 - discovery service state follows actual power, switch, partial materials and empty or earned rewards
+  ---
+  duration_ms: 2363.022483
+  type: 'test'
+  ...
+# Subtest: ordinary exploration and journal actions replay; read-only browsing does not change simulation state
+ok 4 - ordinary exploration and journal actions replay; read-only browsing does not change simulation state
+  ---
+  duration_ms: 2019.345606
+  type: 'test'
+  ...
+# Subtest: current-code replay of the ordinary P7-03 workload supplies a complete P7-04 checkpoint
+ok 5 - current-code replay of the ordinary P7-03 workload supplies a complete P7-04 checkpoint
+  ---
+  duration_ms: 7052.938978
+  type: 'test'
+  ...
+# Subtest: known threat navigation never exposes an offline network target or reuses a different assault warning
+ok 6 - known threat navigation never exposes an offline network target or reuses a different assault warning
+  ---
+  duration_ms: 3237.07091
+  type: 'test'
+  ...
+# Subtest: home guarantee and current minor raid remain actionable during a future major warning
+ok 7 - home guarantee and current minor raid remain actionable during a future major warning
+  ---
+  duration_ms: 879.925817
+  type: 'test'
+  ...
+# Subtest: immediate wall breach uses the damage tick decision, including blocked withdrawal and saved continuation
+ok 8 - immediate wall breach uses the damage tick decision, including blocked withdrawal and saved continuation
+  ---
+  duration_ms: 1832.459258
+  type: 'test'
+  ...
+# Subtest: nearby turret attack and engineer contact supersede the strategic core and match real damage
+ok 9 - nearby turret attack and engineer contact supersede the strategic core and match real damage
+  ---
+  duration_ms: 825.55439
+  type: 'test'
+  ...
+# Subtest: 32 seeded shelters are accessible without a guardian fight and are permanent walkable reservations
+ok 10 - 32 seeded shelters are accessible without a guardian fight and are permanent walkable reservations
+  ---
+  duration_ms: 53732.531354
+  type: 'test'
+  ...
+# Subtest: ordinary walk and recruitment grant real electrical plans once, preserve stock and replay
+ok 11 - ordinary walk and recruitment grant real electrical plans once, preserve stock and replay
+  ---
+  duration_ms: 2892.804778
+  type: 'test'
+  ...
+# Subtest: recruitment requires an able engineer on foot and persists through disabled cores and block changes
+ok 12 - recruitment requires an able engineer on foot and persists through disabled cores and block changes
+  ---
+  duration_ms: 549.629526
+  type: 'test'
+  ...
+# Subtest: version 5 migration keeps earned plans, existing workshop history and layouts; unearned plans stay locked
+ok 13 - version 5 migration keeps earned plans, existing workshop history and layouts; unearned plans stay locked
+  ---
+  duration_ms: 9131.248546
+  type: 'test'
+  ...
+# Subtest: current saves reject missing, duplicated or malformed recruits and old logs are marked incomplete
+ok 14 - current saves reject missing, duplicated or malformed recruits and old logs are marked incomplete
+  ---
+  duration_ms: 3156.000522
+  type: 'test'
+  ...
+# Subtest: optional riverside hall and shelters preserve corridors, reach and stable identities on required seeds
+ok 15 - optional riverside hall and shelters preserve corridors, reach and stable identities on required seeds
+  ---
+  duration_ms: 20266.261071
+  type: 'test'
+  ...
+# Subtest: ordinary optional recruitment works in both orders, grants paid Arc coverage and district-only survey, and replays
+ok 16 - ordinary optional recruitment works in both orders, grants paid Arc coverage and district-only survey, and replays
+  ---
+  duration_ms: 5086.502647
+  type: 'test'
+  ...
+# Subtest: paid Turbine commissioning supplies a physical multi-district network, offsets fuel, isolates and resumes after saving
+ok 17 - paid Turbine commissioning supplies a physical multi-district network, offsets fuel, isolates and resumes after saving
+  ---
+  duration_ms: 5055.752612
+  type: 'test'
+  ...
+# Subtest: Turbine commands reject incapacitated/vehicle interaction and corrupt saved records
+ok 18 - Turbine commands reject incapacitated/vehicle interaction and corrupt saved records
+  ---
+  duration_ms: 2029.46866
+  type: 'test'
+  ...
+# Subtest: construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+ok 19 - construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+  ---
+  duration_ms: 1805.306797
+  type: 'test'
+  ...
+# Subtest: construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+ok 20 - construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+  ---
+  duration_ms: 2147.117251
+  type: 'test'
+  ...
+# Subtest: construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+ok 21 - construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+  ---
+  duration_ms: 1927.831936
+  type: 'test'
+  ...
+# Subtest: construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+ok 22 - construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+  ---
+  duration_ms: 1392.5726
+  type: 'test'
+  ...
+# Subtest: construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+ok 23 - construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+  ---
+  duration_ms: 5947.470438
+  type: 'test'
+  ...
+# Subtest: construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+ok 24 - construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+  ---
+  duration_ms: 3600.118729
+  type: 'test'
+  ...
+# Subtest: construction: packing refuses an unfinished recipe, fractional stock or loose-round overflow atomically
+ok 25 - construction: packing refuses an unfinished recipe, fractional stock or loose-round overflow atomically
+  ---
+  duration_ms: 1142.79491
+  type: 'test'
+  ...
+# Subtest: construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+ok 26 - construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+  ---
+  duration_ms: 0.639296
+  type: 'test'
+  ...
+# Subtest: routing: underground span boundaries, paired construction and atomic interference/material/reach refusals
+ok 27 - routing: underground span boundaries, paired construction and atomic interference/material/reach refusals
+  ---
+  duration_ms: 2969.076119
+  type: 'test'
+  ...
+# Subtest: routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication
+ok 28 - routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication
+  ---
+  duration_ms: 2875.308241
+  type: 'test'
+  ...
+# Subtest: routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load
+ok 29 - routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load
+  ---
+  duration_ms: 1774.975616
+  type: 'test'
+  ...
+# Subtest: routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item
+ok 30 - routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item
+  ---
+  duration_ms: 1822.889296
+  type: 'test'
+  ...
+# Subtest: routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change
+ok 31 - routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change
+  ---
+  duration_ms: 4141.328515
+  type: 'test'
+  ...
+# Subtest: routing: paired commands and settings replay at a paused boundary and survive saved history
+ok 32 - routing: paired commands and settings replay at a paused boundary and survive saved history
+  ---
+  duration_ms: 1892.584663
+  type: 'test'
+  ...
+# Subtest: routing: crossing tunnels pair independently and an intervening endpoint refuses a new pair atomically
+ok 33 - routing: crossing tunnels pair independently and an intervening endpoint refuses a new pair atomically
+  ---
+  duration_ms: 1143.773956
+  type: 'test'
+  ...
+# Subtest: routing: filter applies to mixed belt and station-arrival source fixtures
+ok 34 - routing: filter applies to mixed belt and station-arrival source fixtures
+  ---
+  duration_ms: 1045.420549
+  type: 'test'
+  ...
+# Subtest: routing: rectangular occupancy follows all four rotations, including the ordinary command path
+ok 35 - routing: rectangular occupancy follows all four rotations, including the ordinary command path
+  ---
+  duration_ms: 1578.382801
+  type: 'test'
+  ...
+# Subtest: routing: saturated splitter and underground throughput stay bounded and conserve their circulating fixture stock
+ok 36 - routing: saturated splitter and underground throughput stay bounded and conserve their circulating fixture stock
+  ---
+  duration_ms: 834.941078
+  type: 'test'
+  ...
+# Subtest: routing: all four recipes run through a paid chest/inserter/belt/underground/splitter line reached on foot
+ok 37 - routing: all four recipes run through a paid chest/inserter/belt/underground/splitter line reached on foot
+  ---
+  duration_ms: 4759.854168
+  type: 'test'
+  ...
+1..37
+# tests 37
+# suites 0
+# pass 37
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 76278.533059

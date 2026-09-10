@@ -1,0 +1,18 @@
+
+> relight-prototype@0.1.0 docsync:check
+> tsx packages/tools/src/docsync.ts --check
+
+docsync: exploration campaign reference matches its own profile
+/mnt/e/Factorio2/packages/tools/src/docsync.ts:245
+  for (const name of Object.keys(GENERATORS)) if (!seen.has(name)) throw new Error(`docsync: marker <!-- docsync:${name} --> missing from the doc`);
+                                                                         ^
+
+
+Error: docsync: marker <!-- docsync:districts --> missing from the doc
+    at render (/mnt/e/Factorio2/packages/tools/src/docsync.ts:245:74)
+    at <anonymous> (/mnt/e/Factorio2/packages/tools/src/docsync.ts:251:26)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.18.0

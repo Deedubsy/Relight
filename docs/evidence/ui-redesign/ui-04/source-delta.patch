@@ -1,0 +1,502 @@
+--- UI-03/packages/game/src/inspectionPanel.ts
++++ UI-04/packages/game/src/inspectionPanel.ts
+@@ -0,0 +1,47 @@
++import {inspectMachine,machineById,knownInputSource,ITEMS,type Item} from '@relight/sim';
++import {el,type UiShell} from './uiShell';
++import {dispatch,type Session} from './session';
++import {inspectionView} from './view';
++/** Stable identity, controls and details state; only the read-only facts change between ticks. */
++export function createInspectionPanel(session:Session,root:HTMLElement,shell:UiShell,controls:HTMLElement[],hooks:{locate(x:number,y:number):void;item(item:Item):void;inventory(x:number,y:number):void;route(x:number,y:number):void}){
++ const dismiss=el('button',undefined,'Dismiss removed inspection'),title=el('h2'),location=el('p','hint'),status=el('p','inspection-status'),output=el('section'),inputs=el('section'),blockers=el('section','inspection-blockers'),actions=el('section'),details=el('details','inspection-details'),facts=el('div'),result=el('p','action-result');
++ const pin=el('button',undefined,'Pin inspection'),locate=el('button',undefined,'Locate machine'),transfer=el('button',undefined,'Open supplies'),route=el('button',undefined,'Station route'),feed=el('button',undefined,'Load carried magazines'),chip=el('button','ui-hud inspection-chip');chip.hidden=true;document.getElementById('app')!.append(chip);shell.protect(chip);
++ actions.append(el('h3',undefined,'Actions'),pin,locate,transfer,route,feed,...controls,result);details.append(el('summary',undefined,'Details: rates, circuit and contents'),facts);root.replaceChildren(title,location,status,output,inputs,blockers,actions,details,dismiss);dismiss.onclick=()=>{inspectionView.pinned=false;shell.close();};
++ const machine=()=>inspectionView.machineId===null?null:machineById(session.state,inspectionView.machineId);
++ pin.onclick=()=>{inspectionView.pinned=!inspectionView.pinned;};chip.onclick=()=>{shell.open('inspection');root.hidden=false;};
++ locate.onclick=()=>{const m=machine();if(m)hooks.locate(m.x+m.size/2,m.y+m.size/2);};
++ transfer.onclick=()=>{const m=machine();if(m)hooks.inventory(m.x,m.y);};route.onclick=()=>{const m=machine();if(m)hooks.route(m.x,m.y);};
++ feed.onclick=()=>{const m=machine();if(m){const r=dispatch(session,{type:'factory',action:{type:'feed',x:m.x,y:m.y}});result.textContent=r.reason;}};
++ let key='',constraintsKey='',lastId:number|null=null;
++ const p=(text:string)=>el('p',undefined,text),num=(n:number|null)=>n===null?'—':Number(n.toFixed(2)).toLocaleString();
++ return {update(){
++  const id=inspectionView.machineId,info=id===null?null:inspectMachine(session.state,id),m=machine();
++  chip.hidden=!inspectionView.pinned||id===null||shell.active()==='inspection'||shell.paused();chip.textContent=info?`Inspect ${info.title} · ${info.status.state}`:'Machine removed · inspection';
++  if(!chip.hidden){const clock=document.querySelector('.hud-time')?.getBoundingClientRect(),map=document.querySelector('.hud-minimap')?.getBoundingClientRect();chip.style.top=`${Math.max(clock?.bottom??0,map&&map.top<100?map.bottom:0)+12}px`;}
++  if(lastId!==id){lastId=id;details.open=false;result.textContent='';key='';constraintsKey='';}
++  pin.textContent=inspectionView.pinned?'Unpin inspection':'Pin inspection';pin.setAttribute('aria-pressed',String(inspectionView.pinned));
++  dismiss.hidden=!!info||!inspectionView.pinned;
++  if(!info){title.textContent='Machine removed';status.textContent='The selected machine no longer exists.';location.textContent='Select another machine to inspect it.';for(const n of [output,inputs,blockers,actions,details])n.hidden=true;return;}
++  for(const n of [output,inputs,blockers,actions,details])n.hidden=false;
++  title.textContent=info.title;location.textContent=info.location;status.textContent=`${info.status.state==='running'?'Running':info.status.state==='idle'?'Idle':info.status.state==='off'?'Offline':info.status.state==='blocked'?'Blocked':'Waiting'} · ${info.status.reason}`;status.dataset.state=info.status.state;
++  transfer.hidden=!['chest','tramstop','depot'].includes(info.kind);route.hidden=info.kind!=='tramstop';feed.hidden=!['turret','generator'].includes(info.kind);feed.textContent=info.kind==='generator'?'Load carried coal':'Load carried magazines';feed.disabled=!info.reachable;
++  const nextKey=JSON.stringify(info);if(nextKey===key)return;key=nextKey;
++  const measured=info.measured;output.replaceChildren(el('h3',undefined,'Useful output'));
++  if(measured){output.append(p(measured.seconds>0?`${info.measurement} over ${num(measured.seconds)} simulation seconds.`:'Waiting for simulation time — no measured output yet.'));for(const r of measured.rows)if(r.produced>0||info.nominal.some(n=>n.item===r.item&&n.output>0))output.append(p(`${r.item}: ${num(r.producedPerMin)}/min measured · ${num(r.produced)} recorded`));}else output.append(p(info.capacity??info.status.reason));
++  inputs.replaceChildren(el('h3',undefined,'Inputs'));
++  if(info.recipe)inputs.append(p(`Recipe: ${info.recipe}`));
++  for(const r of info.nominal.filter(n=>n.input>0))inputs.append(p(`${r.item}: ${num(m?.inv[r.item]??0)} buffered · ${num(r.input)}/min nominal input`));
++  if(!info.nominal.some(n=>n.input>0))inputs.append(p(info.kind==='generator'?`${num(m?.inv.coal??0)} coal in fuel store`:info.kind==='turret'?`${num(m?.inv.rounds??0)} rounds in hopper`:'No recipe inputs.'));
++  const ck=JSON.stringify([info.blockers,info.nextInputs,info.status.state,info.reachable,...[...info.blockers,...info.nextInputs].filter(b=>b.item).map(b=>knownInputSource(session.state,b.item!))]);
++  if(ck!==constraintsKey){constraintsKey=ck;
++  blockers.replaceChildren(el('h3',undefined,'Current constraints'));
++  if(!info.blockers.length)blockers.append(p(info.status.state==='running'?'No current blocker.':info.status.reason));
++  for(const b of [...info.blockers,...info.nextInputs]){const row=el('div','inspection-constraint');row.append(p(b.text));if(b.item){const item=b.item,help=el('button',undefined,`About ${item}`);help.onclick=()=>hooks.item(item);row.append(help);const source=knownInputSource(session.state,item);if(source){const go=el('button',undefined,`Locate ${source.label}`);go.onclick=()=>hooks.locate(source.x,source.y);row.append(go);}}blockers.append(row);}
++  if(!info.reachable)blockers.append(p('Out of reach — walk closer to change settings or transfer.'));
++  }
++  const c=info.circuit;facts.replaceChildren(p(`${c.scope}: ${num(c.supply)} kW supply / ${num(c.demand)} kW demand / ${num(c.load)} kW load / ${num(c.throttle*100)}% throttle`),p(`Machine draw: ${info.draw} kW`));
++  for(const r of info.nominal)facts.append(p(`${r.item}: nominal ${num(r.input)} in / ${num(r.output)} out per min; power-limited capacity ${num(r.input*info.scale)} in / ${num(r.output*info.scale)} out per min`));
++  if(info.capacity)facts.append(p(info.capacity));facts.append(el('h3',undefined,'Separate stores'));
++  if(!info.contents.length)facts.append(p('Contents: empty'));for(const c of info.contents)facts.append(p(`${c.place} · ${c.item}: ${num(c.count)}`));for(const setting of info.settings)facts.append(p(setting));if(info.range)facts.append(p(info.range));
++ }};
++}
+--- UI-03/packages/game/src/inventoryPanel.ts
++++ UI-04/packages/game/src/inventoryPanel.ts
+@@ -0,0 +1,24 @@
++import {ITEMS,KIND_LABEL,knownEquipment,chestTransferPreview,chestCount,machineById,invStacks,INV_STACKS,stackSize,STOP_CAP,SUPPLY_CHEST_CAP,freightInbound,handCraftCheck,type ChestItem,type Kind} from '@relight/sim';
++import {el} from './uiShell';
++import {dispatch,type Session} from './session';
++/** One transfer drawer, with separately named stores and authoritative partial-transfer previews. */
++export function createInventoryPanel(session:Session,root:HTMLElement,target:()=>number|null,freight:HTMLElement){
++ const title=el('h2'),pockets=el('p'),store=el('p'),notice=el('p','action-result'),list=el('div','transfer-list'),craft=el('button',undefined,'Craft 1 magazine'),craftReason=el('p','hint');
++ root.replaceChildren(title,pockets,store,notice,list,craft,craftReason,freight);let key='',lastTarget:number|null|undefined;
++ const rows=new Map<ChestItem,{root:HTMLElement;counts:HTMLElement;take:HTMLButtonElement;put:HTMLButtonElement;reason:HTMLElement}>();
++ const send=(item:ChestItem,put:boolean,n:number)=>{const id=target(),m=id===null?null:machineById(session.state,id);if(id!==null&&!m){notice.textContent='Selected store removed. Select a store again.';return;}const r=dispatch(session,{type:'factory',action:{type:put?'chestPut':'chestTake',item,n,...(m?{x:m.x,y:m.y}:{})}});notice.textContent=r.reason;};
++ craft.onclick=()=>{notice.textContent=dispatch(session,{type:'factory',action:{type:'craft',item:'magazine',count:1}}).reason;};
++ return {update(){
++  const st=session.state,id=target(),m=id===null?null:machineById(st,id),removed=id!==null&&!m;
++  if(lastTarget!==id){lastTarget=id;notice.textContent='';}
++  title.textContent=removed?'Selected store removed':m?.kind==='tramstop'?'Station transfers':m?'Supply chest transfers':'Home supplies';
++  pockets.textContent=`Pockets · ${invStacks(st.engineer.inv)} / ${INV_STACKS} stacks`;store.textContent=removed?'Transfers are closed. Select another store.':m?m.kind==='tramstop'?`Platform ${Object.values(m.inv).reduce((a,b)=>a+b,0)}/${STOP_CAP} · Arrivals ${Object.values(m.cargo??{}).reduce((a,b)=>a+b,0)}/${STOP_CAP} · ${freightInbound(st,m.id)} reserved inbound. Take uses arrivals first, then platform. Put uses platform.`:`Chest ${Object.values(m.inv).reduce((a,b)=>a+b,0)}/${SUPPLY_CHEST_CAP} items`:'Home stock stays here until you take it into your pockets.';
++  const items=[...new Set<ChestItem>([...ITEMS,...Object.keys(st.engineer.inv).filter(k=>k in KIND_LABEL&&k!=='depot') as ChestItem[],...Object.keys(m?.inv??{}).filter(k=>k in KIND_LABEL&&k!=='depot') as ChestItem[]])].filter(k=>!(k in KIND_LABEL)||knownEquipment(st,k as Kind));
++  if(key!==items.join('|')){key=items.join('|');list.replaceChildren();for(const item of items){let r=rows.get(item);if(!r){const article=el('article','transfer-card'),counts=el('p'),take=el('button',undefined,`Take ${item==='magazine'?5:stackSize(item)}`),put=el('button',undefined,'Put all'),reason=el('p','hint');article.append(el('h3',undefined,item),counts,take,put,reason);take.onclick=()=>send(item,false,item==='magazine'?5:stackSize(item));put.onclick=()=>send(item,true,1e9);r={root:article,counts,take,put,reason};rows.set(item,r);}list.append(r.root);}}
++  for(const item of items){const r=rows.get(item)!,at=m?[m.x,m.y] as [number,number]:undefined,take=removed?{moved:0,reason:'Store removed'}:chestTransferPreview(st,item,item==='magazine'?5:stackSize(item),false,at),put=removed?{moved:0,reason:'Store removed'}:chestTransferPreview(st,item,1e9,true,at);
++   r.counts.textContent=`Pockets ${st.engineer.inv[item]??0} · ${removed?'Store removed':m?.kind==='tramstop'?`Platform ${m.inv[item]??0} · Arrivals ${m.cargo?.[item]??0}`:m?`Chest ${m.inv[item]??0}`:`Home ${chestCount(st,item)}`}`;
++   r.take.disabled=r.put.disabled=removed;r.take.setAttribute('aria-disabled',String(!take.moved));r.put.setAttribute('aria-disabled',String(!put.moved));r.reason.textContent=`Take: ${take.moved?`${take.moved} available`:take.reason} · Put: ${put.moved?`${put.moved} available`:put.reason}`;
++  }
++  const check=handCraftCheck(st);craft.disabled=!!check.reason;craftReason.textContent=check.reason||'Uses carried steel and copper at the Home workbench.';
++ }};
++}
+--- UI-03/packages/game/src/main.ts
++++ UI-04/packages/game/src/main.ts
+@@ -52,6 +52,7 @@
+   releaseInput() { worldScene.releaseInput(); },
+   cancelSelection() { return worldScene.cancelSelection(); },
+   selectedTool() { return worldScene.tool; },
++  locate(x,y) { if(view.mode==='map')toggleView();worldScene.viewLocation(x,y); },
+   rotateTool() { worldScene.key(shortcut('rotate')); focusWorld(); },
+   cancelTool() { worldScene.cancelSelection(); focusWorld(); },
+ });
+--- UI-03/packages/game/src/panel.ts
++++ UI-04/packages/game/src/panel.ts
+@@ -1,3 +1,6 @@
++import {createInspectionPanel} from './inspectionPanel';
++import {createInventoryPanel} from './inventoryPanel';
++import {truckTransferPreview,handCraftCheck} from '@relight/sim';
+ import {createBuildPanel} from './buildPanel';
+ import { createUiShell, controlsHelp, el, type UiShell } from './uiShell';
+ import { createTruckWorkPanel } from './truckWorkPanel';
+@@ -30,7 +33,7 @@
+   return { commands: session.log, hour: session.hour ? hourReport(session.state, session.hour) : null };
+ }
+ 
+-export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void; releaseInput(): void; cancelSelection(): boolean; selectedTool():string; rotateTool():void; cancelTool():void }
++export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void; releaseInput(): void; cancelSelection(): boolean; selectedTool():string; locate(x:number,y:number):void; rotateTool():void; cancelTool():void }
+ /** D-B1-5: the build menu (key B) picks a building into the hand; the world scene installs the pick. */
+ export type BuildKind = Exclude<Kind, 'depot'>;
+ 
+@@ -159,7 +162,8 @@
+   const pocketSec = el('section');
+   pocketSec.hidden = true;
+   let pocketAt: [number, number] | null = null;   // RI-05: the Supply chest or Tram stop the pockets talk to (E on it); null = the Depot
+-  const pocketTarget = () => pocketAt ? machineAt(session.state, pocketAt[0], pocketAt[1]) : undefined;
++  let pocketId:number|null=null;
++  const pocketTarget = () => campaign?(pocketId===null?undefined:machineById(session.state,pocketId)):pocketAt?machineAt(session.state,pocketAt[0],pocketAt[1]):undefined;
+   const pocketWhere = () => { const m = pocketTarget(); return !m ? 'the Depot' : m.kind === 'tramstop' ? 'the Tram stop\'s platform' : 'the Supply chest'; };
+   pocketSec.append(el('h2', undefined, FACTORY_TEXT.pocketTitle));
+   const pocketHead = el('p', 'hint', '');
+@@ -258,6 +262,7 @@
+   const routingSec=el('section');routingSec.hidden=true;
+   routingSec.setAttribute('aria-label',FACTORY_TEXT.inspectTitle);
+   let inspectionId:number|null=null;
++  let inspectionUi:ReturnType<typeof createInspectionPanel>|null=null,inventoryUi:ReturnType<typeof createInventoryPanel>|null=null;
+   const inspectionHead=el('h2',undefined,FACTORY_TEXT.inspectTitle),inspectionBody=el('div','inspection-body');
+   const recipeSelect=el('select');recipeSelect.setAttribute('aria-label',FACTORY_TEXT.recipeLabel);
+   const recipeLabel=el('label',undefined,FACTORY_TEXT.recipeLabel+' ');recipeLabel.append(recipeSelect);
+@@ -271,7 +276,7 @@
+   const filterLabel=el('label',undefined,FACTORY_TEXT.filter+' ');filterLabel.append(filterSelect);
+   const priorityLabel=el('label',undefined,FACTORY_TEXT.priority+' ');priorityLabel.append(prioritySelect);
+   const configure=()=>{
+-    if(!routingAt)return;const [x,y]=routingAt,m=machineAt(session.state,x,y);if(!m)return;
++    const m=inspectionId===null?null:machineById(session.state,inspectionId);if(!m)return;const {x,y}=m;
+     const r=dispatch(session,{type:'factory',action:{type:'routing',x,y,...(m.kind==='inserter'?{filter:filterSelect.value as Item||null}:{priority:prioritySelect.value as OutputPriority})}});
+     toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;
+   };
+@@ -294,17 +299,17 @@
+   }
+ 
+   const truckOpen=el('button',undefined,'Truck cargo'),truckSec=el('section','truck-cargo');truckSec.hidden=true;
+-  const truckNote=el('p','hint'),truckStock=el('p','mono'),truckBoard=el('button',undefined,'Board truck');
++  const truckNote=el('p','hint'),truckStock=el('p'),truckPockets=el('p'),truckPreview=el('p','hint'),truckResult=el('p','action-result'),truckBoard=el('button',undefined,'Board truck');
+   const truckItem=el('select');truckItem.setAttribute('aria-label','Truck cargo item');
+   const truckCount=el('input');truckCount.type='number';truckCount.min='1';truckCount.step='1';truckCount.value='50';truckCount.setAttribute('aria-label','Truck cargo amount');
+   const cargoRow=el('div','row'),loadCargo=el('button',undefined,'Load cargo'),unloadCargo=el('button',undefined,'Unload cargo');
+-  const cargoAction=(put:boolean)=>{const r=dispatch(session,{type:'factory',action:{type:'truckCargo',item:truckItem.value,n:Number(truckCount.value),put}});toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;update(performance.now());};
++  const cargoAction=(put:boolean)=>{const r=dispatch(session,{type:'factory',action:{type:'truckCargo',item:truckItem.value,n:Number(truckCount.value),put}});truckResult.textContent=r.reason;lastUpdate=-1e9;update(performance.now());};
+   loadCargo.onclick=()=>cargoAction(true);unloadCargo.onclick=()=>cargoAction(false);
+   truckBoard.onclick=()=>{const r=dispatch(session,{type:'factory',action:{type:'truckBoard'}});toast(r.reason,r.ok?'good':'bad');lastUpdate=-1e9;update(performance.now());};
+   function openTruck():void {shell.open('truck');truckSec.hidden=false;lastUpdate=-1e9;update(performance.now());truckSec.scrollIntoView({block:'nearest'});}
+   truckOpen.onclick=openTruck;truckOpen.hidden=!campaign;header.append(truckOpen);
+   cargoRow.append(truckItem,truckCount,loadCargo,unloadCargo);
+-  truckSec.append(el('h2',undefined,'Truck cargo'),truckNote,truckBoard,truckStock,cargoRow,el('p','hint','200 cargo stacks, separate from 40 pocket stacks. Load and unload within 8 tiles. E boards beside the truck or exits; WASD drives. Cargo stays parked when you leave. F on the truck opens this panel.'));root.append(truckSec);
++  truckSec.append(el('h2',undefined,'Truck cargo'),truckNote,truckBoard,truckPockets,truckStock,cargoRow,truckPreview,truckResult,el('p','hint','200 cargo stacks, separate from 40 pocket stacks. Load and unload within 8 tiles. E boards beside the truck or exits; WASD drives. Cargo stays parked when you leave. F on the truck opens this panel.'));root.append(truckSec);
+   truckSec.addEventListener('keydown',ev=>{ev.stopPropagation();if(bound('cancel',ev.key)){panelRef.closeAll();document.querySelector('canvas')?.focus();}});
+   const routeSec=el('section','station-route'),routeHead=el('h2'),routeNote=el('p','hint'),routeMap=el('button',undefined,'Show route on map'),routeClear=el('button',undefined,'Clear route');
+   let panelMode:'map'|'world'='world';routeSec.hidden=true;
+@@ -512,14 +517,18 @@
+       truckNote.textContent=truckDescription(s);truckBoard.textContent=s.engineer.truckSeat?'Exit truck':'Board truck';truckBoard.title=truckBoardCheck(s);
+       const keys=[...new Set([...ITEMS,...Object.keys(s.engineer.inv),...Object.keys(s.campaign?.truck?.cargo??{})])].sort(),selected=truckItem.value;
+       if(Array.from(truckItem.options).map(o=>o.value).join('|')!==keys.join('|')){truckItem.replaceChildren(...keys.map(k=>{const o=el('option',undefined,k);o.value=k;return o;}));if(keys.includes(selected))truckItem.value=selected;else truckItem.value='steel';}
+-      truckStock.textContent=`Pockets: ${Object.entries(s.engineer.inv).filter(([,n])=>n>0).map(([k,n])=>`${k} ${num(n)}`).join(', ')||'empty'} · Cargo: ${Object.entries(s.campaign?.truck?.cargo??{}).map(([k,n])=>`${k} ${num(n)}`).join(', ')||'empty'}`;
++      truckPockets.textContent=`Pockets: ${Object.entries(s.engineer.inv).filter(([,n])=>n>0).map(([k,n])=>`${k} ${num(n)}`).join(', ')||'empty'}`;
++      truckStock.textContent=`Truck cargo: ${Object.entries(s.campaign?.truck?.cargo??{}).filter(([,n])=>n>0).map(([k,n])=>`${k} ${num(n)}`).join(', ')||'empty'}`;
++      const load=truckTransferPreview(s,truckItem.value,Number(truckCount.value),true),unload=truckTransferPreview(s,truckItem.value,Number(truckCount.value),false);
++      truckPreview.textContent=`Load: ${load.ok?`${load.moved} available`:load.reason} · Unload: ${unload.ok?`${unload.moved} available`:unload.reason}`;
++      loadCargo.setAttribute('aria-disabled',String(!load.ok));unloadCargo.setAttribute('aria-disabled',String(!unload.ok));
+     }
+     if(!routingSec.hidden&&inspectionId!==null){
+       const m=machineById(s,inspectionId),info=inspectMachine(s,inspectionId),valid=m&&(m.kind==='inserter'||m.kind==='splitter');
+       routingAt=m?[m.x,m.y]:null;
+       inspectionHead.textContent=info?`${FACTORY_TEXT.inspectTitle} · ${info.title}`:'Inspected machine removed';
+-      inspectionBody.replaceChildren();
+-      if(info){
++      if(!campaign)inspectionBody.replaceChildren();
++      if(info&&!campaign){
+         const line=(text:string,cls='hint')=>inspectionBody.append(el('p',cls,text));
+         const glyph=FACTORY_STATUS_GLYPH[info.status.state];
+         line(`${glyph} ${info.status.state} — ${info.status.reason}`,'machine-status');line(info.location);
+@@ -537,13 +546,14 @@
+         if(!info.reachable)line('Out of reach — walk closer to change settings.');
+       }
+       recipeLabel.hidden=m?.kind!=='assembler';recipeSelect.disabled=!info?.reachable;
+-      if(info)recipeSelect.value=info.recipeId;
++      if(info&&document.activeElement!==recipeSelect)recipeSelect.value=info.recipeId;
+       routingHead.hidden=!valid;routingHead.textContent=valid?routingDescription(s,m):'';
+       filterLabel.hidden=m?.kind!=='inserter';priorityLabel.hidden=m?.kind!=='splitter';
+       filterSelect.disabled=prioritySelect.disabled=!valid||!inReach(s,m!.x,m!.y,...machineDimensions(m!));
+       if(valid){filterSelect.value=m.filter??'';prioritySelect.value=m.priority??'balanced';}
+     }
+     if(itemStats.open){const stats=factoryStatistics(s);if(stats){statWindow.textContent=windowText(stats.seconds);stats.rows.forEach((r,i)=>[r.produced,r.consumed,r.producedPerMin,r.consumedPerMin].forEach((n,j)=>{statCells[i][j].textContent=num(n);}));}}
++    inspectionUi?.update();if(!pocketSec.hidden)inventoryUi?.update();
+     updateGoal(s);
+     if(defenceStatus)defenceStatus.textContent=campaignWarning(s);
+     if(radioUpgradeButton){radioUpgradeButton.hidden=!knownSite(s,'radio');const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
+@@ -564,8 +574,8 @@
+     if (!pocketSec.hidden) {
+       // RI-05: a targeted chest or stop that was picked up or lost sends the pockets back to the Depot
+       const tgt = pocketTarget();
+-      if (pocketAt && (!tgt || (tgt.kind !== 'chest' && tgt.kind !== 'tramstop'))) pocketAt = null;
+-      const e = s.engineer, near = pocketAt && tgt ? inReach(s, tgt.x, tgt.y, MACHINE_SIZE[tgt.kind]) : nearDepot(s), where = pocketWhere();
++      if (!campaign && pocketAt && (!tgt || (tgt.kind !== 'chest' && tgt.kind !== 'tramstop'))) pocketAt = null;
++      const e = s.engineer, near = pocketAt ? !!tgt&&inReach(s,tgt.x,tgt.y,MACHINE_SIZE[tgt.kind]) : nearDepot(s), where = pocketWhere();
+       pocketHead.textContent = `${invStacks(e.inv)} / ${INV_STACKS} stacks · ${near ? `at ${where}` : `walk to ${where} to transfer (${REACH} tiles)`}${pocketAt && tgt ? ` · ${tgt.kind === 'tramstop' ? `platform ${Object.values(tgt.inv).reduce((a, b) => a + b, 0)} / ${STOP_CAP}` : `${Object.values(tgt.inv).reduce((a, b) => a + b, 0)} / ${SUPPLY_CHEST_CAP}`}` : ''} · HP ${Math.round(e.hp)}`;
+       for (const r of pocketRows) {
+         const c = pocketAt && tgt ? ((tgt.kind === 'tramstop' ? tgt.cargo : tgt.inv)?.[r.item] ?? 0) : chestCount(s, r.item);
+@@ -607,7 +617,7 @@
+       vLineRate!.textContent = f1(fs.productionMagPerMin); vLineMade!.textContent = String(fs.magsMade);
+       vHand!.textContent = `${s.flow.stats.handMined} / ${s.flow.stats.handCrafted}`;
+       vBuffer!.textContent = `${Math.floor(s.buffer / SHOT.count)} / ${Math.floor(s.config.bufferCap / SHOT.count)}`; vCoal!.textContent = String(Math.floor(fs.coal)); vCrafts!.textContent = String(fs.craftsQueued);
+-      btnCraft!.disabled = s.stock.steel < SHOT.inputs.steel || s.stock.copper < SHOT.inputs.copper;
++      btnCraft!.disabled = !!handCraftCheck(s).reason;
+       vPower!.textContent = `${Math.round(fs.loadKw)} / ${Math.round(fs.supplyKw)} (${Math.round(fs.demandKw)})`; vPower!.parentElement!.classList.toggle('warn', fs.demandKw > fs.supplyKw + 1e-9);
+       vGens!.textContent = `${fs.generatorsBurning} / ${fs.generators}`; vGens!.parentElement!.classList.toggle('warn', fs.generators > 0 && fs.generatorsBurning === 0);
+       vTurrets!.textContent = `${Math.round(fs.turretRounds)} / ${fs.turretCap} · ${fs.beltAmmo}`; vTurrets!.parentElement!.classList.toggle('warn', fs.turrets > 0 && fs.turretRounds === 0);
+@@ -697,7 +707,11 @@
+   if(campaign)buildUi=createBuildPanel(session,buildSec,shell,tool=>panelRef.onPick?.(tool),hooks.selectedTool,hooks.rotateTool,hooks.cancelTool,historyRow,copyPanel,libraryPanel);
+   shell.register('build','Build',[buildSec,...(!campaign?[copyPanel,libraryPanel].filter(Boolean) as HTMLElement[]:[])],()=>{buildSec.hidden=false;});
+   shell.register('inventory','Inventory',[pocketSec],()=>{pocketSec.hidden=false;});
+-  shell.register('inspection','Inspection',[routingSec],undefined,()=>{inspectionView.machineId=null;inspectionId=null;routingSec.hidden=true;});
++  shell.register('inspection','Inspection',[routingSec],()=>{routingSec.hidden=false;},()=>{if(!inspectionView.pinned){inspectionView.machineId=null;inspectionId=null;}routingSec.hidden=true;});
++  if(campaign){
++    inspectionUi=createInspectionPanel(session,routingSec,shell,[recipeLabel,routingHead,filterLabel,priorityLabel],{locate:hooks.locate,item:item=>{shell.open('help');guide?.openItem(item);},inventory:(x,y)=>panelRef.openPocketsAt(x,y),route:(x,y)=>panelRef.openStationRoute(x,y)});
++    inventoryUi=createInventoryPanel(session,pocketSec,()=>pocketId,freightForm);
++  }
+   shell.register('truck','Truck cargo',[truckSec]);
+   shell.register('route','Station route',[routeSec]);
+   if(guide&&journal) shell.register('projects','Projects',[journal],()=>guide.openDiscoveries());
+@@ -707,7 +721,7 @@
+   const management=[hudSec,itemStats,lineSec,...(defenceSection?[defenceSection]:[]),...(!campaign?[stockSec,ringSec,facSec,sumSec]:[])];
+   shell.register('management','Management',management);
+   if(campaign){const truckAccess=el('button',undefined,'Truck cargo');truckAccess.onclick=openTruck;hudSec.append(truckAccess);}
+-  if(campaign&&truckPanel)shell.register('construction','Construction delivery',[truckPanel]);
++  if(campaign&&truckPanel){shell.register('construction','Construction delivery',[truckPanel]);const delivery=el('button',undefined,'Construction delivery');delivery.onclick=()=>shell.open('construction');truckSec.append(delivery);const manage=el('button',undefined,'Construction delivery');manage.onclick=()=>shell.open('construction');hudSec.append(manage);}
+   shell.register('developer','Developer',[header,...(campaign?[sumSec]:[])]);
+   debug.remove();
+   shell.action(`Build (${shortcut('build')})`,()=>panelRef.toggleBuild());
+@@ -735,16 +749,16 @@
+     openTruck,openRoutingAt:openInspection,openInspectionAt:openInspection,
+     update, tooltip, tooltipText, toast, setView, onPick: null, onBlueprint: null, onRemovalPreview:null,
+     toggleDebug() { debugView.coords = !debugView.coords; shell.toggle('developer'); ringKey = ''; lastFacKey = ''; return debugView.coords; },
+-    togglePockets() { pocketAt=null; const open=shell.active()!=='inventory'; if(open)shell.open('inventory');else shell.close(); lastUpdate=-1e9; return open; },
++    togglePockets() { pocketAt=null;pocketId=null; const open=shell.active()!=='inventory'; if(open)shell.open('inventory');else shell.close(); lastUpdate=-1e9;update(performance.now()); return open; },
+     openPocketsAt(x, y) {   // RI-05
+-      const stop=machineAt(session.state,x,y);transportView.stopId=stop?.kind==='tramstop'?stop.id:null;
++      const stop=machineAt(session.state,x,y);pocketId=stop&&['chest','tramstop'].includes(stop.kind)?stop.id:null;transportView.stopId=stop?.kind==='tramstop'?stop.id:null;
+       const same = pocketAt !== null && pocketAt[0] === x && pocketAt[1] === y;
+-      if (same && shell.active()==='inventory') { shell.close(); pocketSec.hidden = true; pocketAt = null; } else { shell.open('inventory'); pocketAt = [x, y]; pocketSec.hidden = false; }
+-      lastUpdate = -1e9;
++      if (same && shell.active()==='inventory') { shell.close(); pocketSec.hidden = true; pocketAt = null; } else { shell.open('inventory'); pocketAt = pocketId===null?null:[x,y]; pocketSec.hidden = false; }
++      lastUpdate = -1e9;update(performance.now());
+       if (!pocketSec.hidden) pocketSec.scrollIntoView({ block: 'nearest' });
+     },
+     toggleBuild() { shell.toggle('build'); return shell.active()==='build'; },
+-    closeAll() { shell.close(); inspectionView.machineId=null; transportView.stopId=null; routeSec.hidden=true; },
++    closeAll() { shell.close(); if(!inspectionView.pinned)inspectionView.machineId=null; transportView.stopId=null; routeSec.hidden=true; },
+     setSelectedEdge(e) {
+       selected = e ? e.id : null; ringKey = '';
+       if (e) toast(`${edgeName(session.state, e.id)}${debugView.coords ? ` (${e.from.x},${e.from.y}) → (${e.to.x},${e.to.y})` : ''} is ring position ${e.ringPos + 1} of ${session.state.ring.length}; hopper ${pct(e.level)}`);
+--- UI-03/packages/game/src/style.css
++++ UI-04/packages/game/src/style.css
+@@ -272,3 +272,26 @@
+ .quickbar-more > summary {cursor:pointer;padding:6px 12px;border:1px solid var(--ui-border);border-radius:6px;list-style:none;background:var(--ui-surface);}
+ .quickbar-more[open] > summary {border:2px solid var(--ui-accent);}
+ .quickbar-more-actions {position:absolute;right:8px;bottom:calc(100% + 8px);display:grid;gap:8px;padding:12px;min-width:200px;background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:6px;}
++
++/* UI-04: operating facts first, separate scoped stores and stable local controls. */
++.inspection-status {padding:12px;border-left:4px solid var(--ui-border);background:var(--ui-bg);font-weight:700;}
++.inspection-status[data-state=running] {border-color:var(--ui-working);}
++.inspection-status[data-state=off],.inspection-status[data-state=starved],.inspection-status[data-state=blocked] {border-color:var(--ui-accent);}
++.inspection-constraint {margin:8px 0;padding:8px;border:1px solid var(--ui-border);border-radius:6px;}
++.inspection-constraint p {margin:0 0 8px;}
++.inspection-details {margin-top:16px;}
++.inspection-chip {position:fixed;right:12px;top:calc(var(--ui-clock-height) + 28px);max-width:260px;}
++.ui-shell:has(.ui-drawer:not([hidden])) .inspection-chip {display:none;}
++.ui-shell #panel .transfer-card {padding:12px;margin:12px 0;background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:6px;}
++.transfer-card h3 {margin:0;}
++.transfer-card p {margin:8px 0;}
++.transfer-card button + button {margin-left:8px;}
++.action-result:empty {display:none;}
++.action-result {padding:8px;border-left:3px solid var(--ui-accent);}
++.ui-shell #panel .station-freight table {table-layout:fixed;width:100%;}
++.ui-shell #panel .station-freight input[type=number] {width:100%;min-width:0;}
++.ui-shell #panel [data-adapter=inspection] select {display:block;width:100%;}
++
++.ui-shell #panel [data-adapter=inspection] section section {padding:0;border:0;margin:12px 0;}
++.ui-shell #panel [data-adapter=inspection] h3 {margin:0 0 8px;}
++.ui-shell #panel [data-adapter=inspection] p {margin:8px 0;}
+--- UI-03/packages/game/src/uiShell.ts
++++ UI-04/packages/game/src/uiShell.ts
+@@ -35,7 +35,7 @@
+   let active: string | null = null, childId: string | null = null, previousSpeed = 1;
+   let returnFocus: HTMLElement | null = null, pauseFocus: HTMLElement | null = null;
+   const held = new Set<string>(), suppressed = new Set<string>();
+-  const canvas = () => document.querySelector('canvas');
++  const canvas = () => document.querySelector<HTMLCanvasElement>('#map > canvas');
+   const inUi = (target: EventTarget | null) => target instanceof Element && !!target.closest('#panel, .ui-navigation, #threat-controls, .ui-hud');
+   function release() { for (const key of held) suppressed.add(key); hooks.releaseInput(); document.getElementById('tooltip')!.hidden = true; }
+   function sync() {
+--- UI-03/packages/game/src/view.ts
++++ UI-04/packages/game/src/view.ts
+@@ -20,7 +20,7 @@
+ export const transportView: { stopId:number|null } = { stopId:null };
+ 
+ /** Inspected machine identity is presentation only. */
+-export const inspectionView:{machineId:number|null}={machineId:null};
++export const inspectionView:{machineId:number|null;pinned:boolean}={machineId:null,pinned:false};
+ 
+ /** P9-03 selected navigation identity is presentation-only. */
+ export const navigationView:{targetId:string|null}={targetId:null};
+--- UI-03/packages/game/src/worldScene.ts
++++ UI-04/packages/game/src/worldScene.ts
+@@ -412,8 +412,8 @@
+     this.input.keyboard?.resetKeys();this.modifiedKey=false;this.sendWalk(0,0);this.sendSprint(false);this.onUp();
+   }
+   cancelSelection():boolean {
+-    if(this.tool==='hand'&&!this.blueprintMode&&!this.removal&&!this.beltPath&&!this.undergroundStart&&!inspectionView.machineId)return false;
+-    this.releaseInput();this.blueprint('cancel');this.setTool('hand');inspectionView.machineId=null;return true;
++    if(this.tool==='hand'&&!this.blueprintMode&&!this.removal&&!this.beltPath&&!this.undergroundStart&&(!inspectionView.machineId||inspectionView.pinned))return false;
++    this.releaseInput();this.blueprint('cancel');this.setTool('hand');if(!inspectionView.pinned)inspectionView.machineId=null;return true;
+   }
+   viewLocation(x:number,y:number):void {this.viewingThreat=true;this.cameras.main.centerOn(x*TILE_PX,y*TILE_PX);}
+   returnToEngineer():void {this.viewingThreat=false;this.snapped=false;}
+--- UI-03/packages/sim/src/flow.ts
++++ UI-04/packages/sim/src/flow.ts
+@@ -2113,7 +2113,31 @@
+   const m = machineAt(st, at[0], at[1]);
+   if (!m || (m.kind !== 'chest' && m.kind !== 'tramstop')) return 'no chest or stop there';
+   if (!inReach(st, m.x, m.y, m.size)) return `walk closer to the ${KIND_LABEL[m.kind]}`;
+-  return m.kind === 'chest' ? { m, take: [m.inv], put: m.inv, cap: SUPPLY_CHEST_CAP } : { m, take: [(m.cargo ??= {}), m.inv], put: m.inv, cap: STOP_CAP };
++  return m.kind === 'chest' ? { m, take: [m.inv], put: m.inv, cap: SUPPLY_CHEST_CAP } : { m, take: [m.cargo ?? {}, m.inv], put: m.inv, cap: STOP_CAP };
++}
++/** Read-only transfer preview using the same pool, reach, stack and capacity predicates as hand transfers. */
++export function chestTransferPreview(st:SimState,item:ChestItem,n:number,put:boolean,at?:[number,number]):{moved:number;reason:string} {
++  const no=(reason:string)=>({moved:0,reason});
++  if(st.engineer.down>=0)return no('Wait until you recover');
++  if(!isChestItem(item)||!Number.isFinite(n)||n<0)return no('Invalid item transfer');
++  const e={...st.engineer,inv:{...st.engineer.inv}};
++  if(at){
++    const p=handPool(st,at);if(typeof p==='string')return no(p);
++    if(isKind(item)){if(p.m.kind!=='chest')return no('Packed machines use a physical supply chest');n=Math.floor(n);}
++    if(item==='kit'){
++      if(put)return no('kits stay in the pockets');
++      if(!depotChestOf(st,p.m))return no('kits come from the Depot or a restored supply depot');
++      const moved=pocketTake(e,item,Math.max(0,n));return {moved,reason:moved?'':'the pockets are full'};
++    }
++    if(put){const have=e.inv[item]??0,moved=Math.max(0,Math.min(n,have,p.cap-invTotal(p.put)));return {moved,reason:moved?'':have<=0?`no ${item} in the pockets`:`the ${KIND_LABEL[p.m.kind]} is full`};}
++    let moved=0;for(const pool of p.take){const want=Math.max(0,Math.min(n-moved,Math.floor(pool[item]??0)));if(want<=0)continue;const got=pocketTake(e,item,want);if(got<=0)break;moved+=got;}
++    return {moved,reason:moved?'':p.take.some(pool=>(pool[item]??0)>=1)?'the pockets are full':`no ${item==='magazine'?'magazines':item} there`};
++  }
++  if(isKind(item))return no('Packed machines use a physical supply chest');
++  if(!nearDepot(st))return no('walk closer to the Depot');
++  if(put){const have=e.inv[item]??0;let moved=Math.max(0,Math.min(n,have));if(item==='magazine')moved=Math.min(moved,Math.floor((st.config.bufferCap-st.buffer)/SHOT.count));return {moved,reason:moved?'':have<=0?`no ${item} in the pockets`:'the line buffer is full'};}
++  const want=Math.max(0,Math.min(n,chestCount(st,item)));if(want<=0)return no(`no ${item==='magazine'?'magazines':item} in the Depot`);
++  const moved=pocketTake(e,item,want);return {moved,reason:moved?'':'the pockets are full'};
+ }
+ /** Move up to `n` of an item from the chest to the pockets (as many as fit). RI-05: `at` names a supply chest or a
+  *  tram stop instead of the Depot; kits come from the Depot and from a restored supply depot (its reward). */
+--- UI-03/packages/sim/src/goal.ts
++++ UI-04/packages/sim/src/goal.ts
+@@ -294,6 +294,11 @@
+   const field = bi >= 0 && isFieldKind(m.kind) && fieldBlock(st, bi);   // RI-03: the field kit runs on the claim front
+   if (!b || (!isCampaign(st) && b.state !== HELD && !field)) return { state: 'off', reason: 'block not Held' };
+   if (MACHINE_KW[m.kind] > 0 && !powered(st, m)) return { state: 'off', reason: field ? 'no connected pole in reach' : 'no power' };
++  return machineOperationStatus(st,m);
++}
++/** Operating predicates without the independent location/power gate; shared by multi-constraint inspection. */
++export function machineOperationStatus(st:SimState,m:Machine):MachineStatus {
++  const bi=blockOfTile(st,m.x,m.y),b=bi>=0?st.blocks[bi]:null;
+   switch (m.kind) {
+     case 'barricade': case 'wall': return {state:'idle',reason:`${Math.ceil(defenceHp(m))} HP`};
+     case 'turret': {
+@@ -344,7 +349,7 @@
+       if(isCampaign(st))return (campaignGrid(st).poles.get(m.id)?.supply??0)>0?{state:'running',reason:'connected to a supplied circuit'}:{state:'off',reason:'no connected supply'};
+       return poleGrid(st).connected.has(m.id)?{state:'running',reason:'on the grid'}:{state:'idle',reason:'not connected'};
+     }
+-    case 'substation': return (isCampaign(st)?campaignGrid(st).blocks[bi].throttle>0:subPowered(st, b)) ? { state: 'running', reason: 'on' } : { state: 'off', reason: 'no circuit supply' };
++    case 'substation': return (isCampaign(st)?campaignGrid(st).blocks[bi].throttle>0:!!b&&subPowered(st, b)) ? { state: 'running', reason: 'on' } : { state: 'off', reason: 'no circuit supply' };
+     case 'depot': return { state: 'idle', reason: `${chestMags(st)} magazines in the line buffer` };
+     // RI-05
+     case 'chest': { const n = invTotal(m.inv); return n > 0 ? { state: 'idle', reason: `${n} item${n === 1 ? '' : 's'}` } : { state: 'idle', reason: 'empty' }; }
+--- UI-03/packages/sim/src/inspection.ts
++++ UI-04/packages/sim/src/inspection.ts
+@@ -1,8 +1,12 @@
++import {ASM_OUTPUT_CAP, chestCount, depotRect, rubbleAt} from './flow';
++import {HQ_PATCHES} from './tiles';
++import {hqLot} from './ground';
++import {coreDisabledAt,defenceHp,defenceMax} from './campaignDefence';
+ /** P5-03: read-only factory queries and bounded, saved simulation-time observations. */
+ import type { SimState } from './types';
+ import { type Machine, type Item, ITEMS, isItem, machineById, recipeOf, recipeOutput, recipeYield, MACHINE_KW, KIND_LABEL, DIR_NAMES, findRubble, BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, powered, throttle, SUPPLY_CHEST_CAP, STOP_CAP, TRAM_CAP } from './flow';
+ import { machineDimensions as footprint } from './footprint';
+-import { machineStatus } from './goal';
++import { machineStatus, machineOperationStatus } from './goal';
+ import { ledgerFlows } from './ledger';
+ import { campaignGrid } from './campaignPower';
+ import { blockOfTile, inReach } from './ground';
+@@ -52,6 +56,25 @@
+   }
+   const p=st.flow!.power;return {scope:'Legacy grid',supply:p.supply,demand:p.demand,load:p.load,throttle:throttle(st)};
+ }
++export interface MachineConstraint {code:string;text:string;item?:Item}
++/** No production transitions: combine the same independent gates and operating predicates. */
++export function machineConstraints(st:SimState,m:Machine) {
++  const blockers:MachineConstraint[]=[],nextInputs:MachineConstraint[]=[],status=machineStatus(st,m),operation=machineOperationStatus(st,m);
++  if(st.campaign&&((defenceMax(m)>0&&defenceHp(m)<=0)||coreDisabledAt(st,m.x,m.y)))blockers.push({code:'disabled',text:'Disabled — repair the defence or base core'});
++  if(MACHINE_KW[m.kind]>0&&!powered(st,m))blockers.push({code:'power',text:machineCircuit(st,m).supply<=0?'Local circuit: no supply':'No power connection'});
++  if(m.kind==='assembler'||m.kind==='mixer'){
++    for(const [item,n] of Object.entries(recipeOf(m).inputs))if((m.inv[item]??0)<n)(m.busy?nextInputs:blockers).push({code:'input',item:item as Item,text:`${m.busy?'Next batch needs':'Missing'} ${n-(m.inv[item]??0)} ${item}`});
++    if(m.out>=ASM_OUTPUT_CAP)blockers.push({code:'output',text:'Finished output is full'});
++  }else if(operation.state==='starved'||operation.state==='blocked')blockers.push({code:operation.state==='starved'?'input':'output',text:operation.reason,...(m.kind==='generator'?{item:'coal' as Item}:m.kind==='turret'?{item:'magazine' as Item}:{})});
++  if(!blockers.length&&status.state==='off')blockers.push({code:'connection',text:status.reason});
++  return {blockers,nextInputs};
++}
++/** Only sources known from the starting house/patches; never reveals hidden regional deposits. */
++export function knownInputSource(st:SimState,item:Item):{label:string;x:number;y:number}|null {
++  const d=depotRect(st);if(chestCount(st,item)>0)return {label:`Home supplies: ${item}`,x:d.x+d.size/2,y:d.y+d.size/2};
++  for(const p of HQ_PATCHES)for(let i=0;i<p.w*p.h;i++){const [x,y]=hqLot(st,p.lx+i%p.w,p.ly+Math.floor(i/p.w));if(rubbleAt(st,x,y)?.type===item)return {label:`Home ${item} patch`,x:x+.5,y:y+.5};}
++  return null;
++}
+ export function inspectMachine(st:SimState,id:number){
+   const m=machineById(st,id);if(!m)return null;
+   const circuit=machineCircuit(st,m),bi=blockOfTile(st,m.x,m.y),status=machineStatus(st,m),draw=MACHINE_KW[m.kind];
+@@ -83,7 +106,7 @@
+   const settings=[`Facing ${DIR_NAMES[m.dir]}`,`Footprint ${footprint(m).join(' × ')} tiles`];
+   if(['inserter','underground','splitter'].includes(m.kind))settings.push(routingDescription(st,m));
+   const ranges:Partial<Record<Machine['kind'],string>>={arclamp:'Light radius: 6 tiles',excavator:'Extraction: 5 × 5 tiles (one tile around footprint)',inserter:'Pickup/drop: adjacent tile behind/in front',turret:`Weapon range: ${TURRET_RANGE} tiles`,lamp:`Light radius: ${LAMP_RADIUS} tiles`,floodlight:`Light cone range: ${FLOODLIGHT_RANGE} tiles`,pole:`Connection reach: ${POLE_REACH} tiles`,bigpole:`Connection reach: ${BIG_POLE_REACH} tiles`,underground:`Span: up to ${UNDERGROUND_HIDDEN} hidden tiles`,chest:`Storage: ${SUPPLY_CHEST_CAP} items`,tramstop:`Platform/arrivals: ${STOP_CAP} items each`,tram:`Cargo: ${TRAM_CAP} items`};
+-  return {id,title:KIND_LABEL[m.kind],kind:m.kind,status,location:bi>=0?blockLabel(st,bi,false):'Outside a serviced block',
++  return {id,title:KIND_LABEL[m.kind],kind:m.kind,status,...machineConstraints(st,m),location:bi>=0?blockLabel(st,bi,false):'Outside a serviced block',
+     reachable:inReach(st,m.x,m.y,...footprint(m)),circuit,draw,scale,recipe,recipeId:m.recipe??'shot',nominal,capacity,contents,settings,range:ranges[m.kind]??null,
+     measured:measured(m)?rates(m.observation,st.flow!.tick):null,measurement:(m.kind==='assembler'||m.kind==='mixer')||m.kind==='excavator'?'Completed production':'Transfers out'};
+ }
+--- UI-03/packages/sim/src/truck.ts
++++ UI-04/packages/sim/src/truck.ts
+@@ -75,7 +75,7 @@
+  if(moved){e.walked+=dt;const h=Math.floor(st.t/3600);e.walkedHour[h]=(e.walkedHour[h]??0)+dt;}
+ }
+ const cargoItem=(k:string)=>isItem(k)||(isKind(k)&&k!=='depot')||k==='kit';
+-export function truckTransfer(st:SimState,item:string,n:number,put:boolean):{ok:boolean;reason:string;moved?:number}{
++export function truckTransferPreview(st:SimState,item:string,n:number,put:boolean):{ok:boolean;reason:string;moved?:number}{
+  const t=st.campaign?.truck,e=st.engineer;
+  if(!t||e.down>=0||!cargoItem(item)||!Number.isSafeInteger(n)||n<=0||typeof put!=='boolean')return {ok:false,reason:'Invalid truck cargo transfer'};
+  const r=truckRect(t);if(distToRect(e.x,e.y,r.x,r.y,r.w,r.h)>e.reach)return {ok:false,reason:'Walk closer to the truck cargo'};
+@@ -85,7 +85,12 @@
+  while(moved<hi){const mid=Math.ceil((moved+hi)/2);if(invStacks({...dst,[item]:(dst[item]??0)+mid})<=cap)moved=mid;else hi=mid-1;}
+  if(invStacks({...dst,[item]:(dst[item]??0)+amount})<=cap)moved=amount;
+  if(!moved)return {ok:false,reason:amount?'Destination inventory is full':'No cargo of that item to transfer'};
+- src[item]-=moved;if(src[item]<=0)delete src[item];dst[item]=(dst[item]??0)+moved;return {ok:true,reason:`${moved} ${item} moved ${put?'into truck cargo':'to pockets'}`,moved};
++ return {ok:true,reason:`${moved} ${item} moved ${put?'into truck cargo':'to pockets'}`,moved};
++}
++export function truckTransfer(st:SimState,item:string,n:number,put:boolean):{ok:boolean;reason:string;moved?:number}{
++ const result=truckTransferPreview(st,item,n,put);if(!result.ok)return result;
++ const t=st.campaign!.truck!,src=put?st.engineer.inv:t.cargo,dst=put?t.cargo:st.engineer.inv,moved=result.moved!;
++ src[item]-=moved;if(src[item]<=0)delete src[item];dst[item]=(dst[item]??0)+moved;return result;
+ }
+ export function truckDescription(st:SimState):string {
+  const t=st.campaign?.truck;return !t?'Truck: restore the second-area station; parking requires clear street space':`${st.engineer.truckSeat?'Driving':t.work?.enabled?`Automatic ${t.work.phase}`:'Parked'} truck · ${invStacks(t.cargo)}/${TRUCK_STACKS} cargo stacks · WASD drives, E boards/exits; cargo stays with the truck`;
+--- UI-03/packages/sim/test/inspection.test.ts
++++ UI-04/packages/sim/test/inspection.test.ts
+@@ -1,3 +1,4 @@
++import {DARK,machineConstraints,knownInputSource,chestTransferPreview,chestTake,chestPut,truckTransferPreview,truckTransfer,ASM_OUTPUT_CAP} from '../src/index';
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+ import { createCampaign, ensureFlow, applyCommands, actionResult, canPlace, inReach, machineAt, machineById, advanceFlow,
+@@ -91,3 +92,41 @@
+  const replay=replaySession(s);assert.ok('state' in replay);assert.equal(stateHash(replay.state),before);
+  assert.ok(machineById(s.state,s.state.flow!.machines[0].id));
+ });
++
++
++test('UI-04 simultaneous constraints are readonly and clear independently with real input and power predicates',()=>{
++ const s=fresh(),m=build(s,'assembler'),g=s.flow!.machines.find(m=>m.kind==='generator')!;
++ // Labelled fuel outage / filled output fixture; no production transition is run by the query.
++ g.inv.coal=0;m.out=ASM_OUTPUT_CAP;const before=stateHash(s),q=machineConstraints(s,m);
++ assert.deepEqual(q.blockers.map(b=>b.code),['power','input','input','output']);assert.equal(stateHash(s),before);
++ g.inv.coal=10;assert.ok(!machineConstraints(s,m).blockers.some(b=>b.code==='power'));
++ inputs(s,m,'steel',4);inputs(s,m,'copper',2);m.out=0;run(s,.05);
++ const running=inspectMachine(s,m.id)!;assert.equal(running.status.state,'running');assert.deepEqual(running.blockers,[]);
++ // Remaining materials insufficient for a future batch must not claim the running batch is stalled.
++ m.inv={};assert.equal(machineConstraints(s,m).blockers.length,0);assert.equal(machineConstraints(s,m).nextInputs.length,2);
++});
++test('UI-04 no local load is neutral; disabled core retains the actual primary statement',()=>{
++ const s=fresh(),g=s.flow!.machines.find(m=>m.kind==='generator')!;
++ const base=s.campaign!.defence!.bases.find(b=>b.block===blockOfTile(s,g.x,g.y))!;base.hp=0;
++ assert.equal(machineConstraints(s,g).blockers[0].code,'disabled');assert.match(inspectMachine(s,g.id)!.status.reason,/disabled/);
++ const neutral=structuredClone(s);neutral.campaign!.defence!.bases=[];neutral.blocks[blockOfTile(neutral,g.x,g.y)].state=DARK;neutral.flow!.machines=neutral.flow!.machines.filter(m=>m.kind==='generator');neutral.flow!.rev++;
++ assert.equal(machineStatus(neutral,neutral.flow!.machines[0]).state,'idle');assert.deepEqual(machineConstraints(neutral,neutral.flow!.machines[0]).blockers,[]);
++});
++test('UI-04 hand transfer previews match actual capped moves and never allocate arrivals or mutate state',()=>{
++ const s=fresh(),chest=build(s,'chest');const at:[number,number]=[chest.x,chest.y];
++ for(const put of [true,false]){const before=stateHash(s),q=chestTransferPreview(s,'steel',27,put,at);assert.equal(stateHash(s),before);assert.deepEqual(put?chestPut(s,'steel',27,at):chestTake(s,'steel',27,at),q);}
++ // Labelled stop pool fixture: taking drains arrivals before platform, and reads do not create missing cargo.
++ chest.kind='tramstop';chest.inv={steel:3};delete chest.cargo;const before=stateHash(s);assert.equal(chestTransferPreview(s,'steel',9,false,at).moved,3);assert.equal(stateHash(s),before);assert.equal(chest.cargo,undefined);
++ chest.cargo={steel:2};assert.equal(chestTransferPreview(s,'steel',9,false,at).moved,5);assert.equal(chestTake(s,'steel',9,at).moved,5);assert.equal(chest.cargo.steel,undefined);assert.equal(chest.inv.steel,undefined);
++ const e=s.engineer;[e.x,e.y]=[e.x+40,e.y+40];const inv=structuredClone(e.inv),q=chestTransferPreview(s,'steel',9,true,at);assert.equal(q.moved,0);assert.deepEqual(chestPut(s,'steel',9,at),q);assert.deepEqual(e.inv,inv);
++ e.down=1;assert.match(chestTransferPreview(s,'steel',9,false).reason,/recover/);
++});
++test('UI-04 truck preview shares command capacity/reach rules and leaves source stock untouched',()=>{
++ const s=fresh();s.campaign!.truck={x:s.engineer.x,y:s.engineer.y,dir:1,unlockedAt:0,cargo:{}};
++ for(const put of [true,false]){const before=stateHash(s),q=truckTransferPreview(s,'steel',25,put);assert.equal(stateHash(s),before);assert.deepEqual(truckTransfer(s,'steel',25,put),q);}
++ s.campaign!.truck.cargo={belt:200};const before=stateHash(s),q=truckTransferPreview(s,'steel',25,true);assert.equal(q.ok,false);assert.equal(stateHash(s),before);assert.deepEqual(truckTransfer(s,'steel',25,true),q);
++ s.campaign!.truck.x+=40;assert.match(truckTransferPreview(s,'steel',1,true).reason,/closer/);
++});
++test('UI-04 source locations only name genuine known stock or finite home patches',()=>{
++ const s=fresh(),before=stateHash(s);assert.match(knownInputSource(s,'steel')!.label,/Home/);assert.equal(knownInputSource(s,'board'),null);assert.equal(stateHash(s),before);
++});

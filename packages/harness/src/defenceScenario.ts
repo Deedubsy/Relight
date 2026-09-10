@@ -73,10 +73,8 @@ export function runDefence(seed:number,mode:'turrets'|'support',progress:(s:stri
   d.phase='restoration';
   for(const id of ['station','northStation'] as const){const site=campaignSite(st,id)!;gens.push(power(d,site.block));restore(d,id);for(let i=0;i<2;i++)pods.push(pod(d,baseCore(st,site.block)!));}
   d.approach(e.radio.x,e.radio.y,e.radio.size);d.send({type:'deliverSite',site:'radio'});d.send({type:'restoreSite',site:'radio'});if(e.radio.restoredAt<0)throw Error(siteCheck(st,'radio'));
-  const collect=()=>{d.approach(e.station.x,e.station.y,e.station.size);d.send({type:'collectTramKit'});};collect();
-  const path=[...e.route,...district.route.slice(1)],G=ground(st);
-  d.phase='rail construction';for(const t of path){if(!(st.engineer.inv.track>0)&&e.reward.track>0)collect();d.place('track',t%G.tw,Math.floor(t/G.tw));}
-  const stops=[...e.stops,district.stop].map(([x,y])=>d.place('tramstop',x,y)),tram=d.place('tram',path[0]%G.tw,Math.floor(path[0]/G.tw));
+  d.phase='permanent rail service';const path=st.campaign!.fixedTram!.route;
+  const stops=[...e.stops,district.stop].map(([x,y])=>st.flow!.machines.find(m=>m.kind==='tramstop'&&m.x===x&&m.y===y)!),tram=st.flow!.machines.find(m=>m.id===st.campaign!.fixedTram!.tram)!;
   configure(d,stops[0],{magazine:{request:0,reserve:0,export:true},steel:{request:0,reserve:0,export:true},copper:{request:0,reserve:0,export:true}});
   for(const stop of stops.slice(1))configure(d,stop,{magazine:{request:10,reserve:0,export:false},steel:{request:15,reserve:0,export:false},copper:{request:10,reserve:0,export:false}});
   d.put('steel',40,stops[0]);d.put('copper',25,stops[0]);
@@ -114,15 +112,14 @@ export function runDefence(seed:number,mode:'turrets'|'support',progress:(s:stri
   }
   d.send({type:'aim',at:null});measurements.major={before,start,end:st.t,history:st.campaign!.defence!.history.map(h=>({...h})),turretRounds:st.flow!.stats.fired-before.rounds,rifleShots:st.engineer.fired-before.rifle,coreHp:baseCore(st,target.block)!.hp,nextDawn:st.campaign!.defence!.nextDawn};checkpoint('major completed');
   checks.push({name:'normally supplied major holds finite roster',pass:st.campaign!.defence!.history.some(h=>h.spawned===60&&!h.defeated),detail:st.campaign!.defence!.history});
-  // A deliberately severed track uses a normal pickup; measure reserved cargo and repair.
+  // Interrupt a remote station through ordinary generator pickup; public track cannot be removed.
   d.phase='supply interruption';service();const repairSteelBefore=st.stats.spentSteel??0,repairCopperBefore=st.stats.spentCopper??0;configure(d,stops[2],{magazine:{request:200,reserve:0,export:false},steel:{request:25,reserve:0,export:false},copper:{request:15,reserve:0,export:false}});
-  // Stage the cut beside home, then load actual output and wait there for a real reservation.
-  // Walking to a midpoint after departure could otherwise let a short line unload before the cut.
+  // Stage beside the remote generator before waiting for a real freight reservation.
   moveCargo(d,'magazine',20,factory.output,stops[0]);
-  const cut=path[1],x=cut%G.tw,y=Math.floor(cut/G.tw);d.approach(x,y);
+  const interruptedGen=gens.find(m=>blockOfTile(st,m.x,m.y)===district.station.block)!;const x=interruptedGen.x,y=interruptedGen.y;d.approach(x,y,2);
   for(let i=0;i<600&&invTotal(tram.cargo)===0;i++)d.run(.1);
   if(invTotal(tram.cargo)===0)throw Error('No loaded freight reached the prepared cut');
-  d.send({type:'construct',edits:[{action:'pickUp',x,y}]});
+  d.send({type:'construct',edits:[{action:'pickUp',x,y}]});gens.splice(gens.indexOf(interruptedGen),1);
   const cutAt=st.t,cargo=invTotal(tram.cargo),received=(st.flow!.stats.tramMoved??0);
   // Declared exhaustion drill: remove feeder arms, pick up/refund loaded turrets and replace them empty.
   // Refunds stay in the engineer/remote supply chest. No inventory, HP or schedule writes.
@@ -133,14 +130,14 @@ export function runDefence(seed:number,mode:'turrets'|'support',progress:(s:stri
   while(baseCore(st,district.station.block)!.hp>0&&st.t<cutAt+1900){for(const gen of gens)if((gen.inv.coal??0)<15){if((st.engineer.inv.coal??0)<30)replenishCoal();feed(d,gen);}d.approach(home.x,home.y,home.size);d.run(20);}
   const disabledAt=st.t;while(st.campaign!.defence!.minor?.block===district.station.block&&st.t<disabledAt+120)d.run(1);
   measurements.exhaustionDrill={drainAt,disabledAt,refundedMagazines:recoveredMagazines,coreHp:baseCore(st,district.station.block)!.hp};
-  const interruption={cutAt,cargo,afterCargo:invTotal(tram.cargo),beforeMoved:received,afterMoved:(st.flow!.stats.tramMoved??0),route:stationRoute(st,stops[2].id)!.summary};checkpoint('cut route');
-  d.place('track',x,y);
+  const interruption={cutAt,cargo,afterCargo:invTotal(tram.cargo),beforeMoved:received,afterMoved:(st.flow!.stats.tramMoved??0),route:stationRoute(st,stops[2].id)!.summary};checkpoint('station power interrupted');
+  const restoredGen=d.place('generator',x,y);gens.push(restoredGen);feed(d,restoredGen);
   // Repair stock was actually shipped from home before the cut. Withdraw at the disabled outpost.
   const recoveryCore=baseCore(st,district.station.block)!;const repairDelivery={steel:d.take('steel',10,stops[2]),copper:d.take('copper',5,stops[2])};measurements.repairDelivery=repairDelivery;if(repairDelivery.steel!==10||repairDelivery.copper!==5)throw Error('Shipped repair stock shortfall');
   if(recoveryCore.hp===0){d.approach(recoveryCore.x,recoveryCore.y,recoveryCore.size);const why=repairCheck(st,recoveryCore.x,recoveryCore.y);if(why)throw Error(why);d.send({type:'repairDefence',x:recoveryCore.x,y:recoveryCore.y});d.run(12);}
   for(const p of drained){p.arm=d.place('inserter',p.arm.x,p.arm.y,1);d.send({type:'factory',action:{type:'routing',x:p.arm.x,y:p.arm.y,filter:'magazine'}});}
   service();d.run(90);measurements.interruption={...interruption,repairedAt:st.t,afterRepairMoved:(st.flow!.stats.tramMoved??0)};
-  checks.push({name:'loaded cargo is retained or delivered without loss and repaired freight resumes',pass:cargo>0&&interruption.afterCargo+interruption.afterMoved-interruption.beforeMoved===cargo&&(st.flow!.stats.tramMoved??0)>interruption.afterMoved,detail:measurements.interruption});
+  checks.push({name:'loaded cargo is retained or delivered without loss and repaired freight resumes',pass:cargo>0&&conservation(st).ok&&(st.flow!.stats.tramMoved??0)>interruption.afterMoved,detail:measurements.interruption});
   d.phase='recovery';for(const core of st.campaign!.defence!.bases)if(core.hp<300){
    d.approach(core.x,core.y,core.size);for(let k=0;k<12&&core.hp<300;k++){const why=repairCheck(st,core.x,core.y);if(why)throw Error(why);d.send({type:'repairDefence',x:core.x,y:core.y});d.run(12);}
   }

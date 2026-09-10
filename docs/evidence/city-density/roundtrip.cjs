@@ -1,0 +1,19 @@
+const fs=require('fs'),assert=require('assert/strict'),{spawnSync}=require('child_process');
+const {chromium}=require('C:/Users/Admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const dir='docs/evidence/city-density/',source='packages/sim/src/city/riverfront.ts',initial=fs.readFileSync(source,'utf8'),scene=JSON.parse(fs.readFileSync('packages/game/src/editor/RiverfrontCity.scene','utf8')),manifest=JSON.parse(fs.readFileSync('maps/phaser/manifest.json','utf8'));
+function tool(mode,file=''){const r=spawnSync('wsl.exe',['-d','Ubuntu-24.04','--','bash','-lc',`export PATH=/home/deedub/.nvm/versions/node/v22.18.0/bin:/usr/bin:/bin; cd /mnt/e/Factorio2 && node --import tsx packages/tools/src/phaserCity.ts ${mode} ${file}`],{encoding:'utf8',windowsHide:true});return{status:r.status,output:r.stdout+r.stderr};}
+(async()=>{let browser;const result={};try{
+ const invalid=structuredClone(scene);invalid.displayList.find(o=>manifest.bindings[o.id]==='home-workshop').x+=32;fs.writeFileSync(dir+'invalid.scene',JSON.stringify(invalid));result.invalid=tool('apply',dir+'invalid.scene');assert.notEqual(result.invalid.status,0);assert.equal(fs.readFileSync(source,'utf8'),initial);
+ const moved=structuredClone(scene),house=moved.displayList.find(o=>manifest.bindings[o.id]==='court-southwest-home');house.x+=64;moved.displayList.find(o=>o.label==='PLOT_'+house.label).x+=64;
+ const replaced=moved.displayList.find(o=>manifest.bindings[o.id]==='court-shops-home-0');moved.displayList=moved.displayList.filter(o=>o.id!==replaced.id&&o.label!=='PLOT_'+replaced.label);moved.displayList.push({...replaced,id:'roundtrip-new-home',label:'roundtrip_home'});
+ // The two-tile default would overlap neighbouring close-set plots; supply the original one-tile plot.
+ const plot=scene.displayList.find(o=>o.label==='PLOT_'+replaced.label);moved.displayList.push({...plot,id:'roundtrip-new-plot',label:'PLOT_roundtrip_home'});
+ fs.writeFileSync(dir+'moved.scene',JSON.stringify(moved));result.applied=tool('apply',dir+'moved.scene');assert.equal(result.applied.status,0,result.applied.output);
+ browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('http://127.0.0.1:5190/?view=world');await page.waitForFunction(()=>window.__relight?.world);
+ result.game=await page.evaluate(async(baseId)=>{const main=await(await fetch('/src/main.ts')).text(),url=[...main.matchAll(/from "([^"]+)"/g)].map(m=>m[1]).find(p=>p.includes('/sim/src/index.ts'));const S=await import(url),st=__relight.session.state,b=S.RIVERFRONT_BUILDINGS.find(b=>b.id==='court-southwest-home'),n=S.RIVERFRONT_BUILDINGS.find(b=>b.id==='editor:roundtrip-new-home'),saved=S.makeSave(st),old=S.makeSave(st);old.state.city.mapId=baseId;st.speed=0;
+  return {mapId:st.city.mapId,position:[b.x,b.y],newId:n.id,newSolid:!S.passable(st,n.x,n.y),oldWallPassable:S.passable(st,31,414),newWallPassable:S.passable(st,33,414),stateProblem:S.stateProblem(st),saveHashMatches:S.stateHash(S.loadState(saved))===S.stateHash(saved.state),oldSaveProblem:S.stateProblem(old.state)};
+ },manifest.base.city.id);
+ assert.deepEqual(result.game.position,[33,414]);assert.ok(result.game.newSolid&&result.game.oldWallPassable&&!result.game.newWallPassable);assert.equal(result.game.stateProblem,'');assert.ok(result.game.saveHashMatches);assert.match(result.game.oldSaveProblem,/original build/);assert.deepEqual(errors,[]);result.pageErrors=errors;
+ }finally{if(browser)await browser.close();result.restored=tool('apply');assert.equal(result.restored.status,0,result.restored.output);assert.equal(fs.readFileSync(source,'utf8'),initial);result.baselineRestored=true;fs.writeFileSync(dir+'roundtrip.json',JSON.stringify(result,null,2));}
+ console.log(JSON.stringify(result.game));
+})().catch(e=>{console.error(e);process.exitCode=1});

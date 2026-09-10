@@ -1,0 +1,919 @@
+TAP version 13
+# Subtest: area removal: read-only whole-footprint preview, atomic paid packing, settings undo and saved redo
+ok 1 - area removal: read-only whole-footprint preview, atomic paid packing, settings undo and saved redo
+  ---
+  duration_ms: 2614.922094
+  type: 'test'
+  ...
+# Subtest: area removal: changed identities/settings, new neighbours and changed reach refuse without partial effects
+ok 2 - area removal: changed identities/settings, new neighbours and changed reach refuse without partial effects
+  ---
+  duration_ms: 1800.041066
+  type: 'test'
+  ...
+# Subtest: area removal: cumulative pocket capacity refuses the whole group then recovers
+ok 3 - area removal: cumulative pocket capacity refuses the whole group then recovers
+  ---
+  duration_ms: 1630.865111
+  type: 'test'
+  ...
+# Subtest: area removal: loaded belts and hidden tunnel items return once; undo does not refill machines
+ok 4 - area removal: loaded belts and hidden tunnel items return once; undo does not refill machines
+  ---
+  duration_ms: 2057.749816
+  type: 'test'
+  ...
+# Subtest: area removal: loose turret rounds require buffer space and never disappear
+ok 5 - area removal: loose turret rounds require buffer space and never disappear
+  ---
+  duration_ms: 620.46523
+  type: 'test'
+  ...
+# Subtest: area removal: busy machines, fractional contents, damaged defences and installed facilities stay
+ok 6 - area removal: busy machines, fractional contents, damaged defences and installed facilities stay
+  ---
+  duration_ms: 3517.216658
+  type: 'test'
+  ...
+# Subtest: area removal: cargo, held items and freight/filter/priority settings survive conserved packing history
+ok 7 - area removal: cargo, held items and freight/filter/priority settings survive conserved packing history
+  ---
+  duration_ms: 1813.184619
+  type: 'test'
+  ...
+# Subtest: area removal: ordinary paid command comparison records equal layouts/materials without a human tedium claim
+ok 8 - area removal: ordinary paid command comparison records equal layouts/materials without a human tedium claim
+  ---
+  duration_ms: 1941.813385
+  type: 'test'
+  ...
+# Subtest: clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard
+ok 9 - clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard
+  ---
+  duration_ms: 5253.98324
+  type: 'test'
+  ...
+# Subtest: rotations and reflections preserve rectangular footprints, tunnel roles and settings with correct left/right priority
+ok 10 - rotations and reflections preserve rectangular footprints, tunnel roles and settings with correct left/right priority
+  ---
+  duration_ms: 6.662392
+  type: 'test'
+  ...
+# Subtest: clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers
+ok 11 - clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers
+  ---
+  duration_ms: 3440.784963
+  type: 'test'
+  ...
+# Subtest: occupied, unaffordable and remote stamps are atomic and consume carried machines before materials
+ok 12 - occupied, unaffordable and remote stamps are atomic and consume carried machines before materials
+  ---
+  duration_ms: 619.734973
+  type: 'test'
+  ...
+# Subtest: copied underground pairs reject an intervening destination endpoint and orphan selections
+ok 13 - copied underground pairs reject an intervening destination endpoint and orphan selections
+  ---
+  duration_ms: 707.18307
+  type: 'test'
+  ...
+# Subtest: old post-P7 saves retain every existing site/layout/earned reward and gain an unrecruited Foreman and permanent tram infrastructure
+not ok 14 - old post-P7 saves retain every existing site/layout/earned reward and gain an unrecruited Foreman and permanent tram infrastructure
+  ---
+  duration_ms: 1426.727446
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:88:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    5 !== 4
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 4
+  actual: 5
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:91:50)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds
+not ok 15 - Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds
+  ---
+  duration_ms: 1218.110997
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:100:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'railcrew'
+    - 'foreman'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'foreman'
+  actual: 'railcrew'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:102:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening
+ok 16 - ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening
+  ---
+  duration_ms: 4341.663767
+  type: 'test'
+  ...
+# Subtest: permanent stations retain editable freight rules but copying cannot build another station
+ok 17 - permanent stations retain editable freight rules but copying cannot build another station
+  ---
+  duration_ms: 1228.8488
+  type: 'test'
+  ...
+# Subtest: old checkpoint logs remain incomplete after upgrading; current campaign saves remain complete
+ok 18 - old checkpoint logs remain incomplete after upgrading; current campaign saves remain complete
+  ---
+  duration_ms: 2689.736846
+  type: 'test'
+  ...
+# Subtest: library import/export is bounded, atomic, Foreman-gated and independent of clipboard and orders
+ok 19 - library import/export is bounded, atomic, Foreman-gated and independent of clipboard and orders
+  ---
+  duration_ms: 3606.597207
+  type: 'test'
+  ...
+# Subtest: library limits and metadata rejection preserve allocator and current selection
+ok 20 - library limits and metadata rejection preserve allocator and current selection
+  ---
+  duration_ms: 1069.776787
+  type: 'test'
+  ...
+# Subtest: ghost plans consume no stock or occupancy, reject overlap and bounds, and report exact missing stock
+ok 21 - ghost plans consume no stock or occupancy, reject overlap and bounds, and report exact missing stock
+  ---
+  duration_ms: 1254.273524
+  type: 'test'
+  ...
+# Subtest: partial manual construction survives save/load; remaining build pays once and completed orders never requeue on undo
+ok 22 - partial manual construction survives save/load; remaining build pays once and completed orders never requeue on undo
+  ---
+  duration_ms: 1568.845462
+  type: 'test'
+  ...
+# Subtest: ordinary matching construction completes waiting orders, occupied mismatches and remote builds remain blocked
+ok 23 - ordinary matching construction completes waiting orders, occupied mismatches and remote builds remain blocked
+  ---
+  duration_ms: 843.18139
+  type: 'test'
+  ...
+# Subtest: order limits include history, cancel is terminal and deleting records never recycles IDs
+ok 24 - order limits include history, cancel is terminal and deleting records never recycles IDs
+  ---
+  duration_ms: 659.72305
+  type: 'test'
+  ...
+# Subtest: hostile saved libraries and order lifecycle data are rejected; old optional state remains absent
+ok 25 - hostile saved libraries and order lifecycle data are rejected; old optional state remains absent
+  ---
+  duration_ms: 5574.066389
+  type: 'test'
+  ...
+# Subtest: imported locked machines remain plans and cannot bypass ordinary unlocks
+ok 26 - imported locked machines remain plans and cannot bypass ordinary unlocks
+  ---
+  duration_ms: 995.860168
+  type: 'test'
+  ...
+# Subtest: ordinary opening recruitment, library actions, ghost construction and cancellation replay deterministically
+ok 27 - ordinary opening recruitment, library actions, ghost construction and cancellation replay deterministically
+  ---
+  duration_ms: 2351.883346
+  type: 'test'
+  ...
+# Subtest: partly built underground plans reject interception atomically and preserve the intended pair
+ok 28 - partly built underground plans reject interception atomically and preserve the intended pair
+  ---
+  duration_ms: 896.406976
+  type: 'test'
+  ...
+# Subtest: largest freight-rich portable library entry round-trips within the bounded text size
+ok 29 - largest freight-rich portable library entry round-trips within the bounded text size
+  ---
+  duration_ms: 717.93589
+  type: 'test'
+  ...
+# Subtest: paid walls block walking, retain their footprint on defeat, and repair consumes materials once through save/load
+ok 30 - paid walls block walking, retain their footprint on defeat, and repair consumes materials once through save/load
+  ---
+  duration_ms: 4912.338355
+  type: 'test'
+  ...
+# Subtest: one dawn lock coalesces restorations; later nominations wait and a late ending preserves two full quiet cycles
+ok 31 - one dawn lock coalesces restorations; later nominations wait and a late ending preserves two full quiet cycles
+  ---
+  duration_ms: 4145.412223
+  type: 'test'
+  ...
+# Subtest: a powered radio receives the real lock; outages retain it and never reroll the target
+ok 32 - a powered radio receives the real lock; outages retain it and never reroll the target
+  ---
+  duration_ms: 1362.334061
+  type: 'test'
+  ...
+# Subtest: minor opportunities are shared, finite and suppressed during major combat and recovery without catch-up
+not ok 33 - minor opportunities are shared, finite and suppressed during major combat and recovery without catch-up
+  ---
+  duration_ms: 562.579492
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignDefence.test.ts:69:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of null (reading 'id')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignDefence.test.ts:71:41)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: unopposed major crawlers follow the home mouth, defeat its core and physically withdraw before paid recovery
+ok 34 - unopposed major crawlers follow the home mouth, defeat its core and physically withdraw before paid recovery
+  ---
+  duration_ms: 2043.22028
+  type: 'test'
+  ...
+# Subtest: a sealed court is breached through a player wall instead of losing pathfinding; turret defeat preserves its ammo
+ok 35 - a sealed court is breached through a player wall instead of losing pathfinding; turret defeat preserves its ammo
+  ---
+  duration_ms: 2677.879035
+  type: 'test'
+  ...
+# Subtest: ruin guards roam around their own sites and never join the base assault
+ok 36 - ruin guards roam around their own sites and never join the base assault
+  ---
+  duration_ms: 1664.229633
+  type: 'test'
+  ...
+# Subtest: ordinary paid and hand-supplied turrets hold the complete finite major roster without the rifle
+ok 37 - ordinary paid and hand-supplied turrets hold the complete finite major roster without the rifle
+  ---
+  duration_ms: 2722.283064
+  type: 'test'
+  ...
+# Subtest: old previews gain a preparation interval; malformed schedules, health and orphaned bodies are refused
+ok 38 - old previews gain a preparation interval; malformed schedules, health and orphaned bodies are refused
+  ---
+  duration_ms: 1640.846815
+  type: 'test'
+  ...
+# Subtest: ordinary paid defence commands replay from the same fresh campaign factory
+not ok 39 - ordinary paid defence commands replay from the same fresh campaign factory
+  ---
+  duration_ms: 922.424047
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignDefence.test.ts:152:1'
+  failureType: 'testCodeFailure'
+  error: 'undefined == true'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignDefence.test.ts:161:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: known threat navigation never exposes an offline network target or reuses a different assault warning
+ok 40 - known threat navigation never exposes an offline network target or reuses a different assault warning
+  ---
+  duration_ms: 3586.476287
+  type: 'test'
+  ...
+# Subtest: home guarantee and current minor raid remain actionable during a future major warning
+ok 41 - home guarantee and current minor raid remain actionable during a future major warning
+  ---
+  duration_ms: 1548.704418
+  type: 'test'
+  ...
+# Subtest: immediate wall breach uses the damage tick decision, including blocked withdrawal and saved continuation
+ok 42 - immediate wall breach uses the damage tick decision, including blocked withdrawal and saved continuation
+  ---
+  duration_ms: 2419.030042
+  type: 'test'
+  ...
+# Subtest: nearby turret attack and engineer contact supersede the strategic core and match real damage
+ok 43 - nearby turret attack and engineer contact supersede the strategic core and match real damage
+  ---
+  duration_ms: 960.641119
+  type: 'test'
+  ...
+# Subtest: post-lock paid structures or player presence reroute staging on the same approach across three bases and holdout seeds
+ok 44 - post-lock paid structures or player presence reroute staging on the same approach across three bases and holdout seeds
+  ---
+  duration_ms: 33567.103674
+  type: 'test'
+  ...
+# Subtest: no staging ground explicitly defers without losing roster, resumes after paid obstruction removal, and reloads deterministically
+not ok 45 - no staging ground explicitly defers without losing roster, resumes after paid obstruction removal, and reloads deterministically
+  ---
+  duration_ms: 368.754414
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:62:1'
+  failureType: 'testCodeFailure'
+  error: 'seed 3: belt at 441,626: rubble in the way'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    placeAt (/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:31:44)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:68:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: staging fallback preserves received radio precision and a locked remote target through an outage and load
+ok 46 - staging fallback preserves received radio precision and a locked remote target through an outage and load
+  ---
+  duration_ms: 1031.9192
+  type: 'test'
+  ...
+# Subtest: withdrawing bodies breach a newly blocked birth tile and prevent recovery or rest completion until they physically exit
+not ok 47 - withdrawing bodies breach a newly blocked birth tile and prevent recovery or rest completion until they physically exit
+  ---
+  duration_ms: 444.855889
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:93:1'
+  failureType: 'testCodeFailure'
+  error: 'seed 3: wall at 441,626: rubble in the way'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    placeAt (/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:31:44)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:97:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: minor withdrawal at dusk is physical, saved and exclusive with the major roster
+ok 48 - minor withdrawal at dusk is physical, saved and exclusive with the major roster
+  ---
+  duration_ms: 1744.407908
+  type: 'test'
+  ...
+# Subtest: restoration ties, disabled targets, recommissioning and post-lock nominations retain one promised schedule through saves
+ok 49 - restoration ties, disabled targets, recommissioning and post-lock nominations retain one promised schedule through saves
+  ---
+  duration_ms: 2869.406482
+  type: 'test'
+  ...
+# Subtest: old defence saves retain attacks and paid jobs while incompatible old command histories stop claiming full replay
+not ok 50 - old defence saves retain attacks and paid jobs while incompatible old command histories stop claiming full replay
+  ---
+  duration_ms: 422.015664
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:138:1'
+  failureType: 'testCodeFailure'
+  error: 'seed 3: wall at 441,626: rubble in the way'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    placeAt (/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:31:44)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:141:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: pursuit discards an attack waypoint before walking away and remains valid across saved continuation
+ok 51 - pursuit discards an attack waypoint before walking away and remains valid across saved continuation
+  ---
+  duration_ms: 980.426076
+  type: 'test'
+  ...
+# Subtest: paid obstruction, ordinary walking and the resulting assault replay from a declared pre-dusk checkpoint
+not ok 52 - paid obstruction, ordinary walking and the resulting assault replay from a declared pre-dusk checkpoint
+  ---
+  duration_ms: 673.306601
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:170:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + undefined
+    - 'wall'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'wall'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignReliability.test.ts:177:50)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: save validation refuses mismatched body targets, duplicate identities, lost roster entries and invalid delay/withdrawal metadata
+ok 53 - save validation refuses mismatched body targets, duplicate identities, lost roster entries and invalid delay/withdrawal metadata
+  ---
+  duration_ms: 587.499425
+  type: 'test'
+  ...
+# Subtest: fresh origins and same-approach fallback exist across all base positions on seeds 1–32
+ok 54 - fresh origins and same-approach fallback exist across all base positions on seeds 1–32
+  ---
+  duration_ms: 27812.940586
+  type: 'test'
+  ...
+# Subtest: optional riverside hall and shelters preserve corridors, reach and stable identities on required seeds
+ok 55 - optional riverside hall and shelters preserve corridors, reach and stable identities on required seeds
+  ---
+  duration_ms: 21431.10213
+  type: 'test'
+  ...
+# Subtest: ordinary optional recruitment works in both orders, grants paid Arc coverage and district-only survey, and replays
+not ok 56 - ordinary optional recruitment works in both orders, grants paid Arc coverage and district-only survey, and replays
+  ---
+  duration_ms: 997.378952
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/campaignTurbine.test.ts:30:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      walk(s,home[0],home[1],1,send)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/campaignTurbine.test.ts:43:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: paid Turbine commissioning supplies a physical multi-district network, offsets fuel, isolates and resumes after saving
+ok 57 - paid Turbine commissioning supplies a physical multi-district network, offsets fuel, isolates and resumes after saving
+  ---
+  duration_ms: 4517.809919
+  type: 'test'
+  ...
+# Subtest: Turbine commands reject incapacitated/vehicle interaction and corrupt saved records
+ok 58 - Turbine commands reject incapacitated/vehicle interaction and corrupt saved records
+  ---
+  duration_ms: 1556.110184
+  type: 'test'
+  ...
+# Subtest: Concrete crew sites are separate and reachable across 32 seeds; version 6 migration preserves the original recruit
+ok 59 - Concrete crew sites are separate and reachable across 32 seeds; version 6 migration preserves the original recruit
+  ---
+  duration_ms: 61687.84144
+  type: 'test'
+  ...
+# Subtest: ordinary recruitment and paid stone → belt → Mixer → concrete chest chain save and replay
+not ok 60 - ordinary recruitment and paid stone → belt → Mixer → concrete chest chain save and replay
+  ---
+  duration_ms: 731.742029
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:53:1'
+  failureType: 'testCodeFailure'
+  error: 'no home concrete line layout'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    line (/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:33:10)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:63:58)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: Mixer pauses without power, retains a paid partial craft, refuses busy packing and stops at full output
+not ok 61 - Mixer pauses without power, retains a paid partial craft, refuses busy packing and stops at full output
+  ---
+  duration_ms: 627.188004
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:79:1'
+  failureType: 'testCodeFailure'
+  error: 'Step outside the machine footprint before building'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    line (/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:30:85)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:80:80)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: paid Barricades conserve concrete through history, damage, saved repair and packing
+not ok 62 - paid Barricades conserve concrete through history, damage, saved repair and packing
+  ---
+  duration_ms: 692.679831
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:95:1'
+  failureType: 'testCodeFailure'
+  error: 'Step outside the machine footprint before building'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    line (/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:30:85)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:96:74)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: concrete saves reject corrupt production and counters; construction requires concrete
+not ok 63 - concrete saves reject corrupt production and counters; construction requires concrete
+  ---
+  duration_ms: 483.640622
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:111:1'
+  failureType: 'testCodeFailure'
+  error: 'Step outside the machine footprint before building'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    line (/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:30:85)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/concrete.test.ts:112:63)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: crawlers physically breach a sealed Barricade court
+ok 64 - crawlers physically breach a sealed Barricade court
+  ---
+  duration_ms: 1099.97069
+  type: 'test'
+  ...
+# Subtest: construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+ok 65 - construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+  ---
+  duration_ms: 2389.282744
+  type: 'test'
+  ...
+# Subtest: construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+ok 66 - construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+  ---
+  duration_ms: 3277.194023
+  type: 'test'
+  ...
+# Subtest: construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+ok 67 - construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+  ---
+  duration_ms: 2274.547831
+  type: 'test'
+  ...
+# Subtest: construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+ok 68 - construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+  ---
+  duration_ms: 1323.675792
+  type: 'test'
+  ...
+# Subtest: construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+ok 69 - construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+  ---
+  duration_ms: 4763.178081
+  type: 'test'
+  ...
+# Subtest: construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+not ok 70 - construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+  ---
+  duration_ms: 268668.611011
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/construction.test.ts:114:1'
+  failureType: 'testCodeFailure'
+  error: 'false == true'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/construction.test.ts:118:113)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: construction: packing refuses an unfinished recipe, fractional stock or loose-round overflow atomically
+ok 71 - construction: packing refuses an unfinished recipe, fractional stock or loose-round overflow atomically
+  ---
+  duration_ms: 722.18686
+  type: 'test'
+  ...
+# Subtest: construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+not ok 72 - construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+  ---
+  duration_ms: 1.297208
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/construction.test.ts:145:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + null
+    - 'assembler'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'assembler'
+  actual: ~
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/construction.test.ts:146:92)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters
+ok 73 - direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters
+  ---
+  duration_ms: 5510.140604
+  type: 'test'
+  ...
+# Subtest: direct belts: any storage side can unload, and pointing inward never steals from the destination
+ok 74 - direct belts: any storage side can unload, and pointing inward never steals from the destination
+  ---
+  duration_ms: 3532.669482
+  type: 'test'
+  ...
+# Subtest: direct belts: incompatible mixed stock stays at its source and full destinations conserve items
+ok 75 - direct belts: incompatible mixed stock stays at its source and full destinations conserve items
+  ---
+  duration_ms: 648.094521
+  type: 'test'
+  ...
+# Subtest: direct belts: Home supplies and turret hoppers can unload without creating stock
+ok 76 - direct belts: Home supplies and turret hoppers can unload without creating stock
+  ---
+  duration_ms: 1384.422648
+  type: 'test'
+  ...
+# Subtest: routing: underground span boundaries, paired construction and atomic interference/material/reach refusals
+ok 77 - routing: underground span boundaries, paired construction and atomic interference/material/reach refusals
+  ---
+  duration_ms: 3573.507351
+  type: 'test'
+  ...
+# Subtest: routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication
+ok 78 - routing: buried stock survives interruption, refused rotation, load, reconnection and pickup without duplication
+  ---
+  duration_ms: 3312.909787
+  type: 'test'
+  ...
+# Subtest: routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load
+ok 79 - routing: splitter footprint, both occupied tiles, collision-safe rotation and history/settings survive load
+  ---
+  duration_ms: 1396.430025
+  type: 'test'
+  ...
+# Subtest: routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item
+ok 80 - routing: left/right priority, balanced alternation, fallback, backpressure and FIFO retain every item
+  ---
+  duration_ms: 1700.590899
+  type: 'test'
+  ...
+# Subtest: routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change
+ok 81 - routing: inserter filtering selects from mixed chests and belts and preserves a held item on filter change
+  ---
+  duration_ms: 2844.771105
+  type: 'test'
+  ...
+# Subtest: routing: paired commands and settings replay at a paused boundary and survive saved history
+not ok 82 - routing: paired commands and settings replay at a paused boundary and survive saved history
+  ---
+  duration_ms: 1234.121002
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/routing.test.ts:96:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      belt.items.some(i=>i.k==='copper')
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/routing.test.ts:99:46)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: routing: crossing tunnels pair independently and an intervening endpoint refuses a new pair atomically
+ok 83 - routing: crossing tunnels pair independently and an intervening endpoint refuses a new pair atomically
+  ---
+  duration_ms: 1768.321205
+  type: 'test'
+  ...
+# Subtest: routing: filter applies to mixed belt and station-arrival source fixtures
+ok 84 - routing: filter applies to mixed belt and station-arrival source fixtures
+  ---
+  duration_ms: 1187.47863
+  type: 'test'
+  ...
+# Subtest: routing: rectangular occupancy follows all four rotations, including the ordinary command path
+ok 85 - routing: rectangular occupancy follows all four rotations, including the ordinary command path
+  ---
+  duration_ms: 2223.334285
+  type: 'test'
+  ...
+# Subtest: routing: saturated splitter and underground throughput stay bounded and conserve their circulating fixture stock
+ok 86 - routing: saturated splitter and underground throughput stay bounded and conserve their circulating fixture stock
+  ---
+  duration_ms: 1028.382386
+  type: 'test'
+  ...
+# Subtest: routing: all four recipes run through a paid chest/inserter/belt/underground/splitter line reached on foot
+ok 87 - routing: all four recipes run through a paid chest/inserter/belt/underground/splitter line reached on foot
+  ---
+  duration_ms: 4847.486964
+  type: 'test'
+  ...
+# Subtest: truck unlocks once at the paid restored station, keeps the kit corridor clear and replays its entire driving/cargo trip
+not ok 88 - truck unlocks once at the paid restored station, keeps the kit corridor clear and replays its entire driving/cargo trip
+  ---
+  duration_ms: 10258.535814
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/transport.test.ts:27:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + '9baeaa27'
+    - '9ded9396'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '9ded9396'
+  actual: '9baeaa27'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/transport.test.ts:39:167)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: truck boarding and cargo are local; a parked footprint blocks walking, paths and construction
+ok 89 - truck boarding and cargo are local; a parked footprint blocks walking, paths and construction
+  ---
+  duration_ms: 1791.472303
+  type: 'test'
+  ...
+# Subtest: cargo capacity is separate, partial stacks fit, and invalid or distant transfers preserve both inventories
+ok 90 - cargo capacity is separate, partial stacks fit, and invalid or distant transfers preserve both inventories
+  ---
+  duration_ms: 1007.62118
+  type: 'test'
+  ...
+# Subtest: driving checks every footprint tile at speed, refuses blocked rotations, and cannot use dodge or auto-walk
+ok 91 - driving checks every footprint tile at speed, refuses blocked rotations, and cannot use dodge or auto-walk
+  ---
+  duration_ms: 1303.993913
+  type: 'test'
+  ...
+# Subtest: blocked exit is refused; knockdown parks cargo, respawn does not teleport the truck, and occupied saves resume
+ok 92 - blocked exit is refused; knockdown parks cargo, respawn does not teleport the truck, and occupied saves resume
+  ---
+  duration_ms: 2203.499342
+  type: 'test'
+  ...
+# Subtest: old restored previews spawn deterministically on their next tick; malformed truck saves are rejected
+ok 93 - old restored previews spawn deterministically on their next tick; malformed truck saves are rejected
+  ---
+  duration_ms: 4071.279106
+  type: 'test'
+  ...
+# Subtest: selected permanent route is read-only, reports all four stops and pauses with cargo retained on power loss
+ok 94 - selected permanent route is read-only, reports all four stops and pauses with cargo retained on power loss
+  ---
+  duration_ms: 1018.63805
+  type: 'test'
+  ...
+# Subtest: permanent routes expose full arrivals and returning cargo while packing public stops is rejected
+ok 95 - permanent routes expose full arrivals and returning cargo while packing public stops is rejected
+  ---
+  duration_ms: 510.648771
+  type: 'test'
+  ...
+# Subtest: UI-03 preferences default safely for absent, invalid, future and malformed records
+ok 96 - UI-03 preferences default safely for absent, invalid, future and malformed records
+  ---
+  duration_ms: 4.364663
+  type: 'test'
+  ...
+# Subtest: UI-03 assignment swaps or clears without moving other slots; digit dispatch follows the assigned slot
+ok 97 - UI-03 assignment swaps or clears without moving other slots; digit dispatch follows the assigned slot
+  ---
+  duration_ms: 0.696214
+  type: 'test'
+  ...
+# Subtest: UI-03 unknown equipment is omitted; discovery exposes a locked plan, recruitment unlocks it
+ok 98 - UI-03 unknown equipment is omitted; discovery exposes a locked plan, recruitment unlocks it
+  ---
+  duration_ms: 3352.484309
+  type: 'test'
+  ...
+# Subtest: UI-03 reserved assignments survive a less explored save without exposing or reordering their content
+ok 99 - UI-03 reserved assignments survive a less explored save without exposing or reordering their content
+  ---
+  duration_ms: 2672.936926
+  type: 'test'
+  ...
+# Subtest: UI-03 stock facts distinguish zero, partial materials and packed-first payment
+ok 100 - UI-03 stock facts distinguish zero, partial materials and packed-first payment
+  ---
+  duration_ms: 0.719572
+  type: 'test'
+  ...
+# Subtest: UI-03 catalogue, knowledge, affordability and shortcut edits never mutate gameplay stock or save hashes
+ok 101 - UI-03 catalogue, knowledge, affordability and shortcut edits never mutate gameplay stock or save hashes
+  ---
+  duration_ms: 1040.787616
+  type: 'test'
+  ...
+1..101
+# tests 101
+# suites 0
+# pass 84
+# fail 17
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 289767.282417

@@ -1,0 +1,116 @@
+TAP version 13
+# Subtest: new entry is empty exploration; explicit legacy entry and state URL do not reinterpret saves
+ok 1 - new entry is empty exploration; explicit legacy entry and state URL do not reinterpret saves
+  ---
+  duration_ms: 1384.393296
+  type: 'test'
+  ...
+# Subtest: unique core and artifact remain at source when full; transfer/attachment/load/packing conserve ownership
+ok 2 - unique core and artifact remain at source when full; transfer/attachment/load/packing conserve ownership
+  ---
+  duration_ms: 1535.820796
+  type: 'test'
+  ...
+# Subtest: actual first-core checkpoint powers chosen plant; supplementary generator burns under real excess load, disconnected grids stay separate and repairs retain core
+not ok 3 - actual first-core checkpoint powers chosen plant; supplementary generator burns under real excess load, disconnected grids stay separate and repairs retain core
+  ---
+  duration_ms: 785.180865
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:28:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'Invalid processor recipe'
+    - ''
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ''
+  actual: 'Invalid processor recipe'
+  operator: 'strictEqual'
+  stack: |-
+    roundtrip (/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:17:41)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:34:158)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: each new processor consumes physical inputs, keeps backpressure and produces real items; artifact/Mk2 affect real processing time
+not ok 4 - each new processor consumes physical inputs, keeps backpressure and produces real items; artifact/Mk2 affect real processing time
+  ---
+  duration_ms: 4335.710185
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:36:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Backpack full; reward remains at the source
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    send (/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:9:117)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:41:81)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: powered Pumpjack extracts finite crude; hand mining cannot bypass it
+not ok 5 - powered Pumpjack extracts finite crude; hand mining cannot bypass it
+  ---
+  duration_ms: 556.392614
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:43:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    null !== 'crude'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'crude'
+  actual: ~
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:45:296)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: paid specialist upgrades change whole-round hopper and freight capacity and survive reload
+ok 6 - paid specialist upgrades change whole-round hopper and freight capacity and survive reload
+  ---
+  duration_ms: 783.542763
+  type: 'test'
+  ...
+# Subtest: passenger rides actual powered service with inventory intact; walking/placement blocked; outage reload exits safely
+ok 7 - passenger rides actual powered service with inventory intact; walking/placement blocked; outage reload exits safely
+  ---
+  duration_ms: 1338.636621
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 4
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15521.072019

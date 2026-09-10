@@ -1,0 +1,55 @@
+# Player experience corrections
+
+10 September 2026 · PE-IMPLEMENT · CITY-F / `riverfront-arc-v4-editor-ac16d9188c05`
+
+Implemented the [approved correction plan](PLAYER_EXPERIENCE_CORRECTION_PLAN.md), scopes A–H, under D-PE-02. Audit finding 6 remains excluded: Wire, Frame and Board recipes and stock are retained for the owner's future turrets. New turret specifications and encounter balance changes are not included. The [original audit](PLAYER_CLARITY_AND_FUN_AUDIT_2026-09-10.md) remains historical evidence.
+
+## Delivered
+
+| Scope | Result |
+| --- | --- |
+| A — Controls | Closing a drawer or clicking Resume returns keyboard control to the canvas. Passive HUD focus no longer blocks shortcuts. Text inputs and live drawers retain capture; plain Tab closes Backpack even from its quantity field. Help explains that panels stay live and explicit Pause stops the game. |
+| B — Information | Shared item names now cover inventory, mining, construction, machine status/inspection, recipes, project materials and truck transfers. Inspection leads with blockers and inputs; historical rates are under Details. Upgrade controls appear when their capability is known. Active-campaign help/catalogue uses permanent tram service. |
+| C — Projects | Plant status distinguishes missing materials, missing carried core, readiness, enabled/disabled and damage. Encounters share their actual operating predicate with the UI: local power, defenders, west/east powered feeders, busy processors and powered lights. Productive time shows its correct total. Command feedback uses the actual result. |
+| D — Relay/Shade | Visible local relay hatching samples the same range/solid-cover predicate as damage. Damage records its relay source. Unexposed Shades retain a crossed-outline presence where visible, without becoming targetable. Alerts and project details explain powered lighting and the flashlight distinction. |
+| E — Inventory | Iron ore, Copper ore, Crude oil, Refined fuel and Polymer stack to 50; Shells stack to 20. Existing allocated packs preserve their layout until Sort. Item detail shows capacity. Cores, artifacts and packed machines remain individual objects. |
+| F — Opening | Hints persist until movement/mining are demonstrated or dismissed. Goals show material shortages, extraction placement at a clear patch edge, power/fuel, output collection, loaded defence and actual magazine production/receiving stock. Historical factory production cannot credit a newly built Assembler. Disabled Home takes priority with its repair requirement. Smaller raids are disclosed beside the major-assault schedule. |
+| G — Discovery/map | Teal accessible doors, existing crossed boards, a known-survivor marker and known-hostile warning triangles form the local cue vocabulary. Broad core searches have distinct directional names. A collapsible map legend explains existing symbols. The full map reserves room for its clock, hides duplicate HUD panels and retains non-movement clicks. Plant damage is reflected in map status. |
+| H — Rewards/review | Heart's existing Arsenal/rifle benefit, Furnace/Crown material rewards and Home storage destination are visible in project details. Completed projects retain their reward explanation. Artifact help distinguishes +10% capacity from realised output. Bounded local reviews are recorded below. |
+
+The simulation owns readiness, damage and quantities. Rendering adds cues and submits ordinary commands. No city placement or editor-scene regeneration was needed. Normal 1×/pause and existing inventories, names, action bars and installed cores are preserved.
+
+## What was actually checked
+
+[Browser observations](../evidence/player-experience/browser-review.json) contain the sampled states. [Supplied setup source](../evidence/player-experience/prepareReview.ts) makes the later checks reproducible; these are assisted local setups, **not evidence of natural campaign reachability or pacing**. An isolated Chrome context was used; owner saves were not touched.
+
+- **Observed — controls:** mouse-close of Build, Backpack and Projects immediately allowed B; the same worked after the HUD explanation and Resume. Inspection also returned control. Typing into a stack quantity did not move the engineer; Tab closed that field's Backpack. Opening inventory kept the engineer at the same camera position. Map clicks left the engineer's coordinates unchanged. Actual screenshots were inspected at 1366×900/100% and 1100×720/125%.
+- **Observed — ordinary opening:** using keyboard movement, held mouse mining and the build/inspection UI, the repeat reached an Excavator → conveyor → Supply chest at game time 104 s. The chest contained 3 Steel plates, the engineer had 100 HP, and the next goal was defence preparation. No stock, unlock or time grants were used. The first placement attempts hit remaining salvage or were out of reach; the final instructions explicitly mention a clear patch edge. This was an expert repeat with knowledge of the controls, not a first-time-player speed result. [View](../evidence/player-experience/first-output.png).
+- **Observed — ordinary failure:** an earlier session left running during lengthy source/tool inspection reached the first minor raid and lost Home power. It exposed the misleading machine-level recovery suggestion, now replaced by Home-core repair guidance. That interrupted session does not measure ordinary opening difficulty.
+- **Observed — relay:** the quarry relay produced attributed damage and visible ground hatching. A Shade remained at 40 HP during the unlit firing check; after a powered Lamp was placed through Build, subsequent fire reduced it to 32 HP. The engineer took damage while standing in the hazard. Solid-cover/range/shutdown agreement is additionally checked in the sim tests. [Before](../evidence/player-experience/relay-before.png), [powered light](../evidence/player-experience/relay-light.png).
+- **Observed — encounters:** the supplied Furnace reached 10/40 productive seconds and Crown 12.5/50, then stopped at their first defenders with an explicit blocker. Their paid materials remained delivered. The Heart fixture correctly reported unconnected west/east feeders rather than advancing. These were attempts, not completed browser victories. Completion and one-time reward quantities were checked separately with focused sim fixtures.
+- **Observed — optional artifact:** the known Workshop salvage room disclosed its capacity benefit, Recover put Speed artifact 1 in the Backpack, and the project changed to recovered. This checks the local detour endpoint; it does not establish that the full journey is worth its travel cost.
+- **Observed — transport:** two supplied powered stops moved 100 Iron ore into the receiving stop's arrival cargo. Truck UI loading 50 and unloading 25 left 75 carried and 25 in the truck. The same bulk item occupied consolidated Backpack stacks. This checks local freight/transfer value, not a transport balance verdict.
+- **Observed — supplied defence/aftermath:** at the first minor-raid window, three chest → conveyor → turret lines defeated all 11 attackers. Home stayed at 300 HP and the engineer at 100; no repair was needed. Hoppers ended at 46/41/50 rounds and chests at 5/4/4 magazines. This demonstrates a working supplied defence, not proof that three turrets are balanced for every attack. [View](../evidence/player-experience/defence.png).
+
+Some observation screenshots precede the final copy/map refinement. Final map images and the `finalUI` record cover the final layout checks: [normal](../evidence/player-experience/map.png), [small map](../evidence/player-experience/map-small.png), [small Backpack](../evidence/player-experience/backpack-small.png).
+
+## Practical findings that remain design questions
+
+**Heart wiring needs a dedicated review before any tuning.** The attempted legal feeder route from Civic's existing substation had a roughly 29-tile break near the tram corridor; a 12-tile Big pole cannot bridge that gap. The short attempt did not establish an alternative connected route or prove the encounter impossible. The new blocker makes the failure explicit, but extensive remote wiring may outweigh the intended local defence decision. Next examine one successful continuous route and the effort it requires; if that effort is mostly repetitive wiring, consider moving the supply connection nearer the encounter rather than adding more prerequisite systems. No geography or reach values were changed here.
+
+**Furnace/Crown payoff is still unproven.** Busy processing and powered lights advanced the clocks; defenders then demanded intervention. Two powered lights alone do not demonstrate useful light coverage. The current rewards are modest materials sent Home, while equipment can be reused. A short, incomplete attempt cannot establish their net value. Keep the now-explicit reward and blocker information, then judge one complete fight before replacing rewards or assigning future turret unlocks.
+
+**A supported base can leave room for exploration.** The supplied defence required no manual repair and retained ammunition. Whether a new player can build that supply before the first warning remains a human question. Larger stacks make short personal trips less tedious; the observed freight shipment and larger parked cargo remain functional, but their long-term economic advantage was not measured.
+
+Useful owner/new-player checks: can you finish a magazine delivery line without external instructions; can you identify a relay hazard and expose its Shade; does completing a regional encounter feel worth the journey and equipment?
+
+## Verification and handoff
+
+- `npm run typecheck`: passed, including the production game build. Vite retains its large-chunk warning.
+- `npm run lint`: passed.
+- [Focused tests](../../packages/sim/test/playerExperience.test.ts): **7 passed**, covering old pack allocation/sort/split, chest/truck conservation, plant state, stalled progress, exact relay damage, powered completion/one-time rewards and truthful ammunition guidance.
+- `npm test`: bounded broad attempt, **partial**. Before its 180-second bound it recorded 46 passes and the same eight earlier failures in blueprint migration, authored/procedural campaign assumptions and defence/replay fixtures. It is not a green suite. The separate existing three-case gameplay integration attempt reached its 90-second bound without a completed case; it supplies no passing evidence. Browser checks and the focused tests above are separate evidence.
+- `docsync:check`: passed after the handoff update. `freshness:check`: reports the same 12 pre-existing stale campaign evidence files; those historical results are preserved rather than regenerated. Referenced local paths and `git diff --check` passed.
+
+Reload the mutable preview on **5178** to use the rebuilt interface. Current CITY-F saves can be retained. Implementation and bounded technical review are complete; full campaign pacing, real first-time-player understanding, encounter reward judgments and existing human/release gates remain open. Changes are local and uncommitted.

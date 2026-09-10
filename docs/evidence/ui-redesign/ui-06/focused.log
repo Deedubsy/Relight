@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: UI-03 preferences default safely for absent, invalid, future and malformed records
+ok 1 - UI-03 preferences default safely for absent, invalid, future and malformed records
+  ---
+  duration_ms: 1.846969
+  type: 'test'
+  ...
+# Subtest: UI-03 assignment swaps or clears without moving other slots; digit dispatch follows the assigned slot
+ok 2 - UI-03 assignment swaps or clears without moving other slots; digit dispatch follows the assigned slot
+  ---
+  duration_ms: 0.460196
+  type: 'test'
+  ...
+# Subtest: UI-03 unknown equipment is omitted; discovery exposes a locked plan, recruitment unlocks it
+ok 3 - UI-03 unknown equipment is omitted; discovery exposes a locked plan, recruitment unlocks it
+  ---
+  duration_ms: 1402.674544
+  type: 'test'
+  ...
+# Subtest: UI-03 reserved assignments survive a less explored save without exposing or reordering their content
+ok 4 - UI-03 reserved assignments survive a less explored save without exposing or reordering their content
+  ---
+  duration_ms: 1010.73238
+  type: 'test'
+  ...
+# Subtest: UI-03 stock facts distinguish zero, partial materials and packed-first payment
+ok 5 - UI-03 stock facts distinguish zero, partial materials and packed-first payment
+  ---
+  duration_ms: 0.53308
+  type: 'test'
+  ...
+# Subtest: UI-03 catalogue, knowledge, affordability and shortcut edits never mutate gameplay stock or save hashes
+ok 6 - UI-03 catalogue, knowledge, affordability and shortcut edits never mutate gameplay stock or save hashes
+  ---
+  duration_ms: 559.223893
+  type: 'test'
+  ...
+# Subtest: UI-06 optional preferences preserve old quickbars and recover malformed individual fields
+ok 7 - UI-06 optional preferences preserve old quickbars and recover malformed individual fields
+  ---
+  duration_ms: 2.103111
+  type: 'test'
+  ...
+# Subtest: UI-06 binding validation preserves modifier/blueprint contexts and prevents world collisions
+ok 8 - UI-06 binding validation preserves modifier/blueprint contexts and prevents world collisions
+  ---
+  duration_ms: 1.115837
+  type: 'test'
+  ...
+# Subtest: UI-06 settings and quickbar saves compose; denied storage retains the session value without changing gameplay
+ok 9 - UI-06 settings and quickbar saves compose; denied storage retains the session value without changing gameplay
+  ---
+  duration_ms: 1885.233663
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 11237.664612

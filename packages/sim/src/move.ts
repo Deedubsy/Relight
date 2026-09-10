@@ -1,3 +1,4 @@
+import {cityStep} from './cityNavigation';
 /** RI-04: the tile-step helpers M4's crawlers use (threat.ts), shared with the Stalker (stalker.ts). Moved here
  *  unchanged but for `dir`: a body that carries a `dir` records the unit direction of its last move, so the world
  *  view can show where it is heading (plan §7: "direction and current target are inspectable"). */
@@ -17,16 +18,17 @@ export function moveTo(c: Body, gx: number, gy: number, step: number): void {
 }
 /** Greedy step toward a point over passable tiles, 8-connected without corner cutting (the chase, and the
  *  off-field fallback); false when no neighbouring tile is closer. */
-export function stepToward(st: SimState, G: Ground, c: Body, gx: number, gy: number, step: number): boolean {
+export function stepToward(st: SimState, G: Ground, c: Body, gx: number, gy: number, step: number, bias?:(x:number,y:number)=>number): boolean {
+  if(st.city?.mapId)return cityStep(st,c,gx,gy,step);
   const ctx = Math.floor(c.x), cty = Math.floor(c.y);
-  let best = -1, bd = Math.hypot(gx - c.x, gy - c.y);
+  const initial=Math.hypot(gx-c.x,gy-c.y);let best=-1,bd=bias?Infinity:initial;
   if (Math.floor(gx) === ctx && Math.floor(gy) === cty) { moveTo(c, gx, gy, step); return true; }
   for (let k = 0; k < 8; k++) {
     const xx = ctx + NX[k], yy = cty + NY[k];
     if (!inGround(G, xx, yy) || !passable(st, xx, yy)) continue;
     if (k >= 4 && !(passable(st, ctx + NX[k], cty) && passable(st, ctx, cty + NY[k]))) continue;
     const d = Math.hypot(gx - xx - 0.5, gy - yy - 0.5);
-    if (d < bd) { bd = d; best = k; }
+    const score=d+(bias?.(xx,yy)??0);if(d<initial&&score<bd){bd=score;best=k;}
   }
   if (best < 0) return false;
   moveTo(c, ctx + NX[best] + 0.5, cty + NY[best] + 0.5, step);

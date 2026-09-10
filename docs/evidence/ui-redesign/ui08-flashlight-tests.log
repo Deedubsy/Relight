@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: light map: the HQ face's street is lit by its kerb streetlights, its lot is unlit beyond them, and the mask agrees with litAt everywhere
+ok 1 - light map: the HQ face's street is lit by its kerb streetlights, its lot is unlit beyond them, and the mask agrees with litAt everywhere
+  ---
+  duration_ms: 1041.131351
+  type: 'test'
+  ...
+# Subtest: a Lamp lights its radius on the lot; a Floodlight its cone
+ok 2 - a Lamp lights its radius on the lot; a Floodlight its cone
+  ---
+  duration_ms: 118.381921
+  type: 'test'
+  ...
+# Subtest: burn-off: the claimed block's streetlights come on from the substation out at three a second; progress runs 0 → 1 over 20 + 60·d s and then the block is Held
+ok 3 - burn-off: the claimed block's streetlights come on from the substation out at three a second; progress runs 0 → 1 over 20 + 60·d s and then the block is Held
+  ---
+  duration_ms: 109.749361
+  type: 'test'
+  ...
+# Subtest: repair: E on a broken streetlight costs one copper and lights it; an eaten Lamp leaves the broken list; no copper refuses
+ok 4 - repair: E on a broken streetlight costs one copper and lights it; an eaten Lamp leaves the broken list; no copper refuses
+  ---
+  duration_ms: 80.997506
+  type: 'test'
+  ...
+# Subtest: campaign Home lot is fully lit at start and after loading without lighting other lots
+ok 5 - campaign Home lot is fully lit at start and after loading without lighting other lots
+  ---
+  duration_ms: 1272.191875
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8512.74062

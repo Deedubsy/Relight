@@ -1,0 +1,19 @@
+{
+  "seed": 2313,
+  "key": "generation-or-run: campaign route has no clear stop pad",
+  "attempts": [
+    {
+      "failure": "campaign route has no clear stop pad",
+      "stack": "Error: campaign route has no clear stop pad\n    at initExpansion (/mnt/e/Factorio2/packages/sim/src/expansion.ts:60:20)\n    at createCampaign (/mnt/e/Factorio2/packages/sim/src/campaign.ts:22:3)\n    at factoryScenario (/mnt/e/Factorio2/packages/harness/src/factoryScenario.ts:7:11)\n    at <anonymous> (/mnt/e/Factorio2/docs/evidence/p9-04-2026-09-08/generation-failures.ts:10:69)\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)"
+    },
+    {
+      "failure": "campaign route has no clear stop pad",
+      "stack": "Error: campaign route has no clear stop pad\n    at initExpansion (/mnt/e/Factorio2/packages/sim/src/expansion.ts:60:20)\n    at createCampaign (/mnt/e/Factorio2/packages/sim/src/campaign.ts:22:3)\n    at factoryScenario (/mnt/e/Factorio2/packages/harness/src/factoryScenario.ts:7:11)\n    at <anonymous> (/mnt/e/Factorio2/docs/evidence/p9-04-2026-09-08/generation-failures.ts:10:69)\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)"
+    }
+  ],
+  "generatorAttempt": 3,
+  "baseFailure": null,
+  "ordinaryCommandsExecuted": 0,
+  "outcome": "Fresh campaign initialization fails before the ordinary command driver can start. No usable save, bypass or replacement seed was supplied.",
+  "human_play": "not_run"
+}

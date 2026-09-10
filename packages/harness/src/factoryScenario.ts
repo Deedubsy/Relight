@@ -37,13 +37,11 @@ export function restore(d:FactoryDriver,id:'station'|'northStation'):void {
  const s=campaignSite(d.state,id)!;d.approach(s.x,s.y,s.size);d.send({type:'deliverSite',site:id});d.send({type:'restoreSite',site:id});if(s.restoredAt<0)throw new Error(siteCheck(d.state,id));
 }
 export function railNetwork(d:FactoryDriver,three=true){
- const st=d.state,e=st.campaign!.expansion!,district=st.campaign!.districts!,G=ground(st),generators=[power(d,e.station.block)];restore(d,'station');
+ const st=d.state,e=st.campaign!.expansion!,district=st.campaign!.districts!,generators=[power(d,e.station.block)];restore(d,'station');
  if(three){generators.push(power(d,district.station.block));restore(d,'northStation');}
- const collect=()=>{d.approach(e.station.x,e.station.y,e.station.size);d.send({type:'collectTramKit'});};collect();
- const path=three?[...e.route,...district.route.slice(1)]:e.route;
- for(const t of path){if(!(st.engineer.inv.track>0)&&e.reward.track>0)collect();d.place('track',t%G.tw,Math.floor(t/G.tw));}
- const stops=(three?[...e.stops,district.stop]:e.stops).map(([x,y])=>d.place('tramstop',x,y));
- const tram=d.place('tram',path[0]%G.tw,Math.floor(path[0]/G.tw));return {path,stops,tram,generators};
+ const network=st.campaign!.fixedTram!,path=network.route;
+ const stops=(three?[...e.stops,district.stop]:e.stops).map(([x,y])=>st.flow!.machines.find(m=>m.kind==='tramstop'&&m.x===x&&m.y===y)!);
+ const tram=st.flow!.machines.find(m=>m.id===network.tram)!;return {path,stops,tram,generators};
 }
 export function configure(d:FactoryDriver,m:Machine,rules:StationRules):void {d.approach(m.x,m.y,m.size);d.send({type:'setStationRules',x:m.x,y:m.y,rules});}
 export function recipe(d:FactoryDriver,m:Machine,id:RecipeId):void {d.approach(m.x,m.y,m.size);d.send({type:'factory',action:{type:'setRecipe',x:m.x,y:m.y,recipe:id}});}

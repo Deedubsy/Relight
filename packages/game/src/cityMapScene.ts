@@ -1,3 +1,9 @@
+import {campaignOutages} from '@relight/sim';
+import {baseCore,RIVERFRONT,riverfrontRail} from '@relight/sim';
+import { uiInput, uiPalette } from './uiShell';
+import {navigationTargets,knownDistrict,blockName,machineRunning} from '@relight/sim';
+import {navigationView} from './view';
+import {dispatch} from './session';
 import { campaignDiscoveries, stationRoute, truckRect } from '@relight/sim';
 import { transportView } from './view';
 /** The map view on a street-first city (D6): every block is the polygon the generator rasterised, drawn from sim
@@ -9,9 +15,9 @@ import Phaser from 'phaser';
 import {
   SimState, SimEvent, DARK, CONTESTED, HELD, INERT, VOID, idxOf, isCandidate, rotOf, rotTier, frontList, FrontEdgeView,
   claimInfo, heldInfo, nearestHeld, facilityList, survivorList, isInterior, poolMax, CityGeom,
-  STREET, WATER, segKey, activationCheck, claimNeed, blockNameAt, ground, cityGeomOf, isCampaign, passable, surveyedDistrict, campaignRecruited,
+  STREET, WATER, segKey, activationCheck, claimNeed, blockNameAt, ground, cityGeomOf, isCampaign, surveyedDistrict, campaignRecruited,
 } from '@relight/sim';
-import { Session, queue } from './session';
+import { Session } from './session';
 import { SceneHooks, MapView, C } from './mapScene';
 
 /** Layout pass (ROADMAP §2 "the map view as a full-screen overlay"): the inset the map keeps from the canvas edge.
@@ -36,6 +42,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
   /** Where the fitted map's top-left sits on the canvas — it is centred, so this is not `PAD` any more. */
   private ox = PAD; private oy = PAD;
   private groundImg!: Phaser.GameObjects.Image;
+  private playerLabel!: Phaser.GameObjects.Text;
   private headText!: Phaser.GameObjects.Text;
   private pixOwner!: Int32Array;              // per ground pixel: block id, -1 street, -2 water, -3 outside the canvas
   private ridgePx: Int32Array[] = [];         // per street segment: the ground pixels of its ridge
@@ -45,6 +52,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
   private gFx!: Phaser.GameObjects.Graphics;
   private gEdges!: Phaser.GameObjects.Graphics;
   private labels: Phaser.GameObjects.Text[] = [];
+  private cityLabels: Phaser.GameObjects.Text[] = [];
   private facilityLabelsFor = '';
   private survivorLabels: Phaser.GameObjects.Text[] = [];
   private survivorLabelsFor = '';
@@ -68,6 +76,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     this.groundImg = this.add.image(PAD, PAD, 'city-ground').setOrigin(0);
     this.gEdges = this.add.graphics();
     this.gFx = this.add.graphics();
+    this.playerLabel=this.add.text(0,0,'YOU',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#ffffff',backgroundColor:'#102326',padding:{x:5,y:3}}).setOrigin(.5,0).setDepth(50);
     this.headText = this.add.text(PAD + 4, PAD + 2, `${g.tw}×${g.th} · ${st.city!.preset} · seed ${st.seed} · ${st.blocks.length} blocks`, { fontSize: '10px', color: '#5c6a8a' }).setDepth(6);
     this.layout();
     this.scale.on('resize', () => this.layout());
@@ -81,8 +90,8 @@ export class CityMapScene extends Phaser.Scene implements MapView {
    *  ground raster is one sample per pixel, so it is rebuilt whenever the fitted size changes; at the old fixed
    *  648 px it was 0.8 px per tile, and a wider canvas simply buys more of them. */
   private layout(): void {
-    const g = this.geom, cam = this.cameras.main;
-    const ppt = Math.min(Math.max(64, cam.width - 2 * PAD) / g.tw, Math.max(64, cam.height - 2 * PAD) / g.th);
+    const g = this.geom, cam = this.cameras.main, reserved=this.session.state.city?.mapId?230*(Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale'))||1):0;
+    const ppt = Math.min(Math.max(64, cam.width - reserved - 2 * PAD) / g.tw, Math.max(64, cam.height - 2 * PAD - (this.session.state.city?.mapId?130:0)) / g.th);
     const W = Math.max(1, Math.floor(g.tw * ppt)), H = Math.max(1, Math.floor(g.th * ppt));
     this.ppt = ppt;
     if (W !== this.W || H !== this.H) {
@@ -105,8 +114,8 @@ export class CityMapScene extends Phaser.Scene implements MapView {
       this.img = this.tex.context.createImageData(W, H);
       this.lastPaint = -1e9;   // repaint at the new size on the next frame
     }
-    this.ox = Math.round((cam.width - W) / 2);
-    this.oy = Math.round((cam.height - H) / 2);
+    this.ox = Math.round((cam.width - reserved - W) / 2);
+    this.oy = Math.round((cam.height - H) / 2)-(this.session.state.city?.mapId?40:0);
     this.groundImg.setPosition(this.ox, this.oy);
     this.headText.setPosition(this.ox + 4, this.oy + 2);
   }
@@ -156,6 +165,12 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     else this.hooks.onHover(null, 0, 0);
   }
   private onDown(p: Phaser.Input.Pointer): void {
+    if(uiInput.blocked)return;
+    if(this.session.state.campaign){if(!p.leftButtonDown())return;const st=this.session.state,x=Math.floor((p.x-this.ox)/this.ppt),y=Math.floor((p.y-this.oy)/this.ppt);
+      if(p.event.shiftKey){const r=dispatch(this.session,{type:'navigation',action:{type:'pin',x,y,name:''}});this.hooks.onToast(r.reason);if(r.ok)navigationView.targetId=`pin:${st.campaign!.navigation!.pins.at(-1)!.id}`;return;}
+      const project=campaignDiscoveries(st).find(s=>Math.hypot(this.ox+(s.x+s.size/2)*this.ppt-p.x,this.oy+(s.y+s.size/2)*this.ppt-p.y)<7);if(project){navigationView.targetId=`site:${project.id}`;return;}
+      const target=navigationTargets(st).filter(t=>t.kind!=='district').map(t=>({t,d:Math.hypot(this.ox+t.x*this.ppt-p.x,this.oy+t.y*this.ppt-p.y)})).filter(v=>v.d<=7).sort((a,b)=>a.d-b.d)[0];if(target&&!st.flow?.machines.some(m=>m.kind==='tramstop'&&Math.hypot(this.ox+(m.x+1)*this.ppt-p.x,this.oy+(m.y+1)*this.ppt-p.y)<=8)){navigationView.targetId=target.t.id;return;}
+    }
     if(p.leftButtonDown()&&this.session.state.flow){
       const st=this.session.state,near=st.flow!.machines.filter(m=>m.kind==='tramstop').map(m=>({m,d:Math.hypot(this.ox+(m.x+m.size/2)*this.ppt-p.x,this.oy+(m.y+m.size/2)*this.ppt-p.y)})).filter(v=>v.d<=8).sort((a,b)=>a.d-b.d)[0];
       if(near){if(transportView.stopId===near.m.id)transportView.stopId=null;else{transportView.stopId=near.m.id;this.hooks.onStationSelect?.(near.m.x,near.m.y);}this.lastPaint=-1e9;return;}
@@ -168,22 +183,8 @@ export class CityMapScene extends Phaser.Scene implements MapView {
       this.lastPaint = -1e9;
       return;
     }
-    const st = this.session.state, g = this.geom;
-    const tx = Math.floor((p.x - this.ox) / this.ppt), ty = Math.floor((p.y - this.oy) / this.ppt);
-    const onMap = tx >= 0 && ty >= 0 && tx < g.tw && ty < g.th;
-    if (st.flow && onMap && isCampaign(st)) {
-      if(st.engineer.truckSeat){this.hooks.onToast('Driving uses WASD in world view. Exit the truck to walk from the map.');return;}
-      if (passable(st, tx, ty)) queue(this.session, { type: 'move', x: tx + 0.5, y: ty + 0.5 });
-      else this.hooks.onToast('That spot is blocked. Choose nearby open ground to walk there.');
-      return;
-    }
-    const owner = onMap ? g.owner[ty * g.tw + tx] : -2;
-    // D-B1-5: a click on a street tile or a Held block's tile sets a walk-here target (the A* in walk.ts) — the only
-    // auto-walk the player has; any WASD input cancels it. A Dark block previews (RI-03: nothing is claimed here).
-    if (st.flow && onMap && (owner === -1 || (owner >= 0 && st.blocks[owner].state === HELD))) {
-      queue(this.session, { type: 'move', x: tx + 0.5, y: ty + 0.5 });
-      return;
-    }
+    const st = this.session.state;
+    if(isCampaign(st))return;
     const i = this.blockAtPixel(p.x, p.y);
     if (i < 0) return;
     const b = st.blocks[i];
@@ -255,14 +256,14 @@ export class CityMapScene extends Phaser.Scene implements MapView {
       const district=surveyedDistrict(st,i);
       if(district&&[HELD,DARK].includes(b.state))c=({civ:0x676547,res:0x425f79,ind:0x795448,out:0x456653})[district];
       if (i === this.hover || i === selIdx) c = lighten(c, i === selIdx ? 0.35 : 0.22);
-      col[i] = c;
+      col[i] = st.city?.mapId?0x3c4b40:c;
     }
     const d = this.img.data, W = this.W, H = this.H, own = this.pixOwner;
     for (let p = 0, o4 = 0; p < W * H; p++, o4 += 4) {
       const o = own[p];
-      let c = o >= 0 ? col[o] : o === -1 ? STREET_C : o === -2 ? WATER_C : OUTSIDE_C;
+      let c = o >= 0 ? col[o] : o === -1 ? (st.city?.mapId?0x72766c:STREET_C) : o === -2 ? (st.city?.mapId?0x24505c:WATER_C) : OUTSIDE_C;
       // §5 interior: a one-pixel white rim inside the lot, like the lattice's white outline
-      if (o >= 0 && inner[o] && ((p % W > 0 && own[p - 1] !== o) || (p >= W && own[p - W] !== o) || (p % W < W - 1 && own[p + 1] !== o) || (p + W < W * H && own[p + W] !== o))) c = C.white;
+      if (!st.city?.mapId && o >= 0 && inner[o] && ((p % W > 0 && own[p - 1] !== o) || (p >= W && own[p - W] !== o) || (p % W < W - 1 && own[p + 1] !== o) || (p + W < W * H && own[p + W] !== o))) c = C.white;
       d[o4] = (c >> 16) & 255; d[o4 + 1] = (c >> 8) & 255; d[o4 + 2] = c & 255; d[o4 + 3] = 255;
     }
     // front edges: the whole street segment between the Held block and its Dark neighbour, red (dim until its kit arrives)
@@ -277,10 +278,11 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     if (urban) {
       const ctx = this.tex.context;
       for (const s of urban.structures) {
-        ctx.fillStyle = st.blocks[s.block].state === HELD ? '#b8a886' : '#586a72';
+        ctx.fillStyle = st.city?.mapId ? (s.role==='residential'?'#b29a7b':s.role==='civic'?'#86b9a5':'#7e9690') : st.blocks[s.block].state === HELD ? '#b8a886' : '#586a72';
         ctx.fillRect(s.x * this.ppt, s.y * this.ppt, Math.max(1, s.w * this.ppt), Math.max(1, s.h * this.ppt));
       }
     }
+    if(st.city?.mapId){const ctx=this.tex.context;for(const y of RIVERFRONT.yards){ctx.fillStyle='#89816a';ctx.fillRect(y.x*this.ppt,y.y*this.ppt,y.w*this.ppt,y.h*this.ppt);}}
     this.tex.refresh();
   }
 
@@ -288,8 +290,8 @@ export class CityMapScene extends Phaser.Scene implements MapView {
   private draw(now: number): void {
     const st = this.session.state;
     if(isCampaign(st)){
-      const district=surveyedDistrict(st,this.hover),name=district?({civ:'Civic',res:'Residential',ind:'Industrial',out:'Outskirts'})[district]:'';
-      this.headText.setText(this.registry.get('knownSiteHover') || (campaignRecruited(st,'surveyors')?`Survey · ${name||'hover a district'} · yellow Civic / blue Residential / rust Industrial / green Outskirts`:`Seed ${st.seed} · known sites marked with squares; hover to inspect`)).setColor('#c5d2df').setFontSize(12).setBackgroundColor('#0b0e1a').setPadding(4).setWordWrapWidth(this.W-24).setPosition(this.ox+8,this.oy+this.H-48);
+      const district=surveyedDistrict(st,this.hover),districtName=knownDistrict(st,this.hover)?blockName(st,this.hover):'Uncharted district',name=district?({civ:'Civic',res:'Residential',ind:'Industrial',out:'Outskirts'})[district]:'';
+      this.headText.setText(this.registry.get('knownSiteHover') || (this.hover>=0?`${districtName} · ${!knownDistrict(st,this.hover)?'Uncharted':st.campaign?.navigation?.visitedBlocks.includes(this.hover)?'Visited':'Known / no visit recorded'}${name?' · '+name:''}`:'')).setStyle(uiPalette()).setPadding(8).setWordWrapWidth(Math.min(320,this.W-24)).setPosition(this.ox+8,this.oy+this.H-200);
     }
     const g = this.gFx;
     g.clear();
@@ -305,7 +307,7 @@ export class CityMapScene extends Phaser.Scene implements MapView {
           const frac = Math.max(0, Math.min(1, 1 - (b.timer - st.t) / T));
           g.lineStyle(1.5, C.mottle[3], 0.8); g.beginPath(); g.arc(px, py, 5, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2, false); g.strokePath();
         }
-      } else if (b.state === HELD) {
+      } else if (b.state === HELD && !st.city?.mapId) {
         const inner = isInterior(st, i), hq = i === idxOf(st, st.start[0], st.start[1]);
         // §12 finite rubble: a strip above the centre in the district's rubble colour, fading as the pool drains
         const pm = poolMax(st, b.name);
@@ -319,9 +321,17 @@ export class CityMapScene extends Phaser.Scene implements MapView {
         if (!b.subOn) { g.fillStyle(C.red, 0.9); g.fillRect(px - 2, py - 2, 4, 4); }
       }
     }
-    for(const site of campaignDiscoveries(st)){const x=this.ox+(site.x+site.size/2)*this.ppt,y=this.oy+(site.y+site.size/2)*this.ppt;g.lineStyle(1,0xb9e3ff,1);g.strokeRect(x-3,y-3,6,6);}
+    for(const t of navigationTargets(st)){const x=this.ox+t.x*this.ppt,y=this.oy+t.y*this.ppt;g.lineStyle(t.id===navigationView.targetId?3:1,t.kind==='pin'?0xf5c24f:t.visited?0x92d8b5:0x69837d,1);if(t.kind==='pin')g.strokeCircle(x,y,5);else if(t.kind==='district'&&!st.city?.mapId)g.strokeCircle(x,y,3);if(t.id===navigationView.targetId)g.strokeCircle(x,y,9);}
+    for(const s of st.campaign?.progression?.sites??[])if(s.kind==='core'&&!s.seen){g.lineStyle(2,0xc99bfa,.8);g.strokeCircle(this.ox+s.searchX*this.ppt,this.oy+s.searchY*this.ppt,28*this.ppt);}
+    for(const site of campaignDiscoveries(st).filter(s=>!st.campaign?.progression?.sites.some(p=>p.id===s.id&&(p.recovered||p.kind==='core'&&!p.seen)))){const x=this.ox+(site.x+site.size/2)*this.ppt,y=this.oy+(site.y+site.size/2)*this.ppt;g.lineStyle(1,0xb9e3ff,1);if(st.campaign?.recruits?.sites.some(s=>s.id===site.id)){g.strokeCircle(x,y-3,2);g.lineBetween(x,y-1,x,y+4);g.lineBetween(x-3,y+1,x+3,y+1);}else g.strokeRect(x-3,y-3,6,6);}
+    if(st.city?.mapId){const marks=[{name:`HOME · Founders Court${campaignOutages(st).some(a=>a.id===`outage:${st.campaign?.homeBlock}`)?' · NO POWER':''}`,x:RIVERFRONT.court.x,y:RIVERFRONT.court.y+12},...RIVERFRONT.plants.map((p,i)=>({name:`P${i+1} · ${p.name} · ${st.campaign?.progression?.sites.find(s=>s.id===p.id)?.installed?(baseCore(st,st.campaign.progression.sites.find(s=>s.id===p.id)!.block)?.hp===0?'DAMAGED':st.campaign.progression.sites.find(s=>s.id===p.id)?.enabled?'ON':'OFF'):'inactive'}`,x:p.x,y:p.y-5})),...RIVERFRONT.stops.map(s=>({name:s.name,x:s.x,y:s.y+5})),{name:'WESTRIDGE HOMES',x:126,y:230},{name:'OLD TOWN',x:294,y:240},{name:'GRAYWATER RIVER',x:RIVERFRONT.width/2,y:RIVERFRONT.riverY+25},...campaignDiscoveries(st).filter(d=>st.campaign?.recruits?.sites.some(s=>s.id===d.id)).map(d=>({name:d.title,x:d.x,y:d.y+5}))];let i=0;for(const m of marks){const l=this.cityLabels[i]??(this.cityLabels[i]=this.add.text(0,0,'',{fontSize:'12px',color:'#f0e3be',backgroundColor:'#192a29e6',padding:{x:4,y:3}}).setDepth(6));l.setText(m.name).setPosition(Math.max(l.width/2+8,Math.min(this.W-l.width/2-8,this.ox+m.x*this.ppt)),this.oy+m.y*this.ppt).setOrigin(.5).setVisible(true);i++;}}
+    for(const outage of campaignOutages(st))if(outage.location){
+      const x=this.ox+outage.location.x*this.ppt+20,y=this.oy+outage.location.y*this.ppt-20;
+      g.fillStyle(0x211816,1);g.fillCircle(x,y,11);g.lineStyle(2,0xff8b64,1);g.strokeCircle(x,y,11);
+      g.beginPath();g.moveTo(x+2,y-8);g.lineTo(x-4,y+1);g.lineTo(x+2,y+1);g.lineTo(x-2,y+8);g.strokePath();g.lineBetween(x-8,y-8,x+8,y+8);
+    }
     // start marker
-    { const i = idxOf(st, st.start[0], st.start[1]); g.lineStyle(1, C.white, 0.7); g.strokeRect(this.px(i) - 5, this.py(i) - 5, 10, 10); }
+    if(!st.city?.mapId){ const i = idxOf(st, st.start[0], st.start[1]); g.lineStyle(1, C.white, 0.7); g.strokeRect(this.px(i) - 5, this.py(i) - 5, 10, 10); }
 
     // facilities (§8 skyline) and survivors
     const facs = (isCampaign(st)?[]:facilityList(st)).filter(f => f.visible);
@@ -350,12 +360,12 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     }
 
     // hover: a claimable Dark block gets a white ring at its centre, an unclaimable one a red one
-    if (this.hover >= 0 && st.blocks[this.hover].state === DARK) {
+    if (!isCampaign(st) && this.hover >= 0 && st.blocks[this.hover].state === DARK) {
       const ok = isCandidate(st, this.hover);
       g.lineStyle(2, ok ? C.hover : C.bad, ok ? 0.95 : 0.6); g.strokeCircle(this.px(this.hover), this.py(this.hover), 6);
     }
     // the block the world view was looking at, for 2.5 s after the toggle: corner brackets on its bounding box
-    if (this.focusMark) {
+    if (this.focusMark && !st.city?.mapId) {
       const k = (now - this.focusMark.born) / 2500;
       if (k >= 1) this.focusMark = null;
       else {
@@ -400,9 +410,10 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     if(st.flow){
       const px=(x:number)=>this.ox+x*this.ppt,py=(y:number)=>this.oy+y*this.ppt;
       const route=transportView.stopId===null?null:stationRoute(st,transportView.stopId);
+      const fixed=st.campaign?.fixedTram;if(fixed&&!route){g.lineStyle(3,st.city?.mapId?0xefb953:0x779b99,.9);g.beginPath();(st.city?.mapId?riverfrontRail().samples:fixed.route.map(t=>({x:t%st.flow!.tw+.5,y:Math.floor(t/st.flow!.tw)+.5}))).forEach((p,i)=>{if(i===0)g.moveTo(px(p.x),py(p.y));else g.lineTo(px(p.x),py(p.y));});g.strokePath();}
       if(route){g.lineStyle(2,route.interrupted?0xf2b632:0x66dce8,1);for(const path of route.paths){g.beginPath();path.forEach((t,i)=>{const x=px(t%st.flow!.tw+.5),y=py(Math.floor(t/st.flow!.tw)+.5);if(i===0)g.moveTo(x,y);else g.lineTo(x,y);});g.strokePath();}}
       for(const m of st.flow.machines.filter(m=>m.kind==='tramstop')){
-        const x=px(m.x+m.size/2),y=py(m.y+m.size/2),status=route?.stops.find(s=>s.machine.id===m.id)?.status;
+        const x=px(m.x+m.size/2),y=py(m.y+m.size/2),status=route?.stops.find(s=>s.machine.id===m.id)?.status??(machineRunning(st,m)?'ready':'unpowered');
         g.lineStyle(m.id===transportView.stopId?2:1,status==='unpowered'?0xff786b:status==='full'?0xf2b632:0x66dce8,1);g.fillStyle(0x101824,1);g.fillCircle(x,y,4);
         if(status==='unpowered'){g.lineBetween(x-4,y-4,x+4,y+4);g.lineBetween(x-4,y+4,x+4,y-4);}else if(status==='full')g.strokeRect(x-4,y-4,8,8);else g.strokeCircle(x,y,4);
         if(m.id===transportView.stopId)g.strokeCircle(x,y,7);
@@ -413,8 +424,11 @@ export class CityMapScene extends Phaser.Scene implements MapView {
     // D5: the engineer — a white dot (red while knocked down) at its tile, with a ring while walking
     if (st.engineer) {
       const e = st.engineer, ex = this.ox + e.x * this.ppt, ey = this.oy + e.y * this.ppt;
-      g.fillStyle(e.down >= 0 ? C.red : C.white, 1); g.fillCircle(ex, ey, 3); g.lineStyle(1, 0x000000, 0.8); g.strokeCircle(ex, ey, 3);
-      if (e.dest >= 0 || e.target) { g.lineStyle(1, C.white, 0.4 + 0.4 * throb); g.strokeCircle(ex, ey, 6); }
+      g.fillStyle(0x081416,.95);g.fillCircle(ex,ey,12);
+      g.lineStyle(2,0x67ffcf,.65+.25*throb);g.strokeCircle(ex,ey,13+2*throb);
+      g.fillStyle(e.down>=0?C.red:0xffffff,1);g.fillTriangle(ex,ey-10,ex-7,ey+7,ex+7,ey+7);
+      g.lineStyle(2,0x173e37,1);g.strokeTriangle(ex,ey-10,ex-7,ey+7,ex+7,ey+7);
+      this.playerLabel.setText(e.down>=0?'YOU · DOWN':'YOU').setPosition(Math.max(25,Math.min(this.scale.width-25,ex)),Math.min(this.scale.height-24,ey+18));
     }
   }
 

@@ -8,16 +8,22 @@ export interface View {
   switchedAt: number;
 }
 
-/** RI-02 (§11.2 "debug coordinates behind a toggle"): the HUD, tooltips and toasts name blocks and streets
- *  (names.ts); block and tile coordinates appear only while this is on — the ` key toggles it with the debug panel.
+/** RI-02 (Â§11.2 "debug coordinates behind a toggle"): the HUD, tooltips and toasts name blocks and streets
+ *  (names.ts); block and tile coordinates appear only while this is on â€” the ` key toggles it with the debug panel.
  *  Renderer-only state, shared by the panel and both scenes. */
 export const debugView = { coords: false };
 /** RI-02: the height the goal overlay (#goal) takes at the top of the canvas, so the world view's top HUD corners
  *  sit under it instead of behind it. main.ts measures it once a panel update; 0 while the overlay is hidden. */
-export const hudInset = { top: 0 };
+export const hudInset = { top: 0, right: 0, bottom: 0 };
 
 /** Selected stop is presentation only: selecting a route never dispatches a movement command. */
 export const transportView: { stopId:number|null } = { stopId:null };
 
 /** Inspected machine identity is presentation only. */
-export const inspectionView:{machineId:number|null}={machineId:null};
+export const inspectionView:{machineId:number|null;pinned:boolean}={machineId:null,pinned:false};
+
+/** P9-03 selected navigation identity is presentation-only. */
+export const navigationView:{targetId:string|null}={targetId:null};
+
+/** One known objective, presentation only; undefined follows automatic guidance, null untracks. */
+export const objectiveView:{targetId:string|null|undefined}={targetId:undefined};

@@ -1,0 +1,184 @@
+TAP version 13
+# Subtest: direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters
+ok 1 - direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters
+  ---
+  duration_ms: 1948.458534
+  type: 'test'
+  ...
+# Subtest: direct belts: any storage side can unload, and pointing inward never steals from the destination
+ok 2 - direct belts: any storage side can unload, and pointing inward never steals from the destination
+  ---
+  duration_ms: 1473.298041
+  type: 'test'
+  ...
+# Subtest: direct belts: incompatible mixed stock stays at its source and full destinations conserve items
+ok 3 - direct belts: incompatible mixed stock stays at its source and full destinations conserve items
+  ---
+  duration_ms: 257.568082
+  type: 'test'
+  ...
+# Subtest: direct belts: Home supplies and turret hoppers can unload without creating stock
+ok 4 - direct belts: Home supplies and turret hoppers can unload without creating stock
+  ---
+  duration_ms: 515.406491
+  type: 'test'
+  ...
+# Subtest: fixed city, empty start, exact route and old save isolation
+ok 5 - fixed city, empty start, exact route and old save isolation
+  ---
+  duration_ms: 1173.72768
+  type: 'test'
+  ...
+# Subtest: every entrance, objective and plant platform is physically reachable; report 1x travel
+ok 6 - every entrance, objective and plant platform is physically reachable; report 1x travel
+  ---
+  duration_ms: 398.222706
+  type: 'test'
+  ...
+# Subtest: four factory yards fit real machinery, defence and walking access with expansion room
+ok 7 - four factory yards fit real machinery, defence and walking access with expansion room
+  ---
+  duration_ms: 107.286388
+  type: 'test'
+  ...
+# Subtest: ordinary hand-gathered materials build and fuel starter machinery
+ok 8 - ordinary hand-gathered materials build and fuel starter machinery
+  ---
+  duration_ms: 799.115535
+  type: 'test'
+  ...
+# Subtest: one recovered core activates any authored plant; artifact and workplace recruit retain ownership
+ok 9 - one recovered core activates any authored plant; artifact and workplace recruit retain ownership
+  ---
+  duration_ms: 156.673925
+  type: 'test'
+  ...
+# Subtest: tram bypasses unpowered intermediate platforms with real freight and passenger
+ok 10 - tram bypasses unpowered intermediate platforms with real freight and passenger
+  ---
+  duration_ms: 302.021813
+  type: 'test'
+  ...
+# Subtest: walls occlude interactions; door, persisted clearing and one-way shortcut change collision
+ok 11 - walls occlude interactions; door, persisted clearing and one-way shortcut change collision
+  ---
+  duration_ms: 50.860139
+  type: 'test'
+  ...
+# Subtest: bounded shared navigation routes around buildings and dynamic obstacles; different clearance and unreachable targets
+ok 12 - bounded shared navigation routes around buildings and dynamic obstacles; different clearance and unreachable targets
+  ---
+  duration_ms: 81.636586
+  type: 'test'
+  ...
+# Subtest: real Home raid approaches the access road, respects buildings and reaches a target; bounded crowd measurement
+ok 13 - real Home raid approaches the access road, respects buildings and reaches a target; bounded crowd measurement
+  ---
+  duration_ms: 396.713863
+  type: 'test'
+  ...
+# Subtest: moving actors replan around a newly placed machine and an opened path; failed routes remain bounded
+ok 14 - moving actors replan around a newly placed machine and an opened path; failed routes remain bounded
+  ---
+  duration_ms: 41.006024
+  type: 'test'
+  ...
+# Subtest: activated Riverside receives a scheduled targeted raid at its real plant room
+ok 15 - activated Riverside receives a scheduled targeted raid at its real plant room
+  ---
+  duration_ms: 343.261444
+  type: 'test'
+  ...
+# Subtest: fixed platforms retain usable side loading while track and boarding stay reserved
+ok 16 - fixed platforms retain usable side loading while track and boarding stay reserved
+  ---
+  duration_ms: 251.328563
+  type: 'test'
+  ...
+# Subtest: built walls block sight and collected rewards offer no recovery action
+ok 17 - built walls block sight and collected rewards offer no recovery action
+  ---
+  duration_ms: 6.444263
+  type: 'test'
+  ...
+# Subtest: expanded map rejects earlier authored saves without changing them; all door alternatives and deposits remain accessible
+ok 18 - expanded map rejects earlier authored saves without changing them; all door alternatives and deposits remain accessible
+  ---
+  duration_ms: 206.794016
+  type: 'test'
+  ...
+# Subtest: UI-02 fresh and paused load point to mining with empty Home; partial pockets name only the remainder
+ok 19 - UI-02 fresh and paused load point to mining with empty Home; partial pockets name only the remainder
+  ---
+  duration_ms: 147.726493
+  type: 'test'
+  ...
+# Subtest: UI-02 packed machines skip collection, exhausted Home suggests a real known patch, not impossible supplies
+ok 20 - UI-02 packed machines skip collection, exhausted Home suggests a real known patch, not impossible supplies
+  ---
+  duration_ms: 10.553673
+  type: 'test'
+  ...
+# Subtest: UI-02 existing machinery is inspected, with saved facts surviving load and removal
+ok 21 - UI-02 existing machinery is inspected, with saved facts surviving load and removal
+  ---
+  duration_ms: 49.470159
+  type: 'test'
+  ...
+# Subtest: UI-02 restored milestones remain restored while missing machinery needs rebuilding; down takes priority over tracking
+ok 22 - UI-02 restored milestones remain restored while missing machinery needs rebuilding; down takes priority over tracking
+  ---
+  duration_ms: 23.227187
+  type: 'test'
+  ...
+# Subtest: UI-02 tracking and minimap use known stable identities; invalid IDs fall back without revealing unknown sites
+ok 23 - UI-02 tracking and minimap use known stable identities; invalid IDs fall back without revealing unknown sites
+  ---
+  duration_ms: 27.716692
+  type: 'test'
+  ...
+# Subtest: UI-02 Home, workbench, machine and out-of-reach prompts resolve their actual E action without mutation
+ok 24 - UI-02 Home, workbench, machine and out-of-reach prompts resolve their actual E action without mutation
+  ---
+  duration_ms: 18.87543
+  type: 'test'
+  ...
+# Subtest: UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home
+ok 25 - UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home
+  ---
+  duration_ms: 4.850346
+  type: 'test'
+  ...
+# Subtest: UI-02 machine reach is measured from the whole footprint, independent of which corner is pointed at
+ok 26 - UI-02 machine reach is measured from the whole footprint, independent of which corner is pointed at
+  ---
+  duration_ms: 8.268044
+  type: 'test'
+  ...
+# Subtest: UI-06 optional preferences preserve old quickbars and recover malformed individual fields
+ok 27 - UI-06 optional preferences preserve old quickbars and recover malformed individual fields
+  ---
+  duration_ms: 4.220711
+  type: 'test'
+  ...
+# Subtest: UI-06 binding validation preserves modifier/blueprint contexts and prevents world collisions
+ok 28 - UI-06 binding validation preserves modifier/blueprint contexts and prevents world collisions
+  ---
+  duration_ms: 0.9799
+  type: 'test'
+  ...
+# Subtest: UI-06 settings and quickbar saves compose; denied storage retains the session value without changing gameplay
+ok 29 - UI-06 settings and quickbar saves compose; denied storage retains the session value without changing gameplay
+  ---
+  duration_ms: 154.57777
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 27958.855856

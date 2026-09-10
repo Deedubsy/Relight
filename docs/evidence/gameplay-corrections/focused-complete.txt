@@ -1,0 +1,292 @@
+TAP version 13
+# Subtest: knowledge starts with the opening clue, records exploration and survives leaving and reloading
+ok 1 - knowledge starts with the opening clue, records exploration and survives leaving and reloading
+  ---
+  duration_ms: 4002.493533
+  type: 'test'
+  ...
+# Subtest: item guide contains only implemented recipes and true current consumers, unlock provenance and no secret locations
+ok 2 - item guide contains only implemented recipes and true current consumers, unlock provenance and no secret locations
+  ---
+  duration_ms: 757.502949
+  type: 'test'
+  ...
+# Subtest: discovery service state follows actual power, switch, partial materials and empty or earned rewards
+ok 3 - discovery service state follows actual power, switch, partial materials and empty or earned rewards
+  ---
+  duration_ms: 1523.297283
+  type: 'test'
+  ...
+# Subtest: ordinary exploration and journal actions replay; read-only browsing does not change simulation state
+ok 4 - ordinary exploration and journal actions replay; read-only browsing does not change simulation state
+  ---
+  duration_ms: 1368.460014
+  type: 'test'
+  ...
+# Subtest: historical P7-03 checkpoint preserves its turbine and log without falsely replaying a supplied opening as the empty campaign
+ok 5 - historical P7-03 checkpoint preserves its turbine and log without falsely replaying a supplied opening as the empty campaign
+  ---
+  duration_ms: 1010.693643
+  type: 'test'
+  ...
+# Subtest: new entry is empty exploration; explicit legacy entry and state URL do not reinterpret saves
+ok 6 - new entry is empty exploration; explicit legacy entry and state URL do not reinterpret saves
+  ---
+  duration_ms: 2143.178266
+  type: 'test'
+  ...
+# Subtest: unique core and artifact remain at source when full; transfer/attachment/load/packing conserve ownership
+ok 7 - unique core and artifact remain at source when full; transfer/attachment/load/packing conserve ownership
+  ---
+  duration_ms: 2102.505972
+  type: 'test'
+  ...
+# Subtest: actual first-core checkpoint powers chosen plant; supplementary generator burns under real excess load, disconnected grids stay separate and repairs retain core
+ok 8 - actual first-core checkpoint powers chosen plant; supplementary generator burns under real excess load, disconnected grids stay separate and repairs retain core
+  ---
+  duration_ms: 1907.640112
+  type: 'test'
+  ...
+# Subtest: each new processor consumes physical inputs, keeps backpressure and produces real items; artifact/Mk2 affect real processing time
+ok 9 - each new processor consumes physical inputs, keeps backpressure and produces real items; artifact/Mk2 affect real processing time
+  ---
+  duration_ms: 4705.881628
+  type: 'test'
+  ...
+# Subtest: powered Pumpjack extracts finite crude; hand mining cannot bypass it
+ok 10 - powered Pumpjack extracts finite crude; hand mining cannot bypass it
+  ---
+  duration_ms: 994.6854
+  type: 'test'
+  ...
+# Subtest: paid specialist upgrades change whole-round hopper and freight capacity and survive reload
+ok 11 - paid specialist upgrades change whole-round hopper and freight capacity and survive reload
+  ---
+  duration_ms: 625.289631
+  type: 'test'
+  ...
+# Subtest: passenger rides actual powered service with inventory intact; walking/placement blocked; outage reload exits safely
+ok 12 - passenger rides actual powered service with inventory intact; walking/placement blocked; outage reload exits safely
+  ---
+  duration_ms: 1431.876822
+  type: 'test'
+  ...
+# Subtest: commissioned plant receives a real scheduled assault without radio; enemies arrive and damage it while output is off
+ok 13 - commissioned plant receives a real scheduled assault without radio; enemies arrive and damage it while output is off
+  ---
+  duration_ms: 946.943273
+  type: 'test'
+  ...
+# Subtest: truck explicitly recovers a machine with artifact and contents to a chest; interrupted job reload preserves cargo and target
+ok 14 - truck explicitly recovers a machine with artifact and contents to a chest; interrupted job reload preserves cargo and target
+  ---
+  duration_ms: 1358.91721
+  type: 'test'
+  ...
+# Subtest: Cannon consumes Shells against heavy enemies; unlit Shades cannot be shot and lit Shades can
+ok 15 - Cannon consumes Shells against heavy enemies; unlit Shades cannot be shot and lit Shades can
+  ---
+  duration_ms: 678.348078
+  type: 'test'
+  ...
+# Subtest: three distinct paid engineering encounters complete with supplied automated defence, interruptions and saved one-time rewards
+ok 16 - three distinct paid engineering encounters complete with supplied automated defence, interruptions and saved one-time rewards
+  ---
+  duration_ms: 13101.353391
+  type: 'test'
+  ...
+# Subtest: actual core/plant checkpoint receives freight materials and runs a direct-conveyor ammunition factory into a turret
+ok 17 - actual core/plant checkpoint receives freight materials and runs a direct-conveyor ammunition factory into a turret
+  ---
+  duration_ms: 1609.661856
+  type: 'test'
+  ...
+# Subtest: a recovered core can activate either alternative regional plant without commissioning the first
+ok 18 - a recovered core can activate either alternative regional plant without commissioning the first
+  ---
+  duration_ms: 1290.672452
+  type: 'test'
+  ...
+# Subtest: fast belts move more actual chest freight than standard belts, conserving their items
+ok 19 - fast belts move more actual chest freight than standard belts, conserving their items
+  ---
+  duration_ms: 1508.37653
+  type: 'test'
+  ...
+# Subtest: older campaign migration preserves earned stock and log but does not promise new-opening replay; legacy keeps its own mode
+ok 20 - older campaign migration preserves earned stock and log but does not promise new-opening replay; legacy keeps its own mode
+  ---
+  duration_ms: 1013.16575
+  type: 'test'
+  ...
+# Subtest: inspection: paid assembler exposes nominal recipe rates, completed production and conserved saved continuation
+ok 21 - inspection: paid assembler exposes nominal recipe rates, completed production and conserved saved continuation
+  ---
+  duration_ms: 3206.24825
+  type: 'test'
+  ...
+# Subtest: inspection: recipe changes retain per-item observations; packing/rebuild resets only machine history
+ok 22 - inspection: recipe changes retain per-item observations; packing/rebuild resets only machine history
+  ---
+  duration_ms: 838.259833
+  type: 'test'
+  ...
+# Subtest: inspection: local circuits isolate remote supply, reflect brownout, fuel exhaustion and pole connection
+ok 23 - inspection: local circuits isolate remote supply, reflect brownout, fuel exhaustion and pole connection
+  ---
+  duration_ms: 817.827459
+  type: 'test'
+  ...
+# Subtest: inspection: belt blockage and inserter destination loss report the actual held state
+ok 24 - inspection: belt blockage and inserter destination loss report the actual held state
+  ---
+  duration_ms: 578.619132
+  type: 'test'
+  ...
+# Subtest: inspection: saved sample window is bounded, excludes pause time and rejects malformed observations
+ok 25 - inspection: saved sample window is bounded, excludes pause time and rejects malformed observations
+  ---
+  duration_ms: 3089.735606
+  type: 'test'
+  ...
+# Subtest: inspection: fresh campaign replay includes identical observations and readonly queries add no commands
+ok 26 - inspection: fresh campaign replay includes identical observations and readonly queries add no commands
+  ---
+  duration_ms: 1439.830203
+  type: 'test'
+  ...
+# Subtest: UI-04 simultaneous constraints are readonly and clear independently with real input and power predicates
+ok 27 - UI-04 simultaneous constraints are readonly and clear independently with real input and power predicates
+  ---
+  duration_ms: 440.897942
+  type: 'test'
+  ...
+# Subtest: UI-04 no local load is neutral; disabled core retains the actual primary statement
+ok 28 - UI-04 no local load is neutral; disabled core retains the actual primary statement
+  ---
+  duration_ms: 687.888242
+  type: 'test'
+  ...
+# Subtest: UI-04 hand transfer previews match actual capped moves and never allocate arrivals or mutate state
+ok 29 - UI-04 hand transfer previews match actual capped moves and never allocate arrivals or mutate state
+  ---
+  duration_ms: 730.561145
+  type: 'test'
+  ...
+# Subtest: UI-04 truck preview shares command capacity/reach rules and leaves source stock untouched
+ok 30 - UI-04 truck preview shares command capacity/reach rules and leaves source stock untouched
+  ---
+  duration_ms: 429.626392
+  type: 'test'
+  ...
+# Subtest: UI-04 source locations only name genuine known stock or finite home patches
+ok 31 - UI-04 source locations only name genuine known stock or finite home patches
+  ---
+  duration_ms: 385.97431
+  type: 'test'
+  ...
+# Subtest: UI-02 fresh and paused load point to mining with empty Home; partial pockets name only the remainder
+ok 32 - UI-02 fresh and paused load point to mining with empty Home; partial pockets name only the remainder
+  ---
+  duration_ms: 2504.247407
+  type: 'test'
+  ...
+# Subtest: UI-02 packed machines skip collection, exhausted Home suggests a real known patch, not impossible supplies
+ok 33 - UI-02 packed machines skip collection, exhausted Home suggests a real known patch, not impossible supplies
+  ---
+  duration_ms: 591.750664
+  type: 'test'
+  ...
+# Subtest: UI-02 existing machinery is inspected, with saved facts surviving load and removal
+ok 34 - UI-02 existing machinery is inspected, with saved facts surviving load and removal
+  ---
+  duration_ms: 1310.77887
+  type: 'test'
+  ...
+# Subtest: UI-02 restored milestones remain restored while missing machinery needs rebuilding; down takes priority over tracking
+ok 35 - UI-02 restored milestones remain restored while missing machinery needs rebuilding; down takes priority over tracking
+  ---
+  duration_ms: 439.144176
+  type: 'test'
+  ...
+# Subtest: UI-02 tracking and minimap use known stable identities; invalid IDs fall back without revealing unknown sites
+ok 36 - UI-02 tracking and minimap use known stable identities; invalid IDs fall back without revealing unknown sites
+  ---
+  duration_ms: 444.214061
+  type: 'test'
+  ...
+# Subtest: UI-02 Home, workbench, machine and out-of-reach prompts resolve their actual E action without mutation
+ok 37 - UI-02 Home, workbench, machine and out-of-reach prompts resolve their actual E action without mutation
+  ---
+  duration_ms: 464.502026
+  type: 'test'
+  ...
+# Subtest: UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home
+ok 38 - UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home
+  ---
+  duration_ms: 591.795283
+  type: 'test'
+  ...
+# Subtest: UI-02 machine reach is measured from the whole footprint, independent of which corner is pointed at
+ok 39 - UI-02 machine reach is measured from the whole footprint, independent of which corner is pointed at
+  ---
+  duration_ms: 372.254889
+  type: 'test'
+  ...
+# Subtest: UI-08 actual stacks conserve quantities through split, merge, swap, sort and save; stale repeated moves reject
+ok 40 - UI-08 actual stacks conserve quantities through split, merge, swap, sort and save; stale repeated moves reject
+  ---
+  duration_ms: 2182.233485
+  type: 'test'
+  ...
+# Subtest: UI-08 fragmentation and full capacity are authoritative, including partial-stack slack and legacy kit reservations
+ok 41 - UI-08 fragmentation and full capacity are authoritative, including partial-stack slack and legacy kit reservations
+  ---
+  duration_ms: 1191.255547
+  type: 'test'
+  ...
+# Subtest: UI-08 paired transfers conserve stock, consume the selected stack, reject stale and out-of-reach commands
+ok 42 - UI-08 paired transfers conserve stock, consume the selected stack, reject stale and out-of-reach commands
+  ---
+  duration_ms: 660.616648
+  type: 'test'
+  ...
+# Subtest: UI-08 shortcut settings preserve existing arrangements and clear retired identifiers individually
+ok 43 - UI-08 shortcut settings preserve existing arrangements and clear retired identifiers individually
+  ---
+  duration_ms: 0.478552
+  type: 'test'
+  ...
+# Subtest: UI-08 interactive speed clamps every command path, uses elapsed time and discards old accelerated accumulation
+ok 44 - UI-08 interactive speed clamps every command path, uses elapsed time and discards old accelerated accumulation
+  ---
+  duration_ms: 1532.087489
+  type: 'test'
+  ...
+# Subtest: UI-06 optional preferences preserve old quickbars and recover malformed individual fields
+ok 45 - UI-06 optional preferences preserve old quickbars and recover malformed individual fields
+  ---
+  duration_ms: 2.647173
+  type: 'test'
+  ...
+# Subtest: UI-06 binding validation preserves modifier/blueprint contexts and prevents world collisions
+ok 46 - UI-06 binding validation preserves modifier/blueprint contexts and prevents world collisions
+  ---
+  duration_ms: 0.830431
+  type: 'test'
+  ...
+# Subtest: UI-06 settings and quickbar saves compose; denied storage retains the session value without changing gameplay
+ok 47 - UI-06 settings and quickbar saves compose; denied storage retains the session value without changing gameplay
+  ---
+  duration_ms: 2298.228989
+  type: 'test'
+  ...
+1..47
+# tests 47
+# suites 0
+# pass 47
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 40906.392033

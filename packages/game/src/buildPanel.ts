@@ -1,0 +1,49 @@
+import {itemName,buildStock,lockReason,KIND_LABEL,knownEquipment,ROUNDS_PER_MAG,type Kind} from '@relight/sim';
+import {buildCatalogue,buildCategory,type BuildCategory} from './buildCatalogue';
+import {quickbarView,readUiPreferences,saveQuickbar,QUICKBAR_KEYS,type QuickTool} from './uiPreferences';
+import {el,type UiShell} from './uiShell';
+import {shortcut} from './controls';
+import {itemIcon} from './itemIcons';
+import {draggable} from './uiDrag';
+import type {Session} from './session';
+const price=(cost:Record<string,number>)=>Object.entries(cost).filter(([,n])=>n>0).map(([k,n])=>`${n} ${itemName(k)}`).join(' + ')||'No material cost';
+const label=(k:QuickTool)=>k==='rifle'?'Rifle':KIND_LABEL[k];
+type ShortcutDrag={tool:QuickTool;from?:number};
+export function createBuildPanel(session:Session,root:HTMLElement,shell:UiShell,pick:(tool:QuickTool)=>void,selected:()=>string,rotate:()=>void,cancel:()=>void,history:HTMLElement,clipboard:HTMLElement|null,library:HTMLElement|null){
+ quickbarView.slots=readUiPreferences().quickbar;root.replaceChildren();root.classList.add('build-catalogue');
+ let category:BuildCategory='Production',detailTool:QuickTool='excavator',assigning=false;
+ const tabs=el('div','build-tabs'),grid=el('div','catalogue-grid'),detail=el('section','item-detail'),art=el('div'),name=el('h3'),purpose=el('p'),cost=el('p'),status=el('p'),notice=el('p','action-result');notice.setAttribute('role','status');
+ const add=el('button',undefined,'Add to action bar'),destinations=el('div','shortcut-destinations');destinations.hidden=true;
+ const save=()=>{notice.textContent=saveQuickbar(quickbarView.slots)?'Action bar saved.':'Changed for this session; browser storage is unavailable.';update();};
+ const destination=(target:Element|null)=>target?.closest<HTMLElement>('[data-quick-slot]');
+ const removal=(target:Element|null)=>!!target?.matches('.ui-navigation, .quickbar, .ui-drawer-body, .build-catalogue');
+ const preview=(target:Element|null,p:ShortcutDrag)=>{const slot=destination(target);if(slot){slot.classList.add('drop-target');return `${p.from===undefined?'Pin':'Swap'} · slot ${QUICKBAR_KEYS[Number(slot.dataset.quickSlot)]}`;}return p.from!==undefined&&removal(target)?'Remove shortcut':'Release to cancel';};
+ const drop=(target:Element|null,p:ShortcutDrag)=>{const slot=destination(target),a=quickbarView.slots;if(slot){const i=Number(slot.dataset.quickSlot);if(p.from===undefined)a[i]=p.tool;else [a[i],a[p.from]]=[a[p.from],a[i]];save();}else if(p.from!==undefined&&removal(target)){a[p.from]=null;save();}};
+ tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Build categories');
+ for(const c of ['Production','Logistics','Power','Defence'] as const){const b=el('button',undefined,c);b.setAttribute('role','tab');b.onclick=()=>{category=c;update();};tabs.append(b);}
+ const cards=buildCatalogue(!!session.state.campaign).map(entry=>{const b=el('button','catalogue-tile');b.dataset.item=entry.kind;b.append(itemIcon(entry.kind),el('span',undefined,entry.label));b.setAttribute('aria-label',`Build ${entry.label}`);b.onclick=()=>{detailTool=entry.kind;pick(entry.kind);};b.onmouseenter=b.onfocus=()=>{detailTool=entry.kind;details();};draggable(b,()=>({item:entry.kind,value:{tool:entry.kind} as ShortcutDrag}),preview,drop);grid.append(b);return {entry,b};});
+ for(let i=0;i<10;i++){const b=el('button',undefined,QUICKBAR_KEYS[i]);b.setAttribute('aria-label',`Assign to slot ${QUICKBAR_KEYS[i]}`);b.onclick=()=>{quickbarView.slots[i]=detailTool;assigning=false;destinations.hidden=true;save();};destinations.append(b);}
+ add.onclick=()=>{assigning=!assigning;destinations.hidden=!assigning;add.setAttribute('aria-expanded',String(assigning));if(assigning)(destinations.firstChild as HTMLElement).focus();};
+ detail.append(art,name,purpose,cost,status,add,destinations);root.append(tabs,grid,detail,el('p','hint','Drag to a slot or click to place.'),notice);
+ const tools=el('details','build-tools'),toolsTitle=el('summary',undefined,'Blueprints and construction tools'),rifle=el('button',undefined,'Equip rifle');rifle.onclick=()=>pick('rifle');tools.append(toolsTitle,rifle,history);if(clipboard)tools.append(clipboard);if(library)tools.append(library);root.append(tools);
+ const bar=el('div','quickbar');bar.setAttribute('role','group');bar.setAttribute('aria-label','Action bar');
+ const slots=QUICKBAR_KEYS.map((key,i)=>{const b=el('button','quickbar-slot'),icon=el('span'),count=el('span','quickbar-count');b.dataset.quickSlot=String(i);b.append(el('kbd',undefined,key),icon,count);b.onclick=()=>{const tool=quickbarView.slots[i];if(tool&&(tool==='rifle'||knownEquipment(session.state,tool)))pick(tool);};b.oncontextmenu=e=>{e.preventDefault();openSlotMenu(i);};b.onkeydown=e=>{if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();quickbarView.slots[i]=null;save();}else if(e.key==='F10'&&e.shiftKey){e.preventDefault();openSlotMenu(i);}};draggable(b,()=>{const tool=quickbarView.slots[i];return tool?{item:tool,value:{tool,from:i}}:null;},preview,drop);bar.append(b);return {b,icon,count,last:''};});
+ const nav=document.querySelector('.ui-navigation')!,menu=el('details','quickbar-more'),menuTitle=el('summary',undefined,'Menu'),actions=el('div','quickbar-more-actions');menuTitle.title='Management, construction, help and pause';menu.append(menuTitle,actions);nav.append(menu);actions.addEventListener('click',()=>{menu.open=false;});
+ const slotMenu=el('div','slot-menu'),remove=el('button',undefined,'Remove shortcut');let editing=0;slotMenu.hidden=true;remove.onclick=()=>{quickbarView.slots[editing]=null;slotMenu.hidden=true;save();};slotMenu.append(remove);nav.append(slotMenu);
+ function openSlotMenu(i:number){editing=i;slotMenu.hidden=false;remove.textContent=`Remove ${quickbarView.slots[i]?label(quickbarView.slots[i]!):'empty'} shortcut (${QUICKBAR_KEYS[i]})`;remove.focus();}
+ slotMenu.addEventListener('focusout',()=>{queueMicrotask(()=>{if(!slotMenu.contains(document.activeElement))slotMenu.hidden=true;});});
+ const toolbar=el('div','placement-toolbar'),selection=el('span'),rotateButton=el('button'),cancelButton=el('button',undefined,'Cancel (Esc)');rotateButton.onclick=rotate;cancelButton.onclick=cancel;toolbar.append(selection,rotateButton,cancelButton);nav.prepend(bar,toolbar);shell.protect(bar);shell.protect(toolbar);
+ function details(){const st=session.state;art.replaceChildren(itemIcon(detailTool));name.textContent=label(detailTool);if(detailTool==='rifle'){purpose.textContent='Uses carried ammunition.';cost.textContent='';status.textContent='';return;}const entry=cards.find(c=>c.entry.kind===detailTool)?.entry,stock=buildStock(detailTool,st.engineer.inv),locked=lockReason(st,detailTool);purpose.textContent=entry?.what??'';cost.textContent=`Cost: ${price(stock.cost)}`;status.textContent=locked|| (stock.carried?`${stock.carried} packed · used before materials`:stock.shortage.length?`Missing: ${stock.shortage.map(s=>`${s.count} ${itemName(s.item)}`).join(' + ')}`:'Materials available in Backpack.');}
+ function update(){
+  const st=session.state,tool=selected();
+  for(const child of Array.from(nav.children))if(child instanceof HTMLButtonElement&&(/^(Management|Construction|Help|Navigation|Map|Pause)/.test(child.textContent??'')))actions.append(child);
+  for(const button of Array.from(nav.children))if(button instanceof HTMLButtonElement&&!button.querySelector('.item-art')){const text=button.textContent??'',kind=text.startsWith('Build')?'build':text.startsWith('Backpack')?'backpack':text.startsWith('Projects')?'projects':null;if(kind){button.dataset.entry=kind;button.prepend(itemIcon(kind));}}
+  for(const b of Array.from(tabs.children))b.setAttribute('aria-selected',String(b.textContent===category));
+  for(const {entry,b} of cards){b.hidden=buildCategory(entry.kind)!==category||!knownEquipment(st,entry.kind);b.setAttribute('aria-pressed',String(entry.kind===tool));b.title=entry.what;}
+  if(!cards.some(c=>c.entry.kind===detailTool&&!c.b.hidden))detailTool=cards.find(c=>!c.b.hidden)?.entry.kind??'rifle';
+  details();const plansKnown=!st.campaign||!!st.campaign.clipboard||!!st.campaign.recruits?.sites.some(s=>s.kind==='foreman'&&(s.seenAt>=0||s.recruitedAt>=0));if(clipboard)clipboard.hidden=!plansKnown;if(library)library.hidden=!plansKnown;
+  for(let i=0;i<10;i++){const s=slots[i],k=quickbarView.slots[i],visible=k&&(k==='rifle'||knownEquipment(st,k)),id=visible?k:'';if(s.last!==id){s.last=id||'';s.icon.replaceChildren(...(id?[itemIcon(id)]:[]));}s.b.setAttribute('aria-pressed',String(!!visible&&k===tool));s.b.setAttribute('aria-label',`Slot ${QUICKBAR_KEYS[i]}: ${visible?label(k!):k?'Undiscovered':'Empty'}`);s.b.title=`${visible?label(k!):k?'Undiscovered':'Empty slot'} · ${QUICKBAR_KEYS[i]} selects · Delete removes · Right-click for actions`;s.count.textContent='';if(visible){if(k==='rifle'){s.count.textContent=String(Math.floor((st.engineer.inv.magazine??0)*ROUNDS_PER_MAG));s.b.title+=' · rounds';}else{const stock=buildStock(k!,st.engineer.inv);const n=stock.carried||stock.buildable;s.count.textContent=String(Number.isFinite(n)?n:0);s.b.title+=` · ${stock.carried?'packed machines':'buildable from carried materials'}${lockReason(st,k!)?` · ${lockReason(st,k!)}`:''}`;}}}
+  toolbar.hidden=tool==='hand';selection.textContent=tool==='hand'?'':label(tool as QuickTool);rotateButton.textContent=`Rotate (${shortcut('rotate')})`;rotateButton.hidden=tool==='rifle';bar.inert=toolbar.inert=shell.paused();root.dataset.activeTab=category;
+ }
+ return {update};
+}

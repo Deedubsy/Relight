@@ -1,0 +1,34 @@
+{
+  "invalidRejected": {
+    "status": 1,
+    "output": "/mnt/e/Factorio2/packages/tools/src/phaserCityModel.ts:50\n  if(b.x<b.parcel.x||b.y<b.parcel.y||b.x+b.w>b.parcel.x+b.parcel.w||b.y+b.h>b.parcel.y+b.parcel.h)throw Error(`${id}: keep the building inside its reserved parcel.`);\n                                                                                                        ^\n\n\nError: court-northwest-home: keep the building inside its reserved parcel.\n    at draftLayout (/mnt/e/Factorio2/packages/tools/src/phaserCityModel.ts:50:105)\n    at <anonymous> (/mnt/e/Factorio2/packages/tools/src/phaserCity.ts:46:97)\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.18.0\n"
+  },
+  "applied": {
+    "status": 0,
+    "output": "{\n  \"mode\": \"apply\",\n  \"changed\": true,\n  \"mapId\": \"riverfront-arc-v4-editor-2ba45f02c57e\",\n  \"sourceHash\": \"bf0bd897efe188f115ad5bf984832f7482a8ff8a5eb61652c9fa16f45879ed0b\",\n  \"previousSourceHash\": \"86f5c4771df711a90a907c97404c9be90f1e8f2b0f61800965e4449aef8e5ba9\",\n  \"validation\": {\n    \"errors\": [],\n    \"width\": 864,\n    \"height\": 576,\n    \"land\": 412634,\n    \"accessible\": 372448,\n    \"buildings\": 287,\n    \"roads\": 371,\n    \"railLength\": 1226.5476612469843\n  }\n}\nApplied. Reload the live preview and choose New Game. Existing saves require their matching layout.\n"
+  },
+  "generatorGuard": true,
+  "game": {
+    "mapId": "riverfront-arc-v4-editor-2ba45f02c57e",
+    "building": [
+      32,
+      351,
+      1
+    ],
+    "door": [
+      41,
+      354
+    ],
+    "oldWallPassable": true,
+    "newWallPassable": false,
+    "stateProblem": "",
+    "saveHashMatches": true,
+    "oldSaveProblem": "This earlier authored city needs its original build. Original save preserved; choose New Game for Riverfront v4"
+  },
+  "pageErrors": [],
+  "restored": {
+    "status": 0,
+    "output": "{\n  \"mode\": \"apply\",\n  \"changed\": false,\n  \"mapId\": \"riverfront-arc-v4\",\n  \"sourceHash\": \"86f5c4771df711a90a907c97404c9be90f1e8f2b0f61800965e4449aef8e5ba9\",\n  \"previousSourceHash\": \"bf0bd897efe188f115ad5bf984832f7482a8ff8a5eb61652c9fa16f45879ed0b\",\n  \"validation\": {\n    \"errors\": [],\n    \"width\": 864,\n    \"height\": 576,\n    \"land\": 412634,\n    \"accessible\": 372448,\n    \"buildings\": 287,\n    \"roads\": 371,\n    \"railLength\": 1226.5476612469843\n  }\n}\nApplied. Reload the live preview and choose New Game. Existing saves require their matching layout.\n"
+  },
+  "originalSourceRestored": true
+}

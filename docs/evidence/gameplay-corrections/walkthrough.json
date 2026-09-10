@@ -1,0 +1,53 @@
+{
+  "checks": [
+    {
+      "entry": {
+        "rules": "exploration-v2",
+        "inv": {},
+        "stock": {
+          "steel": 0,
+          "copper": 0,
+          "stone": 0
+        },
+        "goal": {
+          "next": {
+            "id": "opening-workshop",
+            "title": "Start your workshop",
+            "text": "Mine the remaining materials by hand",
+            "detail": "No working machine. Pockets need 10 steel; Home has none of these materials.",
+            "location": {
+              "x": 410,
+              "y": 630
+            },
+            "shortage": [
+              {
+                "item": "steel",
+                "count": 10,
+                "home": 0
+              }
+            ]
+          },
+          "goal": {
+            "id": "home-factory",
+            "text": "Start your workshop",
+            "why": "Mine the remaining materials by hand"
+          },
+          "support": {
+            "id": "campaign-threat",
+            "text": "Next major assault: Night 3. Two minor raid opportunities per day; ruins remain dangerous.",
+            "why": "Prepare ammunition and repair defences before dusk."
+          }
+        },
+        "assets": [
+          "http://127.0.0.1:5178/assets/index-BiJhJngM.js"
+        ]
+      }
+    },
+    "Core search conceals exact relay; plant displays material requirements",
+    "Verified factory checkpoint displays real attached artifact, circuit and materials",
+    "Inspected controls at 1920x1080 and 1280x720",
+    "core-recovered visible in loaded actual-game checkpoint",
+    "passenger visible in loaded actual-game checkpoint"
+  ],
+  "errors": []
+}

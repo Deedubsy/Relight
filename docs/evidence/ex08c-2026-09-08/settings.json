@@ -1,0 +1,1274 @@
+{
+  "source_commit": "8e54ed602da159905b0428f316f6e75cb25ae351",
+  "config_hash": "1833957f",
+  "config_ref": {
+    "kind": "campaign",
+    "ruleset": "exploration-v2",
+    "opening": "culdesac-v1"
+  },
+  "session": "EX-08H-C / P6-H / P7-H",
+  "human_play": "not_run",
+  "starts": [
+    {
+      "name": "fresh",
+      "file": "docs/evidence/ex08c-2026-09-08/campaign/fresh.json",
+      "description": "Untouched ordinary tick-zero campaign; no assistance.",
+      "hash": "48bce3a6",
+      "browserNormalizedHash": "906e54ae",
+      "tick": 0,
+      "t": 0,
+      "logEntries": 0,
+      "radioRestored": false,
+      "engineer": {
+        "x": 421.5,
+        "y": 638.5,
+        "block": 356,
+        "hp": 100,
+        "lastHit": -999,
+        "down": -1,
+        "inv": {},
+        "reach": 8,
+        "truck": false,
+        "truckFound": false,
+        "dest": -1,
+        "remaining": 0,
+        "vel": [
+          0,
+          0
+        ],
+        "target": null,
+        "firing": -1,
+        "barrels": 1,
+        "cooldown": 0,
+        "walked": 0,
+        "walkedHour": [],
+        "fired": 0,
+        "firstShot": -1,
+        "hurt": 0,
+        "downs": 0,
+        "kills": 0,
+        "stamina": 1,
+        "sprint": false,
+        "dash": 0,
+        "dashDir": [
+          1,
+          0
+        ],
+        "dashCooldown": 0,
+        "face": [
+          1,
+          0
+        ],
+        "aim": null,
+        "shots": {},
+        "iframes": 0,
+        "shootS": 0,
+        "shootHour": [],
+        "shotAt": -1,
+        "danger": 0,
+        "dangerHour": [],
+        "dangerShot": 0
+      },
+      "bases": [
+        {
+          "block": 356,
+          "x": 418,
+          "y": 632,
+          "size": 6,
+          "hp": 300,
+          "commissionedAt": 0
+        }
+      ],
+      "stock": {
+        "stone": 50,
+        "copper": 100,
+        "steel": 200
+      },
+      "store": {
+        "coal": 40,
+        "wire": 0,
+        "frame": 0,
+        "board": 0
+      },
+      "buffer": 200,
+      "machines": [
+        {
+          "id": 1,
+          "kind": "depot",
+          "x": 418,
+          "y": 632,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 2,
+          "kind": "generator",
+          "x": 428,
+          "y": 631,
+          "dir": 0,
+          "inv": {
+            "coal": 40
+          }
+        }
+      ],
+      "nextDawn": 2400
+    },
+    {
+      "name": "network",
+      "file": "docs/evidence/ex08c-2026-09-08/campaign/network.json",
+      "description": "Scripted opening replayed from ordinary starting stock and full paid command history; player did not perform the opening. No resource/position/clock/HP injection. Not an opening-time or unaided discovery observation.",
+      "hash": "ef3c6c14",
+      "browserNormalizedHash": "ef3c6c14",
+      "tick": 47800,
+      "t": 2390,
+      "logEntries": 353,
+      "radioRestored": true,
+      "engineer": {
+        "x": 411.5,
+        "y": 624.5,
+        "block": 356,
+        "hp": 100,
+        "lastHit": -999,
+        "down": -1,
+        "inv": {
+          "steel": 40,
+          "copper": 20,
+          "coal": 161
+        },
+        "reach": 8,
+        "truck": false,
+        "truckFound": true,
+        "dest": -1,
+        "remaining": 0,
+        "vel": [
+          0,
+          0
+        ],
+        "target": null,
+        "firing": -1,
+        "barrels": 1,
+        "cooldown": 0,
+        "walked": 469.0500000000724,
+        "walkedHour": [
+          469.0500000000724
+        ],
+        "fired": 0,
+        "firstShot": -1,
+        "hurt": 0,
+        "downs": 0,
+        "kills": 0,
+        "stamina": 1,
+        "sprint": false,
+        "dash": 0,
+        "dashDir": [
+          1,
+          0
+        ],
+        "dashCooldown": 0,
+        "face": [
+          1,
+          0
+        ],
+        "aim": null,
+        "shots": {},
+        "iframes": 0,
+        "shootS": 0,
+        "shootHour": [],
+        "shotAt": -1,
+        "danger": 0,
+        "dangerHour": [],
+        "dangerShot": 0
+      },
+      "bases": [
+        {
+          "block": 356,
+          "x": 418,
+          "y": 632,
+          "size": 6,
+          "hp": 252.80000000000246,
+          "commissionedAt": 0
+        },
+        {
+          "block": 353,
+          "x": 386,
+          "y": 632,
+          "size": 3,
+          "hp": 300,
+          "commissionedAt": 1058
+        },
+        {
+          "block": 332,
+          "x": 390,
+          "y": 596,
+          "size": 3,
+          "hp": 300,
+          "commissionedAt": 1065
+        }
+      ],
+      "stock": {
+        "stone": 50,
+        "copper": 0,
+        "steel": 0
+      },
+      "store": {
+        "coal": 0,
+        "wire": 0,
+        "frame": 0,
+        "board": 0
+      },
+      "buffer": 0,
+      "machines": [
+        {
+          "id": 1,
+          "kind": "depot",
+          "x": 418,
+          "y": 632,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 2,
+          "kind": "generator",
+          "x": 428,
+          "y": 631,
+          "dir": 0,
+          "inv": {
+            "coal": 39
+          }
+        },
+        {
+          "id": 3,
+          "kind": "chest",
+          "x": 417,
+          "y": 630,
+          "dir": 0,
+          "inv": {
+            "magazine": 10
+          }
+        },
+        {
+          "id": 4,
+          "kind": "inserter",
+          "x": 419,
+          "y": 630,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 5,
+          "kind": "turret",
+          "x": 420,
+          "y": 630,
+          "dir": 0,
+          "inv": {
+            "rounds": 47
+          }
+        },
+        {
+          "id": 6,
+          "kind": "chest",
+          "x": 417,
+          "y": 638,
+          "dir": 0,
+          "inv": {
+            "magazine": 10
+          }
+        },
+        {
+          "id": 7,
+          "kind": "inserter",
+          "x": 419,
+          "y": 638,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 8,
+          "kind": "turret",
+          "x": 420,
+          "y": 638,
+          "dir": 0,
+          "inv": {
+            "rounds": 47
+          }
+        },
+        {
+          "id": 9,
+          "kind": "chest",
+          "x": 409,
+          "y": 623,
+          "dir": 0,
+          "inv": {
+            "steel": 111,
+            "copper": 56
+          }
+        },
+        {
+          "id": 10,
+          "kind": "inserter",
+          "x": 411,
+          "y": 623,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 11,
+          "kind": "assembler",
+          "x": 412,
+          "y": 623,
+          "dir": 0,
+          "inv": {
+            "steel": 8,
+            "copper": 4
+          }
+        },
+        {
+          "id": 12,
+          "kind": "inserter",
+          "x": 415,
+          "y": 624,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 13,
+          "kind": "chest",
+          "x": 416,
+          "y": 624,
+          "dir": 0,
+          "inv": {
+            "magazine": 42
+          }
+        },
+        {
+          "id": 14,
+          "kind": "generator",
+          "x": 384,
+          "y": 630,
+          "dir": 0,
+          "inv": {
+            "coal": 31
+          }
+        },
+        {
+          "id": 15,
+          "kind": "chest",
+          "x": 381,
+          "y": 632,
+          "dir": 0,
+          "inv": {
+            "magazine": 9
+          }
+        },
+        {
+          "id": 16,
+          "kind": "inserter",
+          "x": 383,
+          "y": 632,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 17,
+          "kind": "turret",
+          "x": 384,
+          "y": 632,
+          "dir": 0,
+          "inv": {
+            "rounds": 50
+          }
+        },
+        {
+          "id": 18,
+          "kind": "chest",
+          "x": 383,
+          "y": 635,
+          "dir": 0,
+          "inv": {
+            "magazine": 11
+          }
+        },
+        {
+          "id": 19,
+          "kind": "inserter",
+          "x": 385,
+          "y": 635,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 20,
+          "kind": "turret",
+          "x": 386,
+          "y": 635,
+          "dir": 0,
+          "inv": {
+            "rounds": 50
+          }
+        },
+        {
+          "id": 21,
+          "kind": "generator",
+          "x": 388,
+          "y": 594,
+          "dir": 0,
+          "inv": {
+            "coal": 44
+          }
+        },
+        {
+          "id": 22,
+          "kind": "chest",
+          "x": 389,
+          "y": 592,
+          "dir": 0,
+          "inv": {
+            "magazine": 9
+          }
+        },
+        {
+          "id": 23,
+          "kind": "inserter",
+          "x": 391,
+          "y": 592,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 24,
+          "kind": "turret",
+          "x": 392,
+          "y": 592,
+          "dir": 0,
+          "inv": {
+            "rounds": 43
+          }
+        },
+        {
+          "id": 25,
+          "kind": "chest",
+          "x": 392,
+          "y": 594,
+          "dir": 0,
+          "inv": {
+            "magazine": 10
+          }
+        },
+        {
+          "id": 26,
+          "kind": "inserter",
+          "x": 394,
+          "y": 594,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 27,
+          "kind": "turret",
+          "x": 395,
+          "y": 594,
+          "dir": 0,
+          "inv": {
+            "rounds": 43
+          }
+        },
+        {
+          "id": 28,
+          "kind": "track",
+          "x": 436,
+          "y": 635,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 29,
+          "kind": "track",
+          "x": 436,
+          "y": 634,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 30,
+          "kind": "track",
+          "x": 436,
+          "y": 633,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 31,
+          "kind": "track",
+          "x": 436,
+          "y": 632,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 32,
+          "kind": "track",
+          "x": 436,
+          "y": 631,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 33,
+          "kind": "track",
+          "x": 436,
+          "y": 630,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 34,
+          "kind": "track",
+          "x": 436,
+          "y": 629,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 35,
+          "kind": "track",
+          "x": 436,
+          "y": 628,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 36,
+          "kind": "track",
+          "x": 436,
+          "y": 627,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 37,
+          "kind": "track",
+          "x": 436,
+          "y": 626,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 38,
+          "kind": "track",
+          "x": 436,
+          "y": 625,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 39,
+          "kind": "track",
+          "x": 436,
+          "y": 624,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 40,
+          "kind": "track",
+          "x": 436,
+          "y": 623,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 41,
+          "kind": "track",
+          "x": 436,
+          "y": 622,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 42,
+          "kind": "track",
+          "x": 436,
+          "y": 621,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 43,
+          "kind": "track",
+          "x": 436,
+          "y": 620,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 44,
+          "kind": "track",
+          "x": 436,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 45,
+          "kind": "track",
+          "x": 435,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 46,
+          "kind": "track",
+          "x": 434,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 47,
+          "kind": "track",
+          "x": 433,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 48,
+          "kind": "track",
+          "x": 432,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 49,
+          "kind": "track",
+          "x": 431,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 50,
+          "kind": "track",
+          "x": 430,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 51,
+          "kind": "track",
+          "x": 429,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 52,
+          "kind": "track",
+          "x": 428,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 53,
+          "kind": "track",
+          "x": 427,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 54,
+          "kind": "track",
+          "x": 426,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 55,
+          "kind": "track",
+          "x": 425,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 56,
+          "kind": "track",
+          "x": 424,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 57,
+          "kind": "track",
+          "x": 423,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 58,
+          "kind": "track",
+          "x": 422,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 59,
+          "kind": "track",
+          "x": 421,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 60,
+          "kind": "track",
+          "x": 420,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 61,
+          "kind": "track",
+          "x": 419,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 62,
+          "kind": "track",
+          "x": 418,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 63,
+          "kind": "track",
+          "x": 417,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 64,
+          "kind": "track",
+          "x": 416,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 65,
+          "kind": "track",
+          "x": 415,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 66,
+          "kind": "track",
+          "x": 414,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 67,
+          "kind": "track",
+          "x": 413,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 68,
+          "kind": "track",
+          "x": 412,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 69,
+          "kind": "track",
+          "x": 411,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 70,
+          "kind": "track",
+          "x": 410,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 71,
+          "kind": "track",
+          "x": 409,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 72,
+          "kind": "track",
+          "x": 408,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 73,
+          "kind": "track",
+          "x": 407,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 74,
+          "kind": "track",
+          "x": 406,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 75,
+          "kind": "track",
+          "x": 405,
+          "y": 619,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 76,
+          "kind": "track",
+          "x": 405,
+          "y": 618,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 77,
+          "kind": "track",
+          "x": 405,
+          "y": 617,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 78,
+          "kind": "track",
+          "x": 405,
+          "y": 616,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 79,
+          "kind": "track",
+          "x": 405,
+          "y": 615,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 80,
+          "kind": "tramstop",
+          "x": 434,
+          "y": 635,
+          "dir": 0,
+          "inv": {
+            "steel": 10,
+            "copper": 5,
+            "magazine": 80
+          },
+          "cargo": {}
+        },
+        {
+          "id": 81,
+          "kind": "tramstop",
+          "x": 403,
+          "y": 619,
+          "dir": 0,
+          "inv": {},
+          "cargo": {
+            "steel": 15,
+            "copper": 10,
+            "magazine": 10
+          }
+        },
+        {
+          "id": 82,
+          "kind": "tramstop",
+          "x": 403,
+          "y": 615,
+          "dir": 0,
+          "inv": {},
+          "cargo": {
+            "steel": 15,
+            "copper": 10,
+            "magazine": 10
+          }
+        },
+        {
+          "id": 83,
+          "kind": "tram",
+          "x": 436,
+          "y": 635,
+          "dir": 2,
+          "inv": {},
+          "cargo": {}
+        },
+        {
+          "id": 84,
+          "kind": "generator",
+          "x": 421,
+          "y": 596,
+          "dir": 0,
+          "inv": {
+            "coal": 32
+          }
+        },
+        {
+          "id": 85,
+          "kind": "excavator",
+          "x": 416,
+          "y": 587,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 86,
+          "kind": "chest",
+          "x": 419,
+          "y": 588,
+          "dir": 0,
+          "inv": {
+            "coal": 87
+          }
+        }
+      ],
+      "nextDawn": 2400
+    },
+    {
+      "name": "turbine",
+      "file": "docs/evidence/ex08c-2026-09-08/campaign/turbine.json",
+      "description": "Optional assisted restoration start: ordinary paid mining, concrete production, travel and local generator prepared; crew discoveries already known. Do not use for unaided discovery.",
+      "hash": "84cb2486",
+      "browserNormalizedHash": "84cb2486",
+      "tick": 3940,
+      "t": 197,
+      "logEntries": 31,
+      "radioRestored": false,
+      "engineer": {
+        "x": 516.5,
+        "y": 656.5,
+        "block": 363,
+        "hp": 100,
+        "lastHit": -999,
+        "down": -1,
+        "inv": {
+          "steel": 107,
+          "copper": 58,
+          "concrete": 40
+        },
+        "reach": 8,
+        "truck": false,
+        "truckFound": false,
+        "dest": -1,
+        "remaining": 0,
+        "vel": [
+          0,
+          0
+        ],
+        "target": null,
+        "firing": -1,
+        "barrels": 1,
+        "cooldown": 0,
+        "walked": 61.19999999999866,
+        "walkedHour": [
+          61.19999999999866
+        ],
+        "fired": 0,
+        "firstShot": -1,
+        "hurt": 0,
+        "downs": 0,
+        "kills": 0,
+        "stamina": 1,
+        "sprint": false,
+        "dash": 0,
+        "dashDir": [
+          1,
+          0
+        ],
+        "dashCooldown": 0,
+        "face": [
+          1,
+          0
+        ],
+        "aim": null,
+        "shots": {},
+        "iframes": 0,
+        "shootS": 0,
+        "shootHour": [],
+        "shotAt": -1,
+        "danger": 0,
+        "dangerHour": [],
+        "dangerShot": 0
+      },
+      "bases": [
+        {
+          "block": 356,
+          "x": 418,
+          "y": 632,
+          "size": 6,
+          "hp": 300,
+          "commissionedAt": 0
+        }
+      ],
+      "stock": {
+        "stone": 0,
+        "copper": 20,
+        "steel": 20
+      },
+      "store": {
+        "coal": 20,
+        "wire": 0,
+        "frame": 0,
+        "board": 0
+      },
+      "buffer": 200,
+      "machines": [
+        {
+          "id": 1,
+          "kind": "depot",
+          "x": 418,
+          "y": 632,
+          "dir": 0,
+          "inv": {}
+        },
+        {
+          "id": 2,
+          "kind": "generator",
+          "x": 428,
+          "y": 631,
+          "dir": 0,
+          "inv": {
+            "coal": 33
+          }
+        },
+        {
+          "id": 3,
+          "kind": "mixer",
+          "x": 413,
+          "y": 624,
+          "dir": 1,
+          "inv": {
+            "stone": 0
+          }
+        },
+        {
+          "id": 4,
+          "kind": "chest",
+          "x": 409,
+          "y": 625,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 5,
+          "kind": "inserter",
+          "x": 411,
+          "y": 625,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 6,
+          "kind": "belt",
+          "x": 412,
+          "y": 625,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 7,
+          "kind": "inserter",
+          "x": 416,
+          "y": 625,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 8,
+          "kind": "chest",
+          "x": 417,
+          "y": 625,
+          "dir": 1,
+          "inv": {}
+        },
+        {
+          "id": 9,
+          "kind": "generator",
+          "x": 515,
+          "y": 654,
+          "dir": 0,
+          "inv": {
+            "coal": 20
+          }
+        }
+      ],
+      "nextDawn": 2400
+    }
+  ],
+  "defaultStart": "fresh",
+  "speed": "1x; pauses/interventions recorded",
+  "difficulty": "unchanged default campaign rules",
+  "config": {
+    "production": true,
+    "asmSchedule": [],
+    "startAssemblers": 1,
+    "asmRate": 20,
+    "asmEarlyRate": null,
+    "startAsmRate": 10,
+    "hopper": 100,
+    "bufferCap": 4000,
+    "startRounds": 200,
+    "unfed": "substation",
+    "unfedN": 40,
+    "starveQuiet": false,
+    "scatter": true,
+    "scatterFrac": 0.09,
+    "validator": "none",
+    "shadeThr": 0.3,
+    "hulkThr": 0.5,
+    "wakeCap": true,
+    "bloomBase": 4,
+    "jitter": 0.1,
+    "fallTiles": 30,
+    "hulkRoll": "hash",
+    "bloomT": 120,
+    "bloomDrop": 0.9,
+    "relight": null,
+    "power": true,
+    "supply": "generators",
+    "headroom": 500,
+    "shortfall": null,
+    "draw": "half",
+    "interiorGrace": 0,
+    "asmTrack": 0,
+    "wellDeath": false,
+    "interleave": false,
+    "economy": true,
+    "walk": true,
+    "eco": {
+      "yieldPerMin": 32,
+      "claimCost": {
+        "copper": 5,
+        "steel": 10
+      },
+      "assemblerCost": {
+        "copper": 20,
+        "steel": 40
+      },
+      "startStock": {
+        "stone": 0,
+        "copper": 40,
+        "steel": 80
+      },
+      "startPatch": {
+        "steel": 7680,
+        "perMin": 64,
+        "copper": 3840,
+        "copperPerMin": 32
+      },
+      "magazineCost": {
+        "steel": 2,
+        "copper": 1
+      },
+      "pool": {
+        "civ": 3840,
+        "res": 3840,
+        "ind": 3840
+      }
+    }
+  },
+  "clock": {
+    "daySeconds": 1200,
+    "daylightSeconds": 900,
+    "firstAssaultNight": 3,
+    "opening": "culdesac-v1"
+  },
+  "threat": {
+    "majorCount": 60,
+    "spawnEvery": 4,
+    "minorMin": 8,
+    "minorMax": 12,
+    "contactDps": 5,
+    "structureDps": 8,
+    "speed": 2,
+    "minorAfterMajor": 300,
+    "guardLeash": 12,
+    "guardNotice": 8,
+    "radioUpgradeSteel": 15,
+    "radioUpgradeCopper": 10
+  },
+  "defence": {
+    "barricadeHp": 240,
+    "wallHp": 120,
+    "turretHp": 100,
+    "coreHp": 300,
+    "repairHp": 40,
+    "repairSeconds": 4,
+    "repairSteel": 2,
+    "repairCopper": 1,
+    "coreSteel": 10,
+    "coreCopper": 5,
+    "coreRepairSeconds": 12
+  },
+  "districts": {
+    "workshopKw": 40,
+    "repairSeconds": 2,
+    "repairRadius": 14,
+    "supplyRadius": 4,
+    "resupplySteel": 10,
+    "resupplyCopper": 5,
+    "resupplyMagazines": 5,
+    "resupplyVisits": 2
+  },
+  "discovery": {
+    "repairMultiplier": 0.5,
+    "clueRadius": 24,
+    "cacheClearance": 3,
+    "guardian": {
+      "perception": 5,
+      "leash": 8,
+      "hpMul": 2,
+      "speedMul": 1.2,
+      "windupS": 1.2,
+      "attackS": 1.2,
+      "attackHp": 5,
+      "investigateS": 6,
+      "lostS": 2,
+      "hysteresis": 2,
+      "respawnS": 0
+    }
+  }
+}

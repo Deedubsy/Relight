@@ -1,0 +1,184 @@
+TAP version 13
+# Subtest: current survey: seed 6 composes legal tracks/stops and preserves an older paid save
+ok 1 - current survey: seed 6 composes legal tracks/stops and preserves an older paid save
+  ---
+  duration_ms: 2643.798226
+  type: 'test'
+  ...
+# Subtest: current survey: seed 29 composes legal tracks/stops and preserves an older paid save
+ok 2 - current survey: seed 29 composes legal tracks/stops and preserves an older paid save
+  ---
+  duration_ms: 1882.138621
+  type: 'test'
+  ...
+# Subtest: old survey logs remain available but cannot claim new-factory replay; new survey saves retain complete logs
+ok 3 - old survey logs remain available but cannot claim new-factory replay; new survey saves retain complete logs
+  ---
+  duration_ms: 689.874316
+  type: 'test'
+  ...
+# Subtest: unknown survey revision refuses load without treating the saved route as a new survey
+ok 4 - unknown survey revision refuses load without treating the saved route as a new survey
+  ---
+  duration_ms: 229.27145
+  type: 'test'
+  ...
+# Subtest: population repair: seed 80 has complete legal reservations
+ok 5 - population repair: seed 80 has complete legal reservations
+  ---
+  duration_ms: 1206.95226
+  type: 'test'
+  ...
+# Subtest: population repair: seed 88 has complete legal reservations
+ok 6 - population repair: seed 88 has complete legal reservations
+  ---
+  duration_ms: 1372.09985
+  type: 'test'
+  ...
+# Subtest: population repair: seed 102 has complete legal reservations
+ok 7 - population repair: seed 102 has complete legal reservations
+  ---
+  duration_ms: 1155.061464
+  type: 'test'
+  ...
+# Subtest: population repair: seed 305 has complete legal reservations
+ok 8 - population repair: seed 305 has complete legal reservations
+  ---
+  duration_ms: 1196.443208
+  type: 'test'
+  ...
+# Subtest: population repair: seed 842 has complete legal reservations
+ok 9 - population repair: seed 842 has complete legal reservations
+  ---
+  duration_ms: 4565.866933
+  type: 'test'
+  ...
+# Subtest: population repair: seed 1340 has complete legal reservations
+ok 10 - population repair: seed 1340 has complete legal reservations
+  ---
+  duration_ms: 1671.786991
+  type: 'test'
+  ...
+# Subtest: population repair: seed 2313 has complete legal reservations
+ok 11 - population repair: seed 2313 has complete legal reservations
+  ---
+  duration_ms: 1754.980997
+  type: 'test'
+  ...
+# Subtest: population repair: seed 3610 has complete legal reservations
+ok 12 - population repair: seed 3610 has complete legal reservations
+  ---
+  duration_ms: 1156.190463
+  type: 'test'
+  ...
+# Subtest: population repair: seed 7384 has complete legal reservations
+ok 13 - population repair: seed 7384 has complete legal reservations
+  ---
+  duration_ms: 1067.213273
+  type: 'test'
+  ...
+# Subtest: population repair: seed 8102 has complete legal reservations
+ok 14 - population repair: seed 8102 has complete legal reservations
+  ---
+  duration_ms: 1077.302178
+  type: 'test'
+  ...
+# Subtest: population repair: seed 9711 has complete legal reservations
+ok 15 - population repair: seed 9711 has complete legal reservations
+  ---
+  duration_ms: 1139.914957
+  type: 'test'
+  ...
+# Subtest: revision 2 paid saves retain geometry, stock and logs under revision 3
+ok 16 - revision 2 paid saves retain geometry, stock and logs under revision 3
+  ---
+  duration_ms: 539.349879
+  type: 'test'
+  ...
+# Subtest: resaving a prior survey preserves its complete historical log without promising fresh-factory replay
+ok 17 - resaving a prior survey preserves its complete historical log without promising fresh-factory replay
+  ---
+  duration_ms: 421.943538
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 3: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 18 - P8 integration seed 3: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 6412.585935
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 4: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 19 - P8 integration seed 4: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 2628.358475
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 5: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 20 - P8 integration seed 5: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 2148.785248
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 8: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 21 - P8 integration seed 8: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 2291.079108
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 11: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 22 - P8 integration seed 11: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 2404.446937
+  type: 'test'
+  ...
+# Subtest: P8 integration seed 13: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+ok 23 - P8 integration seed 13: repeated paid ammunition pattern, station chest, truck, powered belts and replay
+  ---
+  duration_ms: 2270.807554
+  type: 'test'
+  ...
+# Subtest: P8 broader sweep: seeds 1–16, eight destinations, rotated placements and valid/blocked turns remain bounded and read-only
+ok 24 - P8 broader sweep: seeds 1–16, eight destinations, rotated placements and valid/blocked turns remain bounded and read-only
+  ---
+  duration_ms: 9657.904219
+  type: 'test'
+  ...
+# Subtest: navigation uses existing deterministic names and known sites without revealing hidden destinations
+ok 25 - navigation uses existing deterministic names and known sites without revealing hidden destinations
+  ---
+  duration_ms: 3335.043408
+  type: 'test'
+  ...
+# Subtest: names, defaults and pins use atomic bounded commands, stable identities and literal text
+ok 26 - names, defaults and pins use atomic bounded commands, stable identities and literal text
+  ---
+  duration_ms: 276.441351
+  type: 'test'
+  ...
+# Subtest: physical travel records visits; annotations and visits replay and continue through saves
+ok 27 - physical travel records visits; annotations and visits replay and continue through saves
+  ---
+  duration_ms: 1719.640476
+  type: 'test'
+  ...
+# Subtest: invalid saved navigation refuses versions, unknown targets, uncharted pins and malformed records
+ok 28 - invalid saved navigation refuses versions, unknown targets, uncharted pins and malformed records
+  ---
+  duration_ms: 1157.799344
+  type: 'test'
+  ...
+# Subtest: old revision-2 saves retain geometry and stock but do not claim replay before visit tracking
+ok 29 - old revision-2 saves retain geometry and stock but do not claim replay before visit tracking
+  ---
+  duration_ms: 1075.606221
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 67188.647713

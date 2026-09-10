@@ -1,0 +1,84 @@
+TAP version 13
+# Subtest: new entry is empty exploration; explicit legacy entry and state URL do not reinterpret saves
+ok 1 - new entry is empty exploration; explicit legacy entry and state URL do not reinterpret saves
+  ---
+  duration_ms: 1967.911595
+  type: 'test'
+  ...
+# Subtest: unique core and artifact remain at source when full; transfer/attachment/load/packing conserve ownership
+ok 2 - unique core and artifact remain at source when full; transfer/attachment/load/packing conserve ownership
+  ---
+  duration_ms: 1878.597126
+  type: 'test'
+  ...
+# Subtest: actual first-core checkpoint powers chosen plant; supplementary generator burns under real excess load, disconnected grids stay separate and repairs retain core
+ok 3 - actual first-core checkpoint powers chosen plant; supplementary generator burns under real excess load, disconnected grids stay separate and repairs retain core
+  ---
+  duration_ms: 1389.930617
+  type: 'test'
+  ...
+# Subtest: each new processor consumes physical inputs, keeps backpressure and produces real items; artifact/Mk2 affect real processing time
+ok 4 - each new processor consumes physical inputs, keeps backpressure and produces real items; artifact/Mk2 affect real processing time
+  ---
+  duration_ms: 3587.193667
+  type: 'test'
+  ...
+# Subtest: powered Pumpjack extracts finite crude; hand mining cannot bypass it
+ok 5 - powered Pumpjack extracts finite crude; hand mining cannot bypass it
+  ---
+  duration_ms: 632.831526
+  type: 'test'
+  ...
+# Subtest: paid specialist upgrades change whole-round hopper and freight capacity and survive reload
+ok 6 - paid specialist upgrades change whole-round hopper and freight capacity and survive reload
+  ---
+  duration_ms: 397.388837
+  type: 'test'
+  ...
+# Subtest: passenger rides actual powered service with inventory intact; walking/placement blocked; outage reload exits safely
+ok 7 - passenger rides actual powered service with inventory intact; walking/placement blocked; outage reload exits safely
+  ---
+  duration_ms: 990.864783
+  type: 'test'
+  ...
+# Subtest: commissioned plant receives a real scheduled assault without radio; enemies arrive and damage it while output is off
+ok 8 - commissioned plant receives a real scheduled assault without radio; enemies arrive and damage it while output is off
+  ---
+  duration_ms: 573.879489
+  type: 'test'
+  ...
+# Subtest: truck explicitly recovers a machine with artifact and contents to a chest; interrupted job reload preserves cargo and target
+ok 9 - truck explicitly recovers a machine with artifact and contents to a chest; interrupted job reload preserves cargo and target
+  ---
+  duration_ms: 920.518562
+  type: 'test'
+  ...
+# Subtest: Cannon consumes Shells against heavy enemies; unlit Shades cannot be shot and lit Shades can
+not ok 10 - Cannon consumes Shells against heavy enemies; unlit Shades cannot be shot and lit Shades can
+  ---
+  duration_ms: 351.230659
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:72:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'next')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    spawnSiteEnemy (/mnt/e/Factorio2/packages/sim/src/progression.ts:102:11)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/gameplayCorrections.test.ts:74:11)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 9
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20960.942634

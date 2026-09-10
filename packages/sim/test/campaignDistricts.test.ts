@@ -161,11 +161,10 @@ test('paid three-base tram route reserves onward supply, returns district goods 
   const st=fixture();outposts(st);const e=st.campaign!.expansion!,d=st.campaign!.districts!,G=ground(st);
   walk(st,e.station.x,e.station.y,e.station.size);applyCommands(st,[{type:'collectTramKit'}]);
   const path=[...e.route,...d.route.slice(1)];
-  for(const t of path)place(st,'track',t%G.tw,Math.floor(t/G.tw));
-  const stops=[...e.stops,d.stop].map(([x,y])=>place(st,'tramstop',x,y));
-  const [home,middle,last]=stops,tram=place(st,'tram',path[0]%G.tw,Math.floor(path[0]/G.tw));
-  assert.equal(tramRoute(st,tram).length,path.length);assert.equal(routeStops(st,path).length,3);
-  const selected=stationRoute(st,middle.id)!;assert.equal(selected.stops.length,3);assert.deepEqual(selected.paths[0],tramRoute(st,tram));assert.equal(selected.trams.length,1);
+  const stops=[...e.stops,d.stop].map(([x,y])=>machineAt(st,x,y)!);
+  const [home,middle,last]=stops,tram=st.flow!.machines.find(m=>m.id===st.campaign!.fixedTram!.tram)!;
+  assert.equal(tramRoute(st,tram).length,path.length);assert.equal(routeStops(st,path).length,4);
+  const selected=stationRoute(st,middle.id)!;assert.equal(selected.stops.length,4);assert.deepEqual(selected.paths[0],tramRoute(st,tram));assert.equal(selected.trams.length,1);
   const set=(m:Machine,c:Command)=>{walk(st,m.x,m.y,m.size);applyCommands(st,[c]);};
   set(home,{type:'setStationRules',x:home.x,y:home.y,rules:{steel:{request:0,reserve:0,export:true},copper:{request:5,reserve:0,export:true},magazine:{request:0,reserve:0,export:true}}});
   set(middle,{type:'setStationRules',x:middle.x,y:middle.y,rules:{steel:{request:4,reserve:0,export:false}}});
@@ -209,7 +208,7 @@ test('paid three-base tram route reserves onward supply, returns district goods 
 test('old district-free previews upgrade once without moving the promised assault or duplicating sources',()=>{
   const st=createCampaign();delete st.campaign!.districts;delete st.campaign!.discovery;delete st.campaign!.recruits;delete st.campaign!.turbine;delete st.campaign!.knowledge;st.campaign!.version=3;st.t=4000;
   const dawn=st.campaign!.defence!.nextDawn,a=loadState(st),b=loadState(st);
-  assert.equal(a.campaign!.version,9);assert.equal(a.campaign!.defence!.nextDawn,dawn);assert.equal(stateHash(a),stateHash(b));
+  assert.equal(a.campaign!.version,10);assert.equal(a.campaign!.defence!.nextDawn,dawn);assert.equal(stateHash(a),stateHash(b));
   assert.equal(stateHash(loadState(makeSave(a))),stateHash(a));
   for(const mutate of [
     (s:SimState)=>{delete s.campaign!.districts;},

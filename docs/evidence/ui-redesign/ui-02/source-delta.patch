@@ -1,0 +1,563 @@
+--- UI-01/packages/game/src/cityMapScene.ts
++++ UI-02/packages/game/src/cityMapScene.ts
+@@ -1,4 +1,4 @@
+-import { uiInput } from './uiShell';
++import { uiInput, uiPalette } from './uiShell';
+ import {navigationTargets,knownDistrict,blockName} from '@relight/sim';
+ import {navigationView} from './view';
+ import {dispatch} from './session';
+@@ -298,7 +298,7 @@
+     const st = this.session.state;
+     if(isCampaign(st)){
+       const district=surveyedDistrict(st,this.hover),districtName=knownDistrict(st,this.hover)?blockName(st,this.hover):'Uncharted district',name=district?({civ:'Civic',res:'Residential',ind:'Industrial',out:'Outskirts'})[district]:'';
+-      this.headText.setText(this.registry.get('knownSiteHover') || (this.hover>=0?`${districtName} · ${!knownDistrict(st,this.hover)?'Uncharted':st.campaign?.navigation?.visitedBlocks.includes(this.hover)?'Visited':'Known / no visit recorded'}${name?' · '+name:''}`:'') || (campaignRecruited(st,'surveyors')?`Survey · ${name||'hover a district'} · yellow Civic / blue Residential / rust Industrial / green Outskirts`:`Seed ${st.seed} · known sites marked with squares; hover to inspect`)).setColor('#c5d2df').setFontSize(12).setBackgroundColor('#0b0e1a').setPadding(4).setWordWrapWidth(this.W-24).setPosition(this.ox+8,this.oy+this.H-48);
++      this.headText.setText(this.registry.get('knownSiteHover') || (this.hover>=0?`${districtName} · ${!knownDistrict(st,this.hover)?'Uncharted':st.campaign?.navigation?.visitedBlocks.includes(this.hover)?'Visited':'Known / no visit recorded'}${name?' · '+name:''}`:'')).setStyle(uiPalette()).setPadding(8).setWordWrapWidth(Math.min(320,this.W-24)).setPosition(this.ox+8,this.oy+this.H-200);
+     }
+     const g = this.gFx;
+     g.clear();
+--- UI-01/packages/game/src/hud.ts
++++ UI-02/packages/game/src/hud.ts
+@@ -0,0 +1,58 @@
++import {blockName,blockOfTile,campaignClock,campaignWarning,currentGoal,invStacks,INV_STACKS,ENGINEER_HP,ROUNDS_PER_MAG,KIND_LABEL,navigationTargets,ground,T_RIVER,T_STREET,knownCampaignThreat,campaignDiscoveries,type NextAction} from '@relight/sim';
++import {el,uiInput} from './uiShell';
++import {shortcut} from './controls';
++import {hudInset,objectiveView,type View} from './view';
++import type {Session} from './session';
++import type {Panel} from './panel';
++import type {WorldScene} from './worldScene';
++/** One passive read model over the existing simulation; no second scene or exploration map. */
++export function createHud(session:Session,panel:Panel,world:WorldScene,view:View,toggleMap:()=>void,threatControls:HTMLElement){
++  const goal=el('section','ui-hud hud-goal'),place=el('div','hud-place'),title=el('h2'),next=el('p'),details=el('details'),summary=el('summary',undefined,'Why this next?'),detail=el('p');
++  const locate=el('button',undefined,'Show location'),back=el('button',undefined,`Return to engineer (${shortcut('engineer')})`);
++  details.append(summary,detail);goal.append(place,title,next,details,locate,back);goal.setAttribute('aria-label','Current objective');
++  const time=el('section','ui-hud hud-time'),clock=el('strong'),warning=el('div','hud-warning'),speed=document.getElementById('speed-controls')!;
++  time.setAttribute('aria-label','Time and defence');time.append(clock,speed,warning,threatControls);
++  const pockets=el('section','ui-hud hud-engineer'),health=el('strong'),equipment=el('div'),stock=el('div'),inventory=el('button',undefined,`Inventory (${shortcut('pockets')})`);
++  pockets.setAttribute('aria-label','Engineer');pockets.append(health,equipment,stock,inventory);inventory.onclick=()=>panel.togglePockets();
++  const map=el('section','ui-hud hud-minimap'),fold=el('button',undefined,'Minimap'),mapButton=el('button',undefined,`Map (${shortcut('map')})`),canvas=el('canvas'),legend=el('div','hud-map-legend','● You  □ Known  ◆ Pin');
++  canvas.width=180;canvas.height=140;canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Known destinations and engineer');
++  map.append(fold,mapButton,canvas,legend);mapButton.onclick=toggleMap;
++  let expanded=window.innerWidth>=1100;const collapse=()=>{canvas.hidden=legend.hidden=!expanded;fold.setAttribute('aria-expanded',String(expanded));};fold.onclick=()=>{expanded=!expanded;collapse();};collapse();
++  const prompt=el('div','hud-prompt');prompt.setAttribute('aria-label','Interaction');
++  const hint=el('aside','ui-hud hud-opening-hint'),dismiss=el('button',undefined,'Dismiss hint');
++  hint.append(el('span',undefined,`${shortcut('interact')} interacts · WASD moves · Build opens with ${shortcut('build')}. Find all controls in Help.`),dismiss);dismiss.onclick=()=>{hint.hidden=true;};
++  const track=el('section'),label=el('label',undefined,'Track one objective'),select=el('select');select.id='tracked-objective';label.htmlFor=select.id;track.append(label,select);
++  document.querySelector('[data-adapter="projects"]')!.prepend(track);
++  select.onchange=()=>{objectiveView.targetId=select.value==='auto'?undefined:select.value==='none'?null:select.value;};
++  let action:NextAction|undefined,last=-Infinity,optionsKey='';
++  locate.onclick=()=>{if(!action?.location)return;if(view.mode==='map')toggleMap();world.viewLocation(action.location.x,action.location.y);document.querySelector<HTMLCanvasElement>('#map > canvas')?.focus();panel.shell.sync();};
++  back.onclick=()=>{if(view.mode==='map')toggleMap();world.returnToEngineer();document.querySelector<HTMLCanvasElement>('#map > canvas')?.focus();panel.shell.sync();};
++  details.append(hint);
++  for(const node of [goal,time,pockets,map]){document.getElementById('app')!.append(node);panel.shell.protect(node);}document.getElementById('app')!.append(prompt);
++  // Cache only the existing terrain colours. Known destinations are refreshed from navigationTargets.
++  const terrain=el('canvas');terrain.width=180;terrain.height=140;const ctx=terrain.getContext('2d')!,G=ground(session.state),scale=Math.min(180/G.tw,140/G.th),ox=(180-G.tw*scale)/2,oy=(140-G.th*scale)/2;
++  ctx.fillStyle='#151d1e';ctx.fillRect(0,0,180,140);
++  for(let py=0;py<140;py++)for(let px=0;px<180;px++){const x=Math.floor((px-ox)/scale),y=Math.floor((py-oy)/scale);if(x<0||y<0||x>=G.tw||y>=G.th)continue;const b=G.base[y*G.tw+x];ctx.fillStyle=b===T_RIVER?'#28465b':b===T_STREET?'#84908b':'#36494a';ctx.fillRect(px,py,1,1);}
++  const put=(node:HTMLElement,text:string)=>{if(node.textContent!==text)node.textContent=text;};
++  return {update(now:number){
++    if(now-last<150)return;last=now;const st=session.state,e=st.engineer,c=campaignClock(st),tool=world.selectedTool(),targets=navigationTargets(st),discoveries=campaignDiscoveries(st);
++    if(objectiveView.targetId&&!discoveries.some(s=>s.id===objectiveView.targetId))objectiveView.targetId=undefined;
++    action=currentGoal(st,objectiveView.targetId).next;
++    const bi=blockOfTile(st,Math.floor(e.x),Math.floor(e.y));put(place,bi>=0?blockName(st,bi):'City streets');
++    const tracked=objectiveView.targetId!==null||e.down>=0;
++    put(title,tracked?action?.title??'Explore':'No tracked objective');put(next,tracked?action?.text??'Choose a known destination':'Track a known objective in Projects.');put(detail,action?.detail??'');details.hidden=!tracked;locate.hidden=!tracked||!action?.location;back.hidden=!world.viewingThreat;
++    const key=discoveries.map(s=>s.id+s.title).join('|');if(optionsKey!==key){optionsKey=key;select.replaceChildren(...[{id:'auto',title:'Automatic next action'},{id:'none',title:'Untrack'},...discoveries].map(s=>{const o=el('option',undefined,s.title);o.value=s.id;return o;}));}select.value=objectiveView.targetId===undefined?'auto':objectiveView.targetId===null?'none':objectiveView.targetId;
++    put(clock,`Day ${c.day} · ${c.night?'Night':'Daylight'} · ${Math.floor(c.elapsed/60)}:${String(Math.floor(c.elapsed%60)).padStart(2,'0')} · ${st.speed===0?'Paused':`${st.speed}×`}`);
++    put(warning,campaignWarning(st));const threat=knownCampaignThreat(st);time.classList.toggle('urgent',!!threat);time.classList.toggle('danger',threat?.phase==='assault'||threat?.phase==='minor raid'||e.down>=0);speed.inert=panel.shell.paused();
++    put(health,e.down>=0?`Engineer down · ${Math.ceil(Math.max(0,e.down-st.t))} s`:`Engineer · ${Math.ceil(e.hp)}/${ENGINEER_HP} HP`);
++    put(equipment,e.truckSeat?'Driving truck':tool.tool==='hand'?'Empty hand':tool.tool==='rifle'?`Rifle · ${Math.floor((e.inv.magazine??0)*ROUNDS_PER_MAG)} rounds`:KIND_LABEL[tool.tool]);put(stock,`Pockets ${invStacks(e.inv)}/${INV_STACKS} stacks`);
++    const interaction=view.mode==='world'&&!uiInput.blocked&&tool.tool==='hand'?world.interaction():null;
++    put(prompt,tool.tool!=='hand'&&view.mode==='world'&&!uiInput.blocked?(tool.reason||`${tool.tool==='rifle'?'Hold left-click to fire':`${shortcut('rotate')} rotates`} · Escape cancels`):interaction?`${shortcut('interact')} · ${interaction.label}${interaction.reason?` · ${interaction.reason}`:''}`:'');prompt.hidden=!prompt.textContent;
++    if(st.t>0||invStacks(e.inv)>0||tool.tool!=='hand'||panel.shell.active())hint.hidden=true;
++    map.hidden=!!panel.shell.active()||panel.shell.paused();goal.inert=pockets.inert=panel.shell.paused();hint.hidden=hint.hidden||panel.shell.paused();
++    const paint=canvas.getContext('2d')!;if(expanded&&!map.hidden){paint.drawImage(terrain,0,0);for(const t of targets){paint.strokeStyle=t.kind==='pin'?'#e3b96f':'#f3ecdd';const x=ox+t.x*scale,y=oy+t.y*scale;if(t.kind==='pin'){paint.beginPath();paint.moveTo(x,y-3);paint.lineTo(x+3,y);paint.lineTo(x,y+3);paint.lineTo(x-3,y);paint.closePath();paint.stroke();}else paint.strokeRect(x-2,y-2,4,4);}paint.fillStyle='#92d8b5';paint.beginPath();paint.arc(ox+e.x*scale,oy+e.y*scale,3,0,Math.PI*2);paint.fill();paint.strokeStyle='#151d1e';paint.lineWidth=1;paint.stroke();canvas.setAttribute('aria-label',`Engineer and ${targets.length} known destinations: ${targets.map(t=>t.name).join(', ')}`);}
++    document.documentElement.style.setProperty('--ui-clock-height',`${time.offsetHeight}px`);
++    if(panel.shell.active())details.open=false;
++    hudInset.top=Math.max(time.getBoundingClientRect().bottom,goal.getBoundingClientRect().bottom)+12;document.documentElement.style.setProperty('--ui-top-inset',`${time.offsetHeight+24}px`);
++  }};
++}
+--- UI-01/packages/game/src/main.ts
++++ UI-02/packages/game/src/main.ts
+@@ -1,3 +1,4 @@
++import {createHud} from './hud';
+ import { uiInput } from './uiShell';
+ import Phaser from 'phaser';
+ import {navigationTargets} from '@relight/sim';
+@@ -187,11 +188,12 @@
+   if (events.length) { mapScene.consume(events, time); describe(events); }
+   panel.update(performance.now());
+   updateThreatControls();
++  campaignHud?.update(time);
+   if(time-lastNavigationUpdate>150){lastNavigationUpdate=time;navigation?.update();const t=navigationTargets(session.state).find(t=>t.id===navigationView.targetId);navCue.hidden=!t;if(t){const e=session.state.engineer,distance=Math.round(Math.hypot(t.x-e.x,t.y-e.y)),angle=(Math.round(Math.atan2(t.y-e.y,t.x-e.x)/(Math.PI/4))+8)%8;const [x,y]=view.mode==='world'?worldScene.screenOf(t.x,t.y):[0,0];const cam=game.canvas;const off=view.mode==='world'&&(x<0||y<0||x>cam.clientWidth||y>cam.clientHeight);navCue.textContent=`${['E','SE','S','SW','W','NW','N','NE'][angle]} · ${t.name} · ${distance} tiles from you${off?' · off-screen':''}`;}}
+   // RI-02: the world view's top HUD corners sit under the goal overlay (measured here, not per frame — the panel throttles)
+   const goalEl = document.getElementById('goal');
+-  hudInset.top = goalEl && !goalEl.hidden ? goalEl.offsetHeight + 4 : 0;
+-  document.documentElement.style.setProperty('--ui-top-inset',hudInset.top+'px');
++  if(!session.state.campaign)hudInset.top = goalEl && !goalEl.hidden ? goalEl.offsetHeight + 4 : 0;
++  if(!session.state.campaign)document.documentElement.style.setProperty('--ui-top-inset',hudInset.top+'px');
+ });
+ 
+ /** The block the engineer stands in (or last stood in), for the map's marker. */
+@@ -235,10 +237,11 @@
+ threatButton.textContent=`View threat (${shortcut('threat')})`;threatButton.onclick=viewKnownThreat;
+ returnButton.textContent=`Return to engineer (${shortcut('engineer')})`;returnButton.onclick=()=>worldScene.returnToEngineer();
+ threatControls.append(threatDirection,threatButton,returnButton);document.getElementById('goal')!.append(threatControls);
++const campaignHud=session.state.campaign?createHud(session,panel,worldScene,view,toggleView,threatControls):null;
+ function updateThreatControls():void {
+   const target=knownCampaignThreat(session.state);
+   threatControls.hidden=!session.state.campaign;
+-  threatButton.hidden=!target;returnButton.hidden=!worldScene.viewingThreat;
++  threatButton.hidden=!target;returnButton.hidden=!!session.state.campaign||!worldScene.viewingThreat;
+   let text='';
+   if(target){
+     const [x,y]=view.mode==='world'?worldScene.screenOf(target.x,target.y):[0,0],canvas=document.querySelector('canvas')!,w=canvas.clientWidth,h=canvas.clientHeight;
+@@ -319,6 +322,7 @@
+   /** RI-02: the state hash (save.ts), the current goal line, the save file, and the browser slot (the Ctrl+S / Ctrl+O path). */
+   stateHash: () => stateHash(session.state),
+   goal: () => currentGoal(session.state),
++  interaction: () => worldScene.interaction(),
+   saveFile: () => makeSessionSave(session),
+   save: (slot = '1') => saveSlot(session, slot).hash,
+   loadUrl: (slot = '1') => slotUrl(session, slot),
+--- UI-01/packages/game/src/panel.ts
++++ UI-02/packages/game/src/panel.ts
+@@ -144,10 +144,10 @@
+   const sLost = mk('blocks lost'), sEmpty = mk('empty hoppers'), sClock = mk('sim clock');
+   if (campaign) for (const stat of [sFront, sInt, sDem, sLost, sEmpty]) stat.s.remove();
+   hudSec.append(stats);
+-  const speedRow = el('div', 'row');
++  const speedRow = el('div', 'row'); speedRow.id='speed-controls';
+   const speeds: [number, string][] = [[0, 'Pause'], [1, '1×'], [4, '4×'], [16, '16×']];
+   const speedBtns = speeds.map(([m, label]) => { const b = el('button', undefined, label); b.onclick = () => setSpeed(session, m); speedRow.append(b); return { m, b }; });
+-  speedRow.append(el('span', 'hint', FACTORY_TEXT.keys));
++  if(!campaign)speedRow.append(el('span', 'hint', FACTORY_TEXT.keys));
+   hudSec.append(speedRow);
+   root.append(hudSec);
+ 
+@@ -485,6 +485,7 @@
+   const goalText = goalEl.querySelector('.goal-text')!, goalWhy = goalEl.querySelector('.goal-why')!, goalSupport = goalEl.querySelector('.goal-support') as HTMLElement;
+   let goalSecond = -1, goalKey = '';
+   function updateGoal(s: SimState): void {
++    if(s.campaign){goalEl.hidden=true;return;}
+     const sec = Math.floor(s.t);
+     if (sec === goalSecond) return;
+     goalSecond = sec;
+--- UI-01/packages/game/src/style.css
++++ UI-02/packages/game/src/style.css
+@@ -190,3 +190,52 @@
+ 
+ .ui-shell #panel { z-index:auto; }
+ .ui-shell #panel .ui-drawer { z-index:var(--ui-drawer); }
++
++/* UI-02: one compact campaign HUD, independent of world zoom. */
++.ui-hud {position:fixed;z-index:var(--ui-hud);background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:var(--ui-radius);padding:12px;max-width:calc(100vw - 24px);font-size:var(--ui-small);}
++.hud-goal {top:12px;left:max(12px,calc((100vw - 1920px)/2));width:320px;border-top:3px solid var(--ui-accent);}
++.hud-goal h2 {font-size:var(--ui-heading);margin:4px 0;line-height:1.25;}
++.hud-goal p {margin:4px 0 8px;line-height:1.35;}
++.hud-place {color:var(--ui-accent);}
++.hud-goal details {margin-bottom:8px;}
++.hud-goal summary {font-size:var(--ui-small);min-height:24px;color:var(--ui-secondary);}
++.hud-goal button {margin:4px 4px 0 0;}
++.hud-time {top:12px;left:max(360px,calc((100vw - 1920px)/2 + 348px));right:max(232px,calc((100vw - 1920px)/2 + 220px));width:auto;}
++.hud-time #speed-controls {display:flex;gap:4px;margin:8px 0;}
++.hud-time #speed-controls button {padding:4px 12px;}
++.hud-warning {color:var(--ui-secondary);line-height:1.35;}
++.hud-time.urgent {z-index:var(--ui-alert);border-top:3px solid var(--ui-accent);}
++.hud-time.danger {border-top-color:var(--ui-danger);}
++.hud-time.urgent .hud-warning {color:var(--ui-accent);}
++.hud-time.danger .hud-warning {color:var(--ui-danger);}
++.hud-time #threat-controls {justify-content:flex-start;}
++.hud-time #threat-direction:empty {display:none;}
++.hud-minimap {top:12px;right:max(12px,calc((100vw - 1920px)/2));width:204px;}
++.hud-minimap canvas {display:block;width:180px;height:140px;margin-top:8px;}
++.hud-map-legend {font-size:var(--ui-small);margin-top:4px;}
++.hud-minimap button {padding:4px 6px;margin-right:4px;}
++.hud-engineer {bottom:calc(var(--ui-nav-height) + 24px);left:max(12px,calc((100vw - 1920px)/2));width:240px;}
++.hud-engineer button {margin-top:8px;}
++.hud-prompt {position:fixed;z-index:var(--ui-hud);bottom:calc(var(--ui-nav-height) + 40px);left:calc(50% - var(--ui-drawer-inset)/2 + 80px);transform:translateX(-50%);padding:8px 12px;max-width:min(440px,calc(100vw - 300px));background:var(--ui-bg);border:1px solid var(--ui-accent);border-radius:var(--ui-radius);pointer-events:none;}
++.hud-opening-hint {bottom:calc(var(--ui-nav-height) + 110px);left:280px;max-width:400px;}
++.hud-opening-hint button {margin-top:8px;}
++.ui-shell:has(.hud-goal) #navigation-cue {left:auto;right:12px;bottom:calc(var(--ui-nav-height) + 24px);max-width:240px;}
++.ui-shell:has(.hud-goal) #toasts {bottom:calc(var(--ui-nav-height) + 100px);}
++@media(max-width:1100px) {
++ .hud-goal {width:296px;}
++ .hud-time {left:324px;right:12px;}
++ .hud-minimap {top:auto;bottom:calc(var(--ui-nav-height) + 24px);width:auto;}
++ .hud-map-legend {max-width:180px;}
++ .hud-prompt {left:calc(50% + 30px);max-width:calc(100vw - 470px);}
++ .hud-opening-hint {left:280px;max-width:calc(100vw - 300px);}
++}
++.ui-shell:has(.ui-drawer:not([hidden])) .hud-time:not(.urgent) {right:calc(var(--ui-drawer-inset) + 12px);min-width:220px;}
++.ui-shell:has(.ui-modal:not([hidden])) .hud-time {z-index:var(--ui-alert);}
++
++.hud-goal .hud-opening-hint {position:static;margin-top:8px;padding:8px;max-width:100%;}
++
++@media(max-width:1100px) {
++ .ui-shell:has(.ui-drawer:not([hidden])) .hud-time:not(.urgent) {left:12px;right:calc(var(--ui-drawer-inset) + 12px);min-width:0;}
++ .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal {top:calc(var(--ui-clock-height) + 24px);width:calc(100vw - var(--ui-drawer-inset) - 24px);}
++ .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal details, .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal button {display:none;}
++}
+--- UI-01/packages/game/src/uiShell.ts
++++ UI-02/packages/game/src/uiShell.ts
+@@ -36,7 +36,7 @@
+   let returnFocus: HTMLElement | null = null, pauseFocus: HTMLElement | null = null;
+   const held = new Set<string>(), suppressed = new Set<string>();
+   const canvas = () => document.querySelector('canvas');
+-  const inUi = (target: EventTarget | null) => target instanceof Element && !!target.closest('#panel, .ui-navigation, #threat-controls');
++  const inUi = (target: EventTarget | null) => target instanceof Element && !!target.closest('#panel, .ui-navigation, #threat-controls, .ui-hud');
+   function release() { for (const key of held) suppressed.add(key); hooks.releaseInput(); document.getElementById('tooltip')!.hidden = true; }
+   function sync() {
+     uiInput.modal = !modal.hidden; uiInput.blocked = !modal.hidden || active !== null || inUi(document.activeElement);
+@@ -124,13 +124,14 @@
+   window.addEventListener('focusin', event => { if (inUi(event.target)) release(); if (!modal.hidden && !modal.contains(event.target as Node)) resume.focus(); sync(); });
+   window.addEventListener('blur', () => { release(); held.clear(); });
+   document.addEventListener('visibilitychange', () => { if (document.hidden) { release(); held.clear(); } });
++  function protect(surface:HTMLElement){for (const name of ['pointerdown', 'pointerup', 'click', 'contextmenu', 'wheel']) surface.addEventListener(name,event=>event.stopPropagation());}
+   for (const surface of [root, nav, document.getElementById('threat-controls')].filter(Boolean) as HTMLElement[]) {
+     for (const name of ['pointerdown', 'pointerup', 'click', 'contextmenu', 'wheel']) surface.addEventListener(name, event => event.stopPropagation());
+   }
+   new ResizeObserver(sync).observe(nav); new ResizeObserver(sync).observe(drawer);
+   return { register, open, toggle, close: closeDrawer, action, drawerButton, pause, pauseChild,
+     pauseAction: (label: string, run: () => void) => action(label, run, pauseActions),
+-    active: () => active, paused: () => !modal.hidden, sync,
++    active: () => active, paused: () => !modal.hidden, sync, protect,
+   };
+ }
+ export type UiShell = ReturnType<typeof createUiShell>;
+--- UI-01/packages/game/src/view.ts
++++ UI-02/packages/game/src/view.ts
+@@ -24,3 +24,6 @@
+ 
+ /** P9-03 selected navigation identity is presentation-only. */
+ export const navigationView:{targetId:string|null}={targetId:null};
++
++/** One known objective, presentation only; undefined follows automatic guidance, null untracks. */
++export const objectiveView:{targetId:string|null|undefined}={targetId:undefined};
+--- UI-01/packages/game/src/worldScene.ts
++++ UI-02/packages/game/src/worldScene.ts
+@@ -1,3 +1,4 @@
++import {campaignInteraction} from '@relight/sim';
+ import { uiInput, uiPalette } from './uiShell';
+ import { removalPreview, type RemovalPreview, blueprintGate, blueprintCheck, blueprintQueueCheck, blueprintEntityBuilt, type BlueprintTransform } from '@relight/sim';
+ import { truckRect, truckOccupies, truckDescription } from '@relight/sim';
+@@ -500,10 +501,23 @@
+    *  the claim's materials from the pockets and Activates (RI-03), a machine reports itself, the truck is entered or
+    *  left where it was found, a survivor group on the block answers. E never mines, places or fires. Everything but
+    *  the truck needs the thing within reach. */
++  interaction() { return campaignInteraction(this.st,this.hoverTile); }
++  selectedTool() { return {tool:this.tool,reason:this.ghostReason}; }
+   private interact(): void {
+     const st = this.st, h = this.hoverTile;
+     if (!st.flow || !this.onFoot) return;
+     const e = st.engineer;
++    if(st.campaign){
++      const target=this.interaction();
++      if(!target){this.hooks.onToast(e.down>=0?'Recover before interacting.':'No interaction in reach. Point at an object to inspect it.');return;}
++      if(target.reason){this.hooks.onToast(target.reason,'bad');return;}
++      if(target.panel==='home')this.hooks.onChest();
++      else if(target.panel==='chest')this.hooks.onChestAt(target.x,target.y);
++      else if(target.panel==='routing')this.hooks.onRoutingAt(target.x,target.y);
++      else if(target.panel==='inspection')this.hooks.onInspectAt(target.x,target.y);
++      else {for(const command of target.commands){if(command.type==='factory'){const r=dispatch(this.session,command);this.hooks.onToast(r.reason,r.ok?'good':'bad');}else queue(this.session,command);}if(!target.commands.some(c=>c.type==='factory'))this.hooks.onToast(target.commands.length?`${target.label} queued.`:target.detail??target.label);}
++      return;
++    }
+     if(st.campaign&&(e.truckSeat||(h&&truckOccupies(st,h.tx,h.ty)))){const r=dispatch(this.session,{type:'factory',action:{type:'truckBoard'}});this.hooks.onToast(r.reason,r.ok?'good':'bad');return;}
+     if(h&&st.campaign){const core=coreAt(st,h.tx,h.ty),m=machineAt(st,h.tx,h.ty);if((core&&core.hp<300)||(m&&defenceMax(m)>0&&defenceHp(m)<defenceMax(m))){const why=repairCheck(st,h.tx,h.ty);if(why)this.hooks.onToast(why,'bad');else{queue(this.session,{type:'repairDefence',x:h.tx,y:h.ty});this.hooks.onToast('Repair queued. Stay within reach; materials pay for this repair once.');}return;}}
+     if(h){const s=turbineAt(st,h.tx,h.ty);if(s){if(s.restoredAt>=0)queue(this.session,{type:'setTurbineEnabled',enabled:!s.enabled});else{queue(this.session,{type:'deliverTurbine'});queue(this.session,{type:'restoreTurbine'});}this.hooks.onToast(describeTurbine(st));return;}}
+@@ -800,7 +814,9 @@
+       || (!!st.flow && bi >= 0 && st.blocks[bi].state === DARK && isSubstationTile(st, tx, ty)));
+     const far = actionable && !inReach(st, tx, ty, 1);
+     if (far) lines.unshift(`Walk closer (reach ${REACH} tiles)`);
+-    this.hooks.onHoverText(lines.join('\n'), rect.left + p.x, rect.top + p.y);
++    const resource=rubbleAt(st,tx,ty);
++    const concise=cw?describeCrawler(st,cw):sk?describeStalker(st,sk):m?`${KIND_LABEL[m.kind]} · ${this.statusLine(m)}`:resource?`${resource.type} · ${Math.floor(resource.units)} remaining · hold left-click to mine`:'';
++    this.hooks.onHoverText(st.campaign&&!debugView.coords?concise||null:lines.join('\n'), rect.left + p.x, rect.top + p.y);
+     const cur = far ? 'not-allowed' : 'default';
+     if (cur !== this.cursor) { this.cursor = cur; this.input.setDefaultCursor(cur); }
+   }
+@@ -852,7 +868,7 @@
+       if (!typing && Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) queue(this.session, { type: 'dodge' });
+       if(typing&&this.firing){this.firing=false;this.sendAim(null);}
+       if (this.firing) this.sendAim(this.aimAt(this.input.activePointer));
+-      const e = this.st.engineer, gx = e.x * TILE_PX - cam.width / 2 + hudInset.right / (2 * cam.zoom), gy = e.y * TILE_PX - cam.height / 2 + (hudInset.bottom - hudInset.top - 112) / (2 * cam.zoom);
++      const e = this.st.engineer, gx = e.x * TILE_PX - cam.width / 2 + hudInset.right / (2 * cam.zoom), gy = e.y * TILE_PX - cam.height / 2 + (hudInset.bottom + (this.st.campaign && hudInset.right ? 160 : 0) - hudInset.top - (this.st.campaign ? 0 : 112)) / (2 * cam.zoom);
+       if(left||right||up||down)this.viewingThreat=false;
+       if(this.viewingThreat){ /* Hold the explicitly selected camera position. */ }
+       else if (!this.snapped) { cam.setScroll(gx, gy); this.snapped = true; }
+@@ -1059,6 +1075,7 @@
+     // The HUD is four corner overlays (ROADMAP §2). `setScrollFactor(0)` still zooms about the camera centre, so
+     // every one is pinned at screen scale through `pin`.
+     const pin = (sx: number, sy: number): [number, number] => [cam.width / 2 + (sx - cam.width / 2) / cam.zoom, cam.height / 2 + (sy - cam.height / 2) / cam.zoom];
++    if(!st.campaign){
+     const f = this.focusBlock(), fi = idxOf(st, f[0], f[1]), e = st.engineer;
+     // D5: the HP bar and number only when below full; M4: the crawlers on the tile layer and how many have turned on you
+     const th = st.flow?.threat, onYou = th ? th.crawlers.filter(c => c.onPlayer).length : 0;
+@@ -1093,9 +1110,10 @@
+     // bottom-right: the clock and the speed the sim is running at (P pauses, - / = change it)
+     this.clockText.setScale(1 / cam.zoom).setPosition(...pin(cam.width - 8 - hudInset.right, cam.height - 8 - hudInset.bottom))
+       .setText(`${clock(st.t)}\n${st.speed <= 0 ? 'PAUSED (P)' : `${st.speed}× speed`}`);
++    }else{this.keyText.setVisible(false);this.terrText.setVisible(false);this.powText.setVisible(false);this.clockText.setVisible(false);}
+     // the Depot beacon (STANDARDS C.2: the landmark reads from the far edge of the viewport): when the Depot is out
+     // of view, its direction and distance sit on the edge of the screen nearest it
+-    if (st.flow) {
++    if (st.flow && !st.campaign) {
+       const d = depotRect(st), dcx = (d.x + d.size / 2) * TILE_PX, dcy = (d.y + d.size / 2) * TILE_PX, wv = cam.worldView;
+       if (wv.width > 0 && !wv.contains(dcx, dcy)) {
+         const dx = dcx - wv.centerX, dy = dcy - wv.centerY, m = 44 / cam.zoom;
+--- UI-01/packages/sim/src/flow.ts
++++ UI-02/packages/sim/src/flow.ts
+@@ -1261,6 +1261,12 @@
+   const cost = MACHINE_COST[kind];
+   const reason = placeable(st, kind, tx, ty, dir);
+   if (reason) return { ok: false, reason, cost, carried: false };
++  return buildAffordability(kind, inv);
++}
++
++/** Shared pocket-only construction affordability; geometry and reach remain separate checks. */
++export function buildAffordability(kind: Kind, inv: Record<string,number>): PlaceCheck {
++  const cost = MACHINE_COST[kind];
+   if (kind === 'depot') return { ok: true, reason: '', cost, carried: false };
+   if ((inv[kind] ?? 0) >= 1) return { ok: true, reason: '', cost: { steel: 0, copper: 0 }, carried: true };
+   if ((inv.steel ?? 0) < cost.steel || (inv.copper ?? 0) < cost.copper || (inv.concrete??0)<(cost.concrete??0)) return { ok: false, reason: `not enough in the pockets (${costStr(cost)})`, cost, carried: false };
+@@ -1379,17 +1385,18 @@
+ }
+ /** Queue `n` hand crafts at the workbench. Returns '' or the refusal: out of reach of the Depot, or the pockets
+  *  cannot pay for the first one (the queue is capped at what they can pay for). */
++export function handCraftCheck(st:SimState):{room:number;reason:string} {
++  const f=st.flow,e=st.engineer;
++  if(!f)return {room:0,reason:'no engineer on the tiles'};
++  if(!nearDepot(st))return {room:0,reason:'walk closer to the workbench'};
++  const afford=Math.min(Math.floor((e.inv.steel??0)/SHOT.inputs.steel),Math.floor((e.inv.copper??0)/SHOT.inputs.copper));
++  const room=afford-(f.hand.crafts-(f.hand.crafting?1:0));
++  return {room,reason:room<=0?`not enough in the pockets (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu a magazine)`:''};
++}
+ export function queueCraft(st: SimState, n = 1): string {
+-  const f = ensureFlow(st), e = st.engineer;
+-  if (n > 0) {
+-    if (!nearDepot(st)) return 'walk closer to the workbench';
+-    const afford = Math.min(Math.floor((e.inv.steel ?? 0) / SHOT.inputs.steel), Math.floor((e.inv.copper ?? 0) / SHOT.inputs.copper));
+-    const room = afford - (f.hand.crafts - (f.hand.crafting ? 1 : 0));
+-    if (room <= 0) return `not enough in the pockets (${SHOT.inputs.steel} steel + ${SHOT.inputs.copper} Cu a magazine)`;
+-    n = Math.min(n, room);
+-  }
+-  f.hand.crafts = Math.max(0, f.hand.crafts + n);
+-  return '';
++  const f=ensureFlow(st);
++  if(n>0){const check=handCraftCheck(st);if(check.reason)return check.reason;n=Math.min(n,check.room);}
++  f.hand.crafts=Math.max(0,f.hand.crafts+n);return '';
+ }
+ 
+ // ------------------------------------------------------------------ queries
+--- UI-01/packages/sim/src/goal.ts
++++ UI-02/packages/sim/src/goal.ts
+@@ -1,7 +1,6 @@
+ import { routingDescription, routingStatus } from './routing';
+-import { knownSite } from './campaignGuide';
++import { campaignDiscoveries } from './campaignGuide';
+ import { campaignGrid } from './campaignPower';
+-import { districtGuidance } from './campaignDistricts';
+ import { campaignWarning } from './campaignThreat';
+ import { defenceMax, defenceHp, coreDisabledAt } from './campaignDefence';
+ /** RI-02 — the current-goal line (D-GB-2 (a), constitution rule 8's form; plan §11.2 "prominent current goal with
+@@ -17,10 +16,9 @@
+  *  running / starved / blocked / idle / off word of the same section. E-hour samples `currentGoal` at 1 Hz through
+  *  the logged hour and checks every id against the state it claims (packages/harness goalcheck.ts). */
+ import { SimState, HELD, DARK, CONTESTED, Edge } from './types';
+-import { describeSite } from './expansion';
+ import { isCampaign } from './rules';
+ import {
+-  Machine, MACHINE_COST, MACHINE_KW, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
++  buildAffordability, chestCount, depotRect, KIND_LABEL, Machine, MACHINE_COST, MACHINE_KW, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
+   recipeOf, recipeOutput, subPowered, poleGrid, inputTile, outputTile, findRubble, asmCanStart, costStr, Item,
+   isFieldKind, fieldBlock, powered, invTotal, tramAt, tramRoute, nextOf, BELT_SPACING, inserterPickup,
+ } from './flow';
+@@ -59,7 +57,42 @@
+   /** The block the line is about (a claim, a street), for the map's marker; absent when it is about the HQ lot. */
+   block?: number;
+ }
+-export interface Goal { goal: GoalLine; support: GoalLine | null }
++export interface NextAction {
++  id: string; title: string; text: string; detail: string;
++  location?: {x:number;y:number}; shortage?: {item:'steel'|'copper';count:number;home:number}[];
++}
++export interface Goal { goal: GoalLine; support: GoalLine | null; next?: NextAction }
++
++/** Presentation derived only from saved facts. No completion flags or commands. */
++function campaignNext(st:SimState, tracked?:string|null):NextAction {
++  const e=st.engineer, home=depotRect(st), location={x:home.x+home.size/2,y:home.y+home.size/2};
++  if(e.down>=0)return {id:'recovery',title:'Recover at Home',text:`Back on your feet in ${Math.ceil(Math.max(0,e.down-st.t))} s`,detail:'Movement and interaction resume after recovery.',location};
++  const selected=tracked?campaignDiscoveries(st).find(s=>s.id===tracked):undefined;
++  if(selected){const need=selected.needs.find(n=>n.delivered<n.required);return {id:selected.id,title:selected.title,text:need?`Deliver ${need.required-need.delivered} ${need.item}`:selected.status,detail:selected.detail,location:{x:selected.x+selected.size/2,y:selected.y+selected.size/2}};}
++  const production=machines(st).filter(m=>['excavator','assembler','mixer'].includes(m.kind));
++  const working=production.find(m=>machineStatus(st,m).state==='running');
++  if(production.length&&!working){const m=production[0],status=machineStatus(st,m);return {id:'opening-workshop',title:'Start your workshop',text:`Check ${KIND_LABEL[m.kind]}: ${status.reason}`,detail:'Inspect the existing machine to get production moving.',location:{x:m.x+m.size/2,y:m.y+m.size/2}};}
++  const stats=st.flow?.stats, past=!!(stats&&((stats.mined??0)>(stats.handMined??0)||(stats.magsMade??0)>(stats.handCrafted??0)||Object.entries(stats.made??{}).some(([item,n])=>item!=='magazine'&&n>0)))||!!(st.campaign?.expansion&&st.campaign.expansion.station.restoredAt>=0);
++  if(!production.length){
++    const title=past?'Keep your workshop producing':'Start your workshop';
++    if(buildAffordability('excavator',e.inv).ok)return {id:'opening-workshop',title,text:'Place an Excavator on a resource patch',detail:'Build opens the available machines. An Excavator is one useful starting option.'};
++    const shortage=(['steel','copper'] as const).map(item=>({item,count:Math.max(0,MACHINE_COST.excavator[item]-(e.inv[item]??0)),home:chestCount(st,item)})).filter(s=>s.count>0);
++    const collect=shortage.filter(s=>s.home>0);
++    if(collect.length)return {id:'opening-workshop',title,text:past?'Collect materials from Home to rebuild':'Collect your starting supplies from Home',detail:collect.map(s=>`Take ${Math.min(s.count,s.home)} ${s.item}`).join(' · '),location,shortage};
++    const missing=shortage.map(s=>`${s.count} ${s.item}`).join(' + ');
++    const patch=HQ_PATCHES.find(p=>shortage.some(s=>PATCH_OF[s.item]===p.type)&&Array.from({length:p.w*p.h},(_,i)=>hqLot(st,p.lx+i%p.w,p.ly+Math.floor(i/p.w))).some(([x,y])=>rubbleAt(st,x,y)));
++    const xy=patch?hqLot(st,patch.lx,patch.ly):null;
++    return {id:'opening-workshop',title,text:xy?'Mine the remaining materials by hand':'Explore for a known material source',detail:`No working machine. Pockets need ${missing}; Home has none of these materials.`,location:xy?{x:xy[0],y:xy[1]}:undefined,shortage};
++  }
++  const ex=st.campaign?.expansion;
++  if(ex&&ex.radio.restoredAt>=0){
++    const linked=ex.route.every(t=>machineAt(st,t%st.flow!.tw,Math.floor(t/st.flow!.tw))?.kind==='track')&&ex.stops.every(([x,y])=>{const m=machineAt(st,x,y);return m?.kind==='tramstop'&&powered(st,m);})&&machines(st).some(m=>m.kind==='tram'&&tramRoute(st,m).includes(ex.route[0]));
++    if(!linked)return {id:'station',title:'Connect your tram line',text:'Lay the supplied route and power both stops',detail:'Collect any remaining kit at the station. Follow the blue survey and place the tram on the completed line.',location:{x:ex.station.x,y:ex.station.y}};
++  }
++  const sites=campaignDiscoveries(st),next=sites.find(s=>s.needs.some(n=>n.delivered<n.required))??sites.find(s=>s.actions.some(a=>a.commands.some(c=>c.type==='restoreSite')));
++  if(next)return {id:next.id,title:next.title,text:'Supply and restore this known installation',detail:next.detail,location:{x:next.x+next.size/2,y:next.y+next.size/2}};
++  return {id:'opening-workshop',title:'Keep your workshop producing',text:'Explore and connect your known destinations',detail:'Your existing production is running. Use Projects for restoration and service details.'};
++}
+ 
+ // ------------------------------------------------------------------ counting what stands
+ 
+@@ -242,20 +275,10 @@
+ }
+ 
+ /** The current goal and its support line. Pure; cheap enough for a HUD to call once a second. */
+-export function currentGoal(st: SimState): Goal {
++export function currentGoal(st: SimState, tracked?:string|null): Goal {
+   if (isCampaign(st)) {
+-    const factory = st.flow?.machines.some(m => m.kind === 'excavator' || (m.kind === 'assembler'||m.kind==='mixer'));
+-    const ex = st.campaign?.expansion;
+-    if (ex && ex.radio.restoredAt >= 0) {
+-      const linked = ex.route.every(t => machineAt(st, t % st.flow!.tw, Math.floor(t / st.flow!.tw))?.kind === 'track')
+-        && ex.stops.every(([x,y]) => { const m = machineAt(st,x,y); return m?.kind === 'tramstop' && powered(st,m); })
+-        && !!st.flow?.machines.some(m => m.kind === 'tram' && tramRoute(st,m).includes(ex.route[0]));
+-      if (!linked) return { goal: { id: 'home-explore', text: 'Lay the supplied tram route and power both stops', why: 'Blue survey squares mark track and stop positions. Collect any remaining kit at the station; place the tram on the completed line.' }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
+-    }
+-    if(ex&&ex.radio.restoredAt>=0&&st.campaign?.districts) { const d=st.campaign.districts;return {goal:{id:'home-explore',block:d.station.block,text:d.station.restoredAt<0?'Extend your tram supply line to the later station':d.workshop.restoredAt<0?'Restore and supply the repair workshop':'Connect specialised extraction and keep home producing supplies',why:knownSite(st,'workshop')?districtGuidance(st):'Extend the surveyed line, establish local power and explore the next district for services.'},support:{id:'campaign-threat',text:campaignWarning(st),why:'Protect the supplies and prepare for dusk.'}};}
+-    if (ex && (factory || ex.station.restoredAt >= 0)) return { goal: { id: 'home-explore', block: ex.station.block, text: ex.station.restoredAt < 0 ? `Explore to ${blockName(st, ex.station.block)} and restore its tram station` : ex.radio.restoredAt < 0 ? 'Connect the tram line and restore the nearby radio tower' : 'Build factories around your connected station', why: describeSite(st, ex.station.restoredAt < 0 ? 'station' : 'radio') }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
+-    return { goal: { id: factory ? 'home-explore' : 'home-factory', text: factory ? 'Explore beyond Home Court through its single entrance' : 'Build your first production line in Home Court',
+-      why: factory ? 'Your house and factory remain here when you return.' : 'E at the house opens your supplies; B opens building. Steel and copper patches are inside the court.' }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
++    const next=campaignNext(st,tracked);
++    return {next,goal:{id:next.id==='opening-workshop'?'home-factory':next.id==='recovery'?'down':'home-explore',text:next.title,why:next.text},support:{id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'}};
+   }
+   return { goal: goalOf(st), support: supportOf(st) };
+ }
+--- UI-01/packages/sim/src/index.ts
++++ UI-02/packages/sim/src/index.ts
+@@ -78,3 +78,5 @@
+ export * from './campaignCityValidation';
+ 
+ export * from './navigation';
++
++export * from './interaction';
+--- UI-01/packages/sim/src/interaction.ts
++++ UI-02/packages/sim/src/interaction.ts
+@@ -0,0 +1,41 @@
++/** Read-only campaign E target. The renderer displays and executes this same result. */
++import type {Command,SimState} from './types';
++import {isCampaign} from './rules';
++import {inReach} from './ground';
++import {handCraftCheck,depotRect,machineAt,KIND_LABEL,canRepair,lightAt} from './flow';
++import {machineDimensions} from './footprint';
++import {workbenchTile} from './walk';
++import {campaignDiscoveries} from './campaignGuide';
++import {coreAt,defenceMax,defenceHp,repairCheck,DEFENCE} from './campaignDefence';
++import {truckOccupies,truckRect,truckBoardCheck} from './truck';
++export interface Interaction {
++  x:number;y:number;label:string;reason:string;detail?:string;commands:Command[];
++  panel?:'home'|'chest'|'routing'|'inspection';
++}
++export function campaignInteraction(st:SimState, hover?:{tx:number;ty:number}|null):Interaction|null {
++  if(!isCampaign(st)||!st.flow||st.engineer.down>=0)return null;
++  const discoveries=campaignDiscoveries(st),e=st.engineer;
++  const query=(x:number,y:number):Interaction|null=>{
++    const result=(label:string,commands:Command[]=[],reason='',size=1,height=size):Interaction=>({x,y,label,commands,reason:reason||(!inReach(st,x,y,size,height)?'Walk closer on foot':'')});
++    if(e.truckSeat||truckOccupies(st,x,y))return result(e.truckSeat?'Exit truck':'Board truck',[{type:'factory',action:{type:'truckBoard'}}],truckBoardCheck(st));
++    const core=coreAt(st,x,y),m=machineAt(st,x,y);
++    if((core&&core.hp<DEFENCE.coreHp)||(m&&defenceMax(m)>0&&defenceHp(m)<defenceMax(m)))return result(core?'Repair base core':`Repair ${KIND_LABEL[m!.kind]}`,[{type:'repairDefence',x,y}],repairCheck(st,x,y),core?.size??m!.size);
++    const site=discoveries.find(s=>x>=s.x&&x<s.x+s.size&&y>=s.y&&y<s.y+s.size);
++    if(site){const a=site.actions[0];return {...result(a?.label??site.title,a?.commands??[],a?.reason??'',site.size),detail:site.status};}
++    const [wx,wy]=workbenchTile(st);
++    if(x>=wx&&x<wx+2&&y>=wy&&y<wy+2)return result('Craft one magazine',[{type:'factory',action:{type:'craft',item:'magazine',count:1}}],handCraftCheck(st).reason,2);
++    const l=lightAt(st,x,y);
++    if(l?.l.why)return result('Repair streetlight',[{type:'factory',action:{type:'repair',x,y}}],canRepair(st,x,y).reason);
++    if(m){const [w,h]=machineDimensions(m),panel=m.kind==='depot'?'home':m.kind==='chest'||m.kind==='tramstop'?'chest':m.kind==='inserter'||m.kind==='splitter'?'routing':'inspection';
++      return {...result(panel==='home'?'Open supplies':`${panel==='chest'?'Open':'Inspect'} ${KIND_LABEL[m.kind]}`,[],'',w,h),x:m.x,y:m.y,panel,reason:inReach(st,m.x,m.y,w,h)?'':'Walk closer on foot'};}
++    return null;
++  };
++  if(e.truckSeat)return query(Math.floor(e.x),Math.floor(e.y));
++  if(hover){const hit=query(hover.tx,hover.ty);if(hit)return hit;}
++  const d=depotRect(st),[wx,wy]=workbenchTile(st),truck=st.campaign?.truck;
++  const home=query(d.x,d.y);if(home?.panel==='home'&&!home.reason)return home;
++  const points=[d,{x:wx,y:wy},...discoveries,...st.flow.machines];
++  if(truck){const r=truckRect(truck);points.push({x:Math.ceil(r.x),y:Math.ceil(r.y)});}
++  return points.map(p=>query(p.x,p.y)).filter((p):p is Interaction=>!!p&&!p.reason)
++    .sort((a,b)=>Math.hypot(a.x-e.x,a.y-e.y)-Math.hypot(b.x-e.x,b.y-e.y))[0]??null;
++}
+--- UI-01/packages/sim/test/campaign.test.ts
++++ UI-02/packages/sim/test/campaign.test.ts
+@@ -84,7 +84,8 @@
+     applyCommands(st, [{ type: 'place', item: 'assembler', x: place[0], y: place[1] }]);
+     assert.ok(st.flow!.machines.some(m => m.kind === 'assembler')); assert.ok(st.engineer.inv.steel < 50);
+     assert.deepEqual(conservation(st).unexplained, before);
+-    assert.equal(currentGoal(st).goal.id, 'home-explore');
++    assert.equal(currentGoal(st).goal.id, 'home-factory');
++    assert.match(currentGoal(st).next!.text,/Check Assembler/,'a placed but unfed machine needs inspection before exploration');
+     assert.deepEqual(ground(loadState(makeSave(st))).opening, opening, 'load regenerates the identical boundary');
+   }
+ });
+--- UI-01/packages/sim/test/uiGuidance.test.ts
++++ UI-02/packages/sim/test/uiGuidance.test.ts
+@@ -0,0 +1,55 @@
++import {test} from 'node:test';
++import assert from 'node:assert/strict';
++import {createCampaign,ensureFlow,currentGoal,buildAffordability,MACHINE_COST,chestTake,chestCount,depotRect,campaignInteraction,stateHash,makeSave,loadState,ground,canPlace,inReach,applyCommands,campaignDiscoveries,navigationTargets,workbenchTile,type SimState} from '../src/index';
++const fresh=()=>{const st=createCampaign(3);ensureFlow(st);return st;};
++const next=(st:SimState)=>currentGoal(st).next!;
++function assembler(st:SimState){chestTake(st,'steel',50);chestTake(st,'copper',50);const G=ground(st),p=G.opening!.bounds;for(let y=p.y;y<p.y+p.size;y++)for(let x=p.x;x<p.x+p.size;x++)if(inReach(st,x,y,3)&&canPlace(st,'assembler',x,y).ok){applyCommands(st,[{type:'place',item:'assembler',x,y}]);return st.flow!.machines.find(m=>m.kind==='assembler')!;}throw Error('No legal opening pad');}
++test('UI-02 fresh and paused load point to real Home stock; partial pockets name only the remainder',()=>{
++ const st=fresh();assert.match(next(st).text,/Collect your starting supplies from Home/);assert.deepEqual(next(st).shortage,[{item:'steel',count:MACHINE_COST.excavator.steel,home:chestCount(st,'steel')}]);
++ const loaded=loadState(makeSave(st));ensureFlow(loaded);assert.deepEqual(next(loaded),next(st));
++ chestTake(st,'steel',4);assert.equal(next(st).shortage![0].count,6);assert.equal(next(st).detail,'Take 6 steel');
++ chestTake(st,'steel',6);assert.match(next(st).text,/Place an Excavator/);assert.ok(buildAffordability('excavator',st.engineer.inv).ok);
++});
++test('UI-02 packed machines skip collection, exhausted Home suggests a real known patch, not impossible supplies',()=>{
++ const st=fresh();st.engineer.inv={excavator:1};assert.match(next(st).text,/Place an Excavator/);
++ st.engineer.inv={};st.stock.steel=0;const n=next(st);assert.match(n.text,/Mine/);assert.ok(n.location);const G=ground(st);assert.equal(G.near[n.location!.y*G.tw+n.location!.x],st.campaign!.homeBlock);
++});
++test('UI-02 existing machinery is inspected, with saved facts surviving load and removal',()=>{
++ const st=fresh(),m=assembler(st);assert.match(next(st).text,/Check Assembler/);assert.doesNotMatch(next(st).text,/Collect/);assert.deepEqual(next(st).location,{x:m.x+m.size/2,y:m.y+m.size/2});
++ const loaded=loadState(makeSave(st));ensureFlow(loaded);assert.deepEqual(next(loaded),next(st));
++ // Historical-production fixture: genuine saved counters, no presentation achievement bit.
++ st.flow!.stats.magsMade=1;st.flow!.stats.handCrafted=0;st.flow!.machines=st.flow!.machines.filter(x=>x.id!==m.id);st.engineer.inv={};
++ assert.equal(next(st).title,'Keep your workshop producing');assert.match(next(st).text,/rebuild/);
++ st.flow!.stats.magsMade=0;assert.equal(next(st).title,'Start your workshop');assert.doesNotMatch(next(st).text,/never/);
++});
++test('UI-02 restored milestones remain restored while missing machinery needs rebuilding; down takes priority over tracking',()=>{
++ const st=fresh(),site=st.campaign!.expansion!.station;site.restoredAt=0;
++ assert.equal(next(st).title,'Keep your workshop producing');assert.equal(site.restoredAt,0);
++ const tracked=currentGoal(st,'station').next!;assert.match(tracked.text,/Restored/);
++ st.engineer.down=st.t+8;assert.equal(currentGoal(st,'station').next!.id,'recovery');assert.equal(campaignInteraction(st),null);
++});
++test('UI-02 tracking and minimap use known stable identities; invalid IDs fall back without revealing unknown sites',()=>{
++ const st=fresh(),before=stateHash(st);assert.equal(next(st).id,'opening-workshop','opening identity is distinct from the later repair workshop');assert.deepEqual(currentGoal(st,'unknown'),currentGoal(st));
++ assert.equal(currentGoal(st,'station').next!.id,'station');assert.ok(campaignDiscoveries(st).every(s=>navigationTargets(st).some(t=>t.id===`site:${s.id}`)));
++ const t=st.campaign!.turbine!;assert.equal(t.seenAt,-1);assert.ok(!navigationTargets(st).some(s=>s.id===`site:${t.id}`));
++ assert.ok(!campaignInteraction(st,{tx:t.x,ty:t.y})?.label.includes('Turbine'));
++ assert.equal(stateHash(st),before);
++});
++test('UI-02 Home, workbench, machine and out-of-reach prompts resolve their actual E action without mutation',()=>{
++ const st=fresh(),d=depotRect(st),before=stateHash(st),home=campaignInteraction(st,{tx:d.x,ty:d.y})!;
++ assert.equal(home.label,'Open supplies');assert.equal(home.panel,'home');assert.equal(home.reason,'');assert.equal(stateHash(st),before);
++ const [x,y]=workbenchTile(st),craft=campaignInteraction(st,{tx:x,ty:y})!;assert.equal(craft.label,'Craft one magazine');assert.deepEqual(craft.commands,[{type:'factory',action:{type:'craft',item:'magazine',count:1}}]);
++ st.engineer.x=d.x+50;st.engineer.y=d.y+50;assert.match(campaignInteraction(st,{tx:d.x,ty:d.y})!.reason,/Walk closer/);
++});
++test('UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home',()=>{
++ const st=fresh(),site=st.campaign!.expansion!.station;st.engineer.x=site.x;st.engineer.y=site.y;
++ const target=campaignInteraction(st,{tx:site.x,ty:site.y})!;assert.equal(target.reason,'');assert.deepEqual(target.commands,[{type:'deliverSite',site:'station'},{type:'restoreSite',site:'station'}]);
++ const d=st.campaign!.defence!.bases[0];d.hp-=1;st.engineer.x=d.x;st.engineer.y=d.y;const repair=campaignInteraction(st,{tx:d.x,ty:d.y})!;assert.equal(repair.label,'Repair base core');assert.deepEqual(repair.commands,[{type:'repairDefence',x:d.x,y:d.y}]);
++});
++
++test('UI-02 machine reach is measured from the whole footprint, independent of which corner is pointed at',()=>{
++ const st=fresh(),d=depotRect(st);st.engineer.x=d.x-8;st.engineer.y=d.y+d.size/2;
++ assert.ok(inReach(st,d.x,d.y,d.size));
++ assert.equal(campaignInteraction(st,{tx:d.x+d.size-1,ty:d.y+d.size-1})!.reason,'');
++ st.engineer.x-=.1;assert.match(campaignInteraction(st,{tx:d.x,ty:d.y})!.reason,/Walk closer/);
++});

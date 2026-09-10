@@ -1,0 +1,78 @@
+TAP version 13
+# Subtest: fixed city, empty start, exact route and old save isolation
+ok 1 - fixed city, empty start, exact route and old save isolation
+  ---
+  duration_ms: 781.594691
+  type: 'test'
+  ...
+# Subtest: every entrance, objective and plant platform is physically reachable; report 1x travel
+ok 2 - every entrance, objective and plant platform is physically reachable; report 1x travel
+  ---
+  duration_ms: 88.419568
+  type: 'test'
+  ...
+# Subtest: four factory yards fit real machinery, defence and walking access with expansion room
+ok 3 - four factory yards fit real machinery, defence and walking access with expansion room
+  ---
+  duration_ms: 28.690779
+  type: 'test'
+  ...
+# Subtest: ordinary hand-gathered materials build and fuel starter machinery
+ok 4 - ordinary hand-gathered materials build and fuel starter machinery
+  ---
+  duration_ms: 337.946
+  type: 'test'
+  ...
+# Subtest: one recovered core activates any authored plant; artifact and workplace recruit retain ownership
+ok 5 - one recovered core activates any authored plant; artifact and workplace recruit retain ownership
+  ---
+  duration_ms: 73.249583
+  type: 'test'
+  ...
+# Subtest: tram bypasses unpowered intermediate platforms with real freight and passenger
+ok 6 - tram bypasses unpowered intermediate platforms with real freight and passenger
+  ---
+  duration_ms: 145.282757
+  type: 'test'
+  ...
+# Subtest: walls occlude interactions; door, persisted clearing and one-way shortcut change collision
+not ok 7 - walls occlude interactions; door, persisted clearing and one-way shortcut change collision
+  ---
+  duration_ms: 10.022732
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/riverfront.test.ts:21:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /Barred/. Input:
+    
+    'Walk closer'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'Walk closer'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/riverfront.test.ts:21:589)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: bounded shared navigation routes around buildings and dynamic obstacles; different clearance and unreachable targets
+ok 8 - bounded shared navigation routes around buildings and dynamic obstacles; different clearance and unreachable targets
+  ---
+  duration_ms: 28.779224
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 7
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5037.997379

@@ -14,7 +14,9 @@ export function defenceProblem(st:SimState):string {
   for(const b of d.bases)if(!block(b.block)||!integer(b.x)||!integer(b.y)||!integer(b.size,1)||b.x+b.size>st.flow.tw||b.y+b.size>st.city!.th||!number(b.hp)||b.hp<0||b.hp>DEFENCE.coreHp||!integer(b.commissionedAt))return 'invalid campaign base';
   const station=st.campaign!.expansion?.station;
   const stations=[station,st.campaign!.districts?.station].filter(s=>s!==undefined);
-  if(d.bases.some(b=>b.block!==st.campaign!.homeBlock&&!stations.some(s=>s!.block===b.block))||stations.some(s=>!!d.bases.find(b=>b.block===s!.block)!==(s!.restoredAt>=0)))return 'campaign bases disagree with restoration';
+  const plants=st.campaign?.progression?.sites.filter(s=>s.kind==='plant'&&s.installed)??[];
+  const commissioned=(block:number)=>stations.some(s=>s!.block===block&&s!.restoredAt>=0)||plants.some(s=>s.block===block);
+  if(d.bases.some(b=>b.block!==st.campaign!.homeBlock&&!commissioned(b.block))||stations.some(s=>s!.restoredAt>=0&&!d.bases.some(b=>b.block===s!.block))||plants.some(s=>!d.bases.some(b=>b.block===s.block&&b.x===s.x&&b.y===s.y)))return 'campaign bases disagree with restoration';
   if(d.nominations.some(n=>!d.bases.some(b=>b.block===n.block)||!integer(n.at))||new Set(d.nominations.map(n=>n.block)).size!==d.nominations.length)return 'invalid restoration nominations';
   for(const a of [d.major,d.minor])if(a!==null&&(!a||!integer(a.id,1)||a.id>=d.nextId||!d.bases.some(b=>b.block===a.block)||!tile(a.origin)||typeof a.retreat!=='boolean'))return 'invalid campaign attack';
   if(d.major&&(!integer(d.major.dawn)||!integer(d.major.startsAt)||d.major.startsAt<d.major.dawn||!integer(d.major.remaining)||d.major.remaining>60||!integer(d.major.nextSpawn)))return 'invalid major roster';
@@ -33,8 +35,11 @@ export function defenceProblem(st:SimState):string {
   if(new Set(bodies.map(c=>c.id)).size!==bodies.length||bodies.some(c=>!integer(c.id,1)||c.id>=st.flow!.threat!.next))return 'invalid campaign creature identity';
   if(bodies.filter(c=>c.campaign?.layer==='major').length>d.majorSpawned)return 'major bodies exceed spawned roster';
   for(const c of bodies) {
+    if(c.role!==undefined&&!['breaker','conductor'].includes(c.role)||c.signal!==undefined&&(!number(c.signal)||c.signal<0))return 'invalid campaign creature role';
     const m=c.campaign;
     if(!m||!['site','minor','major'].includes(m.layer)||!integer(m.group,1)||!tile(m.origin)||(m.waypoint!==undefined&&!tile(m.waypoint))||!number(c.x)||!number(c.y)||c.x<0||c.y<0||c.x>=st.flow.tw||c.y>=st.city!.th||!number(c.hp)||c.hp<=0)return 'invalid campaign creature';
+    if(m.encounter!==undefined&&(m.layer!=='site'||!st.campaign?.progression?.sites.some(s=>s.id===m.encounter&&['heart','furnace','crown'].includes(s.kind))))return 'invalid engineering attacker';
+    if((m.patrol!==undefined&&(!tile(m.patrol)||m.layer!=='site'))||(m.patrolStep!==undefined&&(!integer(m.patrolStep)||m.layer!=='site')))return 'invalid campaign patrol';
     if(m.layer==='site'?!d.sites.some(s=>s.id===m.group):m.layer==='minor'?d.minor?.id!==m.group:d.major?.id!==m.group)return 'orphaned campaign creature';
     const group=m.layer==='site'?d.sites.find(s=>s.id===m.group):m.layer==='minor'?d.minor:d.major;
     if(c.to!==group!.block||c.from!==group!.block||(m.layer==='site'&&m.origin!==d.sites.find(s=>s.id===m.group)!.tile))return 'campaign creature target disagrees with group';

@@ -1,3 +1,7 @@
+import {authoredProblem} from './authoredCity';
+import {initProgression,progressionProblem} from './progression';
+import {initFixedTram, fixedTramProblem} from './fixedTram';
+import {packProblem} from './engineer';
 import { truckProblem } from './truck';
 /** RI-02 — the save / load baseline (§11.2, plan line "early save/load support sufficient for repeatable testing").
  *  The state is plain JSON (types.ts), so a save is the state plus the session's command log; loading is a validated
@@ -14,15 +18,19 @@ import { routingProblem } from './routing';
 import { inspectionProblem } from './inspection';
 import { initExpansion } from './expansion';
 import { initDefence } from './campaignDefence';
+import {navigationProblem} from './navigation';
 import { initKnowledge, knowledgeProblem } from './campaignGuide';
 import { initTurbine, turbineProblem } from './campaignTurbine';
-import { initRecruits, recruitsProblem } from './campaignRecruits';
+import { initForeman, initRecruits, recruitsProblem } from './campaignRecruits';
 import { initDiscovery } from './campaignDiscovery';
 import { initDistricts } from './campaignDistricts';
 import { discoveryProblem } from './discoveryValidation';
 import { districtsProblem } from './districtValidation';
 import { defenceProblem } from './defenceValidation';
 import { rulesetProblem } from './rules';
+import { truckWorkProblem } from './truckWork';
+import { blueprintPlansProblem } from './blueprintPlans';
+import { clipboardProblem } from './blueprint';
 import { constructionProblem } from './construction';
 import { concreteProblem } from './concreteValidation';
 
@@ -85,8 +93,10 @@ export function stateProblem(v: unknown): string {
   if (!st.config || typeof st.config !== 'object') return 'no config';
   if (!Array.isArray(st.ring)) return 'no ring';
   if (!st.engineer || typeof st.engineer !== 'object') return 'no engineer';
+  if(packProblem(st.engineer))return packProblem(st.engineer);
+  if(st.engineer.lastDamageSource!==undefined&&(typeof st.engineer.lastDamageSource!=='string'||!st.engineer.lastDamageSource.startsWith('relay:')))return 'Invalid damage source';
   if (st.city?.profile && st.city.profile !== 'riverside-v1') return `unsupported city profile ${st.city.profile}`;
-  return rulesetProblem(st as SimState) || concreteProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || discoveryProblem(st as SimState) || recruitsProblem(st as SimState) || turbineProblem(st as SimState) || knowledgeProblem(st as SimState) || freightProblem(st as SimState) || constructionProblem(st as SimState) || routingProblem(st as SimState) || inspectionProblem(st as SimState) || truckProblem(st as SimState);
+  return authoredProblem(st as SimState) || rulesetProblem(st as SimState) || concreteProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || discoveryProblem(st as SimState) || recruitsProblem(st as SimState) || turbineProblem(st as SimState) || knowledgeProblem(st as SimState) || freightProblem(st as SimState) || blueprintPlansProblem(st as SimState) || clipboardProblem(st as SimState) || constructionProblem(st as SimState) || routingProblem(st as SimState) || inspectionProblem(st as SimState) || truckProblem(st as SimState) || truckWorkProblem(st as SimState) || navigationProblem(st as SimState) || fixedTramProblem(st as SimState) || progressionProblem(st as SimState);
 }
 
 /** A validated deep copy of a saved state — a SaveFile, a telemetry export (its `finalState`) or a raw SimState —
@@ -99,7 +109,7 @@ export function loadState(raw: unknown): SimState {
   const st = JSON.parse(JSON.stringify(src)) as SimState;
   st.events = []; st.acc = 0; st.speed = 0;
   st.survivors ??= [];
-  if (st.flow) { initExpansion(st); initDefence(st); initDistricts(st); initDiscovery(st); initRecruits(st); initTurbine(st); initKnowledge(st); }
+  if (st.flow) { initExpansion(st); initDefence(st); initDistricts(st); initDiscovery(st); initRecruits(st); initTurbine(st); initForeman(st); initFixedTram(st); initProgression(st); initKnowledge(st); }
   return st;
 }
 

@@ -1,4 +1,13 @@
+import {cityTramVisualPose} from './riverfrontRailDraw';
+import {applyUiPreferences} from './settingsPanel';
+applyUiPreferences();
+window.addEventListener('resize',applyUiPreferences);
+import {createHud} from './hud';
+import { uiInput } from './uiShell';
 import Phaser from 'phaser';
+import {navigationTargets} from '@relight/sim';
+import {navigationView} from './view';
+import {createNavigationPanel} from './navigationPanel';
 import { rulesetOf, knownCampaignThreat, blockName } from '@relight/sim';
 import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queueCraft, setHandMine, Kind, Dir, handFeed, cellLights, blockLights, substationAt, poleGrid,
   hqLot, blockOfTile, ground, chestCount, chestTake, chestPut, ChestItem, invStacks, currentPath, describeGround, cityGeomOf, segBetween,
@@ -6,7 +15,7 @@ import { SimEvent, flowSummary, canPlace, place, remove, canPickUp, rotate, queu
   idxOf, LIGHT_SEQ_PER_S, REPAIR_COPPER, hourReport, blockLabel, stateHash, currentGoal, clockOf,
   heartAt, heartOf, CANDIDATES,   // RI-06
 } from '@relight/sim';
-import { parseUrl, createSession, setSpeed, runTicks, loadSnapshot, frame, Session, queue, record, dispatch, replaySession, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
+import { parseUrl, createSession, setSpeed, loadSnapshot, frame, Session, queue, record, dispatch, replaySession, saveSlot, slotUrl, hasSlot, makeSessionSave } from './session';
 import { MapScene, MapView, SceneHooks, MAP_W, MAP_H } from './mapScene';
 import { CityMapScene } from './cityMapScene';
 import { WorldScene, Tool } from './worldScene';
@@ -22,6 +31,7 @@ try {
   session = createSession(params, params.state ? await loadSnapshot(params.state) : null);
 } catch (e) {
   // Fail closed: a rejected save/profile must never silently become a different campaign.
+  document.body.classList.add('ui-entry-error');
   const panel = document.getElementById('panel')!;
   const title = document.createElement('h2'), reason = document.createElement('p');
   title.textContent = 'This session could not be opened';
@@ -31,6 +41,7 @@ try {
     const line = document.createElement('p'), link = document.createElement('a');
     link.textContent = label; link.href = `?rules=${rules}&view=world`; line.append(link); panel.append(line);
   }
+  panel.setAttribute('role','alert');
   throw e;
 }
 const params = session.params;
@@ -42,8 +53,15 @@ const view: View = { mode: params.view, focus: [session.state.start[0], session.
 const panel = createPanel(session, document.getElementById('panel')!, {
   onSelectEdge(id) { mapScene.selectEdge(id); },
   onToggleView() { toggleView(); },
+  releaseInput() { worldScene.releaseInput(); },
+  cancelSelection() { return worldScene.cancelSelection(); },
+  selectedTool() { return worldScene.tool; },
+  locate(x,y) { if(view.mode==='map')toggleView();worldScene.viewLocation(x,y); },
+  rotateTool() { worldScene.key(shortcut('rotate')); focusWorld(); },
+  cancelTool() { worldScene.cancelSelection(); focusWorld(); },
 });
-if (session.scenario === 'B') panel.toast(`${params.state?.startsWith('local:') ? 'Save' : 'Snapshot'} loaded at ${clockOf(session.startT)} (state ${stateHash(session.state)}) — paused. Press P or a speed to begin.`, 'good');
+// The fresh opening already shows its clock and paused state; keep the engineer unobscured.
+if (session.scenario === 'B' && (!session.state.campaign || session.startT > 0)) panel.toast(session.state.campaign ? `City loaded at ${clockOf(session.startT)} · Paused` : `${params.state?.startsWith('local:') ? 'Save' : 'Snapshot'} loaded at ${clockOf(session.startT)} (state ${stateHash(session.state)}) — paused. Press P to resume.`, 'good');
 
 /** RI-02: a block by its stable name (names.ts), with the coordinates only behind the ` toggle. */
 const at = (x: number, y: number): string => blockLabel(session.state, idxOf(session.state, x, y), debugView.coords);
@@ -82,7 +100,7 @@ function describe(events: SimEvent[]): void {
       // M3 (rule 8): the hopper, Generator and §14 brownout rules surface as toasts from the sim's events
       case 'hopper-empty': panel.toast(`Hopper EMPTY on ${at(ev.x, ev.y)} facing ${at(ev.nx, ev.ny)} — its pip is red until it is fed`, 'bad'); break;
       case 'gen-dry': panel.toast('The Generator burned its last coal — hand-feed it (click it with the hand) or belt coal in. No power until then.', 'bad'); break;
-      case 'brownout': panel.toast(`Brownout: demand ${Math.round(ev.demandKw)} kW over ${Math.round(ev.supplyKw)} kW supply — every machine runs at ${Math.round(100 * Math.max(0, ev.supplyKw) / ev.demandKw)} % until a Generator is added or fed (§14). Nothing switches off.`, 'bad'); break;
+      case 'brownout': panel.toast(ev.supplyKw<=0?'Power outage. Refill a Generator or restore a connected power source; check the persistent location warning.':`Power shortage: ${Math.round(ev.supplyKw)} kW supply / ${Math.round(ev.demandKw)} kW demand. Add connected generation or reduce demand.`, 'bad'); break;
       case 'power-ok': panel.toast('Power back: supply covers demand, every machine at full speed', 'good'); break;
       case 'claim': {
         if (!session.state.flow) break;
@@ -157,23 +175,35 @@ const hooks: SceneHooks = {
 };
 // D6: the city map draws polygons; the lattice MapScene stays for ?map=lattice and the lattice-era snapshots
 const mapScene: MapView = session.state.city ? new CityMapScene(session, hooks) : new MapScene(session, hooks);
-const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind), onChest: () => panel.togglePockets(), onChestAt: (x, y) => panel.openPocketsAt(x, y), onRoutingAt: (x,y) => panel.openRoutingAt(x,y), onInspectAt: (x,y) => panel.openInspectionAt(x,y), onTruck: () => panel.openTruck() });
-worldScene.handLamp = new URLSearchParams(location.search).get('handlamp') === '1';   // D-B5-1 preview only
-panel.onPick = kind => { worldScene.setTool(kind); panel.closeAll(); panel.toast(FACTORY_TEXT.picked(kind)); };
+const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind), onChest: () => panel.openPocketsAt(session.state.engineer.x,session.state.engineer.y), onChestAt: (x, y) => panel.openPocketsAt(x, y), onRoutingAt: (x,y) => panel.openRoutingAt(x,y), onInspectAt: (x,y) => panel.openInspectionAt(x,y), onTruck: () => panel.openTruck() });
+worldScene.handLamp = !!session.state.campaign || new URLSearchParams(location.search).get('handlamp') === '1';   // Mouse-aimed campaign flashlight
+function focusWorld(){document.querySelector<HTMLCanvasElement>('#map > canvas')?.focus({preventScroll:true});panel.shell.sync();}
+panel.onPick = kind => { worldScene.setTool(kind); panel.closeAll(); focusWorld(); if(!session.state.campaign)panel.toast(FACTORY_TEXT.picked(kind)); };
+panel.onRemovalPreview = () => worldScene.removal;
+panel.onBlueprint = action => {if(view.mode!=='world')toggleView();worldScene.blueprint(action);if(['copy','paste','queue','removeArea'].includes(action))panel.closeAll();const canvas=document.querySelector('canvas');canvas?.scrollIntoView({block:'nearest'});canvas?.focus({preventScroll:true});};
 game.scene.add('map', mapScene, view.mode === 'map');
 game.scene.add('world', worldScene, view.mode === 'world');
 if (view.mode === 'world') worldScene.centreOn(view.focus[0], view.focus[1]);
 panel.setView(view.mode);
 
+const showNavigationCanvas=()=>document.querySelector('canvas')?.scrollIntoView({block:'start'});
+const navigationRoot=document.createElement('div');
+const navigation=session.state.campaign?createNavigationPanel(session,navigationRoot,t=>{if(view.mode==='map')toggleView();worldScene.viewLocation(t.x,t.y);showNavigationCanvas();},()=>{toggleView();showNavigationCanvas();},()=>{if(view.mode==='map')toggleView();worldScene.returnToEngineer();showNavigationCanvas();},()=>worldScene.releaseInput()):null;
+if(navigation){const node=navigationRoot.querySelector<HTMLElement>('.navigation-panel')!; panel.shell.register('navigation','Map and navigation',[node],()=>{(node as HTMLDetailsElement).open=true;});panel.shell.drawerButton('navigation','Navigation');}
+const navCue=document.createElement('div');navCue.id='navigation-cue';navCue.hidden=true;document.getElementById('map')!.append(navCue);
+let lastNavigationUpdate=-Infinity;
 // The sim runs once per game step whichever view is up; the map view consumes the events for its pulses.
 game.events.on(Phaser.Core.Events.STEP, (time: number, delta: number) => {
   const events = frame(session, Math.min(0.1, delta / 1000));
   if (events.length) { mapScene.consume(events, time); describe(events); }
   panel.update(performance.now());
   updateThreatControls();
+  campaignHud?.update(time);
+  if(time-lastNavigationUpdate>150){lastNavigationUpdate=time;navigation?.update();const t=navigationTargets(session.state).find(t=>t.id===navigationView.targetId);navCue.hidden=!t;if(t){const e=session.state.engineer,distance=Math.round(Math.hypot(t.x-e.x,t.y-e.y)),angle=(Math.round(Math.atan2(t.y-e.y,t.x-e.x)/(Math.PI/4))+8)%8;const [x,y]=view.mode==='world'?worldScene.screenOf(t.x,t.y):[0,0];const cam=game.canvas;const off=view.mode==='world'&&(x<0||y<0||x>cam.clientWidth||y>cam.clientHeight);navCue.textContent=`${['E','SE','S','SW','W','NW','N','NE'][angle]} · ${t.name} · ${distance} tiles from you${off?' · off-screen':''}`;}}
   // RI-02: the world view's top HUD corners sit under the goal overlay (measured here, not per frame — the panel throttles)
   const goalEl = document.getElementById('goal');
-  hudInset.top = goalEl && !goalEl.hidden ? goalEl.offsetHeight + 4 : 0;
+  if(!session.state.campaign)hudInset.top = goalEl && !goalEl.hidden ? goalEl.offsetHeight + 4 : 0;
+  if(!session.state.campaign)document.documentElement.style.setProperty('--ui-top-inset',hudInset.top+'px');
 });
 
 /** The block the engineer stands in (or last stood in), for the map's marker. */
@@ -217,10 +247,12 @@ threatDirection.id='threat-direction';
 threatButton.textContent=`View threat (${shortcut('threat')})`;threatButton.onclick=viewKnownThreat;
 returnButton.textContent=`Return to engineer (${shortcut('engineer')})`;returnButton.onclick=()=>worldScene.returnToEngineer();
 threatControls.append(threatDirection,threatButton,returnButton);document.getElementById('goal')!.append(threatControls);
+const campaignHud=session.state.campaign?createHud(session,panel,worldScene,view,toggleView,threatControls):null;
 function updateThreatControls():void {
+  threatButton.textContent=`View threat (${shortcut('threat')})`;returnButton.textContent=`Return to engineer (${shortcut('engineer')})`;
   const target=knownCampaignThreat(session.state);
   threatControls.hidden=!session.state.campaign;
-  threatButton.hidden=!target;returnButton.hidden=!worldScene.viewingThreat;
+  threatButton.hidden=!target;returnButton.hidden=!!session.state.campaign||!worldScene.viewingThreat;
   let text='';
   if(target){
     const [x,y]=view.mode==='world'?worldScene.screenOf(target.x,target.y):[0,0],canvas=document.querySelector('canvas')!,w=canvas.clientWidth,h=canvas.clientHeight;
@@ -232,13 +264,18 @@ function updateThreatControls():void {
   if(threatDirection.textContent!==text)threatDirection.textContent=text;
 }
 
-/** D-B1-5 keys: P pause, - / = speed (1×, 4×, 16×), M map ↔ world, Tab or I the pockets, B the build menu, Esc closes
+/** D-B1-5 keys: P pause, normal-speed play, M map ↔ world, Tab or I the pockets, B the build menu, Esc closes
  *  anything and clears the hand, ` the debug panel; Space is the dodge and the digits the hotbar, both the world
  *  scene's (Shift sprints there too). */
-const SPEEDS = [1, 4, 16];
 window.addEventListener('keydown', ev => {
   if ((ev.target as HTMLElement)?.closest('input, textarea, select, [contenteditable=true]')) return;
+  if(ev.repeat)return;
   const k = ev.key;
+  if(uiInput.blocked && !((ev.ctrlKey||ev.metaKey)&&(bound('save',k)||bound('load',k))))return;
+  if ((ev.ctrlKey || ev.metaKey) && (bound('copy', k) || bound('paste', k))) {
+    ev.preventDefault();if(ev.repeat)return;
+    panel.onBlueprint?.(bound('copy',k)?'copy':'paste');return;
+  }
   if ((ev.ctrlKey || ev.metaKey) && (bound('undo', k) || bound('redo', k))) {
     ev.preventDefault(); if (ev.repeat) return;
     const type = bound('redo', k) || ev.shiftKey ? 'redoBuild' : 'undoBuild';
@@ -259,17 +296,13 @@ window.addEventListener('keydown', ev => {
   }
   if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
   if (bound('pause', k)) setSpeed(session, session.state.speed === 0 ? 1 : 0);
-  else if (bound('slower', k) || bound('faster', k)) {
-    const cur = SPEEDS.indexOf(session.state.speed), next = bound('slower', k) ? Math.max(0, cur - 1) : Math.min(SPEEDS.length - 1, cur + 1);
-    setSpeed(session, SPEEDS[cur < 0 ? 0 : next]);
-  }
   else if (bound('threat', k)) {ev.preventDefault();viewKnownThreat();}
   else if (bound('engineer', k)) worldScene.returnToEngineer();
   else if (bound('map', k)) toggleView();   // D5: M = map view
   else if (bound('pockets', k)) { ev.preventDefault(); panel.togglePockets(); }   // M1: the pockets and the Depot chest
   else if (bound('build', k)) panel.toggleBuild();
   else if (bound('debug', k)) panel.toggleDebug();
-  else if (bound('cancel', k)) { panel.closeAll(); if (view.mode === 'world') worldScene.key(k); }
+  else if (bound('projects', k)) {ev.preventDefault();panel.shell.open('projects');}
   else if (bound('dodge', k)) { if (view.mode === 'world') ev.preventDefault(); }   // the dodge (worldScene reads the key itself)
   else if (view.mode === 'world' && worldScene.key(k)) ev.preventDefault();
 });
@@ -278,8 +311,8 @@ window.addEventListener('keydown', ev => {
 let frames = 0, frameMs: number[] = [];
 game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { frames++; if (frameMs.length < 100000) frameMs.push(delta); });
 (window as unknown as { __relight: unknown }).__relight = {
-  session, view,
-  run: (ticks: number) => { runTicks(session, ticks); panel.update(performance.now()); return summarise(session.telemetry, session.state); },
+  session, view, uiShell: panel.shell,
+  navigation:()=>({targets:navigationTargets(session.state),selected:navigationView.targetId}),
   summary: () => summarise(session.telemetry, session.state),
   exportJson: () => exportJson(session.telemetry, session.state, exportExtra(session)),
   /** M6: the hour bot's log and findings (`?autoplay=hour`), the session's command log, and the Gate B replay
@@ -294,6 +327,7 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   /** RI-02: the state hash (save.ts), the current goal line, the save file, and the browser slot (the Ctrl+S / Ctrl+O path). */
   stateHash: () => stateHash(session.state),
   goal: () => currentGoal(session.state),
+  interaction: () => worldScene.interaction(),
   saveFile: () => makeSessionSave(session),
   save: (slot = '1') => saveSlot(session, slot).hash,
   loadUrl: (slot = '1') => slotUrl(session, slot),
@@ -301,14 +335,14 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
   configHash: session.telemetry.meta.configHash,
   toggleView,
   /** M1 (prompt B): the bots' and dev hooks — not player controls (D-B1-5). `walkTo(x, y)` sets a walk-here target on
-   *  a tile (the map view's click does the same for the player); `engineer()` reads the engineer (tile position,
+   *  a tile (test hook only; player map clicks inspect); `engineer()` reads the engineer (tile position,
    *  block, pockets, HP, stamina, path length left); `sprint`, `dodge` and `aim` drive the body the way the keys do. */
   walkTo: (x: number, y: number) => queue(session, { type: 'move', x: x + 0.5, y: y + 0.5 }),
   sprint: (on: boolean) => queue(session, { type: 'sprint', on }),
   dodge: () => queue(session, { type: 'dodge' }),
   aim: (at: [number, number] | null) => queue(session, { type: 'aim', at }),
   setTool: (t: Tool) => worldScene.setTool(t),
-  /** M5: D-B5-1's hand lamp preview (a 2-tile disc on the sprite in the light map; nothing else changes). */
+  /** Debug visibility toggle; the beam does not mutate simulation lighting. */
   handLamp: (on: boolean) => { worldScene.handLamp = on; },
   engineer: () => {
     const e = session.state.engineer, p = currentPath(session.state);
@@ -332,7 +366,7 @@ game.events.on(Phaser.Core.Events.POST_STEP, (_t: number, delta: number) => { fr
     put: (item: ChestItem, n: number) => { const r = chestPut(session.state, item, n); record(session, { type: 'chestPut', item, n }); return r; },
   },
   togglePockets: () => panel.togglePockets(),
-  world: { get zoom() { return worldScene.zoom; }, drawMs: () => { const r = { ema: +worldScene.drawMs.toFixed(2), worst: +worldScene.drawWorstMs.toFixed(1) }; worldScene.drawWorstMs = 0; return r; }, setZoom: (z: number) => worldScene.setZoom(z), centreOn: (x: number, y: number) => worldScene.centreOn(x, y), focus: () => worldScene.focusBlock(), get drawn() { return worldScene.drawn; },
+  world: { tramPose:()=>{const s=session.state,m=s.city?.mapId?s.flow?.machines.find(m=>m.id===s.campaign?.fixedTram?.tram):undefined;return m?cityTramVisualPose(m,s.speed>0):null;}, get zoom() { return worldScene.zoom; }, drawMs: () => { const r = { ema: +worldScene.drawMs.toFixed(2), worst: +worldScene.drawWorstMs.toFixed(1) }; worldScene.drawWorstMs = 0; return r; }, setZoom: (z: number) => worldScene.setZoom(z), centreOn: (x: number, y: number) => worldScene.centreOn(x, y), focus: () => worldScene.focusBlock(), get drawn() { return worldScene.drawn; },
            get tool() { return worldScene.tool; }, key: (k: string) => worldScene.key(k), screenOf: (x: number, y: number) => worldScene.screenOf(x, y) },
   /** M2 flow layer: place/remove/rotate by city tile, `hq(lx, ly)` = city tile of a lot tile on the HQ lot. */
   flow: {

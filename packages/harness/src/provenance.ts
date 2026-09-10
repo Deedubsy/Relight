@@ -1,4 +1,4 @@
-import { DISTRICT_ECONOMY, DISCOVERY, routingConfig, INSPECTION_WINDOW_TICKS, INSPECTION_SAMPLE_TICKS, TRUCK_RULES } from '@relight/sim';
+import { CORRECTIONS, MACHINE_COST, MACHINE_KW, ASSEMBLER_RECIPES, NAVIGATION_RULES, DISTRICT_ECONOMY, DISCOVERY, EXPANSION_SURVEY_VERSION, routingConfig, INSPECTION_WINDOW_TICKS, INSPECTION_SAMPLE_TICKS, TRUCK_RULES, TRUCK_WORK_RULES } from '@relight/sim';
 /** Provenance stamps for generated files (constitution rule 11, guardrails Step 6). Every file a script writes carries
  *  the git commit and the config hash it was made from; `npm run freshness:check` (packages/tools/src/freshness.ts)
  *  recomputes the hash from the current code and fails if either does not match.
@@ -57,7 +57,7 @@ export function evidenceRuleset(ref: ConfigRef): Ruleset { configOf(ref); return
 /** Preserve every legacy hash; campaign evidence also fingerprints its rules and geometry. */
 export function evidenceHash(ref: ConfigRef): string {
   const config = configOf(ref);
-  return ref.kind === 'campaign' ? fnv1a(canonicalJson({ config, ruleset: ref.ruleset, rules: CAMPAIGN_RULES, opening: OPENING_LAYOUT, expansion: EXPANSION, power: CAMPAIGN_POWER, defence: DEFENCE, threats: CAMPAIGN_THREAT, districts: DISTRICT_ECONOMY, discovery: DISCOVERY, routing:routingConfig(), inspection:{windowTicks:INSPECTION_WINDOW_TICKS,sampleTicks:INSPECTION_SAMPLE_TICKS}, truck:TRUCK_RULES })) : configHash(config);
+  return ref.kind === 'campaign' ? fnv1a(canonicalJson({ config, corrections:CORRECTIONS, production:{cost:MACHINE_COST,kw:MACHINE_KW,recipes:ASSEMBLER_RECIPES}, ruleset: ref.ruleset, rules: CAMPAIGN_RULES, opening: OPENING_LAYOUT, expansion: EXPANSION, surveyVersion:EXPANSION_SURVEY_VERSION, navigation:NAVIGATION_RULES, power: CAMPAIGN_POWER, defence: DEFENCE, threats: CAMPAIGN_THREAT, districts: DISTRICT_ECONOMY, discovery: DISCOVERY, routing:routingConfig(), inspection:{windowTicks:INSPECTION_WINDOW_TICKS,sampleTicks:INSPECTION_SAMPLE_TICKS}, truck:TRUCK_RULES,truckWork:TRUCK_WORK_RULES })) : configHash(config);
 }
 export function evidenceProfileProblem(ref: ConfigRef, file: string, payload?: unknown): string {
   const profile = evidenceRuleset(ref), campaignPath = file.replace(/\\/g, '/').includes('/campaign/');

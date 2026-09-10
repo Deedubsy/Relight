@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: composed city query is repeatable, read-only and stable after load; includes every current site
+ok 1 - composed city query is repeatable, read-only and stable after load; includes every current site
+  ---
+  duration_ms: 2967.461237
+  type: 'test'
+  ...
+# Subtest: physical survey uses ordinary placement geometry without granting the tram unlock or pocket stock
+ok 2 - physical survey uses ordinary placement geometry without granting the tram unlock or pocket stock
+  ---
+  duration_ms: 665.255299
+  type: 'test'
+  ...
+# Subtest: bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+ok 3 - bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+  ---
+  duration_ms: 1025.063638
+  type: 'test'
+  ...
+# Subtest: blocked interactions are found from the final shared collision mask, not just the site centre
+ok 4 - blocked interactions are found from the final shared collision mask, not just the site centre
+  ---
+  duration_ms: 517.480901
+  type: 'test'
+  ...
+# Subtest: runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+ok 5 - runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+  ---
+  duration_ms: 1.267753
+  type: 'test'
+  ...
+# Subtest: existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+ok 6 - existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+  ---
+  duration_ms: 1056.213771
+  type: 'test'
+  ...
+# Subtest: malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+ok 7 - malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+  ---
+  duration_ms: 1422.721067
+  type: 'test'
+  ...
+# Subtest: resumption retains a failed attempted seed byte-for-byte and ignores incomplete temporary writes
+ok 8 - resumption retains a failed attempted seed byte-for-byte and ignores incomplete temporary writes
+  ---
+  duration_ms: 5.672915
+  type: 'test'
+  ...
+# Subtest: resumption refuses source, population, runtime and version changes and corrupted retained results
+ok 9 - resumption refuses source, population, runtime and version changes and corrupted retained results
+  ---
+  duration_ms: 2.057176
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 17650.214788

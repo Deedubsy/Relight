@@ -1,6 +1,8 @@
+import {suppliedCampaign as createCampaign} from './suppliedCampaignFixture';
+// Prepared historical starting stock; current ungranted progression is checked in gameplayCorrections.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createCampaign, knownCampaignThreat, campaignWarning, campaignCrawlerAction, tickCampaignSchedule,
+import { knownCampaignThreat, campaignWarning, campaignCrawlerAction, tickCampaignSchedule,
   tickCampaignThreat, ground, registerBase, nominateBase, applyCommands, machineAt, defenceHp,
   makeSave, loadState, stateHash, damageCore, canPlace, type SimState } from '../src/index';
 import { threatOf, crawlerTarget, describeCrawler } from '../src/threat';

@@ -1,0 +1,29 @@
+stops [
+  { id: 2, b: 356, p: false },
+  { id: 5, b: 334, p: true },
+  { id: 3, b: 353, p: false },
+  { id: 4, b: 332, p: false }
+] gens [ { coal: 45 } ] plants [
+  {
+    x: 423,
+    y: 612,
+    block: 334,
+    id: 'regional:plant:0',
+    kind: 'plant',
+    name: 'Regional plant 1',
+    size: 3,
+    seen: true,
+    recovered: false,
+    enabled: true,
+    delivered: { steel: 30, copper: 15 },
+    restoredAt: 465,
+    progress: 0,
+    started: false,
+    waves: 0,
+    attempt: 0,
+    searchX: 432,
+    searchY: 605,
+    installed: 'core1'
+  }
+]
+crude { x: 446, y: 618, block: 355, item: 'crude', remaining: 12000 } problems [ 'not on the street' ]

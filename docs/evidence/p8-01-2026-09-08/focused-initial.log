@@ -1,0 +1,225 @@
+TAP version 13
+# Subtest: clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard
+not ok 1 - clipboard rejects locked, empty, malformed, partial, remote and down selections without replacing stock or previous clipboard
+  ---
+  duration_ms: 1563.326559
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:21:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    1 construction action completed
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    send (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:8:75)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:23:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: rotations and reflections preserve rectangular footprints, tunnel roles and settings with correct left/right priority
+ok 2 - rotations and reflections preserve rectangular footprints, tunnel roles and settings with correct left/right priority
+  ---
+  duration_ms: 5.53036
+  type: 'test'
+  ...
+# Subtest: clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers
+not ok 3 - clipboard stamp applies recipe and routing configuration atomically, saves and undoes without copying buffers
+  ---
+  duration_ms: 831.314655
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:46:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    This machine cannot be hand-fed
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    send (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:8:75)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:52:27)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: occupied, unaffordable and remote stamps are atomic and consume carried machines before materials
+not ok 4 - occupied, unaffordable and remote stamps are atomic and consume carried machines before materials
+  ---
+  duration_ms: 781.832464
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:65:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    1 construction action completed
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    send (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:8:75)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:67:69)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: copied underground pairs reject an intervening destination endpoint and orphan selections
+not ok 5 - copied underground pairs reject an intervening destination endpoint and orphan selections
+  ---
+  duration_ms: 679.168182
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:75:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    1 construction action completed
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    send (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:8:75)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:80:28)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: old post-P7 saves retain every existing site/layout/earned reward and gain only an unrecruited Foreman
+not ok 6 - old post-P7 saves retain every existing site/layout/earned reward and gain only an unrecruited Foreman
+  ---
+  duration_ms: 4918.331772
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:83:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot set properties of undefined (setting 'contents')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/blueprint.test.ts:91:155)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds
+ok 7 - Foreman shelters are reachable, separated from earlier sites and unchanged across save/load on 16 seeds
+  ---
+  duration_ms: 14741.756057
+  type: 'test'
+  ...
+# Subtest: ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening
+ok 8 - ordinary stock, walking, Foreman recruitment, copy, transform, paid stamp and undo/redo replay from the opening
+  ---
+  duration_ms: 1817.801876
+  type: 'test'
+  ...
+# Subtest: construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+ok 9 - construction: continuous corner path is one paid group; undo and redo conserve and keep simulation time
+  ---
+  duration_ms: 1713.630637
+  type: 'test'
+  ...
+# Subtest: construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+ok 10 - construction: invalid, partially obstructed, unaffordable and out-of-reach groups have no partial effects
+  ---
+  duration_ms: 1789.497543
+  type: 'test'
+  ...
+# Subtest: construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+ok 11 - construction: removal history restores settings but leaves recovered contents in pockets; earlier undo still works
+  ---
+  duration_ms: 927.475179
+  type: 'test'
+  ...
+# Subtest: construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+ok 12 - construction: current contents, damage, full pockets, occupied undo sites and down state are respected
+  ---
+  duration_ms: 776.956024
+  type: 'test'
+  ...
+# Subtest: construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+ok 13 - construction: rotation, bounded history, new-branch redo clearing, save validation and continuation
+  ---
+  duration_ms: 3356.165943
+  type: 'test'
+  ...
+# Subtest: construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+ok 14 - construction: paused UI dispatch flushes pending inputs once and a saved command stream replays exactly
+  ---
+  duration_ms: 2197.121321
+  type: 'test'
+  ...
+# Subtest: construction: packing refuses an unfinished recipe, fractional stock or loose-round overflow atomically
+ok 15 - construction: packing refuses an unfinished recipe, fractional stock or loose-round overflow atomically
+  ---
+  duration_ms: 865.281764
+  type: 'test'
+  ...
+# Subtest: construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+ok 16 - construction controls: build catalogue and hotkeys share references; modified history keys do not collide with tools
+  ---
+  duration_ms: 0.745828
+  type: 'test'
+  ...
+# Subtest: factory blueprint validates structure, rectangular occupancy, settings, paired endpoints and bounded input before issuing commands
+ok 17 - factory blueprint validates structure, rectangular occupancy, settings, paired endpoints and bounded input before issuing commands
+  ---
+  duration_ms: 1526.646774
+  type: 'test'
+  ...
+# Subtest: a blueprint walks and pays from ordinary stock, keeps the engineer clear, and replays all construction/settings from a fresh campaign
+ok 18 - a blueprint walks and pays from ordinary stock, keeps the engineer clear, and replays all construction/settings from a fresh campaign
+  ---
+  duration_ms: 3828.787811
+  type: 'test'
+  ...
+# Subtest: failed blueprint retains only paid completed work and reports the failing entity; invalid replay intervals are rejected
+ok 19 - failed blueprint retains only paid completed work and reports the failing entity; invalid replay intervals are rejected
+  ---
+  duration_ms: 928.444811
+  type: 'test'
+  ...
+# Subtest: the seeded copper margin is mined and stored by ordinary commands before a paid extraction layout is built
+ok 20 - the seeded copper margin is mined and stored by ordinary commands before a paid extraction layout is built
+  ---
+  duration_ms: 28021.6359
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 15
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 39664.216235

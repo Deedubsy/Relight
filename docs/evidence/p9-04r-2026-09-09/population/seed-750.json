@@ -1,0 +1,184 @@
+{
+  "digest": "4e45d0928789ddddf5d2b1f3b88a087a871624b6c5b2352c1ca4de4a6304c129",
+  "data": {
+    "sourceDigest": "4c754288bd11fadf2c72b65cf002de4656ba69a1906a82e64d250ef62656eb17",
+    "config_hash": "ba11e896",
+    "seed": 750,
+    "status": "passed",
+    "report": {
+      "version": 1,
+      "seed": 750,
+      "profile": "riverside-v1",
+      "configHash": "d51dfee0",
+      "metadata": 10,
+      "surveyVersion": 3,
+      "ok": true,
+      "failures": [],
+      "measurements": {
+        "reachableTiles": 537926,
+        "routeTiles": 90,
+        "generatorAttempt": 0,
+        "sites": [
+          {
+            "id": "station",
+            "approach": 571555,
+            "cardinalSteps": 79
+          },
+          {
+            "id": "radio",
+            "approach": 555543,
+            "cardinalSteps": 87
+          },
+          {
+            "id": "northStation",
+            "approach": 538755,
+            "cardinalSteps": 96
+          },
+          {
+            "id": "workshop",
+            "approach": 521139,
+            "cardinalSteps": 134
+          },
+          {
+            "id": "turbine",
+            "approach": 577165,
+            "cardinalSteps": 62
+          },
+          {
+            "id": "discovery",
+            "approach": 532339,
+            "cardinalSteps": 120
+          },
+          {
+            "id": "recruit:electricians",
+            "approach": 567607,
+            "cardinalSteps": 22
+          },
+          {
+            "id": "recruit:concrete",
+            "approach": 554800,
+            "cardinalSteps": 31
+          },
+          {
+            "id": "recruit:lamplighters",
+            "approach": 557181,
+            "cardinalSteps": 21
+          },
+          {
+            "id": "recruit:surveyors",
+            "approach": 550017,
+            "cardinalSteps": 54
+          },
+          {
+            "id": "recruit:foreman",
+            "approach": 567644,
+            "cardinalSteps": 59
+          },
+          {
+            "id": "source:steel",
+            "approach": 555548,
+            "cardinalSteps": 82
+          },
+          {
+            "id": "source:copper",
+            "approach": 524344,
+            "cardinalSteps": 125
+          },
+          {
+            "id": "source:coal",
+            "approach": 524385,
+            "cardinalSteps": 84
+          }
+        ],
+        "resources": [
+          {
+            "item": "steel",
+            "reachableTiles": 25,
+            "units": 7679.999999999997
+          },
+          {
+            "item": "copper",
+            "reachableTiles": 12,
+            "units": 1200
+          },
+          {
+            "item": "coal",
+            "reachableTiles": 9,
+            "units": 700
+          }
+        ],
+        "factory": {
+          "x": 375,
+          "y": 696,
+          "w": 3,
+          "h": 3
+        },
+        "extraction": [
+          {
+            "item": "steel",
+            "footprint": {
+              "x": 337,
+              "y": 699,
+              "w": 3,
+              "h": 3
+            }
+          },
+          {
+            "item": "copper",
+            "footprint": {
+              "x": 333,
+              "y": 646,
+              "w": 3,
+              "h": 3
+            }
+          },
+          {
+            "item": "coal",
+            "footprint": {
+              "x": 374,
+              "y": 646,
+              "w": 3,
+              "h": 3
+            }
+          }
+        ],
+        "origins": [
+          {
+            "block": 371,
+            "origin": 559607,
+            "staging": 559607
+          },
+          {
+            "block": 373,
+            "origin": 555533,
+            "staging": 555533
+          },
+          {
+            "block": 357,
+            "origin": 547548,
+            "staging": 547548
+          }
+        ],
+        "truck": {
+          "status": "not-unlocked",
+          "queries": []
+        }
+      },
+      "scope": "Current physical snapshot. Cardinal connectivity is not travel time or safe combat passage. Placement geometry excludes unlocks, stock and power supply. Truck queries require an existing truck. No paid construction, survival or human fairness is established."
+    },
+    "unchanged": true,
+    "deterministic": true,
+    "loadSame": true,
+    "hash": "b73fa56f",
+    "timings": {
+      "generationMs": 1262.3953570000012,
+      "firstQueryMs": 645.0522580000106,
+      "repeatQueryMs": 584.2387290000042,
+      "saveLoadMs": 592.315684000001,
+      "loadedQueryMs": 653.4990690000122
+    },
+    "wallMs": 3750.829739000008,
+    "processSample": 63,
+    "pid": 66500
+  }
+}

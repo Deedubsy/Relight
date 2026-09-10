@@ -1,9 +1,10 @@
+import {freightCapacity} from './progression';
 /** EX-06A: optional station contracts on the existing unbranched tram route.
  * Cargo stays in Machine.cargo (the ledger's single owner); manifests only reserve it.
  * Unconfigured routes retain RI-05 transfers. Configuring a stop opts its route into
  * selective loading. This is a transport increment, not the Version 2 campaign profile. */
 import type { SimState } from './types';
-import { type Machine, type Item, ITEMS, isItem, invTotal, STOP_CAP, TRAM_CAP, machineAt } from './flow';
+import { type Machine, type Item, ITEMS, isItem, invTotal, STOP_CAP, TRAM_CAP, machineAt, machineRunning } from './flow';
 import { inReach } from './ground';
 import { recordDistrictDelivery } from './campaignDistricts';
 
@@ -77,13 +78,13 @@ export function transferFreight(st: SimState, tram: Machine, stop: Machine, rout
   }
   // Only explicitly exported platform stock boards; arrivals feed local belts/hands.
   for (const destination of routeStops) {
-    if (destination.id === stop.id || !destination.freight) continue;
+    if (destination.id === stop.id || !destination.freight || st.campaign?.fixedTram&&!machineRunning(st,destination)) continue;
     for (const item of ITEMS) {
       const sourceRule = stop.freight?.[item], targetRule = destination.freight[item];
       if (!sourceRule?.export || !targetRule) continue;
       const demand = targetRule.request - (destination.inv[item] ?? 0) - (destination.cargo?.[item] ?? 0) - freightInbound(st, destination.id, item);
       const room = STOP_CAP - invTotal(destination.cargo) - freightInbound(st, destination.id);
-      const n = Math.min(demand, room, TRAM_CAP - invTotal(cargo), (stop.inv[item] ?? 0) - sourceRule.reserve);
+      const n = Math.min(demand, room, freightCapacity(st,TRAM_CAP) - invTotal(cargo), (stop.inv[item] ?? 0) - sourceRule.reserve);
       if (n <= 0) continue;
       stop.inv[item] -= n; if (!stop.inv[item]) delete stop.inv[item];
       cargo[item] = (cargo[item] ?? 0) + n;
@@ -101,11 +102,11 @@ export function freightProblem(st: SimState): string {
     if (m.manifest !== undefined) {
       if (m.kind !== 'tram' || !Array.isArray(m.manifest)) return 'invalid tram manifest';
       for (const r of m.manifest) {
-        if (!r || !isItem(r.item) || !count(r.n, TRAM_CAP) || !r.n || !count(r.origin, Number.MAX_SAFE_INTEGER)
+        if (!r || !isItem(r.item) || !count(r.n, freightCapacity(st,TRAM_CAP)) || !r.n || !count(r.origin, Number.MAX_SAFE_INTEGER)
           || !count(r.destination, Number.MAX_SAFE_INTEGER) || r.origin === r.destination || typeof r.returning !== 'boolean') return 'invalid freight reservation';
       }
-      if (invTotal(m.cargo) > TRAM_CAP) return 'tram cargo exceeds capacity';
-      for (const item of ITEMS) if (!count(m.cargo?.[item] ?? 0, TRAM_CAP) || reserved(m, item) > (m.cargo?.[item] ?? 0)) return 'reservation exceeds tram cargo';
+      if (invTotal(m.cargo) > freightCapacity(st,TRAM_CAP)) return 'tram cargo exceeds capacity';
+      for (const item of ITEMS) if (!count(m.cargo?.[item] ?? 0, freightCapacity(st,TRAM_CAP)) || reserved(m, item) > (m.cargo?.[item] ?? 0)) return 'reservation exceeds tram cargo';
     }
   }
   return '';

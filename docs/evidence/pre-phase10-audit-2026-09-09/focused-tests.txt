@@ -1,0 +1,77 @@
+TAP version 13
+# Subtest: direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters
+ok 1 - direct belts: the complete mixed chest-to-assembler-to-chest-to-turret line runs without inserters
+  ---
+  duration_ms: 2162.947853
+  type: 'test'
+  ...
+# Subtest: direct belts: any storage side can unload, and pointing inward never steals from the destination
+ok 2 - direct belts: any storage side can unload, and pointing inward never steals from the destination
+  ---
+  duration_ms: 1870.597735
+  type: 'test'
+  ...
+# Subtest: direct belts: incompatible mixed stock stays at its source and full destinations conserve items
+ok 3 - direct belts: incompatible mixed stock stays at its source and full destinations conserve items
+  ---
+  duration_ms: 275.975404
+  type: 'test'
+  ...
+# Subtest: direct belts: Home supplies and turret hoppers can unload without creating stock
+ok 4 - direct belts: Home supplies and turret hoppers can unload without creating stock
+  ---
+  duration_ms: 544.789031
+  type: 'test'
+  ...
+# Subtest: four permanent stops exist at repeatable positions; infrastructure cannot be built or packed
+ok 5 - four permanent stops exist at repeatable positions; infrastructure cannot be built or packed
+  ---
+  duration_ms: 1563.265965
+  type: 'test'
+  ...
+# Subtest: power any second stop to automatically carry requested cargo; outage parks, reconnect resumes and save continues identically
+ok 6 - power any second stop to automatically carry requested cargo; outage parks, reconnect resumes and save continues identically
+  ---
+  duration_ms: 1675.089125
+  type: 'test'
+  ...
+# Subtest: all four powered stops participate and unpowered stops are skipped without unloading there
+ok 7 - all four powered stops participate and unpowered stops are skipped without unloading there
+  ---
+  duration_ms: 684.541082
+  type: 'test'
+  ...
+# Subtest: existing network save adopts its stations and tram once without deleting any stock or machine
+not ok 8 - existing network save adopts its stations and tram once without deleting any stock or machine
+  ---
+  duration_ms: 1.216208
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/fixedTram.test.ts:39:1'
+  failureType: 'testCodeFailure'
+  error: "ENOENT: no such file or directory, open '../../docs/evidence/p9-05-2026-09-09/campaign/network.json'"
+  code: 'ENOENT'
+  stack: |-
+    readFileSync (node:fs:441:20)
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/fixedTram.test.ts:40:23)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: ruin enemies roam, retain chase beyond notice/home radius and disengage only at escape distance; patrol survives save
+ok 9 - ruin enemies roam, retain chase beyond notice/home radius and disengage only at escape distance; patrol survives save
+  ---
+  duration_ms: 336.274898
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8852.011337

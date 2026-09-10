@@ -1,26 +1,33 @@
-import { boardTruck, truckTransfer } from './truck';
+import {machineTransfer,type MachineTransfer} from './machineInventory';
+import {progressionCommand,progressionCheck} from './progression';
+import {inventoryCommand,pocketSlots} from './engineer';
+import { truckWorkCommand } from './truckWork';
+import {navigationCommand} from './navigation';
+import { blueprintLibrary, blueprintOrder } from './blueprintPlans';
+import { TRUCK_RULES, boardTruck, truckTransfer } from './truck';
 /** P5-01: bounded, saved construction history. Inverses use current stock and reach, never rewind the world. */
 import type { Command, SimState } from './types';
 import { canPlace, place, canPickUp, remove, rotate, machineAt, tramAt, isKind, isRecipeId, MACHINE_SIZE,
   type Kind, type Dir, type RecipeId, type Machine, setRecipe, queueCraft, chestTake, chestPut, isChestItem, isItem,
-  handFeed, setHandMine, repairLight, deliverTo, SHOT, rotateTo, type Item } from './flow';
+  pickUpItems, chestCount, depotChestOf, handFeed, setHandMine, repairLight, deliverTo, SHOT, rotateTo, type Item } from './flow';
 import { dimensions, machineDimensions } from './footprint';
 import { configureRouting, undergroundSpan, undergroundMate, type UndergroundMode, type OutputPriority } from './routing';
-import type { StationRules } from './freight';
-import { inReach } from './ground';
+import { type StationRules, validStationRules } from './freight';
+import { blueprintCopy, blueprintEdits, blueprintTransform, blueprintGate } from './blueprint';
+import { inReach, distToRect } from './ground';
 import { syncProjects } from './project';
 
 export const BUILD_LIMIT = 128, HISTORY_LIMIT = 50;
 export interface TilePoint { x: number; y: number }
-export type BuildEdit = { action: 'place'; item: Kind; x: number; y: number; dir: Dir; underground?: UndergroundMode }
+export type BuildEdit = { action: 'place'; item: Kind; x: number; y: number; dir: Dir; underground?: UndergroundMode; recipe?: RecipeId; filter?: Item; priority?: OutputPriority; freight?: StationRules }
   | { action: 'pickUp' | 'rotate'; x: number; y: number };
 export interface BuildChange { action: BuildEdit['action']; item: Kind; x: number; y: number; dir: Dir; id: number;
   recipe?: RecipeId; freight?: StationRules; beforeDir?: Dir; filter?: Item; priority?: OutputPriority; underground?: UndergroundMode }
 export interface ConstructionHistory { version: 1; undo: BuildChange[][]; redo: BuildChange[][] }
-export type FactoryAction = { type: 'craft'; item: string; count?: number }
+export type FactoryAction = MachineTransfer | { type: 'craft'; item: string; count?: number }
   | { type: 'truckBoard' } | { type:'truckCargo'; item:string; n:number; put:boolean }
   | { type: 'routing'; x: number; y: number; filter?: Item | null; priority?: OutputPriority }
-  | { type: 'chestTake' | 'chestPut'; item: string; n: number; x?: number; y?: number }
+  | { type: 'chestTake' | 'chestPut'; item: string; n: number; x?: number; y?: number; expected?:{total:number;layout?:string;slot?:number} }
   | { type: 'feed' | 'mineAt' | 'repair'; x: number; y: number }
   | { type: 'setRecipe'; x: number; y: number; recipe: string }
   | { type: 'deliver'; bx: number; by: number; item: 'steel' | 'copper'; n: number; cabinet?: number };
@@ -70,26 +77,43 @@ function same(m: Machine, c: BuildChange): boolean {
     && (m.recipe ?? 'shot') === (c.recipe ?? 'shot') && JSON.stringify(m.freight ?? {}) === JSON.stringify(c.freight ?? {})
     && m.filter === c.filter && (m.priority??'balanced') === (c.priority??'balanced') && m.underground === c.underground;
 }
-function edit(st: SimState, e: BuildEdit): BuildChange | string {
+export type Builder = 'engineer'|'truck';
+function buildReach(st:SimState,e:BuildEdit,builder:Builder):boolean {
+ if(e.action!=='place'||builder==='engineer')return inReach(st,e.x,e.y,...(e.action==='place'?dimensions(e.item,e.dir,MACHINE_SIZE[e.item]):[1] as [number]));
+ const t=st.campaign?.truck;return !!t&&!st.engineer.truckSeat&&distToRect(t.x,t.y,e.x,e.y,...dimensions(e.item,e.dir,MACHINE_SIZE[e.item]))<=TRUCK_RULES.serviceReach;
+}
+function edit(st: SimState, e: BuildEdit, builder:Builder='engineer'): BuildChange | string {
   if (!integer(e.x) || !integer(e.y)) return 'Invalid construction coordinates';
   if (e.action === 'place') {
     if (!isKind(e.item) || e.item === 'depot' || !direction(e.dir)) return 'Invalid building';
     if(e.underground!==undefined&&(e.item!=='underground'||!['input','output'].includes(e.underground)))return 'Invalid underground endpoint';
-    if (!inReach(st, e.x, e.y, ...dimensions(e.item,e.dir,MACHINE_SIZE[e.item]))) return 'Walk closer to build';
-    const check = canPlace(st, e.item, e.x, e.y,e.dir); if (!check.ok) return check.reason;
-    const built=place(st, e.item, e.x, e.y, e.dir)!;
+    if(e.recipe!==undefined&&(!['assembler','assembler2','foundry','refinery'].includes(e.item)||!isRecipeId(e.recipe)))return 'Invalid recipe';
+    if(e.filter!==undefined&&(e.item!=='inserter'||!isItem(e.filter)))return 'Invalid filter';
+    if(e.priority!==undefined&&(e.item!=='splitter'||!['balanced','left','right'].includes(e.priority)))return 'Invalid priority';
+    if(e.freight!==undefined&&(e.item!=='tramstop'||!validStationRules(e.freight)))return 'Invalid station freight settings';
+    if (!buildReach(st,e,builder)) return builder==='truck'?'Truck needs a nearer street service position':'Walk closer to build';
+    if(builder==='engineer'&&!['belt','fastbelt','pole','bigpole','lamp','track','underground','splitter'].includes(e.item)){const [w,h]=dimensions(e.item,e.dir,MACHINE_SIZE[e.item]);if(st.engineer.x>=e.x&&st.engineer.x<e.x+w&&st.engineer.y>=e.y&&st.engineer.y<e.y+h)return 'Step outside the machine footprint before building';}
+    const stock=builder==='truck'?st.campaign!.truck!.cargo:st.engineer.inv;
+    const check = canPlace(st, e.item, e.x, e.y,e.dir,stock); if (!check.ok) return check.reason;
+    const built=place(st, e.item, e.x, e.y, e.dir, stock)!;
     if(e.underground)built.underground=e.underground;
+    if(e.recipe)built.recipe=e.recipe;
+    if(e.filter)built.filter=e.filter;
+    if(e.priority)built.priority=e.priority;
+    if(e.freight)built.freight=clone(e.freight);
     return describe(built, 'place');
   }
+  if(builder==='truck')return 'Truck construction only places planned machines';
   const m = tramAt(st, e.x, e.y) ?? machineAt(st, e.x, e.y);
   if (!m) return 'Nothing there';
   if (!inReach(st, m.x, m.y, ...machineDimensions(m))) return 'Walk closer to the machine';
   if (e.action === 'pickUp') {
+    if(depotChestOf(st,m))return 'The restored supply installation stays';
     const check = canPickUp(st, e.x, e.y); if (!check.ok) return check.reason;
     // Old packing rounds fractional contents down. Refuse rather than silently lose them through history.
     if (Object.entries(m.inv).some(([k, n]) => k !== 'rounds' && !integer(n)) || Object.values(m.cargo ?? {}).some(n => !integer(n))) return 'Empty fractional contents before packing this machine';
     if (m.kind === 'turret' && (m.inv.rounds ?? 0) % SHOT.count > Math.max(0, st.config.bufferCap - st.buffer)) return 'Make room in the ammunition buffer for this turret’s loose rounds';
-    if (m.kind === 'assembler' && m.busy) return 'Wait for this assembler to finish its current recipe before packing it';
+    if (['assembler','assembler2','foundry','refinery','mixer'].includes(m.kind) && m.busy) return 'Wait for this assembler to finish its current recipe before packing it';
     const c = describe(m, 'pickUp'); remove(st, m.x, m.y); return c;
   }
   if (e.action !== 'rotate') return 'Invalid construction action';
@@ -98,9 +122,9 @@ function edit(st: SimState, e: BuildEdit): BuildChange | string {
   else if (!rotate(st, m.x, m.y)) return 'This machine does not rotate';
   return { ...describe(m, 'rotate'), beforeDir: before };
 }
-function runEdits(st: SimState, edits: readonly BuildEdit[]): BuildChange[] | string {
+function runEdits(st: SimState, edits: readonly BuildEdit[], builder:Builder='engineer'): BuildChange[] | string {
   const changes: BuildChange[] = [];
-  for (const e of edits) { const r = edit(st, e); if (typeof r === 'string') return r; changes.push(r); }
+  for (const e of edits) { const r = edit(st, e, builder); if (typeof r === 'string') return r; changes.push(r); }
   return changes;
 }
 function invert(st: SimState, changes: BuildChange[], undo: boolean): string {
@@ -136,31 +160,65 @@ function invert(st: SimState, changes: BuildChange[], undo: boolean): string {
   }
   return '';
 }
-export function constructionCheck(st: SimState, edits: readonly BuildEdit[]): ActionResult {
-  if (!st.flow || st.engineer.down >= 0) return no('Construction is unavailable while down');
+export function constructionCheck(st: SimState, edits: readonly BuildEdit[], builder:Builder='engineer'): ActionResult {
+  if (!st.flow || (builder==='engineer'&&st.engineer.down >= 0)) return no('Construction is unavailable while down');
   if (!Array.isArray(edits) || edits.length < 1 || edits.length > BUILD_LIMIT || edits.some(e => !e || typeof e !== 'object')) return no('Invalid construction group');
-  const result = runEdits(trialState(st), edits);
+  const trial=trialState(st), result = runEdits(trial, edits,builder);
+  // Clipboard endpoint roles must still pair as intended in the destination world.
+  if(typeof result!=='string')for(const e of edits){
+    if(e.action!=='place'||e.item!=='underground'||e.underground!=='input')continue;
+    const intended=edits.filter(b=>b.action==='place'&&b.item==='underground'&&b.underground==='output'&&b.dir===e.dir&&!undergroundSpan(e,b,e.dir));
+    if(intended.length===1){const actual=undergroundMate(trial,machineAt(trial,e.x,e.y)!);
+      if(!actual||actual.x!==intended[0].x||actual.y!==intended[0].y)return no('Another underground endpoint interrupts the copied pair');}
+  }
   return typeof result === 'string' ? no(result) : { ok: true, reason: '' };
 }
-function construct(st: SimState, edits: readonly BuildEdit[]): ActionResult {
-  const check = constructionCheck(st, edits); if (!check.ok) return check;
-  const changes = runEdits(st, edits) as BuildChange[];
+export function construct(st: SimState, edits: readonly BuildEdit[], builder:Builder='engineer'): ActionResult {
+  const check = constructionCheck(st, edits,builder); if (!check.ok) return check;
+  const changes = runEdits(st, edits,builder) as BuildChange[];
+  if(builder==='truck'){syncProjects(st);return {ok:true,reason:'Built from truck cargo'};}
   const h = st.construction ??= { version: 1, undo: [], redo: [] };
   h.undo.push(changes); if (h.undo.length > HISTORY_LIMIT) h.undo.shift(); h.redo = [];
   syncProjects(st); return { ok: true, reason: `${changes.length} construction action${changes.length === 1 ? '' : 's'} completed` };
 }
+/** A preview captures identities/settings, never inventories. Apply rechecks the whole current transaction. */
+export interface RemovalSelection {from:TilePoint;to:TilePoint;machines:BuildChange[]}
+export interface RemovalPreview extends ActionResult {selection?:RemovalSelection;items:Record<string,number>;looseRounds:number}
+export function removalPreview(st:SimState,from:TilePoint,to:TilePoint):RemovalPreview {
+ const result:RemovalPreview={ok:false,reason:'',items:{},looseRounds:0};
+ try {
+  const why=blueprintGate(st);if(why)throw Error(why);
+  if(!st.flow||!from||!to||![from.x,from.y,to.x,to.y].every(integer))throw Error('Invalid removal coordinates');
+  const x=Math.min(from.x,to.x),y=Math.min(from.y,to.y),w=Math.abs(from.x-to.x)+1,h=Math.abs(from.y-to.y)+1;
+  if(x<0||y<0||w>128||h>128)throw Error('Select an area no larger than 128 × 128 tiles');
+  const machines=st.flow.machines.filter(m=>{const [mw,mh]=machineDimensions(m);return m.x<x+w&&m.x+mw>x&&m.y<y+h&&m.y+mh>y;}).sort((a,b)=>Number(b.kind==='tram')-Number(a.kind==='tram')||a.id-b.id);
+  if(!machines.length||machines.length>BUILD_LIMIT)throw Error('Select 1–128 complete machines');
+  for(const m of machines){const [mw,mh]=machineDimensions(m);if(m.x<x||m.y<y||m.x+mw>x+w||m.y+mh>y+h)throw Error('Select the whole footprint of every machine');}
+  result.selection={from:{...from},to:{...to},machines:machines.map(m=>describe(m,'pickUp'))};
+  for(const m of machines){for(const [k,n] of Object.entries(pickUpItems(m)))result.items[k]=(result.items[k]??0)+n;if(m.kind==='turret')result.looseRounds+=(m.inv.rounds??0)%SHOT.count;}
+  const check=constructionCheck(st,machines.map(m=>({action:'pickUp',x:m.x,y:m.y})));
+  result.ok=check.ok;result.reason=check.ok?`Pack all ${machines.length} machines in one action. Contents go to pockets; loose rounds go to the line buffer.`:check.reason;
+ }catch(e){result.reason=(e as Error).message;}return result;
+}
+export function removeArea(st:SimState,selection:RemovalSelection):ActionResult {
+ if(!selection||!Array.isArray(selection.machines)||selection.machines.some(m=>!m||m.action!=='pickUp'))return no('Select and preview machines first');
+ const preview=removalPreview(st,selection.from,selection.to),current=preview.selection;
+ if(!current||current.machines.length!==selection.machines.length||current.machines.some((c,i)=>{const m=st.flow!.machines.find(m=>m.id===c.id);return !m||!same(m,selection.machines[i]);}))return no('Selection changed; select and preview the area again');
+ if(!preview.ok)return no(preview.reason);
+ return construct(st,current.machines.map(m=>({action:'pickUp',x:m.x,y:m.y})));
+}
 function newUndergroundEdits(st:SimState,edits:BuildEdit[]):BuildEdit[]{
   return edits.filter(e=>{const m=machineAt(st,e.x,e.y);return e.action!=='place'||!m||m.kind!==e.item||m.dir!==e.dir||m.underground!==e.underground;});
 }
-export function undergroundCheck(st:SimState,edits:BuildEdit[]):ActionResult {
+export function undergroundCheck(st:SimState,edits:BuildEdit[],builder:Builder='engineer'):ActionResult {
   if(edits.length!==2||edits.some(e=>e.action!=='place'||e.item!=='underground'))return no('Choose two underground endpoints');
   const a=edits[0],b=edits[1];
   if(a.action!=='place'||b.action!=='place'||a.underground!=='input'||b.underground!=='output'||a.dir!==b.dir)return no('Choose an input and a same-facing output');
   const why=undergroundSpan(a,b,a.dir);if(why)return no(why);
   const additions=newUndergroundEdits(st,edits);if(!additions.length)return no('These underground endpoints are already built');
-  const check=constructionCheck(st,additions);if(!check.ok)return check;
-  if(!inReach(st,a.x,a.y)||!inReach(st,b.x,b.y))return no('Walk closer to both underground endpoints');
-  const trial=trialState(st);runEdits(trial,additions);
+  const check=constructionCheck(st,additions,builder);if(!check.ok)return check;
+  if(!buildReach(st,a,builder)||!buildReach(st,b,builder))return no('Move the builder closer to both underground endpoints');
+  const trial=trialState(st);runEdits(trial,additions,builder);
   const m=machineAt(trial,a.x,a.y)!,mate=undergroundMate(trial,m);
   return mate?.x===b.x&&mate.y===b.y?{ok:true,reason:''}:no('Another underground endpoint interrupts this pair');
 }
@@ -179,6 +237,7 @@ function factory(st: SimState, c: FactoryAction): ActionResult {
   if (st.engineer.down >= 0 && c.type !== 'mineAt') return no('Wait until you recover');
   if ('x' in c && c.x !== undefined && (!integer(c.x) || !integer(c.y))) return no('Invalid coordinates');
   switch (c.type) {
+    case 'machineTransfer': return machineTransfer(st,c);
     case 'truckBoard': {const seated=st.engineer.truckSeat,why=boardTruck(st);return {ok:!why,reason:why||(seated?'Exited truck; cargo stays aboard':'Driving truck: WASD, E to exit')};}
     case 'truckCargo': return truckTransfer(st,c.item,c.n,c.put);
     case 'routing': {const why=configureRouting(st,c.x,c.y,c);return {ok:!why,reason:why||'Routing setting changed; held items are preserved'};}
@@ -187,7 +246,16 @@ function factory(st: SimState, c: FactoryAction): ActionResult {
     case 'chestTake': case 'chestPut': {
       if (!isChestItem(c.item) || !Number.isFinite(c.n) || c.n < 0) return no('Invalid item transfer');
       const at: [number, number] | undefined = c.x === undefined ? undefined : [c.x, c.y!];
+      const before=pocketSlots(st.engineer);
+      if(c.expected){
+       const m=at?machineAt(st,at[0],at[1]):null,total=c.type==='chestPut'?(st.engineer.inv[c.item]??0):m?(m.inv[c.item]??0)+(m.kind==='tramstop'?(m.cargo?.[c.item]??0):0):chestCount(st,c.item);
+       if(total!==c.expected.total)return no('Source changed; select the stack again.');
+       if(c.type==='chestPut'&&(c.expected.layout!==JSON.stringify(before)||!Number.isInteger(c.expected.slot)||before[c.expected.slot!]?.item!==c.item||before[c.expected.slot!]!.count<c.n))return no('Source stack changed; select it again.');
+      }
       const r = c.type === 'chestTake' ? chestTake(st, c.item, c.n, at) : chestPut(st, c.item, c.n, at);
+      if(r.moved>0&&c.type==='chestPut'&&c.expected&&c.item!=='kit'){
+       const slot=c.expected.slot!;before[slot]!.count-=r.moved;if(before[slot]!.count<=0)before[slot]=null;st.engineer.pack=before;
+      }
       return { ok: r.moved > 0, moved: r.moved, reason: r.reason || `${r.moved} ${c.item} transferred` };
     }
     case 'deliver': { const r = deliverTo(st, c.bx, c.by, c.item, c.n, c.cabinet ?? -1); return { ...r, reason: r.reason || `${r.moved} ${c.item} delivered` }; }
@@ -202,6 +270,22 @@ function factory(st: SimState, c: FactoryAction): ActionResult {
 export function constructionCommand(st: SimState, c: Command): boolean {
   let r: ActionResult;
   switch (c.type) {
+    case 'navigation': r=navigationCommand(st,c.action);break;
+    case 'removeArea': r=removeArea(st,c.selection);break;
+    case 'truckWork': r=truckWorkCommand(st,c.action);break;
+    case 'blueprintLibrary': r=blueprintLibrary(st,c.action);break;
+    case 'blueprintOrder': r=blueprintOrder(st,c.action);break;
+    case 'blueprintCopy':
+      try {const bp=blueprintCopy(st,c.from,c.to);st.campaign!.clipboard=bp;r={ok:true,reason:`Copied ${st.campaign!.clipboard.entities.length} machines and settings; Ctrl+V previews a paid stamp.`};}
+      catch(e){r=no((e as Error).message);}break;
+    case 'blueprintTransform':
+      try {const why=blueprintGate(st);if(why)throw new Error(why);
+        if(!st.campaign!.clipboard)throw new Error('Copy a layout first (Ctrl+C).');
+        st.campaign!.clipboard=blueprintTransform(st.campaign!.clipboard,c.operation);r={ok:true,reason:'Clipboard transformed; source machines unchanged.'};}
+      catch(e){r=no((e as Error).message);}break;
+    case 'blueprintPaste':
+      try {r=construct(st,blueprintEdits(st,c.x,c.y));}
+      catch(e){r=no((e as Error).message);}break;
     case 'undergroundPair': {
       const why=!c.from||!c.to||!direction(c.dir)?'Invalid underground direction':undergroundSpan(c.from,c.to,c.dir);
       if(why){r=no(why);break;}
@@ -215,6 +299,8 @@ export function constructionCommand(st: SimState, c: Command): boolean {
     }
     case 'undoBuild': r = history(st, true); break;
     case 'redoBuild': r = history(st, false); break;
+    case 'inventory': r = inventoryCommand(st.engineer,c.action); break;
+    case 'progression': {const why=progressionCheck(st,c.action);r=why?no(why):{ok:true,reason:progressionCommand(st,c.action)};break;}
     case 'factory': r = factory(st, c.action); syncProjects(st); break;
     default: return false;
   }
@@ -228,7 +314,7 @@ export function constructionProblem(st: SimState): string {
   for (const group of [...h.undo, ...h.redo]) {
     if (!Array.isArray(group) || group.length < 1 || group.length > BUILD_LIMIT) return 'invalid construction group';
     for (const c of group) {
-      if (!c || !['place', 'pickUp', 'rotate'].includes(c.action) || !isKind(c.item) || c.item === 'depot' || !integer(c.x) || !integer(c.y) || !integer(c.id) || c.id < 0 || !direction(c.dir) || (c.action === 'rotate' && !direction(c.beforeDir)) || (c.recipe !== undefined && (c.item !== 'assembler' || !isRecipeId(c.recipe)))) return 'invalid construction change';
+      if (!c || !['place', 'pickUp', 'rotate'].includes(c.action) || !isKind(c.item) || c.item === 'depot' || !integer(c.x) || !integer(c.y) || !integer(c.id) || c.id < 0 || !direction(c.dir) || (c.action === 'rotate' && !direction(c.beforeDir)) || (c.recipe !== undefined && (!['assembler','assembler2','foundry','refinery'].includes(c.item) || !isRecipeId(c.recipe)))) return 'invalid construction change';
       if(c.filter!==undefined&&(c.item!=='inserter'||!isItem(c.filter)))return 'invalid saved filter';
       if(c.priority!==undefined&&(c.item!=='splitter'||!['balanced','left','right'].includes(c.priority)))return 'invalid saved priority';
       if(c.underground!==undefined&&(c.item!=='underground'||!['input','output'].includes(c.underground)))return 'invalid saved underground';

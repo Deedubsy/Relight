@@ -1,3 +1,4 @@
+import { SurveyPlacementError, surveyCandidate, acceptSurvey, type SurveyAcceptance } from './campaignSurvey';
 /** EX-06 district economy. Geometry, extraction and service defaults are provisional. */
 import { DARK, HELD, type SimState } from './types';
 import type { CampaignSite } from './rules';
@@ -17,7 +18,7 @@ export interface DistrictState {
 }
 
 /** Extend the existing trunk, never invent a second disconnected route or a junction. */
-export function initDistricts(st: SimState): void {
+export function initDistricts(st: SimState, accept?: SurveyAcceptance): void {
   const c = st.campaign, e = c?.expansion;
   if (!c || !e || c.districts || !st.flow) return;
   const G = ground(st), tw = G.tw, n = G.base.length, old = new Set(e.route), start = e.route.at(-1)!;
@@ -31,14 +32,52 @@ export function initDistricts(st: SimState): void {
     }return true;
   };
   const prev=new Int32Array(n);prev.fill(-1);prev[start]=start;const queue=[start];
-  let end=-1,stop:[number,number]|undefined;
+  const compose=(end:number,stop:[number,number],path:Set<number>):boolean=>{
+    const route=[end];while(route.at(-1)!==start)route.push(prev[route.at(-1)!]);route.reverse();
+    const bi=G.near[end],sub=G.blocks[bi].sub!;
+    const site=(x:number,y:number,size:number,block=bi):CampaignSite=>({block,x,y,size,delivered:{steel:0,copper:0},restoredAt:-1});
+    const occupied=new Set([...old,...path]);
+    for(const [x,y]of [...e.stops,stop])for(let yy=y;yy<y+2;yy++)for(let xx=x;xx<x+2;xx++)occupied.add(yy*tw+xx);
+    const pad=(block:number,size:number):[number,number]|undefined=>{
+      const p=G.urban!.places.find(p=>p.block===block)!.pad,b=G.blocks[block];
+      // The preferred urban pad can be narrower than a source. Search the rest of this
+      // same district before rejecting it; every tile still passes the full footprint rules.
+      for(const bounds of [p,{x:b.x0,y:b.y0,w:b.x1-b.x0+1,h:b.y1-b.y0+1}])
+      for(let y=bounds.y;y<=bounds.y+bounds.h-size;y++)for(let x=bounds.x;x<=bounds.x+bounds.w-size;x++) {
+        if(!clear(x,y,size,block))continue;
+        const tiles=Array.from({length:size*size},(_,i)=>(y+Math.floor(i/size))*tw+x+i%size);
+        if(tiles.some(t=>occupied.has(t)||G.owner[t]!==block))continue;
+        for(const t of tiles)occupied.add(t);return[x,y];
+      }
+    };
+    const workshop=pad(bi,1),steel=pad(e.station.block,5),copper=pad(bi,5);
+    if(!workshop||!steel||!copper)return false;
+    // A nearby district is eligible only when its complete source footprint fits.
+    const coalPlaces=G.urban!.places.filter(p=>p.block!==bi&&p.block!==e.station.block&&p.block!==c.homeBlock)
+      .sort((a,b)=>Math.hypot(a.pad.x-sub.x,a.pad.y-sub.y)-Math.hypot(b.pad.x-sub.x,b.pad.y-sub.y)||a.block-b.block);
+    for(const p of coalPlaces) {
+      const coal=pad(p.block,5);if(!coal)continue;
+      const candidate=surveyCandidate(st);
+      candidate.campaign!.districts={version:1,station:site(sub.x,sub.y,sub.size),workshop:site(...workshop,1),route,stop,
+        sources:[{block:e.station.block,x:steel[0],y:steel[1],size:5,item:'steel'},
+          {block:bi,x:copper[0],y:copper[1],size:5,item:'copper'},
+          {block:p.block,x:coal[0],y:coal[1],size:5,item:'coal'}],
+        repair:null,repairs:0,supplied:{steel:0,copper:0,magazine:0},visits:0,lastVisit:-1,resuppliedAt:-1};
+      candidate.campaign!.version=4;
+      if(acceptSurvey(st,candidate,accept))return true;
+      for(let y=coal[1];y<coal[1]+5;y++)for(let x=coal[0];x<coal[0]+5;x++)occupied.delete(y*tw+x);
+      // Prefer another trunk endpoint after reserving the nearest usable coal district.
+      break;
+    }return false;
+  };
   for(let head=0;head<queue.length;head++) {
     const t=queue[head],x=t%tw,y=Math.floor(t/tw),bi=G.near[t];
     if(bi>=0&&bi!==c.homeBlock&&bi!==e.station.block&&G.blocks[bi].sub&&head>8) {
       const path=new Set<number>();let q=t;while(q!==start){path.add(q);q=prev[q];}path.add(start);
       for(const [xx,yy]of [[x-2,y],[x+1,y],[x,y-2],[x,y+1],[x-2,y-1],[x+1,y-1],[x-1,y-2],[x-1,y+1]]) {
-        if(clear(xx,yy,2,bi)&&![yy*tw+xx,yy*tw+xx+1,(yy+1)*tw+xx,(yy+1)*tw+xx+1].some(q=>path.has(q)||old.has(q))){end=t;stop=[xx,yy];break;}
-      }if(stop)break;
+        if(clear(xx,yy,2,bi)&&![yy*tw+xx,yy*tw+xx+1,(yy+1)*tw+xx,(yy+1)*tw+xx+1].some(q=>path.has(q)||old.has(q)||G.rank[q]>=0)
+          &&compose(t,[xx,yy],path))return;
+      }
     }
     for(const q of neighbours(t)) {
       if(prev[q]!==-1||G.owner[q]!==-1||G.urban!.solid[q]||st.flow!.occ[q]!==undefined||old.has(q))continue;
@@ -49,32 +88,7 @@ export function initDistricts(st: SimState): void {
       prev[q]=t;queue.push(q);
     }
   }
-  if(end<0||!stop)throw new Error('district expansion requires a reachable trunk extension');
-  const route=[end];while(route.at(-1)!==start)route.push(prev[route.at(-1)!]);route.reverse();
-  const bi=G.near[end],sub=G.blocks[bi].sub!;
-  const site=(x:number,y:number,size:number,block=bi):CampaignSite=>({block,x,y,size,delivered:{steel:0,copper:0},restoredAt:-1});
-  const occupied=new Set([...e.route,...route]);
-  for(const [x,y]of [...e.stops,stop])for(let yy=y;yy<y+2;yy++)for(let xx=x;xx<x+2;xx++)occupied.add(yy*tw+xx);
-  const pad=(block:number,size:number):[number,number]=> {
-    const p=G.urban!.places.find(p=>p.block===block)!.pad;
-    for(let y=p.y;y<=p.y+p.h-size;y++)for(let x=p.x;x<=p.x+p.w-size;x++) {
-      if(!clear(x,y,size,block))continue;
-      const tiles=Array.from({length:size*size},(_,i)=>(y+Math.floor(i/size))*tw+x+i%size);
-      if(tiles.some(t=>occupied.has(t)))continue;
-      for(const t of tiles)occupied.add(t);return[x,y];
-    }throw new Error(`no clear district facility pad in block ${block}`);
-  };
-  const [wx,wy]=pad(bi,1),sources:DistrictState['sources']=[];
-  // Steel at the early station, copper at the later station, coal in a distinct nearby district.
-  const coalBlock=G.urban!.places.filter(p=>p.block!==bi&&p.block!==e.station.block&&p.block!==c.homeBlock)
-    .sort((a,b)=>Math.hypot(a.pad.x-sub.x,a.pad.y-sub.y)-Math.hypot(b.pad.x-sub.x,b.pad.y-sub.y)||a.block-b.block)[0]?.block;
-  if(coalBlock===undefined)throw new Error('no coal district');
-  for(const [block,item]of [[e.station.block,'steel'],[bi,'copper'],[coalBlock,'coal']] as const) {
-    const [x,y]=pad(block,5);sources.push({block,x,y,size:5,item});
-  }
-  c.districts={version:1,station:site(sub.x,sub.y,sub.size),workshop:site(wx,wy,1),route,stop,sources,
-    repair:null,repairs:0,supplied:{steel:0,copper:0,magazine:0},visits:0,lastVisit:-1,resuppliedAt:-1};
-  c.version=4;
+  throw new SurveyPlacementError('district expansion requires complete reachable reservations');
 }
 export function persistentSource(st:SimState,x:number,y:number) {
   return st.campaign?.districts?.sources.find(s=>x>=s.x&&x<s.x+s.size&&y>=s.y&&y<s.y+s.size);

@@ -1,0 +1,148 @@
+TAP version 13
+# Subtest: composed city query is repeatable, read-only and stable after load; includes every current site
+ok 1 - composed city query is repeatable, read-only and stable after load; includes every current site
+  ---
+  duration_ms: 3635.204244
+  type: 'test'
+  ...
+# Subtest: physical survey uses ordinary placement geometry without granting the tram unlock or pocket stock
+ok 2 - physical survey uses ordinary placement geometry without granting the tram unlock or pocket stock
+  ---
+  duration_ms: 783.048807
+  type: 'test'
+  ...
+# Subtest: bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+ok 3 - bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+  ---
+  duration_ms: 1030.808989
+  type: 'test'
+  ...
+# Subtest: blocked interactions are found from the final shared collision mask, not just the site centre
+ok 4 - blocked interactions are found from the final shared collision mask, not just the site centre
+  ---
+  duration_ms: 623.721526
+  type: 'test'
+  ...
+# Subtest: runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+ok 5 - runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+  ---
+  duration_ms: 1.7167
+  type: 'test'
+  ...
+# Subtest: existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+ok 6 - existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+  ---
+  duration_ms: 1151.454371
+  type: 'test'
+  ...
+# Subtest: malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+ok 7 - malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+  ---
+  duration_ms: 1475.084131
+  type: 'test'
+  ...
+# Subtest: current survey: seed 6 composes legal tracks/stops and preserves an older paid save
+ok 8 - current survey: seed 6 composes legal tracks/stops and preserves an older paid save
+  ---
+  duration_ms: 3798.127777
+  type: 'test'
+  ...
+# Subtest: current survey: seed 29 composes legal tracks/stops and preserves an older paid save
+ok 9 - current survey: seed 29 composes legal tracks/stops and preserves an older paid save
+  ---
+  duration_ms: 2555.378195
+  type: 'test'
+  ...
+# Subtest: old survey logs remain available but cannot claim new-factory replay; new survey saves retain complete logs
+ok 10 - old survey logs remain available but cannot claim new-factory replay; new survey saves retain complete logs
+  ---
+  duration_ms: 958.155749
+  type: 'test'
+  ...
+# Subtest: unknown survey revision refuses load without treating the saved route as a new survey
+ok 11 - unknown survey revision refuses load without treating the saved route as a new survey
+  ---
+  duration_ms: 284.441776
+  type: 'test'
+  ...
+# Subtest: population repair: seed 80 has complete legal reservations
+ok 12 - population repair: seed 80 has complete legal reservations
+  ---
+  duration_ms: 1439.799652
+  type: 'test'
+  ...
+# Subtest: population repair: seed 88 has complete legal reservations
+ok 13 - population repair: seed 88 has complete legal reservations
+  ---
+  duration_ms: 1853.736996
+  type: 'test'
+  ...
+# Subtest: population repair: seed 102 has complete legal reservations
+ok 14 - population repair: seed 102 has complete legal reservations
+  ---
+  duration_ms: 1372.624052
+  type: 'test'
+  ...
+# Subtest: population repair: seed 305 has complete legal reservations
+ok 15 - population repair: seed 305 has complete legal reservations
+  ---
+  duration_ms: 1418.803321
+  type: 'test'
+  ...
+# Subtest: population repair: seed 842 has complete legal reservations
+ok 16 - population repair: seed 842 has complete legal reservations
+  ---
+  duration_ms: 5184.596814
+  type: 'test'
+  ...
+# Subtest: population repair: seed 1340 has complete legal reservations
+ok 17 - population repair: seed 1340 has complete legal reservations
+  ---
+  duration_ms: 1336.568651
+  type: 'test'
+  ...
+# Subtest: population repair: seed 2313 has complete legal reservations
+ok 18 - population repair: seed 2313 has complete legal reservations
+  ---
+  duration_ms: 1560.959349
+  type: 'test'
+  ...
+# Subtest: population repair: seed 3610 has complete legal reservations
+ok 19 - population repair: seed 3610 has complete legal reservations
+  ---
+  duration_ms: 964.771687
+  type: 'test'
+  ...
+# Subtest: population repair: seed 7384 has complete legal reservations
+ok 20 - population repair: seed 7384 has complete legal reservations
+  ---
+  duration_ms: 929.887546
+  type: 'test'
+  ...
+# Subtest: population repair: seed 8102 has complete legal reservations
+ok 21 - population repair: seed 8102 has complete legal reservations
+  ---
+  duration_ms: 939.391594
+  type: 'test'
+  ...
+# Subtest: population repair: seed 9711 has complete legal reservations
+ok 22 - population repair: seed 9711 has complete legal reservations
+  ---
+  duration_ms: 1466.088099
+  type: 'test'
+  ...
+# Subtest: revision 2 paid saves retain geometry, stock and logs under revision 3
+ok 23 - revision 2 paid saves retain geometry, stock and logs under revision 3
+  ---
+  duration_ms: 742.962533
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 29997.860188

@@ -1,0 +1,22 @@
+const {chromium}=require('C:/Users/Admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true}),page=await browser.newPage(),rows=[],errors=[];page.on('pageerror',e=>errors.push(String(e)));
+const read=()=>page.evaluate(()=>{const a=window.__relight;return {hash:a.stateHash(),speed:a.session.state.speed,log:a.session.log.length,complete:a.session.logComplete,nav:a.session.state.campaign.navigation,overflow:document.documentElement.scrollWidth>innerWidth};});
+try{
+ for(const width of [1366,900])for(const seed of [3,4,5,8,11,13,80,88,102,842]){
+  await page.setViewportSize({width,height:900});await page.goto(`http://127.0.0.1:5181/?rules=exploration-v2&seed=${seed}&view=world&state=/fresh-${seed}.json`);await page.waitForFunction(()=>window.__relight?.world);
+  const expected=JSON.parse(fs.readFileSync(path.join(__dirname,`campaign/fresh-${seed}.json`))),initial=await read();assert.equal(initial.hash,expected.hash);assert.equal(initial.speed,0);assert.ok(initial.complete&&!initial.overflow);
+  await page.locator('.navigation-panel summary').click();await page.getByLabel('Navigation destination').selectOption('site:station');await page.getByLabel('Destination name').fill(`Tram ${seed}`);await page.getByRole('button',{name:'Save name',exact:true}).click();
+  await page.waitForFunction(seed=>window.__relight.navigation().targets.some(t=>t.name===`Tram ${seed}`),seed);
+  await page.getByRole('button',{name:'Pin my position',exact:true}).click();await page.waitForFunction(()=>window.__relight.session.state.campaign.navigation.pins.length===1);
+  const annotated=await read();await page.getByRole('button',{name:'Show destination',exact:true}).click();assert.equal((await read()).hash,annotated.hash);await page.getByRole('button',{name:'Return to engineer',exact:true}).click();assert.equal((await read()).hash,annotated.hash);
+  await page.getByRole('button',{name:/^(Map|World) view \(M\)$/}).click();await page.waitForFunction(()=>window.__relight.view.mode==='map');assert.equal((await read()).hash,annotated.hash);
+  if([3,88,842].includes(seed))await page.screenshot({path:path.join(__dirname,`city-${seed}-${width}.png`)});
+  await page.getByRole('button',{name:/^(Map|World) view \(M\)$/}).click();await page.waitForFunction(()=>window.__relight.view.mode==='world');
+  await page.locator('canvas').focus();await page.keyboard.press('Control+s');page.once('dialog',d=>d.accept());await page.keyboard.press('Control+o');await page.waitForURL(/state=local/);await page.waitForFunction(()=>window.__relight?.world);assert.equal((await read()).hash,annotated.hash);assert.deepEqual((await read()).nav,annotated.nav);
+  const replay=await page.evaluate(()=>window.__relight.replayHash());assert.ok(replay.same);rows.push({seed,width,initial,annotated,replay,saveReload:true,cameraPreservesState:true});console.log('PASS city',seed,width);
+ }
+ const file=path.resolve(__dirname,'../p9-04-2026-09-08/paid/save-3.json'),old=JSON.parse(fs.readFileSync(file));await page.route(u=>u.pathname==='/migration.json',r=>r.fulfill({contentType:'application/json',body:fs.readFileSync(file,'utf8')}));
+ for(const width of [1366,900]){await page.setViewportSize({width,height:900});await page.goto('http://127.0.0.1:5181/?rules=exploration-v2&seed=3&view=world&state=/migration.json');await page.waitForFunction(()=>window.__relight?.world);const before=await read();assert.equal(before.hash,old.hash);assert.equal(before.log,old.log.length);assert.equal(before.complete,false);await page.locator('canvas').focus();await page.keyboard.press('Control+s');page.once('dialog',d=>d.accept());await page.keyboard.press('Control+o');await page.waitForURL(/state=local/);await page.waitForFunction(()=>window.__relight?.world);assert.deepEqual(await read(),before);rows.push({old:true,width,before,saveReload:true});console.log('PASS old save',width);}
+ assert.deepEqual(errors,[]);fs.writeFileSync(path.join(__dirname,'city-browser-result.json'),JSON.stringify({browser:browser.version(),rows,errors,method:'Frozen HTTP build; 20 current city UI naming/pin/camera/map/save/replay cases plus two historical revision-2 save migrations. Automated checks, not human recognition or route-choice evidence.'},null,2)+'\n');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

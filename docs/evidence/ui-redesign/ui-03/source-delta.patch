@@ -1,0 +1,408 @@
+--- UI-02/packages/game/src/buildCatalogue.ts
++++ UI-03/packages/game/src/buildCatalogue.ts
+@@ -1,12 +1,23 @@
+-import { CAMPAIGN_KINDS, KINDS, KIND_LABEL, type Kind } from '@relight/sim';
++import {DEFAULT_QUICKBAR,QUICKBAR_KEYS,type QuickTool} from './uiPreferences';
++import { CAMPAIGN_KINDS, KINDS, KIND_LABEL, knownEquipment, type SimState, type Kind } from '@relight/sim';
+ import { shortcut, bound, type Binding } from './controls';
+ import { FACTORY_TEXT } from './factoryStrings';
+ 
+ export const buildCatalogue = (campaign: boolean) => (campaign ? CAMPAIGN_KINDS : KINDS)
+   .filter((kind): kind is Exclude<Kind, 'depot'> => kind !== 'depot')
+   .map(kind => ({ kind, label: KIND_LABEL[kind], key: shortcut(kind), what: FACTORY_TEXT.purpose[kind] }));
+-export function toolForKey(key: string): Exclude<Kind, 'depot'> | 'rifle' | null {
++export function toolForKey(key: string, slots:readonly (QuickTool|null)[]=DEFAULT_QUICKBAR): Exclude<Kind, 'depot'> | 'rifle' | null {
++  const index=QUICKBAR_KEYS.indexOf(key as typeof QUICKBAR_KEYS[number]);if(index>=0)return slots[index]??null;
+   if (bound('rifle', key)) return 'rifle';
+   return buildCatalogue(true).find(b => bound(b.kind as Binding, key))?.kind ?? null;
+ }
+ export const toolKeyLine = buildCatalogue(true).filter(b => b.key).map(b => `${b.key} ${b.label}`).join(' · ');
++
++export const visibleBuildCatalogue=(st:SimState)=>buildCatalogue(!!st.campaign).filter(b=>knownEquipment(st,b.kind));
++export type BuildCategory='Production'|'Logistics'|'Power'|'Defence';
++export function buildCategory(kind:Kind):BuildCategory {
++  if(['excavator','assembler','mixer'].includes(kind))return 'Production';
++  if(['turret','wall','barricade'].includes(kind))return 'Defence';
++  if(['generator','pole','bigpole','substation','lamp','arclamp','floodlight'].includes(kind))return 'Power';
++  return 'Logistics';
++}
+--- UI-02/packages/game/src/buildPanel.ts
++++ UI-03/packages/game/src/buildPanel.ts
+@@ -0,0 +1,57 @@
++import {buildStock,lockReason,KIND_LABEL,knownEquipment,ROUNDS_PER_MAG,type Kind} from '@relight/sim';
++import {buildCatalogue,buildCategory,visibleBuildCatalogue,type BuildCategory} from './buildCatalogue';
++import {quickbarView,readUiPreferences,saveQuickbar,assignQuickbar,DEFAULT_QUICKBAR,QUICKBAR_KEYS,type QuickTool} from './uiPreferences';
++import {el,type UiShell} from './uiShell';
++import {shortcut} from './controls';
++import type {Session} from './session';
++const purposes:Record<BuildCategory,string>={Production:'Turn local resources into factory supplies.',Logistics:'Move items between real machines and stores.',Power:'Supply and light your local circuits.',Defence:'Protect the factory and its approaches.'};
++const short:Partial<Record<QuickTool,string>>={excavator:'Excav.',assembler:'Assem.',generator:'Gen.',floodlight:'Flood',underground:'Undergr.',tramstop:'Stop',barricade:'Barric.',substation:'Subst.',bigpole:'Big pole',arclamp:'Arc lamp'};
++const price=(cost:Record<string,number>)=>Object.entries(cost).filter(([,n])=>n>0).map(([k,n])=>`${n} ${k}`).join(' + ')||'No material cost';
++/** UI-03: catalogue and shortcuts are views over current pocket costs and discovered plans. */
++export function createBuildPanel(session:Session,root:HTMLElement,shell:UiShell,pick:(tool:QuickTool)=>void,selected:()=>string,rotate:()=>void,cancel:()=>void,history:HTMLElement,clipboard:HTMLElement|null,library:HTMLElement|null){
++  quickbarView.slots=readUiPreferences().quickbar;
++  root.replaceChildren();root.classList.add('build-catalogue');
++  const tabs=el('div','build-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Build sections');
++  const bodies=new Map<string,HTMLElement>(),tabButtons=new Map<string,HTMLButtonElement>();let active='Equipment';
++  function show(name:string){active=name;for(const [id,body] of bodies){body.hidden=id!==name;tabButtons.get(id)!.setAttribute('aria-selected',String(id===name));}}
++  for(const name of ['Equipment','Infrastructure','Library','Shortcuts']){const b=el('button',undefined,name),body=el('div','build-tab-body');b.id=`build-tab-${name}`;b.setAttribute('role','tab');b.setAttribute('aria-controls',`build-body-${name}`);body.id=`build-body-${name}`;body.setAttribute('role','tabpanel');body.setAttribute('aria-labelledby',b.id);b.onclick=()=>show(name);tabs.append(b);bodies.set(name,body);tabButtons.set(name,b);}
++  root.append(tabs,...bodies.values());
++  const equipment=bodies.get('Equipment')!,search=el('input');search.type='search';search.placeholder='Find equipment';search.setAttribute('aria-label','Find equipment');equipment.append(search);
++  const groups=new Map<BuildCategory,{root:HTMLElement;cards:HTMLElement[]}>(),cards:{kind:Exclude<Kind,'depot'>;root:HTMLElement;button:HTMLButtonElement;stock:HTMLElement;reason:HTMLElement}[]=[];
++  for(const category of ['Production','Logistics','Power','Defence'] as const){const section=el('section','build-group');section.append(el('h2',undefined,category),el('p','hint',purposes[category]));groups.set(category,{root:section,cards:[]});equipment.append(section);}
++  for(const entry of buildCatalogue(true)){
++    const article=el('article','build-card'),b=el('button','build-select',entry.label),stock=el('div','build-stock'),reason=el('p','build-reason'),assign=el('button',undefined,'Assign shortcut');
++    b.setAttribute('aria-label',`Build ${entry.label}`);b.onclick=()=>pick(entry.kind);assign.setAttribute('aria-label',`Assign ${entry.label} shortcut`);assign.onclick=()=>{show('Shortcuts');assignmentTool.value=entry.kind;assignmentTool.focus();};
++    article.append(b,el('p','hint',entry.what),el('div','build-price',`Material price: ${price(buildStock(entry.kind,{}).cost)}`),stock,reason,assign);const g=groups.get(buildCategory(entry.kind))!;g.root.append(article);g.cards.push(article);cards.push({kind:entry.kind,root:article,button:b,stock,reason});
++  }
++  const rifle=el('button',undefined,'Equip rifle');rifle.onclick=()=>pick('rifle');equipment.append(el('h2',undefined,'Equipment'),rifle);
++  const infrastructure=bodies.get('Infrastructure')!;infrastructure.append(el('h2',undefined,'Infrastructure tools'),el('p','hint','Copy, plan and pack real factory layouts. Orders spend stock only when built.'),history);if(clipboard)infrastructure.append(clipboard);
++  if(library)bodies.get('Library')!.append(library);
++  const plansHint=el('p','hint','Explore to discover construction plans.'),libraryHint=el('p','hint','Explore to discover construction plans.');infrastructure.append(plansHint);bodies.get('Library')!.append(libraryHint);
++  const shortcuts=bodies.get('Shortcuts')!,assignmentTool=el('select'),assignmentSlot=el('select'),apply=el('button',undefined,'Assign to slot'),clear=el('button',undefined,'Clear slot'),left=el('button',undefined,'Move slot left'),right=el('button',undefined,'Move slot right'),reset=el('button',undefined,'Restore default slots'),notice=el('p','hint');
++  assignmentTool.id='quickbar-tool';assignmentSlot.id='quickbar-slot';const toolLabel=el('label',undefined,'Equipment to assign'),slotLabel=el('label',undefined,'Shortcut slot');toolLabel.htmlFor=assignmentTool.id;slotLabel.htmlFor=assignmentSlot.id;
++  for(let i=0;i<10;i++){const option=el('option',undefined,`Slot ${QUICKBAR_KEYS[i]}`);option.value=String(i);assignmentSlot.append(option);}
++  shortcuts.append(el('h2',undefined,'Your ten shortcuts'),el('p','hint','Slots stay in order. Assigning an item already on the bar swaps the two slots. Carried counts are real pocket stock; changing shortcuts never moves items.'),toolLabel,assignmentTool,slotLabel,assignmentSlot,apply,clear,left,right,reset,notice);
++  const save=()=>{notice.textContent=saveQuickbar(quickbarView.slots)?'Shortcuts saved for this browser.':'Shortcuts changed for this session; browser storage is unavailable.';};
++  apply.onclick=()=>{quickbarView.slots=assignQuickbar(quickbarView.slots,Number(assignmentSlot.value),assignmentTool.value as QuickTool);save();};
++  clear.onclick=()=>{quickbarView.slots=assignQuickbar(quickbarView.slots,Number(assignmentSlot.value),null);save();};
++  const move=(delta:number)=>{const i=Number(assignmentSlot.value),j=i+delta;if(j<0||j>9)return;const a=quickbarView.slots;[a[i],a[j]]=[a[j],a[i]];assignmentSlot.value=String(j);save();};left.onclick=()=>move(-1);right.onclick=()=>move(1);reset.onclick=()=>{quickbarView.slots=[...DEFAULT_QUICKBAR];save();};
++  const bar=el('div','quickbar');bar.setAttribute('role','group');bar.setAttribute('aria-label','Quickbar');const slots=QUICKBAR_KEYS.map((key,i)=>{const b=el('button','quickbar-slot'),number=el('kbd',undefined,key),name=el('span','quickbar-name'),count=el('span','quickbar-count');b.append(number,name,count);b.onclick=()=>{const tool=quickbarView.slots[i];if(tool&&(tool==='rifle'||knownEquipment(session.state,tool)))pick(tool);};bar.append(b);return {b,name,count};});
++  const toolbar=el('div','placement-toolbar'),selection=el('span'),rotateButton=el('button',undefined,`Rotate (${shortcut('rotate')})`),cancelButton=el('button',undefined,'Cancel (Esc)'),edit=el('button',undefined,'Edit shortcuts');rotateButton.onclick=rotate;cancelButton.onclick=cancel;edit.onclick=()=>{shell.open('build');show('Shortcuts');};toolbar.append(selection,rotateButton,cancelButton,edit);
++  const nav=document.querySelector('.ui-navigation')!,more=el('details','quickbar-more'),moreTitle=el('summary',undefined,'More'),moreActions=el('div','quickbar-more-actions');more.append(moreTitle,moreActions);nav.append(more);moreActions.addEventListener('click',()=>{more.open=false;});nav.prepend(bar,toolbar);shell.protect(bar);shell.protect(toolbar);show('Equipment');let optionsKey='';
++  return {update(){
++    for(const child of Array.from(nav.children))if(child instanceof HTMLButtonElement&&['Management','Construction','Help','Navigation'].includes(child.textContent??''))moreActions.append(child);
++    const st=session.state,tool=selected(),visible=visibleBuildCatalogue(st),known=new Set(visible.map(b=>b.kind)),filter=search.value.trim().toLowerCase();
++    const plansKnown=!!st.campaign?.clipboard||!!st.campaign?.recruits?.sites.some(s=>s.kind==='foreman'&&(s.seenAt>=0||s.recruitedAt>=0));if(clipboard)clipboard.hidden=!plansKnown;if(library)library.hidden=!plansKnown;plansHint.hidden=libraryHint.hidden=plansKnown;
++    const optionKey=visible.map(b=>b.kind).join('|');if(optionsKey!==optionKey){optionsKey=optionKey;const previous=assignmentTool.value;assignmentTool.replaceChildren(...[...visible.map(b=>({value:b.kind,label:b.label})),{value:'rifle',label:'Rifle'}].map(b=>{const o=el('option',undefined,b.label);o.value=b.value;return o;}));if(Array.from(assignmentTool.options).some(o=>o.value===previous))assignmentTool.value=previous;}
++    for(const card of cards){const visible=known.has(card.kind)&&(!filter||`${KIND_LABEL[card.kind]} ${buildCategory(card.kind)}`.toLowerCase().includes(filter));card.root.hidden=!visible;if(!visible)continue;const stock=buildStock(card.kind,st.engineer.inv),locked=lockReason(st,card.kind);card.button.disabled=!!locked;card.button.setAttribute('aria-pressed',String(tool===card.kind));card.stock.textContent=`${stock.carried} carried${stock.carried?' · packed machine used first':stock.affordability.ok?' · build from materials':''}`;card.reason.textContent=locked?`Locked: ${locked}`:stock.carried?'Materials are kept when placing a carried machine.':stock.shortage.length?`Pockets need ${stock.shortage.map(s=>`${s.count} ${s.item}`).join(' + ')}`:'Materials available in pockets.';}
++    for(const group of groups.values())group.root.hidden=group.cards.every(c=>c.hidden);
++    rifle.hidden=!!filter&&!('rifle'.includes(filter));
++    for(let i=0;i<10;i++){const slot=slots[i],item=quickbarView.slots[i],visible=!!item&&(item==='rifle'||known.has(item)),label=visible?(item==='rifle'?'Rifle':KIND_LABEL[item!]):item?'Undiscovered':'Empty',locked=visible&&item!=='rifle'?lockReason(st,item!):'';slot.b.disabled=!visible||!!locked;slot.b.setAttribute('aria-label',`Slot ${QUICKBAR_KEYS[i]}: ${label}${locked?` — locked: ${locked}`:''}`);slot.b.setAttribute('aria-pressed',String(visible&&item===tool));slot.b.title=label+(locked?` · ${locked}`:'');slot.name.textContent=visible?(short[item!]??label):item?'—':'Empty';slot.count.textContent=visible?(item==='rifle'?`${Math.floor((st.engineer.inv.magazine??0)*ROUNDS_PER_MAG)} rds`:`${Math.floor(st.engineer.inv[item!]??0)} carried`):'Reserved';}
++    selection.textContent=tool==='hand'?'Empty hand':tool==='rifle'?'Rifle equipped':`${KIND_LABEL[tool as Kind]} selected`;
++    rotateButton.hidden=tool==='hand'||tool==='rifle';cancelButton.hidden=tool==='hand';bar.inert=toolbar.inert=shell.paused();
++    left.disabled=assignmentSlot.value==='0';right.disabled=assignmentSlot.value==='9';
++    // Keep the current tab through drawer closure and repeated placement.
++    root.dataset.activeTab=active;
++  }};
++}
+--- UI-02/packages/game/src/hud.ts
++++ UI-03/packages/game/src/hud.ts
+@@ -46,8 +46,10 @@
+     put(warning,campaignWarning(st));const threat=knownCampaignThreat(st);time.classList.toggle('urgent',!!threat);time.classList.toggle('danger',threat?.phase==='assault'||threat?.phase==='minor raid'||e.down>=0);speed.inert=panel.shell.paused();
+     put(health,e.down>=0?`Engineer down · ${Math.ceil(Math.max(0,e.down-st.t))} s`:`Engineer · ${Math.ceil(e.hp)}/${ENGINEER_HP} HP`);
+     put(equipment,e.truckSeat?'Driving truck':tool.tool==='hand'?'Empty hand':tool.tool==='rifle'?`Rifle · ${Math.floor((e.inv.magazine??0)*ROUNDS_PER_MAG)} rounds`:KIND_LABEL[tool.tool]);put(stock,`Pockets ${invStacks(e.inv)}/${INV_STACKS} stacks`);
+-    const interaction=view.mode==='world'&&!uiInput.blocked&&tool.tool==='hand'?world.interaction():null;
+-    put(prompt,tool.tool!=='hand'&&view.mode==='world'&&!uiInput.blocked?(tool.reason||`${tool.tool==='rifle'?'Hold left-click to fire':`${shortcut('rotate')} rotates`} · Escape cancels`):interaction?`${shortcut('interact')} · ${interaction.label}${interaction.reason?` · ${interaction.reason}`:''}`:'');prompt.hidden=!prompt.textContent;
++    const interaction=view.mode==='world'&&!uiInput.blocked&&tool.tool==='hand'&&!tool.mode?world.interaction():null;
++    put(prompt,(tool.tool!=='hand'||tool.mode)&&view.mode==='world'&&!uiInput.blocked?(tool.reason||`${tool.tool==='rifle'?'Hold left-click to fire':`${shortcut('rotate')} rotates`} · Escape cancels`):interaction?`${shortcut('interact')} · ${interaction.label}${interaction.reason?` · ${interaction.reason}`:''}`:'');prompt.hidden=!prompt.textContent;
++    const placing=!!tool.point&&!!tool.reason&&(!!tool.mode||(tool.tool!=='hand'&&tool.tool!=='rifle'));prompt.classList.toggle('placement-prompt',placing);
++    if(placing){prompt.style.left=`${Math.max(12,Math.min(window.innerWidth-344,tool.point![0]+24))}px`;prompt.style.top=`${Math.max(12,Math.min(window.innerHeight-hudInset.bottom-prompt.offsetHeight-12,tool.point![1]+24))}px`;}else{prompt.style.removeProperty('left');prompt.style.removeProperty('top');}
+     if(st.t>0||invStacks(e.inv)>0||tool.tool!=='hand'||panel.shell.active())hint.hidden=true;
+     map.hidden=!!panel.shell.active()||panel.shell.paused();goal.inert=pockets.inert=panel.shell.paused();hint.hidden=hint.hidden||panel.shell.paused();
+     const paint=canvas.getContext('2d')!;if(expanded&&!map.hidden){paint.drawImage(terrain,0,0);for(const t of targets){paint.strokeStyle=t.kind==='pin'?'#e3b96f':'#f3ecdd';const x=ox+t.x*scale,y=oy+t.y*scale;if(t.kind==='pin'){paint.beginPath();paint.moveTo(x,y-3);paint.lineTo(x+3,y);paint.lineTo(x,y+3);paint.lineTo(x-3,y);paint.closePath();paint.stroke();}else paint.strokeRect(x-2,y-2,4,4);}paint.fillStyle='#92d8b5';paint.beginPath();paint.arc(ox+e.x*scale,oy+e.y*scale,3,0,Math.PI*2);paint.fill();paint.strokeStyle='#151d1e';paint.lineWidth=1;paint.stroke();canvas.setAttribute('aria-label',`Engineer and ${targets.length} known destinations: ${targets.map(t=>t.name).join(', ')}`);}
+--- UI-02/packages/game/src/main.ts
++++ UI-03/packages/game/src/main.ts
+@@ -51,6 +51,9 @@
+   onToggleView() { toggleView(); },
+   releaseInput() { worldScene.releaseInput(); },
+   cancelSelection() { return worldScene.cancelSelection(); },
++  selectedTool() { return worldScene.tool; },
++  rotateTool() { worldScene.key(shortcut('rotate')); focusWorld(); },
++  cancelTool() { worldScene.cancelSelection(); focusWorld(); },
+ });
+ if (session.scenario === 'B') panel.toast(`${params.state?.startsWith('local:') ? 'Save' : 'Snapshot'} loaded at ${clockOf(session.startT)} (state ${stateHash(session.state)}) — paused. Press P or a speed to begin.`, 'good');
+ 
+@@ -168,7 +171,8 @@
+ const mapScene: MapView = session.state.city ? new CityMapScene(session, hooks) : new MapScene(session, hooks);
+ const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind), onChest: () => panel.togglePockets(), onChestAt: (x, y) => panel.openPocketsAt(x, y), onRoutingAt: (x,y) => panel.openRoutingAt(x,y), onInspectAt: (x,y) => panel.openInspectionAt(x,y), onTruck: () => panel.openTruck() });
+ worldScene.handLamp = new URLSearchParams(location.search).get('handlamp') === '1';   // D-B5-1 preview only
+-panel.onPick = kind => { worldScene.setTool(kind); panel.closeAll(); panel.toast(FACTORY_TEXT.picked(kind)); };
++function focusWorld(){document.querySelector<HTMLCanvasElement>('#map > canvas')?.focus({preventScroll:true});panel.shell.sync();}
++panel.onPick = kind => { worldScene.setTool(kind); panel.closeAll(); focusWorld(); if(!session.state.campaign)panel.toast(FACTORY_TEXT.picked(kind)); };
+ panel.onRemovalPreview = () => worldScene.removal;
+ panel.onBlueprint = action => {if(view.mode!=='world')toggleView();worldScene.blueprint(action);if(['copy','paste','queue','removeArea'].includes(action))panel.closeAll();const canvas=document.querySelector('canvas');canvas?.scrollIntoView({block:'nearest'});canvas?.focus({preventScroll:true});};
+ game.scene.add('map', mapScene, view.mode === 'map');
+--- UI-02/packages/game/src/panel.ts
++++ UI-03/packages/game/src/panel.ts
+@@ -1,3 +1,4 @@
++import {createBuildPanel} from './buildPanel';
+ import { createUiShell, controlsHelp, el, type UiShell } from './uiShell';
+ import { createTruckWorkPanel } from './truckWorkPanel';
+ import { createBlueprintLibraryPanel } from './blueprintLibraryPanel';
+@@ -29,7 +30,7 @@
+   return { commands: session.log, hour: session.hour ? hourReport(session.state, session.hour) : null };
+ }
+ 
+-export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void; releaseInput(): void; cancelSelection(): boolean }
++export interface PanelHooks { onSelectEdge(id: number | null): void; onToggleView(): void; releaseInput(): void; cancelSelection(): boolean; selectedTool():string; rotateTool():void; cancelTool():void }
+ /** D-B1-5: the build menu (key B) picks a building into the hand; the world scene installs the pick. */
+ export type BuildKind = Exclude<Kind, 'depot'>;
+ 
+@@ -58,7 +59,7 @@
+   closeAll(): void;
+   onRemovalPreview: (() => import('@relight/sim').RemovalPreview|null) | null;
+   onBlueprint: ((action: ClipboardAction) => void) | null;
+-  onPick: ((kind: BuildKind) => void) | null;
++  onPick: ((kind: BuildKind|'rifle') => void) | null;
+   toast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
+ }
+ 
+@@ -219,12 +220,13 @@
+ 
+   // D-B1-5: the build menu (B). The hotbar (1–8) is its shortcut; 9 is the rifle. Prompt B M3: the Electricians'
+   // three (0, [, ]) are listed locked, with who unlocks them, until the group's block turns Held (rule 8).
++  let buildUi:ReturnType<typeof createBuildPanel>|null=null;
+   const buildSec = el('section');
+   buildSec.hidden = true;
+   if(guide){const browse=el('button',undefined,'Browse items and recipes');browse.onclick=()=>guide.openItem();buildSec.append(browse);}
+   buildSec.append(el('h2', undefined, `${FACTORY_TEXT.buildTitle} (${shortcut('build')})`));
+   const buildList = el('ul', 'plain');
+-  const BUILD = buildCatalogue(campaign);
++  const BUILD = campaign?[]:buildCatalogue(false);
+   const buildCarried: { kind: BuildKind; v: HTMLElement; btn: HTMLButtonElement; lock: HTMLElement }[] = [];
+   for (const b of BUILD) {
+     const li = el('li'), btn = el('button', undefined, b.key ? `${b.key} · ${b.kind}` : b.kind) as HTMLButtonElement;
+@@ -546,7 +548,7 @@
+     if(defenceStatus)defenceStatus.textContent=campaignWarning(s);
+     if(radioUpgradeButton){radioUpgradeButton.hidden=!knownSite(s,'radio');const why=radioUpgradeCheck(s);radioUpgradeButton.disabled=!!why;radioUpgradeButton.title=why||'Add approach direction and broad composition to received warnings';radioUpgradeButton.textContent=s.campaign?.defence?.radioUpgrade?'Radio precision upgraded':`Upgrade radio (${CAMPAIGN_THREAT.radioUpgradeSteel} steel + ${CAMPAIGN_THREAT.radioUpgradeCopper} copper)`;}
+     for(const row of coreButtons){const core=s.campaign?.defence?.bases.find(b=>b.block===row.block);row.button.hidden=!core;const why=core?repairCheck(s,core.x,core.y):'';row.button.disabled=!core||!!why;row.button.title=why||'';row.reason.textContent=why||'';row.reason.hidden=!core||!why;if(core)row.button.textContent=defenceDescription(s,core.x,core.y);}
+-    guide?.update();clipboard?.update();blueprintLibrary?.update();truckWork?.update();
++    buildUi?.update();guide?.update();clipboard?.update();blueprintLibrary?.update();truckWork?.update();
+     const h = hud(s);
+     sHeld.b.textContent = String(h.held); sFront.b.textContent = String(h.front); sInt.b.textContent = String(h.interior);
+     const fs = flowSummary(s);
+@@ -692,7 +694,8 @@
+   const copyPanel=root.querySelector<HTMLElement>('[aria-label="Blueprint clipboard"]');
+   const libraryPanel=root.querySelector<HTMLElement>('[aria-label="Blueprint library and orders"]');
+   const truckPanel=root.querySelector<HTMLElement>('[aria-label="Truck construction"]');
+-  shell.register('build','Build',[buildSec,...[copyPanel,libraryPanel].filter(Boolean) as HTMLElement[]],()=>{buildSec.hidden=false;});
++  if(campaign)buildUi=createBuildPanel(session,buildSec,shell,tool=>panelRef.onPick?.(tool),hooks.selectedTool,hooks.rotateTool,hooks.cancelTool,historyRow,copyPanel,libraryPanel);
++  shell.register('build','Build',[buildSec,...(!campaign?[copyPanel,libraryPanel].filter(Boolean) as HTMLElement[]:[])],()=>{buildSec.hidden=false;});
+   shell.register('inventory','Inventory',[pocketSec],()=>{pocketSec.hidden=false;});
+   shell.register('inspection','Inspection',[routingSec],undefined,()=>{inspectionView.machineId=null;inspectionId=null;routingSec.hidden=true;});
+   shell.register('truck','Truck cargo',[truckSec]);
+--- UI-02/packages/game/src/style.css
++++ UI-03/packages/game/src/style.css
+@@ -239,3 +239,36 @@
+  .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal {top:calc(var(--ui-clock-height) + 24px);width:calc(100vw - var(--ui-drawer-inset) - 24px);}
+  .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal details, .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal button {display:none;}
+ }
++
++/* UI-03 equipment cards and ten stable, pocket-counted shortcut slots. */
++.build-tabs {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
++.build-tabs [aria-selected=true] {border:2px solid var(--ui-accent);color:var(--ui-accent);}
++.build-catalogue #build-body-Equipment > input {width:100%;}
++.ui-shell #panel .build-group {padding:0;margin-top:20px;}
++.build-card {margin:12px 0;padding:12px;border:1px solid var(--ui-border);border-radius:6px;background:var(--ui-bg);}
++.build-card p {margin:8px 0;}
++.build-select {font-size:var(--ui-heading);width:100%;text-align:left;}
++.build-select[aria-pressed=true] {border:2px solid var(--ui-accent);}
++.build-price {color:var(--ui-secondary);font-size:var(--ui-small);}
++.build-stock {margin-top:8px;color:var(--ui-accent);}
++.build-reason {font-size:var(--ui-small);}
++#build-body-Shortcuts label,#build-body-Shortcuts select {display:block;width:100%;margin:8px 0;}
++#build-body-Shortcuts button {margin:4px;}
++.quickbar {flex-basis:100%;width:100%;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;}
++.quickbar-slot {position:relative;min-width:0;min-height:76px;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;}
++.quickbar-slot kbd {align-self:flex-start;font-size:var(--ui-small);}
++.quickbar-name {font-size:var(--ui-small);white-space:nowrap;}
++.quickbar-count {font-size:var(--ui-small);color:var(--ui-secondary);margin-top:4px;}
++.quickbar-slot[aria-pressed=true] {border:2px solid var(--ui-accent);background:var(--ui-raised);}
++.quickbar-slot[aria-pressed=true] .quickbar-name::before {content:'• ';color:var(--ui-accent);}
++.placement-toolbar {flex-basis:100%;display:flex;align-items:center;justify-content:center;gap:8px;font-size:var(--ui-small);}
++.placement-toolbar button {padding:4px 8px;}
++.ui-navigation:has(.quickbar) {width:min(1120px,calc(100vw - 24px));gap:6px;padding:8px;}
++.ui-navigation:has(.quickbar) .ui-brand {display:none;}
++.ui-navigation:has(.quickbar) > button {padding:4px 8px;}
++.hud-prompt.placement-prompt {bottom:auto;transform:none;max-width:320px;width:max-content;}
++@media(max-width:1000px){.quickbar-count {font-size:var(--ui-small);} .quickbar-name {font-size:var(--ui-small);} .ui-navigation:has(.quickbar) {justify-content:center;}}
++
++.quickbar-more > summary {cursor:pointer;padding:6px 12px;border:1px solid var(--ui-border);border-radius:6px;list-style:none;background:var(--ui-surface);}
++.quickbar-more[open] > summary {border:2px solid var(--ui-accent);}
++.quickbar-more-actions {position:absolute;right:8px;bottom:calc(100% + 8px);display:grid;gap:8px;padding:12px;min-width:200px;background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:6px;}
+--- UI-02/packages/game/src/uiPreferences.ts
++++ UI-03/packages/game/src/uiPreferences.ts
+@@ -0,0 +1,17 @@
++import {CAMPAIGN_KINDS,type Kind} from '@relight/sim';
++export type QuickTool=Exclude<Kind,'depot'>|'rifle';
++export const DEFAULT_QUICKBAR:readonly (QuickTool|null)[]=['belt','inserter','excavator','assembler','turret','lamp','pole','generator','rifle','floodlight'];
++export const QUICKBAR_KEYS=['1','2','3','4','5','6','7','8','9','0'] as const;
++export interface UiPreferences {version:1;quickbar:(QuickTool|null)[]}
++export function parseUiPreferences(raw:string|null):UiPreferences {
++  const fallback=():UiPreferences=>({version:1,quickbar:[...DEFAULT_QUICKBAR]});
++  try{const v=JSON.parse(raw??'null');if(v?.version!==1||!Array.isArray(v.quickbar)||v.quickbar.length!==10||v.quickbar.some((k:unknown)=>k!==null&&k!=='rifle'&&(!CAMPAIGN_KINDS.includes(k as Kind)||k==='depot')))return fallback();return {version:1,quickbar:[...v.quickbar]};}catch{return fallback();}
++}
++export function readUiPreferences():UiPreferences {try{return parseUiPreferences(localStorage.getItem('relight.ui.v1'));}catch{return parseUiPreferences(null);}}
++export function saveQuickbar(slots:readonly (QuickTool|null)[]):boolean {try{let old:UiPreferences|null=null;try{old=JSON.parse(localStorage.getItem('relight.ui.v1')??'null');}catch{/* Replace corrupt preferences on the next explicit edit. */}localStorage.setItem('relight.ui.v1',JSON.stringify({...((old?.version===1)?old:{}),version:1,quickbar:slots}));return true;}catch{return false;}}
++/** Assignment swaps an already-used tool, preserving ten stable positions and unrelated choices. */
++export function assignQuickbar(slots:readonly (QuickTool|null)[],index:number,tool:QuickTool|null):(QuickTool|null)[]{
++  const next=[...slots];if(!Number.isInteger(index)||index<0||index>=10)return next;
++  const prior=tool===null?-1:next.indexOf(tool);if(prior>=0&&prior!==index)next[prior]=next[index];next[index]=tool;return next;
++}
++export const quickbarView:{slots:(QuickTool|null)[]}={slots:[...DEFAULT_QUICKBAR]};
+--- UI-02/packages/game/src/uiShell.ts
++++ UI-03/packages/game/src/uiShell.ts
+@@ -50,7 +50,9 @@
+     const valid = target?.isConnected && target.getClientRects().length && !target.closest('[hidden]');
+     (valid ? target : canvas())?.focus({ preventScroll: true }); sync();
+   }
++  function closeMenus(){nav.querySelectorAll<HTMLDetailsElement>('details[open]').forEach(d=>{d.open=false;});}
+   function closeDrawer(focus = true) {
++    closeMenus();
+     if (!active) return;
+     const adapter = adapters.get(active)!; adapter.body.hidden = true; adapter.leave?.(); active = null; drawer.hidden = true;
+     release(); if (focus) restore(returnFocus); sync();
+@@ -102,6 +104,7 @@
+     if (suppressed.has(key)) { event.stopImmediatePropagation(); if (!inUi(event.target)) event.preventDefault(); return; }
+     if (bound('cancel', event.key)) {
+       event.preventDefault(); event.stopImmediatePropagation(); if (event.repeat) return;
++      const menu=nav.querySelector<HTMLDetailsElement>('details[open]');if(menu){menu.open=false;menu.querySelector('summary')?.focus();return;}
+       if (childId) closeChild(); else if (!modal.hidden) unpause(); else if (active) closeDrawer(); else if (!hooks.cancelSelection()) pause();
+       return;
+     }
+@@ -141,7 +144,7 @@
+   const list = el('dl', 'ui-controls');
+   for (const [name, keys] of Object.entries(BINDINGS)) if (keys.length) {
+     const modifier = ['copy', 'paste', 'save', 'load', 'undo', 'redo'].includes(name) ? 'Ctrl / Cmd + ' : '';
+-    list.append(el('dt', undefined, name), el('dd', undefined, modifier + keys.map(k => k === ' ' ? 'Space' : k).join(' / ')));
++    list.append(el('dt', undefined, name), el('dd', undefined, keys.some(k=>/^[0-9]$/.test(k))?'Quickbar slot (see current assignments)':modifier + keys.map(k => k === ' ' ? 'Space' : k).join(' / ')));
+   }
+   body.append(list, el('p', 'hint', `Projects: ${shortcut('projects')}. H / V mirror while pasting a blueprint; plain C / H / V select chest / stop / tram in world mode. Binding and scaling editors arrive with Settings.`)); return body;
+ }
+--- UI-02/packages/game/src/worldScene.ts
++++ UI-03/packages/game/src/worldScene.ts
+@@ -1,3 +1,5 @@
++import {quickbarView,DEFAULT_QUICKBAR} from './uiPreferences';
++import {knownEquipment} from '@relight/sim';
+ import {campaignInteraction} from '@relight/sim';
+ import { uiInput, uiPalette } from './uiShell';
+ import { removalPreview, type RemovalPreview, blueprintGate, blueprintCheck, blueprintQueueCheck, blueprintEntityBuilt, type BlueprintTransform } from '@relight/sim';
+@@ -448,7 +450,7 @@
+     if(this.blueprintMode && this.blueprintMode!=='removeArea' && (bound('rotate',k)||bound('mirrorX',k)||bound('mirrorY',k))){
+       this.blueprint(bound('rotate',k)?'rotate':bound('mirrorX',k)?'mirrorX':'mirrorY');return true;
+     }
+-    const tool = toolForKey(k);
++    const tool = toolForKey(k,st.campaign?quickbarView.slots:DEFAULT_QUICKBAR);
+     if (tool) { this.setTool(tool); return true; }
+     if (bound('cancel', k)) { this.beltPath = null; this.undergroundStart = null; this.setTool('hand'); return true; }
+     if (bound('pipette', k)) {
+@@ -490,6 +492,7 @@
+   /** Put a tool (a building, the rifle, or nothing) in the hand. The build menu's picks land here too. */
+   setTool(t: Tool): void {
+     this.removal=null;this.blueprintMode=null;this.copyStart=null;
++    if(t!=='hand'&&t!=='rifle'&&this.st.campaign&&!knownEquipment(this.st,t)){this.hooks.onToast('Those plans have not been discovered.');return;}
+     if (t !== 'hand' && t !== 'rifle') { const why = lockReason(this.st, t); if (why) { this.hooks.onToast(why, 'bad'); return; } }
+     if (t === this.tool) return;
+     this.beltPath = null; this.undergroundStart = null;
+@@ -502,7 +505,7 @@
+    *  left where it was found, a survivor group on the block answers. E never mines, places or fires. Everything but
+    *  the truck needs the thing within reach. */
+   interaction() { return campaignInteraction(this.st,this.hoverTile); }
+-  selectedTool() { return {tool:this.tool,reason:this.ghostReason}; }
++  selectedTool() { const h=this.hoverTile;return {tool:this.tool,reason:this.ghostReason,mode:this.blueprintMode,point:h?this.screenOf(h.tx+.5,h.ty+.5):null}; }
+   private interact(): void {
+     const st = this.st, h = this.hoverTile;
+     if (!st.flow || !this.onFoot) return;
+@@ -621,10 +624,10 @@
+ 
+   /** D5 reach: hand actions land within 8 tiles of the engineer. Outside, the first refusal is a toast, every one
+    *  the "walk closer" cursor and the ghost's reason. Without the flow layer there is no engineer on the tiles. */
+-  private reachable(tx: number, ty: number, size: number, loud: boolean, height = size): boolean {
++  private reachable(tx: number, ty: number, size: number, loud: boolean, height = size, showNotice = true): boolean {
+     if (!this.onFoot || inReach(this.st, tx, ty, size, height)) return true;
+     if (loud && this.st.flow) this.st.flow.stats.reachRefused++;   // GAME-ASSUMPTION (M4 telemetry): placements refused for reach count one per click, not per drag step
+-    if (loud && !this.walkCloserToasted) { this.walkCloserToasted = true; this.hooks.onToast(`Walk closer — the engineer reaches ${REACH} tiles (WASD or click the ground)`, 'bad'); }
++    if (loud && showNotice && !this.walkCloserToasted) { this.walkCloserToasted = true; this.hooks.onToast(`Walk closer — the engineer reaches ${REACH} tiles (WASD or click the ground)`, 'bad'); }
+     return false;
+   }
+ 
+@@ -634,9 +637,9 @@
+     const kind = this.tool as Kind;
+     const [ox, oy] = this.footprint(kind, tx, ty);
+     const [width,height]=dimensions(kind,this.dir,MACHINE_SIZE[kind]);
+-    if (!this.reachable(ox, oy, width, loud,height)) return;
++    if (!this.reachable(ox, oy, width, loud,height,!st.campaign)) return;
+     const c = canPlace(st, kind, ox, oy,this.dir);
+-    if (!c.ok) { if (loud) this.hooks.onToast(`No ${kind} here: ${c.reason}`, 'bad'); return; }
++    if (!c.ok) { if (loud && !st.campaign) this.hooks.onToast(`No ${kind} here: ${c.reason}`, 'bad'); return; }
+     const r = dispatch(this.session, { type: 'construct', edits: [{ action: 'place', item: kind, x: ox, y: oy, dir: this.dir }] });
+     if (!r.ok) this.hooks.onToast(r.reason, 'bad');
+   }
+@@ -816,7 +819,7 @@
+     if (far) lines.unshift(`Walk closer (reach ${REACH} tiles)`);
+     const resource=rubbleAt(st,tx,ty);
+     const concise=cw?describeCrawler(st,cw):sk?describeStalker(st,sk):m?`${KIND_LABEL[m.kind]} · ${this.statusLine(m)}`:resource?`${resource.type} · ${Math.floor(resource.units)} remaining · hold left-click to mine`:'';
+-    this.hooks.onHoverText(st.campaign&&!debugView.coords?concise||null:lines.join('\n'), rect.left + p.x, rect.top + p.y);
++    this.hooks.onHoverText(st.campaign&&!debugView.coords?(this.tool!=='hand'||this.blueprintMode?null:concise||null):lines.join('\n'), rect.left + p.x, rect.top + p.y);
+     const cur = far ? 'not-allowed' : 'default';
+     if (cur !== this.cursor) { this.cursor = cur; this.input.setDefaultCursor(cur); }
+   }
+--- UI-02/packages/sim/src/campaignGuide.ts
++++ UI-03/packages/sim/src/campaignGuide.ts
+@@ -1,3 +1,4 @@
++import {lockReason} from './flow';
+ /** P7-04: saved installation knowledge and read-only player-facing discovery information. */
+ import {navigationName} from './navigation';
+ import type { Command, SimState } from './types';
+@@ -74,3 +75,11 @@
+   if(d&&(d.seenAt>=0||d.recoveredAt>=0))out.push({id:d.id,title:'Workshop records',status:d.recoveredAt>=0?'Recovered · field-repair tool fitted':'Discovered · records available',detail:discoveryDescription(st),x:d.x,y:d.y,size:1,needs:[],actions:[{label:d.recoveredAt>=0?'Field-repair tool fitted':'Recover field-repair schematic',reason:discoveryCheck(st,d.id),commands:[{type:'recoverSchematic',id:d.id}]}]});
+   return out.map(s=>({...s,defaultTitle:s.title,title:navigationName(st,`site:${s.id}`,s.title)}));
+ }
++
++/** UI catalogue knowledge follows earned plans or the existing discovered source of those plans. */
++export function knownEquipment(st:SimState,kind:import('./flow').Kind):boolean {
++  if(!isCampaign(st)||!lockReason(st,kind))return true;
++  const recruit=kind==='arclamp'?'lamplighters':kind==='mixer'||kind==='barricade'?'concrete':kind==='floodlight'||kind==='bigpole'?'electricians':null;
++  if(recruit)return !!st.campaign?.recruits?.sites.some(s=>s.kind===recruit&&(s.seenAt>=0||s.recruitedAt>=0));
++  return ['track','tramstop','tram'].includes(kind)&&knownSite(st,'station');
++}
+--- UI-02/packages/sim/src/flow.ts
++++ UI-03/packages/sim/src/flow.ts
+@@ -1273,6 +1273,13 @@
+   return { ok: true, reason: '', cost, carried: false };
+ }
+ 
++/** Read-only catalogue facts from the same pocket payment contract as placement. */
++export function buildStock(kind:Kind,inv:Record<string,number>) {
++  const affordability=buildAffordability(kind,inv),cost=MACHINE_COST[kind];
++  const shortage=Object.entries(cost).filter(([item,n])=>(inv[item]??0)<n).map(([item,n])=>({item,count:n-(inv[item]??0)}));
++  return {carried:Math.floor(inv[kind]??0),cost,shortage,affordability};
++}
++
+ function addMachine(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir): Machine {
+   const f = st.flow!;
+   const m: Machine = { id: f.next++, kind, x: tx, y: ty, dir, size: MACHINE_SIZE[kind], items: [], hold: null, timer: 0, phase: 0, inv: {}, out: 0, busy: false };
+--- UI-02/packages/sim/test/uiBuild.test.ts
++++ UI-03/packages/sim/test/uiBuild.test.ts
+@@ -0,0 +1,30 @@
++import {test} from 'node:test';
++import assert from 'node:assert/strict';
++import {createCampaign,ensureFlow,knownEquipment,buildStock,buildAffordability,MACHINE_COST,stateHash,makeSave,loadState} from '../src/index';
++import {parseUiPreferences,DEFAULT_QUICKBAR,assignQuickbar,QUICKBAR_KEYS} from '../../game/src/uiPreferences';
++import {visibleBuildCatalogue,toolForKey,buildCategory} from '../../game/src/buildCatalogue';
++const fresh=()=>{const st=createCampaign(3);ensureFlow(st);return st;};
++test('UI-03 preferences default safely for absent, invalid, future and malformed records',()=>{
++ for(const raw of [null,'bad','{}','null','{"version":2,"quickbar":[]}',JSON.stringify({version:1,quickbar:['depot',...DEFAULT_QUICKBAR.slice(1)]}),JSON.stringify({version:1,quickbar:[...DEFAULT_QUICKBAR,'rifle']})])assert.deepEqual(parseUiPreferences(raw).quickbar,DEFAULT_QUICKBAR);
++ const slots=[...DEFAULT_QUICKBAR];slots[0]=null;assert.deepEqual(parseUiPreferences(JSON.stringify({version:1,quickbar:slots})).quickbar,slots);
++});
++test('UI-03 assignment swaps or clears without moving other slots; digit dispatch follows the assigned slot',()=>{
++ const swapped=assignQuickbar(DEFAULT_QUICKBAR,0,'excavator');assert.equal(swapped[0],'excavator');assert.equal(swapped[2],'belt');assert.equal(toolForKey('1',swapped),'excavator');assert.equal(toolForKey('3',swapped),'belt');
++ const cleared=assignQuickbar(swapped,0,null);assert.equal(toolForKey('1',cleared),null);assert.equal(cleared.length,10);assert.deepEqual(DEFAULT_QUICKBAR,['belt','inserter','excavator','assembler','turret','lamp','pole','generator','rifle','floodlight']);
++ for(let i=0;i<10;i++)assert.equal(toolForKey(QUICKBAR_KEYS[i]),DEFAULT_QUICKBAR[i]);assert.equal(toolForKey('j',swapped),'splitter');assert.equal(toolForKey('u',swapped),'underground');
++});
++test('UI-03 unknown equipment is omitted; discovery exposes a locked plan, recruitment unlocks it',()=>{
++ const st=fresh(),source=st.campaign!.recruits!.sites.find(s=>s.kind==='lamplighters')!;assert.equal(source.seenAt,-1);assert.equal(knownEquipment(st,'arclamp'),false);assert.ok(!visibleBuildCatalogue(st).some(b=>b.kind==='arclamp'));
++ source.seenAt=st.t;assert.equal(knownEquipment(st,'arclamp'),true);source.recruitedAt=st.t;assert.equal(buildCategory('arclamp'),'Power');assert.ok(visibleBuildCatalogue(st).some(b=>b.kind==='arclamp'));
++});
++test('UI-03 reserved assignments survive a less explored save without exposing or reordering their content',()=>{
++ const st=fresh(),slots=assignQuickbar(DEFAULT_QUICKBAR,0,'arclamp'),loaded=parseUiPreferences(JSON.stringify({version:1,quickbar:slots}));assert.equal(loaded.quickbar[0],'arclamp');assert.equal(knownEquipment(st,'arclamp'),false);assert.deepEqual(loaded.quickbar,slots);assert.deepEqual(visibleBuildCatalogue(loadState(makeSave(st))).map(x=>x.kind),visibleBuildCatalogue(st).map(x=>x.kind));
++});
++test('UI-03 stock facts distinguish zero, partial materials and packed-first payment',()=>{
++ assert.equal(buildStock('excavator',{}).carried,0);assert.deepEqual(buildStock('excavator',{steel:4}).shortage,[{item:'steel',count:MACHINE_COST.excavator.steel-4}]);
++ const material=buildStock('excavator',{steel:10});assert.equal(material.affordability.ok,true);assert.equal(material.affordability.carried,false);
++ const packed=buildStock('excavator',{excavator:1});assert.equal(packed.carried,1);assert.equal(packed.affordability.carried,true);assert.deepEqual(packed.affordability,buildAffordability('excavator',{excavator:1}));
++});
++test('UI-03 catalogue, knowledge, affordability and shortcut edits never mutate gameplay stock or save hashes',()=>{
++ const st=fresh(),before=stateHash(st),inventory={...st.engineer.inv};visibleBuildCatalogue(st);for(const k of ['excavator','mixer','barricade','generator'] as const)buildStock(k,st.engineer.inv);assignQuickbar(DEFAULT_QUICKBAR,3,'wall');assert.deepEqual(st.engineer.inv,inventory);assert.equal(stateHash(st),before);
++});

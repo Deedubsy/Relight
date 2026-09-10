@@ -1,0 +1,12 @@
+/mnt/e/Factorio2/packages/harness/src/cityValidationCli.ts:20
+if(existsSync(out)!==resume)throw Error(resume?'resume directory missing':'output directory exists; use --resume with the same population and source');
+                                  ^
+
+
+Error: output directory exists; use --resume with the same population and source
+    at <anonymous> (/mnt/e/Factorio2/packages/harness/src/cityValidationCli.ts:20:35)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.18.0

@@ -108,7 +108,7 @@ export interface GraphSpec {
   pitch: number;       // tiles per unit of the block (x,y) coordinates: 32 on the lattice, 1 for a city (x,y = centroid tile)
 }
 /** D6: how to rebuild the city's tile geometry (packages/sim/src/city) from the spec's seed. */
-export interface CityKey { seed: number; preset: string; tw: number; th: number; profile?: 'riverside-v1' }
+export interface CityKey { seed: number; preset: string; tw: number; th: number; profile?: 'riverside-v1'; mapId?:string }
 export interface Facility { name: string; x: number; y: number }
 /** A survivor group (§8) on a block; `tag` is the §18 map letter (E, N, G, K, M). */
 export interface Survivor { name: string; tag: string; x: number; y: number }
@@ -169,6 +169,17 @@ export interface PowerState {
 }
 
 export type Command =
+  | {type:'cityProp';id:string}
+  | {type:'progression'; action:import('./progression').ProgressionAction}
+  | { type:'inventory'; action:import('./engineer').InventoryAction }
+  | { type: 'removeArea'; selection: import('./construction').RemovalSelection }
+  | { type: 'truckWork'; action: import('./truckWork').TruckWorkAction }
+  | { type: 'blueprintLibrary'; action: import('./blueprintPlans').BlueprintLibraryAction }
+  | { type: 'navigation'; action: import('./navigation').NavigationAction }
+  | { type: 'blueprintOrder'; action: import('./blueprintPlans').BlueprintOrderAction }
+  | { type: 'blueprintCopy'; from: import('./construction').TilePoint; to: import('./construction').TilePoint }
+  | { type: 'blueprintTransform'; operation: import('./blueprint').BlueprintTransform }
+  | { type: 'blueprintPaste'; x: number; y: number }
   | { type: 'construct'; edits: import('./construction').BuildEdit[] }
   | { type: 'buildPath'; path: import('./construction').TilePoint[]; dir: import('./flow').Dir }
   | { type: 'undergroundPair'; from: import('./construction').TilePoint; to: import('./construction').TilePoint; dir: import('./flow').Dir }
@@ -266,8 +277,9 @@ export type SimEvent =
 export interface Engineer {
   x: number; y: number;        // tile position
   block: number;               // the block it stands in or last stood in (-1 between blocks while walking)
-  hp: number; lastHit: number; // HP and the tick it was last hurt (regen after 5 s out of contact)
+  hp: number; lastHit: number; lastDamageSource?: string; // HP and the tick it was last hurt (regen after 5 s out of contact)
   down: number;                // -1, or the tick it gets back up at the HQ
+  pack?: (import('./engineer').PackStack|null)[]; // optional authoritative stack positions
   inv: Record<string, number>; // item counts (stacks = Σ ceil(count / stack size), capped at INV_STACKS)
   reach: number;               // tiles
   truck: boolean; truckFound: boolean;

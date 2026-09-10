@@ -1,0 +1,12 @@
+import {writeFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {createCampaign,makeSave,stateHash,navigationTargets,ground} from '../../../packages/sim/src/index';
+import {FactoryDriver,replayInterval} from '../../../packages/harness/src/blueprint';
+const fresh=createCampaign(3);
+writeFileSync(new URL('fresh.json',import.meta.url),JSON.stringify(makeSave(fresh,{log:[],logComplete:true})),{flag:'wx'});
+const st=createCampaign(6),initial=structuredClone(st),d=new FactoryDriver(st),s=st.campaign!.expansion!.station;
+d.send({type:'navigation',action:{type:'rename',id:'site:station',name:'Western Terminus'}});d.approach(s.x,s.y,s.size);d.run(1);
+d.send({type:'navigation',action:{type:'pin',x:Math.floor(st.engineer.x),y:Math.floor(st.engineer.y),name:'Station approach'}});
+assert.equal(stateHash(replayInterval(initial,d.log,st.flow!.tick)),stateHash(st));
+writeFileSync(new URL('visited.json',import.meta.url),JSON.stringify(makeSave(st,{log:d.log,logComplete:true})),{flag:'wx'});
+writeFileSync(new URL('prepared.json',import.meta.url),JSON.stringify({fresh:stateHash(fresh),visited:stateHash(st),targets:navigationTargets(st),seconds:st.t,assistance:'Ordinary scripted walking and annotation commands; no stock, teleport or unlock injection.',dimensions:[ground(st).tw,ground(st).th]},null,2)+'\n',{flag:'wx'});

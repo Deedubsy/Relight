@@ -1,3 +1,5 @@
+import {citySight} from './ground';
+import { SurveyPlacementError } from './campaignSurvey';
 /** EX-07: one optional workshop records cache. Tuning and automatic tool fitting are provisional. */
 import type { SimState } from './types';
 import { ground, inReach } from './ground';
@@ -31,7 +33,7 @@ export function initDiscovery(st: SimState): void {
       && (c.defence?.sites??[]).every(s=>Math.hypot(x-s.tile%G.tw,y-Math.floor(s.tile/G.tw))>12);
   }).sort((a,b) => Math.hypot(a%G.tw-w.x,Math.floor(a/G.tw)-w.y)-Math.hypot(b%G.tw-w.x,Math.floor(b/G.tw)-w.y) || a-b);
   const t = tiles.find(t => findPath(st,Math.floor(st.engineer.x),Math.floor(st.engineer.y),t%G.tw,Math.floor(t/G.tw)) !== null);
-  if (t === undefined) throw new Error('workshop discovery requires a reachable optional side yard');
+  if (t === undefined) throw new SurveyPlacementError('workshop discovery requires a reachable optional side yard');
   const guardian = newStalkerLayer(st, DISCOVERY.guardian); guardian.sites = {};
   guardian.sites[w.block] = { restored:false, diedAt:-1, spawned:0 };
   c.discovery = { version:1, id:discoveryId(st.seed), block:w.block, x:t%G.tw, y:Math.floor(t/G.tw), seenAt:-1, recoveredAt:-1, guardian };
@@ -46,7 +48,7 @@ function fieldGuardian(st: SimState): void {
 }
 export function tickDiscovery(st: SimState, dt: number): void {
   const d=st.campaign?.discovery; if (!d) return;
-  if (d.seenAt<0 && Math.hypot(st.engineer.x-d.x-.5,st.engineer.y-d.y-.5)<=DISCOVERY.clueRadius) d.seenAt=st.t;
+  if (d.seenAt<0 && citySight(st,st.engineer.x,st.engineer.y,d.x+.5,d.y+.5) && Math.hypot(st.engineer.x-d.x-.5,st.engineer.y-d.y-.5)<=DISCOVERY.clueRadius) d.seenAt=st.t;
   fieldGuardian(st);
   tickStalkers(st,threatOf(st.flow!),dt,CONTACT_R,d.guardian,true);
 }
@@ -71,5 +73,5 @@ export function recoverSchematic(st: SimState, id: string): string {
 export function discoveryDescription(st: SimState): string {
   const d=st.campaign?.discovery; if (!d) return '';
   if (d.recoveredAt>=0) return 'Field-repair tool fitted · 40 HP in 2s for 2 steel + 1 copper; disabled core recovery 6s for 10 steel + 5 copper. Materials still required. Workshop records empty.';
-  return `Optional workshop records (${d.x},${d.y}) · field-repair schematic, halves manual repair time; same materials. E to recover. ${d.guardian.stats.kills ? 'Guardian defeated; it will not return.' : 'Stalker territory: movement, shots and construction attract it within 5 tiles. Yellow ring warns of each strike. Retreat beyond its 8-tile home leash, draw it away, or prepare a supplied turret.'} The station, source pads and workshop service remain accessible without this detour.`;
+  return `Optional workshop records (${d.x},${d.y}) · field-repair schematic, halves manual repair time; same materials. E to recover. ${d.guardian.stats.kills ? 'Guardian defeated; it will not return.' : 'A Stalker roams this yard and notices you within 5 tiles. Yellow rings warn of strikes. It chases beyond the yard; put more than 20 tiles between you and it to escape, or prepare a supplied turret.'} The station, source pads and workshop service remain accessible without this detour.`;
 }

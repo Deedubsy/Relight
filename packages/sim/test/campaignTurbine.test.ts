@@ -1,6 +1,8 @@
+import {suppliedCampaign as createCampaign} from './suppliedCampaignFixture';
+// Prepared historical starting stock; current ungranted progression is checked in gameplayCorrections.test.ts.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createCampaign,ground,findPath,passable,canPlace,applyCommands,advanceFlow,inReach,MACHINE_SIZE,machineAt,blockOfTile,conservation,openLedger,makeSave,loadState,stateHash,TURBINE,turbineCheck,turbineReachProblem,campaignGrid,surveyedDistrict,lockReason,blockLights,inspectMachine,type SimState,type Kind,type Command} from '../src/index';
+import {ground,findPath,passable,canPlace,applyCommands,advanceFlow,inReach,MACHINE_SIZE,machineAt,blockOfTile,conservation,openLedger,makeSave,loadState,stateHash,TURBINE,turbineCheck,turbineReachProblem,campaignGrid,surveyedDistrict,lockReason,blockLights,inspectMachine,type SimState,type Kind,type Command} from '../src/index';
 import {createSession,parseUrl,replaySession} from '../../game/src/session';
 const run=(s:SimState,n:number)=>advanceFlow(s,n,[],Math.ceil(n*20)+1);
 function walk(s:SimState,x:number,y:number,size=1,send=(c:Command)=>applyCommands(s,[c])){

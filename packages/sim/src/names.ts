@@ -60,6 +60,7 @@ function names(st: SimState): string[] {
 
 /** The block's stable name (see the header). */
 export function blockName(st: SimState, i: number): string {
+  const custom=st.campaign?.navigation?.names[`block:${i}`];if(custom)return custom;
   const place = ground(st).urban?.places.find(p => p.block === i);
   if (place) return place.name;
   return i >= 0 && i < st.blocks.length ? names(st)[i] : 'nowhere';

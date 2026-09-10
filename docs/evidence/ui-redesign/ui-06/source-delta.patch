@@ -1,0 +1,687 @@
+--- UI-05/packages/game/src/buildPanel.ts
++++ UI-06/packages/game/src/buildPanel.ts
+@@ -41,6 +41,8 @@
+   const nav=document.querySelector('.ui-navigation')!,more=el('details','quickbar-more'),moreTitle=el('summary',undefined,'More'),moreActions=el('div','quickbar-more-actions');more.append(moreTitle,moreActions);nav.append(more);moreActions.addEventListener('click',()=>{more.open=false;});nav.prepend(bar,toolbar);shell.protect(bar);shell.protect(toolbar);show('Equipment');let optionsKey='';
+   return {update(){
+     for(const child of Array.from(nav.children))if(child instanceof HTMLButtonElement&&['Management','Construction','Help','Navigation'].includes(child.textContent??''))moreActions.append(child);
++    const compact=document.body.classList.contains('ui-short');if(compact&&edit.parentElement!==moreActions)moreActions.append(edit);else if(!compact&&edit.parentElement!==toolbar)toolbar.append(edit);
++    rotateButton.textContent=`Rotate (${shortcut('rotate')})`;toolbar.hidden=compact&&selected()==='hand';
+     const st=session.state,tool=selected(),visible=visibleBuildCatalogue(st),known=new Set(visible.map(b=>b.kind)),filter=search.value.trim().toLowerCase();
+     const plansKnown=!!st.campaign?.clipboard||!!st.campaign?.recruits?.sites.some(s=>s.kind==='foreman'&&(s.seenAt>=0||s.recruitedAt>=0));if(clipboard)clipboard.hidden=!plansKnown;if(library)library.hidden=!plansKnown;plansHint.hidden=libraryHint.hidden=plansKnown;
+     const optionKey=visible.map(b=>b.kind).join('|');if(optionsKey!==optionKey){optionsKey=optionKey;const previous=assignmentTool.value;assignmentTool.replaceChildren(...[...visible.map(b=>({value:b.kind,label:b.label})),{value:'rifle',label:'Rifle'}].map(b=>{const o=el('option',undefined,b.label);o.value=b.value;return o;}));if(Array.from(assignmentTool.options).some(o=>o.value===previous))assignmentTool.value=previous;}
+--- UI-05/packages/game/src/clipboardPanel.ts
++++ UI-06/packages/game/src/clipboardPanel.ts
+@@ -1,3 +1,4 @@
++import {shortcut,type Binding} from './controls';
+ import { blueprintGate, blueprintBounds, dimensions, MACHINE_SIZE, MACHINE_COST, KIND_LABEL, type RemovalPreview, type BlueprintTransform } from '@relight/sim';
+ import type { Session } from './session';
+ export type ClipboardAction = 'copy'|'paste'|'queue'|'cancel'|'removeArea'|'applyRemoval'|BlueprintTransform;
+@@ -8,11 +9,11 @@
+   const title=node('summary','Blueprint clipboard'),status=node('p'),tools=node('div');tools.className='row';tools.style.flexWrap='wrap';
+   const buttons=new Map<ClipboardAction,HTMLButtonElement>();
+   for(const [a,label] of [['copy','Copy area (Ctrl+C)'],['paste','Paste (Ctrl+V)'],['queue','Queue ghosts'],['rotate','Rotate (R)'],['mirrorX','Mirror H'],['mirrorY','Mirror V'],['removeArea','Select removal area'],['applyRemoval','Pack selected machines'],['cancel','Cancel preview']] as const){
+-    const b=node('button',label);b.onclick=()=>act(a);buttons.set(a,b);tools.append(b);
++    const b=node('button',label);const names:Record<string,string>={copy:'Copy area',paste:'Paste',rotate:'Rotate',mirrorX:'Mirror horizontally',mirrorY:'Mirror vertically'};if(names[a]){const refresh=()=>{b.textContent=`${names[a]} (${a==='copy'||a==='paste'?'Ctrl+':''}${shortcut(a as Binding)})`;};window.addEventListener('relight:preferences',refresh);refresh();}b.onclick=()=>act(a);buttons.set(a,b);tools.append(b);
+   }
+   const removalStatus=node('p');removalStatus.setAttribute('aria-label','Removal preview');
+   const preview=node('div'),facts=node('p');facts.className='hint';
+-  section.append(title,status,tools,removalStatus,preview,facts,node('p','Drag around whole machines to copy. A click pastes the entire layout using pockets and normal prices. R rotates; H/V mirrors while previewing. Esc cancels. Undo uses Ctrl+Z. Removal: drag a whole-machine area, review the returns, then Pack selected machines. Up to 128 machines in a 128 × 128 area; one refusal means none are packed. Current reach and pockets apply. Undo rebuilds settings from pockets; recovered contents stay in pockets. Fixed facilities and the core stay.'));root.append(section);
++  section.append(title,status,tools,removalStatus,preview,facts,node('p','Drag around whole machines to copy. A click pastes the entire layout using pockets and normal prices. Use the labelled Rotate and Mirror controls while previewing. Escape cancels. Undo and current shortcuts are listed in Help. Removal: drag a whole-machine area, review the returns, then Pack selected machines. Up to 128 machines in a 128 × 128 area; one refusal means none are packed. Current reach and pockets apply. Undo rebuilds settings from pockets; recovered contents stay in pockets. Fixed facilities and the core stay.'));root.append(section);
+   let key='';
+   return {update(){const st=session.state,bp=st.campaign?.clipboard,why=blueprintGate(st);
+     const r=removal();removalStatus.textContent=r?`REMOVAL PREVIEW · ${r.reason} Returns at preview: ${Object.entries(r.items).map(([k,n])=>`${n} ${k}`).join(', ')||'none'}${r.looseRounds?`; ${r.looseRounds} loose rounds to buffer`:''}. Rechecked when packed.`:'No removal selected.';
+--- UI-05/packages/game/src/controls.ts
++++ UI-06/packages/game/src/controls.ts
+@@ -1,5 +1,5 @@
+-/** Shared keyboard bindings. Rebinding UI is later; handlers and displayed shortcuts use this table now. */
+-export const BINDINGS = {
++/** Shared keyboard bindings. Handlers and displayed shortcuts share live, validated bindings. */
++export const DEFAULT_BINDINGS = {
+   copy: ['c'], paste: ['v'], mirrorX: ['h'], mirrorY: ['v'],
+   north: ['w', 'ArrowUp'], west: ['a', 'ArrowLeft'], south: ['s', 'ArrowDown'], east: ['d', 'ArrowRight'],
+   sprint: ['Shift'], dodge: [' '], pause: ['p'], slower: ['-', '_'], faster: ['=', '+'], map: ['m'],
+@@ -9,13 +9,32 @@
+   generator: ['8'], rifle: ['9'], floodlight: ['0'], bigpole: ['['], substation: [']'], chest: ['c'],
+   track: ['l'], tramstop: ['h'], tram: ['v'], arclamp: [], wall: [], mixer: [], barricade: [], underground: ['u'], splitter: ['j'],
+ } as const;
+-export type Binding = keyof typeof BINDINGS;
+-export const bound = (action: Binding, key: string): boolean => (BINDINGS[action] as readonly string[]).some(k => k.toLowerCase() === key.toLowerCase());
+-export const shortcut = (action: Binding): string => BINDINGS[action][0]?.toUpperCase() ?? '';
+-/** Phaser reads these held keys; global key presses above use the same bindings. */
+-export const MOVEMENT_KEYS = {
+-  W: shortcut('north'), A: shortcut('west'), S: shortcut('south'), D: shortcut('east'),
+-  UP: BINDINGS.north[1].replace('Arrow', '').toUpperCase(), LEFT: BINDINGS.west[1].replace('Arrow', '').toUpperCase(),
+-  DOWN: BINDINGS.south[1].replace('Arrow', '').toUpperCase(), RIGHT: BINDINGS.east[1].replace('Arrow', '').toUpperCase(),
+-  SHIFT: shortcut('sprint'), SPACE: 'SPACE',
+-};
++export type Binding = keyof typeof DEFAULT_BINDINGS;
++export const BINDINGS:Record<Binding,string[]>=Object.fromEntries(Object.entries(DEFAULT_BINDINGS).map(([k,v])=>[k,[...v]])) as Record<Binding,string[]>;
++export const MODIFIED:readonly Binding[]=['copy','paste','save','load','undo','redo'];
++export const FIXED:readonly Binding[]=['cancel','belt','inserter','excavator','assembler','turret','lamp','pole','generator','rifle','floodlight'];
++export type BindingOverrides=Partial<Record<Binding,string>>;
++const context=(a:Binding)=>MODIFIED.includes(a)?'modified':['mirrorX','mirrorY'].includes(a)?'blueprint':'world';
++export function bindingProblem(action:Binding,key:string,overrides:BindingOverrides):string {
++ if(!Object.prototype.hasOwnProperty.call(DEFAULT_BINDINGS,action)||FIXED.includes(action))return 'Escape and numbered quickbar slots stay fixed; edit slot contents in Build.';
++ if(!/^(?:[a-zA-Z]|Arrow(?:Up|Down|Left|Right)|F(?:[1-9]|1[0-2])|Shift| |[-=\[\]`;,.\/])$/.test(key))return 'Use one letter, arrow, F-key, Shift, Space or supported punctuation.';
++ if(key==='Escape'||key==='Tab')return 'This key is reserved for interface navigation.';
++ const keys=(a:Binding)=>[overrides[a]??DEFAULT_BINDINGS[a][0],...DEFAULT_BINDINGS[a].slice(1)].filter((k):k is string=>!!k);
++ for(const other of Object.keys(DEFAULT_BINDINGS) as Binding[]){if(other===action)continue;const c=context(action),d=context(other),overlap=c===d||(c==='blueprint'&&d==='world'&&!['chest','tramstop','tram'].includes(other))||(d==='blueprint'&&c==='world'&&!['chest','tramstop','tram'].includes(action));
++  if(overlap&&keys(other).some(k=>k.toLowerCase()===key.toLowerCase()))return `Already used by ${other} in this context.`;
++ }return '';
++}
++export function parseBindings(raw:unknown):BindingOverrides {
++ const out:BindingOverrides={};if(!raw||typeof raw!=='object'||Array.isArray(raw))return out;
++ for(const [a,k] of Object.entries(raw))if(typeof k==='string'&&!bindingProblem(a as Binding,k,out))out[a as Binding]=k;
++ return out;
++}
++export function applyBindings(overrides:BindingOverrides):void {
++ for(const a of Object.keys(DEFAULT_BINDINGS) as Binding[])BINDINGS[a]=[...(DEFAULT_BINDINGS[a] as readonly string[])];
++ for(const [a,k] of Object.entries(parseBindings(overrides)))BINDINGS[a as Binding]=[k!,...DEFAULT_BINDINGS[a as Binding].slice(1)];
++}
++export const bound=(action:Binding,key:string):boolean=>BINDINGS[action].some(k=>k.toLowerCase()===key.toLowerCase());
++export const shortcut=(action:Binding):string=>BINDINGS[action][0]===' '?'Space':BINDINGS[action][0]?.toUpperCase()??'';
++const code=(key:string)=>({ArrowUp:38,ArrowDown:40,ArrowLeft:37,ArrowRight:39,Shift:16,' ':32,'-':189,'=':187,'[':219,']':221,'`':192,';':186,',':188,'.':190,'/':191} as Record<string,number>)[key]??(/^F\d+$/.test(key)?111+Number(key.slice(1)):key.toUpperCase().charCodeAt(0));
++export const movementKeys=()=>({W:code(BINDINGS.north[0]),A:code(BINDINGS.west[0]),S:code(BINDINGS.south[0]),D:code(BINDINGS.east[0]),UP:38,LEFT:37,DOWN:40,RIGHT:39,SHIFT:code(BINDINGS.sprint[0]),SPACE:code(BINDINGS.dodge[0])});
++export const MOVEMENT_KEYS=movementKeys();
+--- UI-05/packages/game/src/hud.ts
++++ UI-06/packages/game/src/hud.ts
+@@ -1,3 +1,4 @@
++import {preferenceView,saveUiPreferences} from './uiPreferences';
+ import {blockName,blockOfTile,campaignClock,campaignAlerts,currentGoal,invStacks,INV_STACKS,ENGINEER_HP,ROUNDS_PER_MAG,KIND_LABEL,navigationTargets,ground,T_RIVER,T_STREET,campaignDiscoveries,type NextAction} from '@relight/sim';
+ import {el,uiInput} from './uiShell';
+ import {shortcut} from './controls';
+@@ -20,7 +21,8 @@
+   let expanded=window.innerWidth>=1100;const collapse=()=>{canvas.hidden=legend.hidden=!expanded;fold.setAttribute('aria-expanded',String(expanded));};fold.onclick=()=>{expanded=!expanded;collapse();};collapse();
+   const prompt=el('div','hud-prompt');prompt.setAttribute('aria-label','Interaction');
+   const hint=el('aside','ui-hud hud-opening-hint'),dismiss=el('button',undefined,'Dismiss hint');
+-  hint.append(el('span',undefined,`${shortcut('interact')} interacts · WASD moves · Build opens with ${shortcut('build')}. Find all controls in Help.`),dismiss);dismiss.onclick=()=>{hint.hidden=true;};
++  hint.append(el('span',undefined,`${shortcut('interact')} interacts · WASD moves · Build opens with ${shortcut('build')}. Find all controls in Help.`),dismiss);dismiss.onclick=()=>{hint.hidden=true;saveUiPreferences({dismissedHints:['opening']});};
++  window.addEventListener('relight:preferences',()=>{hint.hidden=preferenceView.value.dismissedHints.includes('opening');});
+   const track=el('section'),label=el('label',undefined,'Track one objective'),select=el('select');select.id='tracked-objective';label.htmlFor=select.id;track.append(label,select);
+   document.querySelector('[data-adapter="projects"]')!.prepend(track);
+   select.onchange=()=>{objectiveView.targetId=select.value==='auto'?undefined:select.value==='none'?null:select.value;};
+@@ -44,13 +46,15 @@
+     const key=discoveries.map(s=>s.id+s.title).join('|');if(optionsKey!==key){optionsKey=key;select.replaceChildren(...[{id:'auto',title:'Automatic next action'},{id:'none',title:'Untrack'},...discoveries].map(s=>{const o=el('option',undefined,s.title);o.value=s.id;return o;}));}select.value=objectiveView.targetId===undefined?'auto':objectiveView.targetId===null?'none':objectiveView.targetId;
+     put(clock,`Day ${c.day} · ${c.night?'Night':'Daylight'} · ${Math.floor(c.elapsed/60)}:${String(Math.floor(c.elapsed%60)).padStart(2,'0')} · ${st.speed===0?'Paused':`${st.speed}×`}`);
+     const urgent=campaignAlerts(st)[0];put(warning,urgent?`${urgent.priority>=90?'⚠':'◷'} ${urgent.title}`:'');warning.title=urgent?.detail??'';time.classList.toggle('urgent',!!urgent&&urgent.priority>=60);time.classList.toggle('danger',!!urgent&&urgent.priority>=90);speed.inert=panel.shell.paused();
++    inventory.textContent=`Inventory (${shortcut('pockets')})`;mapButton.textContent=`Map (${shortcut('map')})`;back.textContent=`Return to engineer (${shortcut('engineer')})`;
++    (hint.firstChild as HTMLElement).textContent=`${shortcut('interact')} interacts · ${shortcut('north')}/${shortcut('west')}/${shortcut('south')}/${shortcut('east')} moves · ${shortcut('build')} opens Build. All controls are in Help.`;
+     put(health,e.down>=0?`Engineer down · ${Math.ceil(Math.max(0,e.down-st.t))} s`:`Engineer · ${Math.ceil(e.hp)}/${ENGINEER_HP} HP`);
+     put(equipment,e.truckSeat?'Driving truck':tool.tool==='hand'?'Empty hand':tool.tool==='rifle'?`Rifle · ${Math.floor((e.inv.magazine??0)*ROUNDS_PER_MAG)} rounds`:KIND_LABEL[tool.tool]);put(stock,`Pockets ${invStacks(e.inv)}/${INV_STACKS} stacks`);
+     const interaction=view.mode==='world'&&!uiInput.blocked&&tool.tool==='hand'&&!tool.mode?world.interaction():null;
+     put(prompt,(tool.tool!=='hand'||tool.mode)&&view.mode==='world'&&!uiInput.blocked?(tool.reason||`${tool.tool==='rifle'?'Hold left-click to fire':`${shortcut('rotate')} rotates`} · Escape cancels`):interaction?`${shortcut('interact')} · ${interaction.label}${interaction.reason?` · ${interaction.reason}`:''}`:'');prompt.hidden=!prompt.textContent;
+     const placing=!!tool.point&&!!tool.reason&&(!!tool.mode||(tool.tool!=='hand'&&tool.tool!=='rifle'));prompt.classList.toggle('placement-prompt',placing);
+     if(placing){prompt.style.left=`${Math.max(12,Math.min(window.innerWidth-344,tool.point![0]+24))}px`;prompt.style.top=`${Math.max(12,Math.min(window.innerHeight-hudInset.bottom-prompt.offsetHeight-12,tool.point![1]+24))}px`;}else{prompt.style.removeProperty('left');prompt.style.removeProperty('top');}
+-    if(st.t>0||invStacks(e.inv)>0||tool.tool!=='hand'||panel.shell.active())hint.hidden=true;
++    if(preferenceView.value.dismissedHints.includes('opening')||st.t>0||invStacks(e.inv)>0||tool.tool!=='hand'||panel.shell.active())hint.hidden=true;
+     map.hidden=!!panel.shell.active()||panel.shell.paused();goal.inert=pockets.inert=panel.shell.paused();hint.hidden=hint.hidden||panel.shell.paused();
+     const paint=canvas.getContext('2d')!;if(expanded&&!map.hidden){paint.drawImage(terrain,0,0);for(const t of targets){paint.strokeStyle=t.kind==='pin'?'#e3b96f':'#f3ecdd';const x=ox+t.x*scale,y=oy+t.y*scale;if(t.kind==='pin'){paint.beginPath();paint.moveTo(x,y-3);paint.lineTo(x+3,y);paint.lineTo(x,y+3);paint.lineTo(x-3,y);paint.closePath();paint.stroke();}else paint.strokeRect(x-2,y-2,4,4);}paint.fillStyle='#92d8b5';paint.beginPath();paint.arc(ox+e.x*scale,oy+e.y*scale,3,0,Math.PI*2);paint.fill();paint.strokeStyle='#151d1e';paint.lineWidth=1;paint.stroke();canvas.setAttribute('aria-label',`Engineer and ${targets.length} known destinations: ${targets.map(t=>t.name).join(', ')}`);}
+     document.documentElement.style.setProperty('--ui-clock-height',`${time.offsetHeight}px`);
+--- UI-05/packages/game/src/main.ts
++++ UI-06/packages/game/src/main.ts
+@@ -1,3 +1,6 @@
++import {applyUiPreferences} from './settingsPanel';
++applyUiPreferences();
++window.addEventListener('resize',applyUiPreferences);
+ import {createHud} from './hud';
+ import { uiInput } from './uiShell';
+ import Phaser from 'phaser';
+@@ -244,6 +247,7 @@
+ threatControls.append(threatDirection,threatButton,returnButton);document.getElementById('goal')!.append(threatControls);
+ const campaignHud=session.state.campaign?createHud(session,panel,worldScene,view,toggleView,threatControls):null;
+ function updateThreatControls():void {
++  threatButton.textContent=`View threat (${shortcut('threat')})`;returnButton.textContent=`Return to engineer (${shortcut('engineer')})`;
+   const target=knownCampaignThreat(session.state);
+   threatControls.hidden=!session.state.campaign;
+   threatButton.hidden=!target;returnButton.hidden=!!session.state.campaign||!worldScene.viewingThreat;
+--- UI-05/packages/game/src/panel.ts
++++ UI-06/packages/game/src/panel.ts
+@@ -1,3 +1,4 @@
++import {createSettings} from './settingsPanel';
+ import {createAlertInbox} from './alertInbox';
+ import {createInspectionPanel} from './inspectionPanel';
+ import {createInventoryPanel} from './inventoryPanel';
+@@ -133,7 +134,7 @@
+   const clipboard=campaign?createClipboardPanel(session,root,a=>panelRef.onBlueprint?.(a),()=>panelRef.onRemovalPreview?.()??null):null;
+   const blueprintLibrary=campaign?createBlueprintLibraryPanel(session,root,toast):null;
+   const truckWork=campaign?createTruckWorkPanel(session,root,toast):null;
+-  if(guide){const discoveries=el('button',undefined,'Discoveries'),items=el('button',undefined,'Items and recipes');discoveries.onclick=()=>shell.open('projects');items.onclick=()=>shell.open('help');header.append(discoveries,items);}
++  if(guide){const discoveries=el('button',undefined,'Projects'),items=el('button',undefined,'Items and recipes');discoveries.onclick=()=>shell.open('projects');items.onclick=()=>shell.open('help');header.append(discoveries,items);}
+   let radioUpgradeButton:HTMLButtonElement|null=null,defenceStatus:HTMLElement|null=null,defenceSection:HTMLElement|null=null;
+   const coreButtons:{block:number;button:HTMLButtonElement;reason:HTMLElement}[]=[];
+   if(campaign){const section=el('section');defenceSection=section;section.append(el('h2',undefined,'Base defence'));defenceStatus=el('p','hint');section.append(defenceStatus);
+@@ -743,6 +744,8 @@
+   shell.pauseAction(`Load (Ctrl+${shortcut('load')})`,loadGame);
+   shell.pauseAction('Download save',()=>btnState.click());
+   shell.pauseAction('Copy seed/settings link',()=>btnLink.click());
++  shell.register('settings','Settings',[createSettings()]);
++  shell.pauseAction('Settings',()=>shell.pauseChild('settings'));
+   shell.pauseAction('Controls and item help',()=>shell.pauseChild('help'));
+   shell.pauseAction('Developer',()=>shell.pauseChild('developer'));
+   const startScreen=el('section'),seedInput=el('input'),seedLabel=el('label',undefined,'City seed');
+--- UI-05/packages/game/src/settingsPanel.ts
++++ UI-06/packages/game/src/settingsPanel.ts
+@@ -0,0 +1,29 @@
++import {preferenceView,saveUiPreferences,quickbarView,DEFAULT_QUICKBAR} from './uiPreferences';
++import {applyBindings,BINDINGS,DEFAULT_BINDINGS,FIXED,MODIFIED,bindingProblem,type Binding} from './controls';
++import {el} from './uiShell';
++/** Browser preferences never enter a save envelope or simulation command. */
++export function applyUiPreferences(){
++ const p=preferenceView.value;applyBindings(p.bindings);document.documentElement.style.setProperty('--ui-scale',String(p.scale/100));
++ document.body.dataset.motion=p.motion;document.body.classList.toggle('ui-compact',innerWidth/(p.scale/100)<1100);document.body.classList.toggle('ui-short',innerHeight/(p.scale/100)<650);
++ window.dispatchEvent(new Event('relight:preferences'));
++}
++export function createSettings(){
++ const root=el('section','ui-settings'),status=el('p','action-result');status.setAttribute('role','status');
++ const scale=el('select'),motion=el('select');scale.setAttribute('aria-label','Interface scale');motion.setAttribute('aria-label','Interface motion');
++ for(const n of [100,125,150]){const o=el('option',undefined,`${n}%`);o.value=String(n);scale.append(o);}
++ for(const [v,t] of [['system','Follow system preference'],['reduce','Reduce motion'],['full','Full interface motion']]){const o=el('option',undefined,t);o.value=v;motion.append(o);}
++ const save=(change:Parameters<typeof saveUiPreferences>[0])=>{const ok=saveUiPreferences(change);applyUiPreferences();status.textContent=ok?'Settings saved for this browser.':'Settings work for this session. Browser storage is unavailable; retry saving when storage is available.';};
++ scale.value=String(preferenceView.value.scale);motion.value=preferenceView.value.motion;scale.onchange=()=>save({scale:Number(scale.value) as 100|125|150});motion.onchange=()=>save({motion:motion.value as 'system'|'reduce'|'full'});
++ const sl=el('label',undefined,'Interface scale '),ml=el('label',undefined,'Interface motion ');sl.append(scale);ml.append(motion);root.append(sl,ml,el('p',undefined,'UI scale changes text and controls independently of camera zoom. Settings are shared by this browser; game saves keep their own profile.'));
++ const action=el('select'),key=el('input'),apply=el('button',undefined,'Apply binding'),bindingStatus=el('p','action-result');action.setAttribute('aria-label','Action to rebind');key.setAttribute('aria-label','New binding');key.placeholder='Focus here and press a key';key.readOnly=true;
++ for(const a of Object.keys(DEFAULT_BINDINGS) as Binding[])if(!FIXED.includes(a)){const o=el('option',undefined,a);o.value=a;action.append(o);}
++ let draft='';const current=el('p');const show=()=>{draft='';const a=action.value as Binding;current.textContent=`Current: ${MODIFIED.includes(a)?'Ctrl / Cmd + ':''}${BINDINGS[a].map(k=>k===' '?'Space':k).join(' / ')||'Unassigned'}`;key.value='';};action.onchange=show;show();
++ key.onkeydown=e=>{if(e.key==='Tab'||e.key==='Escape')return;e.preventDefault();e.stopPropagation();draft=e.key;key.value=e.key===' '?'Space':e.key;bindingStatus.textContent=bindingProblem(action.value as Binding,draft,preferenceView.value.bindings);};
++ apply.onclick=()=>{const a=action.value as Binding,why=bindingProblem(a,draft,preferenceView.value.bindings);bindingStatus.textContent=why;if(why)return;save({bindings:{...preferenceView.value.bindings,[a]:draft}});show();bindingStatus.textContent='Binding applied. Release held keys before returning to the city.';};
++ const reset=el('button',undefined,'Restore default bindings');reset.onclick=()=>{save({bindings:{}});show();bindingStatus.textContent='Default bindings restored.';};
++ const hints=el('button',undefined,'Restore opening hint for new cities');hints.onclick=()=>save({dismissedHints:[]});
++ const slots=el('button',undefined,'Restore default quickbar');slots.onclick=()=>{quickbarView.slots=[...DEFAULT_QUICKBAR];save({quickbar:[...DEFAULT_QUICKBAR]});};
++ const retry=el('button',undefined,'Retry saving settings');retry.onclick=()=>save({});
++ root.append(el('h3',undefined,'Keyboard bindings'),el('p',undefined,'Ctrl / Cmd shortcuts and blueprint transforms keep their contexts. Escape, Tab navigation and numbered quickbar slots remain fixed; assign slot contents in Build.'),action,current,key,apply,bindingStatus,reset,el('h3',undefined,'Restore and recover'),hints,slots,retry,status);
++ return root;
++}
+--- UI-05/packages/game/src/style.css
++++ UI-06/packages/game/src/style.css
+@@ -118,13 +118,14 @@
+ #navigation-cue { position:absolute; bottom:72px; left:12px; max-width:calc(100% - 40px); padding:8px 12px; background:#151d1ef2; color:#f3ecdd; border:1px solid #e3b96f; border-radius:6px; font-size:15px; overflow-wrap:anywhere; pointer-events:none; }
+ /* RI-02B shared presentation tokens. Legacy names are adapters for existing domain panels. */
+ :root {
++  --ui-scale:1;
+   --ui-bg:#151d1e; --ui-surface:#203536; --ui-raised:#2b4546;
+   --ui-text:#f3ecdd; --ui-secondary:#c2ceca; --ui-accent:#e3b96f;
+   --ui-working:#92d8b5; --ui-danger:#ff8a80; --ui-border:#8da79f;
+-  --ui-space-1:4px; --ui-space-2:8px; --ui-space-3:12px; --ui-space-4:16px; --ui-space-6:24px; --ui-space-8:32px;
+-  --ui-radius:6px; --ui-body:17px; --ui-small:16px; --ui-heading:20px; --ui-title:24px;
++  --ui-space-1:calc(4px * var(--ui-scale)); --ui-space-2:calc(8px * var(--ui-scale)); --ui-space-3:calc(12px * var(--ui-scale)); --ui-space-4:calc(16px * var(--ui-scale)); --ui-space-6:calc(24px * var(--ui-scale)); --ui-space-8:calc(32px * var(--ui-scale));
++  --ui-radius:calc(6px * var(--ui-scale)); --ui-body:calc(17px * var(--ui-scale)); --ui-small:calc(16px * var(--ui-scale)); --ui-heading:calc(20px * var(--ui-scale)); --ui-title:calc(24px * var(--ui-scale));
+   --ui-world:0; --ui-hud:10; --ui-drawer:20; --ui-inventory:21; --ui-tooltip:30; --ui-modal:40; --ui-alert:50;
+-  --ui-nav-height:64px; --ui-drawer-inset:0px;
++  --ui-nav-height:calc(64px * var(--ui-scale)); --ui-drawer-inset:calc(0px * var(--ui-scale));
+   --bg:var(--ui-bg); --panel:var(--ui-surface); --panel-2:var(--ui-raised); --ink:var(--ui-text); --muted:var(--ui-secondary);
+   --amber:var(--ui-accent); --red:var(--ui-danger); --green:var(--ui-working); --amber-pip:var(--ui-accent); --line:var(--ui-border);
+   font-family:"Segoe UI",system-ui,sans-serif; font-size:var(--ui-body); line-height:1.45;
+@@ -138,180 +139,220 @@
+ .ui-shell #panel h1 { font-size:var(--ui-title); }
+ .ui-shell #panel h2 { font-size:var(--ui-heading); text-transform:none; letter-spacing:0; color:var(--ui-text); }
+ button, input, select, textarea, summary { font:inherit; }
+-button, select, input:not([type=checkbox]), summary { min-height:40px; }
+-button { min-width:40px; padding:8px 12px; border-radius:var(--ui-radius); }
++button, select, input:not([type=checkbox]), summary { min-height:calc(40px * var(--ui-scale)); }
++button { min-width:calc(40px * var(--ui-scale)); padding:calc(8px * var(--ui-scale)) calc(12px * var(--ui-scale)); border-radius:var(--ui-radius); }
+ button:disabled { opacity:1; color:var(--ui-secondary); background:var(--ui-bg); border-style:dashed; cursor:not-allowed; }
+-button.active, button.primary { background:var(--ui-accent); color:var(--ui-bg); border:2px solid var(--ui-accent); }
+-button[aria-expanded=true] { border:2px solid var(--ui-accent); }
++button.active, button.primary { background:var(--ui-accent); color:var(--ui-bg); border:calc(2px * var(--ui-scale)) solid var(--ui-accent); }
++button[aria-expanded=true] { border:calc(2px * var(--ui-scale)) solid var(--ui-accent); }
+ button[aria-expanded=true]::after { content:' · open'; color:var(--ui-accent); }
+-:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline:3px solid var(--ui-text); outline-offset:2px; }
++:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline:calc(3px * var(--ui-scale)) solid var(--ui-text); outline-offset:calc(2px * var(--ui-scale)); }
+ a { color:var(--ui-accent); }
+-input, select, textarea { background:var(--ui-bg); color:var(--ui-text); border:1px solid var(--ui-border); border-radius:var(--ui-radius); padding:8px; max-width:100%; }
++input, select, textarea { background:var(--ui-bg); color:var(--ui-text); border:calc(1px * var(--ui-scale)) solid var(--ui-border); border-radius:var(--ui-radius); padding:calc(8px * var(--ui-scale)); max-width:100%; }
+ .ui-shell .hint, .ui-shell kbd, .ui-shell .badge, .ui-shell .stat span, .ui-shell .item-statistics table, .ui-shell #threat-controls, .ui-shell #threat-controls button { font-size:var(--ui-small); }
+ .ui-shell .stat b { font-size:var(--ui-title); }
+ .ui-shell .navigation-panel input, .ui-shell .navigation-panel select { font-size:var(--ui-body); }
+-.ui-shell .navigation-actions button { min-height:40px; }
+-.ui-navigation { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; padding:12px; width:max-content; max-width:min(1920px,calc(100vw - 24px)); background:var(--ui-bg); border:1px solid var(--ui-border); border-top:3px solid var(--ui-accent); border-radius:var(--ui-radius); z-index:var(--ui-hud); }
+-.ui-brand { font-weight:600; letter-spacing:.15em; font-size:var(--ui-small); margin:0 12px; }
+-.ui-shell #panel .ui-drawer { position:absolute; right:max(12px,calc((100vw - 1920px)/2)); top:16px; bottom:calc(var(--ui-nav-height) + 24px); width:min(420px,calc(100vw - 32px)); display:flex; flex-direction:column; padding:0; pointer-events:auto; overflow:hidden; box-shadow:0 8px 32px #0006; }
+-.ui-drawer-heading { padding:16px; border-bottom:1px solid var(--ui-border); flex:none; }
++.ui-shell .navigation-actions button { min-height:calc(40px * var(--ui-scale)); }
++.ui-navigation { position:fixed; bottom:calc(12px * var(--ui-scale)); left:50%; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:calc(8px * var(--ui-scale)); padding:calc(12px * var(--ui-scale)); width:max-content; max-width:min(calc(1920px * var(--ui-scale)),calc(100vw - calc(24px * var(--ui-scale)))); background:var(--ui-bg); border:calc(1px * var(--ui-scale)) solid var(--ui-border); border-top:calc(3px * var(--ui-scale)) solid var(--ui-accent); border-radius:var(--ui-radius); z-index:var(--ui-hud); }
++.ui-brand { font-weight:600; letter-spacing:.15em; font-size:var(--ui-small); margin:0 calc(12px * var(--ui-scale)); }
++.ui-shell #panel .ui-drawer { position:absolute; right:max(calc(12px * var(--ui-scale)),calc((100vw - calc(1920px * var(--ui-scale)))/2)); top:calc(16px * var(--ui-scale)); bottom:calc(var(--ui-nav-height) + calc(24px * var(--ui-scale))); width:min(calc(420px * var(--ui-scale)),calc(100vw - calc(32px * var(--ui-scale)))); display:flex; flex-direction:column; padding:0; pointer-events:auto; overflow:hidden; box-shadow:0 calc(8px * var(--ui-scale)) calc(32px * var(--ui-scale)) #0006; }
++.ui-drawer-heading { padding:calc(16px * var(--ui-scale)); border-bottom:calc(1px * var(--ui-scale)) solid var(--ui-border); flex:none; }
+ .ui-shell #panel .ui-drawer-heading h2 { margin:0; }
+-.ui-drawer-body { overflow:auto; overscroll-behavior:contain; min-height:0; padding:16px; overflow-wrap:anywhere; }
+-.ui-drawer-body > section, .ui-drawer-body > details { margin-bottom:16px; }
+-.ui-drawer-body .row { gap:8px; }
++.ui-drawer-body { overflow:auto; overscroll-behavior:contain; min-height:0; padding:calc(16px * var(--ui-scale)); overflow-wrap:anywhere; }
++.ui-drawer-body > section, .ui-drawer-body > details { margin-bottom:calc(16px * var(--ui-scale)); }
++.ui-drawer-body .row { gap:calc(8px * var(--ui-scale)); }
+ .ui-drawer-body ul.plain li { flex-wrap:wrap; }
+-.ui-controls { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; }
++.ui-controls { display:grid; grid-template-columns:1fr 1fr; gap:calc(8px * var(--ui-scale)) calc(16px * var(--ui-scale)); }
+ .ui-controls dt { text-transform:capitalize; }
+ .ui-controls dd { margin:0; color:var(--ui-accent); }
+-.ui-shell #panel .ui-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:min(560px,calc(100vw - 32px)); max-height:calc(100dvh - 48px); overflow:auto; overscroll-behavior:contain; pointer-events:auto; z-index:var(--ui-modal); border-top:3px solid var(--ui-accent); box-shadow:0 0 0 100vmax #151d1eaa; }
+-.ui-pause-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
++.ui-shell #panel .ui-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:min(calc(560px * var(--ui-scale)),calc(100vw - calc(32px * var(--ui-scale)))); max-height:calc(100dvh - calc(48px * var(--ui-scale))); overflow:auto; overscroll-behavior:contain; pointer-events:auto; z-index:var(--ui-modal); border-top:calc(3px * var(--ui-scale)) solid var(--ui-accent); box-shadow:0 0 0 100vmax #151d1eaa; }
++.ui-pause-actions { display:grid; grid-template-columns:1fr 1fr; gap:calc(12px * var(--ui-scale)); }
+ .ui-pause-actions .primary { grid-column:1/-1; }
+ .ui-modal-child .ui-drawer-body { padding:0; }
+-.ui-shell #goal { position:fixed; left:calc((100vw - var(--ui-drawer-inset))/2); max-width:min(640px,calc(100vw - var(--ui-drawer-inset) - 32px)); background:var(--ui-bg); z-index:var(--ui-alert); }
++.ui-shell #goal { position:fixed; left:calc((100vw - var(--ui-drawer-inset))/2); max-width:min(calc(640px * var(--ui-scale)),calc(100vw - var(--ui-drawer-inset) - calc(32px * var(--ui-scale)))); background:var(--ui-bg); z-index:var(--ui-alert); }
+ .ui-shell #goal .goal-text { font-size:var(--ui-heading); }
+ .ui-shell #goal .goal-why, .ui-shell #goal .goal-support { font-size:var(--ui-small); }
+-.ui-shell #toasts { left:calc((100vw - var(--ui-drawer-inset))/2); bottom:calc(var(--ui-nav-height) + 24px); z-index:var(--ui-tooltip); }
+-.ui-shell .toast { background:var(--ui-bg); font-size:var(--ui-small); max-width:min(420px,calc(100vw - 32px)); }
+-.ui-shell #tooltip { background:var(--ui-bg); max-width:min(320px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; font-size:var(--ui-small); z-index:var(--ui-tooltip); }
+-.ui-shell #navigation-cue { bottom:calc(var(--ui-nav-height) + 96px); background:var(--ui-bg); color:var(--ui-text); border-color:var(--ui-accent); font-size:var(--ui-small); }
++.ui-shell #toasts { left:calc((100vw - var(--ui-drawer-inset))/2); bottom:calc(var(--ui-nav-height) + calc(24px * var(--ui-scale))); z-index:var(--ui-tooltip); }
++.ui-shell .toast { background:var(--ui-bg); font-size:var(--ui-small); max-width:min(calc(420px * var(--ui-scale)),calc(100vw - calc(32px * var(--ui-scale)))); }
++.ui-shell #tooltip { background:var(--ui-bg); max-width:min(calc(320px * var(--ui-scale)),calc(100vw - calc(24px * var(--ui-scale)))); max-height:calc(100dvh - calc(24px * var(--ui-scale))); overflow:auto; font-size:var(--ui-small); z-index:var(--ui-tooltip); }
++.ui-shell #navigation-cue { bottom:calc(var(--ui-nav-height) + calc(96px * var(--ui-scale))); background:var(--ui-bg); color:var(--ui-text); border-color:var(--ui-accent); font-size:var(--ui-small); }
+ .pip.red { animation:none; }
+ @media(max-width:1000px) {
+   .ui-brand { display:none; }
+-  .ui-navigation { width:calc(100vw - 24px); justify-content:flex-start; }
+-  .ui-shell #panel .ui-drawer { width:min(390px,calc(100vw - 32px)); }
++  .ui-navigation { width:calc(100vw - calc(24px * var(--ui-scale))); justify-content:flex-start; }
++  .ui-shell #panel .ui-drawer { width:min(calc(390px * var(--ui-scale)),calc(100vw - calc(32px * var(--ui-scale)))); }
+ }
+ @media(prefers-reduced-motion:no-preference) { .ui-drawer, .ui-modal { animation:toast-in 150ms ease-out; } }
+ @media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none!important; transition:none!important; } }
+-.ui-entry-error #app { display:block; height:auto; padding:24px; }
++.ui-entry-error #app { display:block; height:auto; padding:calc(24px * var(--ui-scale)); }
+ .ui-entry-error #map { display:none; }
+-.ui-entry-error #panel { max-width:640px; width:100%; max-height:none; font-size:var(--ui-body); margin:10vh auto; padding:24px; background:var(--ui-surface); border:1px solid var(--ui-border); }
+-
+-.ui-shell #panel .ui-modal { top:calc(var(--ui-top-inset, 160px) + 24px); transform:translateX(-50%); max-height:calc(100dvh - var(--ui-top-inset, 160px) - 40px); }
+-
+-.ui-shell #panel { z-index:auto; }
++.ui-entry-error #panel { max-width:calc(640px * var(--ui-scale)); width:100%; max-height:none; font-size:var(--ui-body); margin:10vh auto; padding:calc(24px * var(--ui-scale)); background:var(--ui-surface); border:calc(1px * var(--ui-scale)) solid var(--ui-border); }
++
++.ui-shell #panel .ui-modal { top:calc(var(--ui-top-inset, calc(160px * var(--ui-scale))) + calc(24px * var(--ui-scale))); transform:translateX(-50%); max-height:calc(100dvh - var(--ui-top-inset, calc(160px * var(--ui-scale))) - calc(40px * var(--ui-scale))); }
++
++.ui-shell #panel { z-index:var(--ui-drawer); }
+ .ui-shell #panel .ui-drawer { z-index:var(--ui-drawer); }
+ 
+ /* UI-02: one compact campaign HUD, independent of world zoom. */
+-.ui-hud {position:fixed;z-index:var(--ui-hud);background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:var(--ui-radius);padding:12px;max-width:calc(100vw - 24px);font-size:var(--ui-small);}
+-.hud-goal {top:12px;left:max(12px,calc((100vw - 1920px)/2));width:320px;border-top:3px solid var(--ui-accent);}
+-.hud-goal h2 {font-size:var(--ui-heading);margin:4px 0;line-height:1.25;}
+-.hud-goal p {margin:4px 0 8px;line-height:1.35;}
++.ui-hud {position:fixed;z-index:var(--ui-hud);background:var(--ui-bg);border:calc(1px * var(--ui-scale)) solid var(--ui-border);border-radius:var(--ui-radius);padding:calc(12px * var(--ui-scale));max-width:calc(100vw - calc(24px * var(--ui-scale)));font-size:var(--ui-small);}
++.hud-goal {top:calc(12px * var(--ui-scale));left:max(calc(12px * var(--ui-scale)),calc((100vw - calc(1920px * var(--ui-scale)))/2));width:calc(320px * var(--ui-scale));border-top:calc(3px * var(--ui-scale)) solid var(--ui-accent);}
++.hud-goal h2 {font-size:var(--ui-heading);margin:calc(4px * var(--ui-scale)) 0;line-height:1.25;}
++.hud-goal p {margin:calc(4px * var(--ui-scale)) 0 calc(8px * var(--ui-scale));line-height:1.35;}
+ .hud-place {color:var(--ui-accent);}
+-.hud-goal details {margin-bottom:8px;}
+-.hud-goal summary {font-size:var(--ui-small);min-height:24px;color:var(--ui-secondary);}
+-.hud-goal button {margin:4px 4px 0 0;}
+-.hud-time {top:12px;left:max(360px,calc((100vw - 1920px)/2 + 348px));right:max(232px,calc((100vw - 1920px)/2 + 220px));width:auto;}
+-.hud-time #speed-controls {display:flex;gap:4px;margin:8px 0;}
+-.hud-time #speed-controls button {padding:4px 12px;}
++.hud-goal details {margin-bottom:calc(8px * var(--ui-scale));}
++.hud-goal summary {font-size:var(--ui-small);min-height:calc(24px * var(--ui-scale));color:var(--ui-secondary);}
++.hud-goal button {margin:calc(4px * var(--ui-scale)) calc(4px * var(--ui-scale)) 0 0;}
++.hud-time {top:calc(12px * var(--ui-scale));left:max(calc(360px * var(--ui-scale)),calc((100vw - calc(1920px * var(--ui-scale)))/2 + calc(348px * var(--ui-scale))));right:max(calc(232px * var(--ui-scale)),calc((100vw - calc(1920px * var(--ui-scale)))/2 + calc(220px * var(--ui-scale))));width:auto;}
++.hud-time #speed-controls {display:flex;gap:calc(4px * var(--ui-scale));margin:calc(8px * var(--ui-scale)) 0;}
++.hud-time #speed-controls button {padding:calc(4px * var(--ui-scale)) calc(12px * var(--ui-scale));}
+ .hud-warning {color:var(--ui-secondary);line-height:1.35;}
+-.hud-time.urgent {z-index:var(--ui-alert);border-top:3px solid var(--ui-accent);}
++.hud-time.urgent {z-index:var(--ui-alert);border-top:calc(3px * var(--ui-scale)) solid var(--ui-accent);}
+ .hud-time.danger {border-top-color:var(--ui-danger);}
+ .hud-time.urgent .hud-warning {color:var(--ui-accent);}
+ .hud-time.danger .hud-warning {color:var(--ui-danger);}
+ .hud-time #threat-controls {justify-content:flex-start;}
+ .hud-time #threat-direction:empty {display:none;}
+-.hud-minimap {top:12px;right:max(12px,calc((100vw - 1920px)/2));width:204px;}
+-.hud-minimap canvas {display:block;width:180px;height:140px;margin-top:8px;}
+-.hud-map-legend {font-size:var(--ui-small);margin-top:4px;}
+-.hud-minimap button {padding:4px 6px;margin-right:4px;}
+-.hud-engineer {bottom:calc(var(--ui-nav-height) + 24px);left:max(12px,calc((100vw - 1920px)/2));width:240px;}
+-.hud-engineer button {margin-top:8px;}
+-.hud-prompt {position:fixed;z-index:var(--ui-hud);bottom:calc(var(--ui-nav-height) + 40px);left:calc(50% - var(--ui-drawer-inset)/2 + 80px);transform:translateX(-50%);padding:8px 12px;max-width:min(440px,calc(100vw - 300px));background:var(--ui-bg);border:1px solid var(--ui-accent);border-radius:var(--ui-radius);pointer-events:none;}
+-.hud-opening-hint {bottom:calc(var(--ui-nav-height) + 110px);left:280px;max-width:400px;}
+-.hud-opening-hint button {margin-top:8px;}
+-.ui-shell:has(.hud-goal) #navigation-cue {left:auto;right:12px;bottom:calc(var(--ui-nav-height) + 24px);max-width:240px;}
+-.ui-shell:has(.hud-goal) #toasts {bottom:calc(var(--ui-nav-height) + 100px);}
++.hud-minimap {top:calc(12px * var(--ui-scale));right:max(calc(12px * var(--ui-scale)),calc((100vw - calc(1920px * var(--ui-scale)))/2));width:calc(204px * var(--ui-scale));}
++.hud-minimap canvas {display:block;width:calc(180px * var(--ui-scale));height:calc(140px * var(--ui-scale));margin-top:calc(8px * var(--ui-scale));}
++.hud-map-legend {font-size:var(--ui-small);margin-top:calc(4px * var(--ui-scale));}
++.hud-minimap button {padding:calc(4px * var(--ui-scale)) calc(6px * var(--ui-scale));margin-right:calc(4px * var(--ui-scale));}
++.hud-engineer {bottom:calc(var(--ui-nav-height) + calc(24px * var(--ui-scale)));left:max(calc(12px * var(--ui-scale)),calc((100vw - calc(1920px * var(--ui-scale)))/2));width:calc(240px * var(--ui-scale));}
++.hud-engineer button {margin-top:calc(8px * var(--ui-scale));}
++.hud-prompt {position:fixed;z-index:var(--ui-hud);bottom:calc(var(--ui-nav-height) + calc(40px * var(--ui-scale)));left:calc(50% - var(--ui-drawer-inset)/2 + calc(80px * var(--ui-scale)));transform:translateX(-50%);padding:calc(8px * var(--ui-scale)) calc(12px * var(--ui-scale));max-width:min(calc(440px * var(--ui-scale)),calc(100vw - calc(300px * var(--ui-scale))));background:var(--ui-bg);border:calc(1px * var(--ui-scale)) solid var(--ui-accent);border-radius:var(--ui-radius);pointer-events:none;}
++.hud-opening-hint {bottom:calc(var(--ui-nav-height) + calc(110px * var(--ui-scale)));left:calc(280px * var(--ui-scale));max-width:calc(400px * var(--ui-scale));}
++.hud-opening-hint button {margin-top:calc(8px * var(--ui-scale));}
++.ui-shell:has(.hud-goal) #navigation-cue {left:auto;right:calc(12px * var(--ui-scale));bottom:calc(var(--ui-nav-height) + calc(24px * var(--ui-scale)));max-width:calc(240px * var(--ui-scale));}
++.ui-shell:has(.hud-goal) #toasts {bottom:calc(var(--ui-nav-height) + calc(100px * var(--ui-scale)));}
+ @media(max-width:1100px) {
+- .hud-goal {width:296px;}
+- .hud-time {left:324px;right:12px;}
+- .hud-minimap {top:auto;bottom:calc(var(--ui-nav-height) + 24px);width:auto;}
+- .hud-map-legend {max-width:180px;}
+- .hud-prompt {left:calc(50% + 30px);max-width:calc(100vw - 470px);}
+- .hud-opening-hint {left:280px;max-width:calc(100vw - 300px);}
+-}
+-.ui-shell:has(.ui-drawer:not([hidden])) .hud-time {right:calc(var(--ui-drawer-inset) + 12px);min-width:220px;}
++ .hud-goal {width:calc(296px * var(--ui-scale));}
++ .hud-time {left:calc(324px * var(--ui-scale));right:calc(12px * var(--ui-scale));}
++ .hud-minimap {top:auto;bottom:calc(var(--ui-nav-height) + calc(24px * var(--ui-scale)));width:auto;}
++ .hud-map-legend {max-width:calc(180px * var(--ui-scale));}
++ .hud-prompt {left:calc(50% + calc(30px * var(--ui-scale)));max-width:calc(100vw - calc(470px * var(--ui-scale)));}
++ .hud-opening-hint {left:calc(280px * var(--ui-scale));max-width:calc(100vw - calc(300px * var(--ui-scale)));}
++}
++.ui-shell:has(.ui-drawer:not([hidden])) .hud-time {right:calc(var(--ui-drawer-inset) + calc(12px * var(--ui-scale)));min-width:calc(220px * var(--ui-scale));}
+ .ui-shell:has(.ui-modal:not([hidden])) .hud-time {z-index:var(--ui-alert);}
+ 
+-.hud-goal .hud-opening-hint {position:static;margin-top:8px;padding:8px;max-width:100%;}
++.hud-goal .hud-opening-hint {position:static;margin-top:calc(8px * var(--ui-scale));padding:calc(8px * var(--ui-scale));max-width:100%;}
+ 
+ @media(max-width:1100px) {
+- .ui-shell:has(.ui-drawer:not([hidden])) .hud-time {left:12px;right:calc(var(--ui-drawer-inset) + 12px);min-width:0;}
+- .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal {top:calc(var(--ui-clock-height) + 24px);width:calc(100vw - var(--ui-drawer-inset) - 24px);}
++ .ui-shell:has(.ui-drawer:not([hidden])) .hud-time {left:calc(12px * var(--ui-scale));right:calc(var(--ui-drawer-inset) + calc(12px * var(--ui-scale)));min-width:0;}
++ .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal {top:calc(var(--ui-clock-height) + calc(24px * var(--ui-scale)));width:calc(100vw - var(--ui-drawer-inset) - calc(24px * var(--ui-scale)));}
+  .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal details, .ui-shell:has(.ui-drawer:not([hidden])) .hud-goal button {display:none;}
+ }
+ 
+ /* UI-03 equipment cards and ten stable, pocket-counted shortcut slots. */
+-.build-tabs {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+-.build-tabs [aria-selected=true] {border:2px solid var(--ui-accent);color:var(--ui-accent);}
++.build-tabs {display:grid;grid-template-columns:1fr 1fr;gap:calc(8px * var(--ui-scale));margin-bottom:calc(16px * var(--ui-scale));}
++.build-tabs [aria-selected=true] {border:calc(2px * var(--ui-scale)) solid var(--ui-accent);color:var(--ui-accent);}
+ .build-catalogue #build-body-Equipment > input {width:100%;}
+-.ui-shell #panel .build-group {padding:0;margin-top:20px;}
+-.build-card {margin:12px 0;padding:12px;border:1px solid var(--ui-border);border-radius:6px;background:var(--ui-bg);}
+-.build-card p {margin:8px 0;}
++.ui-shell #panel .build-group {padding:0;margin-top:calc(20px * var(--ui-scale));}
++.build-card {margin:calc(12px * var(--ui-scale)) 0;padding:calc(12px * var(--ui-scale));border:calc(1px * var(--ui-scale)) solid var(--ui-border);border-radius:calc(6px * var(--ui-scale));background:var(--ui-bg);}
++.build-card p {margin:calc(8px * var(--ui-scale)) 0;}
+ .build-select {font-size:var(--ui-heading);width:100%;text-align:left;}
+-.build-select[aria-pressed=true] {border:2px solid var(--ui-accent);}
++.build-select[aria-pressed=true] {border:calc(2px * var(--ui-scale)) solid var(--ui-accent);}
+ .build-price {color:var(--ui-secondary);font-size:var(--ui-small);}
+-.build-stock {margin-top:8px;color:var(--ui-accent);}
++.build-stock {margin-top:calc(8px * var(--ui-scale));color:var(--ui-accent);}
+ .build-reason {font-size:var(--ui-small);}
+-#build-body-Shortcuts label,#build-body-Shortcuts select {display:block;width:100%;margin:8px 0;}
+-#build-body-Shortcuts button {margin:4px;}
+-.quickbar {flex-basis:100%;width:100%;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;}
+-.quickbar-slot {position:relative;min-width:0;min-height:76px;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;}
++#build-body-Shortcuts label,#build-body-Shortcuts select {display:block;width:100%;margin:calc(8px * var(--ui-scale)) 0;}
++#build-body-Shortcuts button {margin:calc(4px * var(--ui-scale));}
++.quickbar {flex-basis:100%;width:100%;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:calc(4px * var(--ui-scale));}
++.quickbar-slot {position:relative;min-width:0;min-height:calc(76px * var(--ui-scale));padding:calc(4px * var(--ui-scale));display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;}
+ .quickbar-slot kbd {align-self:flex-start;font-size:var(--ui-small);}
+ .quickbar-name {font-size:var(--ui-small);white-space:nowrap;}
+-.quickbar-count {font-size:var(--ui-small);color:var(--ui-secondary);margin-top:4px;}
+-.quickbar-slot[aria-pressed=true] {border:2px solid var(--ui-accent);background:var(--ui-raised);}
++.quickbar-count {font-size:var(--ui-small);color:var(--ui-secondary);margin-top:calc(4px * var(--ui-scale));}
++.quickbar-slot[aria-pressed=true] {border:calc(2px * var(--ui-scale)) solid var(--ui-accent);background:var(--ui-raised);}
+ .quickbar-slot[aria-pressed=true] .quickbar-name::before {content:'• ';color:var(--ui-accent);}
+-.placement-toolbar {flex-basis:100%;display:flex;align-items:center;justify-content:center;gap:8px;font-size:var(--ui-small);}
+-.placement-toolbar button {padding:4px 8px;}
+-.ui-navigation:has(.quickbar) {width:min(1120px,calc(100vw - 24px));gap:6px;padding:8px;}
++.placement-toolbar {flex-basis:100%;display:flex;align-items:center;justify-content:center;gap:calc(8px * var(--ui-scale));font-size:var(--ui-small);}
++.placement-toolbar button {padding:calc(4px * var(--ui-scale)) calc(8px * var(--ui-scale));}
++.ui-navigation:has(.quickbar) {width:min(calc(1120px * var(--ui-scale)),calc(100vw - calc(24px * var(--ui-scale))));gap:calc(6px * var(--ui-scale));padding:calc(8px * var(--ui-scale));}
+ .ui-navigation:has(.quickbar) .ui-brand {display:none;}
+-.ui-navigation:has(.quickbar) > button {padding:4px 8px;}
+-.hud-prompt.placement-prompt {bottom:auto;transform:none;max-width:320px;width:max-content;}
++.ui-navigation:has(.quickbar) > button {padding:calc(4px * var(--ui-scale)) calc(8px * var(--ui-scale));}
++.hud-prompt.placement-prompt {bottom:auto;transform:none;max-width:calc(320px * var(--ui-scale));width:max-content;}
+ @media(max-width:1000px){.quickbar-count {font-size:var(--ui-small);} .quickbar-name {font-size:var(--ui-small);} .ui-navigation:has(.quickbar) {justify-content:center;}}
+ 
+-.quickbar-more > summary {cursor:pointer;padding:6px 12px;border:1px solid var(--ui-border);border-radius:6px;list-style:none;background:var(--ui-surface);}
+-.quickbar-more[open] > summary {border:2px solid var(--ui-accent);}
+-.quickbar-more-actions {position:absolute;right:8px;bottom:calc(100% + 8px);display:grid;gap:8px;padding:12px;min-width:200px;background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:6px;}
++.quickbar-more > summary {cursor:pointer;padding:calc(6px * var(--ui-scale)) calc(12px * var(--ui-scale));border:calc(1px * var(--ui-scale)) solid var(--ui-border);border-radius:calc(6px * var(--ui-scale));list-style:none;background:var(--ui-surface);}
++.quickbar-more[open] > summary {border:calc(2px * var(--ui-scale)) solid var(--ui-accent);}
++.quickbar-more-actions {position:absolute;right:calc(8px * var(--ui-scale));bottom:calc(100% + calc(8px * var(--ui-scale)));display:grid;gap:calc(8px * var(--ui-scale));padding:calc(12px * var(--ui-scale));min-width:calc(200px * var(--ui-scale));background:var(--ui-bg);border:calc(1px * var(--ui-scale)) solid var(--ui-border);border-radius:calc(6px * var(--ui-scale));}
+ 
+ /* UI-04: operating facts first, separate scoped stores and stable local controls. */
+-.inspection-status {padding:12px;border-left:4px solid var(--ui-border);background:var(--ui-bg);font-weight:700;}
++.inspection-status {padding:calc(12px * var(--ui-scale));border-left:calc(4px * var(--ui-scale)) solid var(--ui-border);background:var(--ui-bg);font-weight:700;}
+ .inspection-status[data-state=running] {border-color:var(--ui-working);}
+ .inspection-status[data-state=off],.inspection-status[data-state=starved],.inspection-status[data-state=blocked] {border-color:var(--ui-accent);}
+-.inspection-constraint {margin:8px 0;padding:8px;border:1px solid var(--ui-border);border-radius:6px;}
+-.inspection-constraint p {margin:0 0 8px;}
+-.inspection-details {margin-top:16px;}
+-.inspection-chip {position:fixed;right:12px;top:calc(var(--ui-clock-height) + 28px);max-width:260px;}
++.inspection-constraint {margin:calc(8px * var(--ui-scale)) 0;padding:calc(8px * var(--ui-scale));border:calc(1px * var(--ui-scale)) solid var(--ui-border);border-radius:calc(6px * var(--ui-scale));}
++.inspection-constraint p {margin:0 0 calc(8px * var(--ui-scale));}
++.inspection-details {margin-top:calc(16px * var(--ui-scale));}
++.inspection-chip {position:fixed;right:calc(12px * var(--ui-scale));top:calc(var(--ui-clock-height) + calc(28px * var(--ui-scale)));max-width:calc(260px * var(--ui-scale));}
+ .ui-shell:has(.ui-drawer:not([hidden])) .inspection-chip {display:none;}
+-.ui-shell #panel .transfer-card {padding:12px;margin:12px 0;background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:6px;}
++.ui-shell #panel .transfer-card {padding:calc(12px * var(--ui-scale));margin:calc(12px * var(--ui-scale)) 0;background:var(--ui-bg);border:calc(1px * var(--ui-scale)) solid var(--ui-border);border-radius:calc(6px * var(--ui-scale));}
+ .transfer-card h3 {margin:0;}
+-.transfer-card p {margin:8px 0;}
+-.transfer-card button + button {margin-left:8px;}
++.transfer-card p {margin:calc(8px * var(--ui-scale)) 0;}
++.transfer-card button + button {margin-left:calc(8px * var(--ui-scale));}
+ .action-result:empty {display:none;}
+-.action-result {padding:8px;border-left:3px solid var(--ui-accent);}
++.action-result {padding:calc(8px * var(--ui-scale));border-left:calc(3px * var(--ui-scale)) solid var(--ui-accent);}
+ .ui-shell #panel .station-freight table {table-layout:fixed;width:100%;}
+ .ui-shell #panel .station-freight input[type=number] {width:100%;min-width:0;}
+ .ui-shell #panel [data-adapter=inspection] select {display:block;width:100%;}
+ 
+-.ui-shell #panel [data-adapter=inspection] section section {padding:0;border:0;margin:12px 0;}
+-.ui-shell #panel [data-adapter=inspection] h3 {margin:0 0 8px;}
+-.ui-shell #panel [data-adapter=inspection] p {margin:8px 0;}
++.ui-shell #panel [data-adapter=inspection] section section {padding:0;border:0;margin:calc(12px * var(--ui-scale)) 0;}
++.ui-shell #panel [data-adapter=inspection] h3 {margin:0 0 calc(8px * var(--ui-scale));}
++.ui-shell #panel [data-adapter=inspection] p {margin:calc(8px * var(--ui-scale)) 0;}
+ 
+ /* UI-05: one known project, material delivery circuit and session alert history. */
+-.project-card { border:1px solid var(--ui-border); border-radius:8px; padding:14px; }
+-.project-status { display:block; margin-bottom:10px; color:var(--ui-accent); }
+-.service-nodes { display:flex; flex-wrap:wrap; gap:8px; padding:0; list-style:none; }
+-.service-nodes li { flex:1 1 110px; border:2px solid #b78f51; border-radius:6px; padding:10px; background:#302a20; }
++.project-card { border:calc(1px * var(--ui-scale)) solid var(--ui-border); border-radius:calc(8px * var(--ui-scale)); padding:calc(14px * var(--ui-scale)); }
++.project-status { display:block; margin-bottom:calc(10px * var(--ui-scale)); color:var(--ui-accent); }
++.service-nodes { display:flex; flex-wrap:wrap; gap:calc(8px * var(--ui-scale)); padding:0; list-style:none; }
++.service-nodes li { flex:1 1 calc(110px * var(--ui-scale)); border:calc(2px * var(--ui-scale)) solid #b78f51; border-radius:calc(6px * var(--ui-scale)); padding:calc(10px * var(--ui-scale)); background:#302a20; }
+ .service-nodes li.complete { border-color:#83c6a6; background:#20392e; }
+-.project-circuit li { margin-bottom:8px; }
+-.project-card button { margin:4px 6px 4px 0; }
++.project-circuit li { margin-bottom:calc(8px * var(--ui-scale)); }
++.project-card button { margin:calc(4px * var(--ui-scale)) calc(6px * var(--ui-scale)) calc(4px * var(--ui-scale)) 0; }
+ .project-card [aria-disabled=true],.alert-inbox [aria-disabled=true] { opacity:.75; }
+-.alert-inbox article { border-top:1px solid var(--ui-border); padding:8px 0; }
+-.alert-inbox .resolved { border-left:3px solid #83c6a6; padding-left:8px; }
++.alert-inbox article { border-top:calc(1px * var(--ui-scale)) solid var(--ui-border); padding:calc(8px * var(--ui-scale)) 0; }
++.alert-inbox .resolved { border-left:calc(3px * var(--ui-scale)) solid #83c6a6; padding-left:calc(8px * var(--ui-scale)); }
+ .project-completed { animation:project-complete .6s ease-out; }
+-@keyframes project-complete { from { box-shadow:0 0 0 3px #83c6a6; } to { box-shadow:none; } }
++@keyframes project-complete { from { box-shadow:0 0 0 calc(3px * var(--ui-scale)) #83c6a6; } to { box-shadow:none; } }
+ @media(prefers-reduced-motion:reduce) { .project-completed { animation:none; } }
+ 
+-.ui-shell #panel .project-card p { margin:8px 0; }
+-.ui-shell #panel .project-card h3 { margin:0 0 8px; }
+-.ui-shell #panel .project-card h4 { margin:12px 0 8px; }
+-.ui-shell #panel .campaign-guide > p { margin:8px 0; }
++.ui-shell #panel .project-card p { margin:calc(8px * var(--ui-scale)) 0; }
++.ui-shell #panel .project-card h3 { margin:0 0 calc(8px * var(--ui-scale)); }
++.ui-shell #panel .project-card h4 { margin:calc(12px * var(--ui-scale)) 0 calc(8px * var(--ui-scale)); }
++.ui-shell #panel .campaign-guide > p { margin:calc(8px * var(--ui-scale)) 0; }
++
++/* UI-06: scale logical UI dimensions, never the canvas or browser viewport. */
++.ui-settings label,.ui-settings select,.ui-settings input { display:block; width:100%; margin:calc(8px * var(--ui-scale)) 0; }
++.ui-settings button { margin:calc(4px * var(--ui-scale)); }
++.ui-shell #panel h3 { font-size:calc(18px * var(--ui-scale)); }
++.ui-shell #panel h4 { font-size:var(--ui-small); }
++.ui-shell .ui-drawer-body table { max-width:100%; overflow-wrap:anywhere; }
++.ui-shell .ui-drawer-body { scrollbar-gutter:stable; }
++.ui-shell .ui-navigation { max-height:45vh; overflow:visible; }
++.ui-compact .hud-goal { width:calc(296px * var(--ui-scale)); }
++.ui-compact .hud-time { left:calc(324px * var(--ui-scale)); right:calc(12px * var(--ui-scale)); }
++.ui-compact .hud-minimap { display:none; }
++.ui-compact:has(.ui-drawer:not([hidden])) .hud-time { left:calc(12px * var(--ui-scale)); right:calc(var(--ui-drawer-inset) + 12px); min-width:0; }
++.ui-compact:has(.ui-drawer:not([hidden])) .hud-goal { top:calc(var(--ui-clock-height) + 24px); width:calc(100vw - var(--ui-drawer-inset) - 24px); }
++.ui-compact:has(.ui-drawer:not([hidden])) .hud-goal details,.ui-compact:has(.ui-drawer:not([hidden])) .hud-goal button { display:none; }
++.ui-short .hud-goal details { display:none; }
++.ui-short .hud-goal p { margin-bottom:0; }
++.ui-short .hud-engineer { padding:calc(6px * var(--ui-scale)); }
++.ui-short .hud-engineer button { margin-top:0; }
++.ui-short .placement-toolbar > span { display:none; }
++.ui-short .quickbar-slot { min-height:calc(52px * var(--ui-scale)); }
++.ui-short .quickbar-slot kbd { position:absolute;top:2px;left:2px; }
++.ui-short .quickbar-name { padding-left:calc(12px * var(--ui-scale)); }
++.ui-short .quickbar-count { margin-top:0; }
++.ui-short .ui-navigation { gap:calc(3px * var(--ui-scale));padding:calc(5px * var(--ui-scale)); }
++.ui-short .ui-navigation > button,.ui-short .quickbar-more > summary { padding:calc(3px * var(--ui-scale)) calc(6px * var(--ui-scale)); }
++.ui-short .hud-time #threat-controls { flex-wrap:wrap; }
++body[data-motion=reduce] *,body[data-motion=reduce] *::before,body[data-motion=reduce] *::after {animation:none!important;transition:none!important;scroll-behavior:auto!important;}
++body[data-motion=full] .ui-drawer,body[data-motion=full] .ui-modal {animation:toast-in 150ms ease-out!important;}
++
++.ui-shell:has(.ui-modal:not([hidden])) #panel { z-index:var(--ui-modal); }
++.ui-navigation:has(.quickbar-more[open]) { z-index:calc(var(--ui-drawer) + 1); }
++.ui-short .quickbar-name { white-space:normal; }
++.ui-short .hud-engineer { width:calc(440px * var(--ui-scale)); display:grid; grid-template-columns:1fr auto; column-gap:calc(8px * var(--ui-scale)); }
++.ui-short .hud-engineer > button { grid-column:2;grid-row:1/4;align-self:center; }
++.ui-short:has(.ui-drawer:not([hidden])) .hud-engineer { width:calc(100vw - var(--ui-drawer-inset) - 24px); }
++.ui-short .hud-goal h2 { margin:2px 0; }
++body[data-motion=full] .project-completed { animation:project-complete .25s ease-out!important; }
++
++.ui-hud { overflow-wrap:anywhere; }
+--- UI-05/packages/game/src/uiPreferences.ts
++++ UI-06/packages/game/src/uiPreferences.ts
+@@ -1,14 +1,26 @@
++import {parseBindings,type BindingOverrides} from './controls';
+ import {CAMPAIGN_KINDS,type Kind} from '@relight/sim';
+ export type QuickTool=Exclude<Kind,'depot'>|'rifle';
+ export const DEFAULT_QUICKBAR:readonly (QuickTool|null)[]=['belt','inserter','excavator','assembler','turret','lamp','pole','generator','rifle','floodlight'];
+ export const QUICKBAR_KEYS=['1','2','3','4','5','6','7','8','9','0'] as const;
+-export interface UiPreferences {version:1;quickbar:(QuickTool|null)[]}
++export interface UiPreferences {version:1;quickbar:(QuickTool|null)[];scale:100|125|150;motion:'system'|'reduce'|'full';bindings:BindingOverrides;dismissedHints:string[]}
+ export function parseUiPreferences(raw:string|null):UiPreferences {
+-  const fallback=():UiPreferences=>({version:1,quickbar:[...DEFAULT_QUICKBAR]});
+-  try{const v=JSON.parse(raw??'null');if(v?.version!==1||!Array.isArray(v.quickbar)||v.quickbar.length!==10||v.quickbar.some((k:unknown)=>k!==null&&k!=='rifle'&&(!CAMPAIGN_KINDS.includes(k as Kind)||k==='depot')))return fallback();return {version:1,quickbar:[...v.quickbar]};}catch{return fallback();}
++ const base:UiPreferences={version:1,quickbar:[...DEFAULT_QUICKBAR],scale:100,motion:'system',bindings:{},dismissedHints:[]};
++ try{const v=JSON.parse(raw??'null');if(v?.version!==1)return base;
++  if(Array.isArray(v.quickbar)&&v.quickbar.length===10&&v.quickbar.every((k:unknown)=>k===null||k==='rifle'||(CAMPAIGN_KINDS.includes(k as Kind)&&k!=='depot')))base.quickbar=[...v.quickbar];
++  if([100,125,150].includes(v.scale))base.scale=v.scale;
++  if(['system','reduce','full'].includes(v.motion))base.motion=v.motion;
++  base.bindings=parseBindings(v.bindings);base.dismissedHints=Array.isArray(v.dismissedHints)?v.dismissedHints.filter((x:unknown)=>x==='opening'):[];
++ }catch{/* Missing and corrupt preferences use safe defaults. */}return base;
+ }
+ export function readUiPreferences():UiPreferences {try{return parseUiPreferences(localStorage.getItem('relight.ui.v1'));}catch{return parseUiPreferences(null);}}
+-export function saveQuickbar(slots:readonly (QuickTool|null)[]):boolean {try{let old:UiPreferences|null=null;try{old=JSON.parse(localStorage.getItem('relight.ui.v1')??'null');}catch{/* Replace corrupt preferences on the next explicit edit. */}localStorage.setItem('relight.ui.v1',JSON.stringify({...((old?.version===1)?old:{}),version:1,quickbar:slots}));return true;}catch{return false;}}
++export const preferenceView:{value:UiPreferences}={value:readUiPreferences()};
++/** Update memory even when storage is denied; callers explain the limited persistence. */
++export function saveUiPreferences(change:Partial<Omit<UiPreferences,'version'>>):boolean {
++ preferenceView.value=parseUiPreferences(JSON.stringify({...preferenceView.value,...change,version:1}));
++ try{localStorage.setItem('relight.ui.v1',JSON.stringify(preferenceView.value));return true;}catch{return false;}
++}
++export function saveQuickbar(slots:readonly (QuickTool|null)[]):boolean{return saveUiPreferences({quickbar:[...slots]});}
+ /** Assignment swaps an already-used tool, preserving ten stable positions and unrelated choices. */
+ export function assignQuickbar(slots:readonly (QuickTool|null)[],index:number,tool:QuickTool|null):(QuickTool|null)[]{
+   const next=[...slots];if(!Number.isInteger(index)||index<0||index>=10)return next;
+--- UI-05/packages/game/src/uiShell.ts
++++ UI-06/packages/game/src/uiShell.ts
+@@ -1,4 +1,4 @@
+-import { bound, BINDINGS, shortcut } from './controls';
++import { bound, BINDINGS, shortcut,type Binding } from './controls';
+ import { hudInset } from './view';
+ 
+ /** DOM presentation only. Domain panels keep their queries and command handlers. */
+@@ -88,7 +88,9 @@
+     child.append(back, el('h2', undefined, adapter.title), adapter.body); adapter.body.hidden = false; adapter.enter?.(); back.focus(); sync();
+   }
+   function action(label: string, run: () => void, destination: HTMLElement = nav) {
+-    const b = el('button', undefined, label); b.type = 'button'; b.onclick = run; destination.append(b); return b;
++    const b = el('button', undefined, label); b.type = 'button'; b.onclick = run; destination.append(b);
++    const name=label.split(' (')[0],binding=({Build:'build',Inventory:'pockets',Map:'map',Save:'save',Load:'load'} as Record<string,Binding>)[name];
++    if(binding&&label.includes('(')){const refresh=()=>{b.textContent=`${name} (${name==='Save'||name==='Load'?'Ctrl+':''}${shortcut(binding)})`;};window.addEventListener('relight:preferences',refresh);refresh();}return b;
+   }
+   function register(id: string, label: string, nodes: HTMLElement[], enter?: () => void, leave?: () => void) {
+     if (adapters.has(id)) throw Error(`Duplicate UI adapter: ${id}`);
+@@ -96,7 +98,7 @@
+     adapters.set(id, { body, title: label, enter, leave });
+   }
+   function toggle(id: string) { if (active === id) closeDrawer(); else open(id); }
+-  function drawerButton(id: string, label: string) { const b = action(label, () => toggle(id)); b.dataset.drawer = id; b.setAttribute('aria-expanded', 'false'); return b; }
++  function drawerButton(id: string, label: string) { const b = action(label, () => toggle(id)); b.dataset.drawer = id;const binding=({build:'build',inventory:'pockets',projects:'projects'} as Record<string,Binding>)[id];if(binding){const refresh=()=>{b.textContent=`${label.replace(/ \([^)]+\)$/,'')} (${shortcut(binding)})`;};window.addEventListener('relight:preferences',refresh);refresh();} b.setAttribute('aria-expanded', 'false'); return b; }
+   close.onclick = () => closeDrawer(); resume.onclick = unpause;
+   // Capture before Phaser's window handlers; native form editing remains local to the UI.
+   window.addEventListener('keydown', event => {
+@@ -115,7 +117,8 @@
+     }
+     const textFocus = event.target instanceof Element && !!event.target.closest('input, textarea, select, [contenteditable=true]');
+     if(!textFocus && (event.ctrlKey||event.metaKey) && (bound('save',event.key)||bound('load',event.key)))return;
+-    if (!modal.hidden || active || inUi(event.target)) { event.stopPropagation(); }
++    // Native UI handlers (including key capture) must receive the event before the world is blocked.
++    if ((!modal.hidden || active) && !inUi(event.target)) event.stopImmediatePropagation();
+   }, true);
+   window.addEventListener('keyup', event => { held.delete(event.code || event.key); suppressed.delete(event.code || event.key); }, true);
+   window.addEventListener('pointerdown', event => {
+@@ -127,10 +130,13 @@
+   window.addEventListener('focusin', event => { if (inUi(event.target)) release(); if (!modal.hidden && !modal.contains(event.target as Node)) resume.focus(); sync(); });
+   window.addEventListener('blur', () => { release(); held.clear(); });
+   document.addEventListener('visibilitychange', () => { if (document.hidden) { release(); held.clear(); } });
+-  function protect(surface:HTMLElement){for (const name of ['pointerdown', 'pointerup', 'click', 'contextmenu', 'wheel']) surface.addEventListener(name,event=>event.stopPropagation());}
++  const stopKeys=(event:KeyboardEvent)=>{const text=event.target instanceof Element&&!!event.target.closest('input,textarea,select,[contenteditable=true]');if(!text&&(event.ctrlKey||event.metaKey)&&(bound('save',event.key)||bound('load',event.key)))return;event.stopPropagation();};
++  function protect(surface:HTMLElement){surface.addEventListener('keydown',stopKeys);for (const name of ['pointerdown', 'pointerup', 'click', 'contextmenu', 'wheel']) surface.addEventListener(name,event=>event.stopPropagation());}
+   for (const surface of [root, nav, document.getElementById('threat-controls')].filter(Boolean) as HTMLElement[]) {
++    surface.addEventListener('keydown',stopKeys);
+     for (const name of ['pointerdown', 'pointerup', 'click', 'contextmenu', 'wheel']) surface.addEventListener(name, event => event.stopPropagation());
+   }
++  window.addEventListener('relight:preferences',()=>{release();sync();});
+   new ResizeObserver(sync).observe(nav); new ResizeObserver(sync).observe(drawer);
+   return { register, open, toggle, close: closeDrawer, action, drawerButton, pause, pauseChild,
+     pauseAction: (label: string, run: () => void) => action(label, run, pauseActions),
+@@ -140,11 +146,7 @@
+ export type UiShell = ReturnType<typeof createUiShell>;
+ 
+ export function controlsHelp() {
+-  const body = el('section'); body.append(el('h2', undefined, 'Controls'), el('p', 'hint', 'Click the city to return to world controls. Escape closes one layer, cancels placement, then opens Pause.'));
+-  const list = el('dl', 'ui-controls');
+-  for (const [name, keys] of Object.entries(BINDINGS)) if (keys.length) {
+-    const modifier = ['copy', 'paste', 'save', 'load', 'undo', 'redo'].includes(name) ? 'Ctrl / Cmd + ' : '';
+-    list.append(el('dt', undefined, name), el('dd', undefined, keys.some(k=>/^[0-9]$/.test(k))?'Quickbar slot (see current assignments)':modifier + keys.map(k => k === ' ' ? 'Space' : k).join(' / ')));
+-  }
+-  body.append(list, el('p', 'hint', `Projects: ${shortcut('projects')}. H / V mirror while pasting a blueprint; plain C / H / V select chest / stop / tram in world mode. Binding and scaling editors arrive with Settings.`)); return body;
++ const body=el('section');const render=()=>{body.replaceChildren(el('h2',undefined,'Controls'),el('p','hint','Click the city to return to world controls. Escape closes one layer, cancels placement, then opens Pause.'));
++ const list=el('dl','ui-controls');for(const [name,keys] of Object.entries(BINDINGS))if(keys.length){const modifier=['copy','paste','save','load','undo','redo'].includes(name)?'Ctrl / Cmd + ':'';list.append(el('dt',undefined,name),el('dd',undefined,keys.some(k=>/^[0-9]$/.test(k))?'Quickbar slot (see current assignments)':modifier+keys.map(k=>k===' '?'Space':k).join(' / ')));}
++ body.append(list,el('p','hint',`${shortcut('mirrorX')} / ${shortcut('mirrorY')} mirror while pasting a blueprint. Rebind controls and scale the interface in Pause → Settings.`));};render();window.addEventListener('relight:preferences',render);return body;
+ }
+--- UI-05/packages/game/src/worldScene.ts
++++ UI-06/packages/game/src/worldScene.ts
+@@ -47,7 +47,7 @@
+ import {navigationName,knownDistrict,blockName,campaignDiscoveries} from '@relight/sim';
+ import { knownSite, turbineAt, describeTurbine, ARC_LAMP_RADIUS, campaignSiteAt, campaignSite, describeSite, SITE_IDS, persistentSource, recruitAt, recruitCheck, recruitDescription, RECRUITS, discoveryAt, discoveryCheck, discoveryDescription, stalkerLayer } from '@relight/sim';
+ import { extendBuildPath, pathEdits, constructionCheck, type TilePoint } from '@relight/sim';
+-import { bound, MOVEMENT_KEYS } from './controls';
++import { bound, movementKeys } from './controls';
+ import { toolForKey, toolKeyLine } from './buildCatalogue';
+ import { dimensions, machineDimensions, undergroundCheck, undergroundMate, splitterPorts, routingDescription, ITEMS, type BuildEdit } from '@relight/sim';
+ import { FACTORY_TEXT, FACTORY_STATUS_GLYPH } from './factoryStrings';
+@@ -232,7 +232,8 @@
+     cam.setBounds(0, 0, G.tw * TILE_PX, G.th * TILE_PX);
+     cam.setZoom(this.fitZoom());
+     cam.setRoundPixels(false); // Fractional zoom must not round every ground tile into visible seams.
+-    this.keys = this.input.keyboard!.addKeys(MOVEMENT_KEYS) as WorldScene['keys'];
++    this.keys = this.input.keyboard!.addKeys(movementKeys()) as WorldScene['keys'];
++    window.addEventListener('relight:preferences',()=>{this.releaseInput();for(const key of new Set(Object.values(this.keys)))this.input.keyboard!.removeKey(key);this.keys=this.input.keyboard!.addKeys(movementKeys()) as WorldScene['keys'];});
+     this.input.keyboard!.on('keydown', (event: KeyboardEvent) => { this.modifiedKey = event.ctrlKey || event.metaKey || event.altKey; });
+     this.input.keyboard!.on('keyup', (event: KeyboardEvent) => { this.modifiedKey = event.ctrlKey || event.metaKey || event.altKey; });
+     // Clicking back into the world leaves station inputs, restoring game keyboard controls.
+--- UI-05/packages/sim/test/uiSettings.test.ts
++++ UI-06/packages/sim/test/uiSettings.test.ts
+@@ -0,0 +1,19 @@
++import {test} from 'node:test';
++import assert from 'node:assert/strict';
++import {parseUiPreferences,preferenceView,saveUiPreferences,saveQuickbar,DEFAULT_QUICKBAR} from '../../game/src/uiPreferences';
++import {applyBindings,bound,bindingProblem,parseBindings,movementKeys,shortcut} from '../../game/src/controls';
++import {createCampaign,makeSave,loadState,stateHash} from '../src/index';
++test('UI-06 optional preferences preserve old quickbars and recover malformed individual fields',()=>{
++ const quickbar=[...DEFAULT_QUICKBAR];quickbar[0]=null;const p=parseUiPreferences(JSON.stringify({version:1,quickbar,scale:150,motion:'reduce',bindings:{inspect:'o',build:'w',bogus:'x'},dismissedHints:['opening','achievement']}));assert.deepEqual(p.quickbar,quickbar);assert.equal(p.scale,150);assert.equal(p.motion,'reduce');assert.deepEqual(p.bindings,{inspect:'o'});assert.deepEqual(p.dismissedHints,['opening']);
++ const old=parseUiPreferences(JSON.stringify({version:1,quickbar}));assert.equal(old.scale,100);assert.equal(old.motion,'system');assert.deepEqual(old.bindings,{});assert.deepEqual(parseUiPreferences('{').quickbar,DEFAULT_QUICKBAR);assert.equal(parseUiPreferences('{"version":9,"scale":150}').scale,100);assert.equal(parseUiPreferences('{"version":1,"scale":900}').scale,100);
++});
++test('UI-06 binding validation preserves modifier/blueprint contexts and prevents world collisions',()=>{
++ assert.equal(bindingProblem('inspect','o',{}),'');assert.ok(bindingProblem('inspect','w',{}));assert.ok(bindingProblem('north','ArrowLeft',{}));assert.equal(bindingProblem('save','m',{}),'');assert.equal(bindingProblem('mirrorX','h',{}),'');assert.ok(bindingProblem('mirrorX','w',{}));assert.ok(bindingProblem('cancel','q',{}));assert.deepEqual(parseBindings(JSON.parse('{"__proto__":"o","constructor":"o"}')),{});
++ applyBindings({inspect:'o',north:'n',save:'m'});assert.ok(bound('inspect','O'));assert.ok(!bound('inspect','f'));assert.ok(bound('north','ArrowUp'));assert.equal(movementKeys().W,78);assert.equal(shortcut('save'),'M');applyBindings({});assert.ok(bound('inspect','f'));assert.equal(movementKeys().W,87);
++});
++test('UI-06 settings and quickbar saves compose; denied storage retains the session value without changing gameplay',()=>{
++ const original=Object.getOwnPropertyDescriptor(globalThis,'localStorage');let saved='';Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>saved||null,setItem:(_k:string,v:string)=>{saved=v;}}});
++ const st=createCampaign(),before=stateHash(st);try{preferenceView.value=parseUiPreferences(null);assert.ok(saveUiPreferences({scale:125,motion:'reduce',bindings:{inspect:'o'}}));assert.ok(saveQuickbar([...DEFAULT_QUICKBAR].reverse()));const p=parseUiPreferences(saved);assert.equal(p.scale,125);assert.equal(p.motion,'reduce');assert.equal(p.bindings.inspect,'o');assert.deepEqual(p.quickbar,[...DEFAULT_QUICKBAR].reverse());
++ Object.defineProperty(globalThis,'localStorage',{configurable:true,get:()=>{throw Error('denied');}});assert.equal(saveUiPreferences({scale:150}),false);assert.equal(preferenceView.value.scale,150);assert.equal(stateHash(st),before);assert.equal(stateHash(loadState(makeSave(st))),before);
++ }finally{preferenceView.value=parseUiPreferences(null);if(original)Object.defineProperty(globalThis,'localStorage',original);else Reflect.deleteProperty(globalThis,'localStorage');}
++});

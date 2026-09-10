@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: four permanent stops exist at repeatable positions; infrastructure cannot be built or packed
+ok 1 - four permanent stops exist at repeatable positions; infrastructure cannot be built or packed
+  ---
+  duration_ms: 1222.147282
+  type: 'test'
+  ...
+# Subtest: power any second stop to automatically carry requested cargo; outage parks, reconnect resumes and save continues identically
+ok 2 - power any second stop to automatically carry requested cargo; outage parks, reconnect resumes and save continues identically
+  ---
+  duration_ms: 1242.818201
+  type: 'test'
+  ...
+# Subtest: all four powered stops participate and unpowered stops are skipped without unloading there
+ok 3 - all four powered stops participate and unpowered stops are skipped without unloading there
+  ---
+  duration_ms: 793.220266
+  type: 'test'
+  ...
+# Subtest: existing network save adopts its stations and tram once without deleting any stock or machine
+ok 4 - existing network save adopts its stations and tram once without deleting any stock or machine
+  ---
+  duration_ms: 1127.701774
+  type: 'test'
+  ...
+# Subtest: ruin enemies roam, retain chase beyond notice/home radius and disengage only at escape distance; patrol survives save
+ok 5 - ruin enemies roam, retain chase beyond notice/home radius and disengage only at escape distance; patrol survives save
+  ---
+  duration_ms: 414.675734
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7704.287542

@@ -1,0 +1,77 @@
+{
+  "walkSpeed": 6,
+  "rows": [
+    {
+      "id": "steel",
+      "walkSeconds": 2.10947570824873
+    },
+    {
+      "id": "copper",
+      "walkSeconds": 1.235702260395516
+    },
+    {
+      "id": "coal",
+      "walkSeconds": 1
+    },
+    {
+      "id": "first optional workshop",
+      "walkSeconds": 13.732828269944987
+    },
+    {
+      "id": "Riverside entrance",
+      "walkSeconds": 12.10456949966158
+    },
+    {
+      "id": "T1",
+      "walkSeconds": 4.954653676892977
+    },
+    {
+      "id": "T2",
+      "walkSeconds": 15.847210186780856
+    },
+    {
+      "id": "Civic entrance",
+      "walkSeconds": 40.823520916159055
+    },
+    {
+      "id": "freight expedition",
+      "walkSeconds": 16.345177968644244
+    },
+    {
+      "id": "quarry expedition",
+      "walkSeconds": 52.51794128972083
+    },
+    {
+      "id": "wharf expedition",
+      "walkSeconds": 53.337397769606575
+    }
+  ],
+  "lastMile": [
+    {
+      "plant": "Riverside Works",
+      "walkToStop": 4.035533905932739
+    },
+    {
+      "plant": "Ironworks",
+      "walkToStop": 4.46649831220389
+    },
+    {
+      "plant": "Civic Utility",
+      "walkToStop": 3.161760458079524
+    }
+  ],
+  "stopIndices": [
+    0,
+    80,
+    237,
+    408
+  ],
+  "tram": {
+    "speed": 40,
+    "homeToCivicMoving": 10.2,
+    "allPoweredDoorToDoor": 22.8164141349725,
+    "homeCivicOnlyDoorToDoor": 19.8164141349725,
+    "allPoweredRoundTrip": 29.4,
+    "explanation": "A* path length / walk speed; no sprint, combat or loading delay. 1.5 seconds dwell per powered stop; waiting is 0 to one round trip."
+  }
+}

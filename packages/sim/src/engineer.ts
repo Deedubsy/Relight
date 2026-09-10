@@ -31,7 +31,7 @@ export const DODGE_TILES = 3, DODGE_S = 0.25, DODGE_COOLDOWN_S = 1, DODGE_COST =
 export const RIFLE_RANGE = TURRET_RANGE, RIFLE_HIT_RADIUS = 1.5;
 /** Stack sizes for the pocket count (GAME-ASSUMPTION: rubble 50 a stack, magazines 20, machines one each; RI-01: the
  *  §12 intermediates the placed Assembler makes stack 50 like rubble until a rule says otherwise). */
-export const STACK: Record<string, number> = { concrete: 50, stone: 50, copper: 50, steel: 50, coal: 50, iron: 50, magazine: 20, wire: 50, frame: 50, board: 50 };
+export const STACK: Record<string, number> = { ironore: 50, copperore: 50, crude: 50, fuel: 50, polymer: 50, shell: 20, concrete: 50, stone: 50, copper: 50, steel: 50, coal: 50, iron: 50, magazine: 20, wire: 50, frame: 50, board: 50 };
 export const stackSize = (item: string) => STACK[item] ?? 1;
 
 export function createEngineer(st: SimState, startIdx: number): Engineer {
@@ -67,6 +67,43 @@ export const invStacks = (inv: Record<string, number>): number => {
   return s;
 };
 export const invCap = (e: Engineer) => (e.truck && !e.truckSeat ? TRUCK_STACKS : INV_STACKS);
+/** Optional stack allocation over inv: every view reconciles legal consumption, never invents quantities.
+ * Legacy kits reserve ten cells each at the beginning; those cells cannot be split or swapped. */
+export interface PackStack {item:string;count:number;reserved?:true}
+export type InventoryAction = {type:'sort'} | {type:'move'|'split';from:number;to:number;item:string;count:number;n?:number;layout:string};
+export function pocketSlots(e:Engineer): (PackStack|null)[] {
+ const slots:(PackStack|null)[]=Array.from({length:invCap(e)},()=>null),left={...e.inv};
+ const kits=Math.floor(left.kit??0);delete left.kit;
+ for(let i=0;i<kits*KIT_STACKS&&i<slots.length;i++)slots[i]={item:'kit',count:i%KIT_STACKS===0?1:0,...(i%KIT_STACKS?{reserved:true as const}:{})};
+ for(let i=0;i<slots.length;i++) {const old=e.pack?.[i];if(slots[i]||!old||old.item==='kit'||old.reserved)continue;
+  const n=Math.min(old.count,Math.max(0,left[old.item]??0),stackSize(old.item));if(n>0){slots[i]={item:old.item,count:n};left[old.item]-=n;}}
+ for(const item of Object.keys(left).sort()){
+  let n=Math.max(0,left[item]);for(const cell of slots){if(!n)break;if(cell?.item===item&&!cell.reserved){const add=Math.min(n,stackSize(item)-cell.count);cell.count+=add;n-=add;}}
+  for(let i=0;i<slots.length&&n>0;i++)if(!slots[i]){const add=Math.min(n,stackSize(item));slots[i]={item,count:add};n-=add;}
+ }
+ return slots;
+}
+export const pocketUsed=(e:Engineer)=>e.pack?pocketSlots(e).filter(Boolean).length:invStacks(e.inv);
+export function inventoryCommand(e:Engineer,a:InventoryAction):{ok:boolean;reason:string}{
+ const no=(reason:string)=>({ok:false,reason});const slots=pocketSlots(e);
+ if(a.type==='sort'){e.pack=pocketSlots({...e,pack:undefined});return {ok:true,reason:'Backpack sorted; quantities unchanged.'};}
+ if(a.type!=='move'&&a.type!=='split')return no('Unknown inventory action');
+ if(a.layout!==JSON.stringify(slots))return no('Stacks changed. Select the stack again.');
+ if(!Number.isInteger(a.from)||!Number.isInteger(a.to)||a.from<0||a.to<0||a.from>=slots.length||a.to>=slots.length||a.from===a.to)return no('Choose a different backpack slot.');
+ const src=slots[a.from],dst=slots[a.to];if(!src||src.item!==a.item||src.count!==a.count)return no('Source stack changed.');
+ if(src.item==='kit'||dst?.item==='kit')return no('Kits reserve ten slots; transfer them through storage.');
+ if(a.type==='split'){
+  const n=a.n??Math.floor(src.count/2);if(!Number.isSafeInteger(n)||n<1||n>=src.count)return no('Choose fewer than the stack contains.');
+  if(dst)return no('Splitting needs an empty slot.');slots[a.to]={item:src.item,count:n};src.count-=n;
+ }else if(!dst){slots[a.to]=src;slots[a.from]=null;}
+ else if(dst.item===src.item){const n=Math.min(src.count,stackSize(src.item)-dst.count);if(n<=0)return no('Destination stack is full.');dst.count+=n;src.count-=n;if(src.count<=0)slots[a.from]=null;}
+ else {[slots[a.from],slots[a.to]]=[dst,src];}
+ e.pack=slots;return {ok:true,reason:a.type==='split'?'Stack split.':'Stack moved.'};
+}
+export function packProblem(e:Engineer):string {
+ if(e.pack===undefined)return '';
+ return !Array.isArray(e.pack)||e.pack.length>TRUCK_STACKS||e.pack.some(s=>s!==null&&(!s||typeof s.item!=='string'||!Number.isFinite(s.count)||s.count<0||s.count>stackSize(s.item)||(!s.count&&!s.reserved)||s.reserved!==undefined&&(s.reserved!==true||s.item!=='kit')))?'Invalid backpack allocation':'';
+}
 export const speedOf = (e: Engineer) => WALK_TILES_PER_S * (e.truck ? TRUCK_MULT : 1);
 export const rifleRate = (e: Engineer) => (e.barrels === 2 ? RIFLE2_ROUNDS_PER_S : RIFLE_ROUNDS_PER_S);
 /** HP a shot crawler lands before it dies: 5 HP/s for the kill time. */
@@ -74,21 +111,19 @@ export const hpPerKill = (e: Engineer) => RETALIATE_HP_PER_S * ROUNDS_PER_CRAWLE
 
 /** Take `n` of `item` into the pockets, as many as fit. Returns the number taken. */
 export function take(e: Engineer, item: string, n: number): number {
-  const room = invCap(e) - invStacks(e.inv);
-  if (room <= 0 || n <= 0) return 0;
-  const per = item === 'kit' ? KIT_STACKS : 1 / stackSize(item);
-  const have = e.inv[item] ?? 0;
-  // stacks already partly filled take no new room: fit = what the free stacks hold plus the open stack's slack
-  const slack = item === 'kit' ? 0 : (Math.ceil(have / stackSize(item)) * stackSize(item) - have);
-  const fit = Math.min(n, slack + Math.floor(room / per));
-  if (fit <= 0) return 0;
-  e.inv[item] = have + fit;
+  const slots=pocketSlots(e),room=Math.max(0,invCap(e)-pocketUsed(e));
+  if(!Number.isFinite(n)||n<=0)return 0;
+  const per=item==='kit'?KIT_STACKS:1/stackSize(item),have=e.inv[item]??0;
+  const slack=item==='kit'?0:slots.reduce((sum,c)=>sum+(c?.item===item?stackSize(item)-c.count:0),0);
+  const fit=Math.min(n,slack+Math.floor(room/per));if(fit<=0)return 0;
+  e.inv[item]=have+fit;if(e.pack)e.pack=pocketSlots(e);
   return fit;
 }
 export function drop(e: Engineer, item: string, n: number): number {
   const have = e.inv[item] ?? 0, d = Math.min(have, n);
   e.inv[item] = have - d;
   if (e.inv[item] <= 0) delete e.inv[item];
+  if(e.pack)e.pack=pocketSlots(e);
   return d;
 }
 
@@ -120,7 +155,7 @@ export function kitBlock(st: SimState, i: number): number {
 export function restock(st: SimState, mags = 0): void {
   const e = st.engineer;
   if (e.block !== hqIdx(st)) return;
-  const kits = Math.floor((invCap(e) - invStacks(e.inv)) / KIT_STACKS);
+  const kits = Math.floor((invCap(e) - pocketUsed(e)) / KIT_STACKS);
   if (kits > 0) take(e, 'kit', kits);
   if (mags > 0) {
     const can = Math.min(mags, Math.floor(st.buffer / ROUNDS_PER_MAG));
@@ -142,10 +177,10 @@ export function walkTo(st: SimState, i: number): void {
 }
 
 /** Retaliation: `kills` crawlers shot this tick each land their HP before dying. */
-export function hurt(st: SimState, hp: number): void {
+export function hurt(st: SimState, hp: number, source?: string): void {
   const e = st.engineer;
   if (e.down >= 0 || hp <= 0) return;
-  e.hp -= hp; e.hurt += hp; e.lastHit = st.t;
+  e.hp -= hp; e.hurt += hp; e.lastHit = st.t; e.lastDamageSource = source;
   if (e.hp <= 0) {
     if(st.campaign&&e.truckSeat){e.truck=false;delete e.truckSeat;st.flow!.rev++;}
     e.hp = 0; e.down = st.t + RESPAWN_S; e.downs++; e.firing = -1; e.dest = -1; e.remaining = 0;
@@ -250,6 +285,7 @@ export const handHook: { current: ((st: SimState, c: Command) => void) | null } 
 
 export function engineerCommand(st: SimState, c: Command): void {
   const e = st.engineer;
+  if(st.campaign?.progression?.passenger&&c.type!=='progression'&&c.type!=='inventory')return;
   switch (c.type) {
     case 'move': if (e.down < 0 && !e.truckSeat) { e.target = [c.x, c.y]; e.vel = [0, 0]; e.dest = -1; } break;
     case 'walk': if (e.down < 0) { e.vel = [c.dx, c.dy]; if (c.dx || c.dy) e.target = null; e.dest = -1; } break;
@@ -265,7 +301,8 @@ export function engineerCommand(st: SimState, c: Command): void {
       break;
     case 'aim': e.aim = e.down < 0 ? c.at : null; break;
     case 'enterTruck': if(st.campaign){handHook.current?.(st,{type:'factory',action:{type:'truckBoard'}});break;} if (e.truckFound && e.down < 0) e.truck = !e.truck; break;
-    case 'construct': case 'buildPath': case 'undergroundPair': case 'undoBuild': case 'redoBuild': case 'factory':
+    case 'navigation': case 'removeArea': case 'truckWork': case 'blueprintLibrary': case 'blueprintOrder': case 'blueprintCopy': case 'blueprintTransform': case 'blueprintPaste':
+    case 'cityProp': case 'progression': case 'inventory': case 'construct': case 'buildPath': case 'undergroundPair': case 'undoBuild': case 'redoBuild': case 'factory':
     case 'mineAt': case 'craft': case 'place': case 'pickUp': case 'chestTake': case 'chestPut': case 'feed': case 'repair': case 'rotate':
     case 'deliverSite': case 'restoreSite': case 'collectTramKit':
     case 'deliver': case 'activate': case 'commission':   // RI-03: the commissioning commands are hand commands too; RI-05: a project's too

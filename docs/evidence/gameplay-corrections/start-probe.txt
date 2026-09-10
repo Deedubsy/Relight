@@ -1,0 +1,18 @@
+/mnt/e/Factorio2/packages/sim/src/flow.ts:1
+import {progressionAt,progressionCommand,tickProgression,hopperCapacity,processingMultiplier} from './progression';
+^
+
+
+TypeError: Cannot read properties of undefined (reading 'START_TURRETS')
+    at Object.START_TURRETS (/mnt/e/Factorio2/packages/sim/src/flow.ts:1:1)
+    at Object.get [as START_TURRETS] (/mnt/e/Factorio2/packages/sim/src/flow.ts:2:582)
+    at verdict (/mnt/e/Factorio2/packages/sim/src/hour.ts:135:81)
+    at Object.<anonymous> (/mnt/e/Factorio2/packages/sim/src/hour.ts:1534:17)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object.transformer (/mnt/e/Factorio2/node_modules/tsx/dist/register-OY9cqBEN.cjs:9:3619)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+
+Node.js v22.18.0

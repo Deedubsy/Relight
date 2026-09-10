@@ -1,0 +1,16 @@
+
+> relight-prototype@0.1.0 typecheck
+> npm run build -w packages/sim && npm run build -w packages/harness && npm run build -w packages/tools && npm run build -w packages/game
+
+
+> @relight/sim@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+src/interaction.ts(26,110): error TS2353: Object literal may only specify known properties, and 'n' does not exist in type '{ type: "craft"; item: string; count?: number | undefined; }'.
+npm error Lifecycle script `build` failed with error:
+npm error code 2
+npm error path /mnt/e/Factorio2/packages/sim
+npm error workspace @relight/sim@0.1.0
+npm error location /mnt/e/Factorio2/packages/sim
+npm error command failed
+npm error command sh -c tsc -p tsconfig.json --noEmit

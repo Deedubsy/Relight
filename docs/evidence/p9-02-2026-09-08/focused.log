@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: composed city query is repeatable, read-only and stable after load; includes every current site
+ok 1 - composed city query is repeatable, read-only and stable after load; includes every current site
+  ---
+  duration_ms: 2234.35489
+  type: 'test'
+  ...
+# Subtest: physical survey uses ordinary placement geometry without granting the tram unlock or pocket stock
+ok 2 - physical survey uses ordinary placement geometry without granting the tram unlock or pocket stock
+  ---
+  duration_ms: 451.60274
+  type: 'test'
+  ...
+# Subtest: bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+ok 3 - bad reservation rectangles, overlapping sites, source identity and rail topology are independently reported
+  ---
+  duration_ms: 691.268964
+  type: 'test'
+  ...
+# Subtest: blocked interactions are found from the final shared collision mask, not just the site centre
+ok 4 - blocked interactions are found from the final shared collision mask, not just the site centre
+  ---
+  duration_ms: 374.558666
+  type: 'test'
+  ...
+# Subtest: runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+ok 5 - runner retains failed generation and seed identity; invalid or duplicate seed requests refuse
+  ---
+  duration_ms: 1.072583
+  type: 'test'
+  ...
+# Subtest: existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+ok 6 - existing paid truck checkpoint reports physical queries without commissioning a fresh truck
+  ---
+  duration_ms: 702.961642
+  type: 'test'
+  ...
+# Subtest: malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+ok 7 - malformed maps and missing metadata return bounded failures; physical route blockers remain findings
+  ---
+  duration_ms: 1033.285008
+  type: 'test'
+  ...
+# Subtest: survey revision 2: seed 6 composes legal tracks/stops and preserves an older paid save
+ok 8 - survey revision 2: seed 6 composes legal tracks/stops and preserves an older paid save
+  ---
+  duration_ms: 2216.010496
+  type: 'test'
+  ...
+# Subtest: survey revision 2: seed 29 composes legal tracks/stops and preserves an older paid save
+ok 9 - survey revision 2: seed 29 composes legal tracks/stops and preserves an older paid save
+  ---
+  duration_ms: 1612.613128
+  type: 'test'
+  ...
+# Subtest: old survey logs remain available but cannot claim new-factory replay; new survey saves retain complete logs
+ok 10 - old survey logs remain available but cannot claim new-factory replay; new survey saves retain complete logs
+  ---
+  duration_ms: 583.467784
+  type: 'test'
+  ...
+# Subtest: unknown survey revision refuses load without treating the saved route as a new survey
+ok 11 - unknown survey revision refuses load without treating the saved route as a new survey
+  ---
+  duration_ms: 202.628173
+  type: 'test'
+  ...
+# Subtest: second area is reachable across seeds; restoration costs, local power, radio and once-only kit survive saves
+ok 12 - second area is reachable across seeds; restoration costs, local power, radio and once-only kit survive saves
+  ---
+  duration_ms: 4832.659435
+  type: 'test'
+  ...
+# Subtest: fresh paid expedition lays its generated kit and moves reserved freight between independently powered bases
+ok 13 - fresh paid expedition lays its generated kit and moves reserved freight between independently powered bases
+  ---
+  duration_ms: 1334.75249
+  type: 'test'
+  ...
+# Subtest: old home preview upgrades deterministically without granting a kit; malformed expansion metadata is rejected
+ok 14 - old home preview upgrades deterministically without granting a kit; malformed expansion metadata is rejected
+  ---
+  duration_ms: 799.074602
+  type: 'test'
+  ...
+# Subtest: physical pole links power a remote installation and picking them up disconnects it
+ok 15 - physical pole links power a remote installation and picking them up disconnects it
+  ---
+  duration_ms: 339.19057
+  type: 'test'
+  ...
+# Subtest: upgrading a home-only save preserves the save but labels its old log as incomplete for the new campaign factory
+ok 16 - upgrading a home-only save preserves the save but labels its old log as incomplete for the new campaign factory
+  ---
+  duration_ms: 402.795312
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 29371.030991

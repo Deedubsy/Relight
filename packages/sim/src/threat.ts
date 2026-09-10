@@ -1,3 +1,4 @@
+import {citySight} from './ground';
 /** Prompt B M4 — threat, and the rifle, at tile level (run name B-M4-threat).
  *
  *  The block sim still decides *how much* rot arrives (§7's blooms, §11's 15 s arrival, the 40-arrival rule); with
@@ -23,6 +24,7 @@
  *  be read off unlit ground without being lit; the Stalker (stalker.ts) rides this tick when `enableStalkers` has put
  *  its candidate on the state (`stalk`), and the turrets and the rifle treat it as one more body. */
 import { tickRecruits } from './campaignRecruits';
+import {tickNavigation} from './navigation';
 import { tickKnowledge } from './campaignGuide';
 import { tickTurbine } from './campaignTurbine';
 import { tickDiscovery } from './campaignDiscovery';
@@ -53,6 +55,7 @@ const HP: Record<Crawler['kind'], number> = { crawler: ENEMIES[0].hp, shade: ENE
 /** Target class along the chain: 0 the nearest lit lamp, 1 a turret, 2 the substation. */
 export type Cls = 0 | 1 | 2;
 export interface Crawler {
+  role?: 'breaker'|'conductor'; signal?:number;
   id: number; kind: 'crawler' | 'shade';
   x: number; y: number;      // tile space, centre of the body
   hp: number;
@@ -65,7 +68,7 @@ export interface Crawler {
   stuck: number;             // seconds without progress
   /** RI-04: the emergence point it was born at (emergence.ts id; absent on a body placed by hand or before RI-04). */
   origin?: number;
-  campaign?: { layer: 'site' | 'minor' | 'major'; group: number; origin: number; waypoint?: number; withdrawing?: true };
+  campaign?: { encounter?:string; layer: 'site' | 'minor' | 'major'; group: number; origin: number; waypoint?: number; patrol?: number; patrolStep?: number; withdrawing?: true };
   /** RI-06: the Heart packet this body belongs to (`${attempt}:${threshold}`); such a body has no ring edge (`edge` -1). */
   packet?: string;
   /** RI-04: unit direction of its last move, for the world view's heading tick. */
@@ -232,7 +235,7 @@ const isCrawlerHeld = (st: SimState, c: Crawler): boolean =>
 function tick(st: SimState, dt: number): void {
   if (!threatActive(st)) return;
   const f = st.flow!, T = threatOf(f), G = ground(st), tw = G.tw, e = st.engineer;
-  if (isCampaign(st)) { tickCampaignThreat(st,T,dt); tickDiscovery(st,dt); tickRecruits(st); tickTurbine(st); tickKnowledge(st); tickWeapons(st,dt); return; }
+  if (isCampaign(st)) { tickCampaignThreat(st,T,dt); tickDiscovery(st,dt); tickRecruits(st); tickTurbine(st); tickKnowledge(st); tickNavigation(st); tickWeapons(st,dt); return; }
   const cs = T.crawlers;
   // crawlers whose block already fell (or was lost) have nothing left to walk to
   let w = 0;
@@ -328,13 +331,13 @@ function nearest(st: SimState, T: ThreatState, x: number, y: number, r: number, 
   for (const c of T.crawlers) {
     if (edge >= 0 && c.edge !== edge) continue;
     const dx = c.x - x, dy = c.y - y, d2 = dx * dx + dy * dy;
-    if (d2 > bd) continue;
+    if (d2 > bd || !citySight(st,x,y,c.x,c.y)) continue;
     if (c.kind === 'shade' && !litAt(st, Math.floor(c.x), Math.floor(c.y))) continue;   // §7: untargetable off lit tiles
     bd = d2; best = c;
   }
   for (const s of stalkersOf(st)) {
     const dx = s.x - x, dy = s.y - y, d2 = dx * dx + dy * dy;
-    if (d2 > bd) continue;
+    if (d2 > bd || !citySight(st,x,y,s.x,s.y)) continue;
     bd = d2; best = s;
   }
   return best;
@@ -434,7 +437,7 @@ function fire(st: SimState, e: Engineer, ax: number, ay: number): boolean {
   const bodies: Target[] = [...T.crawlers, ...stalkersOf(st)];
   for (const c of bodies) {
     const px = c.x - e.x, py = c.y - e.y, along = px * ux + py * uy;
-    if (along < 0 || along > RIFLE_RANGE || along >= bestAlong) continue;
+    if (!citySight(st,e.x,e.y,c.x,c.y) || along < 0 || along > RIFLE_RANGE || along >= bestAlong) continue;
     if (Math.abs(px * uy - py * ux) > RIFLE_HIT_RADIUS) continue;
     if (c.kind === 'shade' && !litAt(st, Math.floor(c.x), Math.floor(c.y))) continue;
     bestAlong = along; best = c;

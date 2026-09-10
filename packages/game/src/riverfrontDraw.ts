@@ -1,0 +1,68 @@
+/** Authored SVG layers use the parcel top-left anchor. Collision never comes from a sprite. */
+import Phaser from 'phaser';
+import {interiorOpen} from './riverfrontLighting';
+import {relayDangerAt,RIVERFRONT,doorRect,outward,riverfrontRail,RIVERFRONT_BUILDINGS,RIVERFRONT_PROPS,cityVisible,ground,rubbleAt,campaignThrottle,TILE_PX as P,type SimState} from '@relight/sim';
+type BuildingVisual={floor:Phaser.GameObjects.Image;roof:Phaser.GameObjects.Image;inside:boolean;alpha:number};
+type SceneVisual={buildings:Map<string,BuildingVisual>;details:Phaser.GameObjects.Graphics;started:boolean;time:number};
+const scenes=new WeakMap<Phaser.GameObjects.Graphics,SceneVisual>();
+export function drawRiverfront(g:Phaser.GameObjects.Graphics,r:Phaser.GameObjects.Graphics,st:SimState,cam:Phaser.Cameras.Scene2D.Camera){
+ let v=scenes.get(g);if(!v){v={buildings:new Map(),details:g.scene.add.graphics().setDepth(.7),started:false,time:performance.now()};scenes.set(g,v);}
+ if(!v.started){v.started=true;for(const kind of ['house','terrace','garage','workshop','warehouse','shop','civic','utility','townhall','apartment','office','department','arcade','parking']){g.scene.load.svg('rf-'+kind+'-floor','/art/riverfront/'+kind+'-floor.svg');for(let i=0;i<3;i++)g.scene.load.svg(`rf-${kind}-roof-${i}`,`/art/riverfront/${kind}-roof-${i}.svg`);}for(const facing of ['N','E','W'])for(let i=0;i<3;i++)g.scene.load.svg(`rf-house-${facing}-roof-${i}`,`/art/riverfront/house-${facing}-roof-${i}.svg`);g.scene.load.start();}
+ g.clear();r.clear();v.details.clear();r.setDepth(4.6);const d=v.details,view=cam.worldView,now=performance.now(),dt=Math.min(.1,(now-v.time)/1000),G=ground(st),e=st.engineer;v.time=now;
+ const visible=(x:number,y:number,w:number,h:number)=>x*P<view.right+P*3&&y*P<view.bottom+P*3&&(x+w)*P>view.x-P*3&&(y+h)*P>view.y-P*3;
+ const rect=(target:Phaser.GameObjects.Graphics,x:number,y:number,w:number,h:number,c:number,a=1)=>{target.fillStyle(c,a);target.fillRect(x*P,y*P,w*P,h*P);};
+ // Stable ground wear, not a repeated deposit-dot grid. Roads have intentional kerbs in the art pass.
+ for(let y=Math.max(0,Math.floor(view.y/P));y<Math.min(G.th,Math.ceil(view.bottom/P));y++)for(let x=Math.max(0,Math.floor(view.x/P));x<Math.min(G.tw,Math.ceil(view.right/P));x++){const k=G.base[y*G.tw+x],h=((x*73856093)^(y*19349663))>>>0;rect(g,x,y,1,1,k===4?0x204853:0x52614b);if(k===4){if(h%5===0)rect(g,x+.1,y+.5,.7,.05,0x8cafad,.3);}else if(k!==0&&h%3===0){rect(g,x+(h%6)*.13,y+.2,.18,.04,0x253e30,.45);if(h%5===0)rect(g,x+.4,y+.55,.12,.07,0x948865,.25);}else if(k===0&&h%11===0){g.lineStyle(.025*P,0x253631,.45);g.lineBetween(x*P,(y+.2)*P,(x+.6)*P,(y+.8)*P);}}
+ // Civic blocks have paved forecourts and service alleys; the suburban plots retain gardens.
+ for(const a of RIVERFRONT.serviceAreas)if(visible(a.x,a.y,a.w,a.h)){rect(g,a.x,a.y,a.w,a.h,0x70776a);g.lineStyle(.025*P,0x434f47,.4);for(let x=a.x;x<a.x+a.w;x+=3)g.lineBetween(x*P,a.y*P,x*P,(a.y+a.h)*P);for(let y=a.y;y<a.y+a.h;y+=3)g.lineBetween(a.x*P,y*P,(a.x+a.w)*P,y*P);}
+ // Junctions share the same surface pass; paving is painted before any carriageway.
+ const court=RIVERFRONT.court;
+ for(const path of RIVERFRONT.drives){g.lineStyle(4*P,0x858b7e);g.beginPath();path.forEach(([x,y],i)=>{if(i)g.lineTo((x+.5)*P,(y+.5)*P);else g.moveTo((x+.5)*P,(y+.5)*P);});g.strokePath();g.fillStyle(0x858b7e);for(const[x,y]of path)g.fillCircle((x+.5)*P,(y+.5)*P,2*P);}
+ for(const [width,color]of [[RIVERFRONT.roadHalf*2,0x858b7e],[(RIVERFRONT.roadHalf-RIVERFRONT.pavement)*2,0x46504d]]){
+  g.lineStyle(width*P,color);g.beginPath();for(const path of RIVERFRONT.roads){g.moveTo((path[0][0]+.5)*P,(path[0][1]+.5)*P);g.lineTo((path[1][0]+.5)*P,(path[1][1]+.5)*P);}g.strokePath();g.fillStyle(color);
+  for(const n of RIVERFRONT.roadNodes)if(visible(n.x-5,n.y-5,10,10))g.fillCircle((n.x+.5)*P,(n.y+.5)*P,width/2*P);
+  g.fillCircle((court.x+.5)*P,(court.y+.5)*P,(court.radius-(width===RIVERFRONT.roadHalf*2?0:RIVERFRONT.pavement))*P);
+ }
+ // Reserved tram boulevard uses the same fillets as the running line.
+ g.lineStyle(2.8*P,0x68736b);g.beginPath();riverfrontRail().samples.forEach((p,i)=>{if(i)g.lineTo(p.x*P,p.y*P);else g.moveTo(p.x*P,p.y*P);});g.strokePath();
+ for(const path of RIVERFRONT.paths){g.lineStyle(1.4*P,0x929683,.8);g.beginPath();path.forEach(([x,y],i)=>{if(i)g.lineTo((x+.5)*P,(y+.5)*P);else g.moveTo((x+.5)*P,(y+.5)*P);});g.strokePath();}
+ for(const p of [...RIVERFRONT.yards,...RIVERFRONT.squares]){if(!visible(p.x,p.y,p.w,p.h))continue;rect(g,p.x,p.y,p.w,p.h,0x7c7b68);g.lineStyle(.025*P,0x4b5751,.55);for(let x=p.x;x<p.x+p.w;x+=4)g.lineBetween(x*P,p.y*P,x*P,(p.y+p.h)*P);for(let y=p.y;y<p.y+p.h;y+=4)g.lineBetween(p.x*P,y*P,(p.x+p.w)*P,y*P);g.lineStyle(.12*P,0xa69e82,.6);g.strokeRect(p.x*P,p.y*P,p.w*P,p.h*P);if(p===RIVERFRONT.yards[0]){rect(g,p.x+p.w-.2,p.y+10,.5,6,0x7c7b68);rect(g,p.x+p.w,p.y+10,4,6,0x858b7e);g.lineStyle(.05*P,0xa69e82,.45);g.lineBetween((p.x+p.w-5)*P,(p.y+10)*P,(p.x+p.w+4)*P,(p.y+10)*P);g.lineBetween((p.x+p.w-5)*P,(p.y+16)*P,(p.x+p.w+4)*P,(p.y+16)*P);}}
+ for(const b of RIVERFRONT_BUILDINGS){let art=v.buildings.get(b.id);const show=visible(b.x,b.y,b.w,b.h);if(!show){art?.floor.setVisible(false);art?.roof.setVisible(false);continue;}const floorKey='rf-'+b.kind+'-floor',roofKey=`rf-${b.kind}${b.kind==='house'&&b.facing!=='S'?'-'+b.facing:''}-roof-${b.variant??0}`;if(!art&&g.scene.textures.exists(roofKey)){art={floor:g.scene.add.image(b.x*P,b.y*P,floorKey).setOrigin(0).setDisplaySize(b.w*P,b.h*P).setDepth(.55),roof:g.scene.add.image(b.x*P,b.y*P,roofKey).setOrigin(0).setDisplaySize(b.w*P,b.h*P).setDepth(4.5),inside:false,alpha:1};v.buildings.set(b.id,art);}
+  const inside=b.enterable&&e.x>b.x+1&&e.x<b.x+b.w-1&&e.y>b.y+1&&e.y<b.y+b.h-1;if(art){art.inside=interiorOpen(st,b);const target=art.inside?0:1;art.alpha+=Math.sign(target-art.alpha)*Math.min(Math.abs(target-art.alpha),dt*5);art.floor.setVisible(true);art.roof.setVisible(true).setAlpha(art.alpha);}
+  if(['court-northwest-home','court-west-home','court-approach-home','court-east-cottage'].includes(b.id)){const east=b.facing==='E',gx=east?b.x-1.7:b.x+b.w+.3;rect(d,gx,b.y+3,1.3,3,0x584e3b);for(let i=0;i<3;i++){rect(d,gx+.2,b.y+3.2+i*.85,.8,.5,b.variant===1?0x8c8956:0x65794b);}if(b.variant===2){rect(d,b.x+1,b.y-1.3,3,.65,0x99866b);rect(d,b.x+1,b.y-1.5,3,.2,0xc0ac81);}}
+  const alpha=art?.alpha??1,{x,y,w,h}=b,door=doorRect(b),{x:dx,y:dy,w:dw,h:dh}=door,[ox,oy]=outward[b.facing];
+  // All ground walls/doors follow canonical collision, including compound side access.
+  for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++)if((xx===x||yy===y||xx===x+w-1||yy===y+h-1)&&G.urban?.solid[yy*G.tw+xx])rect(d,xx,yy,1,yy===y+h-1&&inside?.3:1,yy===y?0xb4ab8e:0x686e5d);
+  const facadeAlpha=alpha>0?.85*alpha:0;
+  if(facadeAlpha){rect(r,dx,dy,dw,dh,0x20383a,alpha);if(!b.enterable){r.lineStyle(.14*P,0xc3a878,alpha);r.lineBetween(dx*P,dy*P,(dx+dw)*P,(dy+dh)*P);r.lineBetween((dx+dw)*P,dy*P,dx*P,(dy+dh)*P);}else{r.lineStyle(.08*P,0x67ddc7,alpha);r.strokeRect(dx*P,dy*P,dw*P,dh*P);}}
+  for(const [sx,sy,sw,sh]of b.doors??[]){rect(r,sx,sy,sw,sh,0x20383a,alpha);r.lineStyle(.08*P,0xdbcfaa,alpha);r.strokeRect(sx*P,sy*P,sw*P,sh*P);rect(d,sx-1,sy,1,sh,0xb2aa8d);}
+  rect(d,ox?dx+(ox>0?1:-.5):dx-.1,oy?dy+(oy>0?1:-.5):dy-.1,ox?.45:dw+.2,oy?.45:dh+.2,0xb2aa8d);
+  const recruit=st.campaign?.recruits?.sites.find(s=>s.kind===b.content);if(recruit&&recruit.seenAt>=0&&cityVisible(st,dx,dy)){r.fillStyle(0x67ddc7,alpha);r.fillCircle((dx+dw/2)*P,(dy-1)*P,.22*P);r.fillRect((dx+dw/2-.2)*P,(dy-.7)*P,.4*P,.5*P);}
+  if(b.compound&&st.campaign?.progression?.sites.some(s=>s.id===b.compound&&s.seen&&s.enabled&&!s.recovered)){r.fillStyle(0xe87960,alpha);r.fillTriangle(dx*P,(dy-1.5)*P,(dx-.5)*P,(dy-.5)*P,(dx+.5)*P,(dy-.5)*P);}
+  const power=campaignThrottle(st,G.near[y*G.tw+x])>0;if(b.facing==='S')for(let xx=x+1;xx<x+w-1;xx+=4)rect(r,xx,y+h-.8,1,.18,power?0xf8c972:0x405453,alpha);
+  if(b.note){rect(d,x+1.2,y+h-3,2,.9,0x5e5040);rect(d,x+1.5,y+h-2.9,1,.6,0xd8ccb0);}
+  if(b.id==='ironworks-hall'&&alpha>.01){rect(r,x+3,y+1,2,7,0x38474b,alpha);r.fillStyle(0xb7a484,alpha);r.fillEllipse((x+4)*P,(y+1)*P,2.2*P,P);r.fillStyle(0x1c3033,alpha);r.fillEllipse((x+4)*P,(y+1)*P,1.4*P,.6*P);}
+  if(b.compound){const core=st.campaign?.progression?.sites.find(s=>s.id===b.compound),active=!!core?.enabled&&!core.recovered;const col=active?0x84b4a3:0x52605c;
+   // Alien conversion ribs wrap the human roof; courtyard architecture still reads as freight/works.
+   if(alpha>.01){for(const off of [1,w-3]){r.fillStyle(0x283c40,alpha);r.fillTriangle((x+off)*P,(y+3)*P,(x+off+2)*P,y*P,(x+off+2)*P,(y+h-2)*P);r.lineStyle(.17*P,col,alpha*.8);r.lineBetween((x+off+1)*P,(y+3)*P,(x+off+1)*P,(y+h-3)*P);}r.lineStyle(.4*P,0x253d3e,alpha);r.lineBetween((x+2)*P,(y+h/2)*P,(x+w-2)*P,(y+h/2)*P);}
+   if(core&&cityVisible(st,core.x+1.5,core.y+1.5)){d.lineStyle(.35*P,0x293e40);d.lineBetween((x+2)*P,(y+7)*P,(core.x+1.5)*P,(core.y+1.5)*P);d.lineStyle(.09*P,col,active?.7+.15*Math.sin(now/800):.3);d.lineBetween((x+2)*P,(y+7)*P,(core.x+1.5)*P,(core.y+1.5)*P);}
+  }
+ }
+ for(const p of RIVERFRONT_PROPS){if(!visible(p.x,p.y,p.w,p.h)||st.campaign?.authored?.cleared.includes(p.id)||st.campaign?.authored?.opened.includes(p.id))continue;const{x,y,w,h}=p;
+  if(p.kind==='statue'){rect(d,x,y,w,h,0x485a58);rect(d,x+.3,y+.3,w-.6,h-.6,0xb4b6a0);d.fillStyle(0x50665e);d.fillEllipse((x+1.5)*P,(y+1.5)*P,1.2*P,1.8*P);d.fillStyle(0x9da994);d.fillCircle((x+1.5)*P,(y+.65)*P,.4*P);continue;}
+  if(p.kind==='tree'){d.fillStyle(0x243d2c,.6);d.fillEllipse((x+1.2)*P,(y+1.6)*P,2.5*P,2*P);rect(d,x+.8,y+.7,.35,1.3,0x6e5f45);for(const[dx,dy,rr,col]of[[.6,.4,.85,0x718057],[1.3,.7,.8,0x51683e],[.9,1.2,.75,0x405f38]]){d.fillStyle(col);d.fillCircle((x+dx)*P,(y+dy)*P,rr*P);}continue;}
+  if(p.kind==='container'){rect(d,x,y,w,h,0x303f3e);rect(d,x+.15,y+.1,w-.35,h-.3,0x876c50);for(let xx=x+.5;xx<x+w;xx+=.5)rect(d,xx,y+.2,.08,h-.5,0xc0a27c,.6);rect(d,x+.3,y+h-.4,w-.6,.12,0x243a3b);continue;}
+  if(p.kind==='excavator'){rect(d,x,y,w,h,0x343e3c);rect(d,x+.2,y+.1,w*.45,h-.2,0xb59546);rect(d,x+.4,y+.4,1.5,1.5,0x344c4e);d.lineStyle(.5*P,0xc8a65e);d.lineBetween((x+w*.4)*P,(y+h*.6)*P,(x+w*.8)*P,(y+.5)*P);rect(d,x+w-1.5,y,1.5,1.5,0x757863);continue;}
+  if(p.kind==='tank'||p.kind==='converter'){d.fillStyle(0x273d40);d.fillEllipse((x+w/2)*P,(y+h*.6)*P,w*P,h*P);d.fillStyle(p.kind==='tank'?0xa1ada1:0x496d67);d.fillEllipse((x+w/2)*P,(y+h*.4)*P,w*.9*P,h*.65*P);d.lineStyle(.14*P,0x32494a);d.strokeEllipse((x+w/2)*P,(y+h*.4)*P,w*.65*P,h*.4*P);continue;}
+  if(p.kind==='furniture'){rect(d,x,y,w,h,p.id.endsWith(':bed')?0x526a70:0x937452);if(p.id.endsWith(':bed'))rect(d,x+.1,y+.1,w-.2,.6,0xd9d1b6);else for(const dx of [.2,w-.4])rect(d,x+dx,y+h-.25,.2,.3,0x3e4135);continue;}
+  if(p.kind==='fence'||p.kind==='gate'){rect(d,x,y,w,h,0x405347);d.lineStyle(.1*P,0xb0ab8a);d.strokeRect(x*P,y*P,w*P,h*P);for(let xx=x;xx<x+w;xx+=.5)d.lineBetween(xx*P,y*P,(xx+.4)*P,(y+h)*P);continue;}
+  if(p.kind==='crane'){rect(d,x,y,w,h,0x7f704d);d.lineStyle(.3*P,0xc1a56a);d.lineBetween((x+1)*P,(y+2)*P,(x+1)*P,(y-4)*P);d.lineBetween((x+1)*P,(y-4)*P,(x+10)*P,(y-4)*P);d.lineStyle(.07*P,0x263d3e);d.lineBetween((x+9)*P,(y-4)*P,(x+9)*P,y*P);continue;}
+  for(let j=0;j<w*h;j++){const xx=x+j%w,yy=y+Math.floor(j/w);d.fillStyle(p.kind==='rock'?0x898779:0x8d8265);d.fillTriangle(xx*P,(yy+1)*P,(xx+.35)*P,(yy+.12)*P,(xx+1)*P,(yy+.85)*P);}
+ }
+ for(const[item,x,y,w,h]of RIVERFRONT.resources){if(!visible(x,y,w,h))continue;for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){if(!rubbleAt(st,x+xx,y+yy))continue;const px=x+xx,py=y+yy;if(item==='steel'){rect(d,px+.1,py+.3,.85,.55,0x344b50);for(let j=0;j<3;j++){rect(d,px+.08+j*.04,py+.22-j*.08,.82,.16,0xa4b2b0);rect(d,px+.12,py+.2-j*.08,.7,.03,0xd0d2bb);}}else if(item.includes('copper')){d.lineStyle(.15*P,0xc08854);d.strokeEllipse((px+.5)*P,(py+.5)*P,.65*P,.4*P);d.lineStyle(.07*P,0xe0ae70);d.strokeEllipse((px+.5)*P,(py+.42)*P,.58*P,.3*P);}else{d.fillStyle(item==='coal'?0x273338:item==='crude'?0x3a3b4b:0x92978a);d.fillTriangle((px+.04)*P,(py+.85)*P,(px+.5)*P,(py+.15)*P,(px+.9)*P,(py+.75)*P);d.lineStyle(.035*P,0xbbc0ad,.4);d.lineBetween((px+.12)*P,(py+.78)*P,(px+.5)*P,(py+.2)*P);}}}
+ // Samples are drawn only where the exact damage predicate and player visibility agree.
+ for(const s of st.campaign?.progression?.sites??[])if(s.kind==='core'&&s.seen&&s.enabled&&!s.recovered&&visible(s.x-7,s.y-7,14,14)){for(let y=s.y-7;y<s.y+7;y++)for(let x=s.x-7;x<s.x+7;x++)if(relayDangerAt(st,s,x+.25,y+.25)&&cityVisible(st,x+.25,y+.25)){d.lineStyle(.035*P,0xec7763,.5);d.lineBetween((x+.1)*P,(y+.4)*P,(x+.4)*P,(y+.1)*P);}}
+ for(const s of RIVERFRONT.stops){if(!visible(s.x-1,s.y-1,4,4))continue;rect(d,s.x-1,s.y-1,4,1,0xb9b39a);rect(d,s.x-1,s.y+2,4,.25,0xe3bb69);}
+ for(const s of st.campaign?.progression?.sites??[]){if(!visible(s.x,s.y,3,3)||!cityVisible(st,s.x+1.5,s.y+1.5))continue;const{x,y}=s;if(s.recovered){rect(d,x,y,3,3,0x3c4c4c);d.lineStyle(.15*P,0x8b9684);d.strokeCircle((x+1.5)*P,(y+1.5)*P,.8*P);continue;}rect(d,x,y,3,3,0x273f43);for(const dx of [.2,2.1])rect(d,x+dx,y+.3,.6,2.4,0x8c9c91);d.fillStyle(s.kind==='core'?0x6ca38e:s.kind==='plant'?0xabbba1:0xd0b275);d.fillEllipse((x+1.5)*P,(y+1.5)*P,1.1*P,2.3*P);d.lineStyle(.12*P,0x203a3d);d.strokeEllipse((x+1.5)*P,(y+1.5)*P,.8*P,1.9*P);}
+ for(const[i,[x,y]]of RIVERFRONT.substations.entries()){if(!visible(x,y,3,3))continue;rect(d,x,y,3,3,0x677a76);for(let j=0;j<3;j++){rect(d,x+.3+j*.85,y+.3,.6,2.1,0x9da890);rect(d,x+.4+j*.85,y+.6,.35,.15,0x2f494a);}rect(d,x+2.2,y+.2,.3,.3,campaignThrottle(st,i)>0?0xf4cd78:0x2a4143);}
+}

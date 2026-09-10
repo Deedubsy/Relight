@@ -1,10 +1,13 @@
+import {RIVERFRONT} from './city/riverfront';
+import {citySight} from './ground';
+import {spawnSiteEnemy,CORRECTIONS} from './progression';
 /** Campaign threats own their schedule and paths; legacy bloom/arrival rules never run here. */
 import type { SimState } from './types';
 import { ground, inGround, walkable } from './ground';
 import { passable } from './walk';
 import { moveTo, stepToward, headingWord } from './move';
 import { hurt } from './engineer';
-import { machineAt, type FlowState } from './flow';
+import { machineAt,litAt, type FlowState } from './flow';
 import type { Crawler, ThreatState } from './threat';
 import { campaignThrottle } from './campaignPower';
 import { blockName } from './names';
@@ -14,27 +17,29 @@ import { baseCore, initDefence, damageCore, damageDefence, defenceHp, defenceMax
 
 /** Provisional roster/rates; the adopted clock and two raid opportunities stay fixed. */
 export const CAMPAIGN_THREAT = { majorCount: 60, spawnEvery: 4, minorMin: 8, minorMax: 12,
-  contactDps: 5, structureDps: 8, speed: 2, minorAfterMajor: 300, guardLeash: 12, guardNotice: 8,
+  contactDps: 5, structureDps: 8, speed: 2, minorAfterMajor: 300, guardLeash: 12, guardNotice: 8, chaseEscape: 20, patrolRadius: 6,
   radioUpgradeSteel: 15, radioUpgradeCopper: 10 } as const;
 const DAY=1200, DUSK=900, DX=[0,1,0,-1], DY=[-1,0,1,0];
 interface Field { dist:Int32Array; targets:number[] }
 // Protected production equipment is traversable to creatures; it cannot substitute for paid walls.
 function hostileOpen(st:SimState,x:number,y:number):boolean {
   if(!walkable(ground(st),x,y))return false;
+  if(st.city?.mapId)return passable(st,x,y);
   const m=machineAt(st,x,y);return !m||!defenceMax(m)||defenceHp(m)<=0;
 }
 const fields=new WeakMap<FlowState,{rev:number;map:Map<string,Field>}>();
-function field(st:SimState,x:number,y:number,size:number,breach:boolean):Field {
-  const f=st.flow!,G=ground(st),tw=G.tw,key=`${x},${y},${size},${breach}`;
+function field(st:SimState,x:number,y:number,size:number,breach:boolean,clearance=0):Field {
+  const f=st.flow!,G=ground(st),tw=G.tw,key=`${x},${y},${size},${breach},${clearance}`;
   let cache=fields.get(f);if(!cache||cache.rev!==f.rev){cache={rev:f.rev,map:new Map()};fields.set(f,cache);}
   const old=cache.map.get(key);if(old)return old;
   const dist=new Int32Array(G.base.length);dist.fill(-1);const queue=new Int32Array(dist.length),targets:number[]=[];let tail=0;
   const open=(xx:number,yy:number):boolean=>{
     if(!inGround(G,xx,yy)||Math.abs(xx-x)>70||Math.abs(yy-y)>70||!walkable(G,xx,yy))return false;
+    if(clearance)for(let dy=-clearance;dy<=clearance;dy++)for(let dx=-clearance;dx<=clearance;dx++)if(!hostileOpen(st,xx+dx,yy+dy)){const m=machineAt(st,xx+dx,yy+dy);if(!breach||!m||!defenceMax(m)||!walkable(G,xx+dx,yy+dy))return false;}
     if(hostileOpen(st,xx,yy))return true;
     const m=machineAt(st,xx,yy);return breach&&!!m&&defenceMax(m)>0;
   };
-  for(let yy=y-1;yy<=y+size;yy++)for(let xx=x-1;xx<=x+size;xx++) {
+  for(let yy=y-1-clearance;yy<=y+size+clearance;yy++)for(let xx=x-1-clearance;xx<=x+size+clearance;xx++) {
     if(size>0&&xx>=x&&xx<x+size&&yy>=y&&yy<y+size)continue;
     if(size===0&&(xx!==x||yy!==y))continue;
     if(!open(xx,yy))continue;
@@ -47,8 +52,8 @@ function field(st:SimState,x:number,y:number,size:number,breach:boolean):Field {
   const result={dist,targets};if(cache.map.size>32)cache.map.clear();cache.map.set(key,result);return result;
 }
 function route(st:SimState,c:Crawler,x:number,y:number,size:number):Field {
-  const tw=ground(st).tw,t=Math.floor(c.y)*tw+Math.floor(c.x),normal=field(st,x,y,size,false);
-  return normal.dist[t]>=0?normal:field(st,x,y,size,true);
+  const tw=ground(st).tw,t=Math.floor(c.y)*tw+Math.floor(c.x),normal=field(st,x,y,size,false,st.city?.mapId&&c.role==='breaker'?1:0);
+  return normal.dist[t]>=0?normal:field(st,x,y,size,true,st.city?.mapId&&c.role==='breaker'?1:0);
 }
 /** Spawn only outside a base, on reachable, empty ground; Home Court uses its sole mouth. */
 export function campaignOrigin(st:SimState,base:BaseCore):number {
@@ -58,6 +63,7 @@ export function campaignOrigin(st:SimState,base:BaseCore):number {
   const bounds=G.opening!.bounds;
   for(let y=Math.max(0,oy-30);y<Math.min(G.th,oy+31);y++)for(let x=Math.max(0,ox-30);x<Math.min(tw,ox+31);x++) {
     const t=y*tw+x,d=fld.dist[t];if(d<20||d>60||!passable(st,x,y)||st.flow!.occ[t]!==undefined)continue;
+    if(home&&st.city?.mapId&&(y<RIVERFRONT.homeRaidY||G.base[t]!==0))continue;
     if(home&&x>=bounds.x&&x<bounds.x+bounds.size&&y>=bounds.y&&y<bounds.y+bounds.size)continue;
     if(Math.hypot(st.engineer.x-x-.5,st.engineer.y-y-.5)<8)continue;
     const s=Math.abs(d-24)*100+Math.hypot(x-ox,y-oy);if(s<score){score=s;best=t;}
@@ -96,11 +102,14 @@ export function campaignStaging(st:SimState,base:BaseCore,origin:number):number 
 }
 function eligible(st:SimState,major:boolean):BaseCore[] {
   const d=st.campaign!.defence!,network=(st.campaign!.expansion?.radio.restoredAt??-1)>=0;
-  return d.bases.filter(b=>b.hp>0&&(!major||network||b.block===st.campaign!.homeBlock));
+  return d.bases.filter(b=>b.hp>0&&(!major||network||b.block===st.campaign!.homeBlock||st.campaign?.progression?.sites.some(s=>s.kind==='plant'&&s.block===b.block&&s.installed)));
 }
 function birth(st:SimState,T:ThreatState,block:number,origin:number,layer:'major'|'minor'|'site',group:number):void {
   const tw=ground(st).tw;
-  T.crawlers.push({id:T.next++,kind:'crawler',x:origin%tw+.5,y:Math.floor(origin/tw)+.5,hp:12,
+  const advanced=!!st.campaign?.progression?.arsenal&&layer!=='site',role=advanced&&T.next%10===0?'conductor':advanced&&T.next%5===0?'breaker':undefined,kind=advanced&&!role&&T.next%3===0?'shade':'crawler';
+  let sx=origin%tw,sy=Math.floor(origin/tw);
+  if(st.city?.mapId){const queue=[origin],seen=new Set(queue);let found=false;for(let h=0;h<queue.length&&h<100;h++){const t=queue[h],x=t%tw,y=Math.floor(t/tw);if(passable(st,x,y)&&!T.crawlers.some(c=>Math.hypot(c.x-x-.5,c.y-y-.5)<1)){sx=x;sy=y;found=true;break;}for(const [dx,dy]of [[0,1],[1,0],[0,-1],[-1,0]]){const xx=x+dx,yy=y+dy,q=yy*tw+xx;if(!seen.has(q)&&Math.hypot(xx-sx,yy-sy)<6&&passable(st,xx,yy)){seen.add(q);queue.push(q);}}}if(!found)return;}
+  T.crawlers.push({id:T.next++,kind,role,x:sx+.5,y:sy+.5,hp:role==='breaker'?CORRECTIONS.breakerHp:role==='conductor'?CORRECTIONS.conductorHp:kind==='shade'?CORRECTIONS.shadeHp:12,
     edge:-1,from:block,to:block,cls:2,onPlayer:false,escaped:false,born:st.t,stuck:0,dir:[0,0],
     campaign:{layer,group,origin}});
   T.stats.spawned++;
@@ -115,7 +124,7 @@ function receiveWarning(st:SimState):void {
   const core=baseCore(st,a.block)!,tw=ground(st).tw;
   const existing=d.warning?.assault===a.id?d.warning:undefined;
   d.warning={assault:a.id,block:a.block,startsAt:a.startsAt,receivedAt:existing?.receivedAt??st.t,
-    ...(d.radioUpgrade?{approach:headingWord([a.origin%tw-core.x,Math.floor(a.origin/tw)-core.y]),composition:'ordinary crawlers'}:{})};
+    ...(d.radioUpgrade?{approach:headingWord([a.origin%tw-core.x,Math.floor(a.origin/tw)-core.y]),composition:st.campaign?.progression?.arsenal?'Crawlers, Shades, Breakers and bounded Conductors':'ordinary crawlers'}:{})};
 }
 export function radioUpgradeCheck(st:SimState):string {
   const d=st.campaign?.defence,r=st.campaign?.expansion?.radio;
@@ -146,7 +155,7 @@ export function knownCampaignThreat(st:SimState):{block:number;phase:'warning'|'
   // A current local raid takes priority over a future dusk warning.
   if(d.minor){block=d.minor.block;phase=d.minor.retreat?'withdrawal':'minor raid';}
   else if(a){
-    block=w?.assault===a.id?w.block:(st.campaign?.expansion?.radio.restoredAt??-1)<0?st.campaign!.homeBlock:undefined;
+    block=st.campaign?.progression?.sites.some(s=>s.kind==='plant'&&s.installed&&s.block===a.block)||a.block===st.campaign!.homeBlock?a.block:w?.assault===a.id?w.block:((st.campaign?.expansion?.radio.restoredAt??-1)<0&&!st.campaign?.progression)?st.campaign!.homeBlock:undefined;
     phase=a.retreat?'withdrawal':st.t>=a.startsAt?'assault':'warning';
   }else {block=d.bases.find(b=>b.hp===0)?.block;phase='recovery';}
   const core=block===undefined?undefined:baseCore(st,block);
@@ -156,8 +165,9 @@ export function campaignWarning(st:SimState):string {
   const d=st.campaign?.defence;if(!d)return '';
   const a=d.major,w=d.warning;
   if(a) {
-    const known=w?.assault===a.id,homeOnly=(st.campaign?.expansion?.radio.restoredAt??-1)<0;
-    const target=known?blockName(st,w.block):homeOnly?'Home Court':'target unknown — radio offline';
+    const known=w?.assault===a.id,homeOnly=((st.campaign?.expansion?.radio.restoredAt??-1)<0&&!st.campaign?.progression);
+    const plant=st.campaign?.progression?.sites.find(s=>s.kind==='plant'&&s.installed&&s.block===a.block);
+    const target=plant?plant.name:known?blockName(st,w.block):a.block===st.campaign!.homeBlock?'Home Court':homeOnly?'Home Court':'target unknown — radio offline';
     const timing=a.retreat?'attackers withdrawing':a.waiting==='minor'?'assault delayed until the minor raid withdraws':a.waiting==='approach'?'assault delayed — no clear staging ground on the locked approach; waiting to resume':st.t>=a.startsAt?'assault underway':`assault at dusk in ${Math.ceil((a.startsAt-st.t)/60)} min`;
     const homeApproach=['north','east','south','west'][ground(st).opening!.direction];
     return `${d.minor?`Minor raid at ${blockName(st,d.minor.block)}${d.minor.retreat?' · withdrawing':''}. `:''}${target}: ${timing}${homeOnly?` · ${homeApproach} entrance`:known&&w.approach?` · approach ${w.approach} · ${w.composition}`:''}${known&&!radioPowered(st)?' · last received warning (radio offline)':''}`;
@@ -212,7 +222,7 @@ export function tickCampaignSchedule(st:SimState,T:ThreatState):void {
     }
   }
   const day=Math.floor(st.t/DAY),elapsed=st.t%DAY;
-  for(let k=0;k<2;k++)if(elapsed>=[300,600][k]&&day*2+k>d.lastMinorSlot) {
+  for(let k=0;k<2;k++)if(elapsed>=(day===0&&st.campaign?.progression?CORRECTIONS.openingMinorSlots:[300,600])[k]&&day*2+k>d.lastMinorSlot) {
     d.lastMinorSlot=day*2+k;
     if(d.minor||(a&&st.t>=a.startsAt)||st.t-d.lastMajorEnd<CAMPAIGN_THREAT.minorAfterMajor&&d.lastMajorEnd>=0)continue;
     const choices=eligible(st,false),base=choices[(day*2+k)%Math.max(1,choices.length)],origin=base?campaignOrigin(st,base):-1;
@@ -226,13 +236,14 @@ function fieldStep(st:SimState,c:Crawler,fld:Field,ignoreWaypoint=false):number 
   const G=ground(st),tw=G.tw,t=Math.floor(c.y)*tw+Math.floor(c.x);
   let next=ignoreWaypoint?-1:c.campaign!.waypoint??-1;
   if(next<0) {
-    let best=fld.dist[t]<0?Infinity:fld.dist[t];
-    for(let k=0;k<4;k++){const xx=Math.floor(c.x)+DX[k],yy=Math.floor(c.y)+DY[k],q=yy*tw+xx;if(!inGround(G,xx,yy)||fld.dist[q]<0||fld.dist[q]>=best)continue;best=fld.dist[q];next=q;}
+    let best=Infinity;
+    for(let k=0;k<4;k++){const xx=Math.floor(c.x)+DX[k],yy=Math.floor(c.y)+DY[k],q=yy*tw+xx;if(!inGround(G,xx,yy)||fld.dist[q]<0||fld.dist[t]>=0&&fld.dist[q]>=fld.dist[t])continue;const score=fld.dist[q]+(c.kind==='shade'&&litAt(st,xx,yy)?4:0);if(score<best){best=score;next=q;}}
+
   }
   return next;
 }
 export interface CampaignAction {
-  action:'attack'|'breach'|'pursue'|'advance'|'withdraw'|'guard'|'blocked';
+  action:'attack'|'breach'|'pursue'|'advance'|'withdraw'|'guard'|'roam'|'blocked';
   tx:number;ty:number;what:'you'|'wall'|'barricade'|'turret'|'base core'|'exit'|'ruin';
   destination:'base core'|'exit'|'ruin';
 }
@@ -242,16 +253,17 @@ export function campaignCrawlerAction(st:SimState,c:Crawler):CampaignAction {
   const origin={tx:meta.origin%G.tw,ty:Math.floor(meta.origin/G.tw)};
   const player={tx:Math.floor(e.x),ty:Math.floor(e.y),what:'you' as const};
   if(meta.layer==='site') {
-    const near=e.down<0&&Math.hypot(e.x-origin.tx-.5,e.y-origin.ty-.5)<=CAMPAIGN_THREAT.guardLeash&&Math.hypot(e.x-c.x,e.y-c.y)<=CAMPAIGN_THREAT.guardNotice;
-    return near?{...player,action:Math.hypot(e.x-c.x,e.y-c.y)<=1.2?'attack':'pursue',destination:'ruin'}:{...origin,what:'ruin',action:'guard',destination:'ruin'};
+    const near=e.down<0&&(c.onPlayer||citySight(st,c.x,c.y,e.x,e.y))&&Math.hypot(e.x-c.x,e.y-c.y)<=(c.onPlayer?CAMPAIGN_THREAT.chaseEscape:CAMPAIGN_THREAT.guardNotice);
+    const patrol=meta.patrol===undefined?origin:{tx:meta.patrol%G.tw,ty:Math.floor(meta.patrol/G.tw)};
+    return near?{...player,action:citySight(st,c.x,c.y,e.x,e.y)&&Math.hypot(e.x-c.x,e.y-c.y)<=1.2?'attack':'pursue',destination:'ruin'}:{...patrol,what:'ruin',action:'roam',destination:'ruin'};
   }
   const group=meta.layer==='major'?d.major:d.minor,core=baseCore(st,c.to);
   const retreat=!group||group.retreat||!core||core.hp===0;
   const destination=retreat?'exit':'base core';
   if(!retreat) {
-    if(e.down<0&&e.dash<=0&&Math.hypot(e.x-c.x,e.y-c.y)<=1.2)return {...player,action:'attack',destination};
-    if(c.onPlayer&&e.down<0&&Math.hypot(e.x-core.x,e.y-core.y)<25&&Math.hypot(e.x-c.x,e.y-c.y)<8)return {...player,action:'pursue',destination};
-    const nearby=st.flow!.machines.find(m=>m.kind==='turret'&&defenceHp(m)>0&&Math.hypot(c.x-m.x-m.size/2,c.y-m.y-m.size/2)<2);
+    if(e.down<0&&e.dash<=0&&citySight(st,c.x,c.y,e.x,e.y)&&Math.hypot(e.x-c.x,e.y-c.y)<=1.2)return {...player,action:'attack',destination};
+    if(c.onPlayer&&e.down<0&&Math.hypot(e.x-c.x,e.y-c.y)<=CAMPAIGN_THREAT.chaseEscape)return {...player,action:'pursue',destination};
+    const nearby=st.flow!.machines.find(m=>(m.kind==='turret'||m.kind==='cannon')&&defenceHp(m)>0&&citySight(st,c.x,c.y,m.x+m.size/2,m.y+m.size/2)&&Math.hypot(c.x-m.x-m.size/2,c.y-m.y-m.size/2)<2);
     if(nearby)return {tx:nearby.x,ty:nearby.y,what:'turret',action:'attack',destination};
   }
   const x=retreat?origin.tx:core.x,y=retreat?origin.ty:core.y,size=retreat?0:core.size;
@@ -267,8 +279,9 @@ function walkField(st:SimState,c:Crawler,fld:Field,dt:number):boolean {
   const next=fieldStep(st,c,fld);
   if(next<0){c.stuck+=dt;return false;}
   const x=next%tw,y=Math.floor(next/tw),m=machineAt(st,x,y);
-  if(m&&defenceMax(m)>0&&defenceHp(m)>0){damageDefence(st,m,CAMPAIGN_THREAT.structureDps*dt);delete meta.waypoint;return false;}
+  if(m&&defenceMax(m)>0&&defenceHp(m)>0){damageDefence(st,m,CAMPAIGN_THREAT.structureDps*dt*(c.role==='breaker'?3:1));delete meta.waypoint;return false;}
   if(!hostileOpen(st,x,y)){delete meta.waypoint;c.stuck+=dt;return false;}
+  if(st.city?.mapId&&st.flow!.threat!.crawlers.some(o=>o!==c&&Math.hypot(o.x-x-.5,o.y-y-.5)<.7)){c.stuck+=dt;delete meta.waypoint;return false;}
   meta.waypoint=next;moveTo(c,x+.5,y+.5,CAMPAIGN_THREAT.speed*dt);c.stuck=0;
   if(Math.hypot(c.x-x-.5,c.y-y-.5)<1e-8)delete meta.waypoint;
   return false;
@@ -279,11 +292,22 @@ export function tickCampaignThreat(st:SimState,T:ThreatState,dt:number):void {
   const G=ground(st),e=st.engineer;
   for(const c of [...T.crawlers]) {
     const meta=c.campaign;if(!meta)continue;
+    if(meta.encounter){const site=st.campaign?.progression?.sites.find(s=>s.id===meta.encounter);if(site&&c.role!=='conductor'){if(walkField(st,c,route(st,c,site.x,site.y,site.size),dt)){site.started=false;st.campaign!.progression!.notice='Encounter interrupted by attackers; clear them and resume. Progress retained.';}continue;}}
+    if(c.role==='conductor'&&!(meta.layer!=='site'&&(baseCore(st,c.to)?.hp===0||(meta.layer==='major'?st.campaign!.defence!.major?.retreat:st.campaign!.defence!.minor?.retreat)))){c.signal=(c.signal??0)+dt;const emitted=Math.floor(c.signal/CORRECTIONS.reinforcementSeconds);if(emitted>Math.floor((c.signal-dt)/CORRECTIONS.reinforcementSeconds)&&emitted<=CORRECTIONS.reinforcementLimit){spawnSiteEnemy(st,{x:Math.floor(c.x),y:Math.floor(c.y),block:c.to} as import('./progression').ProgressionSite);}continue;}
+    if(meta.layer==='site'&&!c.onPlayer&&(meta.patrol===undefined||Math.hypot(c.x-meta.patrol%G.tw-.5,c.y-Math.floor(meta.patrol/G.tw)-.5)<.3||c.stuck>2)){
+      const ox=meta.origin%G.tw,oy=Math.floor(meta.origin/G.tw),choices:number[]=[];
+      for(let y=oy-CAMPAIGN_THREAT.patrolRadius;y<=oy+CAMPAIGN_THREAT.patrolRadius;y++)for(let x=ox-CAMPAIGN_THREAT.patrolRadius;x<=ox+CAMPAIGN_THREAT.patrolRadius;x++)
+        if(Math.hypot(x-ox,y-oy)<=CAMPAIGN_THREAT.patrolRadius&&passable(st,x,y)&&Math.hypot(c.x-x-.5,c.y-y-.5)>1)choices.push(y*G.tw+x);
+      meta.patrolStep=(meta.patrolStep??0)+1;meta.patrol=choices[(c.id*17+meta.patrolStep*31)%choices.length]??meta.origin;c.stuck=0;
+    }
     const action=campaignCrawlerAction(st,c);
     if(meta.layer==='site') {
-      c.onPlayer=action.what==='you';
+      const wasChasing=c.onPlayer;c.onPlayer=action.what==='you';
+      if(wasChasing&&!c.onPlayer){meta.patrol=meta.origin;delete meta.waypoint;}
+      if(c.onPlayer){delete meta.patrol;delete meta.waypoint;}
       if(action.action==='attack'){if(e.dash<=0)hurt(st,CAMPAIGN_THREAT.contactDps*dt);T.dangerS+=dt;}
-      else stepToward(st,G,c,c.onPlayer?e.x:action.tx+.5,c.onPlayer?e.y:action.ty+.5,CAMPAIGN_THREAT.speed*dt);
+      else if(c.onPlayer){const before=[c.x,c.y];stepToward(st,G,c,e.x,e.y,CAMPAIGN_THREAT.speed*dt,c.kind==='shade'?(x,y)=>litAt(st,x,y)?4:0:undefined);c.stuck=Math.hypot(c.x-before[0],c.y-before[1])<1e-8?c.stuck+dt:0;}
+      else {const before=[c.x,c.y];stepToward(st,G,c,meta.patrol!%G.tw+.5,Math.floor(meta.patrol!/G.tw)+.5,CAMPAIGN_THREAT.speed*dt*.6);c.stuck=Math.hypot(c.x-before[0],c.y-before[1])<1e-8?c.stuck+dt:0;}
       continue;
     }
     if(action.destination==='exit') {
@@ -294,17 +318,17 @@ export function tickCampaignThreat(st:SimState,T:ThreatState,dt:number):void {
     }
     if(action.what==='you') {
       if(action.action==='attack'){hurt(st,CAMPAIGN_THREAT.contactDps*dt);T.dangerS+=dt;}
-      else {delete meta.waypoint;stepToward(st,G,c,e.x,e.y,CAMPAIGN_THREAT.speed*dt);}
+      else {delete meta.waypoint;stepToward(st,G,c,e.x,e.y,CAMPAIGN_THREAT.speed*dt,c.kind==='shade'?(x,y)=>litAt(st,x,y)?4:0:undefined);}
       continue;
     }
     c.onPlayer=false;
-    if(action.action==='attack'&&action.what==='turret'){damageDefence(st,machineAt(st,action.tx,action.ty)!,CAMPAIGN_THREAT.structureDps*dt);continue;}
+    if(action.action==='attack'&&action.what==='turret'){damageDefence(st,machineAt(st,action.tx,action.ty)!,CAMPAIGN_THREAT.structureDps*dt*(c.role==='breaker'?3:1));continue;}
     const core=baseCore(st,c.to)!;
-    if(walkField(st,c,route(st,c,core.x,core.y,core.size),dt))damageCore(st,core,CAMPAIGN_THREAT.structureDps*dt);
+    if(walkField(st,c,route(st,c,core.x,core.y,core.size),dt))damageCore(st,core,CAMPAIGN_THREAT.structureDps*dt*(c.role==='breaker'?3:1));
   }
 }
 export function describeCampaignCrawler(st:SimState,c:Crawler):string {
   const meta=c.campaign!,a=campaignCrawlerAction(st,c);
-  const verb={attack:'attacking',breach:'breaching',pursue:'pursuing',advance:'advancing toward',withdraw:'withdrawing toward',guard:'guarding',blocked:'route blocked toward'}[a.action];
-  return `Crawler · ${Math.ceil(c.hp)}/12 HP · ${meta.layer==='site'?'ruin guardian (leashed)':`${meta.layer==='major'?'major assault':'minor raid'} at ${blockName(st,c.to)}`} · now ${verb} ${a.what} · destination: ${a.destination}${c.stuck>1?' · approach obstructed':''}`;
+  const verb={attack:'attacking',breach:'breaching',pursue:'pursuing',advance:'advancing toward',withdraw:'withdrawing toward',guard:'guarding',roam:'roaming around',blocked:'route blocked toward'}[a.action];
+  return `${c.role==='breaker'?'Breaker':c.role==='conductor'?'Conductor':c.kind==='shade'?'Shade':'Crawler'} · ${Math.ceil(c.hp)} HP · ${meta.layer==='site'?'ruin guardian':`${meta.layer==='major'?'major assault':'minor raid'} at ${blockName(st,c.to)}`} · now ${verb} ${a.what} · destination: ${a.destination}${c.stuck>1?' · approach obstructed':''}`;
 }

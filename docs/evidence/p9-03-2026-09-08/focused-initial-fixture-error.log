@@ -1,0 +1,79 @@
+TAP version 13
+# Subtest: survey revision 2: seed 6 composes legal tracks/stops and preserves an older paid save
+ok 1 - survey revision 2: seed 6 composes legal tracks/stops and preserves an older paid save
+  ---
+  duration_ms: 4107.152727
+  type: 'test'
+  ...
+# Subtest: survey revision 2: seed 29 composes legal tracks/stops and preserves an older paid save
+ok 2 - survey revision 2: seed 29 composes legal tracks/stops and preserves an older paid save
+  ---
+  duration_ms: 2740.426523
+  type: 'test'
+  ...
+# Subtest: old survey logs remain available but cannot claim new-factory replay; new survey saves retain complete logs
+ok 3 - old survey logs remain available but cannot claim new-factory replay; new survey saves retain complete logs
+  ---
+  duration_ms: 838.428129
+  type: 'test'
+  ...
+# Subtest: unknown survey revision refuses load without treating the saved route as a new survey
+ok 4 - unknown survey revision refuses load without treating the saved route as a new survey
+  ---
+  duration_ms: 252.97224
+  type: 'test'
+  ...
+# Subtest: navigation uses existing deterministic names and known sites without revealing hidden destinations
+ok 5 - navigation uses existing deterministic names and known sites without revealing hidden destinations
+  ---
+  duration_ms: 3905.923526
+  type: 'test'
+  ...
+# Subtest: names, defaults and pins use atomic bounded commands, stable identities and literal text
+ok 6 - names, defaults and pins use atomic bounded commands, stable identities and literal text
+  ---
+  duration_ms: 290.977182
+  type: 'test'
+  ...
+# Subtest: physical travel records visits; annotations and visits replay and continue through saves
+ok 7 - physical travel records visits; annotations and visits replay and continue through saves
+  ---
+  duration_ms: 2200.84582
+  type: 'test'
+  ...
+# Subtest: invalid saved navigation refuses versions, unknown targets, uncharted pins and malformed records
+not ok 8 - invalid saved navigation refuses versions, unknown targets, uncharted pins and malformed records
+  ---
+  duration_ms: 609.640672
+  type: 'test'
+  location: '/mnt/e/Factorio2/packages/sim/test/navigation.test.ts:27:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (/mnt/e/Factorio2/packages/sim/test/navigation.test.ts:30:94)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: old revision-2 saves retain geometry and stock but do not claim replay before visit tracking
+ok 9 - old revision-2 saves retain geometry and stock but do not claim replay before visit tracking
+  ---
+  duration_ms: 1404.846224
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 27930.244631

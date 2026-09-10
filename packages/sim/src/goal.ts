@@ -1,9 +1,13 @@
+import {itemName} from './itemNames';
+import {conveyorDestinations} from './directConveyor';
+import {DX,DY} from './flow';
+import {cityApproach} from './authoredCity';
+import {fixedPoweredStops,fixedTramStatus} from './fixedTram';
 import { routingDescription, routingStatus } from './routing';
-import { knownSite } from './campaignGuide';
+import { campaignDiscoveries } from './campaignGuide';
 import { campaignGrid } from './campaignPower';
-import { districtGuidance } from './campaignDistricts';
 import { campaignWarning } from './campaignThreat';
-import { defenceMax, defenceHp, coreDisabledAt } from './campaignDefence';
+import { DEFENCE,repairCheck,defenceMax, defenceHp, coreDisabledAt } from './campaignDefence';
 /** RI-02 — the current-goal line (D-GB-2 (a), constitution rule 8's form; plan §11.2 "prominent current goal with
  *  the reason it matters"). One line, read off the sim's own state every time it is asked: the next §11 constraint
  *  the player has not met, with the numbers that make it matter. No list, no screens, no quest state — the goal
@@ -17,10 +21,9 @@ import { defenceMax, defenceHp, coreDisabledAt } from './campaignDefence';
  *  running / starved / blocked / idle / off word of the same section. E-hour samples `currentGoal` at 1 Hz through
  *  the logged hour and checks every id against the state it claims (packages/harness goalcheck.ts). */
 import { SimState, HELD, DARK, CONTESTED, Edge } from './types';
-import { describeSite } from './expansion';
 import { isCampaign } from './rules';
 import {
-  Machine, MACHINE_COST, MACHINE_KW, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
+  chestCount, depotRect, Machine, MACHINE_COST, MACHINE_KW, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
   recipeOf, recipeOutput, subPowered, poleGrid, inputTile, outputTile, findRubble, asmCanStart, costStr, Item,
   isFieldKind, fieldBlock, powered, invTotal, tramAt, tramRoute, nextOf, BELT_SPACING, inserterPickup,
 } from './flow';
@@ -59,7 +62,74 @@ export interface GoalLine {
   /** The block the line is about (a claim, a street), for the map's marker; absent when it is about the HQ lot. */
   block?: number;
 }
-export interface Goal { goal: GoalLine; support: GoalLine | null }
+export interface NextAction {
+  id: string; title: string; text: string; detail: string;
+  location?: {x:number;y:number}; shortage?: {item:'steel'|'copper';count:number;home:number}[];
+}
+export interface Goal { goal: GoalLine; support: GoalLine | null; next?: NextAction }
+
+/** Presentation derived only from saved facts. No completion flags or commands. */
+function campaignNext(st:SimState, tracked?:string|null):NextAction {
+  const e=st.engineer, home=depotRect(st), location={x:home.x+home.size/2,y:home.y+home.size/2};
+  if(e.down>=0)return {id:'recovery',title:'Recover at Home',text:`Back on your feet in ${Math.ceil(Math.max(0,e.down-st.t))} s`,detail:'Movement and interaction resume after recovery.',location};
+  const damagedHome=st.campaign?.defence?.bases.find(b=>b.block===st.campaign!.homeBlock&&b.hp===0);
+  if(damagedHome)return {id:'home-recovery',title:'Restore Home power',text:repairCheck(st,damagedHome.x,damagedHome.y)||'Aim at the Home core and press E to repair',detail:`Home is disabled. Carry ${DEFENCE.coreSteel} Steel plates and ${DEFENCE.coreCopper} Copper; after attackers leave, repair the core to restart existing machines. Hand mining still works.`,location:{x:damagedHome.x,y:damagedHome.y}};
+  const selected=tracked?campaignDiscoveries(st).find(s=>s.id===tracked):undefined;
+  if(selected){const need=selected.needs.find(n=>n.delivered<n.required);return {id:selected.id,title:selected.title,text:need?`Deliver ${need.required-need.delivered} ${itemName(need.item)}`:selected.status,detail:selected.detail,location:cityApproach(st,selected.x+selected.size/2,selected.y+selected.size/2)};}
+  if(st.campaign?.progression?.passenger)return {id:'tram-passenger',title:'Riding the tram',text:'E to disembark safely',detail:fixedTramStatus(st)};
+  if(['core1','core2','core3'].some(k=>(e.inv[k]??0)>0)){
+    const plant=st.campaign?.progression?.sites.find(s=>s.kind==='plant'&&!s.installed);
+    if(plant)return {id:plant.id,title:'Choose a regional plant',text:'Deliver preparation materials and install your carried core',detail:'Any compatible uncommissioned plant accepts your core. Inspect its material requirements before activation.',location:cityApproach(st,plant.x,plant.y)};
+  }
+  const all=machines(st), production=all.filter(m=>['excavator','pumpjack','assembler','assembler2','mixer','foundry','refinery'].includes(m.kind));
+  const cost=(kind:import('./flow').Kind)=>costStr(MACHINE_COST[kind]);
+  const buildStep=(kind:import('./flow').Kind,title:string,instruction:string):NextAction=>{
+    const price=MACHINE_COST[kind],packed=(e.inv[kind]??0)>=1,shortage=(['steel','copper'] as const).map(item=>({item,count:packed?0:Math.max(0,price[item]-(e.inv[item]??0)),home:chestCount(st,item)})).filter(s=>s.count>0);
+    return {id:'opening-workshop',title,text:`${instruction} · ${packed?'1 packed machine ready':cost(kind)}`,detail:`${shortage.length?'Still need '+shortage.map(s=>`${s.count} ${itemName(s.item)} (${Math.min(s.count,s.home)} available at Home)`).join(' + ')+'. Hold left-click on salvage to gather, or collect stored supplies.':'Materials ready in Backpack. Open Build to place it.'} Opening order: 1 Generator → 1 Excavator → 1 Supply chest → Belts into the chest.`,location,shortage};
+  };
+  const gen=all.find(m=>m.kind==='generator');
+  if(!gen)return buildStep('generator','1 · Build a Generator','Place 1 Generator in Founders Court');
+  const excavator=all.find(m=>m.kind==='excavator');
+  if(!excavator)return buildStep('excavator','2 · Build an Excavator','Place 1 Excavator at a resource patch edge, with a clear side for belts');
+  const stores=all.filter(m=>m.kind==='chest');
+  if(!stores.length)return buildStep('chest','3 · Build storage','Place 1 Supply chest near the Excavator');
+  const destinations=conveyorDestinations(st);
+  const receiversOf=(source:Machine)=>[...new Map(all.filter(b=>machineAt(st,b.x-DX[b.dir],b.y-DY[b.dir])?.id===source.id).flatMap(b=>destinations.get(b.id)??[]).map(m=>[m.id,m])).values()];
+  if(!receiversOf(excavator).some(m=>m.kind==='chest'))return {id:'opening-workshop',title:'4 · Connect belts to storage',text:`Connect Excavator → Supply chest · ${cost('belt')} per Belt`,detail:'Use at least 1 Belt; the total depends on the gap. Point its arrow away from the Excavator and into the chest. R rotates. Clear salvage along the route; inserters are not needed.',location:{x:excavator.x,y:excavator.y}};
+  if((gen.inv.coal??0)+(gen.inv.fuel??0)<=0)return {id:'opening-workshop',title:'Fuel your Generator',text:'Gather at least 1 Coal, then open the Generator inventory',detail:'Select Coal in your Backpack, enter the quantity and Load. One Coal starts generation; keep a reserve or connect a fuel supply. The Generator inventory shows remaining fuel.',location:{x:gen.x,y:gen.y}};
+  const excavatorStatus=machineStatus(st,excavator);
+  if(excavatorStatus.state!=='running'&&!excavator.hold)return {id:'opening-workshop',title:'Start your extraction line',text:excavatorStatus.reason,detail:'Inspect the Excavator to check its resource, power and output connection.',location:{x:excavator.x,y:excavator.y}};
+  const turret=all.find(m=>m.kind==='turret');
+  if(!turret)return buildStep('turret','5 · Build your first turret','Place 1 Turret to defend the approach to Home');
+  if((turret.inv.rounds??0)<=0){
+    if((e.inv.magazine??0)<1)return {id:'opening-workshop',title:'6 · Make turret ammunition',text:`Open Home workshop → Craft Shot magazine · ${SHOT.inputs.steel} Steel plates + ${SHOT.inputs.copper} Copper`,detail:`Make at least 1 magazine (${SHOT.count} rounds, ${SHOT.seconds} seconds). Crafting is at the top of Home storage / Backpack when near Home. Stay nearby until it finishes; the magazine appears in your Backpack.`,location};
+    return {id:'opening-workshop',title:'7 · Load your turret',text:`Open the Turret inventory and load at least 1 Shot magazine (${SHOT.count} rounds)`,detail:'Select Shot magazines on the left, choose a quantity, then Load. Check rounds on the right. Belts can keep the turret supplied later.',location:{x:turret.x,y:turret.y}};
+  }
+  const ammo=production.find(m=>['assembler','assembler2'].includes(m.kind)&&recipeOutput(recipeOf(m))==='magazine');
+  if(!ammo)return {id:'opening-ammo',title:'Supply your defence',text:`Build 1 Assembler · ${cost('assembler')} · choose Shot magazines`,detail:'A loaded turret eventually runs dry. Supply Steel plates and Copper to an Assembler, then point an output conveyor towards storage or a turret. You can scout whenever you choose.',location};
+  const ammoStatus=machineStatus(st,ammo),ammoLocation={x:ammo.x+ammo.size/2,y:ammo.y+ammo.size/2};
+  if(ammoStatus.state!=='running'&&ammo.out===0)return {id:'opening-ammo',title:'Keep ammunition producing',text:ammoStatus.reason,detail:'Inspect your magazine Assembler for its current input, power or output shortage. A loaded turret is only a reserve.',location:ammoLocation};
+  const receivers=receiversOf(ammo).filter(m=>['turret','chest','tramstop','depot'].includes(m.kind)),connected=receivers.length>0;
+  if(!connected)return {id:'opening-ammo',title:'Deliver useful ammunition',text:'Connect the Assembler output to storage or a turret',detail:'Point a conveyor away from the Assembler and into the receiver. Belts transfer finished magazines directly; keep Steel plates, Copper and generator fuel supplied.',location:ammoLocation};
+  if((ammo.observation?.produced.magazine??ammo.out)<=0)return {id:'opening-ammo',title:'Watch the first magazine arrive',text:'Output route connected; waiting for machine production',detail:'Follow the magazine along the belt. A connection alone does not mean the turret has ammunition.',location:ammoLocation};
+  if(receivers.every(m=>m.kind==='turret'?(m.inv.rounds??0)<=0:m.kind==='depot'?chestCount(st,'magazine')<=0:(m.inv.magazine??0)+(m.cargo?.magazine??0)<=0))return {id:'opening-ammo',title:'Check ammunition delivery',text:'Magazines produced; the connected receiver is empty',detail:'Follow the output belt and inspect its receiver. Keep materials and fuel supplied; a route alone does not mean ammunition has arrived.',location:ammoLocation};
+  if((e.inv.magazine??0)<2&&!st.campaign?.progression?.sites.some(s=>s.recovered))return {id:'opening-workshop',title:'Prepare to scout',text:'Carry spare Shot magazines for your rifle',detail:'Your connected Assembler has produced magazines. Check the receiving turret and fuel before leaving; the reserve is finite. Build supplies and defence, recover a core, then restore a plant for local power and another site to defend.',location};
+  const ex=st.campaign?.expansion;
+  if(ex&&ex.radio.restoredAt>=0){
+    const linked=st.campaign?.fixedTram?fixedPoweredStops(st).length>=2:ex.route.every(t=>machineAt(st,t%st.flow!.tw,Math.floor(t/st.flow!.tw))?.kind==='track')&&ex.stops.every(([x,y])=>{const m=machineAt(st,x,y);return m?.kind==='tramstop'&&powered(st,m);})&&machines(st).some(m=>m.kind==='tram'&&tramRoute(st,m).includes(ex.route[0]));
+    if(!linked)return {id:'station',title:'Power your tram stops',text:'Power at least two permanent stops',detail:st.campaign?.fixedTram?fixedTramStatus(st):'Connect and power the existing route.',location:{x:ex.station.x,y:ex.station.y}};
+  }
+  const sites=campaignDiscoveries(st),progression=st.campaign?.progression;
+  if(progression){
+    const carryingCore=['core1','core2','core3'].some(k=>(e.inv[k]??0)>0);
+    const target=progression.sites.find(s=>carryingCore?s.kind==='plant'&&!s.installed:s.kind==='core'&&!s.recovered);
+    const info=target&&sites.find(s=>s.id===target.id);
+    if(info)return {id:info.id,title:carryingCore?'Choose a regional plant':info.title,text:carryingCore?'Deliver preparation materials and install your carried core':info.status,detail:carryingCore?'Any compatible uncommissioned plant accepts your core. Inspect its material requirements before activation.':info.detail,location:{x:info.x,y:info.y}};
+  }
+  const next=sites.find(s=>s.needs.some(n=>n.delivered<n.required))??sites.find(s=>s.actions.some(a=>a.commands.some(c=>c.type==='restoreSite')));
+  if(next)return {id:next.id,title:next.title,text:'Supply and restore this known installation',detail:next.detail,location:{x:next.x+next.size/2,y:next.y+next.size/2}};
+  return {id:'opening-workshop',title:'Keep your workshop producing',text:'Explore and connect your known destinations',detail:'Your existing production is running. Use Projects for restoration and service details.'};
+}
 
 // ------------------------------------------------------------------ counting what stands
 
@@ -224,7 +294,7 @@ function supportOf(st: SimState): GoalLine | null {
   const f = st.flow;
   if (!f) return null;
   const gens = generators(st);
-  if (gens.length > 0 && gens.every(m => (m.inv.coal ?? 0) <= 0)) {
+  if (gens.length > 0 && gens.every(m => (m.inv.coal ?? 0)+(m.inv.fuel??0) <= 0)) {
     const chest = f.store.coal, pockets = e.inv.coal ?? 0;
     return { id: 'gen-dry', text: chest + pockets > 0 ? `Every Generator is out of coal — feed one (E) from ${pockets > 0 ? `the pockets (${n(pockets)})` : `the chest (${n(chest)})`}` : 'Every Generator is out of coal and there is none on hand — dig the coal patch',
              why: 'a dead grid stops every Excavator, inserter and Assembler at once' };
@@ -242,20 +312,10 @@ function supportOf(st: SimState): GoalLine | null {
 }
 
 /** The current goal and its support line. Pure; cheap enough for a HUD to call once a second. */
-export function currentGoal(st: SimState): Goal {
+export function currentGoal(st: SimState, tracked?:string|null): Goal {
   if (isCampaign(st)) {
-    const factory = st.flow?.machines.some(m => m.kind === 'excavator' || (m.kind === 'assembler'||m.kind==='mixer'));
-    const ex = st.campaign?.expansion;
-    if (ex && ex.radio.restoredAt >= 0) {
-      const linked = ex.route.every(t => machineAt(st, t % st.flow!.tw, Math.floor(t / st.flow!.tw))?.kind === 'track')
-        && ex.stops.every(([x,y]) => { const m = machineAt(st,x,y); return m?.kind === 'tramstop' && powered(st,m); })
-        && !!st.flow?.machines.some(m => m.kind === 'tram' && tramRoute(st,m).includes(ex.route[0]));
-      if (!linked) return { goal: { id: 'home-explore', text: 'Lay the supplied tram route and power both stops', why: 'Blue survey squares mark track and stop positions. Collect any remaining kit at the station; place the tram on the completed line.' }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
-    }
-    if(ex&&ex.radio.restoredAt>=0&&st.campaign?.districts) { const d=st.campaign.districts;return {goal:{id:'home-explore',block:d.station.block,text:d.station.restoredAt<0?'Extend your tram supply line to the later station':d.workshop.restoredAt<0?'Restore and supply the repair workshop':'Connect specialised extraction and keep home producing supplies',why:knownSite(st,'workshop')?districtGuidance(st):'Extend the surveyed line, establish local power and explore the next district for services.'},support:{id:'campaign-threat',text:campaignWarning(st),why:'Protect the supplies and prepare for dusk.'}};}
-    if (ex && (factory || ex.station.restoredAt >= 0)) return { goal: { id: 'home-explore', block: ex.station.block, text: ex.station.restoredAt < 0 ? `Explore to ${blockName(st, ex.station.block)} and restore its tram station` : ex.radio.restoredAt < 0 ? 'Connect the tram line and restore the nearby radio tower' : 'Build factories around your connected station', why: describeSite(st, ex.station.restoredAt < 0 ? 'station' : 'radio') }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
-    return { goal: { id: factory ? 'home-explore' : 'home-factory', text: factory ? 'Explore beyond Home Court through its single entrance' : 'Build your first production line in Home Court',
-      why: factory ? 'Your house and factory remain here when you return.' : 'E at the house opens your supplies; B opens building. Steel and copper patches are inside the court.' }, support: {id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'} };
+    const next=campaignNext(st,tracked);
+    return {next,goal:{id:next.id==='opening-workshop'?'home-factory':next.id==='recovery'?'down':'home-explore',text:next.title,why:next.text},support:{id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'}};
   }
   return { goal: goalOf(st), support: supportOf(st) };
 }
@@ -271,28 +331,34 @@ export function machineStatus(st: SimState, m: Machine): MachineStatus {
   const field = bi >= 0 && isFieldKind(m.kind) && fieldBlock(st, bi);   // RI-03: the field kit runs on the claim front
   if (!b || (!isCampaign(st) && b.state !== HELD && !field)) return { state: 'off', reason: 'block not Held' };
   if (MACHINE_KW[m.kind] > 0 && !powered(st, m)) return { state: 'off', reason: field ? 'no connected pole in reach' : 'no power' };
+  return machineOperationStatus(st,m);
+}
+/** Operating predicates without the independent location/power gate; shared by multi-constraint inspection. */
+export function machineOperationStatus(st:SimState,m:Machine):MachineStatus {
+  const bi=blockOfTile(st,m.x,m.y),b=bi>=0?st.blocks[bi]:null;
   switch (m.kind) {
     case 'barricade': case 'wall': return {state:'idle',reason:`${Math.ceil(defenceHp(m))} HP`};
+    case 'cannon': return (m.inv.shell??0)>0?{state:'idle',reason:'ready; waiting for target'}:{state:'starved',reason:'needs shells'};
     case 'turret': {
       if ((m.inv.rounds ?? 0) < 1) return { state: 'starved', reason: 'empty hopper' };
       return m.out > 0 || m.timer > 0 ? { state: 'running', reason: 'firing' } : { state: 'idle', reason: 'nothing in range' };
     }
     case 'generator': {
-      if ((m.inv.coal ?? 0) <= 0) return { state: 'starved', reason: 'out of coal' };
+      if ((m.inv.coal ?? 0)+(m.inv.fuel??0) <= 0) return { state: 'starved', reason: 'out of coal' };
       if(isCampaign(st))return (campaignGrid(st).generation.get(m.id)??0)>0?{state:'running',reason:'supplying local circuit'}:{state:'idle',reason:'no local load'};
       return m.busy ? { state: 'running', reason: 'burning' } : { state: 'idle', reason: 'no load' };
     }
-    case 'excavator': {
-      if (m.hold) return { state: 'blocked', reason: `output blocked (${m.hold})` };
+    case 'pumpjack': case 'excavator': {
+      if (m.hold) return { state: 'blocked', reason: `output blocked (${itemName(m.hold)})` };
       const r = findRubble(st, m);
-      return r ? { state: 'running', reason: `digging ${r.type}` } : { state: 'starved', reason: 'nothing in reach' };
+      return r ? { state: 'running', reason: `digging ${itemName(r.type)}` } : { state: 'starved', reason: 'nothing in reach' };
     }
-    case 'mixer': case 'assembler': {
-      if (m.busy) return { state: 'running', reason: `making ${recipeOutput(recipeOf(m))}` };
+    case 'mixer': case 'foundry': case 'refinery': case 'assembler2': case 'assembler': {
+      if (m.busy) return { state: 'running', reason: `making ${itemName(recipeOutput(recipeOf(m)))}` };
       if (m.out >= ASM_OUTPUT_CAP) return { state: 'blocked', reason: 'output full' };
       if (!asmCanStart(m)) {
         const r = recipeOf(m), short = Object.keys(r.inputs).filter(k => (m.inv[k] ?? 0) < r.inputs[k]);
-        return { state: 'starved', reason: `needs ${short.join(', ')}` };
+        return { state: 'starved', reason: `needs ${short.map(itemName).join(', ')}` };
       }
       return { state: 'idle', reason: 'ready' };
     }
@@ -300,20 +366,20 @@ export function machineStatus(st: SimState, m: Machine): MachineStatus {
       const [sx, sy] = inputTile(m), [dx, dy] = outputTile(m);
       const src = machineAt(st, sx, sy), dst = machineAt(st, dx, dy);
       if(isCampaign(st)){
-        if(m.phase===1&&m.hold)return m.timer<=1e-9&&(!dst||!accepts(st,dst,m.hold,.5))?{state:'blocked',reason:dst?`${dst.kind} cannot accept ${m.hold}`:'no destination; held item retained'}:{state:'running',reason:`carrying ${m.hold}`};
+        if(m.phase===1&&m.hold)return m.timer<=1e-9&&(!dst||!accepts(st,dst,m.hold,.5))?{state:'blocked',reason:dst?`${dst.kind} cannot accept ${itemName(m.hold)}`:'no destination; held item retained'}:{state:'running',reason:`carrying ${itemName(m.hold)}`};
         if(m.phase===2)return {state:'running',reason:'returning to pickup'};
-        const pick=inserterPickup(st,m);if(pick)return {state:'idle',reason:`ready to pick up ${pick.item}`};
-        const waiting=inserterPickup(st,m,true);if(waiting)return {state:'blocked',reason:`destination cannot accept ${waiting.item}`};
+        const pick=inserterPickup(st,m);if(pick)return {state:'idle',reason:`ready to pick up ${itemName(pick.item)}`};
+        const waiting=inserterPickup(st,m,true);if(waiting)return {state:'blocked',reason:`destination cannot accept ${itemName(waiting.item)}`};
       }
       if (!src || !dst) return { state: 'starved', reason: !src ? 'nothing behind it' : 'nothing in front' };
       if (m.phase === 1 && m.hold && m.timer <= 1e-9 && !accepts(st, dst, m.hold, 0.5)) return { state: 'blocked', reason: `${dst.kind} full` };
-      if (m.phase !== 0) return { state: 'running', reason: m.hold ? `carrying ${m.hold}` : 'swinging back' };
-      return { state: 'starved', reason: m.filter?`no matching ${m.filter} to pick up`:'nothing to pick up' };
+      if (m.phase !== 0) return { state: 'running', reason: m.hold ? `carrying ${itemName(m.hold)}` : 'swinging back' };
+      return { state: 'starved', reason: m.filter?`no matching ${itemName(m.filter)} to pick up`:'nothing to pick up' };
     }
     case 'underground': case 'splitter': return {state:routingStatus(st,m),reason:routingDescription(st,m)};
-    case 'belt': {
+    case 'fastbelt': case 'belt': {
       const lead=m.items.at(-1),dst=nextOf(st,m);
-      if(isCampaign(st)&&lead&&lead.p>=1-BELT_SPACING/2-1e-9&&(!dst||!accepts(st,dst,lead.k)))return {state:'blocked',reason:dst?`output cannot accept ${lead.k}`:'no output connection'};
+      if(isCampaign(st)&&lead&&lead.p>=1-BELT_SPACING/2-1e-9&&(!dst||!accepts(st,dst,lead.k)))return {state:'blocked',reason:dst?`output cannot accept ${itemName(lead.k)}`:'no output connection'};
       return m.items.length?{state:'running',reason:`${m.items.length} items moving`}:{state:'idle',reason:'empty'};
     }
     case 'arclamp': case 'lamp': case 'floodlight': return { state: 'running', reason: 'lit' };
@@ -321,7 +387,7 @@ export function machineStatus(st: SimState, m: Machine): MachineStatus {
       if(isCampaign(st))return (campaignGrid(st).poles.get(m.id)?.supply??0)>0?{state:'running',reason:'connected to a supplied circuit'}:{state:'off',reason:'no connected supply'};
       return poleGrid(st).connected.has(m.id)?{state:'running',reason:'on the grid'}:{state:'idle',reason:'not connected'};
     }
-    case 'substation': return (isCampaign(st)?campaignGrid(st).blocks[bi].throttle>0:subPowered(st, b)) ? { state: 'running', reason: 'on' } : { state: 'off', reason: 'no circuit supply' };
+    case 'substation': return (isCampaign(st)?campaignGrid(st).blocks[bi].throttle>0:!!b&&subPowered(st, b)) ? { state: 'running', reason: 'on' } : { state: 'off', reason: 'no circuit supply' };
     case 'depot': return { state: 'idle', reason: `${chestMags(st)} magazines in the line buffer` };
     // RI-05
     case 'chest': { const n = invTotal(m.inv); return n > 0 ? { state: 'idle', reason: `${n} item${n === 1 ? '' : 's'}` } : { state: 'idle', reason: 'empty' }; }

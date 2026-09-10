@@ -1,3 +1,4 @@
+import { uiInput } from './uiShell';
 /** The map view: a 24×24 grid of city blocks drawn from sim state every frame. Flat colour only. The sim is stepped
  *  by main.ts once per game step; this scene draws, consumes events for its pulses, and hands E the hovered block. */
 import Phaser from 'phaser';
@@ -132,6 +133,7 @@ export class MapScene extends Phaser.Scene implements MapView {
   }
 
   private onDown(p: Phaser.Input.Pointer): void {
+    if(uiInput.blocked)return;
     const pip = this.pipAt(p.x, p.y);
     if (pip) {
       this.selectedEdge = this.selectedEdge === pip.id ? null : pip.id;

@@ -1,0 +1,20 @@
+[
+  {
+    "case": "active-lock",
+    "exitCode": 1,
+    "expected": "already running",
+    "retainedRowsUnchanged": true
+  },
+  {
+    "case": "population-mismatch",
+    "exitCode": 1,
+    "expected": "resume identity differs: seeds",
+    "retainedRowsUnchanged": true
+  },
+  {
+    "case": "existing-directory",
+    "exitCode": 1,
+    "expected": "output directory exists",
+    "retainedRowsUnchanged": true
+  }
+]

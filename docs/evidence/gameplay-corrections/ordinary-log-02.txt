@@ -1,0 +1,14 @@
+/mnt/e/Factorio2/docs/evidence/gameplay-corrections/ordinary-opening.ts:9
+function near(x:number,y:number){for(let radius=1;radius<7;radius++)for(let dy=-radius;dy<=radius;dy++)for(const dx of [-radius,radius])if(passable(st,x+dx,y+dy)&&findPath(st,Math.floor(st.engineer.x),Math.floor(st.engineer.y),x+dx,y+dy)){walk(x+dx,y+dy);return;}throw Error('No reachable interaction position');}
+                                                                                                                                                                                                                                                                             ^
+
+
+Error: No reachable interaction position
+    at near (/mnt/e/Factorio2/docs/evidence/gameplay-corrections/ordinary-opening.ts:9:270)
+    at build (/mnt/e/Factorio2/docs/evidence/gameplay-corrections/ordinary-opening.ts:11:164)
+    at <anonymous> (/mnt/e/Factorio2/docs/evidence/gameplay-corrections/ordinary-opening.ts:19:65)
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.18.0

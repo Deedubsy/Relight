@@ -10,6 +10,7 @@
     "packages/game"
   ],
   "scripts": {
+    "city:validate": "tsx packages/harness/src/cityValidationCli.ts",
     "factory": "tsx packages/harness/src/factoryCli.ts",
     "defence": "tsx packages/harness/src/defenceCli.ts",
     "test": "npm test -w packages/sim",
@@ -27,7 +28,13 @@
     "calibrate": "npm run calibrate -w packages/harness --",
     "snapshot": "npm run snapshot -w packages/harness --",
     "snapshot:check": "npm run snapshot -w packages/harness -- --check",
-    "replay": "tsx packages/harness/src/replay.ts"
+    "replay": "tsx packages/harness/src/replay.ts",
+    "map:export-tiled": "tsx packages/tools/src/exportTiled.ts",
+    "editor:dev": "node scripts/phaser-editor-dev.mjs",
+    "editor:assets": "node scripts/phaser-editor-assets.mjs",
+    "editor:scene": "node scripts/phaser-editor-city.mjs export",
+    "editor:check": "node scripts/phaser-editor-city.mjs check",
+    "editor:apply": "node scripts/phaser-editor-city.mjs apply"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

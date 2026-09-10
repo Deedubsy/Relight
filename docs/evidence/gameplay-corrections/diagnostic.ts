@@ -1,0 +1,3 @@
+import {readFileSync} from 'node:fs';import * as S from '../../../packages/sim/src/index';
+const s=S.loadState(JSON.parse(readFileSync('docs/evidence/gameplay-corrections/ordinary-save.json','utf8')));s.speed=1;console.log('stops',S.fixedStops(s).map(m=>({id:m.id,b:S.blockOfTile(s,m.x,m.y),p:S.machineRunning(s,m)})),'gens',s.flow!.machines.filter(m=>m.kind==='generator').map(m=>m.inv),'plants',s.campaign!.progression!.sites.filter(s=>s.installed));
+const r=s.campaign!.progression!.resources.find(r=>r.item==='crude')!;s.engineer.inv={steel:200,copper:100};const problems=new Set();for(let y=r.y-3;y<=r.y+2;y++)for(let x=r.x-3;x<=r.x+2;x++)problems.add(S.canPlace(s,'pumpjack',x,y).reason);console.log('crude',r,'problems',[...problems]);

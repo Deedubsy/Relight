@@ -1,6 +1,8 @@
 # Relight side of the matrix (from code + doc, 2026-09-04, b666c68 + Step 0)
 Legend: built / planned (phase N, source) / not planned / never (doc section)
 
+**Current UI scheduling:** RI-02B follows Phase 9 engineering/preparation (P9-05), under D-UI-02. See [current acceptance mapping](../STANDARDS.md#ui-acceptance-mapping--after-phase-9-d-ui-02). Earlier Phase 12 UI references below retain historical scope; brought-forward portions follow this mapping. No deferred human observation is completed or waived. PROGRESS remains the sole tracker.
+
 ## 1 Controls
 movement: BUILT WASD 8-way, Shift sprint (stamina), Space dodge (D-B1-5, worldScene addKeys)
 single placement w/ ghost+reason: BUILT (canPlace reason "walk closer", "10 steel from the pockets")

@@ -1,0 +1,52 @@
+TAP version 13
+# Subtest: full corridor intersections catch crossings with no footprint corner or centre on the road
+ok 1 - full corridor intersections catch crossings with no footprint corner or centre on the road
+  ---
+  duration_ms: 1.012807
+  type: 'test'
+  ...
+# Subtest: all four doors, approach targets, collision and roof entry agree without replacing navigation
+ok 2 - all four doors, approach targets, collision and roof entry agree without replacing navigation
+  ---
+  duration_ms: 556.767021
+  type: 'test'
+  ...
+# Subtest: four explicit Home houses and retained paths validate; yard capacity and saved map isolation remain
+ok 3 - four explicit Home houses and retained paths validate; yard capacity and saved map isolation remain
+  ---
+  duration_ms: 486.083829
+  type: 'test'
+  ...
+# Subtest: opening daylight and cycle seam are bright; dusk/dawn smooth and night/interiors retained
+ok 4 - opening daylight and cycle seam are bright; dusk/dawn smooth and night/interiors retained
+  ---
+  duration_ms: 0.263831
+  type: 'test'
+  ...
+# Subtest: editor no-op round trip preserves every authored map record
+ok 5 - editor no-op round trip preserves every authored map record
+  ---
+  duration_ms: 26.083558
+  type: 'test'
+  ...
+# Subtest: building move carries the door, visual and owned props and rejoins the original street path
+ok 6 - building move carries the door, visual and owned props and rejoins the original street path
+  ---
+  duration_ms: 7.285342
+  type: 'test'
+  ...
+# Subtest: roof variants import while scaling, rotation, off-grid moves, missing objects and campaign moves fail
+ok 7 - roof variants import while scaling, rotation, off-grid moves, missing objects and campaign moves fail
+  ---
+  duration_ms: 45.438582
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7817.097147

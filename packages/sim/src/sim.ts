@@ -103,6 +103,7 @@ export const isSolid = (s: number) => s === HELD || s === INERT;
  *  demandKw: tile machines' draw (every placed machine when `all`, else those on powered cells).
  *  setLoad: the grid's numbers for this second, including the D-B3-4 throttle every tile machine runs at. */
 export interface TileHooks {
+  afterCommand?(st: SimState): void;
   syncEdges(st: SimState): void;
   /** D-B1-4: whether physical turrets already cover this edge (a new edge born covered is born kitted). */
   covered(st: SimState, edgeId: number): boolean;
@@ -781,6 +782,7 @@ export function applyCommands(st: SimState, commands: readonly Command[]): void 
       case 'setSpeed': st.speed = Math.max(0, c.mult); break;
       default: engineerCommand(st, c);
     }
+    tiles(st)?.afterCommand?.(st);
   }
 }
 

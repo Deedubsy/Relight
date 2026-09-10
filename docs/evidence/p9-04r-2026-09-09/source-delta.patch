@@ -1,0 +1,397 @@
+--- p9-04/packages/game/src/session.ts
++++ p9-04r/packages/game/src/session.ts
+@@ -191,7 +191,7 @@
+   const hour = params.autoplay === 'hour' && state.flow ? createHourBot(params.rifle) : null;
+   // RI-02: a save that carried its whole log continues it, so the loaded session replays from tick 0 like a fresh one
+   const logComplete = !snapshot || snapshot.logComplete;
+-  return { params, state, bot: params.autoplay && params.autoplay !== 'hour' ? createBot(params.autoplay, null, true) : null, hour, telemetry: tel, pending: [], log: snapshot && snapshot.logComplete ? snapshot.log : [],
++  return { params, state, bot: params.autoplay && params.autoplay !== 'hour' ? createBot(params.autoplay, null, true) : null, hour, telemetry: tel, pending: [], log: snapshot ? structuredClone(snapshot.log) : [],
+            lastMinute: Math.floor(state.t / 60) * 60, realElapsed: 0, scenario, startT: state.t, logComplete };
+ }
+ 
+--- p9-04/packages/sim/src/campaign.ts
++++ p9-04r/packages/sim/src/campaign.ts
+@@ -1,3 +1,4 @@
++import { SurveyPlacementError } from './campaignSurvey';
+ /** Explicit new-session factory. Never converts a running legacy state. */
+ import {initNavigation} from './navigation';
+ import { DEFAULT_CONFIG, createState } from './sim';
+@@ -19,8 +20,16 @@
+   const config = campaignConfig();
+   const st = createState(citySpec(seed, 'river', config), config, seed, CAMPAIGN_RULESET);
+   ensureFlow(st);
+-  initExpansion(st);
+-  initDefence(st);
+-  initDistricts(st); initDiscovery(st); initRecruits(st); initTurbine(st); initForeman(st); initKnowledge(st,true); initNavigation(st);
++  initExpansion(st, expansion => {
++    initDefence(expansion);
++    try {
++      initDistricts(expansion, district => {
++        try { initDiscovery(district); initRecruits(district); initTurbine(district); initForeman(district); return true; }
++        catch(error) { if(error instanceof SurveyPlacementError)return false; throw error; }
++      });
++      return true;
++    } catch(error) { if(error instanceof SurveyPlacementError)return false; throw error; }
++  });
++  initKnowledge(st,true); initNavigation(st);
+   return st;
+ }
+--- p9-04/packages/sim/src/campaignDiscovery.ts
++++ p9-04r/packages/sim/src/campaignDiscovery.ts
+@@ -1,3 +1,4 @@
++import { SurveyPlacementError } from './campaignSurvey';
+ /** EX-07: one optional workshop records cache. Tuning and automatic tool fitting are provisional. */
+ import type { SimState } from './types';
+ import { ground, inReach } from './ground';
+@@ -31,7 +32,7 @@
+       && (c.defence?.sites??[]).every(s=>Math.hypot(x-s.tile%G.tw,y-Math.floor(s.tile/G.tw))>12);
+   }).sort((a,b) => Math.hypot(a%G.tw-w.x,Math.floor(a/G.tw)-w.y)-Math.hypot(b%G.tw-w.x,Math.floor(b/G.tw)-w.y) || a-b);
+   const t = tiles.find(t => findPath(st,Math.floor(st.engineer.x),Math.floor(st.engineer.y),t%G.tw,Math.floor(t/G.tw)) !== null);
+-  if (t === undefined) throw new Error('workshop discovery requires a reachable optional side yard');
++  if (t === undefined) throw new SurveyPlacementError('workshop discovery requires a reachable optional side yard');
+   const guardian = newStalkerLayer(st, DISCOVERY.guardian); guardian.sites = {};
+   guardian.sites[w.block] = { restored:false, diedAt:-1, spawned:0 };
+   c.discovery = { version:1, id:discoveryId(st.seed), block:w.block, x:t%G.tw, y:Math.floor(t/G.tw), seenAt:-1, recoveredAt:-1, guardian };
+--- p9-04/packages/sim/src/campaignDistricts.ts
++++ p9-04r/packages/sim/src/campaignDistricts.ts
+@@ -1,3 +1,4 @@
++import { SurveyPlacementError, surveyCandidate, acceptSurvey, type SurveyAcceptance } from './campaignSurvey';
+ /** EX-06 district economy. Geometry, extraction and service defaults are provisional. */
+ import { DARK, HELD, type SimState } from './types';
+ import type { CampaignSite } from './rules';
+@@ -17,7 +18,7 @@
+ }
+ 
+ /** Extend the existing trunk, never invent a second disconnected route or a junction. */
+-export function initDistricts(st: SimState): void {
++export function initDistricts(st: SimState, accept?: SurveyAcceptance): void {
+   const c = st.campaign, e = c?.expansion;
+   if (!c || !e || c.districts || !st.flow) return;
+   const G = ground(st), tw = G.tw, n = G.base.length, old = new Set(e.route), start = e.route.at(-1)!;
+@@ -31,14 +32,52 @@
+     }return true;
+   };
+   const prev=new Int32Array(n);prev.fill(-1);prev[start]=start;const queue=[start];
+-  let end=-1,stop:[number,number]|undefined;
++  const compose=(end:number,stop:[number,number],path:Set<number>):boolean=>{
++    const route=[end];while(route.at(-1)!==start)route.push(prev[route.at(-1)!]);route.reverse();
++    const bi=G.near[end],sub=G.blocks[bi].sub!;
++    const site=(x:number,y:number,size:number,block=bi):CampaignSite=>({block,x,y,size,delivered:{steel:0,copper:0},restoredAt:-1});
++    const occupied=new Set([...old,...path]);
++    for(const [x,y]of [...e.stops,stop])for(let yy=y;yy<y+2;yy++)for(let xx=x;xx<x+2;xx++)occupied.add(yy*tw+xx);
++    const pad=(block:number,size:number):[number,number]|undefined=>{
++      const p=G.urban!.places.find(p=>p.block===block)!.pad,b=G.blocks[block];
++      // The preferred urban pad can be narrower than a source. Search the rest of this
++      // same district before rejecting it; every tile still passes the full footprint rules.
++      for(const bounds of [p,{x:b.x0,y:b.y0,w:b.x1-b.x0+1,h:b.y1-b.y0+1}])
++      for(let y=bounds.y;y<=bounds.y+bounds.h-size;y++)for(let x=bounds.x;x<=bounds.x+bounds.w-size;x++) {
++        if(!clear(x,y,size,block))continue;
++        const tiles=Array.from({length:size*size},(_,i)=>(y+Math.floor(i/size))*tw+x+i%size);
++        if(tiles.some(t=>occupied.has(t)||G.owner[t]!==block))continue;
++        for(const t of tiles)occupied.add(t);return[x,y];
++      }
++    };
++    const workshop=pad(bi,1),steel=pad(e.station.block,5),copper=pad(bi,5);
++    if(!workshop||!steel||!copper)return false;
++    // A nearby district is eligible only when its complete source footprint fits.
++    const coalPlaces=G.urban!.places.filter(p=>p.block!==bi&&p.block!==e.station.block&&p.block!==c.homeBlock)
++      .sort((a,b)=>Math.hypot(a.pad.x-sub.x,a.pad.y-sub.y)-Math.hypot(b.pad.x-sub.x,b.pad.y-sub.y)||a.block-b.block);
++    for(const p of coalPlaces) {
++      const coal=pad(p.block,5);if(!coal)continue;
++      const candidate=surveyCandidate(st);
++      candidate.campaign!.districts={version:1,station:site(sub.x,sub.y,sub.size),workshop:site(...workshop,1),route,stop,
++        sources:[{block:e.station.block,x:steel[0],y:steel[1],size:5,item:'steel'},
++          {block:bi,x:copper[0],y:copper[1],size:5,item:'copper'},
++          {block:p.block,x:coal[0],y:coal[1],size:5,item:'coal'}],
++        repair:null,repairs:0,supplied:{steel:0,copper:0,magazine:0},visits:0,lastVisit:-1,resuppliedAt:-1};
++      candidate.campaign!.version=4;
++      if(acceptSurvey(st,candidate,accept))return true;
++      for(let y=coal[1];y<coal[1]+5;y++)for(let x=coal[0];x<coal[0]+5;x++)occupied.delete(y*tw+x);
++      // Prefer another trunk endpoint after reserving the nearest usable coal district.
++      break;
++    }return false;
++  };
+   for(let head=0;head<queue.length;head++) {
+     const t=queue[head],x=t%tw,y=Math.floor(t/tw),bi=G.near[t];
+     if(bi>=0&&bi!==c.homeBlock&&bi!==e.station.block&&G.blocks[bi].sub&&head>8) {
+       const path=new Set<number>();let q=t;while(q!==start){path.add(q);q=prev[q];}path.add(start);
+       for(const [xx,yy]of [[x-2,y],[x+1,y],[x,y-2],[x,y+1],[x-2,y-1],[x+1,y-1],[x-1,y-2],[x-1,y+1]]) {
+-        if(clear(xx,yy,2,bi)&&![yy*tw+xx,yy*tw+xx+1,(yy+1)*tw+xx,(yy+1)*tw+xx+1].some(q=>path.has(q)||old.has(q))){end=t;stop=[xx,yy];break;}
+-      }if(stop)break;
++        if(clear(xx,yy,2,bi)&&![yy*tw+xx,yy*tw+xx+1,(yy+1)*tw+xx,(yy+1)*tw+xx+1].some(q=>path.has(q)||old.has(q)||G.rank[q]>=0)
++          &&compose(t,[xx,yy],path))return;
++      }
+     }
+     for(const q of neighbours(t)) {
+       if(prev[q]!==-1||G.owner[q]!==-1||G.urban!.solid[q]||st.flow!.occ[q]!==undefined||old.has(q))continue;
+@@ -49,32 +88,7 @@
+       prev[q]=t;queue.push(q);
+     }
+   }
+-  if(end<0||!stop)throw new Error('district expansion requires a reachable trunk extension');
+-  const route=[end];while(route.at(-1)!==start)route.push(prev[route.at(-1)!]);route.reverse();
+-  const bi=G.near[end],sub=G.blocks[bi].sub!;
+-  const site=(x:number,y:number,size:number,block=bi):CampaignSite=>({block,x,y,size,delivered:{steel:0,copper:0},restoredAt:-1});
+-  const occupied=new Set([...e.route,...route]);
+-  for(const [x,y]of [...e.stops,stop])for(let yy=y;yy<y+2;yy++)for(let xx=x;xx<x+2;xx++)occupied.add(yy*tw+xx);
+-  const pad=(block:number,size:number):[number,number]=> {
+-    const p=G.urban!.places.find(p=>p.block===block)!.pad;
+-    for(let y=p.y;y<=p.y+p.h-size;y++)for(let x=p.x;x<=p.x+p.w-size;x++) {
+-      if(!clear(x,y,size,block))continue;
+-      const tiles=Array.from({length:size*size},(_,i)=>(y+Math.floor(i/size))*tw+x+i%size);
+-      if(tiles.some(t=>occupied.has(t)))continue;
+-      for(const t of tiles)occupied.add(t);return[x,y];
+-    }throw new Error(`no clear district facility pad in block ${block}`);
+-  };
+-  const [wx,wy]=pad(bi,1),sources:DistrictState['sources']=[];
+-  // Steel at the early station, copper at the later station, coal in a distinct nearby district.
+-  const coalBlock=G.urban!.places.filter(p=>p.block!==bi&&p.block!==e.station.block&&p.block!==c.homeBlock)
+-    .sort((a,b)=>Math.hypot(a.pad.x-sub.x,a.pad.y-sub.y)-Math.hypot(b.pad.x-sub.x,b.pad.y-sub.y)||a.block-b.block)[0]?.block;
+-  if(coalBlock===undefined)throw new Error('no coal district');
+-  for(const [block,item]of [[e.station.block,'steel'],[bi,'copper'],[coalBlock,'coal']] as const) {
+-    const [x,y]=pad(block,5);sources.push({block,x,y,size:5,item});
+-  }
+-  c.districts={version:1,station:site(sub.x,sub.y,sub.size),workshop:site(wx,wy,1),route,stop,sources,
+-    repair:null,repairs:0,supplied:{steel:0,copper:0,magazine:0},visits:0,lastVisit:-1,resuppliedAt:-1};
+-  c.version=4;
++  throw new SurveyPlacementError('district expansion requires complete reachable reservations');
+ }
+ export function persistentSource(st:SimState,x:number,y:number) {
+   return st.campaign?.districts?.sources.find(s=>x>=s.x&&x<s.x+s.size&&y>=s.y&&y<s.y+s.size);
+--- p9-04/packages/sim/src/campaignRecruits.ts
++++ p9-04r/packages/sim/src/campaignRecruits.ts
+@@ -1,3 +1,4 @@
++import { SurveyPlacementError } from './campaignSurvey';
+ /** P7-01: saved campaign recruits. Existing restoration/cache records keep owning their rewards. */
+ import { type SimState, HELD, DARK } from './types';
+ import { idxOf } from './sim';
+@@ -48,7 +49,7 @@
+       seen.add(q);queue.push(q);
+     }
+   }
+-  if (chosen < 0) throw new Error(`campaign requires an accessible ${RECRUITS[kind].name} shelter`);
++  if (chosen < 0) throw new SurveyPlacementError(`campaign requires an accessible ${RECRUITS[kind].name} shelter`);
+   return { id: recruitId(st.seed,kind), kind,
+     block:G.owner[chosen], x:chosen%G.tw, y:Math.floor(chosen/G.tw),
+     seenAt:inherited?st.t:-1, recruitedAt:inherited?st.t:-1, inherited };
+--- p9-04/packages/sim/src/campaignSurvey.ts
++++ p9-04r/packages/sim/src/campaignSurvey.ts
+@@ -0,0 +1,14 @@
++/** Fresh survey candidates share immutable terrain, but own all initializer mutations. */
++import type { SimState } from './types';
++export class SurveyPlacementError extends Error {}
++export type SurveyAcceptance = (candidate: SimState) => boolean;
++export function surveyCandidate(st: SimState): SimState {
++  return {...st, campaign: structuredClone(st.campaign), flow: {...st.flow!}, events: [...st.events]};
++}
++export function acceptSurvey(st: SimState, candidate: SimState, accept?: SurveyAcceptance): boolean {
++  if (accept && !accept(candidate)) return false;
++  st.campaign = candidate.campaign;
++  st.flow!.rev = candidate.flow!.rev;
++  st.events = candidate.events;
++  return true;
++}
+--- p9-04/packages/sim/src/campaignTurbine.ts
++++ p9-04r/packages/sim/src/campaignTurbine.ts
+@@ -1,3 +1,4 @@
++import { SurveyPlacementError } from './campaignSurvey';
+ /** Optional found infrastructure: real deliveries and fuel-free local generation. */
+ import { type SimState, HELD, DARK } from './types';
+ import { ground, inReach } from './ground';
+@@ -49,7 +50,7 @@
+     }
+     for(const [xx,yy] of [[x,y-1],[x+1,y],[x,y+1],[x-1,y]]){const q=yy*G.tw+xx;if(xx<0||yy<0||xx>=G.tw||yy>=G.th||seen[q]||!safe(q))continue;seen[q]=1;queue.push(q);}
+   }
+-  throw new Error('campaign requires an accessible riverside Turbine hall');
++  throw new SurveyPlacementError('campaign requires an accessible riverside Turbine hall');
+ }
+ export function turbineAt(st:SimState,x:number,y:number):TurbineSite|undefined {
+   const s=st.campaign?.turbine;return s&&x>=s.x&&x<s.x+s.size&&y>=s.y&&y<s.y+s.size?s:undefined;
+--- p9-04/packages/sim/src/expansion.ts
++++ p9-04r/packages/sim/src/expansion.ts
+@@ -1,3 +1,4 @@
++import { SurveyPlacementError, surveyCandidate, acceptSurvey, type SurveyAcceptance } from './campaignSurvey';
+ import { initTruck } from './truck';
+ /** The second-area restoration: real deliveries, local power and a once-only transport crate. */
+ import { SimState, HELD, DARK } from './types';
+@@ -9,17 +10,17 @@
+ import { campaignThrottle } from './campaignPower';
+ import { workshopStatus } from './campaignDistricts';
+ /** New-generation survey only; missing revision in saved surveys remains revision 1. */
+-export const EXPANSION_SURVEY_VERSION = 2;
++export const EXPANSION_SURVEY_VERSION = 3;
+ export const EXPANSION = { station: { steel: 30, copper: 15 }, radio: { steel: 20, copper: 10 }, northStation: {steel:40,copper:20}, workshop:{steel:25,copper:15} } as const;
+ export type SiteId = 'station' | 'radio' | 'northStation' | 'workshop';
+ export const SITE_IDS: readonly SiteId[] = ['station','radio','northStation','workshop'];
+ export const SITE_LABELS: Record<SiteId,string> = {station:'first tram station',radio:'radio tower',northStation:'later tram station',workshop:'repair workshop'};
+-export function initExpansion(st: SimState): void {
++export function initExpansion(st: SimState, accept?: SurveyAcceptance): void {
+   if (!isCampaign(st) || st.campaign!.expansion) return;
+   const G = ground(st), bi = G.railYard, sub = G.blocks[bi]?.sub;
+   if (!sub) throw new Error('campaign station requires its installation');
+   const n = G.base.length, tw = G.tw;
+-  const clear = (t: number) => t >= 0 && t < n && G.owner[t] !== -2 && !G.urban!.solid[t] && st.flow?.occ[t] === undefined && !G.patch[t] && [DARK,HELD].includes(st.blocks[G.near[t]]?.state);
++  const clear = (t: number) => t >= 0 && t < n && G.owner[t] !== -2 && !G.urban!.solid[t] && st.flow?.occ[t] === undefined && !G.patch[t] && G.rank[t] < 0 && [DARK,HELD].includes(st.blocks[G.near[t]]?.state);
+   const street = (t: number) => clear(t) && G.owner[t] === -1;
+   const rect = (x: number, y: number, size: number) => {
+     for (let yy = y; yy < y + size; yy++) for (let xx = x; xx < x + size; xx++) {
+@@ -32,40 +33,45 @@
+   const starts: number[] = [];
+   for (let t = 0; t < n; t++) if (street(t) && G.near[t] === st.campaign!.homeBlock) starts.push(t);
+   starts.sort((a,b) => Math.hypot(a % tw - centre % tw, Math.floor(a/tw) - Math.floor(centre/tw)) - Math.hypot(b % tw - centre % tw, Math.floor(b/tw) - Math.floor(centre/tw)) || a-b);
+-  const start = starts[0]; if (start === undefined) throw new Error('no home street for the tram');
+-  const prev = new Int32Array(n); prev.fill(-1); prev[start] = start;
+-  const queue = new Int32Array(n); queue[0] = start; let end = -1, tail = 1;
+-  for (let head = 0; head < tail; head++) {
+-    const t = queue[head], x = t % tw, y = Math.floor(t / tw);
+-    if (G.near[t] === bi && Math.hypot(x-sub.x,y-sub.y) < 24) { end = t; break; }
+-    for (const [xx,yy] of [[x,y-1],[x+1,y],[x,y+1],[x-1,y]]) { const q=yy*tw+xx; if(xx<0||xx>=tw||yy<0||yy>=G.th||prev[q]!==-1||!street(q))continue;prev[q]=t;queue[tail++]=q; }
+-  }
+-  if (end < 0) throw new Error('no street route to the second-area station');
+-  const route = [end]; while(route[route.length-1]!==start)route.push(prev[route[route.length-1]]);route.reverse();
+-  const path = new Set(route), stops: [number,number][] = [];
+-  for (const [t, owner] of [[start,st.campaign!.homeBlock],[end,bi]]) {
+-    const x=t%tw,y=Math.floor(t/tw); let stop: [number,number]|undefined;
+-    for(const [xx,yy] of [[x-2,y],[x+1,y],[x,y-2],[x,y+1],[x-2,y-1],[x+1,y-1],[x-1,y-2],[x-1,y+1]]) {
+-      if (blockOfTile(st,xx,yy)!==owner || !rect(xx,yy,2))continue;
+-      const footprint=[yy*tw+xx,yy*tw+xx+1,(yy+1)*tw+xx,(yy+1)*tw+xx+1];
+-      if(footprint.some(q=>path.has(q)))continue;
+-      // Keep a street exit for the later district: seed 11's first pad otherwise seals the terminal.
+-      if(t===end&&![[x,y-1],[x+1,y],[x,y+1],[x-1,y]].some(([qx,qy])=>{
+-        const q=qy*tw+qx;
+-        return qx>=0&&qx<tw&&qy>=0&&qy<G.th&&street(q)&&!path.has(q)&&!footprint.includes(q)
+-          &&![q-tw,q+1,q+tw,q-1].some(v=>v!==end&&path.has(v));
+-      }))continue;
+-      stop=[xx,yy];break;
+-    }
+-    if(!stop)throw new Error('campaign route has no clear stop pad');stops.push(stop);
+-  }
++  if (!starts.length) throw new SurveyPlacementError('no home street for the tram');
+   let radio: [number,number]|undefined;
+   const pad=G.urban!.places.find(p=>p.block===bi)!.pad;
+   for(let y=pad.y;y<pad.y+pad.h&&!radio;y++)for(let x=pad.x;x<pad.x+pad.w;x++)if(rect(x,y,1)&&Math.hypot(x-sub.x,y-sub.y)>=6&&blockOfTile(st,x,y)===bi){radio=[x,y];break;}
+-  if(!radio)throw new Error('no radio restoration site');
++  if(!radio)throw new SurveyPlacementError('no radio restoration site');
+   const site=(x:number,y:number,size:number):CampaignSite=>({block:bi,x,y,size,delivered:{steel:0,copper:0},restoredAt:-1});
+-  st.campaign!.version=2;
+-  st.campaign!.expansion={surveyVersion:EXPANSION_SURVEY_VERSION,station:site(sub.x,sub.y,sub.size),radio:site(radio[0],radio[1],1),route,stops,reward:{track:0,tramstop:0,tram:0},grantedAt:-1};
++  const neighbours=(t:number)=>[t>=tw?t-tw:-1,t%tw<tw-1?t+1:-1,t<n-tw?t+tw:-1,t%tw>0?t-1:-1].filter(q=>q>=0);
++  const pads=(t:number,owner:number,path:Set<number>,terminal:boolean):[number,number][]=>{
++    const x=t%tw,y=Math.floor(t/tw), result:[number,number][]=[];
++    for(const [xx,yy] of [[x-2,y],[x+1,y],[x,y-2],[x,y+1],[x-2,y-1],[x+1,y-1],[x-1,y-2],[x-1,y+1]]) {
++      if(blockOfTile(st,xx,yy)!==owner||!rect(xx,yy,2))continue;
++      const footprint=[yy*tw+xx,yy*tw+xx+1,(yy+1)*tw+xx,(yy+1)*tw+xx+1];
++      if(footprint.some(q=>path.has(q)))continue;
++      if(terminal&&!neighbours(t).some(q=>street(q)&&!path.has(q)&&!footprint.includes(q)
++        &&!neighbours(q).some(v=>v!==t&&path.has(v))))continue;
++      result.push([xx,yy]);
++    }return result;
++  };
++  // Stable distance/tile ordering; each search is bounded by this city's finite street graph.
++  // Complete downstream reservations must accept the candidate before it becomes the live survey.
++  for(const start of starts) {
++    if(!pads(start,st.campaign!.homeBlock,new Set([start]),false).length)continue;
++    const prev=new Int32Array(n).fill(-1),queue=[start];prev[start]=start;
++    for(let head=0;head<queue.length;head++) {
++      const t=queue[head],x=t%tw,y=Math.floor(t/tw);
++      if(G.near[t]===bi&&Math.hypot(x-sub.x,y-sub.y)<24) {
++        const route=[t];while(route.at(-1)!==start)route.push(prev[route.at(-1)!]);route.reverse();
++        const path=new Set(route);
++        for(const home of pads(start,st.campaign!.homeBlock,path,false))for(const terminal of pads(t,bi,path,true)) {
++          const candidate=surveyCandidate(st);
++          candidate.campaign!.version=2;
++          candidate.campaign!.expansion={surveyVersion:EXPANSION_SURVEY_VERSION,station:site(sub.x,sub.y,sub.size),radio:site(radio[0],radio[1],1),route,stops:[home,terminal],reward:{track:0,tramstop:0,tram:0},grantedAt:-1};
++          if(acceptSurvey(st,candidate,accept))return;
++        }
++      }
++      for(const q of neighbours(t))if(prev[q]===-1&&street(q)){prev[q]=t;queue.push(q);}
++    }
++  }
++  throw new SurveyPlacementError('campaign requires a complete reachable tram survey');
+ }
+ export function campaignSite(st: SimState,id: SiteId):CampaignSite|undefined { return id==='northStation'?st.campaign?.districts?.station:id==='workshop'?st.campaign?.districts?.workshop:st.campaign?.expansion?.[id]; }
+ export function campaignSiteAt(st: SimState,x:number,y:number):SiteId|null {
+--- p9-04/packages/sim/src/rules.ts
++++ p9-04r/packages/sim/src/rules.ts
+@@ -6,7 +6,7 @@
+ export type Ruleset = typeof LEGACY_RULESET | typeof CAMPAIGN_RULESET;
+ export const CAMPAIGN_RULES = { daySeconds: 1200, daylightSeconds: 900, firstAssaultNight: 3, opening: 'culdesac-v1' } as const;
+ export interface CampaignSite { block: number; x: number; y: number; size: number; delivered: { steel: number; copper: number }; restoredAt: number }
+-export interface ExpansionState { surveyVersion?: 2; station: CampaignSite; radio: CampaignSite; route: number[]; stops: [number, number][]; reward: { track: number; tramstop: number; tram: number }; grantedAt: number }
++export interface ExpansionState { surveyVersion?: 2 | 3; station: CampaignSite; radio: CampaignSite; route: number[]; stops: [number, number][]; reward: { track: number; tramstop: number; tram: number }; grantedAt: number }
+ export interface CampaignState { navigation?: import('./navigation').Navigation; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10; plans?: import('./blueprintPlans').BlueprintPlans; clipboard?: import('./blueprintFormat').Blueprint; knowledge?: import('./campaignGuide').CampaignKnowledge; turbine?: import('./campaignTurbine').TurbineSite; recruits?: import('./campaignRecruits').RecruitState; truck?: import('./truck').TruckState; discovery?: import('./campaignDiscovery').DiscoveryState; districts?: import('./campaignDistricts').DistrictState; defence?: import('./campaignDefence').DefenceState; opening: 'culdesac-v1'; homeBlock: number; expansion?: ExpansionState }
+ export function isRuleset(value: unknown): value is Ruleset { return value === LEGACY_RULESET || value === CAMPAIGN_RULESET; }
+ export function rulesetOf(st: Pick<SimState, 'ruleset'>): Ruleset { return st.ruleset ?? LEGACY_RULESET; }
+@@ -26,7 +26,7 @@
+     const e = c.expansion;
+     if (!st.flow) return 'expanded campaign requires the tile simulation';
+     if (!e || !Array.isArray(e.route) || e.route.length < 2 || !e.route.every(Number.isInteger) || e.stops?.length !== 2) return 'invalid campaign route';
+-    if(e.surveyVersion!==undefined&&e.surveyVersion!==2)return 'unsupported campaign survey revision';
++    if(e.surveyVersion!==undefined&&e.surveyVersion!==2&&e.surveyVersion!==3)return 'unsupported campaign survey revision';
+     const tw = st.flow.tw, th = st.city?.th ?? 0;
+     if (e.route.some((t,i) => t < 0 || t >= tw * th || (i > 0 && Math.abs(t % tw - e.route[i-1] % tw) + Math.abs(Math.floor(t/tw) - Math.floor(e.route[i-1]/tw)) !== 1))
+       || new Set(e.route).size !== e.route.length || e.stops.some(p => !Array.isArray(p) || p.length !== 2 || !p.every(Number.isInteger) || p[0]<0 || p[0]+2>tw || p[1]<0 || p[1]+2>th)) return 'invalid campaign route geometry';
+--- p9-04/packages/sim/test/campaignSurvey.test.ts
++++ p9-04r/packages/sim/test/campaignSurvey.test.ts
+@@ -2,9 +2,9 @@
+ import assert from 'node:assert/strict';
+ import {readFileSync} from 'node:fs';
+ import {createCampaign,loadState,makeSave,stateHash,validateCampaignCity,initExpansion,EXPANSION_SURVEY_VERSION} from '../src/index';
+-import {loadSnapshot} from '../../game/src/session';
++import {loadSnapshot,createSession,parseUrl,makeSessionSave,replaySession} from '../../game/src/session';
+ 
+-for(const seed of [6,29])test(`survey revision 2: seed ${seed} composes legal tracks/stops and preserves an older paid save`,()=>{
++for(const seed of [6,29])test(`current survey: seed ${seed} composes legal tracks/stops and preserves an older paid save`,()=>{
+  const fresh=createCampaign(seed),report=validateCampaignCity(fresh);
+  assert.equal(fresh.campaign!.expansion!.surveyVersion,EXPANSION_SURVEY_VERSION);assert.ok(report.ok,JSON.stringify(report.failures));
+  assert.deepEqual(validateCampaignCity(loadState(makeSave(fresh))),report);
+@@ -22,11 +22,47 @@
+  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>contents}});
+  try {
+   const loaded=await loadSnapshot('local:survey');assert.equal(loaded.logComplete,false);assert.deepEqual(loaded.log,raw.log);assert.equal(stateHash(loaded.state),raw.hash);
+-  contents=JSON.stringify(makeSave(createCampaign(6),{log:[],logComplete:true}));const current=await loadSnapshot('local:survey');assert.equal(current.logComplete,true);assert.equal(current.state.campaign!.expansion!.surveyVersion,2);
++  contents=JSON.stringify(makeSave(createCampaign(6),{log:[],logComplete:true}));const current=await loadSnapshot('local:survey');assert.equal(current.logComplete,true);assert.equal(current.state.campaign!.expansion!.surveyVersion,EXPANSION_SURVEY_VERSION);
+  }finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else Reflect.deleteProperty(globalThis,'localStorage');}
+ });
+ 
+ test('unknown survey revision refuses load without treating the saved route as a new survey',()=>{
+- const raw=JSON.parse(JSON.stringify(makeSave(createCampaign(6))));raw.state.campaign.expansion.surveyVersion=3;
++ const raw=JSON.parse(JSON.stringify(makeSave(createCampaign(6))));raw.state.campaign.expansion.surveyVersion=999;
+  assert.throws(()=>loadState(raw),/survey revision/);
+ });
++
++for(const seed of [80,88,102,305,842,1340,2313,3610,7384,8102,9711])test(`population repair: seed ${seed} has complete legal reservations`,()=>{
++ const st=createCampaign(seed),before=stateHash(st),report=validateCampaignCity(st);
++ assert.ok(report.ok,JSON.stringify(report.failures));assert.equal(stateHash(st),before);
++ assert.equal(stateHash(createCampaign(seed)),before,'fresh factory must repeat exactly');
++ assert.equal(stateHash(loadState(makeSave(st))),before,'saved layout must remain exact');
++ assert.equal(st.events.filter(e=>e.type==='stalker').length,1,'rejected candidates must not emit ghost spawns');
++});
++
++test('revision 2 paid saves retain geometry, stock and logs under revision 3',async()=>{
++ const text=readFileSync(new URL('../../../docs/evidence/p9-04-2026-09-08/paid/save-3.json',import.meta.url),'utf8'),raw=JSON.parse(text);
++ const st=loadState(raw);assert.equal(stateHash(st),raw.hash);assert.deepEqual(st.campaign!.expansion,raw.state.campaign.expansion);
++ initExpansion(st);assert.equal(stateHash(st),raw.hash);
++ const descriptor=Object.getOwnPropertyDescriptor(globalThis,'localStorage');
++ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>text}});
++ try { const loaded=await loadSnapshot('local:old-survey');assert.equal(loaded.logComplete,false);assert.deepEqual(loaded.log,raw.log);assert.equal(stateHash(loaded.state),raw.hash); }
++ finally{if(descriptor)Object.defineProperty(globalThis,'localStorage',descriptor);else Reflect.deleteProperty(globalThis,'localStorage');}
++});
++
++test('resaving a prior survey preserves its complete historical log without promising fresh-factory replay',async()=>{
++ const text=readFileSync(new URL('../../../docs/evidence/p9-04-2026-09-08/paid/save-3.json',import.meta.url),'utf8'),raw=JSON.parse(text);
++ const storage=Object.getOwnPropertyDescriptor(globalThis,'localStorage'),location=Object.getOwnPropertyDescriptor(globalThis,'location');
++ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:()=>text}});
++ Object.defineProperty(globalThis,'location',{configurable:true,value:{href:'http://localhost/'}});
++ try {
++  const loaded=await loadSnapshot('local:previous-survey'),session=createSession(parseUrl('?rules=exploration-v2'),loaded);
++  assert.equal(stateHash(session.state),raw.hash);assert.equal(session.logComplete,false);assert.deepEqual(session.log,raw.log);
++  assert.ok('error' in replaySession(session,{rifleOff:false}));
++  const save=makeSessionSave(session);assert.deepEqual(save.log,raw.log);assert.equal(save.logComplete,false);assert.equal(save.hash,raw.hash);
++  session.log.push({tick:session.state.flow!.tick,c:{type:'setSpeed',mult:0}});
++  assert.deepEqual(loaded.log,raw.log,'session continuation must not mutate the loaded historical log');
++ }finally{
++  if(storage)Object.defineProperty(globalThis,'localStorage',storage);else Reflect.deleteProperty(globalThis,'localStorage');
++  if(location)Object.defineProperty(globalThis,'location',location);else Reflect.deleteProperty(globalThis,'location');
++ }
++});

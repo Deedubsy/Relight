@@ -1,0 +1,510 @@
+--- P8-03/packages/game/src/blueprintLibraryPanel.ts
++++ P8-04/packages/game/src/blueprintLibraryPanel.ts
+@@ -20,7 +20,7 @@
+  const actions=node('div');actions.className='row';actions.style.flexWrap='wrap';
+  const selectedButtons=[button(actions,'Load clipboard',()=>send({type:'load',id:Number(entries.value)})),button(actions,'Update name / folder / icon',()=>send({type:'update',id:Number(entries.value),...metadata()})),button(actions,'Delete library entry',()=>send({type:'remove',id:Number(entries.value)})),button(actions,'Export text',()=>{try{text.value=exportBlueprintEntry(session.state,Number(entries.value));text.focus();text.select();}catch(e){toast((e as Error).message,'bad');}})];
+  section.append(actions);label('Blueprint import/export text',text);button(section,'Import text',()=>send({type:'import',text:text.value}));
+- section.append(node('p','Export text to share a layout. Imports contain settings only. Use Queue ghosts in the clipboard to plan without materials. Waiting orders can be built from your pockets; cancelling leaves any completed machines in place.'),node('h4','Construction orders'),orders);root.append(section);
++ section.append(node('p','Export text to share a layout. Imports contain settings only. Use Queue ghosts in the clipboard to plan without materials. Paused orders reserve their area and skip automatic work until resumed. Waiting orders can be built from your pockets; cancelling leaves any completed machines in place.'),node('h4','Construction orders'),orders);root.append(section);
+  let libraryKey='',orderKey='';filter.onchange=()=>{libraryKey='';update();select();};
+  function update(){const st=session.state,p=st.campaign?.plans,why=blueprintGate(st);status.textContent=why||`${p?.library.length??0}/32 saved layouts · ${p?.orders.length??0}/32 order records`;
+   for(const b of gated)b.disabled=!!why;
+@@ -31,10 +31,10 @@
+   for(const b of selectedButtons)b.disabled=!!why||!entries.value;
+   const rows=(p?.orders??[]).map(o=>({o,info:o.status==='waiting'?blueprintOrderInfo(st,o):null})),next=JSON.stringify([rows,why]);if(next===orderKey)return;orderKey=next;orders.replaceChildren();
+   if(!rows.length)orders.append(node('p','No queued plans.'));
+-  for(const {o,info} of rows){const card=node('div');card.style.cssText='border:1px solid #3c6478;padding:8px;margin:8px 0';card.append(node('strong',`#${o.id} ${o.blueprint.name} · ${o.status}`));
++  for(const {o,info} of rows){const card=node('div');card.style.cssText='border:1px solid #3c6478;padding:8px;margin:8px 0';card.append(node('strong',`#${o.id} ${o.blueprint.name} · ${o.paused?'paused':o.status}`));
+    card.append(node('p',`At ${o.x}, ${o.y}`+(info?` · ${info.built}/${o.blueprint.entities.length} built. Missing: ${Object.entries(info.missing).map(([k,n])=>`${n} ${k}`).join(', ')||'none'}. ${info.blockers.join('; ')||'Ready for local construction.'}`:'')));
+-   const b=node('button',o.status==='waiting'?'Build remaining':'Remove record');b.disabled=!!why;b.onclick=()=>order({type:o.status==='waiting'?'build':'remove',id:o.id});card.append(b);
+-   if(o.status==='waiting'){const cancel=node('button','Cancel order');cancel.disabled=!!why;cancel.onclick=()=>order({type:'cancel',id:o.id});card.append(cancel);}orders.append(card);
++   const b=node('button',o.status==='waiting'?'Build remaining':'Remove record');b.disabled=!!why||!!o.paused;b.onclick=()=>order({type:o.status==='waiting'?'build':'remove',id:o.id});card.append(b);
++   if(o.status==='waiting'){const control=node('button',o.paused?'Resume order':'Pause order');control.disabled=!!why;control.onclick=()=>order({type:o.paused?'resume':'pause',id:o.id});card.append(control);const cancel=node('button','Cancel order');cancel.disabled=!!why;cancel.onclick=()=>order({type:'cancel',id:o.id});card.append(cancel);}orders.append(card);
+   }
+  }
+  return {update};
+--- P8-03/packages/game/src/clipboardPanel.ts
++++ P8-04/packages/game/src/clipboardPanel.ts
+@@ -1,20 +1,22 @@
+-import { blueprintGate, blueprintBounds, dimensions, MACHINE_SIZE, MACHINE_COST, KIND_LABEL, type BlueprintTransform } from '@relight/sim';
++import { blueprintGate, blueprintBounds, dimensions, MACHINE_SIZE, MACHINE_COST, KIND_LABEL, type RemovalPreview, type BlueprintTransform } from '@relight/sim';
+ import type { Session } from './session';
+-export type ClipboardAction = 'copy'|'paste'|'queue'|'cancel'|BlueprintTransform;
++export type ClipboardAction = 'copy'|'paste'|'queue'|'cancel'|'removeArea'|'applyRemoval'|BlueprintTransform;
+ const node=<K extends keyof HTMLElementTagNameMap>(tag:K,text='')=>{const n=document.createElement(tag);n.textContent=text;return n;};
+ /** Stable buttons and a read-only layout thumbnail; sim commands own the saved clipboard. */
+-export function createClipboardPanel(session:Session,root:HTMLElement,act:(a:ClipboardAction)=>void){
++export function createClipboardPanel(session:Session,root:HTMLElement,act:(a:ClipboardAction)=>void,removal:()=>RemovalPreview|null){
+   const section=node('details');section.className='campaign-guide';section.open=true;section.setAttribute('aria-label','Blueprint clipboard');
+   const title=node('summary','Blueprint clipboard'),status=node('p'),tools=node('div');tools.className='row';tools.style.flexWrap='wrap';
+   const buttons=new Map<ClipboardAction,HTMLButtonElement>();
+-  for(const [a,label] of [['copy','Copy area (Ctrl+C)'],['paste','Paste (Ctrl+V)'],['queue','Queue ghosts'],['rotate','Rotate (R)'],['mirrorX','Mirror H'],['mirrorY','Mirror V'],['cancel','Cancel preview']] as const){
++  for(const [a,label] of [['copy','Copy area (Ctrl+C)'],['paste','Paste (Ctrl+V)'],['queue','Queue ghosts'],['rotate','Rotate (R)'],['mirrorX','Mirror H'],['mirrorY','Mirror V'],['removeArea','Select removal area'],['applyRemoval','Pack selected machines'],['cancel','Cancel preview']] as const){
+     const b=node('button',label);b.onclick=()=>act(a);buttons.set(a,b);tools.append(b);
+   }
++  const removalStatus=node('p');removalStatus.setAttribute('aria-label','Removal preview');
+   const preview=node('div'),facts=node('p');facts.className='hint';
+-  section.append(title,status,tools,preview,facts,node('p','Drag around whole machines to copy. A click pastes the entire layout using pockets and normal prices. R rotates; H/V mirrors while previewing. Esc cancels. Undo uses Ctrl+Z.'));root.append(section);
++  section.append(title,status,tools,removalStatus,preview,facts,node('p','Drag around whole machines to copy. A click pastes the entire layout using pockets and normal prices. R rotates; H/V mirrors while previewing. Esc cancels. Undo uses Ctrl+Z. Removal: drag a whole-machine area, review the returns, then Pack selected machines. Up to 128 machines in a 128 × 128 area; one refusal means none are packed. Current reach and pockets apply. Undo rebuilds settings from pockets; recovered contents stay in pockets. Fixed facilities and the core stay.'));root.append(section);
+   let key='';
+   return {update(){const st=session.state,bp=st.campaign?.clipboard,why=blueprintGate(st);
+-    for(const [a,b] of buttons)b.disabled=a==='cancel'?false:!!why||(a!=='copy'&&!bp);
++    const r=removal();removalStatus.textContent=r?`REMOVAL PREVIEW · ${r.reason} Returns at preview: ${Object.entries(r.items).map(([k,n])=>`${n} ${k}`).join(', ')||'none'}${r.looseRounds?`; ${r.looseRounds} loose rounds to buffer`:''}. Rechecked when packed.`:'No removal selected.';
++    for(const [a,b] of buttons)b.disabled=a==='cancel'?false:!!why||(a==='applyRemoval'?!r?.ok:!['copy','removeArea'].includes(a)&&!bp);
+     status.textContent=why||(!bp?'Clipboard empty. Copy a nearby layout.':`${bp.name} · ${bp.entities.length} machines · saved with this campaign`);
+     const next=JSON.stringify(bp);if(next===key)return;key=next;preview.replaceChildren();facts.textContent='';if(!bp)return;
+     const bounds=blueprintBounds(bp),svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+--- P8-03/packages/game/src/main.ts
++++ P8-04/packages/game/src/main.ts
+@@ -160,6 +160,7 @@
+ const worldScene = new WorldScene(session, view, { onHoverText: (text, px, py) => panel.tooltipText(text, px, py), onToast: (msg, kind) => panel.toast(msg, kind), onChest: () => panel.togglePockets(), onChestAt: (x, y) => panel.openPocketsAt(x, y), onRoutingAt: (x,y) => panel.openRoutingAt(x,y), onInspectAt: (x,y) => panel.openInspectionAt(x,y), onTruck: () => panel.openTruck() });
+ worldScene.handLamp = new URLSearchParams(location.search).get('handlamp') === '1';   // D-B5-1 preview only
+ panel.onPick = kind => { worldScene.setTool(kind); panel.closeAll(); panel.toast(FACTORY_TEXT.picked(kind)); };
++panel.onRemovalPreview = () => worldScene.removal;
+ panel.onBlueprint = action => {if(view.mode!=='world')toggleView();worldScene.blueprint(action);const canvas=document.querySelector('canvas');canvas?.scrollIntoView({block:'nearest'});canvas?.focus({preventScroll:true});};
+ game.scene.add('map', mapScene, view.mode === 'map');
+ game.scene.add('world', worldScene, view.mode === 'world');
+--- P8-03/packages/game/src/panel.ts
++++ P8-04/packages/game/src/panel.ts
+@@ -54,6 +54,7 @@
+   toggleBuild(): boolean;
+   /** Esc: close the pockets and the build menu. */
+   closeAll(): void;
++  onRemovalPreview: (() => import('@relight/sim').RemovalPreview|null) | null;
+   onBlueprint: ((action: ClipboardAction) => void) | null;
+   onPick: ((kind: BuildKind) => void) | null;
+   toast(msg: string, kind?: 'info' | 'bad' | 'good'): void;
+@@ -127,7 +128,7 @@
+   if (hasSlot('1', rulesetOf(st))) saveNote.textContent = 'this campaign has a save';
+ 
+   const guide=campaign?createCampaignGuide(session,root,c=>queue(session,c)):null;
+-  const clipboard=campaign?createClipboardPanel(session,root,a=>panelRef.onBlueprint?.(a)):null;
++  const clipboard=campaign?createClipboardPanel(session,root,a=>panelRef.onBlueprint?.(a),()=>panelRef.onRemovalPreview?.()??null):null;
+   const blueprintLibrary=campaign?createBlueprintLibraryPanel(session,root,toast):null;
+   const truckWork=campaign?createTruckWorkPanel(session,root,toast):null;
+   if(guide){const discoveries=el('button',undefined,'Discoveries'),items=el('button',undefined,'Items and recipes');discoveries.onclick=()=>guide.openDiscoveries();items.onclick=()=>guide.openItem();header.append(discoveries,items);}
+@@ -691,7 +692,7 @@
+   const panelRef: Panel = {
+     openStationRoute(x,y){const m=machineAt(session.state,x,y);if(m?.kind!=='tramstop')return;transportView.stopId=m.id;lastUpdate=-1e9;update(performance.now());routeSec.scrollIntoView({block:'nearest'});},
+     openTruck,openRoutingAt:openInspection,openInspectionAt:openInspection,
+-    update, tooltip, tooltipText, toast, setView, onPick: null, onBlueprint: null,
++    update, tooltip, tooltipText, toast, setView, onPick: null, onBlueprint: null, onRemovalPreview:null,
+     toggleDebug() { debug.hidden = !debug.hidden; debugView.coords = !debug.hidden; ringKey = ''; lastFacKey = ''; return !debug.hidden; },
+     togglePockets() { pocketAt = null; pocketSec.hidden = !pocketSec.hidden; lastUpdate = -1e9; if (!pocketSec.hidden) pocketSec.scrollIntoView({ block: 'nearest' }); return !pocketSec.hidden; },
+     openPocketsAt(x, y) {   // RI-05
+--- P8-03/packages/game/src/truckWorkPanel.ts
++++ P8-04/packages/game/src/truckWorkPanel.ts
+@@ -12,13 +12,15 @@
+  const transfer=(put:boolean)=>{const chest=session.state.flow?.machines.find(m=>m.id===Number(source.value)&&m.kind==='chest');if(!chest)return;const r=dispatch(session,{type:'factory',action:{type:put?'chestPut':'chestTake',item:packed.value,n:1,x:chest.x,y:chest.y}});toast(r.reason,r.ok?'good':'bad');update();};
+  button('Put 1 packed machine',()=>transfer(true));button('Take 1 packed machine',()=>transfer(false));
+  const start=button('Start truck delivery',()=>send({type:'start',sourceId:Number(source.value),orderIds:orders.value==='all'?(session.state.campaign?.plans?.orders??[]).filter(o=>o.status==='waiting').map(o=>o.id):[Number(orders.value)]}));
++ const changeSource=button('Use selected supply chest',()=>send({type:'source',sourceId:Number(source.value)})),retry=button('Retry truck now',()=>send({type:'retry'}));
+  const pause=button('Pause truck',()=>send({type:'pause'})),resume=button('Resume truck',()=>send({type:'resume'})),stop=button('Stop truck job',()=>send({type:'stop'}));
+- section.append(buttons,node('p',`Select a physical supply chest and waiting plans. Loading occurs within ${TRUCK_WORK_RULES.loadReach} tiles of the chest; building uses cargo within ${TRUCK_RULES.serviceReach} tiles of the truck. The truck stays on streets. Packed machine transfers use your pockets and require standing near the selected chest. Shortages or obstructions retry every ${TRUCK_WORK_RULES.retryTicks/20} seconds. Boarding pauses automatic work; cargo and built parts remain.`));root.append(section);
++ section.append(buttons,node('p',`Select a physical supply chest and waiting plans. Loading occurs within ${TRUCK_WORK_RULES.loadReach} tiles of the chest; building uses cargo within ${TRUCK_RULES.serviceReach} tiles of the truck. The truck stays on streets. Packed machine transfers use your pockets and require standing near the selected chest. Shortages or obstructions retry every ${TRUCK_WORK_RULES.retryTicks/20} seconds. Pause or resume individual plans in Construction orders. Use selected supply chest changes the source of the assigned job and retains cargo. Retry truck now rechecks a waiting job immediately. Repeated Start does not restart an identical job. Boarding pauses automatic work; cargo and built parts remain.`));root.append(section);
+  let listKey='';function update(){const st=session.state,t=st.campaign?.truck,w=t?.work,why=truckWorkGate(st);status.textContent=(why?why+'. ':'')+truckWorkDescription(st);cargo.textContent=t?`Cargo ${invStacks(t.cargo)}/${TRUCK_RULES.stacks} stacks: ${Object.entries(t.cargo).filter(([,n])=>n>0).map(([k,n])=>`${n} ${k}`).join(', ')||'empty'}`:'Truck unavailable';
+   const chests=(st.flow?.machines??[]).filter(m=>m.kind==='chest'),waiting=(st.campaign?.plans?.orders??[]).filter(o=>o.status==='waiting'),key=JSON.stringify([chests.map(m=>[m.id,m.x,m.y]),waiting.map(o=>[o.id,o.blueprint.name])]);
+   if(key!==listKey){listKey=key;const selected=source.value,work=orders.value;source.replaceChildren();for(const m of chests){const o=node('option',`Chest #${m.id} at ${m.x}, ${m.y}`);o.value=String(m.id);source.append(o);}if(Array.from(source.options).some(o=>o.value===selected))source.value=selected;else if(w&&chests.some(m=>m.id===w.sourceId))source.value=String(w.sourceId);
+    orders.replaceChildren();const all=node('option','All waiting orders');all.value='all';orders.append(all);for(const o of waiting){const option=node('option',`#${o.id} ${o.blueprint.name}`);option.value=String(o.id);orders.append(option);}if(Array.from(orders.options).some(o=>o.value===work))orders.value=work;
+   }
++  changeSource.disabled=!!why||!w||!source.value;retry.disabled=!!why||!w?.enabled||w.phase!=='waiting';
+   start.disabled=!!why||!source.value||!waiting.length;pause.disabled=!w?.enabled;stop.disabled=!w?.enabled;resume.disabled=!!why||!w||w.enabled||w.phase==='complete';
+  }
+  return {update};
+--- P8-03/packages/game/src/worldScene.ts
++++ P8-04/packages/game/src/worldScene.ts
+@@ -1,4 +1,4 @@
+-import { blueprintGate, blueprintCheck, blueprintQueueCheck, blueprintEntityBuilt, type BlueprintTransform } from '@relight/sim';
++import { removalPreview, type RemovalPreview, blueprintGate, blueprintCheck, blueprintQueueCheck, blueprintEntityBuilt, type BlueprintTransform } from '@relight/sim';
+ import { truckRect, truckOccupies, truckDescription } from '@relight/sim';
+ /** World view (Phase 4 M1 + M2, prompt B M1): the city at tile level, on foot. Every tile is drawn from the ground
+  *  layer in @relight/sim (ground.ts: block faces rasterised to tiles, streets on the ridges, the river), cached per
+@@ -414,21 +414,23 @@
+   // ------------------------------------------------------------------ tools
+ 
+   /** A key from the page's keydown handler (only while this view is up). Returns true when the scene took it. */
+-  blueprintMode: 'copy' | 'paste' | 'queue' | null = null;
++  removal:RemovalPreview|null=null;
++  blueprintMode: 'copy' | 'paste' | 'queue' | 'removeArea' | null = null;
+   private copyStart: TilePoint | null = null;
+-  blueprint(action:'copy'|'paste'|'queue'|BlueprintTransform|'cancel'):void {
+-    if(action==='cancel'){this.blueprintMode=null;this.copyStart=null;return;}
++  blueprint(action:'copy'|'paste'|'queue'|'removeArea'|'applyRemoval'|BlueprintTransform|'cancel'):void {
++    if(action==='cancel'){this.removal=null;this.blueprintMode=null;this.copyStart=null;return;}
+     const why=blueprintGate(this.st);if(why){this.hooks.onToast(why,'bad');return;}
+-    if(action==='copy'||action==='paste'||action==='queue'){
+-      if(action!=='copy'&&!this.st.campaign?.clipboard){this.hooks.onToast('Copy a layout first (Ctrl+C).','bad');return;}
++    if(action==='applyRemoval'){const selection=this.removal?.selection;if(!selection)return;const r=dispatch(this.session,{type:'removeArea',selection});this.hooks.onToast(r.reason,r.ok?'good':'bad');if(r.ok)this.blueprint('cancel');else if(this.removal){this.removal.ok=false;this.removal.reason=r.reason;}return;}
++    if(action==='copy'||action==='paste'||action==='queue'||action==='removeArea'){
++      if(action!=='copy'&&action!=='removeArea'&&!this.st.campaign?.clipboard){this.hooks.onToast('Copy a layout first (Ctrl+C).','bad');return;}
+       this.beltPath=null;this.copyStart=null;this.onUp();this.setTool('hand');this.blueprintMode=action;this.copyStart=null;
+-      this.hooks.onToast(action==='copy'?'Drag around complete machines to copy their layout and settings. Esc cancels.':action==='queue'?'Click to queue an inert plan. No materials spent. Esc cancels.':'Click to build the whole clipboard from pockets. R rotates; H/V mirrors; Esc cancels.');
++      this.hooks.onToast(action==='removeArea'?'Drag around whole machines, then review and use Pack selected machines.':action==='copy'?'Drag around complete machines to copy their layout and settings. Esc cancels.':action==='queue'?'Click to queue an inert plan. No materials spent. Esc cancels.':'Click to build the whole clipboard from pockets. R rotates; H/V mirrors; Esc cancels.');
+     }else{const r=dispatch(this.session,{type:'blueprintTransform',operation:action});this.hooks.onToast(r.reason,r.ok?'good':'bad');}
+   }
+   key(k: string): boolean {
+     const st = this.st;
+     if (!st.flow) return false;
+-    if(this.blueprintMode && (bound('rotate',k)||bound('mirrorX',k)||bound('mirrorY',k))){
++    if(this.blueprintMode && this.blueprintMode!=='removeArea' && (bound('rotate',k)||bound('mirrorX',k)||bound('mirrorY',k))){
+       this.blueprint(bound('rotate',k)?'rotate':bound('mirrorX',k)?'mirrorX':'mirrorY');return true;
+     }
+     const tool = toolForKey(k);
+@@ -472,7 +474,7 @@
+ 
+   /** Put a tool (a building, the rifle, or nothing) in the hand. The build menu's picks land here too. */
+   setTool(t: Tool): void {
+-    this.blueprintMode=null;this.copyStart=null;
++    this.removal=null;this.blueprintMode=null;this.copyStart=null;
+     if (t !== 'hand' && t !== 'rifle') { const why = lockReason(this.st, t); if (why) { this.hooks.onToast(why, 'bad'); return; } }
+     if (t === this.tool) return;
+     this.beltPath = null; this.undergroundStart = null;
+@@ -644,7 +646,7 @@
+     if(this.blueprintMode){
+       if(p.rightButtonDown()){this.blueprint('cancel');return;}
+       if(!p.leftButtonDown())return;
+-      if(this.blueprintMode==='copy'){this.copyStart={x:tx,y:ty};this.hoverTile={tx,ty};}
++      if(this.blueprintMode==='copy'||this.blueprintMode==='removeArea'){this.removal=null;this.copyStart={x:tx,y:ty};this.hoverTile={tx,ty};}
+       else {const r=dispatch(this.session,this.blueprintMode==='queue'?{type:'blueprintOrder',action:{type:'queue',x:tx,y:ty}}:{type:'blueprintPaste',x:tx,y:ty});this.hooks.onToast(r.reason,r.ok?'good':'bad');}
+       return;
+     }
+@@ -702,7 +704,8 @@
+   private previewResult = { ok: true, reason: '' };
+   private onUp(): void {
+     if(this.copyStart){const from=this.copyStart,h=this.hoverTile;this.copyStart=null;
+-      if(h){const r=dispatch(this.session,{type:'blueprintCopy',from,to:{x:h.tx,y:h.ty}});this.hooks.onToast(r.reason,r.ok?'good':'bad');if(r.ok)this.blueprintMode='paste';}
++      if(h&&this.blueprintMode==='removeArea'){this.removal=removalPreview(this.st,from,{x:h.tx,y:h.ty});this.hooks.onToast(this.removal.reason,this.removal.ok?'good':'bad');}
++      else if(h){const r=dispatch(this.session,{type:'blueprintCopy',from,to:{x:h.tx,y:h.ty}});this.hooks.onToast(r.reason,r.ok?'good':'bad');if(r.ok)this.blueprintMode='paste';}
+     }
+     if (this.beltPath) {
+       const path = this.beltPath; this.beltPath = null; this.undergroundStart = null;
+@@ -1371,6 +1374,11 @@
+   private drawGhost(g: Phaser.GameObjects.Graphics): void {
+     const st = this.st, h = this.hoverTile;
+     this.ghostReason = '';
++    if(st.flow&&this.blueprintMode==='removeArea'){
++      this.ghostReason=this.removal?`REMOVAL · ${this.removal.reason} Use Pack selected machines in the clipboard panel.`:'REMOVAL · drag around whole machines, then review before packing';
++      const a=this.copyStart??this.removal?.selection?.from,b=this.copyStart&&h?{x:h.tx,y:h.ty}:this.removal?.selection?.to;
++      if(a&&b){const col=this.removal&&!this.removal.ok?0xff655d:0xffc46b,x=Math.min(a.x,b.x),y=Math.min(a.y,b.y),w=Math.abs(a.x-b.x)+1,hh=Math.abs(a.y-b.y)+1;g.fillStyle(col,.18);g.fillRect(x*TILE_PX,y*TILE_PX,w*TILE_PX,hh*TILE_PX);g.lineStyle(2/this.zoom,col);g.strokeRect(x*TILE_PX,y*TILE_PX,w*TILE_PX,hh*TILE_PX);}return;
++    }
+     if(st.flow&&h&&this.blueprintMode){
+       if(this.blueprintMode==='copy'){
+         this.ghostReason='COPY · drag around complete machines; Esc cancels';
+--- P8-03/packages/sim/src/blueprintPlans.ts
++++ P8-04/packages/sim/src/blueprintPlans.ts
+@@ -10,11 +10,11 @@
+ import { undergroundSpan, undergroundMate } from './routing';
+ export const BLUEPRINT_LIBRARY_LIMIT=32, BLUEPRINT_ORDER_LIMIT=32, BLUEPRINT_TEXT_LIMIT=262144;
+ export interface BlueprintEntry { id:number; name:string; folder:string; icon:Exclude<Kind,'depot'>; blueprint:Blueprint }
+-export interface BlueprintOrder { id:number; blueprint:Blueprint; x:number; y:number; createdAt:number; status:'waiting'|'cancelled'|'completed'; finishedAt?:number }
++export interface BlueprintOrder { id:number; blueprint:Blueprint; x:number; y:number; createdAt:number; status:'waiting'|'cancelled'|'completed'; paused?:boolean; finishedAt?:number }
+ export interface BlueprintPlans { version:1; nextId:number; library:BlueprintEntry[]; orders:BlueprintOrder[] }
+ type Metadata={name:string;folder:string;icon:Exclude<Kind,'depot'>};
+ export type BlueprintLibraryAction = ({type:'save'}&Metadata) | ({type:'update';id:number}&Metadata) | {type:'load'|'remove';id:number} | {type:'import';text:string};
+-export type BlueprintOrderAction = {type:'queue';x:number;y:number} | {type:'build'|'cancel'|'remove';id:number};
++export type BlueprintOrderAction = {type:'queue';x:number;y:number} | {type:'build'|'cancel'|'remove'|'pause'|'resume';id:number};
+ const clone=<T>(v:T):T=>structuredClone(v);
+ const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
+ const keys=(v:Record<string,unknown>,allowed:string[])=>Object.keys(v).every(k=>allowed.includes(k));
+@@ -89,7 +89,7 @@
+  });
+ }
+ export function syncBlueprintOrders(st:SimState):void {
+- for(const o of st.campaign?.plans?.orders??[])if(o.status==='waiting'&&o.blueprint.entities.every(e=>blueprintEntityBuilt(st,o,e))&&pairsMatch(st,o)){o.status='completed';o.finishedAt=st.t;}
++ for(const o of st.campaign?.plans?.orders??[])if(o.status==='waiting'&&o.blueprint.entities.every(e=>blueprintEntityBuilt(st,o,e))&&pairsMatch(st,o)){o.status='completed';delete o.paused;o.finishedAt=st.t;}
+ }
+ export function blueprintOrder(st:SimState,a:BlueprintOrderAction):ActionResult {
+  try{const why=blueprintGate(st);if(why)throw Error(why);const p=plans(st);
+@@ -99,10 +99,15 @@
+    p.orders.push(o);st.campaign!.plans=p;syncBlueprintOrders(st);return {ok:true,reason:`Queued plan #${o.id}; no materials spent.`};
+   }
+   const o=p.orders.find(o=>o.id===a.id);if(!o)throw Error('Choose a saved order.');
+-  if(a.type==='remove'){if(o.status==='waiting')throw Error('Cancel the order before removing its record.');p.orders=p.orders.filter(v=>v.id!==o.id);}
+-  else if(a.type==='cancel'){if(o.status!=='waiting')throw Error('Order is already finished.');o.status='cancelled';o.finishedAt=st.t;}
++  if(a.type==='pause'||a.type==='resume'){
++   if(o.status!=='waiting')throw Error('Order is already finished.');
++   if(a.type==='pause'){if(o.paused)return {ok:true,reason:'Order is already paused.'};o.paused=true;}else{if(!o.paused)return {ok:true,reason:'Order is already waiting.'};delete o.paused;}
++   const w=st.campaign?.truck?.work;if(w?.enabled&&w.orderIds.includes(o.id)){w.phase='waiting';w.reason=o.paused?'Order paused; checking other selected plans':'Order resumed; checking current conditions';w.route=[];delete w.target;w.nextActionTick=st.flow!.tick;}
++  }else if(a.type==='remove'){if(o.status==='waiting')throw Error('Cancel the order before removing its record.');p.orders=p.orders.filter(v=>v.id!==o.id);}
++  else if(a.type==='cancel'){if(o.status==='cancelled')return {ok:true,reason:'Order is already cancelled.'};if(o.status!=='waiting')throw Error('Order is already finished.');delete o.paused;o.status='cancelled';o.finishedAt=st.t;}
+   else if(a.type==='build'){
+    if(o.status!=='waiting')throw Error('Order is already finished.');
++   if(o.paused)throw Error('Resume this order before building it.');
+    const all=edits(o),remaining=all.filter((_,i)=>!blueprintEntityBuilt(st,o,o.blueprint.entities[i]));
+    for(const e of all)if(e.action==='place'&&e.underground==='input'){
+     const b=all.find(b=>b.action==='place'&&b.underground==='output'&&b.dir===e.dir&&!undergroundSpan(e,b,e.dir));
+@@ -122,7 +127,8 @@
+   const ids=new Set<number>();const id=(n:number)=>{if(!Number.isSafeInteger(n)||n<1||n>=Number(raw.nextId)||ids.has(n))throw Error('invalid identifier');ids.add(n);};
+   for(const e of raw.library){if(!record(e)||!keys(e,['id','name','folder','icon','blueprint']))throw Error('invalid entry');metadata(e as unknown as Metadata);id(e.id as number);const bp=bounded(e.blueprint);if(bp.name!==e.name||JSON.stringify(bp)!==JSON.stringify(e.blueprint))throw Error('entry definition is not normalized');}
+   const occupied=new Set<string>();
+-  for(const v of raw.orders){if(!record(v)||!keys(v,['id','blueprint','x','y','createdAt','status','finishedAt']))throw Error('invalid order');const o=v as unknown as BlueprintOrder;id(o.id);const bp=bounded(o.blueprint);if(JSON.stringify(bp)!==JSON.stringify(o.blueprint))throw Error('order definition is not normalized');destination(st,bp,o.x,o.y);
++  for(const v of raw.orders){if(!record(v)||!keys(v,['id','blueprint','x','y','createdAt','status','finishedAt','paused']))throw Error('invalid order');const o=v as unknown as BlueprintOrder;id(o.id);const bp=bounded(o.blueprint);if(JSON.stringify(bp)!==JSON.stringify(o.blueprint))throw Error('order definition is not normalized');destination(st,bp,o.x,o.y);
++   if(o.paused!==undefined&&(typeof o.paused!=='boolean'||o.status!=='waiting'))throw Error('invalid order pause');
+    if(!['waiting','cancelled','completed'].includes(o.status)||!Number.isFinite(o.createdAt)||o.createdAt<0||o.createdAt>st.t||(o.status==='waiting'?o.finishedAt!==undefined:!Number.isFinite(o.finishedAt)||o.finishedAt!<o.createdAt||o.finishedAt!>st.t))throw Error('invalid order lifecycle');
+    if(o.status==='waiting')for(const k of cells(bp,o.x,o.y)){if(occupied.has(k))throw Error('overlapping orders');occupied.add(k);}
+   }return '';
+--- P8-03/packages/sim/src/construction.ts
++++ P8-04/packages/sim/src/construction.ts
+@@ -5,7 +5,7 @@
+ import type { Command, SimState } from './types';
+ import { canPlace, place, canPickUp, remove, rotate, machineAt, tramAt, isKind, isRecipeId, MACHINE_SIZE,
+   type Kind, type Dir, type RecipeId, type Machine, setRecipe, queueCraft, chestTake, chestPut, isChestItem, isItem,
+-  handFeed, setHandMine, repairLight, deliverTo, SHOT, rotateTo, type Item } from './flow';
++  pickUpItems, depotChestOf, handFeed, setHandMine, repairLight, deliverTo, SHOT, rotateTo, type Item } from './flow';
+ import { dimensions, machineDimensions } from './footprint';
+ import { configureRouting, undergroundSpan, undergroundMate, type UndergroundMode, type OutputPriority } from './routing';
+ import { type StationRules, validStationRules } from './freight';
+@@ -103,6 +103,7 @@
+   if (!m) return 'Nothing there';
+   if (!inReach(st, m.x, m.y, ...machineDimensions(m))) return 'Walk closer to the machine';
+   if (e.action === 'pickUp') {
++    if(depotChestOf(st,m))return 'The restored supply installation stays';
+     const check = canPickUp(st, e.x, e.y); if (!check.ok) return check.reason;
+     // Old packing rounds fractional contents down. Refuse rather than silently lose them through history.
+     if (Object.entries(m.inv).some(([k, n]) => k !== 'rounds' && !integer(n)) || Object.values(m.cargo ?? {}).some(n => !integer(n))) return 'Empty fractional contents before packing this machine';
+@@ -175,6 +176,32 @@
+   h.undo.push(changes); if (h.undo.length > HISTORY_LIMIT) h.undo.shift(); h.redo = [];
+   syncProjects(st); return { ok: true, reason: `${changes.length} construction action${changes.length === 1 ? '' : 's'} completed` };
+ }
++/** A preview captures identities/settings, never inventories. Apply rechecks the whole current transaction. */
++export interface RemovalSelection {from:TilePoint;to:TilePoint;machines:BuildChange[]}
++export interface RemovalPreview extends ActionResult {selection?:RemovalSelection;items:Record<string,number>;looseRounds:number}
++export function removalPreview(st:SimState,from:TilePoint,to:TilePoint):RemovalPreview {
++ const result:RemovalPreview={ok:false,reason:'',items:{},looseRounds:0};
++ try {
++  const why=blueprintGate(st);if(why)throw Error(why);
++  if(!st.flow||!from||!to||![from.x,from.y,to.x,to.y].every(integer))throw Error('Invalid removal coordinates');
++  const x=Math.min(from.x,to.x),y=Math.min(from.y,to.y),w=Math.abs(from.x-to.x)+1,h=Math.abs(from.y-to.y)+1;
++  if(x<0||y<0||w>128||h>128)throw Error('Select an area no larger than 128 × 128 tiles');
++  const machines=st.flow.machines.filter(m=>{const [mw,mh]=machineDimensions(m);return m.x<x+w&&m.x+mw>x&&m.y<y+h&&m.y+mh>y;}).sort((a,b)=>Number(b.kind==='tram')-Number(a.kind==='tram')||a.id-b.id);
++  if(!machines.length||machines.length>BUILD_LIMIT)throw Error('Select 1–128 complete machines');
++  for(const m of machines){const [mw,mh]=machineDimensions(m);if(m.x<x||m.y<y||m.x+mw>x+w||m.y+mh>y+h)throw Error('Select the whole footprint of every machine');}
++  result.selection={from:{...from},to:{...to},machines:machines.map(m=>describe(m,'pickUp'))};
++  for(const m of machines){for(const [k,n] of Object.entries(pickUpItems(m)))result.items[k]=(result.items[k]??0)+n;if(m.kind==='turret')result.looseRounds+=(m.inv.rounds??0)%SHOT.count;}
++  const check=constructionCheck(st,machines.map(m=>({action:'pickUp',x:m.x,y:m.y})));
++  result.ok=check.ok;result.reason=check.ok?`Pack all ${machines.length} machines in one action. Contents go to pockets; loose rounds go to the line buffer.`:check.reason;
++ }catch(e){result.reason=(e as Error).message;}return result;
++}
++export function removeArea(st:SimState,selection:RemovalSelection):ActionResult {
++ if(!selection||!Array.isArray(selection.machines)||selection.machines.some(m=>!m||m.action!=='pickUp'))return no('Select and preview machines first');
++ const preview=removalPreview(st,selection.from,selection.to),current=preview.selection;
++ if(!current||current.machines.length!==selection.machines.length||current.machines.some((c,i)=>{const m=st.flow!.machines.find(m=>m.id===c.id);return !m||!same(m,selection.machines[i]);}))return no('Selection changed; select and preview the area again');
++ if(!preview.ok)return no(preview.reason);
++ return construct(st,current.machines.map(m=>({action:'pickUp',x:m.x,y:m.y})));
++}
+ function newUndergroundEdits(st:SimState,edits:BuildEdit[]):BuildEdit[]{
+   return edits.filter(e=>{const m=machineAt(st,e.x,e.y);return e.action!=='place'||!m||m.kind!==e.item||m.dir!==e.dir||m.underground!==e.underground;});
+ }
+@@ -228,6 +255,7 @@
+ export function constructionCommand(st: SimState, c: Command): boolean {
+   let r: ActionResult;
+   switch (c.type) {
++    case 'removeArea': r=removeArea(st,c.selection);break;
+     case 'truckWork': r=truckWorkCommand(st,c.action);break;
+     case 'blueprintLibrary': r=blueprintLibrary(st,c.action);break;
+     case 'blueprintOrder': r=blueprintOrder(st,c.action);break;
+--- P8-03/packages/sim/src/engineer.ts
++++ P8-04/packages/sim/src/engineer.ts
+@@ -265,7 +265,7 @@
+       break;
+     case 'aim': e.aim = e.down < 0 ? c.at : null; break;
+     case 'enterTruck': if(st.campaign){handHook.current?.(st,{type:'factory',action:{type:'truckBoard'}});break;} if (e.truckFound && e.down < 0) e.truck = !e.truck; break;
+-    case 'truckWork': case 'blueprintLibrary': case 'blueprintOrder': case 'blueprintCopy': case 'blueprintTransform': case 'blueprintPaste':
++    case 'removeArea': case 'truckWork': case 'blueprintLibrary': case 'blueprintOrder': case 'blueprintCopy': case 'blueprintTransform': case 'blueprintPaste':
+     case 'construct': case 'buildPath': case 'undergroundPair': case 'undoBuild': case 'redoBuild': case 'factory':
+     case 'mineAt': case 'craft': case 'place': case 'pickUp': case 'chestTake': case 'chestPut': case 'feed': case 'repair': case 'rotate':
+     case 'deliverSite': case 'restoreSite': case 'collectTramKit':
+--- P8-03/packages/sim/src/index.ts
++++ P8-04/packages/sim/src/index.ts
+@@ -71,3 +71,6 @@
+ export * from './blueprintPlans';
+ 
+ export * from './truckWork';
++
++export {removalPreview,removeArea} from './construction';
++export type {RemovalSelection,RemovalPreview} from './construction';
+--- P8-03/packages/sim/src/truckWork.ts
++++ P8-04/packages/sim/src/truckWork.ts
+@@ -14,7 +14,7 @@
+ export interface TruckPose {x:number;y:number;dir:Dir}
+ interface Rect {x:number;y:number;w:number;h:number}
+ export interface TruckWork {version:1;sourceId:number;orderIds:number[];enabled:boolean;phase:'loading'|'travelling'|'building'|'waiting'|'paused'|'complete';reason:string;route:TruckPose[];target?:{kind:'source'|'build';orderId:number;entityId:string};nextActionTick:number}
+-export type TruckWorkAction={type:'start';sourceId:number;orderIds:number[]} | {type:'pause'|'resume'|'stop'};
++export type TruckWorkAction={type:'start';sourceId:number;orderIds:number[]} | {type:'pause'|'resume'|'stop'|'retry'} | {type:'source';sourceId:number};
+ const ok=(reason:string):ActionResult=>({ok:true,reason});
+ const no=(reason:string):ActionResult=>({ok:false,reason});
+ function source(st:SimState,id:number){return st.flow?.machines.find(m=>m.id===id&&m.kind==='chest');}
+@@ -22,15 +22,22 @@
+ export function truckWorkCommand(st:SimState,a:TruckWorkAction):ActionResult {
+  const t=st.campaign?.truck;if(!t)return no('No truck is available');
+  if(a.type==='pause'||a.type==='stop'){
+-  if(!t.work)return no('No truck work assigned');t.work.enabled=false;t.work.phase='paused';t.work.reason=a.type==='stop'?'Job stopped; cargo and plans retained':'Paused; cargo and plans retained';t.work.route=[];delete t.work.target;return ok(t.work.reason);
++  if(!t.work)return no('No truck work assigned');if(!t.work.enabled)return ok(t.work.reason);t.work.enabled=false;t.work.phase='paused';t.work.reason=a.type==='stop'?'Job stopped; cargo and plans retained':'Paused; cargo and plans retained';t.work.route=[];delete t.work.target;return ok(t.work.reason);
+  }
+  const why=truckWorkGate(st);if(why)return no(why);
+  if(a.type==='start'){
+   if(!Number.isSafeInteger(a.sourceId)||!source(st,a.sourceId))return no('Choose an existing physical supply chest');
+   if(!Array.isArray(a.orderIds)||!a.orderIds.length||a.orderIds.length>32||new Set(a.orderIds).size!==a.orderIds.length||a.orderIds.some(id=>!Number.isSafeInteger(id)||!st.campaign?.plans?.orders.some(o=>o.id===id&&o.status==='waiting')))return no('Choose waiting construction orders');
++  if(t.work?.sourceId===a.sourceId&&JSON.stringify(t.work.orderIds)===JSON.stringify(a.orderIds))return ok('This job is already assigned; use Resume or Retry to continue');
+   t.work={version:1,sourceId:a.sourceId,orderIds:[...a.orderIds],enabled:true,phase:'waiting',reason:'Finding a supply route',route:[],nextActionTick:st.flow!.tick};return ok('Truck assigned; real cargo will supply the selected plans');
+  }
+- if(a.type==='resume'&&t.work){t.work.enabled=true;t.work.phase='waiting';t.work.reason='Retrying current conditions';t.work.route=[];delete t.work.target;t.work.nextActionTick=st.flow!.tick;return ok(t.work.reason);}
++ if(a.type==='source'&&t.work){
++  if(!Number.isSafeInteger(a.sourceId)||!source(st,a.sourceId))return no('Choose an existing physical supply chest');
++  if(t.work.sourceId===a.sourceId)return ok('Supply chest unchanged');
++  t.work.sourceId=a.sourceId;t.work.route=[];delete t.work.target;if(t.work.enabled)t.work.phase='waiting';t.work.reason='Supply chest changed; cargo and orders retained';t.work.nextActionTick=st.flow!.tick;return ok(t.work.reason);
++ }
++ if(a.type==='retry'&&t.work){if(!t.work.enabled)return no('Resume the truck before retrying');if(t.work.phase!=='waiting'||t.work.nextActionTick<=st.flow!.tick)return ok(t.work.reason);t.work.nextActionTick=st.flow!.tick;return ok('Retry scheduled now');}
++ if(a.type==='resume'&&t.work){if(t.work.enabled||t.work.phase==='complete')return ok(t.work.reason);t.work.enabled=true;t.work.phase='waiting';t.work.reason='Retrying current conditions';t.work.route=[];delete t.work.target;t.work.nextActionTick=st.flow!.tick;return ok(t.work.reason);}
+  return no('No truck work to resume');
+ }
+ function clearOfEngineer(st:SimState,p:TruckPose):boolean {const r=truckRect(p),e=st.engineer;return e.x<=r.x||e.x>=r.x+r.w||e.y<=r.y||e.y>=r.y+r.h;}
+@@ -65,7 +72,7 @@
+ }
+ interface Job {order:BlueprintOrder;entities:BlueprintEntity[];remaining:BlueprintEntity[];rects:Rect[]}
+ function nextJob(st:SimState,w:TruckWork):Job|null {
+- for(const id of w.orderIds){const o=st.campaign?.plans?.orders.find(o=>o.id===id);if(!o||o.status!=='waiting')continue;
++ for(const id of w.orderIds){const o=st.campaign?.plans?.orders.find(o=>o.id===id);if(!o||o.status!=='waiting'||o.paused)continue;
+   const e=o.blueprint.entities.find(e=>!blueprintEntityBuilt(st,o,e));if(!e)return {order:o,entities:[],remaining:[],rects:[]};
+   const entities=e.kind==='underground'?o.blueprint.entities.filter(b=>b.kind==='underground'&&b.dir===e.dir&&(b===e||b.underground!==e.underground&&!undergroundSpan(e.underground==='input'?e:b,e.underground==='input'?b:e,e.dir))).sort((a,b)=>Number(a.underground==='output')-Number(b.underground==='output')):[e];
+   return {order:o,entities,remaining:entities.filter(e=>!blueprintEntityBuilt(st,o,e)),rects:entities.map(e=>{const [w,h]=dimensions(e.kind,e.dir,MACHINE_SIZE[e.kind]);return {x:o.x+e.x,y:o.y+e.y,w,h};})};
+@@ -75,7 +82,7 @@
+ function loadNeeds(st:SimState,w:TruckWork,available:Record<string,number>):Record<string,number>{
+  const cargo={...st.campaign!.truck!.cargo},supply={...available},need:Record<string,number>={};
+  const request=(k:string,n:number)=>{const used=Math.min(cargo[k]??0,n);cargo[k]=(cargo[k]??0)-used;const take=n-used;if(take>0){need[k]=(need[k]??0)+take;supply[k]=Math.max(0,(supply[k]??0)-take);}};
+- for(const id of w.orderIds){const o=st.campaign!.plans?.orders.find(o=>o.id===id);if(!o||o.status!=='waiting')continue;for(const e of o.blueprint.entities){if(blueprintEntityBuilt(st,o,e))continue;if((cargo[e.kind]??0)>=1||(supply[e.kind]??0)>=1)request(e.kind,1);else for(const [k,n] of Object.entries(MACHINE_COST[e.kind]))request(k,n);}}
++ for(const id of w.orderIds){const o=st.campaign!.plans?.orders.find(o=>o.id===id);if(!o||o.status!=='waiting'||o.paused)continue;for(const e of o.blueprint.entities){if(blueprintEntityBuilt(st,o,e))continue;if((cargo[e.kind]??0)>=1||(supply[e.kind]??0)>=1)request(e.kind,1);else for(const [k,n] of Object.entries(MACHINE_COST[e.kind]))request(k,n);}}
+  return need;
+ }
+ function waiting(st:SimState,w:TruckWork,reason:string):void {w.phase='waiting';w.reason=reason;w.route=[];delete w.target;w.nextActionTick=st.flow!.tick+TRUCK_WORK_RULES.retryTicks;}
+@@ -86,7 +93,7 @@
+ export function tickTruckWork(st:SimState,dt:number):void {
+  const t=st.campaign?.truck,w=t?.work;if(!t||!w?.enabled)return;
+  if(st.engineer.truckSeat){w.enabled=false;w.phase='paused';w.reason='Manual takeover';w.route=[];delete w.target;return;}
+- syncBlueprintOrders(st);const j=nextJob(st,w);if(!j){w.enabled=false;w.phase='complete';w.reason='Selected orders finished or cancelled; cargo retained';w.route=[];delete w.target;return;}
++ syncBlueprintOrders(st);const j=nextJob(st,w);if(!j){if(w.orderIds.some(id=>st.campaign?.plans?.orders.some(o=>o.id===id&&o.status==='waiting'&&o.paused))){if(st.flow!.tick>=w.nextActionTick)waiting(st,w,'Selected unfinished orders are paused; resume an order');return;}w.enabled=false;w.phase='complete';w.reason='Selected orders finished or cancelled; cargo retained';w.route=[];delete w.target;return;}
+  if(!j.entities.length){if(st.flow!.tick>=w.nextActionTick)waiting(st,w,'Planned underground connection is interrupted');return;}
+  const chest=source(st,w.sourceId);if(!chest){if(st.flow!.tick>=w.nextActionTick)waiting(st,w,'Supply chest is missing; select a new source');return;}
+  if(w.phase==='travelling'){
+--- P8-03/packages/sim/src/types.ts
++++ P8-04/packages/sim/src/types.ts
+@@ -169,6 +169,7 @@
+ }
+ 
+ export type Command =
++  | { type: 'removeArea'; selection: import('./construction').RemovalSelection }
+   | { type: 'truckWork'; action: import('./truckWork').TruckWorkAction }
+   | { type: 'blueprintLibrary'; action: import('./blueprintPlans').BlueprintLibraryAction }
+   | { type: 'blueprintOrder'; action: import('./blueprintPlans').BlueprintOrderAction }
+--- P8-03/packages/sim/test/truckWork.test.ts
++++ P8-04/packages/sim/test/truckWork.test.ts
+@@ -3,7 +3,7 @@
+ import {test} from 'node:test';
+ import assert from 'node:assert/strict';
+ import {expedition,walk,command} from './transportFixture';
+-import {loadState,makeSave,canPlace,inReach,machineAt,actionResult,advanceFlow,conservation,stateHash,parseBlueprint,truckWorkProblem,truckWorkRoute,truckFits,truckRect,stackSize,createCampaign,boardTruck,truckBoardCheck,findPath,passable,type SimState,type Command,type TruckWorkAction} from '../src/index';
++import {removalPreview,tramAt,loadState,makeSave,canPlace,inReach,machineAt,actionResult,advanceFlow,conservation,stateHash,parseBlueprint,truckWorkProblem,truckWorkRoute,truckFits,truckRect,stackSize,createCampaign,boardTruck,truckBoardCheck,findPath,passable,type SimState,type Command,type TruckWorkAction} from '../src/index';
+ let base:SimState;
+ function ready(){base??=expedition().st;const st=loadState(makeSave(base));st.speed=1;const r=st.campaign!.recruits!.sites.find(r=>r.kind==='foreman')!;r.seenAt=r.recruitedAt=st.t;return st;}
+ function send(st:SimState,c:Command,ok=true){command(st,[c]);assert.equal(actionResult(st).ok,ok,actionResult(st).reason);}
+@@ -90,3 +90,22 @@
+  for(let i=0;i<2;i++){send(st,{type:'construct',edits:[{action:'place',item:'belt',...p,dir:1}]});send(st,{type:'construct',edits:[{action:'pickUp',...p}]});send(st,{type:'factory',action:{type:'chestPut',item:'belt',n:1,x:s.x,y:s.y}});}
+  const paid=structuredClone(st.flow!.stats.placed),pockets={...st.engineer.inv};work(st,{type:'start',sourceId:s.id,orderIds:[o.id]});until(st,()=>o.status==='completed');assert.equal(s.inv.belt??0,0);assert.deepEqual(st.flow!.stats.placed,paid);assert.deepEqual(st.engineer.inv,pockets);assert.ok(conservation(st).ok);
+ });
++
++
++test('order pause/resume, retry and source reassignment are idempotent and retain cargo through interruptions',()=>{
++ const st=ready(),s=chest(st,0),o=plan(st),t=st.campaign!.truck!;const action={type:'start' as const,sourceId:s.id,orderIds:[o.id]};work(st,action);until(st,()=>t.work!.reason.includes('shortage'));
++ work(st,{type:'retry'});let hash=stateHash(st);work(st,{type:'retry'});assert.equal(stateHash(st),hash);work(st,action);assert.equal(stateHash(st),hash);work(st,{type:'resume'});assert.equal(stateHash(st),hash);
++ send(st,{type:'blueprintOrder',action:{type:'pause',id:o.id}});hash=stateHash(st);send(st,{type:'blueprintOrder',action:{type:'pause',id:o.id}});assert.equal(stateHash(st),hash);tick(st,3);assert.match(t.work!.reason,/paused/);assert.ok(t.work!.enabled);const xy=[t.x,t.y],cargo={...t.cargo};tick(st,3);assert.deepEqual([t.x,t.y],xy);assert.deepEqual(t.cargo,cargo);send(st,{type:'blueprintOrder',action:{type:'build',id:o.id}},false);
++ let copy=loadState(st);assert.equal(stateHash(copy),stateHash(st));const bad=structuredClone(st);bad.campaign!.plans!.orders[0].paused='yes' as never;assert.throws(()=>loadState(bad),/pause/);send(st,{type:'blueprintOrder',action:{type:'resume',id:o.id}});hash=stateHash(st);send(st,{type:'blueprintOrder',action:{type:'resume',id:o.id}});assert.equal(stateHash(st),hash);
++ walk(st,s.x,s.y);send(st,{type:'construct',edits:[{action:'pickUp',x:s.x,y:s.y}]});tick(st,3);assert.match(t.work!.reason,/missing/);const replacement=chest(st,10);work(st,{type:'source',sourceId:replacement.id});hash=stateHash(st);work(st,{type:'source',sourceId:replacement.id});assert.equal(stateHash(st),hash);assert.deepEqual(t.cargo,cargo);
++ until(st,()=>t.work!.phase==='travelling'&&t.cargo.steel===2);hash=stateHash(st);work(st,{type:'resume'});assert.equal(stateHash(st),hash);work(st,{type:'start',sourceId:replacement.id,orderIds:[o.id]});assert.equal(stateHash(st),hash);
++ send(st,{type:'blueprintOrder',action:{type:'pause',id:o.id}});tick(st,1);assert.equal(o.status,'waiting');assert.equal(t.cargo.steel,2);send(st,{type:'blueprintOrder',action:{type:'cancel',id:o.id}});hash=stateHash(st);send(st,{type:'blueprintOrder',action:{type:'cancel',id:o.id}});assert.equal(stateHash(st),hash);tick(st,.05);assert.equal(t.work!.phase,'complete');assert.equal(t.cargo.steel,2);assert.ok(conservation(st).ok);
++ copy=loadState(st);assert.equal(stateHash(copy),stateHash(st));const next=plan(st,14);assert.notDeepEqual([next.x,next.y],[o.x,o.y]);const supply= replacement.inv.steel;work(st,{type:'start',sourceId:replacement.id,orderIds:[next.id]});until(st,()=>next.status==='completed');assert.equal(replacement.inv.steel,supply);assert.equal(t.cargo.steel??0,0);assert.equal(o.status,'cancelled');assert.ok(conservation(st).ok);
++});
++
++
++test('area removal packs an overlaid tram before its track and restores freight cargo without duplication',()=>{
++ const st=ready(),t=st.campaign!.truck!;let p:{x:number;y:number}|undefined;for(let y=Math.floor(t.y)-8;y<t.y+8&&!p;y++)for(let x=Math.floor(t.x)-8;x<t.x+8;x++)if(canPlace(st,'track',x,y).ok){p={x,y};break;}assert.ok(p);walk(st,p.x,p.y);
++ send(st,{type:'construct',edits:[{action:'place',item:'track',...p,dir:0},{action:'place',item:'tram',...p,dir:0}]});const tram=tramAt(st,p.x,p.y)!;tram.cargo={steel:3}; // labelled loaded cargo fixture
++ const steel=st.engineer.inv.steel,preview=removalPreview(st,p,p);assert.ok(preview.ok,preview.reason);assert.deepEqual(preview.selection!.machines.map(m=>m.item),['tram','track']);send(st,{type:'removeArea',selection:preview.selection!});assert.equal(st.engineer.inv.steel,steel+3);assert.ok(!tramAt(st,p.x,p.y));assert.ok(!machineAt(st,p.x,p.y));send(st,{type:'undoBuild'});assert.equal(tramAt(st,p.x,p.y)!.id,tram.id);assert.equal(tramAt(st,p.x,p.y)!.cargo?.steel??0,0);assert.equal(machineAt(st,p.x,p.y)!.kind,'track');send(st,{type:'redoBuild'});assert.equal(st.engineer.inv.steel,steel+3);
++});
+--- P8-03/packages/tools/src/campaign-docsync.ts
++++ P8-04/packages/tools/src/campaign-docsync.ts
+@@ -32,7 +32,8 @@
+ | Station restoration | ${EXPANSION.station.steel} steel + ${EXPANSION.station.copper} copper, real local/connected power; provisional cost |
+ | Starter tram kit | One tram, two stops and route-length track, once-only station inventory |
+ | Physical truck | Restored second-area station; ${TRUCK_RULES.width}×${TRUCK_RULES.length} street footprint, rotates; ${TRUCK_RULES.stacks} saved cargo stacks separate from ${INV_STACKS} pocket stacks; speed ×${TRUCK_RULES.speedMultiplier}; local boarding within ${TRUCK_RULES.boardReach} tiles; valid adjacent exit; provisional |
+-| Truck construction | Foreman + restored station truck; selected physical supply chest and up to 32 waiting orders; load within ${TRUCK_WORK_RULES.loadReach} tiles at up to ${TRUCK_WORK_RULES.loadPerSecond} items/s; real cargo, normal prices or packed machines; ${TRUCK_RULES.serviceReach}-tile service reach; one part or paired tunnel per second; swept street routes bounded to ${TRUCK_WORK_RULES.searchNodes} search nodes / ${TRUCK_WORK_RULES.pathLimit} steps; ${TRUCK_WORK_RULES.retryTicks/20}s retries; pause/resume/takeover retain cargo and built parts; provisional |
++| Area removal | Foreman; drag whole machines then explicitly pack the preview; 1–${BUILD_LIMIT} machines / 128×128 tiles; one atomic current-reach/pocket-capacity transaction; stale identities/settings refuse; contents to pockets and loose rounds to available buffer; busy/damaged/fractional/installed machines refuse; undo restores settings, not contents |
++| Truck construction | Foreman + restored station truck; selected physical supply chest and up to 32 waiting orders; load within ${TRUCK_WORK_RULES.loadReach} tiles at up to ${TRUCK_WORK_RULES.loadPerSecond} items/s; real cargo, normal prices or packed machines; ${TRUCK_RULES.serviceReach}-tile service reach; one part or paired tunnel per second; swept street routes bounded to ${TRUCK_WORK_RULES.searchNodes} search nodes / ${TRUCK_WORK_RULES.pathLimit} steps; ${TRUCK_WORK_RULES.retryTicks/20}s retries; individual order pause/resume, source reassignment and immediate waiting-job retry; repeated controls preserve work; pause/resume/takeover retain cargo and built parts; provisional |
+ | Truck parking | Nearest clear street footprint within ${TRUCK_RULES.parkingRadius} tiles, preserving the starter kit corridor; cargo stays parked through exit/knockdown; WASD driving or Foreman construction mode; no fuel consumption; boarding pauses automatic work |
+ | Selected-stop map | Actual track components and existing freight manifests; ready/unpowered/full stops, tram position and interrupted service; selection is read-only |
+ | Underground belts | Start unlocked; each 1×1 endpoint costs ${MACHINE_COST.underground.steel} steel + ${MACHINE_COST.underground.copper} copper; up to ${UNDERGROUND_HIDDEN} hidden tiles; same-facing nearest input/output; saved stock waits on interruption; provisional |
+--- /dev/null
++++ P8-04/packages/sim/test/areaRemoval.test.ts
+@@ -0,0 +1,63 @@
++import {expedition} from './transportFixture';
++import {test} from 'node:test';
++import assert from 'node:assert/strict';
++import {writeFileSync} from 'node:fs';
++import {createCampaign,applyCommands,actionResult,canPlace,inReach,machineAt,stateHash,loadState,conservation,removalPreview,dimensions,MACHINE_SIZE,invCap,stackSize,type SimState,type Command,type Kind,type RemovalSelection} from '../src/index';
++function send(st:SimState,c:Command,ok=true){applyCommands(st,[c]);assert.equal(actionResult(st).ok,ok,actionResult(st).reason);}
++function ready(){const st=createCampaign(3);send(st,{type:'factory',action:{type:'chestTake',item:'steel',n:100}});send(st,{type:'factory',action:{type:'chestTake',item:'copper',n:60}});const r=st.campaign!.recruits!.sites.find(r=>r.kind==='foreman')!;r.seenAt=r.recruitedAt=0;return st;}
++function spot(st:SimState,kind:Kind='belt',width=1){const [w,h]=dimensions(kind,1,MACHINE_SIZE[kind]);for(let y=Math.floor(st.engineer.y)-6;y<st.engineer.y+6;y++)for(let x=Math.floor(st.engineer.x)-6;x<st.engineer.x+6;x++)if(Array.from({length:width},(_,i)=>canPlace(st,kind,x+i*w,y,1).ok&&inReach(st,x+i*w,y,w,h)).every(Boolean))return {x,y};throw Error('No reachable site');}
++function put(st:SimState,kind:Kind='belt'){const p=spot(st,kind);send(st,{type:'construct',edits:[{action:'place',item:kind,...p,dir:1}]});return machineAt(st,p.x,p.y)!;}
++function selection(st:SimState,m:ReturnType<typeof put>){const [w,h]=dimensions(m.kind,m.dir,MACHINE_SIZE[m.kind]);return removalPreview(st,{x:m.x,y:m.y},{x:m.x+w-1,y:m.y+h-1});}
++function pack(st:SimState,s:RemovalSelection,ok=true){send(st,{type:'removeArea',selection:s},ok);}
++
++test('area removal: read-only whole-footprint preview, atomic paid packing, settings undo and saved redo',()=>{
++ const st=ready(),m=put(st,'assembler');send(st,{type:'factory',action:{type:'setRecipe',x:m.x,y:m.y,recipe:'wire'}});const before=stateHash(st),p=selection(st,m);assert.ok(p.ok,p.reason);assert.equal(stateHash(st),before);assert.deepEqual(p.items,{assembler:1});
++ assert.ok(!removalPreview(st,{x:m.x,y:m.y},{x:m.x,y:m.y}).ok);pack(st,p.selection!);assert.equal(st.engineer.inv.assembler,1);assert.ok(!machineAt(st,m.x,m.y));
++ send(st,{type:'undoBuild'});assert.equal(machineAt(st,m.x,m.y)!.recipe,'wire');assert.equal(machineAt(st,m.x,m.y)!.id,m.id);const saved=loadState(st);send(st,{type:'redoBuild'});send(saved,{type:'redoBuild'});assert.equal(stateHash(saved),stateHash(st));assert.ok(conservation(st).ok);
++ const hash=stateHash(st);pack(st,p.selection!,false);assert.equal(stateHash(st),hash);
++});
++
++test('area removal: changed identities/settings, new neighbours and changed reach refuse without partial effects',()=>{
++ const st=ready(),p=spot(st,'belt',3);send(st,{type:'construct',edits:[{action:'place',item:'belt',...p,dir:1}]});const preview=removalPreview(st,p,{x:p.x+2,y:p.y});assert.ok(preview.ok);
++ send(st,{type:'construct',edits:[{action:'place',item:'belt',x:p.x+2,y:p.y,dir:1}]});let hash=stateHash(st);pack(st,preview.selection!,false);assert.equal(stateHash(st),hash);
++ const next=removalPreview(st,p,{x:p.x+2,y:p.y});send(st,{type:'construct',edits:[{action:'rotate',...p}]});hash=stateHash(st);pack(st,next.selection!,false);assert.equal(stateHash(st),hash);
++ const replaced=removalPreview(st,p,{x:p.x+2,y:p.y});send(st,{type:'construct',edits:[{action:'pickUp',...p},{action:'place',item:'belt',...p,dir:2}]});hash=stateHash(st);pack(st,replaced.selection!,false);assert.equal(stateHash(st),hash);
++ const current=removalPreview(st,p,{x:p.x+2,y:p.y});st.engineer.x+=100;hash=stateHash(st);pack(st,current.selection!,false);assert.equal(stateHash(st),hash); // labelled reach fixture
++});
++
++test('area removal: cumulative pocket capacity refuses the whole group then recovers',()=>{
++ const st=ready(),p=spot(st,'belt',2);send(st,{type:'construct',edits:[{action:'place',item:'belt',...p,dir:1},{action:'place',item:'belt',x:p.x+1,y:p.y,dir:1}]});const selection=removalPreview(st,p,{x:p.x+1,y:p.y}).selection!;
++ // Labelled stock/capacity fixture: exactly one slot left in the last belt stack.
++ st.engineer.inv={belt:invCap(st.engineer)*stackSize('belt')-1};let hash=stateHash(st);pack(st,selection,false);assert.equal(stateHash(st),hash);st.engineer.inv.belt--;pack(st,selection);assert.equal(st.engineer.inv.belt,invCap(st.engineer)*stackSize('belt'));
++});
++
++test('area removal: loaded belts and hidden tunnel items return once; undo does not refill machines',()=>{
++ for(const kind of ['belt','underground'] as const){const st=ready(),m=put(st,kind);if(kind==='underground')m.underground='input';
++ // Labelled loaded transport fixture; exact item counts checked independently of its injected contents.
++ m.items=[{k:'steel',p:kind==='underground'?2.5:.4},{k:'copper',p:.8}];const before={...st.engineer.inv},p=selection(st,m);assert.ok(p.ok,p.reason);pack(st,p.selection!);assert.equal(st.engineer.inv.steel,before.steel+1);assert.equal(st.engineer.inv.copper,before.copper+1);send(st,{type:'undoBuild'});assert.deepEqual(machineAt(st,m.x,m.y)!.items,[]);assert.equal(st.engineer.inv.steel,before.steel+1);send(st,{type:'redoBuild'});assert.equal(st.engineer.inv.copper,before.copper+1);}
++});
++
++test('area removal: loose turret rounds require buffer space and never disappear',()=>{
++ const st=ready(),m=put(st,'turret');m.inv.rounds=13;st.buffer=st.config.bufferCap;const p=selection(st,m);assert.ok(!p.ok);assert.equal(p.looseRounds,3);const hash=stateHash(st);pack(st,p.selection!,false);assert.equal(stateHash(st),hash);st.buffer-=3;const lost=st.stats.roundsLost??0;pack(st,p.selection!);assert.equal(st.buffer,st.config.bufferCap);assert.equal(st.engineer.inv.magazine,1);assert.equal(st.stats.roundsLost??0,lost);send(st,{type:'undoBuild'});assert.equal(machineAt(st,m.x,m.y)!.inv.rounds??0,0);
++});
++
++test('area removal: busy machines, fractional contents, damaged defences and installed facilities stay',()=>{
++ for(const kind of ['assembler','mixer','wall','chest'] as const){const st=ready();if(kind==='mixer'){const r=st.campaign!.recruits!.sites.find(r=>r.kind==='concrete')!;r.seenAt=r.recruitedAt=0;}const m=put(st,kind);
++ if(kind==='assembler'||kind==='mixer')m.busy=true;else if(kind==='wall')m.hp=1;else st.flow!.projects['supply-depot']={projectId:'supply-depot',stage:'restored',installId:m.id} as never;
++ const hash=stateHash(st),p=selection(st,m);assert.ok(!p.ok,kind);pack(st,p.selection!,false);assert.equal(stateHash(st),hash);}
++ const st=ready(),m=put(st,'chest');m.inv.copper=.5;assert.ok(!selection(st,m).ok);delete m.inv.copper;m.cargo={steel:.5};assert.ok(!selection(st,m).ok);
++ const depot=st.flow!.machines.find(m=>m.kind==='depot')!;assert.ok(!selection(st,depot).ok);const locked=createCampaign();assert.ok(!removalPreview(locked,{x:0,y:0},{x:1,y:1}).ok);assert.ok(!removalPreview(st,{x:0,y:0},{x:128,y:1}).ok);
++});
++
++test('area removal: cargo, held items and freight/filter/priority settings survive conserved packing history',()=>{
++ for(const kind of ['chest','inserter','splitter','tramstop'] as const){const st=kind==='tramstop'?loadState(expedition().st):ready();const foreman=st.campaign!.recruits!.sites.find(r=>r.kind==='foreman')!;foreman.seenAt=foreman.recruitedAt=st.t;const m=put(st,kind);if(kind==='chest'||kind==='tramstop')m.cargo={steel:3};if(kind==='inserter'){m.filter='copper';m.hold='copper';}if(kind==='splitter')m.priority='right';if(kind==='tramstop')m.freight={steel:{request:5,reserve:2,export:true}};
++ const initial={...st.engineer.inv},p=selection(st,m);assert.ok(p.ok,p.reason);pack(st,p.selection!);send(st,{type:'undoBuild'});const restored=machineAt(st,m.x,m.y)!;assert.equal(restored.filter,m.filter);assert.equal(restored.priority,m.priority);assert.deepEqual(restored.freight,m.freight);if(m.cargo){assert.equal(st.engineer.inv.steel,initial.steel+3);assert.equal(restored.cargo?.steel??0,0);}if(m.hold){assert.equal(st.engineer.inv.copper,initial.copper+1);assert.equal(restored.hold,null);}}
++});
++
++test('area removal: ordinary paid command comparison records equal layouts/materials without a human tedium claim',()=>{
++ const manual=ready(),tools=loadState(manual),p=spot(manual,'belt',6),layout=Array.from({length:6},(_,i)=>({action:'place' as const,item:'belt' as const,x:p.x+i,y:p.y,dir:1 as const})),rows=[];
++ for(const [name,st] of [['manual',manual],['tools',tools]] as const){const initial={...st.engineer.inv},start=performance.now();let commands=0;for(const e of layout){send(st,{type:'construct',edits:[e]});commands++;}if(name==='tools'){send(st,{type:'blueprintCopy',from:p,to:{x:p.x+5,y:p.y}});commands++;}
++ const paid={...st.engineer.inv};if(name==='manual'){for(const e of layout){send(st,{type:'construct',edits:[{action:'pickUp',x:e.x,y:e.y}]});commands++;}for(const e of layout){send(st,{type:'construct',edits:[e]});commands++;}for(const e of layout){send(st,{type:'construct',edits:[{action:'pickUp',x:e.x,y:e.y}]});commands++;}}else{pack(st,removalPreview(st,p,{x:p.x+5,y:p.y}).selection!);commands++;send(st,{type:'blueprintPaste',...p});commands++;pack(st,removalPreview(st,p,{x:p.x+5,y:p.y}).selection!);commands++;}
++ assert.ok(conservation(st).ok);rows.push({name,commands,simulationSeconds:st.t,wallMs:performance.now()-start,initial,afterPaidPlacement:paid,final:{...st.engineer.inv},failures:0});}
++ assert.deepEqual(manual.engineer.inv,tools.engineer.inv);if(process.env.P8_COMPARISON)writeFileSync(process.env.P8_COMPARISON,JSON.stringify({rows,assistance:'Foreman recruited by labelled fixture; opening supplies withdrawn with ordinary commands; shared reachable six-belt layout; both paths build, pack, rebuild and pack the same six-belt layout; tool path includes copying its ordinarily built source. Timings are headless command execution, not human task time or tedium evidence.'},null,2));
++});

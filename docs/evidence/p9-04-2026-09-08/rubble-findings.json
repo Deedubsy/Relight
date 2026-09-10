@@ -1,0 +1,123 @@
+{
+  "seed": 102,
+  "hash": "a3298c5a",
+  "clearedFootprints": [
+    {
+      "x": 256,
+      "y": 694,
+      "size": 2,
+      "kind": "tramstop",
+      "refusal": "rubble in the way",
+      "refusalConserved": true,
+      "mined": 300,
+      "seconds": 305
+    }
+  ],
+  "bases": [
+    {
+      "block": 365,
+      "x": 240,
+      "y": 680,
+      "size": 6,
+      "hp": 0,
+      "commissionedAt": 0
+    },
+    {
+      "block": 364,
+      "x": 210,
+      "y": 684,
+      "size": 3,
+      "hp": 300,
+      "commissionedAt": 14
+    },
+    {
+      "block": 351,
+      "x": 223,
+      "y": 649,
+      "size": 3,
+      "hp": 0,
+      "commissionedAt": 41
+    }
+  ],
+  "power": {
+    "homeBlock": 365,
+    "stops": [
+      {
+        "id": 79,
+        "x": 256,
+        "y": 694,
+        "block": 365,
+        "throttle": 0
+      },
+      {
+        "id": 80,
+        "x": 224,
+        "y": 700,
+        "block": 364,
+        "throttle": 1
+      },
+      {
+        "id": 81,
+        "x": 226,
+        "y": 663,
+        "block": 351,
+        "throttle": 0
+      }
+    ],
+    "generators": [
+      {
+        "id": 2,
+        "x": 250,
+        "y": 679,
+        "block": 365,
+        "coal": 33
+      },
+      {
+        "id": 3,
+        "x": 208,
+        "y": 682,
+        "block": 364,
+        "coal": 4
+      },
+      {
+        "id": 4,
+        "x": 221,
+        "y": 647,
+        "block": 351,
+        "coal": 5
+      }
+    ]
+  },
+  "defenceHistory": [],
+  "freightDelivered": 0,
+  "truck": {
+    "source": [
+      202,
+      683
+    ],
+    "destination": [
+      194,
+      694
+    ],
+    "routeSteps": 4,
+    "start": {
+      "x": 201,
+      "y": 685.5
+    },
+    "end": {
+      "x": 201,
+      "y": 689.5
+    },
+    "phases": [
+      "loading",
+      "travelling",
+      "building",
+      "complete"
+    ],
+    "order": "completed",
+    "pocketsUnchanged": true
+  },
+  "conserved": true,
+  "replay": "a3298c5a",
+  "interpretation": "The finite stone footprint was cleared with ordinary mining and the three-stop network/truck construction completed. Freight was zero after the longer unattended scenario: home and later station bases were disabled (HP 0), so those stops had zero throttle despite remaining generator fuel. This is a failed survival/freight scenario, not a passing defence result or proof of an impassable stop."
+}

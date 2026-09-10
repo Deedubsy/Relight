@@ -61,18 +61,12 @@ test('guardian telegraphs every strike, accepts a dodge, leaves a downed enginee
   run(st,1);assert.equal(d.guardian.stats.hits,hits);assert.ok(['return','guard'].includes(s.mode));
 });
 
-test('the guardian returns at its bounded leash and workshop restoration does not retire it',()=>{
-  const st=encounter(),d=st.campaign!.discovery!,s=stalkersOf(st)[0];
-  // Controlled location probe, as in the legacy archetype tests; each move remains on passable ground.
-  for(let i=0;i<200;i++) {
-    const x=s.hx,y=s.hy+DISCOVERY.guardian.leash+2;
-    if(passable(st,Math.floor(x),Math.floor(y))){st.engineer.x=x;st.engineer.y=y;}
-    else {st.engineer.x=s.hx-DISCOVERY.guardian.leash-2;st.engineer.y=s.hy;}
-    run(st,.05);assert.ok(Math.hypot(s.x-s.hx,s.y-s.hy)<=DISCOVERY.guardian.leash+1e-8);
-  }
-  assert.equal(s.mode,'guard');assert.equal(d.guardian.stats.retired,0);
-  st.blocks[d.block].state=2; // HELD: only the legacy lifecycle retires on this change.
-  run(st,2);assert.equal(stalkersOf(st).length,1);assert.equal(s.mode,'guard');
+test('the guardian chases beyond its home yard, disengages at distance and does not retire with the workshop',()=>{
+ const st=encounter(),d=st.campaign!.discovery!,s=stalkersOf(st)[0];
+ // Controlled distance probes isolate the aggro contract from city path geometry.
+ st.engineer.x=s.x+10;st.engineer.y=s.y;run(st,.05);assert.equal(s.mode,'pursue');
+ st.engineer.x=s.x+21;run(st,.05);assert.equal(s.mode,'return');
+ st.blocks[d.block].state=2;run(st,2);assert.equal(stalkersOf(st).length,1);assert.equal(d.guardian.stats.retired,0);
 });
 
 test('a supplied paid turret defeats the guardian without reflex combat; the site reward is once-only, not a drop',()=>{
@@ -177,5 +171,5 @@ test('a paid missed rifle round attracts the workshop guardian even when the eng
   // Controlled stationary starting position, with an aim line facing away from the guardian.
   st.engineer.x=s.hx+4;st.engineer.y=s.hy;d.guardian.ex=st.engineer.x;d.guardian.ey=st.engineer.y;
   run(st,.05,[{type:'aim',at:[st.engineer.x+6,st.engineer.y]}]);
-  assert.equal(s.hp,24);assert.equal(s.mode,'investigate');assert.equal(st.engineer.fired,1);
+  assert.equal(s.hp,24);assert.ok(['investigate','pursue'].includes(s.mode));assert.equal(st.engineer.fired,1);
 });

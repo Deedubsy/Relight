@@ -1,4 +1,4 @@
-Read docs/PROGRAMME_STATE.md "Now", then docs/PROGRESS.md.
+Read docs/PROGRAMME_STATE.md current handoff, then docs/PROGRESS.md.
 
 Find the current task: the first row whose status is `todo` or `in_progress` and whose
 "blocked by" column names only tasks that are `done` or `waived` and decision rows that
@@ -13,9 +13,8 @@ Then:
    acceptance column and the evidence file and section it needs. Then print: "This one is
    yours. Tell me the result when you have it and I will write it in." Stop.
 
-3. If the current task's owner is `claude`:
-   a. Set its status to `in_progress` in docs/PROGRESS.md (one line; commit it if the
-      task will take more than one commit).
+3. If the current task's owner is `agent` or `claude`:
+   a. Set its status to `in_progress` in docs/PROGRESS.md (one row; no commit without explicit authorisation).
    b. Read the decision rows its "blocked by" and acceptance columns name. If one the
       task cannot proceed without is not `decided`, set the status back to `blocked`,
       name the row, and stop. A row the task can embody provisionally (constitution rule
@@ -31,14 +30,15 @@ Then:
    e. Write the evidence named in the "evidence" column. Say which of the four claims it
       has: implementation complete / automated validation (not_run, passed, failed,
       partial) / human approval / human play evidence.
-   f. Set the status to `done` with today's date, add one log line, update
-      docs/PROGRAMME_STATE.md "Now" (and "What is built" if it changed), touch the
+   f. Set the status to `done` with today's date, add one log line, move dependent
+      blocked rows to `todo` only when all their named dependencies are satisfied, and update
+      docs/PROGRAMME_STATE.md current handoff (and "What is built" if it changed), touch the
       DECISIONS.md rows the task embodied, and add the design-doc changelog line for any
       doc edit.
-   g. Commit with the trailers in CLAUDE.md. Do not push.
+   g. Commit/push only with explicit user authorisation; follow current CLAUDE.md.
    h. Print: what was built; what was measured and how (run, seed, config, commit); what a
       human must decide, if anything; the file-by-file change list from
-      `git show --name-status HEAD`.
+      the actual working-tree diff (or `git show --name-status HEAD` only when committed).
    i. Stop. The next task starts on the next `/next`.
 
 Never mark a `human` task `done` or `waived`. Never change or reuse a task id.

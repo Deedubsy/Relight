@@ -1,0 +1,211 @@
+{
+  "order": {
+    "id": 3,
+    "blueprint": {
+      "version": 1,
+      "name": "Belt-fed ammunition cell",
+      "entities": [
+        {
+          "id": "input",
+          "kind": "chest",
+          "x": 0,
+          "y": 0,
+          "dir": 0
+        },
+        {
+          "id": "feed",
+          "kind": "inserter",
+          "x": 2,
+          "y": 0,
+          "dir": 1
+        },
+        {
+          "id": "assembler",
+          "kind": "assembler",
+          "x": 3,
+          "y": 0,
+          "dir": 0,
+          "recipe": "shot"
+        },
+        {
+          "id": "out",
+          "kind": "inserter",
+          "x": 6,
+          "y": 1,
+          "dir": 1
+        },
+        {
+          "id": "belt",
+          "kind": "belt",
+          "x": 7,
+          "y": 1,
+          "dir": 1
+        },
+        {
+          "id": "turret",
+          "kind": "turret",
+          "x": 8,
+          "y": 1,
+          "dir": 0
+        }
+      ]
+    },
+    "x": 373,
+    "y": 635,
+    "createdAt": 25,
+    "status": "completed",
+    "finishedAt": 105
+  },
+  "rounds": 20,
+  "t": 140,
+  "conservation": {
+    "ok": true,
+    "tolerance": 0.01,
+    "openedAt": 0,
+    "opening": {
+      "steel": 200,
+      "copper": 100,
+      "stone": 50,
+      "coal": 80,
+      "magazine": 20,
+      "wire": 0,
+      "frame": 0,
+      "board": 0,
+      "concrete": 0
+    },
+    "sources": {
+      "steel": 33,
+      "copper": 0,
+      "stone": 0,
+      "coal": 0,
+      "magazine": 2,
+      "wire": 0,
+      "frame": 0,
+      "board": 0,
+      "concrete": 0
+    },
+    "sinks": {
+      "steel": 144,
+      "copper": 54,
+      "stone": 0,
+      "coal": 7,
+      "magazine": 0,
+      "wire": 0,
+      "frame": 0,
+      "board": 0,
+      "concrete": 0
+    },
+    "held": {
+      "steel": 89,
+      "copper": 46,
+      "stone": 50,
+      "coal": 73,
+      "magazine": 22,
+      "wire": 0,
+      "frame": 0,
+      "board": 0,
+      "concrete": 0
+    },
+    "where": {
+      "chest": {
+        "steel": 80,
+        "copper": 40,
+        "stone": 50,
+        "coal": 20,
+        "magazine": 0,
+        "wire": 0,
+        "frame": 0,
+        "board": 0,
+        "concrete": 0
+      },
+      "buffer": {
+        "steel": 0,
+        "copper": 0,
+        "stone": 0,
+        "coal": 0,
+        "magazine": 20,
+        "wire": 0,
+        "frame": 0,
+        "board": 0,
+        "concrete": 0
+      },
+      "ring": {
+        "steel": 0,
+        "copper": 0,
+        "stone": 0,
+        "coal": 0,
+        "magazine": 0,
+        "wire": 0,
+        "frame": 0,
+        "board": 0,
+        "concrete": 0
+      },
+      "pockets": {
+        "steel": 9,
+        "copper": 6,
+        "stone": 0,
+        "coal": 0,
+        "magazine": 0,
+        "wire": 0,
+        "frame": 0,
+        "board": 0,
+        "concrete": 0
+      },
+      "machines": {
+        "steel": 0,
+        "copper": 0,
+        "stone": 0,
+        "coal": 53,
+        "magazine": 2,
+        "wire": 0,
+        "frame": 0,
+        "board": 0,
+        "concrete": 0
+      },
+      "belts": {
+        "steel": 0,
+        "copper": 0,
+        "stone": 0,
+        "coal": 0,
+        "magazine": 0,
+        "wire": 0,
+        "frame": 0,
+        "board": 0,
+        "concrete": 0
+      },
+      "committed": {
+        "steel": 0,
+        "copper": 0,
+        "stone": 0,
+        "coal": 0,
+        "magazine": 0,
+        "wire": 0,
+        "frame": 0,
+        "board": 0,
+        "concrete": 0
+      }
+    },
+    "unexplained": {
+      "steel": 0,
+      "copper": 0,
+      "stone": 0,
+      "coal": 0,
+      "magazine": 0,
+      "wire": 0,
+      "frame": 0,
+      "board": 0,
+      "concrete": 0
+    },
+    "problems": []
+  },
+  "fullReplay": true,
+  "sourceId": 4,
+  "origin": {
+    "x": 373,
+    "y": 635
+  },
+  "input": {
+    "x": 373,
+    "y": 635
+  }
+}

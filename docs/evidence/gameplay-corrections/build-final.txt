@@ -1,0 +1,16 @@
+
+> relight-prototype@0.1.0 typecheck
+> npm run build -w packages/sim && npm run build -w packages/harness && npm run build -w packages/tools && npm run build -w packages/game
+
+
+> @relight/sim@0.1.0 build
+> tsc -p tsconfig.json --noEmit
+
+test/gameplayCorrections.test.ts(129,17): error TS2551: Property 'create' does not exist on type 'typeof import("/mnt/e/Factorio2/packages/sim/src/index")'. Did you mean 'coreAt'?
+npm error Lifecycle script `build` failed with error:
+npm error code 2
+npm error path /mnt/e/Factorio2/packages/sim
+npm error workspace @relight/sim@0.1.0
+npm error location /mnt/e/Factorio2/packages/sim
+npm error command failed
+npm error command sh -c tsc -p tsconfig.json --noEmit

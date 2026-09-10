@@ -1,0 +1,2 @@
+const {chromium}=require('C:/Users/Admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+(async()=>{const b=await chromium.launch({channel:'chrome',headless:true});const p=await b.newPage({viewport:{width:1920,height:1080}});await p.goto('http://127.0.0.1:5182/?rules=exploration-v2&seed=3&view=world&state=/ui-fresh.json');await p.waitForTimeout(1800);await p.screenshot({path:'E:/Factorio2/docs/evidence/ui-redesign/ui08-baseline.png'});await b.close();})();
