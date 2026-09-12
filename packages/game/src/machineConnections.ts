@@ -25,9 +25,9 @@ export function connectionText(m:Machine,st?:SimState):string{
  tramstop:'IN: conveyors load the platform. OUT: conveyors unload arrivals first, then platform stock. Point away to unload.',
  inserter:'IN: cyan pickup tile. OUT: amber drop tile. Rotate with R. Optional filtered transfer; requires power.',
  excavator:'OUT: conveyor touching any side and pointing away takes mined material. No item input.',
- turret:'IN: conveyor delivers Shot magazines. OUT: conveyor pointing away retrieves whole magazines; partial rounds stay loaded.',
+ turret:'IN: conveyor delivers bullets. OUT: conveyor pointing away retrieves individual bullets.',
  generator:'IN: conveyor delivers Coal or Refined fuel. OUT: conveyor pointing away retrieves unused fuel.',
- depot:'IN: conveyor delivers supplies. OUT: conveyor pointing away takes stored materials or magazines.',
+ depot:'IN: conveyor delivers supplies. OUT: conveyor pointing away takes stored materials or bullets.',
  belt:'IN: rear and side feeds. Place its rear against storage or a machine to take items automatically. OUT: arrow points downstream.',
  splitter:'IN: two rear tiles, including direct machine/storage pickup. OUT: two front tiles, following the arrows.',
  underground:m.underground==='output'?'OUT: front arrow to the next conveyor.':'IN: rear arrow, including direct machine/storage pickup; items travel to the paired exit.'};

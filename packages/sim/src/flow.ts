@@ -1,3 +1,5 @@
+import {fabricationBlocker,tickDecode} from './fabrication';
+import {isWeaponItem,type WeaponItem,tickEquipment} from './equipment';
 import {itemName} from './itemNames';
 import {riverfrontRail} from './city/riverfrontRail';
 import {RIVERFRONT} from './city/riverfront';
@@ -27,7 +29,7 @@ import { openLedger } from './ledger';
 import { syncProjects, projectActivated, commission, projectOf, SUPPLY_DEPOT_PROJECT } from './project';   // RI-05: only functions cross, at call time (project.ts imports back)
 import { idxOf, step, applyCommands, tileHooks, effectiveSupply, syncEdges as rebuildRing, burnOffS, isCandidate, startContested } from './sim';
 import { edgeId, edgeFrom, edgeTo } from './graph';
-import { Recipe, RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, LAMP_KW, LAMP_RADIUS, POLE_REACH, FLOODLIGHT_KW, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH } from './recipes';
+import { Recipe, RECIPES, START_COAL, COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_ROUNDS_PER_S, TURRET_KW, LAMP_KW, LAMP_RADIUS, POLE_REACH, FLOODLIGHT_KW, FLOODLIGHT_RANGE, FLOODLIGHT_HALF_ANGLE, BIG_POLE_REACH } from './recipes';
 import { BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, START_CHEST, START_TURRETS, STREETLIGHT_RADIUS } from './constants';
 import {
   CELL_TILES, P_STEEL, P_COPPER, P_COAL, HQ_PATCHES, DEPOT_LOT, DEPOT_TILES, SUBSTATION_TILES,
@@ -44,7 +46,7 @@ import type { HeartState } from './heart';
 import { heartAt, heartCheck, heartStarted, heartTick, cabinetAt, deliverToCabinet, repairCabinet, abortHeart } from './heart';
 import { segBetween, frontTiles, CitySeg } from './city';
 import { type StationRules, type FreightReservation, setStationRules, transferFreight } from './freight';
-import { campaignGrid, campaignThrottle } from './campaignPower';
+import { campaignGrid, campaignThrottle, machineThrottle } from './campaignPower';
 import { turbineAt, deliverTurbine, restoreTurbine, setTurbineEnabled } from './campaignTurbine';
 import { recruitAt, recruitSurvivors, campaignRecruited } from './campaignRecruits';
 import { discoveryAt, recoverSchematic } from './campaignDiscovery';
@@ -52,8 +54,9 @@ import { stalkerLayer } from './stalker';
 import { deliverSite, restoreSite, collectTramKit, campaignSiteAt } from './expansion';
 import { defenceMax, defenceHp, startRepair, coreDisabledAt } from './campaignDefence';
 import { upgradeRadio } from './campaignThreat';
+import { noteTurretSupply } from './openingEncounter';
 import { persistentSource, tickDistricts } from './campaignDistricts';
-import { isCampaign } from './rules';
+import { isCampaign, CAMPAIGN_START_POCKETS } from './rules';
 
 export const TILE_TPS = 20;                    // constitution: fixed 20 ticks/s at tile level
 export const TILE_DT = 1 / TILE_TPS;
@@ -64,11 +67,11 @@ export const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 export const DIR_NAMES = ['north', 'east', 'south', 'west'];
 export const ARC_LAMP_RADIUS = 6;
 import {CORRECTIONS,progressionAt,progressionCommand,tickProgression,hopperCapacity,freightCapacity,processingMultiplier} from './progression';
-export type Kind = 'foundry'|'refinery'|'pumpjack'|'assembler2'|'fastbelt'|'cannon'|'arclamp' | 'excavator' | 'belt' | 'inserter' | 'assembler' | 'depot' | 'turret' | 'lamp' | 'pole' | 'generator' | 'floodlight' | 'bigpole' | 'substation'
+export type Kind = 'alienworkbench'|'foundry'|'refinery'|'pumpjack'|'assembler2'|'fastbelt'|'cannon'|'arclamp' | 'excavator' | 'belt' | 'inserter' | 'assembler' | 'depot' | 'turret' | 'lamp' | 'pole' | 'generator' | 'floodlight' | 'bigpole' | 'substation'
   | 'chest' | 'track' | 'tramstop' | 'tram' | 'wall' | 'underground' | 'splitter' | 'mixer' | 'barricade';   // RI-05: the supply chest (plan §4.2/§5.2) and the minimal transport kit (§13, the minimal part of T16)
 export const KINDS: readonly Kind[] = ['excavator', 'belt', 'inserter', 'assembler', 'depot', 'turret', 'lamp', 'pole', 'generator', 'floodlight', 'bigpole', 'substation', 'chest', 'track', 'tramstop', 'tram'];
 /** Keep the legacy catalogue stable for its save/tools/tests; campaign-only additions are explicit. */
-export const CAMPAIGN_KINDS: readonly Kind[] = ['foundry','refinery','pumpjack','assembler2','fastbelt','cannon','arclamp',...KINDS, 'wall', 'underground', 'splitter', 'mixer', 'barricade'];
+export const CAMPAIGN_KINDS: readonly Kind[] = ['alienworkbench','foundry','refinery','pumpjack','assembler2','fastbelt','cannon','arclamp',...KINDS, 'wall', 'underground', 'splitter', 'mixer', 'barricade'];
 /** Prompt B M3 (run name B-M3-unlocks): the Electricians' unlocks (§8, §13). GAME-ASSUMPTION: a group's unlocks land
  *  on the toolbar when its block turns Held and stay if the block later falls (§11: "the Electricians walk into the
  *  Depot"); the other groups' unlocks are not in the slice. */
@@ -79,7 +82,7 @@ export const SURVIVOR_UNLOCKS: Record<string, readonly Kind[]> = { Electricians:
  *  §13's Tram depot / Rail crew rows give in the design; those rows stay the design. */
 export const RAIL_ROUTE_KINDS: readonly Kind[] = ['track', 'tramstop', 'tram'];
 export const PROJECT_UNLOCKS: Record<string, readonly Kind[]> = { 'rail-yard': RAIL_ROUTE_KINDS };
-export const KIND_LABEL: Record<Kind, string> = { foundry:'Foundry',refinery:'Refinery',pumpjack:'Pumpjack',assembler2:'Assembler Mk2',fastbelt:'Fast belt',cannon:'Cannon',
+export const KIND_LABEL: Record<Kind, string> = { alienworkbench:'Alien workbench',foundry:'Foundry',refinery:'Refinery',pumpjack:'Pumpjack',assembler2:'Assembler Mk2',fastbelt:'Fast belt',cannon:'Cannon',
   arclamp: 'Arc lamp', excavator: 'Excavator', belt: 'belt', inserter: 'inserter', assembler: 'Assembler', depot: 'Depot', turret: 'Gun turret', lamp: 'Lamp',
   pole: 'pole', generator: 'Generator', floodlight: 'Floodlight', bigpole: 'Big pole', substation: 'Substation',
   mixer: 'Mixer', barricade: 'Barricade', underground: 'Underground belt', splitter: 'Priority splitter', wall: 'Wall', chest: 'Supply chest', track: 'Track', tramstop: 'Tram stop', tram: 'Tram',
@@ -119,6 +122,9 @@ export function unlockedByProject(kind: Kind): string | null {
 /** Why a kind cannot be placed yet ('' when it can): the group that unlocks it has not joined, or (RI-05) the
  *  project that grants it is not restored — owning the reward, not the facility being operational now. */
 export function lockReason(st: SimState, kind: Kind): string {
+  const g=st.campaign?.progression?.gameplay;
+  if(g&&!g.legacyEquipment?.includes(kind)){if(['alienworkbench','pumpjack','refinery'].includes(kind)&&g.commissioned.length<1)return 'M2: commission your first plant';if(kind==='assembler2'&&g.commissioned.length<2)return 'M3: commission a second distinct plant';}
+  if(kind==='alienworkbench')return g?'':'Authored campaign workbench';
   if(kind==='underground'||kind==='splitter')return isCampaign(st)?'':'routing primitives belong to the exploration campaign';
   if(kind==='arclamp')return !isCampaign(st)?'Arc lamps belong to the exploration campaign':campaignRecruited(st,'lamplighters')?'':'recruit the Lamplighters at their shelter';
   if(kind==='mixer'||kind==='barricade')return !isCampaign(st)?'concrete construction belongs to the exploration campaign':campaignRecruited(st,'concrete')?'':'recruit the Concrete crew at their shelter';
@@ -127,7 +133,7 @@ export function lockReason(st: SimState, kind: Kind): string {
   if (isCampaign(st)) {
     if (RAIL_ROUTE_KINDS.includes(kind) && st.campaign?.fixedTram) return 'Permanent tram network: power the existing stops';
     if (RAIL_ROUTE_KINDS.includes(kind)) return st.campaign?.expansion?.station.restoredAt === undefined || st.campaign.expansion.station.restoredAt < 0 ? 'restore the second-area tram station' : '';
-    if (kind === 'substation') return '';
+    if (kind === 'substation') return !g||g.legacyEquipment?.includes(kind)||campaignRecruited(st,'electricians')?'':'recruit the Electricians at their shelter';
     if(kind==='floodlight'||kind==='bigpole')return campaignRecruited(st,'electricians')?'':'recruit the Electricians at their shelter';
   }
   const who = unlockedBy(kind);
@@ -137,24 +143,27 @@ export function lockReason(st: SimState, kind: Kind): string {
   return '';
 }
 export function unlockedKinds(st: SimState): Kind[] { return (isCampaign(st)?CAMPAIGN_KINDS:KINDS).filter(k => !lockReason(st, k)); }
-export const isProcessor=(m:Pick<Machine,'kind'>):boolean=>['assembler','assembler2','mixer','foundry','refinery'].includes(m.kind);
+export const isProcessor=(m:Pick<Machine,'kind'>):boolean=>['alienworkbench','assembler','assembler2','mixer','foundry','refinery'].includes(m.kind);
 export const isBelt=(m:Pick<Machine,'kind'>):boolean=>m.kind==='belt'||m.kind==='fastbelt';
-export const recipesFor=(m:Pick<Machine,'kind'>):readonly RecipeId[]=>m.kind==='mixer'?[]:m.kind==='foundry'?['iron','copper']:m.kind==='refinery'?['fuel','polymer']:['shot','wire','frame','board','shell'];
+export const recipesFor=(m:Pick<Machine,'kind'>):readonly RecipeId[]=>m.kind==='alienworkbench'?['overclock']:m.kind==='mixer'?[]:m.kind==='foundry'?['iron','copper']:m.kind==='refinery'?['fuel','polymer']:['shot','wire','frame','board','shell'];
 export function isKind(s: string): s is Kind { return (CAMPAIGN_KINDS as readonly string[]).includes(s); }
 /** Flow directions (N E S W) to the block sim's edge directions (+x −x +y −y) and back. */
 export const SIM_DIR: readonly number[] = [3, 0, 2, 1], FLOW_DIR: readonly Dir[] = [1, 3, 2, 0];
 export const SIM_DIR_NAMES = ['east', 'west', 'south', 'north'];
 /** What a belt, an inserter, a pocket stack or a machine's hand can hold: the four rubbles, the magazine, and (RI-01,
  *  D-B2-1 (b)) the three §12 intermediates the placed Assembler makes. */
-export type Item = 'ironore'|'copperore'|'crude'|'fuel'|'polymer'|'shell'|'core1'|'core2'|'core3'|'artifact1'|'artifact2'|'artifact3'|'steel' | 'copper' | 'stone' | 'coal' | 'magazine' | 'wire' | 'frame' | 'board' | 'concrete';
-export const ITEMS: readonly Item[] = ['ironore','copperore','crude','fuel','polymer','shell','core1','core2','core3','artifact1','artifact2','artifact3','steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board', 'concrete'];
-export function isItem(s: string): s is Item { return (ITEMS as readonly string[]).includes(s); }
+export type Item = WeaponItem|'overclock'|'alienartifact'|'ironore'|'copperore'|'crude'|'fuel'|'polymer'|'shell'|'core1'|'core2'|'core3'|'artifact1'|'artifact2'|'artifact3'|'steel' | 'copper' | 'stone' | 'coal' | 'magazine' | 'wire' | 'frame' | 'board' | 'concrete';
+export const ammoUnit=(st:SimState)=>st.flow?.ammoVersion===1?1:10;
+export const machineAmmoUnit=(m:Machine)=>m.ammoVersion===1?1:10;
+export const HAND_BULLET_SECONDS=20;   // GP-PLAYTEST-FIX 2 (2026-09-11): ten bullets per 20 s by hand, up from 12 s
+export const ITEMS: readonly Item[] = ['overclock','alienartifact','ironore','copperore','crude','fuel','polymer','shell','core1','core2','core3','artifact1','artifact2','artifact3','steel', 'copper', 'stone', 'coal', 'magazine', 'wire', 'frame', 'board', 'concrete'];
+export function isItem(s: string): s is Item { return isWeaponItem(s)||(ITEMS as readonly string[]).includes(s); }
 /** Zero counters. Concrete remains sparse in saved stats to preserve the frozen legacy state shape; read-only ledgers request all items. */
-export function zeroItems(includeConcrete = false): Record<Item, number> { const o = {} as Record<Item, number>; for (const k of ITEMS) if(k!=='concrete'||includeConcrete) o[k] = 0; return o; }
+export function zeroItems(includeConcrete = false): Record<Item, number> { const o = {} as Record<Item, number>; for (const k of ITEMS) if(includeConcrete||!['concrete','overclock','alienartifact'].includes(k)) o[k] = 0; return o; }
 /** Items the Depot keeps outside the block sim's stock (§14's stock is steel / copper / stone): coal and the intermediates. */
-export type StoreItem = 'ironore'|'copperore'|'crude'|'fuel'|'polymer'|'shell'|'core1'|'core2'|'core3'|'artifact1'|'artifact2'|'artifact3'|'coal' | 'wire' | 'frame' | 'board' | 'concrete';
-export const STORE_ITEMS: readonly StoreItem[] = ['ironore','copperore','crude','fuel','polymer','shell','core1','core2','core3','artifact1','artifact2','artifact3','coal', 'wire', 'frame', 'board', 'concrete'];
-export function isStoreItem(s: string): s is StoreItem { return (STORE_ITEMS as readonly string[]).includes(s); }
+export type StoreItem = WeaponItem|'overclock'|'alienartifact'|'ironore'|'copperore'|'crude'|'fuel'|'polymer'|'shell'|'core1'|'core2'|'core3'|'artifact1'|'artifact2'|'artifact3'|'coal' | 'wire' | 'frame' | 'board' | 'concrete';
+export const STORE_ITEMS: readonly StoreItem[] = ['overclock','alienartifact','ironore','copperore','crude','fuel','polymer','shell','core1','core2','core3','artifact1','artifact2','artifact3','coal', 'wire', 'frame', 'board', 'concrete'];
+export function isStoreItem(s: string): s is StoreItem { return isWeaponItem(s)||(STORE_ITEMS as readonly string[]).includes(s); }
 
 /** Constitution M2: belts carry 7.5 items/s (§13/§14 said 8; D-P4-6). GAME-ASSUMPTION: four items a tile, so the
  *  belt moves 1.875 tiles/s; belts are one lane, a side feed joins at the tile's start like a corner. */
@@ -168,10 +177,11 @@ export const SHOT = RECIPES.find(r => r.name === 'Shot magazine')!;
  *  start-unlocked Assembler: Shot magazine (the default, §11's line), Wire, Frame and Board. The other RECIPES rows
  *  (Shell: the Arsenal recipe; Concrete: the Mixer; Fuel and Polymer: the Refinery) stay data until their machine or
  *  unlock exists (RI-10 adds the Cannon / Shell chain). `MACHINE_RECIPES` is the doc's table (docsync:machines). */
-export type RecipeId = 'iron'|'copper'|'fuel'|'polymer'|'shell'|'shot' | 'wire' | 'frame' | 'board';
-export const RECIPE_IDS: readonly RecipeId[] = ['iron','copper','fuel','polymer','shell','shot', 'wire', 'frame', 'board'];
+export type RecipeId = 'overclock'|'iron'|'copper'|'fuel'|'polymer'|'shell'|'shot' | 'wire' | 'frame' | 'board';
+export const RECIPE_IDS: readonly RecipeId[] = ['overclock','iron','copper','fuel','polymer','shell','shot', 'wire', 'frame', 'board'];
 export function isRecipeId(s: string): s is RecipeId { return (RECIPE_IDS as readonly string[]).includes(s); }
 export const ASSEMBLER_RECIPES: Readonly<Record<RecipeId, Recipe>> = {
+ overclock:{name:'Overclock Module',inputs:{alienartifact:2,frame:2,board:1,wire:4},output:'overclock',count:1,seconds:20,at:'Alien workbench'},
  iron:{name:'Steel plates',inputs:{ironore:2},output:'steel',count:1,seconds:3,at:'Foundry'},
  copper:{name:'Refined copper',inputs:{copperore:2},output:'copper',count:1,seconds:3,at:'Foundry'},
  fuel:RECIPES.find(r=>r.name==='Fuel')!,polymer:RECIPES.find(r=>r.name==='Polymer')!,shell:RECIPES.find(r=>r.name==='Shell')!,
@@ -187,7 +197,7 @@ export const MACHINE_RECIPES: readonly { machine: string; recipes: string; state
   { machine: 'Workbench (the Depot)', recipes: 'Shot magazine by hand (E, from the pockets)', state: 'built (prompt B M2)' },
 ];
 /** The recipe a placed Assembler runs (`recipe` absent on a pre-RI-01 save = the Shot magazine). */
-export function recipeOf(m: Pick<Machine,'kind'|'recipe'>): Recipe { return m.kind==='mixer'?RECIPES.find(r=>r.name==='Concrete')!:ASSEMBLER_RECIPES[m.recipe ?? (m.kind==='foundry'?'iron':m.kind==='refinery'?'fuel':'shot')]; }
+export function recipeOf(m: Pick<Machine,'kind'|'recipe'>): Recipe { return m.kind==='mixer'?RECIPES.find(r=>r.name==='Concrete')!:ASSEMBLER_RECIPES[m.recipe ?? (m.kind==='alienworkbench'?'overclock':m.kind==='foundry'?'iron':m.kind==='refinery'?'fuel':'shot')]; }
 /** The item a recipe's craft puts in the Assembler's output slot: the Shot magazine's ten rounds are one magazine. */
 export function recipeOutput(r: Recipe): Item { return r.output === 'rounds' ? 'magazine' : r.output as Item; }
 /** Output items per craft as the Assembler counts them (one magazine, two wire, one frame, one board). */
@@ -197,15 +207,15 @@ function recipeNeed(r: Recipe, k: string): number | undefined { return r.inputs[
 export const ASM_INPUT_MULT = 4, ASM_OUTPUT_CAP = 5;
 /** GAME-ASSUMPTION: hand-mining takes one unit a second straight into the Depot; hand-crafting a magazine takes the
  *  recipe's 3 s and its 2 steel + 1 Cu from the stock (§11 hand-feeds the first turrets). */
-export const HAND_MINE_PER_S = 1;
-export const MACHINE_SIZE: Record<Kind, number> = { foundry:3,refinery:3,pumpjack:3,assembler2:3,fastbelt:1,cannon:2, arclamp: 1, mixer: 3, barricade: 1, excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2, floodlight: 2, bigpole: 2, substation: SUBSTATION_TILES, chest: 2, track: 1, tramstop: 2, tram: 1, wall: 1, underground: 1, splitter: 1 };
+export const HAND_MINE_PER_S = 0.5;   // GP-PLAYTEST-FIX 2 (2026-09-11): halved from 1 so the opening rewards automation
+export const MACHINE_SIZE: Record<Kind, number> = { alienworkbench:3,foundry:3,refinery:3,pumpjack:3,assembler2:3,fastbelt:1,cannon:2, arclamp: 1, mixer: 3, barricade: 1, excavator: 3, belt: 1, inserter: 1, assembler: 3, depot: DEPOT_TILES, turret: 2, lamp: 1, pole: 1, generator: 2, floodlight: 2, bigpole: 2, substation: SUBSTATION_TILES, chest: 2, track: 1, tramstop: 2, tram: 1, wall: 1, underground: 1, splitter: 1 };
 /** GAME-ASSUMPTION: machine costs in rubble (§13 gives none). The assembler costs what the block-level one does
  *  (§12: 20 Cu + 40 steel); the Excavator 10 steel; a belt tile 1 steel; an inserter 1 steel + 1 Cu; (M3) a Gun
  *  turret 15 steel + 5 Cu, a Lamp and a pole 1 steel + 1 Cu each, a Generator 30 steel + 10 Cu. Pick-up returns the machine itself
  *  to the pockets (prompt B M2), never a rubble refund. Prompt B M3, the Electricians' unlocks: the craftable Substation is
  *  §13's 20 frames + 20 wire + 10 boards paid as the raw rubble those recipes take (50 steel + 25 Cu; frames, wire and
  *  boards are Phase 5 items); a Floodlight 10 steel + 5 Cu and a Big pole 4 steel + 4 Cu are GAME-ASSUMPTIONS like the rest. */
-export const MACHINE_COST: Record<Kind, { steel: number; copper: number; concrete?: number; polymer?:number }> = { foundry:{steel:30,copper:10},refinery:{steel:40,copper:20},pumpjack:{steel:20,copper:10},assembler2:{steel:60,copper:30,polymer:4},fastbelt:{steel:2,copper:1,polymer:1},cannon:{steel:40,copper:20},
+export const MACHINE_COST: Record<Kind, { steel: number; copper: number; concrete?: number; polymer?:number;frame?:number;board?:number }> = { alienworkbench:{steel:30,copper:10,frame:4,board:2},foundry:{steel:30,copper:10},refinery:{steel:40,copper:20},pumpjack:{steel:20,copper:10},assembler2:{steel:60,copper:30,polymer:4},fastbelt:{steel:2,copper:1,polymer:1},cannon:{steel:40,copper:20},
   mixer: {steel:20,copper:10}, barricade: {steel:2,copper:0,concrete:4},
   underground: {steel:5,copper:2}, splitter: {steel:5,copper:2},
   excavator: { steel: 10, copper: 0 }, belt: { steel: 1, copper: 0 }, inserter: { steel: 1, copper: 1 },
@@ -219,7 +229,10 @@ export const MACHINE_COST: Record<Kind, { steel: number; copper: number; concret
 };
 /** §13 power draw (kW). A machine with a draw runs only on a powered cell (M3); belts, turrets, poles and Generators
  *  draw nothing. GAME-ASSUMPTION: a placed machine draws its rated kW whether busy or idle (§13 has no idle draw). */
-export const MACHINE_KW: Record<Kind, number> = {foundry:80,refinery:100,pumpjack:60,assembler2:150,fastbelt:0,cannon:0, arclamp: 12, mixer: 60, barricade: 0, excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: 0, lamp: LAMP_KW, pole: 0, generator: 0, floodlight: FLOODLIGHT_KW, bigpole: 0, substation: 0, chest: 0, track: 0, tramstop: 20, tram: 0, wall: 0, underground: 0, splitter: 0 };
+export const MACHINE_KW: Record<Kind, number> = {alienworkbench:80,foundry:80,refinery:100,pumpjack:60,assembler2:150,fastbelt:0,cannon:0, arclamp: 12, mixer: 60, barricade: 0, excavator: 60, belt: 0, inserter: 10, assembler: 100, depot: 0, turret: TURRET_KW, lamp: LAMP_KW, pole: 0, generator: 0, floodlight: FLOODLIGHT_KW, bigpole: 0, substation: 0, chest: 0, track: 0, tramstop: 20, tram: 0, wall: 0, underground: 0, splitter: 0 };
+/** The draw a machine puts on its grid in this state. Owner direction (2026-09-11): a Gun turret draws TURRET_KW in the
+ *  campaign; the preserved legacy evidence profile keeps its abstract edge turrets at zero so the E1–E9 baselines hold. */
+export function machineKw(st: Pick<SimState, 'ruleset'>, m: Pick<Machine, 'kind'>): number { return m.kind === 'turret' && !isCampaign(st) ? 0 : MACHINE_KW[m.kind]; }
 /** GAME-ASSUMPTION: a Generator holds 50 coal (the §11 start's 40 fit); a turret's muzzle flash lasts half a second. */
 export const GENERATOR_COAL_CAP = 50, TURRET_FLASH_S = 0.5;
 /** RI-05, the minimal transport route (§13's rows): a Tram carries 200 items at 8 tiles/s between the stops on its
@@ -232,6 +245,8 @@ export const TRAM_CAP = 200, TRAM_TPS = 8, TRAM_DWELL_S = 4, STOP_CAP = 200, SUP
 
 export interface BeltItem { k: Item; p: number }
 export interface Machine {
+  ammoVersion?:1;
+  decode?: {schematic:'overclock';progress:number};
   artifact?: Item; hopperUpgrade?: boolean;
   observation?: Observation;
   id: number; kind: Kind; x: number; y: number; dir: Dir; size: number;
@@ -257,6 +272,8 @@ export interface Machine {
   underground?: UndergroundMode;
   /** Turret (RI-02): seconds until it may fire again (threat.ts); in the state so a load keeps it. Absent = ready. */
   cool?: number;
+  /** Authoritative moving cannon and most recent muzzle shot; base dir stays fixed. */
+  turret?: import('./turretTracking').TurretTracking;
   /** Campaign-only recoverable wall/turret damage. */
   hp?: number;
   /** RI-05. Tram: its load. Tram stop: the arrivals (what a tram unloaded; inserters and hands take from here),
@@ -285,6 +302,8 @@ export interface ProjectRecord {
   installId: number;
 }
 export interface FlowState {
+  ammoVersion?:1;
+  ammoRecovery?:number;
   observation?: Observation;
   version: 1;
   /** Tile ticks so far; a block tick closes every TILE_TPS of them. */
@@ -397,7 +416,7 @@ export function ensureFlow(st: SimState): FlowState {
   // (the 20 magazines are the line buffer `prefillTurrets` leaves after the six hoppers are filled)
   st.stock.steel = START_CHEST.steel; st.stock.copper = START_CHEST.copper; st.stock.stone = START_CHEST.stone;
   f.store.coal = START_CHEST.coal;
-  if(isCampaign(st)){st.stock={steel:0,copper:0,stone:0};f.store.coal=0;st.buffer=0;st.engineer.inv={};}
+  if(isCampaign(st)){st.stock={steel:0,copper:0,stone:0};f.store.coal=0;st.buffer=0;st.engineer.inv={...CAMPAIGN_START_POCKETS};}   // GP-START-POCKETS: empty Home, small Backpack stake
   const [wx, wy] = workbenchTile(st);
   st.engineer.x = wx + 0.5; st.engineer.y = wy + 0.5; st.engineer.block = hqIndex(st); st.engineer.dest = -1; st.engineer.remaining = 0;
   f.ledger = openLedger(st);   // RI-01: the opening stock the conservation check counts from
@@ -531,8 +550,8 @@ function upgrade(f: FlowState): FlowState {
   f.stats.chestTrips ??= 0; f.stats.reachRefused ??= 0;
   // RI-01: the intermediates' store and the accounting counters (a pre-RI-01 save starts them at zero — its history
   // is not reconstructed, so `conservation` on such a save reports the gap as unexplained, by design)
-  for (const k of STORE_ITEMS) if(k!=='concrete') f.store[k] ??= 0;
-  for (const k of ITEMS) if(k!=='concrete') f.stats.delivered[k] ??= 0;
+  for (const k of STORE_ITEMS) if(!['concrete','overclock','alienartifact'].includes(k)) f.store[k] ??= 0;
+  for (const k of ITEMS) if(!['concrete','overclock','alienartifact'].includes(k)) f.stats.delivered[k] ??= 0;
   f.stats.putBack ??= zeroItems(); f.stats.handFedMags ??= 0; f.stats.handFedCoal ??= 0;
   f.stats.minedOf ??= zeroItems(); f.stats.handMinedOf ??= zeroItems(); f.stats.railCoal ??= 0;
   f.stats.made ??= zeroItems(); f.stats.consumed ??= zeroItems(); f.stats.turretFed ??= 0; f.stats.genFed ??= 0;
@@ -609,9 +628,9 @@ export function subPowered(st: SimState, b: Block): boolean {
  *  every machine runs at `flow.power.throttle` (see `stepFlow`). RI-03: on the claim front (`fieldBlock`) a device is
  *  powered by a connected pole in reach (`fieldPowered`), not by the block's substation, which is not yet the grid's. */
 export function powered(st: SimState, m: Machine): boolean {
-  if (MACHINE_KW[m.kind] === 0) return true;
+  if (machineKw(st, m) === 0) return true;
   const bi = blockIdxOf(st, m);
-  if (isCampaign(st)) return campaignThrottle(st, bi) > 0;
+  if (isCampaign(st)) return machineThrottle(st, m) > 0;
   if (bi >= 0 && fieldBlock(st, bi)) return fieldPowered(st, m);
   return subPowered(st, blockOf(st, m));
 }
@@ -647,9 +666,9 @@ function running(st: SimState, m: Machine): boolean {
 export const machineRunning = running;
 function stopReason(st: SimState, m: Machine): string {
   const bi = blockIdxOf(st, m), field = bi >= 0 && isFieldKind(m.kind) && fieldBlock(st, bi);
-  if (isCampaign(st)) return powered(st, m) ? '' : ' · no local or connected power';
+  if (isCampaign(st)) return powered(st, m) ? '' : campaignGrid(st).machines.has(m.id)?' · connected network has no active supply':' · disconnected: place a Pole within 8 tiles and connect it to a source';
   if (bi < 0 || (blockOf(st, m).state !== HELD && !field)) return ' · stopped (block not Held)';
-  if (MACHINE_KW[m.kind] === 0) return '';
+  if (machineKw(st, m) === 0) return '';
   if (!powered(st, m)) return field ? ' · no connected pole in reach' : ' · no power';
   if (throttle(st) < 1 - 1e-9) return ` · at ${Math.round(throttle(st) * 100)} % (brownout)`;
   return '';
@@ -722,8 +741,8 @@ function mineUnit(st: SimState, r: TileRubble): Item {
 export function deliver(st: SimState, k: Item): boolean {
   const f = st.flow!;
   if (k === 'magazine') {
-    if (st.buffer + SHOT.count > st.config.bufferCap + 1e-9) return false;
-    st.buffer += SHOT.count;
+    if (st.buffer + ammoUnit(st) > st.config.bufferCap + 1e-9) return false;
+    st.buffer += ammoUnit(st);
     f.stats.magsDelivered++;
   } else if (isStoreItem(k)) f.store[k] = (f.store[k]??0) + 1;
   else st.stock[k] += 1;
@@ -751,10 +770,10 @@ export function accepts(st: SimState, m: Machine, k: Item, p = 0): boolean {
   switch (m.kind) {
     case 'splitter': case 'underground': return routingAccepts(st,m);
     case 'fastbelt': case 'belt': return beltRoom(m, p);
-    case 'depot': return k !== 'magazine' || st.buffer + SHOT.count <= st.config.bufferCap + 1e-9;
-    case 'foundry': case 'refinery': case 'assembler2': case 'mixer': case 'assembler': { const need = recipeNeed(recipeOf(m), k); return need !== undefined && (m.inv[k] ?? 0) < need * ASM_INPUT_MULT; }
+    case 'depot': return k !== 'magazine' || st.buffer + ammoUnit(st) <= st.config.bufferCap + 1e-9;
+    case 'alienworkbench': case 'foundry': case 'refinery': case 'assembler2': case 'mixer': case 'assembler': { const need = recipeNeed(recipeOf(m), k); return need !== undefined && (m.inv[k] ?? 0) < need * ASM_INPUT_MULT; }
     case 'cannon': return k==='shell'&&(m.inv.shell??0)<CORRECTIONS.cannon.capacity;
-    case 'turret': return k === 'magazine' && (m.inv.rounds ?? 0) + SHOT.count <= hopperCapacity(m,TURRET_HOPPER) + 1e-9;
+    case 'turret': return k === 'magazine' && (m.inv.rounds ?? 0) + ammoUnit(st) <= hopperCapacity(m,TURRET_HOPPER) + 1e-9;
     case 'generator': return (k === 'coal'||k==='fuel') && (m.inv.coal ?? 0)+(m.inv.fuel??0) < GENERATOR_COAL_CAP;
     case 'chest': return invTotal(m.inv) < SUPPLY_CHEST_CAP;        // RI-05: any item, up to the cap
     case 'tramstop': return invTotal(m.inv) < STOP_CAP;             // RI-05: onto the platform, up to the cap
@@ -769,7 +788,7 @@ export function wants(m: Machine, k: Item): boolean {
     case 'splitter': return true;
     case 'underground': return m.underground === 'input';
     case 'fastbelt': case 'belt': case 'depot': case 'chest': case 'tramstop': return true;
-    case 'foundry': case 'refinery': case 'assembler2': case 'mixer': case 'assembler': return recipeNeed(recipeOf(m), k) !== undefined;
+    case 'alienworkbench': case 'foundry': case 'refinery': case 'assembler2': case 'mixer': case 'assembler': return recipeNeed(recipeOf(m), k) !== undefined;
     case 'cannon': return k==='shell'&&(m.inv.shell??0)<CORRECTIONS.cannon.capacity;
     case 'turret': return k === 'magazine';
     case 'generator': return k === 'coal'||k==='fuel';
@@ -781,7 +800,7 @@ export function giveItem(st: SimState, m: Machine, k: Item, p = 0): boolean {
   if (isRouting(m)) routingInsert(m,k);
   else if (isBelt(m)) beltInsert(m, k, p);
   else if (m.kind === 'depot') return deliver(st, k);
-  else if (m.kind === 'turret') { m.inv.rounds = (m.inv.rounds ?? 0) + SHOT.count; st.flow!.stats.turretFed++; }   // a magazine is ten rounds in the hopper
+  else if (m.kind === 'turret') { m.inv.rounds = (m.inv.rounds ?? 0) + ammoUnit(st); st.flow!.stats.turretFed++; noteTurretSupply(st, m); }   // a magazine is ten rounds in the hopper; GP-OPENING records the first automated delivery
   else { m.inv[k] = (m.inv[k] ?? 0) + 1; if (m.kind === 'generator') st.flow!.stats.genFed++; }
   return true;
 }
@@ -933,7 +952,7 @@ function tickExcavator(st: SimState, m: Machine, dt: number): void {
 
 export function asmCanStart(m: Machine): boolean {
   const r = recipeOf(m);
-  if (m.out >= ASM_OUTPUT_CAP) return false;
+  if (m.out >= (m.ammoVersion===1&&r.output==='rounds'?50:ASM_OUTPUT_CAP)) return false;
   for (const k in r.inputs) if ((m.inv[k] ?? 0) < r.inputs[k]) return false;
   return true;
 }
@@ -943,6 +962,7 @@ function asmStart(st: SimState, m: Machine): void {
   m.busy = true;
 }
 function tickAssembler(st: SimState, m: Machine, dt: number): void {
+  if(m.kind==='alienworkbench'){if(m.decode){tickDecode(st,m,dt);return;}if(fabricationBlocker(st))return;}
   const r = recipeOf(m);
   if (!m.busy) {
     if (!asmCanStart(m)) return;
@@ -950,7 +970,7 @@ function tickAssembler(st: SimState, m: Machine, dt: number): void {
   }
   m.timer += dt*processingMultiplier(m);
   if (m.timer < r.seconds - EPS) return;
-  const n = recipeYield(r), o = recipeOutput(r);
+  const n = r.output==='rounds'&&m.ammoVersion===1?r.count:recipeYield(r), o = recipeOutput(r);
   m.out += n; m.busy = false;
   st.flow!.stats.made[o] = (st.flow!.stats.made[o]??0) + n;
   observeOutput(st,m,o,n);
@@ -968,7 +988,7 @@ export function setRecipe(st: SimState, tx: number, ty: number, id: RecipeId): s
   if (!st.flow || !m || !isProcessor(m)) return 'no Assembler there';
   if(!recipesFor(m).includes(id))return 'recipe is not supported by this machine';
   if(id==='shell'&&!st.campaign?.progression?.arsenal)return 'Restore the Arsenal first';
-  if ((m.recipe ?? (m.kind==='foundry'?'iron':m.kind==='refinery'?'fuel':'shot')) === id) return '';
+  if ((m.recipe ?? (m.kind==='alienworkbench'?'overclock':m.kind==='foundry'?'iron':m.kind==='refinery'?'fuel':'shot')) === id) return '';
   const old = recipeOf(m), o = recipeOutput(old);
   if (m.out > 0) {
     if (pocketTake(st.engineer, o, m.out) < m.out) return `the Backpack is full (${m.out} ${o} to take out first)`;
@@ -982,6 +1002,10 @@ export function setRecipe(st: SimState, tx: number, ty: number, id: RecipeId): s
 function tickHand(st: SimState, f: FlowState, dt: number): void {
   const h = f.hand;
   if (!h.away && !nearDepot(st)) h.away = true;   // M4 telemetry: the next chest transaction is a trip
+  // GP-PLAYTEST-FIX 2: a downed engineer, or one out of the workshop's reach (a loaded save, a respawn), never stays
+  // locked to a craft: the unfinished batch is cancelled and its ingredients go back.
+  if (h.crafting && (st.engineer.down >= 0 || !nearDepot(st))) cancelCraft(st);
+  if (h.mine && h.crafting) { h.mine = null; h.prog = 0; }   // handcrafting keeps both hands busy
   if (h.mine) {
     const r = rubbleAt(st, h.mine[0], h.mine[1]);
     if (!r || r.persistent || r.type==='crude' || !inReach(st, h.mine[0], h.mine[1])) { h.mine = null; h.prog = 0; }   // persistent extraction requires a powered machine
@@ -996,9 +1020,10 @@ function tickHand(st: SimState, f: FlowState, dt: number): void {
     }
   }
   // Prompt B M2: hand-crafting at the workbench, from the pockets, into the pockets (§14, §13's Workbench row).
-  // GAME-ASSUMPTION: the craft pauses with its progress kept while the engineer is out of reach of the Depot (the
-  // workbench is on its lot) or while the pockets cannot take the magazine; a queue the pockets cannot pay for is
-  // dropped (`queueCraft` refuses it up front) rather than left waiting.
+  // GP-PLAYTEST-FIX 4 (2026-09-11): the engineer stays put while a batch runs (walk.ts lock); leaving reach or going
+  // down cancels the batch through `cancelCraft`, returning its reserved plates. Finished output waits with the batch
+  // still open while the pockets cannot take it; a queue the pockets cannot pay for is dropped (`queueCraft` refuses
+  // it up front) rather than left waiting.
   if (h.crafts > 0) {
     if (!nearDepot(st)) return;
     const e = st.engineer;
@@ -1009,9 +1034,9 @@ function tickHand(st: SimState, f: FlowState, dt: number): void {
       } else { h.crafts = 0; return; }
     }
     h.craftProg += dt;
-    if (h.craftProg >= SHOT.seconds - EPS && pocketTake(e, 'magazine', 1) === 1) {
-      h.crafting = false; h.crafts--; h.craftProg = 0; f.stats.handCrafted++; f.stats.made.magazine++; st.stats.magsMade++;
-    } else if (h.craftProg >= SHOT.seconds - EPS) h.full = true;
+    if (h.craftProg >= (f.ammoVersion===1?HAND_BULLET_SECONDS:SHOT.seconds) - EPS && pocketTake({...e,inv:{...e.inv},pack:e.pack?.map(c=>c&&{...c})}, 'magazine', f.ammoVersion===1?10:1) === (f.ammoVersion===1?10:1)) {
+      const n=f.ammoVersion===1?10:1;pocketTake(e,'magazine',n);h.crafting = false; h.crafts--; h.craftProg = 0; f.stats.handCrafted++; f.stats.made.magazine+=n; st.stats.magsMade+=n;
+    } else if (h.craftProg >= (f.ammoVersion===1?HAND_BULLET_SECONDS:SHOT.seconds) - EPS) h.full = true;
   }
 }
 
@@ -1036,6 +1061,7 @@ function tickGenerator(st: SimState, m: Machine, dt: number, shareKw: number): v
 
 /** One tile tick of `dt` seconds (TILE_DT). Machines on a block that is not Held stand still. */
 export function stepFlow(st: SimState, dt = TILE_DT): void {
+  tickEquipment(st,dt);
   const f = st.flow;
   if (!f) return;
   initTruck(st);
@@ -1054,7 +1080,8 @@ export function stepFlow(st: SimState, dt = TILE_DT): void {
   const share = gens ? f.power.load / gens : 0;
   // D-B3-4: short of supply every drawing machine runs at supply ÷ demand — its clock runs that much slower.
   // GAME-ASSUMPTION: a Lamp or Floodlight cannot run slower; it stays lit at any throttle above zero and goes dark
-  // only on a dead grid (no Generator burning). Belts and turrets draw nothing and are never slowed.
+  // only on a dead grid (no Generator burning). Belts draw nothing and are never slowed; a turret draws TURRET_KW and
+  // fires only while it runs (threat.ts), its flash timer simply counting down here.
   const thr = st.config.power ? f.power.throttle : 1, mdt = dt * thr;
   for (const m of f.machines) {
     if(m.kind==='cannon')continue;
@@ -1063,7 +1090,7 @@ export function stepFlow(st: SimState, dt = TILE_DT): void {
     if (m.kind === 'tram') { tickTram(st, m, dt); continue; }   // RI-05: draws nothing and rides its track whatever the grid does; the stops need power to transfer
     if (isRouting(m) || m.kind === 'barricade' || m.kind === 'wall' || isBelt(m) || m.kind === 'depot' || (m.kind === 'lamp' || m.kind === 'arclamp') || m.kind === 'pole' || m.kind === 'floodlight' || m.kind === 'bigpole' || m.kind === 'substation'
       || m.kind === 'chest' || m.kind === 'track' || m.kind === 'tramstop' || !running(st, m)) continue;
-    const localDt = cg ? dt * campaignThrottle(st, blockIdxOf(st, m)) : mdt;
+    const localDt = cg ? dt * machineThrottle(st, m) : mdt;
     if (m.kind === 'inserter') tickInserter(st, m, localDt);
     else if (m.kind === 'excavator'||m.kind==='pumpjack') tickExcavator(st, m, localDt);
     else tickAssembler(st, m, localDt);
@@ -1233,7 +1260,7 @@ export interface PlaceCheck {
   /** M2: a carried machine (picked up earlier) is placed as it is; `cost` is then zero. */
   carried: boolean;
 }
-export const costStr = (c: { steel: number; copper: number; concrete?: number;polymer?:number }): string => c.steel || c.copper || c.concrete ? `${c.steel} Steel plates${c.copper ? ` + ${c.copper} Copper` : ''}${c.concrete ? ` + ${c.concrete} concrete` : ''}${c.polymer?` + ${c.polymer} polymer`:''}` : 'nothing';
+export const costStr = (c: { steel: number; copper: number; concrete?: number;polymer?:number;frame?:number;board?:number }): string => c.steel || c.copper || c.concrete ? `${c.steel} Steel plates${c.copper ? ` + ${c.copper} Copper` : ''}${c.concrete ? ` + ${c.concrete} concrete` : ''}${c.polymer?` + ${c.polymer} polymer`:''}${c.frame?` + ${c.frame} Frame`:''}${c.board?` + ${c.board} Board`:''}` : 'nothing';
 
 /** GAME-ASSUMPTION: a machine goes on any tile of a Held block's cell (lot or its street margin: §14 lets belts run
  *  on streets; an inserter is belt furniture and may too; excavators, assemblers and Generators stay on the lot;
@@ -1308,7 +1335,7 @@ export function buildAffordability(kind: Kind, inv: Record<string,number>): Plac
   const cost = MACHINE_COST[kind];
   if (kind === 'depot') return { ok: true, reason: '', cost, carried: false };
   if ((inv[kind] ?? 0) >= 1) return { ok: true, reason: '', cost: { steel: 0, copper: 0 }, carried: true };
-  if ((inv.steel ?? 0) < cost.steel || (inv.copper ?? 0) < cost.copper || (inv.concrete??0)<(cost.concrete??0)||(inv.polymer??0)<(cost.polymer??0)) return { ok: false, reason: `not enough in the Backpack (${costStr(cost)})`, cost, carried: false };
+  if (Object.entries(cost).some(([k,n])=>(inv[k]??0)<n)) return { ok: false, reason: `not enough in the Backpack (${costStr(cost)})`, cost, carried: false };
   return { ok: true, reason: '', cost, carried: false };
 }
 
@@ -1323,10 +1350,10 @@ export function buildStock(kind:Kind,inv:Record<string,number>) {
 export function addMachine(st: SimState, kind: Kind, tx: number, ty: number, dir: Dir): Machine {
   const f = st.flow!;
   const m: Machine = { id: f.next++, kind, x: tx, y: ty, dir, size: MACHINE_SIZE[kind], items: [], hold: null, timer: 0, phase: 0, inv: {}, out: 0, busy: false };
-  if(kind==='assembler2')m.recipe='shot';if(kind==='foundry')m.recipe='iron';if(kind==='refinery')m.recipe='fuel';
+  if(kind==='alienworkbench')m.recipe='overclock';if(kind==='assembler2')m.recipe='shot';if(kind==='foundry')m.recipe='iron';if(kind==='refinery')m.recipe='fuel';
   if(kind==='underground')m.underground='input';
   const [width,height]=machineDimensions(m);
-  f.machines.push(m);
+  if(f.ammoVersion===1)m.ammoVersion=1;f.machines.push(m);
   if (kind === 'tram') { m.cargo = {}; m.run = { fwd: true, stop: -1 }; }   // RI-05: rides the track's tile, never occupies it
   else for (let y = ty; y < ty + height; y++) for (let x = tx; x < tx + width; x++) f.occ[y * f.tw + x] = m.id;
   // GAME-ASSUMPTION (M4): a new machine on an eaten lamp's tile is a fresh lamp (the eaten one was picked up)
@@ -1358,7 +1385,7 @@ export function pickUpItems(m: Machine): Record<string, number> {
   if (m.hold) add(m.hold, 1);
   if(m.artifact)add(m.artifact,1);
   if(m.hopperUpgrade)for(const [k,n] of Object.entries(CORRECTIONS.upgradeCost))add(k,n);
-  if (m.kind === 'turret') add('magazine', Math.floor((m.inv.rounds ?? 0) / SHOT.count));
+  if (m.kind === 'turret') add('magazine', Math.floor((m.inv.rounds ?? 0) / machineAmmoUnit(m)));
   else if (m.kind === 'generator') {add('coal', Math.floor(m.inv.coal ?? 0));add('fuel',Math.floor(m.inv.fuel??0));}
   else { for (const k in m.inv) add(k, Math.floor(m.inv[k])); add(isProcessor(m) ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
   if (m.cargo) for (const k in m.cargo) add(k, Math.floor(m.cargo[k]));   // RI-05: a tram's load, a stop's arrivals
@@ -1397,7 +1424,7 @@ export function remove(st: SimState, tx: number, ty: number): Machine | null {
   for (const k in chk.items) pocketTake(st.engineer, k, chk.items[k]);
   if(m.hopperUpgrade)for(const [k,n] of Object.entries(CORRECTIONS.upgradeCost))f.stats.consumed[k as Item]-=n;
   if (m.kind === 'turret') {   // the loose rounds back to the line buffer; what a full buffer cannot take is counted as lost (RI-01 ledger)
-    const loose = (m.inv.rounds ?? 0) % SHOT.count, give = Math.min(loose, Math.max(0, st.config.bufferCap - st.buffer));
+    const loose = (m.inv.rounds ?? 0) % machineAmmoUnit(m), give = Math.min(loose, Math.max(0, st.config.bufferCap - st.buffer));
     st.buffer += give; st.stats.roundsLost = (st.stats.roundsLost ?? 0) + loose - give;
   }
   if(st.campaign?.districts?.repair?.target===m.id)st.campaign.districts.repair=null;
@@ -1432,8 +1459,28 @@ export function rotateTo(st:SimState,m:Machine,dir:Dir):string {
 
 export function setHandMine(st: SimState, at: [number, number] | null): void {
   const f = ensureFlow(st);
-  if (at && rubbleAt(st, at[0], at[1]) && rubbleAt(st,at[0],at[1])!.type!=='crude' && inReach(st, at[0], at[1])) f.hand.mine = at; else f.hand.mine = null;
+  if (at && !f.hand.crafting && !st.engineer.equipment?.craft && rubbleAt(st, at[0], at[1]) && rubbleAt(st,at[0],at[1])!.type!=='crude' && inReach(st, at[0], at[1])) f.hand.mine = at; else f.hand.mine = null;
   f.hand.prog = 0;
+}
+/** GP-PLAYTEST-FIX 2 (2026-09-11): handcrafting keeps the engineer at the workshop. While a batch is in progress the
+ *  mover, the weapon and the mining hand are blocked (walk.ts, threat.ts, setHandMine); Cancel releases them at once. */
+export const HAND_LOCK_TEXT = 'Handcrafting — Cancel to move.';
+export const handLocked = (st: SimState): boolean => (!!st.flow?.hand.crafting || !!st.engineer.equipment?.craft) && st.engineer.down < 0;
+/** Cancel the hand queue. The batch in progress returns its reserved ingredients to the Backpack (what does not fit
+ *  goes to the Home store beside the workshop); finished batches are already in the Backpack and stay there. */
+export function cancelCraft(st: SimState): { ok: boolean; reason: string } {
+  const f = ensureFlow(st), h = f.hand, e = st.engineer;
+  if (!h.crafting && h.crafts <= 0) return { ok: false, reason: 'Nothing is being crafted.' };
+  let refund = '';
+  if (h.crafting) {
+    for (const [item, n] of [['steel', SHOT.inputs.steel], ['copper', SHOT.inputs.copper]] as const) {
+      const back = pocketTake(e, item, n); if (back < n) st.stock[item] += n - back;
+      f.stats.consumed[item] -= n;
+    }
+    refund = ` ${SHOT.inputs.steel} Steel plates + ${SHOT.inputs.copper} Copper returned.`;
+  }
+  h.crafting = false; h.craftProg = 0; h.crafts = 0; h.full = false;
+  return { ok: true, reason: `Handcrafting cancelled.${refund}` };
 }
 /** Queue `n` hand crafts at the workbench. Returns '' or the refusal: out of reach of the Depot, or the pockets
  *  cannot pay for the first one (the queue is capped at what they can pay for). */
@@ -1443,7 +1490,7 @@ export function handCraftCheck(st:SimState):{room:number;reason:string} {
   if(!nearDepot(st))return {room:0,reason:'Walk closer to Home workshop'};
   const afford=Math.min(Math.floor((e.inv.steel??0)/SHOT.inputs.steel),Math.floor((e.inv.copper??0)/SHOT.inputs.copper));
   const room=afford-(f.hand.crafts-(f.hand.crafting?1:0));
-  return {room,reason:room<=0?`Need ${SHOT.inputs.steel} Steel plates + ${SHOT.inputs.copper} Copper in Backpack per magazine`:''};
+  return {room,reason:room<=0?`Need ${SHOT.inputs.steel} Steel plates + ${SHOT.inputs.copper} Copper in Backpack per ammunition batch`:''};
 }
 export function queueCraft(st: SimState, n = 1): string {
   const f=ensureFlow(st);
@@ -1489,13 +1536,13 @@ export function flowSummary(st: SimState): FlowSummary {
     if (m.kind === 'excavator') s.excavators++;
     else if (isBelt(m)) { s.belts++; s.beltItems += m.items.length; for (const it of m.items) if (it.k === 'magazine') s.beltAmmo++; }
     else if (m.kind === 'inserter') s.inserters++;
-    else if (isProcessor(m)) { s.assemblers++; if (m.busy) s.assemblersBusy++; if ((m.recipe ?? (m.kind==='foundry'?'iron':m.kind==='refinery'?'fuel':'shot')) === 'shot') s.shotAssemblers++; }
+    else if (isProcessor(m)) { s.assemblers++; if (m.busy) s.assemblersBusy++; if ((m.recipe ?? (m.kind==='alienworkbench'?'overclock':m.kind==='foundry'?'iron':m.kind==='refinery'?'fuel':'shot')) === 'shot') s.shotAssemblers++; }
     else if (m.kind === 'turret') { s.turrets++; s.turretRounds += m.inv.rounds ?? 0; s.turretCap += hopperCapacity(m,TURRET_HOPPER); }
     else if ((m.kind === 'lamp' || m.kind === 'arclamp') || m.kind === 'floodlight') { s.lamps++; if (running(st, m)) s.lampsLit++; }   // a Floodlight counts as a lamp here
     else if (m.kind === 'pole' || m.kind === 'bigpole') s.poles++;
     else if (m.kind === 'generator') { s.generators++; s.genCoal += m.inv.coal ?? 0; if (m.busy) s.generatorsBurning++; }
   }
-  s.productionMagPerMin = s.shotAssemblers * 60 / SHOT.seconds;   // RI-01: only the Assemblers on the Shot recipe make magazines
+  s.productionMagPerMin = s.shotAssemblers * 60 / SHOT.seconds * (f.ammoVersion===1?10:1);   // RI-01: only the Assemblers on the Shot recipe make magazines
   s.magsMade = f.stats.magsMade; s.magsDelivered = f.stats.magsDelivered; s.mined = f.stats.mined; s.coal = f.store.coal + s.genCoal; s.craftsQueued = f.hand.crafts;
   s.supplyKw = f.power.supply; s.demandKw = f.power.demand; s.loadKw = f.power.load; s.brownoutS = f.power.overS; s.throttle = st.config.power ? f.power.throttle : 1;
   s.fired = f.stats.fired; s.coalBurned = f.stats.coalBurned; s.handFed = f.stats.handFed;
@@ -1514,25 +1561,25 @@ export function describeMachine(st: SimState, m: Machine): string {
       const id = turretEdge(st, m), b = blockOf(st, m);
       const side = id < 0 ? '' : streetName(st, m, id);
       const where = id < 0 ? 'too far from any street' : st.edgeAt[id] >= 0 ? `covers the ${side} street` : `${side} street: nothing to shoot at`;
-      return `Gun turret · ${Math.floor(m.inv.rounds ?? 0)} / ${hopperCapacity(m,TURRET_HOPPER)} rounds · range ${TURRET_RANGE} · ${where}${m.out > 0 ? ` · firing ${Math.round(m.out)}/s` : ''}${(m.inv.rounds ?? 0) <= 0 && b.state === HELD ? ' · EMPTY: feed it by hand or conveyor' : ''}${on}`;
+      return `Gun turret · ${Math.floor(m.inv.rounds ?? 0)} / ${hopperCapacity(m,TURRET_HOPPER)} rounds${isCampaign(st) ? ` · ${TURRET_KW} kW` : ''} · range ${TURRET_RANGE} · ${where}${m.out > 0 ? ` · firing ${Math.round(m.out)}/s` : ''}${(m.inv.rounds ?? 0) <= 0 && b.state === HELD ? ' · EMPTY: feed it by hand or conveyor' : ''}${on}`;
     }
     case 'arclamp': return `Arc lamp · 12 kW · radius ${ARC_LAMP_RADIUS} · ${running(st,m)?'lit':'dark'}${on}`;
     case 'lamp': return `Lamp · ${LAMP_KW} kW · radius ${LAMP_RADIUS} · ${running(st, m) ? 'lit' : 'dark'}${on}`;
-    case 'pole': return `Pole · reach ${POLE_REACH} · ${poleGrid(st).connected.has(m.id) ? 'on the grid' : 'not connected'}`;
+    case 'pole': { const g = poleGrid(st); return `Pole · reach ${POLE_REACH} · ${g.on.has(m.id) ? 'on the grid' : g.connected.has(m.id) ? 'connected · no fuelled source' : 'not connected'}`; }
     case 'floodlight': return `Floodlight → ${DIR_NAMES[m.dir]} · ${FLOODLIGHT_KW} kW · ${FLOODLIGHT_RANGE}-tile cone · ${running(st, m) ? 'lit' : 'dark'}${on}`;
-    case 'bigpole': return `Big pole · reach ${BIG_POLE_REACH} · ${poleGrid(st).connected.has(m.id) ? 'on the grid' : 'not connected'}`;
+    case 'bigpole': { const g = poleGrid(st); return `Big pole · reach ${BIG_POLE_REACH} · ${g.on.has(m.id) ? 'on the grid' : g.connected.has(m.id) ? 'connected · no fuelled source' : 'not connected'}`; }
     case 'substation': return `Substation (built) · powers the face · ${subPowered(st, blockOf(st, m)) ? 'on' : 'off'}`;
-    case 'generator': return `Generator · ${GENERATOR_KW} kW · ${Math.floor(m.inv.coal ?? 0)} / ${GENERATOR_COAL_CAP} coal · ${m.busy ? `burning (${Math.round(st.flow!.power.load / Math.max(1, st.flow!.machines.filter(g => g.kind === 'generator' && g.busy).length))} kW)` : ((m.inv.coal ?? 0)+(m.inv.fuel??0)) > 0 ? 'idle' : 'OUT OF COAL'}${on}`;
+    case 'generator': return `Generator · ${GENERATOR_KW} kW · ${Math.floor(m.inv.coal ?? 0)} / ${GENERATOR_COAL_CAP} coal · ${m.busy ? `burning (${Math.round(st.campaign?campaignGrid(st).generation.get(m.id)??0:st.flow!.power.load / Math.max(1, st.flow!.machines.filter(g => g.kind === 'generator' && g.busy).length))} kW)` : ((m.inv.coal ?? 0)+(m.inv.fuel??0)) > 0 ? 'idle' : 'OUT OF COAL'}${on}`;
     case 'underground': case 'splitter': return routingDescription(st,m);
     case 'fastbelt': case 'belt': return `belt → ${DIR_NAMES[m.dir]} · ${m.items.length} item${m.items.length === 1 ? '' : 's'}${on}`;
     case 'inserter': return `inserter → ${DIR_NAMES[m.dir]} · ${m.hold ? `carrying ${m.hold}` : 'empty'}${on}`;
     case 'pumpjack': case 'excavator': { const r = findRubble(st, m); return `Excavator → ${DIR_NAMES[m.dir]} · ${r ? `digging ${r.type} (${r.persistent?'persistent source; powered extraction':`${Math.ceil(r.units)} left in the tile`})` : 'nothing in reach'}${m.hold ? ` · output blocked (${m.hold})` : ''}${on}`; }
-    case 'foundry': case 'refinery': case 'assembler2': case 'mixer': case 'assembler': {
+    case 'alienworkbench': case 'foundry': case 'refinery': case 'assembler2': case 'mixer': case 'assembler': {
       const r = recipeOf(m), o = recipeOutput(r);
       const ins = Object.keys(r.inputs).map(k => `${k === 'copper' ? 'Cu' : k} ${m.inv[k] ?? 0}`).join(' · ');
-      return `${r.name === 'Shot magazine' ? 'Shot' : r.name} ${m.kind==='mixer'?'Mixer':'assembler'} → ${DIR_NAMES[m.dir]} · ${ins} · ${m.out} ${plural(o, m.out)} out${m.busy ? ` · ${Math.round(m.timer / r.seconds * 100)} %` : ''}${on}`;
+      return `${r.output==='rounds'&&m.ammoVersion===1?'10 bullets / '+r.seconds+' s':r.name} ${m.kind==='mixer'?'Mixer':'assembler'} → ${DIR_NAMES[m.dir]} · ${ins} · ${m.out} ${m.ammoVersion===1?itemName(o):plural(o, m.out)} out${m.busy ? ` · ${Math.round(m.timer / r.seconds * 100)} %` : ''}${on}`;
     }
-    case 'depot': { const s = st.flow!.store, mid = (['wire', 'frame', 'board', 'concrete'] as const).filter(k => (s[k]??0) > 0).map(k => ` · ${k} ${Math.floor(s[k]??0)}`).join(''); return `Depot · steel ${Math.floor(st.stock.steel)} · Cu ${Math.floor(st.stock.copper)} · stone ${Math.floor(st.stock.stone)} · coal ${Math.floor(s.coal)}${mid} · ${Math.floor(st.buffer / SHOT.count)} magazines in the line buffer`; }
+    case 'depot': { const s = st.flow!.store, mid = (['wire', 'frame', 'board', 'concrete'] as const).filter(k => (s[k]??0) > 0).map(k => ` · ${k} ${Math.floor(s[k]??0)}`).join(''); return `Depot · steel ${Math.floor(st.stock.steel)} · Cu ${Math.floor(st.stock.copper)} · stone ${Math.floor(st.stock.stone)} · coal ${Math.floor(s.coal)}${mid} · ${Math.floor(st.buffer / ammoUnit(st))} magazines in the line buffer`; }
     // RI-05
     case 'chest': { const d = depotChestOf(st, m); return `${d ? `${blockName(st, d.siteId)} supply depot (restored · hands out kits)` : 'Supply chest'} · ${poolStr(m.inv) || 'empty'} · ${invTotal(m.inv)} / ${SUPPLY_CHEST_CAP}${on}`; }
     case 'track': { const tr = tramAt(st, m.x, m.y); return `Track · streets only${tr ? ' · a tram on it' : ''}${stopAt(st, m.x, m.y) ? ' · serves a stop' : ''}`; }
@@ -1659,7 +1706,7 @@ function hookDemandKw(st: SimState, all: boolean): number {
   const f = st.flow!;
   let kw = 0;
   for (const m of f.machines) {
-    const w = MACHINE_KW[m.kind];
+    const w = machineKw(st, m);
     if (!w) continue;
     const bi = blockIdxOf(st, m);
     if (bi < 0) continue;
@@ -1872,6 +1919,7 @@ const pcx = (m: Machine): number => m.x + m.size / 2, pcy = (m: Machine): number
  *  `reached` — the power-connection prerequisite of `activationCheck` — and claims nothing by itself; `on` is the
  *  live part of the grid, the one field devices draw from. */
 export function poleGrid(st: SimState): PoleGrid {
+  if(isCampaign(st)){const g=campaignGrid(st);return {connected:new Set([...g.poles].filter(([,c])=>c.rated>0).map(([id])=>id)),on:new Set([...g.poles].filter(([,c])=>c.supply>0).map(([id])=>id)),links:g.links,reached:g.blocks.flatMap((c,i)=>c.supply>0?[i]:[])};}
   const f = ensureFlow(st);
   const c = gridCache.get(f);
   if (c && c.rev === f.rev && c.t === st.t) return c.grid;
@@ -2088,9 +2136,9 @@ export function handFeed(st: SimState, tx: number, ty: number): HandFed | null {
   if (!f || !m) return null;
   const inv = st.engineer.inv;
   if (m.kind === 'turret') {
-    const room = Math.floor((hopperCapacity(m,TURRET_HOPPER) - (m.inv.rounds ?? 0)) / SHOT.count), have = Math.floor(inv.magazine ?? 0);
+    const room = Math.floor((hopperCapacity(m,TURRET_HOPPER) - (m.inv.rounds ?? 0)) / ammoUnit(st)), have = Math.floor(inv.magazine ?? 0);
     const mags = Math.max(0, Math.min(room, have));
-    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * SHOT.count; pocketDrop(st.engineer, 'magazine', mags); f.stats.handFed += mags; f.stats.handFedMags += mags; }
+    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * ammoUnit(st); pocketDrop(st.engineer, 'magazine', mags); f.stats.handFed += mags; f.stats.handFedMags += mags; }
     return { kind: 'turret', moved: mags, reason: mags ? '' : room <= 0 ? 'the hopper is full' : 'No Shot magazines in Backpack. Open Home workshop to craft them.' };
   }
   if(m.kind==='cannon'){
@@ -2108,8 +2156,8 @@ export function handFeed(st: SimState, tx: number, ty: number): HandFed | null {
 function depotFeed(st: SimState, m: Machine): number {
   const f = st.flow!;
   if (m.kind === 'turret') {
-    const mags = Math.max(0, Math.min(Math.floor((hopperCapacity(m,TURRET_HOPPER) - (m.inv.rounds ?? 0)) / SHOT.count), Math.floor(st.buffer / SHOT.count)));
-    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * SHOT.count; st.buffer -= mags * SHOT.count; f.stats.handFed += mags; f.stats.handFedMags += mags; }
+    const mags = Math.max(0, Math.min(Math.floor((hopperCapacity(m,TURRET_HOPPER) - (m.inv.rounds ?? 0)) / ammoUnit(st)), Math.floor(st.buffer / ammoUnit(st))));
+    if (mags > 0) { m.inv.rounds = (m.inv.rounds ?? 0) + mags * ammoUnit(st); st.buffer -= mags * ammoUnit(st); f.stats.handFed += mags; f.stats.handFedMags += mags; }
     return mags;
   }
   const n = Math.max(0, Math.min(GENERATOR_COAL_CAP - (m.inv.coal ?? 0)-(m.inv.fuel??0), Math.floor(f.store.coal)));
@@ -2123,6 +2171,7 @@ function depotFeed(st: SimState, m: Machine): number {
  *  never builds a line, so with the flow layer on the HQ's 200 rounds are its whole game unless the harness places
  *  one; a soak that measures the hour places §11's line and lets these hands carry magazines to six turrets. */
 export function botHands(st: SimState): number {
+  if(st.city?.mapId)return 0;
   const f = st.flow;
   if (!f) return 0;
   let moved = 0;
@@ -2158,7 +2207,7 @@ export function nearDepot(st: SimState): boolean {
  *  free to draw (engineer.ts `restock`'s GAME-ASSUMPTION: the claim paid for them). */
 export function chestCount(st: SimState, item: ChestItem): number {
   if(isKind(item))return 0;
-  if (item === 'magazine') return Math.floor(st.buffer / SHOT.count);
+  if (item === 'magazine') return Math.floor(st.buffer / ammoUnit(st))+(st.flow?.ammoRecovery??0);
   if (isStoreItem(item)) return Math.floor(st.flow?.store[item] ?? 0);
   if (item === 'kit') return Infinity;
   return Math.floor(st.stock[item]);
@@ -2193,7 +2242,7 @@ export function chestTransferPreview(st:SimState,item:ChestItem,n:number,put:boo
   }
   if(isKind(item))return no('Packed machines use a physical supply chest');
   if(!nearDepot(st))return no('walk closer to the Depot');
-  if(put){const have=e.inv[item]??0;let moved=Math.max(0,Math.min(n,have));if(item==='magazine')moved=Math.min(moved,Math.floor((st.config.bufferCap-st.buffer)/SHOT.count));return {moved,reason:moved?'':have<=0?`no ${itemName(item)} in the Backpack`:'the line buffer is full'};}
+  if(put){const have=e.inv[item]??0;let moved=Math.max(0,Math.min(n,have));if(item==='magazine')moved=Math.min(moved,Math.floor((st.config.bufferCap-st.buffer)/ammoUnit(st)));return {moved,reason:moved?'':have<=0?`no ${itemName(item)} in the Backpack`:'the line buffer is full'};}
   const want=Math.max(0,Math.min(n,chestCount(st,item)));if(want<=0)return no(`no ${itemName(item)} in the Depot`);
   const moved=pocketTake(e,item,want);return {moved,reason:moved?'':'the Backpack is full'};
 }
@@ -2229,7 +2278,7 @@ export function chestTake(st: SimState, item: ChestItem, n: number, at?: [number
   const got = pocketTake(st.engineer, item, want);
   if (got <= 0) return { moved: 0, reason: 'the Backpack is full' };
   chestTrip(f);
-  if (item === 'magazine') st.buffer -= got * SHOT.count;
+  if (item === 'magazine') {const recovered=Math.min(got,f.ammoRecovery??0);if(recovered)f.ammoRecovery!-=recovered;st.buffer -= (got-recovered) * ammoUnit(st);}
   else if (isStoreItem(item)) f.store[item] = (f.store[item]??0) - got;
   else if (item !== 'kit') st.stock[item] -= got;
   return { moved: got, reason: '' };
@@ -2254,11 +2303,11 @@ export function chestPut(st: SimState, item: ChestItem, n: number, at?: [number,
   if (!nearDepot(st)) return { moved: 0, reason: 'walk closer to the Depot' };
   const have = st.engineer.inv[item] ?? 0;
   let want = Math.max(0, Math.min(n, have));
-  if (item === 'magazine') want = Math.min(want, Math.floor((st.config.bufferCap - st.buffer) / SHOT.count));
+  if (item === 'magazine') want = Math.min(want, Math.floor((st.config.bufferCap - st.buffer) / ammoUnit(st)));
   if (want <= 0) return { moved: 0, reason: have <= 0 ? `no ${itemName(item)} in the Backpack` : 'the line buffer is full' };
   const put = pocketDrop(st.engineer, item, want);
   chestTrip(f);
-  if (item === 'magazine') { st.buffer += put * SHOT.count; f.stats.magsDelivered += put; }
+  if (item === 'magazine') { st.buffer += put * ammoUnit(st); f.stats.magsDelivered += put; }
   else if (isStoreItem(item)) f.store[item] = (f.store[item]??0) + put;
   else if (item !== 'kit') st.stock[item] += put;
   if (item !== 'kit') f.stats.putBack[item] = (f.stats.putBack[item]??0) + put;   // RI-01: by hand, apart from `delivered` (machines), and all of it
@@ -2346,7 +2395,7 @@ export function renderLot(st: SimState, bx = st.start[0], by = st.start[1]): str
       case 'generator': ch = m.busy ? 'G' : 'g'; break;
       case 'cannon': ch='C';break;
       case 'pumpjack': case 'excavator': ch = running(st, m) ? 'X' : 'x'; break;
-      case 'foundry': case 'refinery': case 'assembler2': case 'mixer': case 'assembler': ch = m.busy && running(st, m) ? 'A' : 'a'; break;
+      case 'alienworkbench': case 'foundry': case 'refinery': case 'assembler2': case 'mixer': case 'assembler': ch = m.busy && running(st, m) ? 'A' : 'a'; break;
       case 'fastbelt': case 'belt': ch = '^>v<'[m.dir]; break;
       case 'underground': ch = m.underground==='output'?'U':'u'; break;
       case 'splitter': ch = 'J'; break;

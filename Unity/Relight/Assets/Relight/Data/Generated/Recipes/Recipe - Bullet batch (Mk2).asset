@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62f540f86e8b09f4797ca67d9bc9a424, type: 3}
+  m_Name: Recipe - Bullet batch (Mk2)
+  m_EditorClassIdentifier: Relight.Data::Relight.Data.RecipeDefinition
+  key: bullet-batch-mk2
+  displayName: Bullet batch (Mk2)
+  kind: 0
+  source: packages/sim/src/constants.ts:17; packages/sim/src/constants.ts:18
+  provisional: 0
+  generatedFingerprint: 189a1bc1e9aaf17fa3f555cf5aebb3178f2a10b7
+  inputs:
+  - item: 11
+    count: 2
+  - item: 12
+    count: 1
+  outputs:
+  - item: 15
+    count: 10
+  seconds: 3
+  station: Assembler Mk2
+  outputKey: 

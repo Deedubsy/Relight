@@ -24,7 +24,7 @@ function normalise(bp:Blueprint):Blueprint {
 function configuration(m:Machine,id:string,x:number,y:number):BlueprintEntity {
   if(m.kind==='depot')throw new Error('The home supply installation cannot be copied.');
   return {id,kind:m.kind,x,y,dir:m.dir,
-    ...(['assembler','assembler2','foundry','refinery'].includes(m.kind)?{recipe:m.recipe??'shot'}:{}),
+    ...(['alienworkbench','assembler','assembler2','foundry','refinery'].includes(m.kind)?{recipe:m.recipe??'shot'}:{}),
     ...(m.filter?{filter:m.filter}:{}), ...(m.kind==='splitter'?{priority:m.priority??'balanced'}:{}),
     ...(m.underground?{underground:m.underground}:{}), ...(m.freight?{freight:structuredClone(m.freight)}:{})};
 }

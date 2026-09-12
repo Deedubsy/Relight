@@ -7,14 +7,17 @@ import { drop } from './engineer';
 import { isCampaign, CAMPAIGN_RULES } from './rules';
 import { DISCOVERY } from './campaignDiscovery';
 import { blockName } from './names';
+import { campaignGrid } from './campaignPower';
+import type { OpeningEncounter } from './openingEncounter';
 
 export const DEFENCE = { barricadeHp: 240, wallHp: 120, turretHp: 100, coreHp: 300, repairHp: 40, repairSeconds: 4,
   repairSteel: 2, repairCopper: 1, coreSteel: 10, coreCopper: 5, coreRepairSeconds: 12 } as const;
-export interface BaseCore { block: number; x: number; y: number; size: number; hp: number; commissionedAt: number }
-export interface Assault { id: number; block: number; dawn: number; startsAt: number; origin: number; remaining: number; nextSpawn: number; retreat: boolean; waiting?: 'approach' | 'minor' }
+export interface BaseCore { block: number; x: number; y: number; size: number; hp: number; commissionedAt: number; /** sim time the block circuit first showed supply; absent until then (GP-POWER-FIX 2026-09-11) */ poweredAt?: number }
+export interface Assault { origins?:number[]; total?:number; cancelled?:number; endsAt?:number; committed?:boolean; id: number; block: number; dawn: number; startsAt: number; origin: number; remaining: number; nextSpawn: number; retreat: boolean; waiting?: 'approach' | 'minor' }
 export interface MinorRaid { id: number; block: number; origin: number; retreat: boolean }
 export interface RadioMessage { assault: number; block: number; startsAt: number; receivedAt: number; approach?: string; composition?: string }
 export interface DefenceState {
+  clock?: {version:1;nextStart:number;nextMinor:number;recoveryUntil:number;serial:number;legacyCommitment?:true};
   version: 1 | 2; bases: BaseCore[]; nextId: number; nextDawn: number; lastMajorEnd: number;
   lastMinorSlot: number; nominations: { block: number; at: number }[]; major: Assault | null; minor: MinorRaid | null;
   radioUpgrade: boolean; warning: RadioMessage | null;
@@ -22,6 +25,8 @@ export interface DefenceState {
   sites: { id: number; block: number; tile: number; spawned: boolean }[];
   history: { id: number; block: number; started: number; ended: number; defeated: boolean; spawned: number }[];
   raidsStarted: number; majorSpawned: number; notice: string;
+  /** GP-OPENING: the once-only introductory attack; absent on saves that predate it (initialised on load/tick). */
+  opening?: OpeningEncounter;
 }
 export function initDefence(st: SimState): void {
   if (!isCampaign(st) || !st.flow) return;
@@ -80,6 +85,7 @@ export function damageCore(st: SimState, core: BaseCore, amount: number): void {
   if (core.hp===0) {
     st.blocks[core.block].subOn = false; st.flow!.rev++;
     const d = st.campaign!.defence!;
+    if(d.clock)d.clock.recoveryUntil=Math.max(d.clock.recoveryUntil,st.t+300);
     if (d.major?.block===core.block) { d.major.retreat=true; d.major.remaining=0; delete d.major.waiting; }
     if (d.minor?.block===core.block) d.minor.retreat=true;
     d.notice = `${blockName(st,core.block)} core disabled. Layout and supplies remain; repair the core when the attackers leave.`;
@@ -97,6 +103,16 @@ export function repairCheck(st: SimState, x: number, y: number): string {
   const steel=core?.hp===0?DEFENCE.coreSteel:DEFENCE.repairSteel, copper=core?.hp===0?DEFENCE.coreCopper:DEFENCE.repairCopper;
   return (st.engineer.inv.steel??0)<steel || (st.engineer.inv.copper??0)<copper ? `repair needs ${steel} Steel plates and ${copper} Copper in your Backpack` : '';
 }
+/** GP-HOME-REPAIR (2026-09-11): the one description of what a repair here would cost — the Home workshop card, the
+ *  Management panel and the hover text all read it, so a recommission is never priced two ways. */
+export interface RepairCost { kind:'core'|'machine'; hp:number; max:number; steel:number; copper:number; seconds:number; recommission:boolean; home:boolean }
+export function repairCost(st:SimState,x:number,y:number):RepairCost|null {
+  const core=coreAt(st,x,y), m=machineAt(st,x,y), max=core?DEFENCE.coreHp:m?defenceMax(m):0;
+  if(!max||!isCampaign(st))return null;
+  const hp=core?.hp??defenceHp(m!), recommission=!!core&&hp===0;
+  return { kind:core?'core':'machine', hp, max, steel:recommission?DEFENCE.coreSteel:DEFENCE.repairSteel, copper:recommission?DEFENCE.coreCopper:DEFENCE.repairCopper,
+    seconds:manualRepairSeconds(st,recommission), recommission, home:!!core&&core.block===st.campaign!.homeBlock };
+}
 export function manualRepairSeconds(st:SimState, disabled=false):number {
   return (disabled?DEFENCE.coreRepairSeconds:DEFENCE.repairSeconds) * ((st.campaign?.discovery?.recoveredAt??-1)>=0?DISCOVERY.repairMultiplier:1);
 }
@@ -108,6 +124,12 @@ export function startRepair(st: SimState,x:number,y:number):string {
   st.stats.spentSteel=(st.stats.spentSteel??0)+steel;st.stats.spentCopper=(st.stats.spentCopper??0)+copper;
   st.campaign!.defence!.repair={kind:core?'core':'machine',id:core?.block??m!.id,remaining:manualRepairSeconds(st,disabled),recommission:disabled};
   return '';
+}
+/** Records the first moment each registered base's block circuit carries supply, so outage alerts describe lost power rather than power never connected. */
+export function tickBasePower(st:SimState):void {
+  const d=st.campaign?.defence;if(!d||!st.flow)return;
+  const grid=campaignGrid(st);
+  for(const b of d.bases)if(b.poweredAt===undefined&&(grid.blocks[b.block]?.supply??0)>0)b.poweredAt=st.t;
 }
 export function tickRepair(st:SimState,dt:number):void {
   const d=st.campaign?.defence,r=d?.repair;if(!d||!r)return;
@@ -131,5 +153,5 @@ export function defenceDescription(st:SimState,x:number,y:number):string {
   const hp=core?.hp??defenceHp(m!);
   const r=st.campaign?.defence?.repair;
   const repairing=r && (core?r.kind==='core'&&r.id===core.block:r.kind==='machine'&&r.id===m!.id);
-  return `${core?'Base core':m!.kind==='barricade'?'Barricade':m!.kind==='wall'?'Wall':'Gun turret'} · ${Math.ceil(hp)}/${max} HP${hp===0?' · DISABLED':''}${repairing?` · repair ${Math.ceil(r.remaining)}s (stay in reach)`:hp<max?` · E repairs: ${core&&hp===0?`10 steel + 5 copper, ${manualRepairSeconds(st,true)}s`:`2 steel + 1 copper, ${manualRepairSeconds(st)}s / 40 HP`}`:''}`;
+  return `${core?'Base core':m!.kind==='barricade'?'Barricade':m!.kind==='wall'?'Wall':'Gun turret'} · ${Math.ceil(hp)}/${max} HP${hp===0?' · DISABLED':''}${repairing?` · repair ${Math.ceil(r.remaining)}s (stay in reach)`:hp<max?core&&core.block===st.campaign!.homeBlock?` · E opens the Home workshop — repair it there (${hp===0?`${DEFENCE.coreSteel} steel + ${DEFENCE.coreCopper} copper, ${manualRepairSeconds(st,true)}s`:`${DEFENCE.repairSteel} steel + ${DEFENCE.repairCopper} copper, ${manualRepairSeconds(st)}s / ${DEFENCE.repairHp} HP`})`:` · E repairs: ${core&&hp===0?`10 steel + 5 copper, ${manualRepairSeconds(st,true)}s`:`2 steel + 1 copper, ${manualRepairSeconds(st)}s / 40 HP`}`:''}`;
 }

@@ -129,7 +129,7 @@ export function workshopStatus(st:SimState):string {
 export function tickDistricts(st:SimState,dt:number):void {
   const c=st.campaign,d=c?.districts;if(!d)return;
   const defence=c!.defence!,w=d.workshop;
-  if(d.resuppliedAt<0&&d.visits>=DISTRICT_ECONOMY.resupplyVisits&&d.supplied.steel>=DISTRICT_ECONOMY.resupplySteel&&d.supplied.copper>=DISTRICT_ECONOMY.resupplyCopper&&d.supplied.magazine>=DISTRICT_ECONOMY.resupplyMagazines) {
+  if(d.resuppliedAt<0&&d.visits>=DISTRICT_ECONOMY.resupplyVisits&&d.supplied.steel>=DISTRICT_ECONOMY.resupplySteel&&d.supplied.copper>=DISTRICT_ECONOMY.resupplyCopper&&d.supplied.magazine>=DISTRICT_ECONOMY.resupplyMagazines*(st.flow?.ammoVersion===1?10:1)) {
     const blocks=[c!.homeBlock,c!.expansion!.station.block,d.station.block];
     if(blocks.every(b=>baseCore(st,b)&&baseCore(st,b)!.hp>0)&&st.flow!.machines.some(m=>m.kind==='tram'&&blocks.every(b=>routeStops(st,tramRoute(st,m)).some(s=>blockOfTile(st,s.x,s.y)===b&&campaignThrottle(st,b)>0))))d.resuppliedAt=st.t;
     // Existing promises and target locks remain unchanged; the next actual completion uses one quiet cycle.
@@ -146,5 +146,5 @@ export function tickDistricts(st:SimState,dt:number):void {
 }
 export function districtGuidance(st:SimState):string {
   const d=st.campaign?.districts;if(!d)return '';
-  return `${d.workshop.restoredAt<0?describeSite(st,'workshop'):workshopStatus(st)} Later station resupply from home: ${d.supplied.steel}/10 steel, ${d.supplied.copper}/5 copper, ${d.supplied.magazine}/5 magazines; ${d.visits}/2 ammunition deliveries. ${d.resuppliedAt>=0?'One quiet cycle applies after the next major completion.':'Two quiet cycles remain until three operational bases are connected and resupplied.'}`;
+  return `${d.workshop.restoredAt<0?describeSite(st,'workshop'):workshopStatus(st)} Later station resupply from home: ${d.supplied.steel}/10 steel, ${d.supplied.copper}/5 copper, ${d.supplied.magazine}/${st.flow?.ammoVersion===1?50:5} ammunition items; ${d.visits}/2 ammunition deliveries. ${d.resuppliedAt>=0?'One quiet cycle applies after the next major completion.':'Two quiet cycles remain until three operational bases are connected and resupplied.'}`;
 }

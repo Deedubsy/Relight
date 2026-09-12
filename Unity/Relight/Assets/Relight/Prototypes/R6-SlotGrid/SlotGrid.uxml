@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/Prototypes/R6-SlotGrid/SlotGrid.uss" />
+    <ui:VisualElement name="slot-grid-root" class="panel slot-grid-root">
+        <ui:Label name="title" text="R6 — inventory slot grid (prototype)" class="slot-grid-title" />
+        <ui:VisualElement name="grids" class="slot-grid-pair">
+            <ui:VisualElement name="pack-side" class="slot-grid-side">
+                <ui:Label name="pack-heading" text="Backpack — 40 slots" class="slot-grid-heading" />
+                <ui:VisualElement name="pack-grid" class="slot-grid pack" />
+            </ui:VisualElement>
+            <ui:VisualElement name="store-side" class="slot-grid-side">
+                <ui:Label name="store-heading" text="Storage — 20 slots" class="slot-grid-heading" />
+                <ui:VisualElement name="store-grid" class="slot-grid store" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:Label name="status" text="" class="slot-grid-status" />
+    </ui:VisualElement>
+</ui:UXML>

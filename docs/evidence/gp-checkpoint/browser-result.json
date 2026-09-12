@@ -1,0 +1,34 @@
+{
+  "label": "Actual browser UI with supplied inventory fixture; not fresh acquisition pacing",
+  "checks": [
+    "Active-minute schedule visible in ordinary opening",
+    "Actual Backpack selection, Equip slot 1 and Reload controls preserve one paid magazine",
+    {
+      "label": "Paid UI craft with supplied starting ingredients",
+      "gear": {
+        "version": 1,
+        "next": 2,
+        "weapons": {
+          "rifle:1": {
+            "kind": "rifle",
+            "loaded": 10,
+            "cooldown": 0,
+            "reload": 0
+          }
+        },
+        "slots": [
+          "rifle:1",
+          null
+        ],
+        "active": 0
+      },
+      "inv": {
+        "steel": 10,
+        "copper": 4,
+        "magazine": 3
+      }
+    },
+    "Default 9 weapon tool fires a real loaded round with pointer input"
+  ],
+  "errors": []
+}

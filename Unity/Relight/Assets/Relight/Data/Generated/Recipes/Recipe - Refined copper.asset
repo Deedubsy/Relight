@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62f540f86e8b09f4797ca67d9bc9a424, type: 3}
+  m_Name: Recipe - Refined copper
+  m_EditorClassIdentifier: Relight.Data::Relight.Data.RecipeDefinition
+  key: refined-copper
+  displayName: Refined copper
+  kind: 0
+  source: packages/sim/src/flow.ts:183
+  provisional: 0
+  generatedFingerprint: 46285fc26610da51670532a05d48a04579f63d5d
+  inputs:
+  - item: 3
+    count: 2
+  outputs:
+  - item: 12
+    count: 1
+  seconds: 3
+  station: Foundry
+  outputKey: 

@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83a5895dc3e2b1c408ad91b149fb883d, type: 3}
+  m_Name: Machine - Gun turret
+  m_EditorClassIdentifier: Relight.Data::Relight.Data.MachineDefinition
+  key: turret
+  displayName: Gun turret
+  kind: 2
+  source: packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/recipes.ts:37; packages/sim/src/constants.ts:42; packages/sim/src/campaignDefence.ts:13
+  provisional: 1
+  generatedFingerprint: bfaffaa2640dd39357d758f9155f7a9620b1e995
+  size: 2
+  cost:
+  - item: 11
+    count: 15
+  - item: 12
+    count: 5
+  powerKw: 20
+  hasInventory: 1
+  inventorySlots: 1
+  fuelCap: 0
+  ammoCap: 50
+  ratePerS: 0
+  reachTiles: 0
+  lightRadiusTiles: 0
+  coneRangeTiles: 0
+  coneHalfAngleRad: 0
+  hp: 100
+  unlock: 

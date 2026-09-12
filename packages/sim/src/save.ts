@@ -1,3 +1,12 @@
+import {migrateAmmunition,ammunitionProblem} from './ammunitionMigration';
+import {initFabrication,fabricationProblem} from './fabrication';
+import {initActiveRaidClock} from './campaignThreat';
+import {initOpeningEncounter} from './openingEncounter';
+import {initFirstRegion,firstRegionProblem} from './firstRegion';
+import {combatProblem} from './gameplayCombat';
+import {initEquipment,equipmentProblem} from './equipment';
+import {migrateOverclocks} from './overclockMigration';
+import {initGameplayProgress,gameplayProgressProblem} from './gameplayProgress';
 import {authoredProblem} from './authoredCity';
 import {initProgression,progressionProblem} from './progression';
 import {initFixedTram, fixedTramProblem} from './fixedTram';
@@ -96,7 +105,7 @@ export function stateProblem(v: unknown): string {
   if(packProblem(st.engineer))return packProblem(st.engineer);
   if(st.engineer.lastDamageSource!==undefined&&(typeof st.engineer.lastDamageSource!=='string'||!st.engineer.lastDamageSource.startsWith('relay:')))return 'Invalid damage source';
   if (st.city?.profile && st.city.profile !== 'riverside-v1') return `unsupported city profile ${st.city.profile}`;
-  return authoredProblem(st as SimState) || rulesetProblem(st as SimState) || concreteProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || discoveryProblem(st as SimState) || recruitsProblem(st as SimState) || turbineProblem(st as SimState) || knowledgeProblem(st as SimState) || freightProblem(st as SimState) || blueprintPlansProblem(st as SimState) || clipboardProblem(st as SimState) || constructionProblem(st as SimState) || routingProblem(st as SimState) || inspectionProblem(st as SimState) || truckProblem(st as SimState) || truckWorkProblem(st as SimState) || navigationProblem(st as SimState) || fixedTramProblem(st as SimState) || progressionProblem(st as SimState);
+  return ammunitionProblem(st as SimState) || authoredProblem(st as SimState) || rulesetProblem(st as SimState) || concreteProblem(st as SimState) || defenceProblem(st as SimState) || districtsProblem(st as SimState) || discoveryProblem(st as SimState) || recruitsProblem(st as SimState) || turbineProblem(st as SimState) || knowledgeProblem(st as SimState) || freightProblem(st as SimState) || blueprintPlansProblem(st as SimState) || clipboardProblem(st as SimState) || constructionProblem(st as SimState) || routingProblem(st as SimState) || inspectionProblem(st as SimState) || truckProblem(st as SimState) || truckWorkProblem(st as SimState) || navigationProblem(st as SimState) || fixedTramProblem(st as SimState) || progressionProblem(st as SimState) || gameplayProgressProblem(st as SimState) || equipmentProblem(st as SimState) || combatProblem(st as SimState) || firstRegionProblem(st as SimState) || fabricationProblem(st as SimState);
 }
 
 /** A validated deep copy of a saved state — a SaveFile, a telemetry export (its `finalState`) or a raw SimState —
@@ -109,7 +118,9 @@ export function loadState(raw: unknown): SimState {
   const st = JSON.parse(JSON.stringify(src)) as SimState;
   st.events = []; st.acc = 0; st.speed = 0;
   st.survivors ??= [];
-  if (st.flow) { initExpansion(st); initDefence(st); initDistricts(st); initDiscovery(st); initRecruits(st); initTurbine(st); initForeman(st); initFixedTram(st); initProgression(st); initKnowledge(st); }
+  if (st.flow) { initExpansion(st); initDefence(st); initDistricts(st); initDiscovery(st); initRecruits(st); initTurbine(st); initForeman(st); initFixedTram(st); initProgression(st); initGameplayProgress(st);migrateOverclocks(st);initEquipment(st);migrateAmmunition(st);initFirstRegion(st);initFabrication(st);initActiveRaidClock(st); initOpeningEncounter(st); initKnowledge(st); }
+  const migratedProblem = ammunitionProblem(st) || freightProblem(st) || gameplayProgressProblem(st) || progressionProblem(st) || equipmentProblem(st);
+  if (migratedProblem) throw new Error(`Save migration rejected: ${migratedProblem}; original preserved`);
   return st;
 }
 

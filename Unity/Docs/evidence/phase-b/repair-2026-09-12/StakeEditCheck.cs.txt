@@ -1,0 +1,28 @@
+using System.Collections;
+using NUnit.Framework;
+using Relight.Presentation;
+using Relight.Sim;
+using UnityEngine;
+using UnityEngine.TestTools;
+
+namespace Relight.Tests.Play
+{
+    /// <summary>Copy-only check (never in the real project): a new game starts with the hand-edited stake.</summary>
+    public sealed class StakeEditCheck
+    {
+        [UnityTest, Timeout(30000)]
+        public IEnumerator ANewGameStartsWithTheEditedStake()
+        {
+            yield return SceneFixture.LoadWorld();
+            var host = Object.FindAnyObjectByType<SimHost>();
+            var sim = host.Simulation;
+            var st = sim.State;
+            var view = Ledger.Conservation(st, sim.Context.Data);
+            Debug.Log($"STAKE-CHECK steel={st.Engineer.Inv[ItemId.Steel]} copper={st.Engineer.Inv[ItemId.Copper]} problem='{InventoryInitializer.StakeProblem(sim.Context.Data)}' ledger-ok={view.Ok} problems={string.Join(" | ", view.Problems)}");
+            Assert.That(st.Engineer.Inv[ItemId.Steel], Is.EqualTo(33), "the edited stake (33 steel) did not reach a new game");
+            Assert.That(st.Engineer.Inv[ItemId.Copper], Is.EqualTo(5));
+            Assert.That(InventoryInitializer.StakeProblem(sim.Context.Data), Is.Empty);
+            Assert.That(view.Problems, Is.Empty, "conservation must read clean at tick 0 with the edited stake");
+        }
+    }
+}

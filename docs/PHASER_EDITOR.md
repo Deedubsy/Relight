@@ -36,6 +36,14 @@ An applied change gives the map a content-derived `riverfront-arc-v4-editor-…`
 
 After adding new SVGs under `packages/game/public/art/riverfront`, run `npm run editor:assets`; it adds missing entries and preserves existing pack edits. Deleted/renamed assets require corresponding pack edits in the editor. If files change outside Phaser Editor, use its **Reload Project** command.
 
+## Road and path tiles
+
+Open `packages/game/public/relight-editor-pack.json` and look for **editor-road-** and **editor-path-** textures. Six reusable 32 × 32 px SVG assets provide asphalt, paving, gravel, dashed/solid lane markings and a kerb. Their colours match the city reference. Reload Project if newly added assets are missing.
+
+Use these in a separate layout/draft scene. Drag asphalt, paving or gravel in as an Image for one tile, or use a **TileSprite** and change its width/height in multiples of 32 to repeat the surface without stretching it. Set origin to **0,0** and snap to 32 px. Place the transparent markings/kerb above the surface; their default direction is vertical, and a 90° rotation gives a horizontal strip. Rotate around its centre, or reposition the strip after changing its angle if using origin 0,0.
+
+These are visual authoring assets. `editor:check` / `editor:apply` currently accept building edits only and will reject these added terrain objects in `RiverfrontCity.scene`. They do not create walkable roads, alter collision or update the playable map; importing authored road/path geometry needs separate support.
+
 ## Configuration and checks
 
 - `phasereditor2d.config.json`: Play URL and resource filtering. Excludes generated builds, historical evidence, snapshots and copied Tiled assets from editor indexing, while leaving source/artwork available.
@@ -44,7 +52,7 @@ After adding new SVGs under `packages/game/public/art/riverfront`, run `npm run 
 - `packages/game/public/relight-asset-pack.json`: editor-recognized Phaser asset manifest; no change to the runtime's existing loading sequence.
 - `scripts/phaser-editor-assets.mjs`: additive manifest maintenance.
 - `packages/game/src/editor/RiverfrontCity.scene`: native Phaser Editor scene (official v5 JSON format, compiler disabled).
-- `packages/game/public/relight-editor-pack.json`: terrain reference texture; the existing pack provides building textures.
+- `packages/game/public/relight-editor-pack.json`: terrain reference plus reusable road/path textures; the existing pack provides building textures.
 - `packages/tools/src/phaserCity.ts` and `phaserCityModel.ts`: exporter, validated draft conversion and atomic canonical-source update; no runtime editor dependency.
 - `scripts/phaser-editor-city.mjs`: Windows/WSL-aware launcher for scene export, check and apply.
 
@@ -55,3 +63,7 @@ The original scene integration was checked separately in `docs/evidence/phaser-s
 After this external layout update, use **Reload Project** if the reference terrain still looks stale. Reopen `RiverfrontCity.scene` rather than saving an old cached tab over it. The approved CITY-E scene and source are preserved in `docs/evidence/city-density/before.scene` and `before-riverfront.ts.txt`; the earlier pre-density backups remain in `docs/evidence/neighbourhood-density/`. These are historical backups, not the active editing baseline.
 
 Official references: [project configuration](https://docs.phaser.io/phaser-editor/misc/project-config), [public asset roots](https://docs.phaser.io/phaser-editor/asset-pack-editor/add-file#setting-the-root-folder-for-the-asset-files), [asset packs](https://docs.phaser.io/phaser-editor/asset-pack-editor/asset-pack-file), [scene compiler and Generate Code setting](https://docs.phaser.io/phaser-editor/scene-editor/scene-compiler), [official starter scene](https://github.com/phaserjs/editor-starter-template-vite/blob/main/src/scenes/Level.scene).
+
+## First-region gameplay references
+
+GP camp groups, key markers, both Freight gates and the arena are canonical tile coordinates in `packages/sim/src/city/gameplaySites.ts`, instantiated by `firstRegion.ts`. Tiled export multiplies coordinates by 32 and labels these locked objects **reference only**. Moving them in Tiled or Phaser does not move gameplay. The existing importer handles background buildings only. Keep CITY-F as the current scene; export to a new directory and never apply an old city export over owner edits. `validateFirstRegion` checks exterior Home paths and both actual warehouse doors; `validateRiverfront` retains the city geometry contract.

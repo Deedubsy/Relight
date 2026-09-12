@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {createCampaign,ensureFlow,currentGoal,buildAffordability,MACHINE_COST,chestTake,chestCount,depotRect,campaignInteraction,stateHash,makeSave,loadState,ground,canPlace,inReach,applyCommands,campaignDiscoveries,navigationTargets,workbenchTile,type SimState} from '../src/index';
+import {createCampaign,ensureFlow,addMachine,repairCheck,currentGoal,buildAffordability,MACHINE_COST,chestTake,chestCount,depotRect,campaignInteraction,stateHash,makeSave,loadState,ground,canPlace,inReach,applyCommands,campaignDiscoveries,navigationTargets,workbenchTile,type SimState} from '../src/index';
 const fresh=()=>{const st=createCampaign(3);ensureFlow(st);return st;};
 const next=(st:SimState)=>currentGoal(st).next!;
 function assembler(st:SimState){st.stock.steel=50;st.stock.copper=50;chestTake(st,'steel',50);chestTake(st,'copper',50);const G=ground(st),p=G.opening!.bounds;for(let y=p.y;y<p.y+p.size;y++)for(let x=p.x;x<p.x+p.size;x++)if(inReach(st,x,y,3)&&canPlace(st,'assembler',x,y).ok){applyCommands(st,[{type:'place',item:'assembler',x,y}]);return st.flow!.machines.find(m=>m.kind==='assembler')!;}throw Error('No legal opening pad');}
@@ -41,11 +41,13 @@ test('UI-02 Home, workbench, machine and out-of-reach prompts resolve their actu
  const [x,y]=workbenchTile(st),craft=campaignInteraction(st,{tx:x,ty:y})!;assert.equal(craft.label,'Craft one magazine');assert.deepEqual(craft.commands,[{type:'factory',action:{type:'craft',item:'magazine',count:1}}]);
  st.engineer.x=d.x+50;st.engineer.y=d.y+50;assert.match(campaignInteraction(st,{tx:d.x,ty:d.y})!.reason,/Walk closer/);
 });
-test('UI-02 site partial delivery remains available before power; repair wins over opening the same damaged Home',()=>{
- const st=fresh(),site=st.campaign!.expansion!.station;st.engineer.x=site.x;st.engineer.y=site.y;
+test('UI-02 site partial delivery remains available before power; repair wins for defences, while a damaged Home opens the workshop that repairs it',()=>{
+ const st=fresh(),site=st.campaign!.expansion!.station;st.engineer.x=site.x;st.engineer.y=site.y;st.engineer.inv={};   // GP-START-POCKETS: empty the starting stake to model “no materials”
  assert.ok(campaignInteraction(st,{tx:site.x,ty:site.y})!.reason,'UI-05 explains a restore refusal when no materials can transfer');
  st.engineer.inv.steel=7;const target=campaignInteraction(st,{tx:site.x,ty:site.y})!;assert.equal(target.reason,'');assert.deepEqual(target.commands,[{type:'deliverSite',site:'station'}]);
- const d=st.campaign!.defence!.bases[0];d.hp-=1;st.engineer.x=d.x;st.engineer.y=d.y;const repair=campaignInteraction(st,{tx:d.x,ty:d.y})!;assert.equal(repair.label,'Repair base core');assert.deepEqual(repair.commands,[{type:'repairDefence',x:d.x,y:d.y}]);
+ const d=st.campaign!.defence!.bases[0];d.hp-=1;st.engineer.x=d.x-.5;st.engineer.y=d.y;const home=campaignInteraction(st,{tx:d.x,ty:d.y})!;assert.equal(home.label,'Open Home workshop & storage');assert.equal(home.panel,'home');assert.deepEqual(home.commands,[]);   // GP-HOME-REPAIR: the Home core is the workshop; its Base core card carries the repair
+ st.engineer.inv.steel=2;st.engineer.inv.copper=1;assert.equal(repairCheck(st,d.x,d.y),'','the card’s repair is available from the same spot');
+ const wall=addMachine(st,'wall',d.x-2,d.y,0);wall.hp=1;const repair=campaignInteraction(st,{tx:wall.x,ty:wall.y})!;assert.equal(repair.label,'Repair Wall');assert.deepEqual(repair.commands,[{type:'repairDefence',x:wall.x,y:wall.y}]);
 });
 
 test('UI-02 machine reach is measured from the whole footprint, independent of which corner is pointed at',()=>{

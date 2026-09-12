@@ -31,6 +31,10 @@ export { ROUNDS_PER_MAG } from './constants';
 /** §13 defence (M3): Gun turret 2×2, range 9, 5 rounds/s, 50-round hopper (5 magazines); Lamp 1×1 5 kW radius 4;
  *  pole reach 8. */
 export const TURRET_HOPPER = TURRET.hopper, TURRET_RANGE = TURRET.range, TURRET_ROUNDS_PER_S = TURRET.roundsPerS;
+/** Owner direction (2026-09-11): a Gun turret is a powered machine. 20 kW sits between an inserter (10) and an
+ *  excavator (60), matches a tram stop, and lets one 300 kW Generator carry the Home core (100), a magazine Assembler
+ *  (100) and the opening's three turrets (60) together; provisional. */
+export const TURRET_KW = 20;
 export const LAMP_KW = 5, LAMP_RADIUS = 4, POLE_REACH = 8;
 /** D-B5-4: a kerb streetlight reaches the street's midline (radius 7) — constants.ts; the Lamp keeps §13's radius 4. */
 export { STREETLIGHT_RADIUS } from './constants';

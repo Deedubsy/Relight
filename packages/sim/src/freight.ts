@@ -24,7 +24,7 @@ export function validStationRules(v: unknown): v is StationRules {
 export function setStationRules(st: SimState, x: number, y: number, rules: StationRules): boolean {
   const stop = machineAt(st, x, y);
   if (stop?.kind !== 'tramstop' || !inReach(st, stop.x, stop.y, stop.size) || !validStationRules(rules)) return false;
-  stop.freight = Object.fromEntries(Object.entries(rules).map(([k, r]) => [k, { ...r }]));
+  stop.freight = Object.fromEntries(Object.entries(rules).filter(([,r])=>!!r).map(([k, r]) => [k, { ...r! }]));
   if (st.version === 1) st.version = 2;
   return true;
 }
@@ -69,7 +69,7 @@ export function transferFreight(st: SimState, tram: Machine, stop: Machine, rout
   if (!powered) return;
   // Unreserved legacy cargo may unload, but never the portion owned by a later stop.
   const arrivals = stop.cargo ??= {};
-  for (const item of ITEMS) {
+  for (const item of [...new Set([...ITEMS,...Object.keys(cargo),...routeStops.flatMap(s=>Object.keys(s.inv))])].filter(isItem)) {
     const n = Math.min((cargo[item] ?? 0) - reserved(tram, item), Math.max(0, STOP_CAP - invTotal(arrivals)));
     if (n <= 0) continue;
     arrivals[item] = (arrivals[item] ?? 0) + n;
@@ -79,7 +79,7 @@ export function transferFreight(st: SimState, tram: Machine, stop: Machine, rout
   // Only explicitly exported platform stock boards; arrivals feed local belts/hands.
   for (const destination of routeStops) {
     if (destination.id === stop.id || !destination.freight || st.campaign?.fixedTram&&!machineRunning(st,destination)) continue;
-    for (const item of ITEMS) {
+    for (const item of [...new Set([...ITEMS,...Object.keys(cargo),...routeStops.flatMap(s=>Object.keys(s.inv))])].filter(isItem)) {
       const sourceRule = stop.freight?.[item], targetRule = destination.freight[item];
       if (!sourceRule?.export || !targetRule) continue;
       const demand = targetRule.request - (destination.inv[item] ?? 0) - (destination.cargo?.[item] ?? 0) - freightInbound(st, destination.id, item);
@@ -106,7 +106,7 @@ export function freightProblem(st: SimState): string {
           || !count(r.destination, Number.MAX_SAFE_INTEGER) || r.origin === r.destination || typeof r.returning !== 'boolean') return 'invalid freight reservation';
       }
       if (invTotal(m.cargo) > freightCapacity(st,TRAM_CAP)) return 'tram cargo exceeds capacity';
-      for (const item of ITEMS) if (!count(m.cargo?.[item] ?? 0, freightCapacity(st,TRAM_CAP)) || reserved(m, item) > (m.cargo?.[item] ?? 0)) return 'reservation exceeds tram cargo';
+      for (const item of [...new Set([...ITEMS,...Object.keys(m.cargo??{}),...m.manifest.map(r=>r.item)])].filter(isItem)) if (!count(m.cargo?.[item] ?? 0, freightCapacity(st,TRAM_CAP)) || reserved(m, item) > (m.cargo?.[item] ?? 0)) return 'reservation exceeds tram cargo';
     }
   }
   return '';

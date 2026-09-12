@@ -1,7 +1,7 @@
 import {createSettings} from './settingsPanel';
 import {createAlertInbox} from './alertInbox';
 import {createInspectionPanel} from './inspectionPanel';
-import {createInventoryPanel} from './inventoryPanel';
+import {createInventoryPanel,cancelHandcraft} from './inventoryPanel';
 import {itemName,truckTransferPreview,handCraftCheck} from '@relight/sim';
 import {createBuildPanel} from './buildPanel';
 import { createUiShell, controlsHelp, el, type UiShell } from './uiShell';
@@ -113,7 +113,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const saveNote = el('span', 'hint', '');
   saveRow.append(btnSave, btnLoad, saveNote);
   header.append(saveRow);
-  header.append(el('p', 'hint', campaign ? 'Explore from Home Court to the tram station. Carry materials and build local power to restore the base, then restore the radio tower. Four permanent tram stops are already on the map; power any two for automatic freight service. Build walls and supplied turrets. E repairs damaged defences; major assaults begin on Night 3, with lighter raids between.' : 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
+  header.append(el('p', 'hint', campaign ? 'Explore from Home Court to the tram station. Carry materials and build local power to restore the base, then restore the radio tower. Four permanent tram stops are already on the map; power any two for automatic freight service. Build walls and supplied turrets. E repairs damaged defences; the first major assault starts after 25–30 active minutes, with lighter raids after the opening grace.' : 'Click a Dark block next to your territory to preview it (rot, front, wake bloom) — the map claims nothing. Claiming is on foot: string poles (7) to its substation, deliver the claim\'s steel and copper there (E), then E again on the substation to Activate. Held blocks facing Dark are ammo edges (red streets); their pips go ● ▲ ✕ as the hopper empties. Interior blocks (white rim) hold a machine slot. Press ` for the debug panel (stock, line, ring order, skyline, summary) and the block coordinates.'));
   root.append(header);
   function saveGame(): void {
     try {
@@ -709,7 +709,7 @@ export function createPanel(session: Session, root: HTMLElement, hooks: PanelHoo
   const truckPanel=root.querySelector<HTMLElement>('[aria-label="Truck construction"]');
   buildUi=createBuildPanel(session,buildSec,shell,tool=>panelRef.onPick?.(tool),hooks.selectedTool,hooks.rotateTool,hooks.cancelTool,historyRow,copyPanel,libraryPanel);
   shell.register('build','Build',[buildSec],()=>{buildSec.hidden=false;});
-  shell.register('inventory','Backpack',[pocketSec],()=>{pocketSec.hidden=false;});
+  shell.register('inventory','Backpack',[pocketSec],()=>{pocketSec.hidden=false;},()=>{cancelHandcraft(session);});   // GP-PLAYTEST-FIX 4: closing the workshop releases the engineer
   shell.register('inspection','Inspection',[routingSec],()=>{routingSec.hidden=false;},()=>{if(!inspectionView.pinned){inspectionView.machineId=null;inspectionId=null;}routingSec.hidden=true;});
   if(campaign){
     inspectionUi=createInspectionPanel(session,routingSec,shell,[recipeLabel,routingHead,filterLabel,priorityLabel],{locate:hooks.locate,item:item=>{shell.open('help');guide?.openItem(item);},inventory:(x,y)=>panelRef.openPocketsAt(x,y),route:(x,y)=>panelRef.openStationRoute(x,y)});

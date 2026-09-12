@@ -23,6 +23,7 @@ import { View, debugView, hudInset } from './view';
 import { bound, shortcut } from './controls';
 import { FACTORY_TEXT } from './factoryStrings';
 import { createPanel, exportExtra } from './panel';
+import { cancelHandcraft } from './inventoryPanel';
 import { exportJson, summarise } from './telemetry';
 
 let session: Session;
@@ -54,7 +55,7 @@ const panel = createPanel(session, document.getElementById('panel')!, {
   onSelectEdge(id) { mapScene.selectEdge(id); },
   onToggleView() { toggleView(); },
   releaseInput() { worldScene.releaseInput(); },
-  cancelSelection() { return worldScene.cancelSelection(); },
+  cancelSelection() { return cancelHandcraft(session) || worldScene.cancelSelection(); },   // Escape releases a hand craft before anything else in the world
   selectedTool() { return worldScene.tool; },
   locate(x,y) { if(view.mode==='map')toggleView();worldScene.viewLocation(x,y); },
   rotateTool() { worldScene.key(shortcut('rotate')); focusWorld(); },
@@ -140,7 +141,7 @@ function describe(events: SimEvent[]): void {
       }
       // M4 (rule 8): the tile threat's rules surface as toasts — retaliation only (D5), lamps eaten, the 40-arrival count
       case 'engineer-up': panel.toast('Back on your feet at the HQ workbench — pockets intact, no other penalty', 'good'); break;
-      case 'retaliate': panel.toast(ev.cause === 'shot' ? 'A crawler turned on you: you shot it. It bites at arm\'s reach (5 HP/s) — finish it (3 rounds) or step back' : 'A crawler turned on you: you are standing in its path. Step aside, or shoot it', 'bad'); break;
+      case 'retaliate': panel.toast(ev.cause === 'shot' ? 'Enemy alerted by your shot. It can investigate the firing position; break sight and move away' : 'A crawler turned on you: you are standing in its path. Step aside, or shoot it', 'bad'); break;
       case 'lamp-eaten': panel.toast(`A crawler put out a lamp on ${at(ev.x, ev.y)}${debugView.coords ? ` (tile (${ev.tx},${ev.ty}))` : ''} — the block is darker; the next ones head for its turrets, then the substation. E on the lamp repairs it (${REPAIR_COPPER} Cu)`, 'bad'); break;
       case 'arrival': panel.toast(`${ev.shade ? 'A shade' : 'A crawler'} reached the substation on ${at(ev.x, ev.y)} unshot — ${ev.n} of ${ev.of}${ev.shade ? ' (the substation is off 30 s)' : ''}`, 'bad'); break;
       case 'bloom': {

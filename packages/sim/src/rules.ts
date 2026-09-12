@@ -5,6 +5,9 @@ export const LEGACY_RULESET = 'legacy-v1' as const;
 export const CAMPAIGN_RULESET = 'exploration-v2' as const;
 export type Ruleset = typeof LEGACY_RULESET | typeof CAMPAIGN_RULESET;
 export const CAMPAIGN_RULES = { daySeconds: 1200, daylightSeconds: 900, firstAssaultNight: 3, opening: 'culdesac-v1' } as const;
+/** GP-START-POCKETS (2026-09-11, owner request): the campaign Backpack opens with a small salvage stake so the first hand-mining session
+ *  is short — 20 of the Generator's 30 steel and 5 of its 10 copper. Home storage stays empty; no Generator, fuel or ammunition is granted. */
+export const CAMPAIGN_START_POCKETS = { steel: 20, copper: 5 } as const;
 export interface CampaignSite { block: number; x: number; y: number; size: number; delivered: { steel: number; copper: number }; restoredAt: number }
 export interface ExpansionState { surveyVersion?: 2 | 3; station: CampaignSite; radio: CampaignSite; route: number[]; stops: [number, number][]; reward: { track: number; tramstop: number; tram: number }; grantedAt: number }
 export interface CampaignState { authored?:{version:4;cleared:string[];opened:string[];visited:string[]}; progression?: import('./progression').Progression; fixedTram?: import('./fixedTram').FixedTram; navigation?: import('./navigation').Navigation; version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10; plans?: import('./blueprintPlans').BlueprintPlans; clipboard?: import('./blueprintFormat').Blueprint; knowledge?: import('./campaignGuide').CampaignKnowledge; turbine?: import('./campaignTurbine').TurbineSite; recruits?: import('./campaignRecruits').RecruitState; truck?: import('./truck').TruckState; discovery?: import('./campaignDiscovery').DiscoveryState; districts?: import('./campaignDistricts').DistrictState; defence?: import('./campaignDefence').DefenceState; opening: 'culdesac-v1'; homeBlock: number; expansion?: ExpansionState }

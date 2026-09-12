@@ -34,6 +34,11 @@ const shapes:Record<string,string>={
 shapes.iron=shapes.steel;shapes.concrete=shapes.stone;shapes.bigpole=shapes.pole;shapes.arclamp=shapes.lamp;shapes.floodlight=shapes.lamp;shapes.kit=shapes.backpack;
 shapes.foundry=shapes.assembler;shapes.refinery=shapes.assembler;shapes.assembler2=shapes.assembler;shapes.pumpjack=shapes.excavator;shapes.cannon=shapes.turret;shapes.fastbelt=shapes.belt;shapes.ironore=shapes.stone;shapes.copperore=shapes.copper;shapes.crude=shapes.coal;shapes.fuel=shapes.coal;shapes.polymer=shapes.steel;shapes.shell=shapes.magazine;
 for(const k of ['core1','core2','core3'])shapes[k]='<path fill="#76edd0" stroke="#fff" d="m32 7 20 12v26L32 57 12 45V19Z"/><path fill="#234b58" d="m32 16-9 19h9l-3 14 14-22h-11Z"/>';
-for(const k of ['artifact1','artifact2','artifact3'])shapes[k]='<path fill="#d6a4ff" stroke="#fff" d="m32 5 24 27-24 27L8 32Z"/>';
-export function iconMarkup(item:string):string{return `<svg class="item-icon" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="55" rx="24" ry="4" fill="#071417" opacity=".65"/>${shapes[item]??shapes.chest}</svg>`;}
+for(const k of ['artifact1','artifact2','artifact3','alienartifact'])shapes[k]='<path fill="#d6a4ff" stroke="#fff" d="m32 5 24 27-24 27L8 32Z"/>';
+shapes.alienworkbench=shapes.assembler;
+export function iconMarkup(item:string):string{return `<svg class="item-icon" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="55" rx="24" ry="4" fill="#071417" opacity=".65"/>${shapes[item]??shapes[item.split(':')[0]]??shapes.chest}</svg>`;}
 export function itemIcon(item:string):HTMLElement{const span=document.createElement('span');span.className='item-art';span.innerHTML=iconMarkup(item);return span;}
+
+shapes.overclock=shapes.board;
+
+shapes.double=shapes.rifle;shapes.arc=shapes.rifle;shapes.plasma=shapes.rifle;

@@ -1,3 +1,5 @@
+import {RIFLE} from './equipment';
+import {fabricationBlocker} from './fabrication';
 import {itemName} from './itemNames';
 import {conveyorDestinations} from './directConveyor';
 import {DX,DY} from './flow';
@@ -5,7 +7,7 @@ import {cityApproach} from './authoredCity';
 import {fixedPoweredStops,fixedTramStatus} from './fixedTram';
 import { routingDescription, routingStatus } from './routing';
 import { campaignDiscoveries } from './campaignGuide';
-import { campaignGrid } from './campaignPower';
+import { campaignGrid, CAMPAIGN_POWER } from './campaignPower';
 import { campaignWarning } from './campaignThreat';
 import { DEFENCE,repairCheck,defenceMax, defenceHp, coreDisabledAt } from './campaignDefence';
 /** RI-02 — the current-goal line (D-GB-2 (a), constitution rule 8's form; plan §11.2 "prominent current goal with
@@ -23,7 +25,7 @@ import { DEFENCE,repairCheck,defenceMax, defenceHp, coreDisabledAt } from './cam
 import { SimState, HELD, DARK, CONTESTED, Edge } from './types';
 import { isCampaign } from './rules';
 import {
-  chestCount, depotRect, Machine, MACHINE_COST, MACHINE_KW, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
+  chestCount, depotRect, Machine, MACHINE_COST, machineKw, SHOT, ASM_OUTPUT_CAP, throttle, rubbleAt, machineAt, accepts,
   recipeOf, recipeOutput, subPowered, poleGrid, inputTile, outputTile, findRubble, asmCanStart, costStr, Item,
   isFieldKind, fieldBlock, powered, invTotal, tramAt, tramRoute, nextOf, BELT_SPACING, inserterPickup,
 } from './flow';
@@ -32,7 +34,8 @@ import { HQ_PATCHES, P_COAL, P_COPPER, P_STEEL, RAIL_YARD_COAL } from './tiles';
 import { hqIdx } from './engineer';
 import { burnOffS, heldCount, rotOf } from './sim';
 import { claimInfo, ammoStatus, edgeCap } from './queries';
-import { COAL_MJ, GENERATOR_KW, TURRET_HOPPER } from './recipes';
+import { COAL_MJ, GENERATOR_KW, TURRET_HOPPER, TURRET_RANGE, TURRET_KW } from './recipes';
+import { openingEncounter, liveTurrets, turretCapacity, turretSupplier, supplyChainReaches, OPENING_ENCOUNTER } from './openingEncounter';
 import { EXCAVATOR_PER_S } from './constants';
 import { HOUR_MINE_STEEL, HOUR_CRAFT_MAGS, HOUR_END } from './hour';
 import { blockName, hqNeighbourToward, streetName } from './names';
@@ -62,8 +65,13 @@ export interface GoalLine {
   /** The block the line is about (a claim, a street), for the map's marker; absent when it is about the HQ lot. */
   block?: number;
 }
+export function turretRecommendation(st:SimState){
+ const count=machines(st).filter(m=>m.kind==='turret'&&defenceHp(m)>0).length,more=Math.max(0,3-count),word=['no','one','two','three'][more];
+ return {count,complete:count>=3,text:`Larger attacks can approach from any direction. Build ${word} more turret${more===1?'':'s'} and spread your defences around the base. Enemies can attack from any direction, so cover different approaches.`,detail:'Three is a starting recommendation, not guaranteed protection. Keep turrets supplied, cover different approaches and support them with your Rifle. Existing turrets count; disabled turrets need repair.'};
+}
 export interface NextAction {
   id: string; title: string; text: string; detail: string;
+  resources?: {item:string;available:number;required:number}[];
   location?: {x:number;y:number}; shortage?: {item:'steel'|'copper';count:number;home:number}[];
 }
 export interface Goal { goal: GoalLine; support: GoalLine | null; next?: NextAction }
@@ -82,10 +90,10 @@ function campaignNext(st:SimState, tracked?:string|null):NextAction {
     if(plant)return {id:plant.id,title:'Choose a regional plant',text:'Deliver preparation materials and install your carried core',detail:'Any compatible uncommissioned plant accepts your core. Inspect its material requirements before activation.',location:cityApproach(st,plant.x,plant.y)};
   }
   const all=machines(st), production=all.filter(m=>['excavator','pumpjack','assembler','assembler2','mixer','foundry','refinery'].includes(m.kind));
-  const cost=(kind:import('./flow').Kind)=>costStr(MACHINE_COST[kind]);
+  const resources=(price:Readonly<Record<string,number>>)=>Object.entries(price).filter(([,n])=>n>0).map(([item,required])=>({item,required,available:Math.floor(e.inv[item]??0)}));
   const buildStep=(kind:import('./flow').Kind,title:string,instruction:string):NextAction=>{
     const price=MACHINE_COST[kind],packed=(e.inv[kind]??0)>=1,shortage=(['steel','copper'] as const).map(item=>({item,count:packed?0:Math.max(0,price[item]-(e.inv[item]??0)),home:chestCount(st,item)})).filter(s=>s.count>0);
-    return {id:'opening-workshop',title,text:`${instruction} · ${packed?'1 packed machine ready':cost(kind)}`,detail:`${shortage.length?'Still need '+shortage.map(s=>`${s.count} ${itemName(s.item)} (${Math.min(s.count,s.home)} available at Home)`).join(' + ')+'. Hold left-click on salvage to gather, or collect stored supplies.':'Materials ready in Backpack. Open Build to place it.'} Opening order: 1 Generator → 1 Excavator → 1 Supply chest → Belts into the chest.`,location,shortage};
+    return {id:'opening-workshop',title,text:instruction,resources:resources(packed?{[kind]:1}:price),detail:`${shortage.length?'Still need '+shortage.map(s=>`${s.count} ${itemName(s.item)} (${Math.min(s.count,s.home)} available at Home)`).join(' + ')+'. Hold left-click on salvage to gather, or collect stored supplies.':'Materials ready in Backpack. Open Build to place it.'} Opening order: 1 Generator → 1 Excavator → 1 Supply chest → Belts into the chest.`,location,shortage};
   };
   const gen=all.find(m=>m.kind==='generator');
   if(!gen)return buildStep('generator','1 · Build a Generator','Place 1 Generator in Founders Court');
@@ -95,31 +103,59 @@ function campaignNext(st:SimState, tracked?:string|null):NextAction {
   if(!stores.length)return buildStep('chest','3 · Build storage','Place 1 Supply chest near the Excavator');
   const destinations=conveyorDestinations(st);
   const receiversOf=(source:Machine)=>[...new Map(all.filter(b=>machineAt(st,b.x-DX[b.dir],b.y-DY[b.dir])?.id===source.id).flatMap(b=>destinations.get(b.id)??[]).map(m=>[m.id,m])).values()];
-  if(!receiversOf(excavator).some(m=>m.kind==='chest'))return {id:'opening-workshop',title:'4 · Connect belts to storage',text:`Connect Excavator → Supply chest · ${cost('belt')} per Belt`,detail:'Use at least 1 Belt; the total depends on the gap. Point its arrow away from the Excavator and into the chest. R rotates. Clear salvage along the route; inserters are not needed.',location:{x:excavator.x,y:excavator.y}};
-  if((gen.inv.coal??0)+(gen.inv.fuel??0)<=0)return {id:'opening-workshop',title:'Fuel your Generator',text:'Gather at least 1 Coal, then open the Generator inventory',detail:'Select Coal in your Backpack, enter the quantity and Load. One Coal starts generation; keep a reserve or connect a fuel supply. The Generator inventory shows remaining fuel.',location:{x:gen.x,y:gen.y}};
+  if(!receiversOf(excavator).some(m=>m.kind==='chest'))return {id:'opening-workshop',title:'4 · Connect belts to storage',text:'Connect Excavator → Supply chest (resources per Belt)',resources:resources((e.inv.belt??0)>0?{belt:1}:MACHINE_COST.belt),detail:'Use at least 1 Belt; the total depends on the gap. Point its arrow away from the Excavator and into the chest. R rotates. Clear salvage along the route; inserters are not needed.',location:{x:excavator.x,y:excavator.y}};
+  if((gen.inv.coal??0)+(gen.inv.fuel??0)<=0)return {id:'opening-workshop',title:'Fuel your Generator',text:'Gather Coal, then open the Generator inventory',resources:resources({coal:1}),detail:'Select Coal in your Backpack, enter the quantity and Load. One Coal starts generation; keep a reserve or connect a fuel supply. The Generator inventory shows remaining fuel.',location:{x:gen.x,y:gen.y}};
+  if(!powered(st,excavator))return {id:'opening-power',title:'Connect your extraction power',text:'Place Poles between your Generator and Excavator',resources:resources((e.inv.pole??0)>0?{pole:1}:MACHINE_COST.pole),detail:'Poles connect by visible cables within 8 tiles (Big poles: 12). Machines must be within coverage of a connected Pole or Substation. Belts need no power. Inspect the Excavator for its own network supply.',location:{x:excavator.x,y:excavator.y}};
   const excavatorStatus=machineStatus(st,excavator);
   if(excavatorStatus.state!=='running'&&!excavator.hold)return {id:'opening-workshop',title:'Start your extraction line',text:excavatorStatus.reason,detail:'Inspect the Excavator to check its resource, power and output connection.',location:{x:excavator.x,y:excavator.y}};
-  const turret=all.find(m=>m.kind==='turret');
-  if(!turret)return buildStep('turret','5 · Build your first turret','Place 1 Turret to defend the approach to Home');
-  if((turret.inv.rounds??0)<=0){
-    if((e.inv.magazine??0)<1)return {id:'opening-workshop',title:'6 · Make turret ammunition',text:`Open Home workshop → Craft Shot magazine · ${SHOT.inputs.steel} Steel plates + ${SHOT.inputs.copper} Copper`,detail:`Make at least 1 magazine (${SHOT.count} rounds, ${SHOT.seconds} seconds). Crafting is at the top of Home storage / Backpack when near Home. Stay nearby until it finishes; the magazine appears in your Backpack.`,location};
-    return {id:'opening-workshop',title:'7 · Load your turret',text:`Open the Turret inventory and load at least 1 Shot magazine (${SHOT.count} rounds)`,detail:'Select Shot magazines on the left, choose a quantity, then Load. Check rounds on the right. Belts can keep the turret supplied later.',location:{x:turret.x,y:turret.y}};
+  // GP-POWER-FIX (2026-09-11): the Home core and streetlights draw from the block substation; the opening now asks for that cable.
+  const homeSub=ground(st).blocks[st.campaign!.homeBlock]?.sub;
+  if(homeSub&&campaignGrid(st).blocks[st.campaign!.homeBlock].supply<=0)return {id:'opening-power',title:'Connect Founders Court’s substation',text:'Chain Poles from your network to the Founders Court substation',resources:resources((e.inv.pole??0)>0?{pole:1}:MACHINE_COST.pole),detail:`The Home core draws ${CAMPAIGN_POWER.coreKw} kW and the streetlights run from the block substation, marked here. Poles link within 8 tiles of another Pole, a Generator or the substation footprint; a cable appears once linked and the placement preview shows purple lines to everything in reach. Until it is connected the base has no power.`,location:{x:homeSub.x+homeSub.size/2,y:homeSub.y+homeSub.size/2}};
+  // GP-OPENING (2026-09-11): Rifle → ammunition → one prepared turret → introductory attack → automated resupply →
+  // three turrets → the first nearby exploration objective. Every branch is read from saved facts (rule 8).
+  if(e.equipment&&!Object.keys(e.equipment.weapons).length)return {id:'opening-rifle',title:'Prepare your expedition Rifle',text:`Craft a Rifle at Home workshop · ${RIFLE.seconds} s`,resources:resources({steel:RIFLE.steel,copper:RIFLE.copper}),detail:'Craft Rifle using carried supplies, select it in your Backpack, Equip in slot 1, then select weapon tool 9. Keep bullets for the expedition as well as turret defence.',location};
+  if(e.equipment&&!e.equipment.slots.some(Boolean))return {id:'opening-equip',title:'Equip your crafted Rifle',text:'Open Backpack, select Rifle, then Equip in slot 1',detail:'Equipment slots are separate from construction shortcuts. Loaded rounds and cooldown stay with each weapon.',location};
+  const opening=openingEncounter(st),turrets=liveTurrets(st),status=opening?.status??'skipped';
+  const loadedText=(m:Machine)=>`Loaded ${Math.floor(m.inv.rounds??0)} / ${turretCapacity(m)} bullets`;
+  const firstTurret=turrets.find(m=>(m.inv.rounds??0)>0)??turrets[0];
+  if(status==='pending'){
+    if(!firstTurret&&(e.inv.magazine??0)<1)return {id:'opening-workshop',title:'Make turret ammunition',text:'Open Home Workshop → Craft 10 bullets',resources:resources(SHOT.inputs),detail:`Make 10 bullets (${SHOT.seconds} seconds). Crafting is at the top of Home storage / Backpack when near Home. Stay nearby until it finishes; the bullets appear in your Backpack. A turret holds ${TURRET_HOPPER}, so keep crafting while you gather.`,location};
+    if(!firstTurret){const step=buildStep('turret','Prepare your first turret','Prepare your first turret. Build it near your base and fill it with ammunition.');return {...step,detail:`Turrets draw ${TURRET_KW} kW: place it within coverage of a connected Pole. While placing, the ring shows the ${TURRET_RANGE}-tile firing coverage; cover the open ground attackers must cross to reach the Home core. Once it is fully loaded, a small enemy group will test it. ${step.detail}`};}
+    if(!powered(st,firstTurret))return {id:'opening-power',title:'Connect your turret power',text:'Place Poles so your turret sits within coverage of your powered network',resources:resources((e.inv.pole??0)>0?{pole:1}:MACHINE_COST.pole),detail:`Turrets draw ${TURRET_KW} kW and hold fire without power. ${machineStatus(st,firstTurret).reason}. Poles connect by visible cables within 8 tiles; the Generator must have fuel. Once it is powered and fully loaded, a small enemy group will test it.`,location:{x:firstTurret.x+firstTurret.size/2,y:firstTurret.y+firstTurret.size/2}};
+    const carried=Math.floor(e.inv.magazine??0),missing=Math.max(0,turretCapacity(firstTurret)-Math.floor(firstTurret.inv.rounds??0));
+    return {id:'opening-workshop',title:'Prepare your first turret',text:'Prepare your first turret. Build it near your base and fill it with ammunition.',resources:[{item:'magazine',required:missing,available:carried}],detail:`${loadedText(firstTurret)} · ${missing} more to fill${carried<missing?` · craft ${missing-carried} more bullets at Home Workshop (10 per craft)`:''}. It is powered (${TURRET_KW} kW). Open the turret inventory, select bullets, choose a quantity and Load (1 item = 1 bullet); belts can fill it later. Once it is fully loaded, a small enemy group will test it.`,location:{x:firstTurret.x+firstTurret.size/2,y:firstTurret.y+firstTurret.size/2}};
   }
-  const ammo=production.find(m=>['assembler','assembler2'].includes(m.kind)&&recipeOutput(recipeOf(m))==='magazine');
-  if(!ammo)return {id:'opening-ammo',title:'Supply your defence',text:`Build 1 Assembler · ${cost('assembler')} · choose Shot magazines`,detail:'A loaded turret eventually runs dry. Supply Steel plates and Copper to an Assembler, then point an output conveyor towards storage or a turret. You can scout whenever you choose.',location};
-  const ammoStatus=machineStatus(st,ammo),ammoLocation={x:ammo.x+ammo.size/2,y:ammo.y+ammo.size/2};
-  if(ammoStatus.state!=='running'&&ammo.out===0)return {id:'opening-ammo',title:'Keep ammunition producing',text:ammoStatus.reason,detail:'Inspect your magazine Assembler for its current input, power or output shortage. A loaded turret is only a reserve.',location:ammoLocation};
-  const receivers=receiversOf(ammo).filter(m=>['turret','chest','tramstop','depot'].includes(m.kind)),connected=receivers.length>0;
-  if(!connected)return {id:'opening-ammo',title:'Deliver useful ammunition',text:'Connect the Assembler output to storage or a turret',detail:'Point a conveyor away from the Assembler and into the receiver. Belts transfer finished magazines directly; keep Steel plates, Copper and generator fuel supplied.',location:ammoLocation};
-  if((ammo.observation?.produced.magazine??ammo.out)<=0)return {id:'opening-ammo',title:'Watch the first magazine arrive',text:'Output route connected; waiting for machine production',detail:'Follow the magazine along the belt. A connection alone does not mean the turret has ammunition.',location:ammoLocation};
-  if(receivers.every(m=>m.kind==='turret'?(m.inv.rounds??0)<=0:m.kind==='depot'?chestCount(st,'magazine')<=0:(m.inv.magazine??0)+(m.cargo?.magazine??0)<=0))return {id:'opening-ammo',title:'Check ammunition delivery',text:'Magazines produced; the connected receiver is empty',detail:'Follow the output belt and inspect its receiver. Keep materials and fuel supplied; a route alone does not mean ammunition has arrived.',location:ammoLocation};
-  if((e.inv.magazine??0)<2&&!st.campaign?.progression?.sites.some(s=>s.recovered))return {id:'opening-workshop',title:'Prepare to scout',text:'Carry spare Shot magazines for your rifle',detail:'Your connected Assembler has produced magazines. Check the receiving turret and fuel before leaving; the reserve is finite. Build supplies and defence, recover a core, then restore a plant for local power and another site to defend.',location};
+  const guarded=opening?.turret&&defenceHp(opening.turret)>0?opening.turret:firstTurret;
+  const turretLocation=guarded?{x:guarded.x+guarded.size/2,y:guarded.y+guarded.size/2}:location;
+  if(status==='scheduled'&&opening)return {id:'opening-attack',title:'Small enemy group approaching',text:`Small enemy group approaching from the ${opening.direction}. Stay near your turret and help defend.`,detail:`Arrives in ${opening.secondsLeft} s · about ${opening.count} basic enemies from the ${opening.direction} marker. Your turret fires automatically within ${TURRET_RANGE} tiles${guarded?` · ${loadedText(guarded)}`:''}; use your Rifle on anything that gets past it.`,location:opening.origin??turretLocation};
+  if(status==='active'&&opening)return {id:'opening-attack',title:'Defend your turret',text:`Small enemy group attacking from the ${opening.direction}. Stay near your turret and help defend.`,detail:`${guarded?loadedText(guarded)+' · ':''}${opening.shots} bullets fired so far. Reload by hand if it runs dry; the group withdraws once beaten or after ${OPENING_ENCOUNTER.maxDuration/60} minutes.`,location:turretLocation};
+  if((status==='repelled'||status==='lost')&&opening&&opening.endedAt!==undefined&&st.t<opening.endedAt+OPENING_ENCOUNTER.ack)return {id:'opening-attack',title:status==='repelled'?'Attack repelled':'Attack over',text:`${status==='repelled'?'Attack repelled. ':''}Your turret used ${opening.shots} bullets. Connect ammunition production to keep it supplied.`,detail:`${guarded?loadedText(guarded)+'. ':''}Each bullet is one ammunition item. An Assembler set to Shot magazines, with a belt into the turret, keeps it filled without hand loading.`,location:turretLocation};
+  // Automate replenishment: complete only when a produced magazine has actually arrived through a connected route.
+  const supplied=opening?.suppliedAt!==undefined||(!opening&&turrets.some(m=>(m.inv.rounds??0)>0&&turretSupplier(st,m)));
+  if(!supplied){
+    if(!turrets.length){const step=buildStep('turret',status==='lost'?'Rebuild your turret':'Prepare your first turret','Build a turret near your base and load it with ammunition');return {...step,detail:`${status==='lost'?'The attack disabled your defence. ':''}Turrets draw ${TURRET_KW} kW within Pole coverage; the placement ring shows the ${TURRET_RANGE}-tile coverage. ${step.detail}`};}
+    const ammo=production.find(m=>['assembler','assembler2'].includes(m.kind)&&recipeOutput(recipeOf(m))==='magazine');
+    if(!ammo)return {id:'opening-ammo',title:'Automate your turret’s ammunition supply',text:'Build 1 Assembler and set it to Shot magazines',resources:resources((e.inv.assembler??0)>0?{assembler:1}:MACHINE_COST.assembler),detail:`A loaded turret runs dry. Feed Steel plates and Copper to a powered Assembler, then run a belt from its output into the turret (or into a chest with an inserter onward). ${SHOT.inputs.steel} Steel + ${SHOT.inputs.copper} Copper make 10 bullets.`,location:turretLocation};
+    const ammoStatus=machineStatus(st,ammo),ammoLocation={x:ammo.x+ammo.size/2,y:ammo.y+ammo.size/2};
+    if(ammoStatus.state!=='running'&&ammo.out===0)return {id:'opening-ammo',title:'Automate your turret’s ammunition supply',text:ammoStatus.reason,detail:'Inspect your magazine Assembler for its current input, power or output shortage. A loaded turret is only a reserve.',location:ammoLocation};
+    const receivers=receiversOf(ammo).filter(m=>['turret','chest','tramstop','depot'].includes(m.kind));
+    if(!turrets.some(t=>supplyChainReaches(st,ammo,t)))return {id:'opening-ammo',title:'Automate your turret’s ammunition supply',text:receivers.length?'Extend the route from the Assembler output to a turret':'Connect the Assembler output to your turret',detail:'Point a belt away from the Assembler and into the turret; storage in between needs an inserter onward. A route that ends elsewhere does not supply the turret.',location:ammoLocation};
+    if((ammo.observation?.produced.magazine??ammo.out)<=0)return {id:'opening-ammo',title:'Automate your turret’s ammunition supply',text:'Route connected; waiting for the Assembler to produce',detail:'Follow the first magazine along the belt. A connection alone does not mean the turret has ammunition.',location:ammoLocation};
+    return {id:'opening-ammo',title:'Automate your turret’s ammunition supply',text:'Magazines produced; waiting for the first one to reach the turret',detail:'The objective completes when a produced magazine enters the turret through the belt. Keep Steel plates, Copper and generator fuel supplied.',location:ammoLocation};
+  }
+  if(opening?.suppliedAt!==undefined&&st.t<opening.suppliedAt+OPENING_ENCOUNTER.supplyAck)return {id:'opening-ammo',title:'Automatic resupply working',text:'Automatic resupply working. Your production line is replenishing the turret.',detail:'Bullets now arrive without hand loading. Watch the Assembler’s Steel, Copper and power; the reserve is only as deep as its inputs.',location:turretLocation};
+  const recommendation=turretRecommendation(st);
+  if(!recommendation.complete){const step=buildStep('turret',`Expand your defences (${recommendation.count}/3)`,recommendation.text);return {...step,detail:recommendation.detail+' Materials below are for the next turret. '+step.detail};}
+  const empty=turrets.find(m=>(m.inv.rounds??0)<=0);
+  if(empty)return {id:'opening-workshop',title:'Load your new turret',text:'Load bullets into the empty turret or extend your ammunition belt to it',detail:`${loadedText(empty)}. A turret without ammunition covers nothing. Belts, inserters or hand loading all work.`,location:{x:empty.x+empty.size/2,y:empty.y+empty.size/2}};
+  if((e.inv.magazine??0)<8&&!st.campaign?.progression?.sites.some(s=>s.recovered))return {id:'opening-workshop',title:'Prepare to scout',text:'Carry at least eight bullets for the first camp',detail:'Your turrets are supplied and your Rifle is ready. Check turret ammunition and generator fuel before leaving; the reserve is finite. The nearest freight camp is a short trip from Home.',location};
   const ex=st.campaign?.expansion;
   if(ex&&ex.radio.restoredAt>=0){
     const linked=st.campaign?.fixedTram?fixedPoweredStops(st).length>=2:ex.route.every(t=>machineAt(st,t%st.flow!.tw,Math.floor(t/st.flow!.tw))?.kind==='track')&&ex.stops.every(([x,y])=>{const m=machineAt(st,x,y);return m?.kind==='tramstop'&&powered(st,m);})&&machines(st).some(m=>m.kind==='tram'&&tramRoute(st,m).includes(ex.route[0]));
     if(!linked)return {id:'station',title:'Power your tram stops',text:'Power at least two permanent stops',detail:st.campaign?.fixedTram?fixedTramStatus(st):'Connect and power the existing route.',location:{x:ex.station.x,y:ex.station.y}};
   }
   const sites=campaignDiscoveries(st),progression=st.campaign?.progression;
+  if(progression?.gameplay?.region&&!progression.gameplay.strongholds.freight.opened){const g=progression.gameplay,id=g.strongholds.freight.keys.length<3?['freight:camp:1','freight:camp:2','freight:camp:3'].find(id=>!g.claimed.includes(id))!:'freight',info=sites.find(s=>s.id===`gp:${id}`)!;return {id:info.id,title:info.title,text:info.status,detail:info.detail,location:{x:info.x,y:info.y}};}
   if(progression){
     const carryingCore=['core1','core2','core3'].some(k=>(e.inv[k]??0)>0);
     const target=progression.sites.find(s=>carryingCore?s.kind==='plant'&&!s.installed:s.kind==='core'&&!s.recovered);
@@ -190,7 +226,7 @@ export function coalOnHand(st: SimState): number {
 }
 /** Coal the grid burns a minute at the last block tick's load (4 MJ a coal, §11). */
 export const coalBurnPerMin = (st: SimState): number => st.flow ? st.flow.power.load / (COAL_MJ * 1000) * 60 : 0;
-const chestMags = (st: SimState): number => Math.floor(st.buffer / SHOT.count);
+const chestMags = (st: SimState): number => Math.floor(st.buffer / (st.flow?.ammoVersion===1?1:SHOT.count))+(st.flow?.ammoRecovery??0);
 const n = (v: number): string => String(Math.floor(v + 1e-9));
 const mins = (s: number): string => `${Math.floor(s / 60)} min`;
 const cu = (c: { steel: number; copper: number }): string => costStr(c);
@@ -315,7 +351,7 @@ function supportOf(st: SimState): GoalLine | null {
 export function currentGoal(st: SimState, tracked?:string|null): Goal {
   if (isCampaign(st)) {
     const next=campaignNext(st,tracked);
-    return {next,goal:{id:next.id==='opening-workshop'?'home-factory':next.id==='recovery'?'down':'home-explore',text:next.title,why:next.text},support:{id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before dusk.'}};
+    return {next,goal:{id:next.id==='opening-workshop'?'home-factory':next.id==='recovery'?'down':'home-explore',text:next.title,why:next.text},support:{id:'campaign-threat',text:campaignWarning(st),why:'Prepare ammunition and repair defences before the announced assault start.'}};
   }
   return { goal: goalOf(st), support: supportOf(st) };
 }
@@ -330,7 +366,7 @@ export function machineStatus(st: SimState, m: Machine): MachineStatus {
   const bi = blockOfTile(st, m.x, m.y), b = bi >= 0 ? st.blocks[bi] : null;
   const field = bi >= 0 && isFieldKind(m.kind) && fieldBlock(st, bi);   // RI-03: the field kit runs on the claim front
   if (!b || (!isCampaign(st) && b.state !== HELD && !field)) return { state: 'off', reason: 'block not Held' };
-  if (MACHINE_KW[m.kind] > 0 && !powered(st, m)) return { state: 'off', reason: field ? 'no connected pole in reach' : 'no power' };
+  if (machineKw(st, m) > 0 && !powered(st, m)) return { state: 'off', reason: isCampaign(st)?campaignGrid(st).machines.has(m.id)?'Connected network has no active supply':'Connect a Pole within 8 tiles to a fuelled Generator':field ? 'no connected pole in reach' : 'no power' };
   return machineOperationStatus(st,m);
 }
 /** Operating predicates without the independent location/power gate; shared by multi-constraint inspection. */
@@ -353,7 +389,8 @@ export function machineOperationStatus(st:SimState,m:Machine):MachineStatus {
       const r = findRubble(st, m);
       return r ? { state: 'running', reason: `digging ${itemName(r.type)}` } : { state: 'starved', reason: 'nothing in reach' };
     }
-    case 'mixer': case 'foundry': case 'refinery': case 'assembler2': case 'assembler': {
+    case 'mixer': case 'alienworkbench': case 'foundry': case 'refinery': case 'assembler2': case 'assembler': {
+      if(m.kind==='alienworkbench'){if(m.decode)return {state:'running',reason:`decoding ${Math.ceil(m.decode.progress)}/15 s`};const why=fabricationBlocker(st);if(why)return {state:'blocked',reason:why};}
       if (m.busy) return { state: 'running', reason: `making ${itemName(recipeOutput(recipeOf(m)))}` };
       if (m.out >= ASM_OUTPUT_CAP) return { state: 'blocked', reason: 'output full' };
       if (!asmCanStart(m)) {
@@ -384,11 +421,11 @@ export function machineOperationStatus(st:SimState,m:Machine):MachineStatus {
     }
     case 'arclamp': case 'lamp': case 'floodlight': return { state: 'running', reason: 'lit' };
     case 'pole': case 'bigpole': {
-      if(isCampaign(st))return (campaignGrid(st).poles.get(m.id)?.supply??0)>0?{state:'running',reason:'connected to a supplied circuit'}:{state:'off',reason:'no connected supply'};
+      if(isCampaign(st)){const c=campaignGrid(st).poles.get(m.id);return (c?.supply??0)>0?{state:'running',reason:'connected to a supplied circuit'}:(c?.rated??0)>0?{state:'off',reason:'connected · its Generator has no fuel'}:{state:'off',reason:'no Generator or supplied Pole within reach'};}
       return poleGrid(st).connected.has(m.id)?{state:'running',reason:'on the grid'}:{state:'idle',reason:'not connected'};
     }
     case 'substation': return (isCampaign(st)?campaignGrid(st).blocks[bi].throttle>0:!!b&&subPowered(st, b)) ? { state: 'running', reason: 'on' } : { state: 'off', reason: 'no circuit supply' };
-    case 'depot': return { state: 'idle', reason: `${chestMags(st)} magazines in the line buffer` };
+    case 'depot': return { state: 'idle', reason: `${chestMags(st)} ammunition items at Home` };
     // RI-05
     case 'chest': { const n = invTotal(m.inv); return n > 0 ? { state: 'idle', reason: `${n} item${n === 1 ? '' : 's'}` } : { state: 'idle', reason: 'empty' }; }
     case 'track': return { state: 'idle', reason: tramAt(st, m.x, m.y) ? 'a tram on it' : 'rail' };

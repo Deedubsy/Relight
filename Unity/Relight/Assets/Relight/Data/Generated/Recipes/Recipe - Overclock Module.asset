@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62f540f86e8b09f4797ca67d9bc9a424, type: 3}
+  m_Name: Recipe - Overclock Module
+  m_EditorClassIdentifier: Relight.Data::Relight.Data.RecipeDefinition
+  key: overclock-module
+  displayName: Overclock Module
+  kind: 0
+  source: packages/sim/src/flow.ts:183
+  provisional: 0
+  generatedFingerprint: 2ac62b4aed01b511cb3f20290486386776d3d7a1
+  inputs:
+  - item: 1
+    count: 2
+  - item: 16
+    count: 4
+  - item: 17
+    count: 2
+  - item: 18
+    count: 1
+  outputs:
+  - item: 0
+    count: 1
+  seconds: 20
+  station: Alien workbench
+  outputKey: 

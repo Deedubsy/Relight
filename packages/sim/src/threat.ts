@@ -1,3 +1,7 @@
+import {aimTurret,turretFireRate,TURRET_MUZZLE,TURRET_SHOT_FLASH} from './turretTracking';
+import {SHOT_TRACE_S} from './playerBallistics';
+import {firePlayerWeapon,tickPlayerProjectiles} from './playerBallistics';
+import {rememberShot} from './hostileAwareness';
 import {citySight} from './ground';
 /** Prompt B M4 — threat, and the rifle, at tile level (run name B-M4-threat).
  *
@@ -46,6 +50,7 @@ import { hurt, threatHooks, RETALIATE_HP_PER_S, RIFLE_RANGE, RIFLE_HIT_RADIUS, r
 import { ENEMIES } from './enemies';
 import { TURRET_RANGE, TURRET_ROUNDS_PER_S } from './recipes';
 import { FlowState, faceSub, blockLights, litAt, TURRET_FLASH_S, machineRunning } from './flow';
+import { machineThrottle } from './campaignPower';
 
 export const ROUND_DMG = TURRET.roundDmg;   // constants.ts (§7: 4 HP a round)
 export const CONTACT_R = 1.2, DANGER_R = 3, PATH_R = 0.9, EAT_R = 1.6, STUCK_S = 30;
@@ -55,6 +60,8 @@ const HP: Record<Crawler['kind'], number> = { crawler: ENEMIES[0].hp, shade: ENE
 /** Target class along the chain: 0 the nearest lit lamp, 1 a turret, 2 the substation. */
 export type Cls = 0 | 1 | 2;
 export interface Crawler {
+  gp?: import('./gameplayCombat').CombatActor;
+  lastKnown?: {x:number;y:number;until:number};
   role?: 'breaker'|'conductor'; signal?:number;
   id: number; kind: 'crawler' | 'shade';
   x: number; y: number;      // tile space, centre of the body
@@ -82,6 +89,11 @@ export interface ThreatStats {
   lampsEaten: number; turned: number; contactS: number; lost: number;
 }
 export interface ThreatState {
+  playerProjectiles?: import('./playerBallistics').PlayerProjectile[];
+  /** GP-PLAYTEST-FIX 2: the last half second of resolved player shots (hitscan traces and plasma impacts), for the
+   *  renderer's tracers only — damage is applied once, where the shot was resolved. */
+  playerShots?: import('./playerBallistics').PlayerShot[];
+  projectiles?: import('./gameplayCombat').SpitProjectile[];
   next: number;
   crawlers: Crawler[];
   /** Fractional arrivals per edge id waiting to become whole crawlers / shades. */
@@ -297,9 +309,34 @@ function tick(st: SimState, dt: number): void {
 }
 function tickWeapons(st:SimState,dt:number):void {
   const f=st.flow!,T=threatOf(f),G=ground(st),tw=G.tw,e=st.engineer,engUp=e.down<0;
-  // the turrets: 5 rounds/s each at the nearest crawler within 9 tiles, shades only where the tile is lit
+  if(T.playerShots){T.playerShots=T.playerShots.filter(s=>st.t-s.t<=SHOT_TRACE_S);if(!T.playerShots.length)delete T.playerShots;}
+  tickPlayerProjectiles(st,T,dt,(c,n,origin)=>hit(st,T,e,c,n,origin));
+  // Campaign cannons retain a target while eligible and rotate before spending a bullet.
   for (const m of f.machines) {
     if (m.kind !== 'turret') continue;
+    if(st.campaign){
+      const a=m.turret??={angle:(m.dir-1)*Math.PI/2},cx=m.x+m.size/2,cy=m.y+m.size/2;
+      // Owner direction (2026-09-11): a turret is a powered machine. Its cooldown recovers at the circuit throttle
+      // (D-B3-4), so a brownout slows its fire and a disconnected or unsupplied turret holds fire below.
+      m.cool=Math.max(-dt,(m.cool??0)-dt*machineThrottle(st,m));
+      const eligible=(c:Target)=>Math.hypot(c.x-cx,c.y-cy)<=TURRET_RANGE&&citySight(st,cx,cy,c.x,c.y)&&(c.kind!=='shade'||litAt(st,Math.floor(c.x),Math.floor(c.y)));
+      if(!machineRunning(st,m)){delete a.target;m.cool=0;continue;}
+      let c:Target|undefined=[...T.crawlers,...stalkersOf(st)].find(c=>c.id===a.target&&eligible(c));
+      c??=nearest(st,T,cx,cy,TURRET_RANGE)??undefined;
+      if(!c){delete a.target;m.cool=0;continue;}
+      a.target=c.id;
+      // Keep the muzzle on its actual shot while its brief flash is visible.
+      if(m.timer>0)continue;
+      const aligned=aimTurret(m,c.x,c.y,dt);
+      if(!aligned){m.cool=Math.max(0,m.cool);continue;}
+      const mx=cx+Math.cos(a.angle)*TURRET_MUZZLE,my=cy+Math.sin(a.angle)*TURRET_MUZZLE;
+      if(m.cool>1e-9||(m.inv.rounds??0)<1||!citySight(st,mx,my,c.x,c.y))continue;
+      m.inv.rounds-=1;m.out++;m.timer=TURRET_SHOT_FLASH;f.stats.fired++;m.cool+=1/turretFireRate(st);
+      const opening=st.campaign?.defence?.opening;if(opening?.status==='active')opening.shots++;   // GP-OPENING: real shots, never a stock difference
+      a.shot={x:c.x,y:c.y,angle:a.angle,t:st.t};
+      if(damage(st,T,c)&&c.kind!=='stalker')T.stats.turretKills++;
+      continue;
+    }
     let cd = (m.cool ?? 0) - dt;
     if (cd < -1) cd = -1;
     const cx = m.x + m.size / 2, cy = m.y + m.size / 2;
@@ -343,9 +380,9 @@ function nearest(st: SimState, T: ThreatState, x: number, y: number, r: number, 
   return best;
 }
 /** ROUND_DMG off a body; true when it died (a crawler leaves the list here, a Stalker through its own layer). */
-function damage(st: SimState, T: ThreatState, c: Target): boolean {
-  if (c.kind === 'stalker') return damageStalker(st, stalkerLayer(st)!, c, ROUND_DMG);
-  c.hp -= ROUND_DMG;
+function damage(st: SimState, T: ThreatState, c: Target, amount = st.campaign?.progression?.gameplay ? 10 : ROUND_DMG): boolean {
+  if (c.kind === 'stalker') return damageStalker(st, stalkerLayer(st)!, c, amount);
+  c.hp -= amount;
   if (c.hp > 0) return false;
   const i = T.crawlers.indexOf(c); if (i >= 0) T.crawlers.splice(i, 1);
   return true;
@@ -414,20 +451,22 @@ function fightFor(T: ThreatState, st: SimState, edge: number): Fight {
   T.fights.push(fg);
   return fg;
 }
-function hit(st: SimState, T: ThreatState, e: Engineer, c: Target): void {
+function hit(st: SimState, T: ThreatState, e: Engineer, c: Target, amount?:number, origin:[number,number]=[e.x,e.y]): void {
+  if(c.kind!=='stalker'&&st.campaign){turn(st,T,c,'shot');rememberShot(st,T,c,origin);}
   T.shotAt = st.t;
-  if (c.kind === 'stalker') { if (damage(st, T, c)) e.kills++; return; }   // RI-04: no engagement, no retaliation — it is already on you
-  if (c.edge < 0) { turn(st, T, c, 'shot'); if (damage(st, T, c)) { e.kills++; T.stats.rifleKills++; } return; }   // RI-06: a packet body has no edge engagement to charge
+  if (c.kind === 'stalker') { if (damage(st, T, c, amount)) e.kills++; return; }   // RI-04: no engagement, no retaliation — it is already on you
+  if (c.edge < 0) { turn(st, T, c, 'shot'); if (damage(st, T, c, amount)) { e.kills++; T.stats.rifleKills++; } return; }   // RI-06: a packet body has no edge engagement to charge
   const fg = fightFor(T, st, c.edge);
   fg.rounds++;
   turn(st, T, c, 'shot');
-  if (damage(st, T, c)) { fg.kills++; e.kills++; T.stats.rifleKills++; }
+  if (damage(st, T, c, amount)) { fg.kills++; e.kills++; T.stats.rifleKills++; }
 }
 /** An aimed round from (e.x, e.y) toward (ax, ay): the nearest crawler along the line within RIFLE_RANGE and
  *  RIFLE_HIT_RADIUS takes ROUND_DMG; a shade only on a lit tile. A miss is charged to the nearest engaged edge. */
 function fire(st: SimState, e: Engineer, ax: number, ay: number): boolean {
   if (!threatActive(st)) return false;
   const T = threatOf(st.flow!);
+  if(st.engineer.equipment){T.shotAt=st.t;firePlayerWeapon(st,T,ax,ay,(c,n,origin)=>hit(st,T,e,c,n,origin));return true;}
   // Campaign activity cues include a paid missed round, not just a hit.
   if (isCampaign(st)) T.shotAt = st.t;
   const dx = ax - e.x, dy = ay - e.y, L = Math.hypot(dx, dy);

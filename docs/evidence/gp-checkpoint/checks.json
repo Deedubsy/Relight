@@ -1,0 +1,30 @@
+{
+  "scope": "GP-01 through GP-14 bounded engineering checkpoint; human, reference performance and release gates open",
+  "focusedTests": {
+    "passed": 18,
+    "failed": 0,
+    "files": [
+      "gameplayProgress.test.ts",
+      "equipment.test.ts",
+      "firstRegion.test.ts",
+      "activeRaids.test.ts",
+      "gpFactory.test.ts",
+      "fabrication.test.ts",
+      "directConveyor.test.ts"
+    ]
+  },
+  "repositoryTypecheckBuild": "pass",
+  "lint": "pass",
+  "latestGameBuild": "pass; existing large-bundle advisory",
+  "docsync": "pass; previously reported districts marker finding not reproduced",
+  "freshness": {
+    "status": "12 historical campaign files remain stale",
+    "savedConfigHash": "ba11e896",
+    "currentCampaignConfigHash": "25d18394",
+    "regenerated": false
+  },
+  "ordinaryRoute": "passes; headless scripted ordinary-resource commands, not human pacing",
+  "browser": "real craft/equip/reload/9/pointer-fire checks pass; no page errors",
+  "performance": "see workload-browser.json; 60 fps reference gate not met/certified",
+  "city": "479 buildings, unchanged CITY-F; opened-route structural validation and closed-gate gameplay checks pass; new reference-only export"
+}

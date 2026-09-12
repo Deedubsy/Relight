@@ -1,0 +1,54 @@
+/*
+ * Relight UI tokens — B-13.
+ *
+ * The single source of colour, spacing and type for every Relight panel, ported from the reference's shared
+ * custom properties (packages/game/src/style.css:1-40 and :118-140). The authoritative values are
+ * UI_AND_ONBOARDING.md §10; where the stylesheet and the document disagreed, the document won.
+ *
+ * Rules for anything that consumes this sheet:
+ *   - never write a literal colour or pixel size in a panel stylesheet; use var(--ui-*),
+ *   - the inset tokens at the bottom are UI layout only. The camera never reads them (D-UI-10,
+ *     TECHNICAL_ARCHITECTURE.md §8.3 row 5); CameraRig has no field through which it could.
+ *
+ * UI Builder shows these as inherited variables on any element once the sheet is on the document.
+ */
+
+:root {
+    /* Palette (UI_AND_ONBOARDING §10 / style.css:120-132) */
+    --ui-bg: #151d1e;           /* page and modal ground */
+    --ui-surface: #203536;      /* panel body */
+    --ui-raised: #2b4546;       /* rows, slots, raised controls */
+    --ui-text: #f3ecdd;         /* primary text */
+    --ui-secondary: #c2ceca;    /* secondary text, hints, units */
+    --ui-accent: #e3b96f;       /* selection, focus, current objective */
+    --ui-working: #92d8b5;      /* healthy / running */
+    --ui-danger: #ff8a80;       /* refusal, damage, outage */
+    --ui-border: #8da79f;       /* 1px separations */
+
+    /* Spacing scale — 4 / 8 / 12 / 16 / 24 / 32, no other gaps */
+    --ui-space-1: 4px;
+    --ui-space-2: 8px;
+    --ui-space-3: 12px;
+    --ui-space-4: 16px;
+    --ui-space-5: 24px;
+    --ui-space-6: 32px;
+
+    /* Shape */
+    --ui-radius: 6px;
+
+    /* Type. The reference's stack is "Segoe UI", system-ui; UI Toolkit needs a font ASSET for a custom face,
+       and Phase B ships no fonts, so panels inherit the project default face and only the sizes are tokens.
+       C-07 imports the face and sets -unity-font-definition here, in this one place. */
+    --ui-font-size-body: 17px;
+    --ui-font-size-small: 16px;
+    --ui-font-size-heading: 20px;
+    --ui-font-size-title: 24px;
+
+    /* Chrome */
+    --ui-nav-height: 64px;
+
+    /* Layout insets. UI-only: they push UI elements clear of other UI elements.
+       Nothing outside the UI may read them (D-UI-10). */
+    --ui-top-inset: 0px;
+    --ui-drawer-inset: 0px;
+}

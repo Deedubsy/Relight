@@ -64,7 +64,7 @@ export function blueprintQueueCheck(st:SimState,x:number,y:number):ActionResult 
   return {ok:true,reason:''};
  }catch(e){return {ok:false,reason:(e as Error).message};}
 }
-const freightKey=(v:BlueprintEntity['freight'])=>JSON.stringify(Object.entries(v??{}).sort(([a],[b])=>a.localeCompare(b)).map(([k,r])=>[k,r.request,r.reserve,r.export]));
+const freightKey=(v:BlueprintEntity['freight'])=>JSON.stringify(Object.entries(v??{}).sort(([a],[b])=>a.localeCompare(b)).map(([k,r])=>[k,r!.request,r!.reserve,r!.export]));
 export function blueprintEntityBuilt(st:SimState,o:BlueprintOrder,e:BlueprintEntity):boolean {
  const x=o.x+e.x,y=o.y+e.y,m=e.kind==='tram'?tramAt(st,x,y):machineAt(st,x,y);
  return !!m&&m.x===x&&m.y===y&&m.kind===e.kind&&m.dir===e.dir&&(m.recipe??'shot')===(e.recipe??'shot')&&m.filter===e.filter&&(m.priority??'balanced')===(e.priority??'balanced')&&m.underground===e.underground&&freightKey(m.freight)===freightKey(e.freight);

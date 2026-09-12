@@ -80,35 +80,56 @@ test('powered equipment, defenders and one-time encounter rewards use the shared
 });
 
 
-test('opening guidance does not credit an old factory or an empty receiver as a supplied line',()=>{
- const s=S.createCampaign();const gen=S.addMachine(s,'generator',85,370,0);gen.inv.coal=30;
- const excavator=S.addMachine(s,'excavator',80,370,1);excavator.hold='steel';S.addMachine(s,'belt',83,371,1);S.addMachine(s,'chest',84,371,0);
+test('opening guidance does not credit an old factory, stored stock or an empty receiver as a supplied line',()=>{
+ const s=S.createCampaign();s.engineer.equipment={version:1,next:2,weapons:{'rifle:1':{kind:'rifle',loaded:0,cooldown:0,reload:0}},slots:['rifle:1',null],active:0};const gen=S.addMachine(s,'generator',85,370,0);gen.inv.coal=30;
+ const excavator=S.addMachine(s,'excavator',80,370,1);excavator.hold='steel';S.addMachine(s,'belt',83,371,1);S.addMachine(s,'chest',84,371,0);S.addMachine(s,'pole',83,373,0);
+ S.addMachine(s,'pole',83,365,0);S.addMachine(s,'pole',82,357,0); // GP-POWER-FIX: the opening now includes the Founders Court substation cable
  const asm=S.addMachine(s,'assembler',88,370,1);asm.busy=true;
  const belt=S.addMachine(s,'belt',91,371,1),chest=S.addMachine(s,'chest',92,371,0),turret=S.addMachine(s,'turret',95,371,0);turret.inv.rounds=20;
+ const d=s.campaign!.defence!;d.opening={version:1,status:'repelled',shots:10,id:d.nextId++,turretId:turret.id,origin:328367,scheduledAt:0,startsAt:25,endedAt:40,count:5};s.t=200;
  s.flow!.stats.magsMade=100;s.engineer.inv.magazine=2;
- assert.equal(S.currentGoal(s).next!.id,'opening-ammo');
+ const goal=()=>S.currentGoal(s).next!;
+ assert.equal(goal().id,'opening-ammo');assert.match(goal().text,/^(Connect the Assembler output to your turret|Extend the route from the Assembler output to a turret)$/);
  asm.observation={produced:{magazine:1},consumed:{},samples:[{tick:0,produced:{},consumed:{}}]};
- assert.equal(S.currentGoal(s).next!.id,'opening-ammo');chest.inv.magazine=1;
- assert.notEqual(S.currentGoal(s).next!.id,'opening-ammo');
- belt.dir=3;s.flow!.rev++;assert.equal(S.currentGoal(s).next!.id,'opening-ammo');
- s.campaign!.defence!.bases[0].hp=0;assert.equal(S.currentGoal(s).next!.id,'home-recovery');
+ assert.equal(goal().id,'opening-ammo');chest.inv.magazine=1;
+ assert.equal(goal().id,'opening-ammo');assert.equal(goal().text,'Extend the route from the Assembler output to a turret');assert.equal(d.opening.suppliedAt,undefined);
+ const ins=S.addMachine(s,'inserter',94,371,1);S.addMachine(s,'pole',93,373,0);S.addMachine(s,'pole',88,373,0);s.flow!.rev++;
+ assert.ok(S.supplyChainReaches(s,asm,turret));assert.equal(goal().id,'opening-ammo');assert.match(goal().text,/waiting for the first one to reach the turret/);
+ s.speed=1;let i=0;while(d.opening.suppliedAt===undefined&&i<400){S.advanceFlow(s,.05,[]);i++;}
+ assert.ok(S.powered(s,ins));assert.notEqual(d.opening.suppliedAt,undefined);excavator.hold='steel';assert.equal(goal().title,'Automatic resupply working');
+ belt.dir=3;s.flow!.rev++;assert.equal(goal().title,'Automatic resupply working','a completed delivery stays completed');
+ s.campaign!.defence!.bases[0].hp=0;assert.equal(goal().id,'home-recovery');
 });
 
 
-test('opening follows generator, excavator, storage, connection, turret, crafting and loading',()=>{
+test('opening follows generator, excavator, storage, connection, power, rifle, ammunition and a prepared turret',()=>{
  const s=S.createCampaign();s.engineer.inv={steel:100,copper:100};
  const title=()=>S.currentGoal(s).next!.title;
- assert.match(title(),/1 · Build a Generator/);assert.match(S.currentGoal(s).next!.text,/30 Steel plates/);
- s.engineer.inv={generator:1};assert.deepEqual(S.currentGoal(s).next!.shortage,[]);assert.match(S.currentGoal(s).next!.text,/packed machine ready/);s.engineer.inv={steel:100,copper:100};
+ assert.match(title(),/1 · Build a Generator/);assert.deepEqual(S.currentGoal(s).next!.resources,[{item:'steel',required:30,available:100},{item:'copper',required:10,available:100}]);
+ s.engineer.inv={generator:1};assert.deepEqual(S.currentGoal(s).next!.shortage,[]);assert.deepEqual(S.currentGoal(s).next!.resources,[{item:'generator',required:1,available:1}]);s.engineer.inv={steel:100,copper:100};
  const gen=S.addMachine(s,'generator',80,370,0);gen.inv.coal=10;
  assert.match(title(),/2 · Build an Excavator/);
  const ex=S.addMachine(s,'excavator',84,370,1);ex.hold='steel';
  assert.match(title(),/3 · Build storage/);
  S.addMachine(s,'chest',88,371,0);assert.match(title(),/4 · Connect belts/);
- S.addMachine(s,'belt',87,371,1);assert.match(title(),/5 · Build your first turret/);
- const t=S.addMachine(s,'turret',92,370,0);assert.match(title(),/6 · Make turret ammunition/);
- s.engineer.inv.magazine=1;assert.match(title(),/7 · Load your turret/);
- t.inv.rounds=10;assert.equal(S.currentGoal(s).next!.id,'opening-ammo');
+ S.addMachine(s,'belt',87,371,1);assert.equal(S.currentGoal(s).next!.id,'opening-power');
+ S.addMachine(s,'pole',83,372,0);s.engineer.equipment={version:1,next:2,weapons:{},slots:[null,null],active:0};
+ assert.match(title(),/Connect Founders Court/);assert.equal(S.currentGoal(s).next!.id,'opening-power');
+ S.addMachine(s,'pole',83,365,0);S.addMachine(s,'pole',82,357,0);
+ assert.equal(S.currentGoal(s).next!.id,'opening-rifle');
+ s.engineer.equipment.weapons['rifle:1']={kind:'rifle',loaded:0,cooldown:0,reload:0};assert.equal(S.currentGoal(s).next!.id,'opening-equip');
+ s.engineer.equipment.slots[0]='rifle:1';
+ assert.equal(s.campaign!.defence!.opening?.status,'pending');
+ assert.match(title(),/Make turret ammunition/);
+ s.engineer.inv.magazine=10;assert.match(title(),/Prepare your first turret/);assert.ok(S.currentGoal(s).next!.resources!.some(r=>r.item==='steel'));
+ const t=S.addMachine(s,'turret',92,370,0);
+ // Turrets are powered machines (2026-09-11): out of Pole reach the route asks for power first.
+ assert.match(title(),/Connect your turret power/);assert.equal(S.currentGoal(s).next!.id,'opening-power');assert.match(S.currentGoal(s).next!.detail!,/20 kW and hold fire without power/);
+ S.addMachine(s,'pole',90,372,0);assert.match(title(),/Prepare your first turret/);assert.match(S.currentGoal(s).next!.detail!,/powered \(20 kW\)/);
+ assert.match(S.currentGoal(s).next!.text,/Build it near your base and fill it with ammunition/);
+ assert.deepEqual(S.currentGoal(s).next!.resources,[{item:'magazine',required:S.TURRET_HOPPER,available:10}]);
+ t.inv.rounds=10;assert.match(S.currentGoal(s).next!.detail!,new RegExp(`Loaded 10 / ${S.TURRET_HOPPER} bullets · ${S.TURRET_HOPPER-10} more to fill`));
+ assert.deepEqual(S.currentGoal(s).next!.location,{x:t.x+1,y:t.y+1});
 });
 
 test('machine quantities conserve fuel, buffered inputs, finished output and whole turret magazines',()=>{
@@ -138,9 +159,12 @@ test('machine quantities conserve fuel, buffered inputs, finished output and who
 });
 
 test('power outage persists without fuel and clears when actual local generation returns',()=>{
- const s=S.createCampaign();assert.ok(S.campaignOutages(s).some(a=>a.title==='No power · Founders Court'));
+ // GP-POWER-FIX (2026-09-11): a block that has never been supplied is unconnected, not in outage; supply must reach the substation.
+ const s=S.createCampaign();s.speed=1;assert.equal(S.campaignOutages(s).some(a=>a.title==='No power · Founders Court'),false);
  const g=S.addMachine(s,'generator',80,370,0);g.inv.coal=1;
  assert.equal(S.campaignOutages(s).some(a=>a.id==='outage:'+s.campaign!.homeBlock),false);
- g.inv.coal=0;assert.ok(S.campaignOutages(s).length);
+ for(const [x,y] of [[83,372],[83,365],[82,357]])S.addMachine(s,'pole',x,y,0);
+ assert.ok(S.campaignGrid(s).blocks[s.campaign!.homeBlock].supply>0);S.advanceFlow(s,.05,[]);
+ g.inv.coal=0;s.flow!.rev++;assert.ok(S.campaignOutages(s).length);
  g.inv.coal=1;s.campaign!.defence!.bases[0].hp=0;assert.match(S.campaignOutages(s)[0].detail,/core disabled/);
 });

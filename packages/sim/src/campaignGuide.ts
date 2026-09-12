@@ -1,3 +1,4 @@
+import {fabricationDiscoveries} from './fabrication';
 import {progressionDiscoveries,progressionCheck} from './progression';
 import {lockReason,chestCount,type ChestItem} from './flow';
 import {take} from './engineer';
@@ -92,7 +93,7 @@ export function campaignDiscoveries(st:SimState):DiscoveryInfo[] {
   const d=st.campaign!.discovery;
   if(d&&(d.seenAt>=0||d.recoveredAt>=0))out.push({id:d.id,title:'Workshop records',status:d.recoveredAt>=0?'Recovered · field-repair tool fitted':'Discovered · records available',detail:discoveryDescription(st),x:d.x,y:d.y,size:1,needs:[],actions:d.recoveredAt>=0?[]:[{label:d.recoveredAt>=0?'Field-repair tool fitted':'Recover field-repair schematic',reason:discoveryCheck(st,d.id),commands:[{type:'recoverSchematic',id:d.id}]}]});
   for(const info of out){const recruit=st.campaign?.recruits?.sites.find(s=>s.id===info.id);if(recruit?.kind==='railcrew'&&recruit.recruitedAt>=0&&!st.campaign?.progression?.freightUpgrade)info.actions.push({label:'Upgrade freight capacity · 20 steel + 10 copper',reason:progressionCheck(st,{type:'freight'}),commands:[{type:'progression',action:{type:'freight'}}]});}
-  out.push(...progressionDiscoveries(st));
+  out.push(...progressionDiscoveries(st),...fabricationDiscoveries(st));
   return out.map(s=>({...s,defaultTitle:s.title,title:navigationName(st,`site:${s.id}`,s.title)}));
 }
 

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_CONFIG, protoCalibrated, generateMap, createState, idxOf, HELD, DARK, step, advance,
   CELL_TILES, MARGIN_TILES, T_GROUND, T_PATCH, P_STEEL, cellTiles, cellKey, lotLayout, HQ_PATCHES, HQ_RUBBLE_TILES,
-  ensureFlow, advanceFlow, stepFlow, place, remove, rotate, canPlace, machineAt, rubbleAt, giveItem, setHandMine, queueCraft,
+  ensureFlow, advanceFlow, stepFlow, place, remove, rotate, canPlace, machineAt, rubbleAt, giveItem, setHandMine, queueCraft, cancelCraft, HAND_MINE_PER_S,
   flowSummary, describeMachine, outputTile, entryDir,
   TILE_TPS, TILE_DT, BELT_PER_S, BELT_SPACING, EXCAVATOR_PER_S, INSERTER_PER_S, SHOT, MACHINE_COST, ASM_INPUT_MULT,
   Machine, SimState,
@@ -296,7 +296,7 @@ test('the block map stays the judge: a machine on a block that stops being Held 
   assert.equal(belt.items[0].p, p1, 'no movement on a Dark block');
 });
 
-test('hands: mining a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in the recipe\'s time (Mk1, 6 s) from the pockets into the pockets', () => {
+test('hands: mining half a unit a second into the pockets within reach, and only then; the chest takes them within reach of the Depot; crafting a magazine in the recipe\'s time (Mk1, 6 s) from the pockets into the pockets', () => {
   const st = fresh();
   ensureFlow(st);
   const [px, py] = hq(st, 1, 7);
@@ -309,7 +309,7 @@ test('hands: mining a unit a second into the pockets within reach, and only then
   assert.equal(chestPut(st, 'steel', 1).moved, 0, 'nothing in the pockets');
   st.engineer.x = px - 1.5; st.engineer.y = py + 0.5;   // walk over (on the street west of the patch, 9+ tiles from the Depot) (M1's walk is exercised in walk.test.ts)
   setHandMine(st, [px, py]);
-  run(st, 10);
+  run(st, 10 / HAND_MINE_PER_S);   // GP-PLAYTEST-FIX 2: hand mining is 0.5 units/s, so ten units take 20 s
   assert.equal(st.engineer.inv.steel, 10, 'ten units in the pockets'); assert.equal(st.stock.steel, steel0, 'none in the Depot');
   assert.equal(st.patch.steel, patch0 - 10);
   assert.equal(chestPut(st, 'steel', 10).moved, 0, 'the chest needs the engineer within reach of the Depot');
@@ -330,11 +330,14 @@ test('hands: mining a unit a second into the pockets within reach, and only then
   run(st, SHOT.seconds);
   assert.equal(st.flow!.stats.handCrafted, 1, `one magazine in the recipe's ${SHOT.seconds} s`);
   run(st, 1);   // a second into the next craft
-  st.engineer.x = px - 1.5; st.engineer.y = py + 0.5;   // walk away mid-craft: it pauses, progress kept
+  st.engineer.x = px - 1.5; st.engineer.y = py + 0.5;   // GP-PLAYTEST-FIX 4: out of reach mid-craft cancels the batch and returns its plates
   run(st, 3);
-  assert.equal(st.flow!.stats.handCrafted, 1); assert.equal(st.flow!.hand.crafting, true); assert.ok(Math.abs(st.flow!.hand.craftProg - 1) < 1e-6);
+  assert.equal(st.flow!.stats.handCrafted, 1); assert.equal(st.flow!.hand.crafting, false); assert.equal(st.flow!.hand.crafts, 0);
+  assert.equal(st.engineer.inv.steel, SHOT.inputs.steel, 'reserved steel returned'); assert.equal(st.engineer.inv.copper, SHOT.inputs.copper, 'reserved copper returned');
+  assert.equal(cancelCraft(st).ok, false, 'a second cancel has nothing to return');
   st.engineer.x = dx - 1.5; st.engineer.y = dy + 0.5;
-  run(st, SHOT.seconds - 1 + 0.1);
+  assert.equal(queueCraft(st, 1), '');
+  run(st, SHOT.seconds + 0.1);
   assert.equal(st.flow!.stats.handCrafted, 2);
   assert.equal(st.engineer.inv.magazine, 2, 'the magazines are in the pockets'); assert.equal(st.engineer.inv.steel ?? 0, 0); assert.equal(st.engineer.inv.copper ?? 0, 0);
   assert.deepEqual(st.stock, { ...stock1, steel: stock1.steel - 4, copper: stock1.copper - 2 }, 'the Depot only gave what the chest handed over');

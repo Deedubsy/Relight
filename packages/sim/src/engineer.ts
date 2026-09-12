@@ -1,3 +1,4 @@
+import {isWeaponItem} from './weaponTypes';
 /** D5: the engineer. One body on the tile grid with pockets, a reach, a rifle and HP. The block sim moves it block
  *  to block along the streets ("teleport at walk speed"); the world view moves it tile by tile. Everything the
  *  engineer does costs walking, and walking is the tedium row of the slice.
@@ -26,12 +27,12 @@ export const SPRINT_MULT = 1.6, SPRINT_S = 4, STAMINA_REFILL_S = 6;
  *  cooldown and a fixed quarter of the bar; sprint never drains the bar below one dodge's worth, so one dodge is
  *  always there after a sprint into trouble. */
 export const DODGE_TILES = 3, DODGE_S = 0.25, DODGE_COOLDOWN_S = 1, DODGE_COST = 0.25;
-/** GAME-ASSUMPTION (D-B1-5): the rifle reaches the turret's range (9 tiles — no range advantage) and hits anything
+/** Legacy non-equipment rifle only (D-B1-5): reaches the turret's range (9 tiles — no range advantage) and hits anything
  *  within 1.5 tiles of the line to the cursor, so it is aim, not twitch. */
 export const RIFLE_RANGE = TURRET_RANGE, RIFLE_HIT_RADIUS = 1.5;
 /** Stack sizes for the pocket count (GAME-ASSUMPTION: rubble 50 a stack, magazines 20, machines one each; RI-01: the
  *  §12 intermediates the placed Assembler makes stack 50 like rubble until a rule says otherwise). */
-export const STACK: Record<string, number> = { ironore: 50, copperore: 50, crude: 50, fuel: 50, polymer: 50, shell: 20, concrete: 50, stone: 50, copper: 50, steel: 50, coal: 50, iron: 50, magazine: 20, wire: 50, frame: 50, board: 50 };
+export const STACK: Record<string, number> = { overclock:1, alienartifact:20, ironore: 50, copperore: 50, crude: 50, fuel: 50, polymer: 50, shell: 20, concrete: 50, stone: 50, copper: 50, steel: 50, coal: 50, iron: 50, magazine: 200, wire: 50, frame: 50, board: 50 };
 export const stackSize = (item: string) => STACK[item] ?? 1;
 
 export function createEngineer(st: SimState, startIdx: number): Engineer {
@@ -96,9 +97,42 @@ export function inventoryCommand(e:Engineer,a:InventoryAction):{ok:boolean;reaso
   const n=a.n??Math.floor(src.count/2);if(!Number.isSafeInteger(n)||n<1||n>=src.count)return no('Choose fewer than the stack contains.');
   if(dst)return no('Splitting needs an empty slot.');slots[a.to]={item:src.item,count:n};src.count-=n;
  }else if(!dst){slots[a.to]=src;slots[a.from]=null;}
- else if(dst.item===src.item){const n=Math.min(src.count,stackSize(src.item)-dst.count);if(n<=0)return no('Destination stack is full.');dst.count+=n;src.count-=n;if(src.count<=0)slots[a.from]=null;}
+ else if(dst.item===src.item){const n=Math.min(src.count,stackSize(src.item)-dst.count);if(n<=0){[slots[a.from],slots[a.to]]=[dst,src];}else{dst.count+=n;src.count-=n;if(src.count<=0)slots[a.from]=null;}}
  else {[slots[a.from],slots[a.to]]=[dst,src];}
  e.pack=slots;return {ok:true,reason:a.type==='split'?'Stack split.':'Stack moved.'};
+}
+/** A destination snapshot is checked before either inventory is changed. Storage pools each item, so a dropped-on
+ * storage stack only names the item; the Backpack keeps the player's explicit slot allocation, and a drop fills the
+ * chosen slot first, then other stacks of the same item, then empty slots. Only what truly has no room stays behind. */
+export interface TransferTarget { total?:number; slot?:number; layout?:string; count?:number; item?:string; offset?:number }
+/** Room for `item` across the whole Backpack: slack in its stacks plus empty slots (kits are counted by `take`). */
+export function packRoom(slots:(PackStack|null)[],item:string):number {
+ const cap=isWeaponItem(item)?1:stackSize(item);let room=0;
+ for(const c of slots){if(!c)room+=cap;else if(c.item===item&&!c.reserved&&!isWeaponItem(item))room+=cap-c.count;}
+ return room;
+}
+export function transferTarget(e:Engineer,item:string,n:number,target:TransferTarget|undefined,put:boolean):{n:number;reason:string}{
+ if(!target)return {n,reason:''};
+ if(put){
+  if(target.item!==undefined&&target.item!==item)return {n:0,reason:'Choose a compatible stack or empty storage space.'};
+  return {n,reason:''};   // the store's own capacity rule decides how much fits (chestPut / machineTransfer)
+ }
+ const slots=pocketSlots(e),i=target.slot;
+ if(target.layout!==JSON.stringify(slots)||!Number.isInteger(i)||i!<0||i!>=slots.length)return {n:0,reason:'Backpack changed; try the drop again.'};
+ const cell=slots[i!];
+ if(cell&&(cell.reserved||cell.item!==item||isWeaponItem(item)))return {n:0,reason:'Choose a compatible stack or empty Backpack slot.'};
+ if(item==='kit')return {n,reason:''};
+ return {n:Math.min(n,packRoom(slots,item)),reason:'Backpack is full.'};
+}
+/** Place `n` taken items: the dropped-on slot first, then matching stacks with room, then empty slots. */
+export function allocateTransfer(e:Engineer,item:string,n:number,target:TransferTarget|undefined,before:(PackStack|null)[]):void{
+ if(!target||target.slot===undefined||n<=0||item==='kit')return;
+ const cap=isWeaponItem(item)?1:stackSize(item);let left=n;
+ const fill=(i:number,allowEmpty:boolean)=>{const c=before[i];if(left<=0||c&&(c.item!==item||c.reserved)||!c&&!allowEmpty)return;const add=Math.min(left,cap-(c?.count??0));if(add<=0)return;before[i]=c?{...c,count:c.count+add}:{item,count:add};left-=add;};
+ fill(target.slot,true);
+ for(let i=0;i<before.length;i++)if(i!==target.slot)fill(i,false);
+ for(let i=0;i<before.length;i++)if(i!==target.slot)fill(i,true);
+ e.pack=before;
 }
 export function packProblem(e:Engineer):string {
  if(e.pack===undefined)return '';
@@ -112,7 +146,7 @@ export const hpPerKill = (e: Engineer) => RETALIATE_HP_PER_S * ROUNDS_PER_CRAWLE
 /** Take `n` of `item` into the pockets, as many as fit. Returns the number taken. */
 export function take(e: Engineer, item: string, n: number): number {
   const slots=pocketSlots(e),room=Math.max(0,invCap(e)-pocketUsed(e));
-  if(!Number.isFinite(n)||n<=0)return 0;
+  if(!Number.isFinite(n)||n<=0||isWeaponItem(item)&&(!Number.isSafeInteger(n)||n!==1))return 0;
   const per=item==='kit'?KIT_STACKS:1/stackSize(item),have=e.inv[item]??0;
   const slack=item==='kit'?0:slots.reduce((sum,c)=>sum+(c?.item===item?stackSize(item)-c.count:0),0);
   const fit=Math.min(n,slack+Math.floor(room/per));if(fit<=0)return 0;
@@ -120,6 +154,7 @@ export function take(e: Engineer, item: string, n: number): number {
   return fit;
 }
 export function drop(e: Engineer, item: string, n: number): number {
+  if(isWeaponItem(item)&&(!Number.isSafeInteger(n)||n!==1))return 0;
   const have = e.inv[item] ?? 0, d = Math.min(have, n);
   e.inv[item] = have - d;
   if (e.inv[item] <= 0) delete e.inv[item];
@@ -302,7 +337,7 @@ export function engineerCommand(st: SimState, c: Command): void {
     case 'aim': e.aim = e.down < 0 ? c.at : null; break;
     case 'enterTruck': if(st.campaign){handHook.current?.(st,{type:'factory',action:{type:'truckBoard'}});break;} if (e.truckFound && e.down < 0) e.truck = !e.truck; break;
     case 'navigation': case 'removeArea': case 'truckWork': case 'blueprintLibrary': case 'blueprintOrder': case 'blueprintCopy': case 'blueprintTransform': case 'blueprintPaste':
-    case 'cityProp': case 'progression': case 'inventory': case 'construct': case 'buildPath': case 'undergroundPair': case 'undoBuild': case 'redoBuild': case 'factory':
+    case 'fabrication': case 'equipment': case 'region': case 'cityProp': case 'progression': case 'inventory': case 'construct': case 'buildPath': case 'undergroundPair': case 'undoBuild': case 'redoBuild': case 'factory':
     case 'mineAt': case 'craft': case 'place': case 'pickUp': case 'chestTake': case 'chestPut': case 'feed': case 'repair': case 'rotate':
     case 'deliverSite': case 'restoreSite': case 'collectTramKit':
     case 'deliver': case 'activate': case 'commission':   // RI-03: the commissioning commands are hand commands too; RI-05: a project's too
