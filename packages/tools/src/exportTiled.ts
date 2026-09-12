@@ -1,3 +1,5 @@
+import {FIRST_CAMPS,FREIGHT_GATES,FREIGHT_ARENA} from '../../sim/src/city/gameplaySites';
+import {validateFirstRegion} from '../../sim/src/firstRegion';
 /** Editable, portable Tiled snapshot of the canonical authored map. No game-state mutation/import. */
 import {mkdirSync,existsSync,readFileSync,writeFileSync,copyFileSync,readdirSync} from 'node:fs';
 import {resolve,join,basename} from 'node:path';
@@ -12,7 +14,7 @@ const mapPath=join(out,'riverfront.tmj');
 // Re-export to a NEW directory: never overwrite the user's edited map.
 if(existsSync(mapPath))throw Error(`Output already contains a map: ${mapPath}. Choose a new output folder to preserve Tiled edits.`);
 const state=createCampaign(),G=ground(state),{reachable,...validation}=validateRiverfront(state);
-if(validation.errors.length)throw Error(validation.errors.join('\n'));void reachable;
+validation.errors.push(...validateFirstRegion(state));if(validation.errors.length)throw Error(validation.errors.join('\n'));void reachable;
 mkdirSync(join(out,'assets'),{recursive:true});
 const P=TILE_PX,W=C.width,H=C.height,n=W*H,rail=riverfrontRail();
 const write=(name:string,value:unknown)=>writeFileSync(join(out,name),JSON.stringify(value,null,2)+'\n');
@@ -66,6 +68,7 @@ objects('Ground-floor artwork — hidden reference',buildings.map(b=>({...object
 objects('Props — solid scenery and interior furniture',props.map(p=>object(p.id,p.kind,p.x,p.y,p.w,p.h,{stableId:p.id,clearable:!!p.clearable,sourceRecord:p})),'#91b376');
 objects('Resources',C.resources.map(([item,x,y,w,h,units],i)=>({...object(item,'Resource',x,y,w,h,{stableId:'resource:'+i,item,units,sourceIndex:i}),gid:item.includes('copper')?12:item==='coal'?13:item==='stone'?14:item==='crude'?15:11})),'#db9f5e');
 objects('Plants, cores and artifacts',[...C.plants.map(p=>({...p,kind:'Plant'})),...C.cores.map(p=>({...p,kind:'Core'})),...C.artifacts.map(p=>({...p,kind:'Artifact'}))].map(p=>object(p.name,p.kind,p.x,p.y,3,3,{stableId:p.id})),'#e16b68');
+objects('Gameplay references — EDIT TYPESCRIPT, not imported',[...FIRST_CAMPS.map(c=>object(c.name,'KeyCampReference',c.x,c.y,1,1,{stableId:c.id,totalDefenders:c.count,source:'packages/sim/src/city/gameplaySites.ts',referenceOnly:true})),...FREIGHT_GATES.map((g,i)=>object('Freight entrance '+i,'GateReference',g.x,g.y,g.w,g.h,{strongholdId:'freight',referenceOnly:true})),object('Freight arena','ArenaReference',FREIGHT_ARENA.x,FREIGHT_ARENA.y,FREIGHT_ARENA.w,FREIGHT_ARENA.h,{defenders:60,guardianHp:600,referenceOnly:true})],'#f3be62',true,true);
 objects('Permanent tram stops',C.stops.map(p=>object(p.name,'TramStop',p.x,p.y,2,2,{stableId:p.id})),'#f5bb48');
 objects('Projects and recruits',[...Object.entries(C.projects).map(([id,[x,y]])=>({...object(id,'Project',x,y,0,0,{stableId:id}),point:true})),...C.recruits.map(([kind,x,y])=>({...object(kind,'Recruit',x,y,0,0,{kind}),point:true}))],'#c8a3e6');
 objects('Lights and substations',[...C.lights.map(([x,y],i)=>({...object('Street light '+i,'Light',x,y,0,0,{kw:C.lightKw}),point:true})),...C.substations.map(([x,y],i)=>object('Substation '+i,'Substation',x,y,3,3,{block:i}))],'#eee09c');

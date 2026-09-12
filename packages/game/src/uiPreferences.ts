@@ -1,13 +1,13 @@
 import {parseBindings,type BindingOverrides} from './controls';
 import {CAMPAIGN_KINDS,type Kind} from '@relight/sim';
 export type QuickTool=Exclude<Kind,'depot'>|'rifle';
-export const DEFAULT_QUICKBAR:readonly (QuickTool|null)[]=['belt','inserter','excavator',null,null,null,null,null,null,null];
+export const DEFAULT_QUICKBAR:readonly (QuickTool|null)[]=['belt','inserter','excavator',null,null,null,null,null,'rifle',null];
 export const QUICKBAR_KEYS=['1','2','3','4','5','6','7','8','9','0'] as const;
 export interface UiPreferences {version:1;quickbar:(QuickTool|null)[];scale:100|125|150;motion:'system'|'reduce'|'full';bindings:BindingOverrides;dismissedHints:string[]}
 export function parseUiPreferences(raw:string|null):UiPreferences {
  const base:UiPreferences={version:1,quickbar:[...DEFAULT_QUICKBAR],scale:100,motion:'system',bindings:{},dismissedHints:[]};
  try{const v=JSON.parse(raw??'null');if(v?.version!==1)return base;
-  if(Array.isArray(v.quickbar)&&v.quickbar.length===10)base.quickbar=v.quickbar.map((k:unknown)=>k==='rifle'||(CAMPAIGN_KINDS.includes(k as Kind)&&k!=='depot')?k:null);
+  if(Array.isArray(v.quickbar)&&v.quickbar.length===10){const seen=new Set<QuickTool>();base.quickbar=v.quickbar.map((k:unknown)=>{if(!(k==='rifle'||(CAMPAIGN_KINDS.includes(k as Kind)&&k!=='depot'))||seen.has(k as QuickTool))return null;seen.add(k as QuickTool);return k as QuickTool;});}   // GP-HOME-REPAIR: an earlier build let one tool pin to several slots; the first occurrence stays
   if([100,125,150].includes(v.scale))base.scale=v.scale;
   if(['system','reduce','full'].includes(v.motion))base.motion=v.motion;
   base.bindings=parseBindings(v.bindings);base.dismissedHints=Array.isArray(v.dismissedHints)?v.dismissedHints.filter((x:unknown)=>x==='opening'):[];

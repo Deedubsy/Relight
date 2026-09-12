@@ -38,22 +38,24 @@ export interface Ledger {
   problems: string[];
 }
 
-const ROUNDS = ROUNDS_PER_MAG;
+
 
 /** The flow state as it stands — `ensureFlow` itself calls `openLedger`, so the counters never call back into it. */
 function flowOf(st: SimState) { const f = st.flow; if (!f) throw new Error('ledger: the flow layer is not open (call ensureFlow first)'); return f; }
 
 /** Every item where it stands now, by place and in total. Rounds count as magazines (ten a magazine, fractional). */
 export function heldItems(st: SimState): { total: Record<Item, number>; where: Record<LedgerPlace, Record<Item, number>> } {
-  const f = flowOf(st);
+  const f = flowOf(st), ROUNDS=f.ammoVersion===1?1:ROUNDS_PER_MAG;
   const where = {} as Record<LedgerPlace, Record<Item, number>>;
   for (const p of LEDGER_PLACES) where[p] = zeroItems(true);
-  const add = (p: LedgerPlace, k: string, n: number) => { if (isItem(k) && n > 0) where[p][k] += n; };
+  const add = (p: LedgerPlace, k: string, n: number) => { if (isItem(k) && n > 0) where[p][k] = (where[p][k]??0) + n; };
   add('chest', 'steel', st.stock.steel); add('chest', 'copper', st.stock.copper); add('chest', 'stone', st.stock.stone);
   for (const k in f.store) add('chest', k, f.store[k as keyof typeof f.store]??0);
-  add('buffer', 'magazine', st.buffer / ROUNDS);
+  add('buffer', 'magazine', st.buffer / ROUNDS+(f.ammoRecovery??0));
   for (const e of st.ring) if (!e.turrets) add('ring', 'magazine', e.hopper / ROUNDS);   // a stand-in edge's hopper; a turret edge's mirrors its turrets
   for (const k in st.engineer.inv) add('pockets', k, st.engineer.inv[k]);
+  for(const id of st.engineer.equipment?.slots??[])if(id)add('pockets',id,1);
+  for(const w of Object.values(st.engineer.equipment?.weapons??{}))if(w)add('pockets','magazine',w.loaded/ROUNDS);
   for (const bi in f.delivered ?? {}) { add('committed', 'steel', f.delivered[bi].steel); add('committed', 'copper', f.delivered[bi].copper); }
   for (const site of Object.values(st.campaign?.expansion ? { station: st.campaign.expansion.station, radio: st.campaign.expansion.radio } : {})) { add('committed', 'steel', site.delivered.steel); add('committed', 'copper', site.delivered.copper); }
   for(const site of st.campaign?.districts?[st.campaign.districts.station,st.campaign.districts.workshop]:[]){add('committed','steel',site.delivered.steel);add('committed','copper',site.delivered.copper);}
@@ -66,24 +68,23 @@ export function heldItems(st: SimState): { total: Record<Item, number>; where: R
     for (const it of m.items) add('belts', it.k, 1);
     if (m.hold) add(m.kind === 'belt' ? 'belts' : 'machines', m.hold, 1);
     if (m.kind === 'turret') add('machines', 'magazine', (m.inv.rounds ?? 0) / ROUNDS);
-    else { for (const k in m.inv) add('machines', k, m.inv[k]); if (m.out > 0) add('machines', ['assembler','assembler2','mixer','foundry','refinery'].includes(m.kind) ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
+    else { for (const k in m.inv) add('machines', k, m.inv[k]); if (m.out > 0) add('machines', ['assembler','assembler2','mixer','foundry','refinery','alienworkbench'].includes(m.kind) ? recipeOutput(recipeOf(m)) : 'magazine', m.out); }
     if (m.cargo) for (const k in m.cargo) add('machines', k, m.cargo[k]);   // RI-05: a tram's load, a stop's arrivals
   }
   for(const [k,n] of Object.entries(st.campaign?.truck?.cargo??{}))add('machines',k,n);
   const total = zeroItems(true);
-  for (const p of LEDGER_PLACES) for (const k of ITEMS) total[k] += where[p][k];
+  for (const p of LEDGER_PLACES) for (const [k,n] of Object.entries(where[p])) total[k as Item] = (total[k as Item]??0) + n;
   return { total, where };
 }
 
 /** What the counters say entered the game (`sources`) and left it (`sinks`) since the flow layer's counters began. */
 export function ledgerFlows(st: SimState): { sources: Record<Item, number>; sinks: Record<Item, number> } {
-  const f = flowOf(st), s = f.stats, b = st.stats;
+  const f = flowOf(st), s = f.stats, b = st.stats, ROUNDS=f.ammoVersion===1?1:ROUNDS_PER_MAG;
   const sources = zeroItems(true), sinks = zeroItems(true);
-  for (const k of ITEMS) { sources[k] += (s.minedOf[k] ?? 0) + (s.made[k] ?? 0); sinks[k] += s.consumed[k] ?? 0; }
-  sinks.steel += (s.placed?.steel ?? 0) + (b.spentSteel ?? 0);
-  sinks.copper += (s.placed?.copper ?? 0) + (b.spentCopper ?? 0) + (f.repairs ?? 0) * REPAIR_COPPER;
-  sinks.concrete += s.placed?.concrete ?? 0;
-  sinks.polymer += s.placed?.polymer ?? 0;
+  for (const k of new Set([...ITEMS,...Object.keys(s.made),...Object.keys(s.minedOf)] as Item[])) { sources[k]??=0;sinks[k]??=0; sources[k] += (s.minedOf[k] ?? 0) + (s.made[k] ?? 0); sinks[k] += s.consumed[k] ?? 0; }
+  for (const [item, count] of Object.entries(s.placed ?? {})) if (isItem(item)) sinks[item] = (sinks[item] ?? 0) + count;
+  sinks.steel += b.spentSteel ?? 0;
+  sinks.copper += (b.spentCopper ?? 0) + (f.repairs ?? 0) * REPAIR_COPPER;
   sinks.coal += s.coalBurned ?? 0;
   sinks.magazine += ((s.fired ?? 0) + (st.engineer.fired ?? 0) + (b.ringFired ?? 0) + (b.roundsLost ?? 0)) / ROUNDS;
   return { sources, sinks };
@@ -93,7 +94,7 @@ export function ledgerFlows(st: SimState): { sources: Record<Item, number>; sink
 export function openLedger(st: SimState): { tick: number; base: Record<Item, number> } {
   const { total } = heldItems(st), { sources, sinks } = ledgerFlows(st);
   const base = zeroItems(true);
-  for (const k of ITEMS) base[k] = total[k] - (sources[k] - sinks[k]);
+  for (const k of ITEMS) base[k] = (total[k]??0) - ((sources[k]??0) - (sinks[k]??0));
   if(!st.campaign)Reflect.deleteProperty(base,'concrete'); // Preserve the frozen legacy state shape.
   return { tick: st.flow?.tick ?? 0, base };
 }
@@ -104,7 +105,8 @@ export function conservation(st: SimState, tolerance = 0.01): Ledger {
   const { total: held, where } = heldItems(st), { sources, sinks } = ledgerFlows(st);
   const opening = { ...zeroItems(true), ...f.ledger?.base }, openedAt = f.ledger?.tick ?? 0;
   const unexplained = zeroItems(true), problems: string[] = [];
-  for (const k of ITEMS) {
+  for (const k of new Set([...ITEMS,...Object.keys(held),...Object.keys(sources)] as Item[])) {
+    held[k]??=0;sinks[k]??=0;sources[k]??=0;opening[k]??=0;
     unexplained[k] = held[k] + sinks[k] - sources[k] - (opening[k]??0);
     if (Math.abs(unexplained[k]) > tolerance) problems.push(`${k}: ${unexplained[k] > 0 ? '+' : ''}${unexplained[k].toFixed(2)} unexplained (opening ${opening[k].toFixed(1)} + sources ${sources[k].toFixed(1)} = held ${held[k].toFixed(1)} + sinks ${sinks[k].toFixed(1)})`);
   }

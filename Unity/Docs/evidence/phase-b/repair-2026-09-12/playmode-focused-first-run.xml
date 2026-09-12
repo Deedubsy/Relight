@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="9" result="Failed(Child)" total="9" passed="7" failed="2" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-12 01:23:40Z" end-time="2026-09-12 01:23:45Z" duration="4.5268204">
+  <test-suite type="TestSuite" id="1061" name="Relight" fullname="Relight" runstate="Runnable" testcasecount="37" result="Failed" site="Child" start-time="2026-09-12 01:23:40Z" end-time="2026-09-12 01:23:45Z" duration="4.526820" total="9" passed="7" failed="2" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1092" name="Relight.Tests.Play.dll" fullname="C:/Users/Admin/AppData/Local/Temp/relight-check/Library/ScriptAssemblies/Relight.Tests.Play.dll" runstate="Runnable" testcasecount="22" result="Failed" site="Child" start-time="2026-09-12 01:23:40Z" end-time="2026-09-12 01:23:45Z" duration="4.513282" total="9" passed="7" failed="2" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="100480" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1093" name="Relight" fullname="Relight" runstate="Runnable" testcasecount="22" result="Failed" site="Child" start-time="2026-09-12 01:23:40Z" end-time="2026-09-12 01:23:45Z" duration="4.512051" total="9" passed="7" failed="2" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1094" name="Tests" fullname="Relight.Tests" runstate="Runnable" testcasecount="22" result="Failed" site="Child" start-time="2026-09-12 01:23:40Z" end-time="2026-09-12 01:23:45Z" duration="4.511236" total="9" passed="7" failed="2" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1095" name="Play" fullname="Relight.Tests.Play" runstate="Runnable" testcasecount="22" result="Failed" site="Child" start-time="2026-09-12 01:23:40Z" end-time="2026-09-12 01:23:45Z" duration="4.510351" total="9" passed="7" failed="2" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1070" name="HeldKeyTests" fullname="Relight.Tests.Play.HeldKeyTests" classname="Relight.Tests.Play.HeldKeyTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-12 01:23:40Z" end-time="2026-09-12 01:23:42Z" duration="1.733019" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1071" name="AHeldKeyDoesNotRefireWhenTheWorldMapComesBack" fullname="Relight.Tests.Play.HeldKeyTests.AHeldKeyDoesNotRefireWhenTheWorldMapComesBack" methodname="AHeldKeyDoesNotRefireWhenTheWorldMapComesBack" classname="Relight.Tests.Play.HeldKeyTests" runstate="Runnable" seed="699884490" result="Passed" start-time="2026-09-12 01:23:40Z" end-time="2026-09-12 01:23:41Z" duration="0.586941" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="Timeout" value="30000" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1072" name="AMovementKeyReleasedWhileAPanelIsOpenLeavesTheEngineerStill" fullname="Relight.Tests.Play.HeldKeyTests.AMovementKeyReleasedWhileAPanelIsOpenLeavesTheEngineerStill" methodname="AMovementKeyReleasedWhileAPanelIsOpenLeavesTheEngineerStill" classname="Relight.Tests.Play.HeldKeyTests" runstate="Runnable" seed="1380806012" result="Passed" start-time="2026-09-12 01:23:41Z" end-time="2026-09-12 01:23:42Z" duration="1.083162" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="Timeout" value="30000" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1073" name="SprintReleasedBehindAPanelDoesNotLeaveTheEngineerSprinting" fullname="Relight.Tests.Play.HeldKeyTests.SprintReleasedBehindAPanelDoesNotLeaveTheEngineerSprinting" methodname="SprintReleasedBehindAPanelDoesNotLeaveTheEngineerSprinting" classname="Relight.Tests.Play.HeldKeyTests" runstate="Runnable" seed="1515034681" result="Passed" start-time="2026-09-12 01:23:42Z" end-time="2026-09-12 01:23:42Z" duration="0.044744" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="Timeout" value="30000" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1074" name="SessionChangeTests" fullname="Relight.Tests.Play.SessionChangeTests" classname="Relight.Tests.Play.SessionChangeTests" runstate="Runnable" testcasecount="3" result="Failed" site="Child" start-time="2026-09-12 01:23:42Z" end-time="2026-09-12 01:23:42Z" duration="0.139403" total="3" passed="1" failed="2" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1077" name="DetachingRemovesTheViewsAndANewSessionRebuildsThem" fullname="Relight.Tests.Play.SessionChangeTests.DetachingRemovesTheViewsAndANewSessionRebuildsThem" methodname="DetachingRemovesTheViewsAndANewSessionRebuildsThem" classname="Relight.Tests.Play.SessionChangeTests" runstate="Runnable" seed="2054007100" result="Failed" start-time="2026-09-12 01:23:42Z" end-time="2026-09-12 01:23:42Z" duration="0.051387" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="Timeout" value="30000" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Expected: True
+  But was:  False
+]]></message>
+                  <stack-trace><![CDATA[at Relight.Tests.Play.SessionChangeTests+<DetachingRemovesTheViewsAndANewSessionRebuildsThem>d__4.MoveNext () [0x001c8] in C:\Users\Admin\AppData\Local\Temp\relight-check\Assets\Relight\Tests\Play\Scene\SessionChangeTests.cs:131
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__8.MoveNext () [0x0004e] in .\Library\PackageCache\com.unity.test-framework@7a3849e09bd0\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:52
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1075" name="LoadingAStateWithTheSameRevisionRebuildsTheMachineViews" fullname="Relight.Tests.Play.SessionChangeTests.LoadingAStateWithTheSameRevisionRebuildsTheMachineViews" methodname="LoadingAStateWithTheSameRevisionRebuildsTheMachineViews" classname="Relight.Tests.Play.SessionChangeTests" runstate="Runnable" seed="518690408" result="Failed" start-time="2026-09-12 01:23:42Z" end-time="2026-09-12 01:23:42Z" duration="0.045749" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="Timeout" value="30000" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  Walk closer to place the Supply chest
+  Expected: True
+  But was:  False
+]]></message>
+                  <stack-trace><![CDATA[at Relight.Tests.Play.SessionChangeTests+<LoadingAStateWithTheSameRevisionRebuildsTheMachineViews>d__2.MoveNext () [0x00132] in C:\Users\Admin\AppData\Local\Temp\relight-check\Assets\Relight\Tests\Play\Scene\SessionChangeTests.cs:44
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__8.MoveNext () [0x0004e] in .\Library\PackageCache\com.unity.test-framework@7a3849e09bd0\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:52
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1076" name="TheEngineerViewDoesNotInterpolateAcrossASessionChange" fullname="Relight.Tests.Play.SessionChangeTests.TheEngineerViewDoesNotInterpolateAcrossASessionChange" methodname="TheEngineerViewDoesNotInterpolateAcrossASessionChange" classname="Relight.Tests.Play.SessionChangeTests" runstate="Runnable" seed="266721373" result="Passed" start-time="2026-09-12 01:23:42Z" end-time="2026-09-12 01:23:42Z" duration="0.039940" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="Timeout" value="30000" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1082" name="WorldSceneTests" fullname="Relight.Tests.Play.WorldSceneTests" classname="Relight.Tests.Play.WorldSceneTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-12 01:23:42Z" end-time="2026-09-12 01:23:45Z" duration="2.632588" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1085" name="PanelReadsTheSimulationAndItsButtonSubmitsACommand" fullname="Relight.Tests.Play.WorldSceneTests.PanelReadsTheSimulationAndItsButtonSubmitsACommand" methodname="PanelReadsTheSimulationAndItsButtonSubmitsACommand" classname="Relight.Tests.Play.WorldSceneTests" runstate="Runnable" seed="700399368" result="Passed" start-time="2026-09-12 01:23:42Z" end-time="2026-09-12 01:23:43Z" duration="0.545838" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="Timeout" value="30000" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1084" name="PlacedMachineAppearsAsAPrefabBoundToItsDataAsset" fullname="Relight.Tests.Play.WorldSceneTests.PlacedMachineAppearsAsAPrefabBoundToItsDataAsset" methodname="PlacedMachineAppearsAsAPrefabBoundToItsDataAsset" classname="Relight.Tests.Play.WorldSceneTests" runstate="Runnable" seed="572477960" result="Passed" start-time="2026-09-12 01:23:43Z" end-time="2026-09-12 01:23:43Z" duration="0.044532" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="Timeout" value="30000" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1083" name="SceneRunsAndViewsFollowTheSimulation" fullname="Relight.Tests.Play.WorldSceneTests.SceneRunsAndViewsFollowTheSimulation" methodname="SceneRunsAndViewsFollowTheSimulation" classname="Relight.Tests.Play.WorldSceneTests" runstate="Runnable" seed="903288223" result="Passed" start-time="2026-09-12 01:23:43Z" end-time="2026-09-12 01:23:45Z" duration="2.039374" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="Timeout" value="30000" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/Admin/AppData/LocalLow/DefaultCompany/Relight\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

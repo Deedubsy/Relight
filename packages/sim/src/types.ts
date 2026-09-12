@@ -169,6 +169,9 @@ export interface PowerState {
 }
 
 export type Command =
+  | { type:'fabrication'; action:import('./fabrication').FabricationAction }
+  | { type:'region'; action:import('./firstRegion').RegionAction }
+  | { type:'equipment'; action:import('./equipment').EquipmentAction }
   | {type:'cityProp';id:string}
   | {type:'progression'; action:import('./progression').ProgressionAction}
   | { type:'inventory'; action:import('./engineer').InventoryAction }
@@ -275,6 +278,7 @@ export type SimEvent =
 
 /** D5: the engineer. One body on the tile grid; the harness moves it block to block along the streets. */
 export interface Engineer {
+    equipment?: import('./equipment').Equipment;
   x: number; y: number;        // tile position
   block: number;               // the block it stands in or last stood in (-1 between blocks while walking)
   hp: number; lastHit: number; lastDamageSource?: string; // HP and the tick it was last hurt (regen after 5 s out of contact)

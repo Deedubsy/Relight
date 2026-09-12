@@ -1,5 +1,9 @@
 # Relight — Current Gameplay Catalogue
 
+**Turret update (2026-09-11):** Active campaign Gun turrets fire 1 shot/s (second player-test pass; 3.5 in the first pass), one bullet per shot, and draw 20 kW from a connected, supplied Pole network; an unpowered turret holds fire, with rotating cannons and unchanged 9-tile reach. Start with at least three turrets covering different approaches; three is not guaranteed protection.
+
+**Weapon range update (2026-09-11):** Rifle 18 effective / 30 maximum tiles; two-barrel shotgun 6 / 12 with spread and damage falloff; Arc runtime 9; Plasma runtime 14 with travel time. Gun turrets remain 9. Arc/Plasma acquisition is not yet implemented. [Current combat details](Implementation/GP_CHECKPOINT.md#distinct-weapon-ranges--2026-09-11).
+
 **Implementation snapshot: 10 September 2026.** Covers the current `exploration-v2` campaign and authored Riverfront city, including the latest player-experience corrections. This is a readable reference to what is implemented, not a list of planned features or a balance approval. Older modes and saves can have different rules.
 
 ## At a glance
@@ -128,7 +132,7 @@ Costs below are **construction costs**, not the materials needed to run the mach
 ### Power and lighting
 
 - **Generator** — Burns Coal or Refined fuel to supply up to **300 kW**. Has a **50-item combined fuel inventory**; consumption follows actual load. Cost: **30 Steel plates + 10 Copper**. Size: **2×2**.
-- **Pole** — Connects the local power network, with an **8-tile reach**. Cost: **1 Steel plates + 1 Copper**. Size: **1×1**. No power demand.
+- **Pole** — Connects the local power network, with an **8-tile reach**. Cost: **1 Steel plates + 1 Copper**. Size: **1×1**. No power demand. Reach is measured from the Pole’s centre to the linked footprint (Pole, Big pole, Generator, Substation or machine), so a Generator links across the same 7-tile gap as a machine; placing a Pole previews its cables in purple.
 - **Big pole** — Longer power connection, with a **12-tile reach**. Cost: **4 Steel plates + 4 Copper**. Size: **2×2**. No power demand. Unlock: **Electricians**.
 - **Substation** — Provides local power distribution and network connections. Cost: **50 Steel plates + 25 Copper**. Size: **3×3**. No power demand. Available without the Electricians unlock.
 - **Lamp** — General local lighting with a **4-tile radius**. Cost: **1 Steel plates + 1 Copper**. Size: **1×1**. Power: **5 kW**.
@@ -137,7 +141,7 @@ Costs below are **construction costs**, not the materials needed to run the mach
 
 ### Defence
 
-- **Gun turret** — Uses Shot magazines. Range: **9 tiles**; firing rate: **5 rounds/second**; base hopper: **50 rounds**; health: **100 HP**. Cost: **15 Steel plates + 5 Copper**. Size: **2×2**. No electrical demand. The Gunsmith offers a paid hopper upgrade.
+- **Gun turret** — Uses Shot magazines. Range: **9 tiles**; firing rate: **5 rounds/second**; base hopper: **50 rounds**; health: **100 HP**. Cost: **15 Steel plates + 5 Copper**. Size: **2×2**. Electrical demand: **20 kW** within Pole/Substation coverage; holds fire without power. The Gunsmith offers a paid hopper upgrade.
 - **Cannon** — Uses Shells. Range: **12 tiles**; damage: **50 per shot**; reload: **2 seconds**; capacity: **20 Shells**. Cost: **40 Steel plates + 20 Copper**. Size: **2×2**. No electrical demand. Unlock: **Arsenal**.
 - **Wall** — Basic obstruction and protection with **120 HP**. Cost: **2 Steel plates**. Size: **1×1**. No power demand.
 - **Barricade** — Stronger obstruction with **240 HP**. Cost: **2 Steel plates + 4 Concrete**. Size: **1×1**. No power demand. Unlock: **Concrete crew**.
@@ -161,7 +165,7 @@ Sources: [authored city](../packages/sim/src/city/riverfront.ts), [campaign bind
 
 ### The opening: establish a working supply line
 
-The current guidance leads the player through this order. It is guidance, not a rule preventing other sensible construction.
+The current guidance leads the player through this order. It is guidance, not a rule preventing other sensible construction. A new campaign Backpack holds **20 Steel plates + 5 Copper** (GP-START-POCKETS); Home storage starts empty, so the rest of the Generator’s price and its Coal are hand-mined.
 
 1. **Generator:** 30 Steel plates + 10 Copper. Gather Coal to fuel it; at least one unit is needed to start supplying energy.
 2. **Excavator:** 10 Steel plates. Place it at a resource patch and supply power.

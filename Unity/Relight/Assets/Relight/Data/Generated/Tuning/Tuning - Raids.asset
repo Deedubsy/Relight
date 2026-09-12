@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23035a2c7e6e3f44a8674d6d106ca15d, type: 3}
+  m_Name: Tuning - Raids
+  m_EditorClassIdentifier: Relight.Data::Relight.Data.RaidDirectorTuningAsset
+  key: raids
+  displayName: Raid director
+  kind: 0
+  source: packages/sim/src/campaignThreat.ts:27; packages/sim/src/campaignThreat.ts:23; packages/sim/src/campaignThreat.ts:83; packages/sim/src/campaignThreat.ts:198; packages/sim/src/campaignThreat.ts:49; packages/sim/src/gameplayCombat.ts:13; packages/sim/src/progression.ts:17
+  provisional: 0
+  generatedFingerprint: 059762b6d7be535452f81fea3c3cdf930004d620
+  firstMinS: 1500
+  firstRangeS: 300
+  intervalMinS: 1080
+  intervalRangeS: 240
+  warningS: 300
+  graceS: 780
+  windowS: 150
+  recoveryS: 300
+  total: 60
+  activeRaidBudget: 48
+  livingBudget: 240
+  minorMinS: 300
+  minorRangeS: 120
+  minorCountBase: 6
+  minorCountRange: 4
+  minorAfterMajorS: 300
+  majorCount: 60
+  majorSkitters: 40
+  majorSpitters: 20
+  majorSectors: 4
+  spawnEveryS: 4
+  contactDps: 5
+  structureDps: 8
+  breakerStructureMul: 3
+  speedTilesPerS: 2
+  guardLeashTiles: 12
+  guardNoticeTiles: 8
+  chaseEscapeTiles: 20
+  patrolRadiusTiles: 6
+  noticeTiles: 8
+  escapeTiles: 18
+  alertRadiusTiles: 6
+  lightHesitateS: 0.65
+  projectileSpeedTilesPerS: 8
+  projectileLifeS: 2
+  radioUpgradeSteel: 15
+  radioUpgradeCopper: 10
+  assaultHistory: 32

@@ -42,6 +42,7 @@ export * from './expansion';
 export * from './campaignPower';
 export * from './campaignDefence';
 export * from './campaignThreat';
+export * from './openingEncounter';
 export * from './campaignDistricts';
 export * from './campaignDiscovery';
 export * from './campaignRecruits';
@@ -98,3 +99,17 @@ export {itemName} from './itemNames';
 export {relayDangerAt,encounterBlocker,encounterDuration,progressionStatus,progressionReward} from './progression';
 
 export * from './machineInventory';
+export * from './gameplayProgress';
+
+export * from './equipment';
+
+export * from './firstRegion';
+export * from './gameplayCombat';
+export * from './city/gameplaySites';
+
+export * from './fabrication';
+
+export * from './weaponProfiles';
+export * from './playerBallistics';
+
+export * from './turretTracking';

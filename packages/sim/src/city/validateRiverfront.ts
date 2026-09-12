@@ -6,7 +6,11 @@ import {RIVERFRONT as C,RIVERFRONT_BUILDINGS as buildings,RIVERFRONT_PROPS as pr
 import {riverfrontRail} from './riverfrontRail';
 import {overlaps,corridorRect,doorRect,doorOutside} from './parcelGeometry';
 /** One structural acceptance check for the canonical new game, never player-built barriers. */
-export function validateRiverfront(st:SimState){
+export function validateRiverfront(source:SimState){
+ // Structural binding checks consider the permanently opened route. GP validation separately
+ // proves exterior key reachability and closed-gate collision; never alter the supplied save.
+ const p=source.campaign?.progression,g=p?.gameplay;
+ const st:SimState=g?{...source,campaign:{...source.campaign!,progression:{...p!,gameplay:{...g,strongholds:{...g.strongholds,freight:{...g.strongholds.freight,opened:true}}}}}}:source;
  const errors:string[]=[],G=ground(st),rail=riverfrontRail(),overlap=(a:{x:number;y:number;w:number;h:number},b:{x:number;y:number;w:number;h:number})=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
  const ids=new Set<string>();
  for(const b of buildings){

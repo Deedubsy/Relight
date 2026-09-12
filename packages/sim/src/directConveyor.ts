@@ -1,5 +1,6 @@
+import {ammoUnit,machineAmmoUnit} from './flow';
 import type {SimState} from './types';
-import {ITEMS,DX,DY,SHOT,machineAt,nextOf,accepts,giveItem,chestCount,isStoreItem,recipeOf,recipeOutput,type Machine,type FlowState,type Item} from './flow';
+import {ITEMS,DX,DY,machineAt,nextOf,accepts,giveItem,chestCount,isStoreItem,recipeOf,recipeOutput,type Machine,type FlowState,type Item} from './flow';
 import {isConveyor,isRouting,routingEntry,splitterPorts,undergroundMate} from './routing';
 /** Rebuilt only for topology changes, not inventory changes. Loops are bounded by visited IDs. */
 const cache=new WeakMap<FlowState,{rev:number;n:number;targets:Map<number,Machine[]>}>();
@@ -24,26 +25,26 @@ function roomAtEnd(st:SimState,belt:Machine,item:Item,targets:Map<number,Machine
  return ends.some(end=>{
   const inv={...end.inv};let magazines=0;
   for(const m of st.flow!.machines)if(isConveyor(m)&&targets.get(m.id)?.some(t=>t.id===end.id))for(const carried of m.items){inv[carried.k]=(inv[carried.k]??0)+1;if(carried.k==='magazine')magazines++;}
-  if(end.kind==='turret')inv.rounds=(end.inv.rounds??0)+magazines*SHOT.count;
-  if(end.kind==='depot'&&item==='magazine')return st.buffer+(magazines+1)*SHOT.count<=st.config.bufferCap;
+  if(end.kind==='turret')inv.rounds=(end.inv.rounds??0)+magazines*ammoUnit(st);
+  if(end.kind==='depot'&&item==='magazine')return st.buffer+(magazines+1)*ammoUnit(st)<=st.config.bufferCap;
   return accepts(st,{...end,inv},item);
  });
 }
 function sourceCount(st:SimState,m:Machine,k:Item):number{
  if(m.kind==='depot')return chestCount(st,k);
- if(['assembler','assembler2','mixer','foundry','refinery'].includes(m.kind))return k===outputOf(m)?m.out:0;
+ if(['alienworkbench','assembler','assembler2','mixer','foundry','refinery'].includes(m.kind))return k===outputOf(m)?m.out:0;
  if((m.kind==='excavator'||m.kind==='pumpjack'))return m.hold===k?1:0;
- if(m.kind==='turret')return k==='magazine'?Math.floor((m.inv.rounds??0)/SHOT.count):0;
+ if(m.kind==='turret')return k==='magazine'?Math.floor((m.inv.rounds??0)/machineAmmoUnit(m)):0;
  if(m.kind==='tramstop')return (m.cargo?.[k]??0)+(m.inv[k]??0);
  if(m.kind==='chest'||m.kind==='generator'||m.kind==='cannon')return m.inv[k]??0;
  return 0;
 }
 const outputOf=(m:Machine)=>recipeOutput(recipeOf(m));
 function takeSource(st:SimState,m:Machine,k:Item):void{
- if(m.kind==='depot'){if(k==='magazine')st.buffer-=SHOT.count;else if(isStoreItem(k))st.flow!.store[k]=(st.flow!.store[k]??0)-1;else st.stock[k]--;}
- else if(['assembler','assembler2','mixer','foundry','refinery'].includes(m.kind))m.out--;
+ if(m.kind==='depot'){if(k==='magazine'){if((st.flow!.ammoRecovery??0)>0)st.flow!.ammoRecovery!--;else st.buffer-=ammoUnit(st);}else if(isStoreItem(k))st.flow!.store[k]=(st.flow!.store[k]??0)-1;else st.stock[k]--;}
+ else if(['alienworkbench','assembler','assembler2','mixer','foundry','refinery'].includes(m.kind))m.out--;
  else if((m.kind==='excavator'||m.kind==='pumpjack'))m.hold=null;
- else if(m.kind==='turret')m.inv.rounds-=SHOT.count;
+ else if(m.kind==='turret')m.inv.rounds-=ammoUnit(st);
  else if(m.kind==='tramstop'&&(m.cargo?.[k]??0)>=1)m.cargo![k]--;
  else m.inv[k]--;
 }

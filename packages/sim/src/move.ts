@@ -19,7 +19,7 @@ export function moveTo(c: Body, gx: number, gy: number, step: number): void {
 /** Greedy step toward a point over passable tiles, 8-connected without corner cutting (the chase, and the
  *  off-field fallback); false when no neighbouring tile is closer. */
 export function stepToward(st: SimState, G: Ground, c: Body, gx: number, gy: number, step: number, bias?:(x:number,y:number)=>number): boolean {
-  if(st.city?.mapId)return cityStep(st,c,gx,gy,step);
+  if(st.city?.mapId)return cityStep(st,c,gx,gy,step,bias);
   const ctx = Math.floor(c.x), cty = Math.floor(c.y);
   const initial=Math.hypot(gx-c.x,gy-c.y);let best=-1,bd=bias?Infinity:initial;
   if (Math.floor(gx) === ctx && Math.floor(gy) === cty) { moveTo(c, gx, gy, step); return true; }

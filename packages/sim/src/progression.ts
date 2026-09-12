@@ -1,3 +1,5 @@
+import {regionDiscoveries,tickFirstRegion} from './firstRegion';
+import {recordCoreRecovery} from './gameplayProgress';
 import {itemName} from './itemNames';
 import {riverfrontTramPose} from './city/riverfrontRail';
 /** Owner-authorised audit corrections. All numeric values here are initial implementation defaults. */
@@ -15,7 +17,7 @@ import {heldItems} from './ledger';
 export const CORRECTIONS={version:1,openingMinorSlots:[900,1080],plants:3,plantKw:600,coreSearchRadius:28,discoverRadius:14,artifactSpeed:1.1,hopperIncrease:1.25,freightIncrease:1.25,plantCost:{steel:30,copper:15},upgradeCost:{steel:20,copper:10},resourceUnits:12000,encounterKw:100,encounterSeconds:[30,40,50],encounterCost:{steel:30,copper:15},alienEquipmentRange:7,alienEquipmentDps:2,cannon:{range:12,damage:50,seconds:2,capacity:20},breakerHp:100,conductorHp:80,shadeHp:40,reinforcementSeconds:8,reinforcementLimit:8} as const;
 export interface ProgressionSite {id:string;kind:'core'|'plant'|'artifact'|'heart'|'furnace'|'crown';name:string;x:number;y:number;size:number;block:number;seen:boolean;item?:Item;recovered:boolean;enabled:boolean;installed?:Item;delivered:Record<string,number>;restoredAt:number;guards?:number[];progress:number;started:boolean;waves:number;attempt:number;searchX:number;searchY:number}
 export interface ResourceSite {x:number;y:number;block:number;item:Item;remaining:number}
-export interface Progression {version:1;sites:ProgressionSite[];resources:ResourceSite[];arsenal:boolean;freightUpgrade:boolean;notice:string;passenger?:{tram:number};}
+export interface Progression {version:1;sites:ProgressionSite[];resources:ResourceSite[];arsenal:boolean;freightUpgrade:boolean;notice:string;passenger?:{tram:number};gameplay?:import('./gameplayProgress').GameplayProgress;}
 export type ProgressionAction={type:'recover'|'deliver'|'activate'|'toggle'|'start'|'abort';id:string}|{type:'attach';machine:number;item:Item}|{type:'detach'|'hopper';machine:number}|{type:'freight'}|{type:'board'}|{type:'exit'};
 export const progressionAt=(st:SimState,x:number,y:number)=>st.campaign?.progression?.sites.find(s=>x>=s.x&&x<s.x+s.size&&y>=s.y&&y<s.y+s.size);
 export function initProgression(st:SimState):void {
@@ -67,11 +69,13 @@ export function progressionCheck(st:SimState,a:ProgressionAction):string {
  if(a.type==='freight')return !campaignRecruited(st,'railcrew')?'Recruit the Rail crew':p.freightUpgrade?'Freight upgrade already installed':Object.entries(CORRECTIONS.upgradeCost).some(([k,n])=>(st.engineer.inv[k]??0)<n)?'Needs 20 steel + 10 copper':'';
  if('machine' in a){const m=st.flow!.machines.find(m=>m.id===a.machine);if(!m)return 'Machine unavailable';const why=local(st,m);if(why)return why;
   if(a.type==='hopper')return m.kind!=='turret'?'Select a gun turret':!campaignRecruited(st,'gunsmith')?'Recruit the Gunsmith':m.hopperUpgrade?'Hopper upgrade already installed':Object.entries(CORRECTIONS.upgradeCost).some(([k,n])=>(st.engineer.inv[k]??0)<n)?'Needs 20 steel + 10 copper':'';
-  if(!isProcessor(m)&&m.kind!=='excavator'&&m.kind!=='pumpjack')return 'This machine has no artifact slot';
-  if(a.type==='attach')return m.artifact?'Artifact slot occupied':!a.item.startsWith('artifact')||(st.engineer.inv[a.item]??0)!==1?'Carry a recovered speed artifact':'';
-  return !m.artifact?'Artifact slot empty':take({...st.engineer,inv:{...st.engineer.inv}},m.artifact,1)!==1?'Backpack full':'';
+  if(!isProcessor(m)&&m.kind!=='excavator'&&m.kind!=='pumpjack')return 'This machine has no module slot';
+  if(a.type==='attach')return m.artifact?'Module slot occupied':!(p.gameplay?a.item==='overclock':a.item.startsWith('artifact'))||(st.engineer.inv[a.item]??0)<1?'Carry an Overclock Module':'';
+  return !m.artifact?'Module slot empty':take({...st.engineer,inv:{...st.engineer.inv}},m.artifact,1)!==1?'Backpack full':'';
  }
  const s=p.sites.find(s=>s.id===a.id);if(!s)return 'Unknown site';const why=local(st,s);if(why)return why;
+ if(a.type==='recover'&&s.item==='core1'&&p.gameplay?.region&&!p.gameplay.strongholds.freight.opened)return 'Unlock Freight with three distinct exterior keys first';
+ if(a.type==='recover'&&p.gameplay&&s.kind==='artifact'&&!s.recovered){const trial={...st.engineer,inv:{...st.engineer.inv},pack:st.engineer.pack?.map(s=>s&&{...s})};return take(trial,'alienartifact',2)!==2?'Make room for two Artifacts; source remains unclaimed':'';}
  if(a.type==='recover')return !s.item?'No portable reward here':s.recovered?'Already recovered':s.kind==='core'&&!s.guards?'Locate the relay defenders before extracting':s.guards?.some(id=>st.flow!.threat?.crawlers.some(c=>c.id===id))?'Defeat the relay defenders first':take({...st.engineer,inv:{...st.engineer.inv}},s.item,1)!==1?'Backpack full; reward remains at the source':'';
  if(a.type==='toggle')return s.kind!=='plant'||!s.installed?'Plant is not commissioned':'';
  if(a.type==='abort')return s.started?'':'No encounter running';
@@ -87,12 +91,12 @@ export function progressionCommand(st:SimState,a:ProgressionAction):string {
  if(a.type==='freight'){paid(st,CORRECTIONS.upgradeCost);p.freightUpgrade=true;return p.notice='Freight capacity increased by 25%';}
  if('machine' in a){const m=st.flow!.machines.find(m=>m.id===a.machine)!;if(a.type==='hopper'){paid(st,CORRECTIONS.upgradeCost);m.hopperUpgrade=true;}else if(a.type==='attach'){drop(e,a.item,1);m.artifact=a.item;}else{take(e,m.artifact!,1);delete m.artifact;}return p.notice='Machine upgrade updated';}
  const s=p.sites.find(s=>s.id===a.id)!;s.seen=true;
- if(a.type==='recover'){take(e,s.item!,1);s.recovered=true;s.enabled=false;st.flow!.rev++;st.flow!.stats.minedOf[s.item!]=(st.flow!.stats.minedOf[s.item!]??0)+1;return p.notice=`Recovered ${itemName(s.item!)}; source equipment offline`;}
+ if(a.type==='recover'){const optional=p.gameplay&&s.kind==='artifact',reward=optional?'alienartifact':s.item!,count=optional?2:1;take(e,reward,count);if(optional&&!p.gameplay!.claimed.includes(s.id)){p.gameplay!.claimed.push(s.id);if(s.id==='artifact:workshop'&&!p.gameplay!.recoveredSchematics.includes('overclock'))p.gameplay!.recoveredSchematics.push('overclock');}s.recovered=true;s.enabled=false;recordCoreRecovery(st,s.item!);st.flow!.rev++;st.flow!.stats.minedOf[reward]=(st.flow!.stats.minedOf[reward]??0)+count;return p.notice=optional?'Recovered 2 shared Artifacts; any secured schematic stays in your quest knowledge. Decode at a powered Alien workbench after commissioning a plant.':`Recovered ${itemName(reward)}; source equipment offline`;}
  if(a.type==='deliver'){for(const [k,n] of missing(s)){const moved=Math.min(n-(s.delivered[k]??0),e.inv[k]??0);drop(e,k,moved);s.delivered[k]=(s.delivered[k]??0)+moved;}return p.notice='Carried materials delivered';}
  if(a.type==='toggle'){s.enabled=!s.enabled;st.flow!.rev++;return p.notice=s.enabled?'Plant output enabled':'Plant output off · still an attack target';}
  if(a.type==='abort'){s.started=false;return p.notice='Encounter paused; materials and progress retained';}
  if(a.type==='activate'){
-  const k=['core1','core2','core3'].find(k=>(e.inv[k]??0)===1)! as Item;drop(e,k,1);s.installed=k;s.restoredAt=st.t;
+  const k=['core1','core2','core3'].find(k=>(e.inv[k]??0)===1)! as Item;drop(e,k,1);s.installed=k;s.restoredAt=st.t;if(p.gameplay&&!p.gameplay.commissioned.includes(s.id))p.gameplay.commissioned.push(s.id);
   let health=baseCore(st,s.block);if(!health){health={block:s.block,x:s.x,y:s.y,size:s.size,hp:DEFENCE.coreHp,commissionedAt:st.t};st.campaign!.defence!.bases.push(health);}else{health.x=s.x;health.y=s.y;health.size=s.size;}
   nominateBase(st,s.block);st.flow!.rev++;return p.notice='Plant commissioned · finite regional power and defended factory site';
  }
@@ -128,7 +132,7 @@ export function progressionReward(s:ProgressionSite):string {
 }
 export function progressionStatus(st:SimState,s:ProgressionSite):string {
  if(s.kind==='core')return s.recovered?'Core recovered · relay offline':'Powered alien relay · clear defenders';
- if(s.kind==='artifact')return s.recovered?'Artifact recovered':'Optional speed artifact';
+ if(s.kind==='artifact')return s.recovered?'Optional source recovered':st.campaign?.progression?.gameplay?'Optional shared Artifacts'+(s.id==='artifact:workshop'?' + Overclock schematic':''):'Optional speed artifact';
  if(s.kind==='plant'&&s.installed)return baseCore(st,s.block)?.hp===0?'Damaged · repair preserves installed core':s.enabled?'Operating · 600 kW · attack target':'Offline · still attack target';
  if(s.restoredAt>=0)return 'Completed';
  const needs=missing(s);if(needs.length)return 'Needs materials: '+needs.map(([item,n])=>`${n-(s.delivered[item]??0)} ${itemName(item)}`).join(' + ');
@@ -138,11 +142,12 @@ export function progressionStatus(st:SimState,s:ProgressionSite):string {
  return blocker?`${s.started?'Stalled':'Needs preparation'} · ${progress} · ${blocker}`:`${s.started?'Running':s.progress>0?'Paused · ready to resume':'Ready to start'} · ${progress}`;
 }
 export function tickProgression(st:SimState,dt:number):void {
+ tickFirstRegion(st);
  const p=st.campaign?.progression;if(!p)return;const e=st.engineer;
  for(const m of st.flow!.machines)if(m.kind==='cannon'&&machineRunning(st,m)){m.timer=Math.max(0,m.timer-dt);if(m.timer<=0&&(m.inv.shell??0)>0){const target=st.flow!.threat?.crawlers.filter(c=>c.hp>0&&citySight(st,m.x+1,m.y+1,c.x,c.y)&&(c.kind!=='shade'||litAt(st,Math.floor(c.x),Math.floor(c.y)))&&Math.hypot(c.x-m.x-1,c.y-m.y-1)<=CORRECTIONS.cannon.range).sort((a,b)=>b.hp-a.hp)[0];if(target){m.inv.shell--;m.timer=CORRECTIONS.cannon.seconds;st.flow!.stats.consumed.shell=(st.flow!.stats.consumed.shell??0)+1;target.hp-=CORRECTIONS.cannon.damage;if(target.hp<=0)st.flow!.threat!.crawlers.splice(st.flow!.threat!.crawlers.indexOf(target),1);}}}
 
  for(const s of p.sites){if(!s.seen&&citySight(st,e.x,e.y,s.x+1.5,s.y+1.5)&&Math.hypot(e.x-s.x,e.y-s.y)<CORRECTIONS.discoverRadius)s.seen=true;
-  if(s.kind==='core'&&s.seen&&!s.guards){s.guards=[spawnSiteEnemy(st,s),spawnSiteEnemy(st,s,s.item==='core1'?'crawler':'shade')].filter(id=>id>=0);}
+  if(s.kind==='core'&&s.seen&&!s.guards&&!(s.item==='core1'&&p.gameplay?.region)){s.guards=[spawnSiteEnemy(st,s),spawnSiteEnemy(st,s,s.item==='core1'?'crawler':'shade')].filter(id=>id>=0);}
   if(e.down<0&&relayDangerAt(st,s,e.x,e.y))hurt(st,CORRECTIONS.alienEquipmentDps*dt,`relay:${s.id}`);
   if(!s.started||s.restoredAt>=0)continue;
   const index=s.kind==='heart'?0:s.kind==='furnace'?1:2,duration=CORRECTIONS.encounterSeconds[index];
@@ -157,14 +162,14 @@ export function tickProgression(st:SimState,dt:number):void {
 }
 export function progressionDiscoveries(st:SimState):DiscoveryInfo[]{
  const p=st.campaign?.progression;if(!p)return [];
- return p.sites.filter(s=>s.seen||s.kind==='core').map(s=>{
+ return [...regionDiscoveries(st),...p.sites.filter(s=>s.seen||s.kind==='core').map(s=>{
   const hidden=s.kind==='core'&&!s.seen,actions:ProgressionAction[]=hidden||s.recovered?[]:s.kind==='core'||s.kind==='artifact'?[{type:'recover',id:s.id}]:s.kind==='plant'?s.installed?[{type:'toggle',id:s.id}]:[{type:'deliver',id:s.id},{type:'activate',id:s.id}]:s.started?[{type:'abort',id:s.id}]:s.restoredAt<0?[{type:'deliver',id:s.id},{type:'start',id:s.id}]:[];
   const label={recover:'Recover',deliver:'Deliver carried materials',activate:'Install carried core',toggle:'Toggle output (remains defended)',start:'Start / resume engineering encounter',abort:'Pause encounter'};
   const status=hidden?'Search within the marked area':progressionStatus(st,s);
   const direction=`${s.searchY<st.city!.th/2?'North':'South'}${s.searchX<st.flow!.tw/2?'west':'east'}`;
-  const detail=hidden?`Scout within ${CORRECTIONS.coreSearchRadius} tiles. Exact relay remains unknown. Prepare powered lighting for relay defenders; the flashlight does not expose Shades.`:(['heart','furnace','crown','artifact'].includes(s.kind)?s.restoredAt>=0||s.recovered?'Reward received: ':'Reward: ':'')+progressionReward(s)+(s.kind==='heart'?' Connect a powered feeder pole on each side; 100 kW commissioning load.':s.kind==='furnace'?' Keep two nearby processors busy through the defence.':s.kind==='crown'?' Keep two nearby powered lights on and eliminate Conductor sources.':'');
+  const detail=p.gameplay&&s.kind==='artifact'?'Recover 2 shared Artifacts'+(s.id==='artifact:workshop'?' and a secured Overclock schematic':'')+'. Schematics are permanent knowledge; decode at a powered Alien workbench (M2: first commissioned plant), then craft removable modules with ordinary components. No optional reward is needed for Freight.':p.gameplay&&s.item==='core1'?`Freight: ${p.gameplay.strongholds.freight.keys.length}/3 distinct exterior keys · ${p.gameplay.strongholds.freight.opened?'access permanently open':'both entrances locked'}. Clear its finite defenders and charging guardian; use solid cargo cover and dodge the marked charge. Recover the core separately at the relay.`:hidden?`Scout within ${CORRECTIONS.coreSearchRadius} tiles. Exact relay remains unknown. Prepare powered lighting for relay defenders; the flashlight does not expose Shades.`:(['heart','furnace','crown','artifact'].includes(s.kind)?s.restoredAt>=0||s.recovered?'Reward received: ':'Reward: ':'')+progressionReward(s)+(s.kind==='heart'?' Connect a powered feeder pole on each side; 100 kW commissioning load.':s.kind==='furnace'?' Keep two nearby processors busy through the defence.':s.kind==='crown'?' Keep two nearby powered lights on and eliminate Conductor sources.':'');
   return {id:s.id,title:hidden?`${direction} core search area`:s.name,defaultTitle:s.name,x:hidden?s.searchX:s.x,y:hidden?s.searchY:s.y,size:hidden?1:s.size,status,detail,needs:s.kind==='core'||s.kind==='artifact'||s.restoredAt>=0?[]:Object.entries(costOf(s)).map(([item,required])=>({item,required,delivered:s.delivered[item]??0})),actions:actions.map(a=>({label:label[a.type as keyof typeof label],reason:progressionCheck(st,a),commands:[{type:'progression' as const,action:a}]}))};
- });
+ })];
 }
 export function progressionProblem(st:SimState):string {
  const p=st.campaign?.progression;if(!p)return '';
@@ -182,12 +187,12 @@ export function progressionProblem(st:SimState):string {
  }
  for(const r of p.resources)if(!r||!position(r,3)||!['ironore','copperore','crude',...(st.city?.mapId?['coal','stone']:[])].includes(r.item)||!int(r.remaining)||r.remaining>CORRECTIONS.resourceUnits)return 'Invalid regional resource';
  for(const m of st.flow!.machines){
-  if(m.artifact&&(!/^artifact[123]$/.test(m.artifact)||!rewards.has(m.artifact)||!isProcessor(m)&&m.kind!=='excavator'&&m.kind!=='pumpjack'))return 'Invalid machine artifact';
+  if(m.artifact&&(!(p.gameplay?m.artifact==='overclock':/^artifact[123]$/.test(m.artifact)&&rewards.has(m.artifact))||!isProcessor(m)&&m.kind!=='excavator'&&m.kind!=='pumpjack'))return 'Invalid machine artifact';
   if(m.hopperUpgrade!==undefined&&(typeof m.hopperUpgrade!=='boolean'||m.kind!=='turret'))return 'Invalid hopper upgrade';
   if(['foundry','refinery','assembler2'].includes(m.kind)&&(!m.recipe||!recipesFor(m).includes(m.recipe)))return 'Invalid processor recipe';
  }
  const total=heldItems(st).total;
- for(const s of p.sites)if(s.item&&(total[s.item]??0)!==(s.recovered?1:0))return `Invalid unique reward ownership: ${s.item}`;
+ for(const s of p.sites)if(s.item&&(total[s.item]??0)!==(s.recovered&&!(p.gameplay?.upgradesMigrated&&s.kind==='artifact')?1:0))return `Invalid unique reward ownership: ${s.item}`;
  if(p.passenger&&(!int(p.passenger.tram,1)||st.engineer.truckSeat||!st.flow!.machines.some(m=>m.kind==='tram'&&m.id===p.passenger!.tram)))return 'Invalid tram passenger';
  return '';
 }

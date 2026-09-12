@@ -1,3 +1,5 @@
+import {FREIGHT_GATES} from './city/gameplaySites';
+import {fireEquipment} from './equipment';
 import { driveTruck, truckOccupies } from './truck';
 /** Prompt B M1 — the engineer on the tile grid. The block sim keeps its block-level engineer (engineer.ts: a walk is
  *  a distance along the streets, the harness bot's model); with the flow layer present the engineer is a sprite on
@@ -42,6 +44,7 @@ function solidMap(st: SimState, G: Ground): Uint8Array | null {
   if(st.city?.mapId)for(const p of st.campaign?.progression?.sites??[])if(!p.recovered)for(let y=p.y;y<p.y+p.size;y++)for(let x=p.x;x<p.x+p.size;x++)solid[y*G.tw+x]=1;
   const turbine=st.campaign?.turbine;
   if(turbine)for(let y=turbine.y;y<turbine.y+turbine.size;y++)for(let x=turbine.x;x<turbine.x+turbine.size;x++)solid[y*G.tw+x]=1;
+  if(st.campaign?.progression?.gameplay?.region&&!st.campaign.progression.gameplay.strongholds.freight.opened)for(const p of FREIGHT_GATES)for(let y=p.y;y<p.y+p.h;y++)for(let x=p.x;x<p.x+p.w;x++)solid[y*G.tw+x]=1;
   solids.set(f, { rev: f.rev, solid });
   return solid;
 }
@@ -74,7 +77,7 @@ const NX = [0, 1, 0, -1, 1, 1, -1, -1], NY = [-1, 0, 1, 0, -1, 1, 1, -1];
 
 /** Shortest walk between two tiles (8-connected, no corner cutting): the tiles to step through, ending on the goal;
  *  null when there is none. `limit` bounds the search for a stuck engineer. */
-export function findPath(st: SimState, sx: number, sy: number, gx: number, gy: number, limit = 250000, clearance = 0): Int32Array | null {
+export function findPath(st: SimState, sx: number, sy: number, gx: number, gy: number, limit = 250000, clearance = 0, bias?: (x:number,y:number)=>number): Int32Array | null {
   const G = ground(st);
   if (!inGround(G, sx, sy) || !inGround(G, gx, gy)) return null;
   const solid = solidMap(st, G), tw = G.tw, th = G.th, base = G.base;
@@ -128,7 +131,7 @@ export function findPath(st: SimState, sx: number, sy: number, gx: number, gy: n
       const nx = x + NX[k], ny = y + NY[k];
       if (!open(nx, ny)) continue;
       if (k >= 4 && (!open(x + NX[k], y) || !open(x, y + NY[k]))) continue;
-      const nt = ny * tw + nx, ng = gt + (k >= 4 ? SQRT2 : 1);
+      const nt = ny * tw + nx, ng = gt + (k >= 4 ? SQRT2 : 1) + Math.max(0, bias?.(nx,ny) ?? 0);
       const seen = S.stamp[nt] === gen || S.stamp[nt] === -gen;
       if (seen && S.g[nt] <= ng) continue;
       if (S.stamp[nt] === -gen) continue;
@@ -175,6 +178,9 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
     return;
   }
   if(st.campaign?.progression?.passenger){plans.delete(e);e.vel=[0,0];e.target=null;return;}
+  // GP-PLAYTEST-FIX 2: handcrafting holds the engineer at the workshop; held keys and walk-here are dropped, and the
+  // weapon stays quiet until the batch completes or is cancelled (flow.ts `handLocked`).
+  if(f?.hand.crafting||e.equipment?.craft){plans.delete(e);e.vel=[0,0];e.target=null;e.dest=-1;e.dash=0;if(e.hp<ENGINEER_HP&&st.t-e.lastHit>=REGEN_AFTER_S)e.hp=Math.min(ENGINEER_HP,e.hp+REGEN_HP_PER_S*dt);return;}
   if(e.truckSeat){plans.delete(e);driveTruck(st,dt);}
   else {
   let v = speedOf(e) * dt, moved = false;
@@ -250,8 +256,8 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
   }
   if (e.hp < ENGINEER_HP && st.t - e.lastHit >= REGEN_AFTER_S) e.hp = Math.min(ENGINEER_HP, e.hp + REGEN_HP_PER_S * dt);
   // D-B1-5: the rifle in hand — a round toward the cursor every 1/rate s while the mouse is held (not mid-dodge)
-  if (e.aim && e.dash <= 0 && e.cooldown <= 0 && fireRound(st, e)) e.cooldown = 1 / rifleRate(e);
-  if (e.cooldown > 0) e.cooldown = Math.max(0, e.cooldown - dt);
+  if (e.aim && e.dash <= 0 && e.cooldown <= 0 && fireRound(st, e) && !e.equipment) e.cooldown = 1 / rifleRate(e);
+  if (!e.equipment && e.cooldown > 0) e.cooldown = Math.max(0, e.cooldown - dt);
 }
 
 /** D-B1-5: one round from the rifle in hand, toward `aim`. Hitscan along the line from the engineer to the cursor,
@@ -260,6 +266,7 @@ export function tickEngineerTiles(st: SimState, dt: number): void {
  *  street hits nothing and still costs a round. Returns false when the pockets hold no round. */
 /** Take one round out of the pockets' magazines (false with none left); counts the shot and the first-shot minute. */
 export function spendRound(st: SimState, e: Engineer): boolean {
+  if(e.equipment)return fireEquipment(st);
   const mags = e.inv.magazine ?? 0;
   if (mags * ROUNDS_PER_MAG < 1 - 1e-9) return false;
   e.inv.magazine = Math.max(0, mags - 1 / ROUNDS_PER_MAG);

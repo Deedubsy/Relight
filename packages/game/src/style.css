@@ -477,3 +477,55 @@ body[data-panel=inventory] .ui-drawer {border:calc(5px * var(--ui-scale)) solid 
 .hud-outages {color:#ffb18d;border-top:1px solid #a75a40;margin-top:6px;padding-top:6px;}
 
 .storage-window .inventory-grid {max-height:min(calc(488px * var(--ui-scale)),32dvh);}
+
+/* GP-PLAYTEST-FIX 3: compact workshop recipe cards and the equipment strip under the Backpack grid. */
+.recipe-cards {display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.recipe-card {flex:1 1 220px;min-width:0;padding:8px;border:1px solid var(--ui-border, #2f3a3e);border-radius:8px;background:#0f171a;display:flex;flex-direction:column;gap:6px;font-size:13px;}
+.recipe-head {display:flex;align-items:center;gap:8px;}
+.recipe-head .item-art {width:calc(var(--slot) * .6);height:calc(var(--slot) * .6);flex:none;}
+.recipe-head div {display:flex;flex-direction:column;min-width:0;}
+.recipe-head strong {font-size:14px;}
+.recipe-time {opacity:.75;font-size:12px;}
+.recipe-inputs {display:flex;flex-wrap:wrap;gap:6px;}
+.recipe-input {display:inline-flex;align-items:center;gap:3px;padding:2px 6px 2px 2px;border:1px solid #2f3a3e;border-radius:6px;background:#141e22;}
+.recipe-input .item-art {width:calc(var(--slot) * .42);height:calc(var(--slot) * .42);flex:none;}
+.recipe-input small {opacity:.7;}
+.recipe-input.short {border-color:#a75a40;}
+.recipe-input.short b {color:#ffb18d;}
+.recipe-actions {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.recipe-actions button, .recipe-progress button {padding:5px 10px;font-size:13px;}
+.recipe-note {color:#ffd7a8;font-size:12px;}
+.recipe-note:empty {display:none;}
+.recipe-progress {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.recipe-progress progress {flex:1 1 90px;height:10px;}
+/* GP-HOME-REPAIR: the Base core card's HP bar. */
+.core-card {flex-basis:100%;}
+.core-card progress.core-hp {width:100%;height:10px;}
+.core-card progress.core-hp.disabled {accent-color:#a75a40;}
+.core-card .recipe-inputs[hidden] {display:none;}
+.recipe-left {font-size:12px;white-space:nowrap;}
+.equipment-strip {margin-top:8px;font-size:12px;}
+.equipment-strip p {margin:0 0 4px;}
+.equipment-strip .row {display:flex;flex-wrap:wrap;gap:4px;margin-top:0;}
+.equipment-strip button {padding:4px 8px;font-size:12px;}
+.equipment-panel h3 {margin:0;font-size:14px;}
+.equipment-panel p {margin:6px 0;font-size:13px;}
+.equipment-panel .row {display:flex;flex-wrap:wrap;gap:4px;}
+.equipment-panel button {padding:5px 8px;font-size:13px;}
+
+.hud-goal-resources { margin: 8px 0 12px; padding-left: 20px; font-variant-numeric: tabular-nums; }
+.hud-goal-resources .ready { color: #8ae6c1; }
+
+/* Permanent authoritative clock/network, separate from the attack warning and drawers. */
+.ui-shell .hud-status-strip {position:fixed;top:10px;left:calc(332px * var(--ui-scale));right:auto;width:max-content;max-width:calc(100vw - calc(568px * var(--ui-scale)));min-width:0;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;padding:7px 10px;pointer-events:auto;z-index:var(--ui-alert);font-size:calc(12px * var(--ui-scale));}
+.hud-status-strip strong {white-space:nowrap;}   /* GP-HUD-STRIP (2026-09-11): the strip hugs its clock and power text instead of spanning goal card to minimap */
+.hud-status-strip .hud-power {overflow-wrap:anywhere;}
+@media(max-width:1000px){.ui-shell .hud-status-strip {left:calc(332px * var(--ui-scale));max-width:calc(100vw - calc(332px * var(--ui-scale)) - 10px);}}
+@media(max-width:700px){.ui-shell .hud-status-strip {left:8px;max-width:calc(100vw - 16px);top:8px;}.ui-shell .hud-goal {top:72px;}.ui-shell .hud-time {top:150px;}}
+
+.ui-shell #panel .ui-drawer {top:calc(var(--hud-status-height,32px) + 22px);max-height:calc(100dvh - var(--ui-nav-height) - var(--hud-status-height,32px) - 42px);}
+@media(max-width:1000px){.ui-shell .hud-status-strip {left:calc(332px * var(--ui-scale));}}
+@media(max-width:700px){.ui-shell .hud-status-strip {left:8px;}.ui-shell .hud-goal {top:calc(var(--hud-status-height,32px) + 24px);}}
+
+.ui-compact .quickbar {display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;max-width:100%;}
+.ui-compact .quickbar-slot {width:100%;min-width:0;}

@@ -1,5 +1,9 @@
 # RELIGHT — game design
 
+**Gameplay supersession note — 2026-09-10**
+
+The latest [accepted gameplay and labelled proposals](Design/RELIGHT_PROGRESSION_AND_WEAPONS_DRAFT.md) supersede contradictory artifact, weapon/enemy, camp/guardian and raid direction in older text below. Keys grant stronghold access; Schematics provide permanent knowledge; shared Artifacts are crafting ingredients for reusable equipment. Artifact-analysis unlocks are superseded. Generated tables remain historical/current-code evidence, not intended balance. The existing [implementation plan §6](EXPLORATION_DEFENCE_PLAN.md#6-gameplay-implementation-reconciliation-and-delivery-plan) reconciles delivery and awaits owner review; [PROGRESS](PROGRESS.md) alone owns status. Preserve unaffected requirements and legacy generated blocks.
+
 **Current correction handoff (2026-09-09):** EX-09C-01–09 and included RI-10/RI-12 mechanics are implemented. Read docs/Implementation/GAMEPLAY_CORRECTIONS.md for the ordinary empty opening, integrated evidence, initial defaults and remaining regression/freshness findings. Current preview is rebuilt mutable port 5178, bare exploration entry. Human observations and Q07/final campaign/performance gates remain open; PROGRESS owns the next work.
 
 **Owner implementation direction (2026-09-09):** implement EX-09C-01–09 plus RI-10/RI-12 combat/encounters now. The active campaign uses defended factory/plant sites, never a territorial frontage/ring or adjacent-block-claim economy. Site lifecycle and explicit truck recovery replace the former EX-09C-04 territory scope. Normal new-game entry is to use exploration-v2; explicit legacy saves/mode remain isolated. Real inventory, connected finite power and 1×/pause remain authoritative. Q07 final requirements and human/release gates stay open, not prerequisites of this authorised correction set.

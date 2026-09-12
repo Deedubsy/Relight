@@ -1,3 +1,5 @@
+import {turretFireRate} from './turretTracking';
+import {fabricationBlocker} from './fabrication';
 import {itemName} from './itemNames';
 import {processingMultiplier,hopperCapacity,freightCapacity} from './progression';
 import {ASM_OUTPUT_CAP, chestCount, depotRect, rubbleAt} from './flow';
@@ -6,7 +8,7 @@ import {hqLot} from './ground';
 import {coreDisabledAt,defenceHp,defenceMax} from './campaignDefence';
 /** P5-03: read-only factory queries and bounded, saved simulation-time observations. */
 import type { SimState } from './types';
-import { type Machine, type Item, ITEMS, isItem, machineById, recipeOf, recipeOutput, recipeYield, MACHINE_KW, KIND_LABEL, DIR_NAMES, findRubble, BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, powered, throttle, SUPPLY_CHEST_CAP, STOP_CAP, TRAM_CAP } from './flow';
+import { type Machine, type Item, ITEMS, isItem, machineById, recipeOf, recipeOutput, recipeYield, machineKw, KIND_LABEL, DIR_NAMES, findRubble, BELT_PER_S, EXCAVATOR_PER_S, INSERTER_PER_S, powered, throttle, SUPPLY_CHEST_CAP, STOP_CAP, TRAM_CAP } from './flow';
 import { machineDimensions as footprint } from './footprint';
 import { machineStatus, machineOperationStatus } from './goal';
 import { ledgerFlows } from './ledger';
@@ -51,10 +53,9 @@ export function factoryStatistics(st:SimState){
 }
 /** A pole is a network node; its physical street-owner block need not belong to its connected circuit. */
 export function machineCircuit(st:SimState,m:Machine){
-  const bi=blockOfTile(st,m.x,m.y);
   if(st.campaign){
-    const grid=campaignGrid(st),c=m.kind==='pole'||m.kind==='bigpole'?grid.poles.get(m.id):bi>=0?grid.blocks[bi]:undefined;
-    return {scope:'Local circuit',supply:c?.supply??0,demand:c?.demand??0,load:c?.load??0,throttle:c?.throttle??0};
+    const grid=campaignGrid(st),c=grid.machines.get(m.id);
+    return {scope:c?`${c.name} · rated ${c.rated} kW`:'Disconnected — place a Pole within 8 tiles and connect it to a source',supply:c?.supply??0,demand:c?.demand??0,load:c?.load??0,throttle:c?.throttle??0};
   }
   const p=st.flow!.power;return {scope:'Legacy grid',supply:p.supply,demand:p.demand,load:p.load,throttle:throttle(st)};
 }
@@ -63,8 +64,9 @@ export interface MachineConstraint {code:string;text:string;item?:Item}
 export function machineConstraints(st:SimState,m:Machine) {
   const blockers:MachineConstraint[]=[],nextInputs:MachineConstraint[]=[],status=machineStatus(st,m),operation=machineOperationStatus(st,m);
   if(st.campaign&&((defenceMax(m)>0&&defenceHp(m)<=0)||coreDisabledAt(st,m.x,m.y)))blockers.push({code:'disabled',text:'Disabled — repair the defence or base core'});
-  if(MACHINE_KW[m.kind]>0&&!powered(st,m))blockers.push({code:'power',text:machineCircuit(st,m).supply<=0?'Local circuit: no supply':'No power connection'});
-  if(['assembler','assembler2','mixer','foundry','refinery'].includes(m.kind)){
+  if(machineKw(st,m)>0&&!powered(st,m))blockers.push({code:'power',text:machineCircuit(st,m).supply<=0?'Local circuit: no supply':'No power connection'});
+  if(m.kind==='alienworkbench'&&fabricationBlocker(st))blockers.push({code:'knowledge',text:fabricationBlocker(st)});
+  if(['alienworkbench','assembler','assembler2','mixer','foundry','refinery'].includes(m.kind)){
     for(const [item,n] of Object.entries(recipeOf(m).inputs))if((m.inv[item]??0)<n)(m.busy?nextInputs:blockers).push({code:'input',item:item as Item,text:`${m.busy?'Next batch needs':'Missing'} ${n-(m.inv[item]??0)} ${itemName(item)}`});
     if(m.out>=ASM_OUTPUT_CAP)blockers.push({code:'output',text:'Finished output is full'});
   }else if(operation.state==='starved'||operation.state==='blocked')blockers.push({code:operation.state==='starved'?'input':'output',text:operation.reason,...(m.kind==='generator'?{item:'coal' as Item}:m.kind==='turret'?{item:'magazine' as Item}:{})});
@@ -79,14 +81,14 @@ export function knownInputSource(st:SimState,item:Item):{label:string;x:number;y
 }
 export function inspectMachine(st:SimState,id:number){
   const m=machineById(st,id);if(!m)return null;
-  const circuit=machineCircuit(st,m),bi=blockOfTile(st,m.x,m.y),status=machineStatus(st,m),draw=MACHINE_KW[m.kind];
+  const circuit=machineCircuit(st,m),bi=blockOfTile(st,m.x,m.y),status=machineStatus(st,m),draw=machineKw(st,m);
   const scale=powered(st,m)&&status.state!=='off'?(draw>0?circuit.throttle:1):0;
   const nominal: {item:string;input:number;output:number}[]=[];
   let recipe:string|null=null,capacity:string|null=null;
-  if((['assembler','assembler2','mixer','foundry','refinery'].includes(m.kind))){
-    const r=recipeOf(m);recipe=r.name;
+  if((['alienworkbench','assembler','assembler2','mixer','foundry','refinery'].includes(m.kind))){
+    const r=recipeOf(m);recipe=m.ammoVersion===1&&r.output==='rounds'?`${r.count} bullets / ${r.seconds} s`:r.name;
     for(const [item,n] of Object.entries(r.inputs))nominal.push({item,input:n*60/r.seconds*processingMultiplier(m),output:0});
-    nominal.push({item:recipeOutput(r),input:0,output:recipeYield(r)*60/r.seconds*processingMultiplier(m)});
+    nominal.push({item:recipeOutput(r),input:0,output:(m.ammoVersion===1&&r.output==='rounds'?r.count:recipeYield(r))*60/r.seconds*processingMultiplier(m)});
   }else if((m.kind==='excavator'||m.kind==='pumpjack')){
     const item=m.hold??findRubble(st,m)?.type;if(item)nominal.push({item,input:0,output:EXCAVATOR_PER_S*60*processingMultiplier(m)});
   }else if(['belt','fastbelt','underground','splitter','inserter'].includes(m.kind)){
@@ -96,28 +98,28 @@ export function inspectMachine(st:SimState,id:number){
   const contents:{place:string;item:string;count:number}[]=[];
   const add=(place:string,item:string,count:number)=>{if(count>0)contents.push({place,item,count});};
   if(m.kind==='depot'){
-    for(const [k,n] of Object.entries(st.stock))if(isItem(k))add('Home stock',k,n);
-    for(const [k,n] of Object.entries(st.flow!.store))add('Home stock',k,n);
-    add('Line buffer','magazine',st.buffer/10);
+    for(const [k,n] of Object.entries(st.stock))if(isItem(k))add('Home stock',k,n??0);
+    for(const [k,n] of Object.entries(st.flow!.store))add('Home stock',k,n??0);
+    add('Line buffer','magazine',st.buffer/(st.flow?.ammoVersion===1?1:10));add('Migration recovery at Home','magazine',st.flow?.ammoRecovery??0);
   }else for(const [k,n] of Object.entries(m.inv))add(m.kind==='tramstop'?'Platform':'Inventory',k,n);
   for(const [k,n] of Object.entries(m.cargo??{}))add(m.kind==='tramstop'?'Arrivals':'Cargo',k,n);
   if(m.hold)add('Held',m.hold,1);
   const buffer:Counts={};for(const it of m.items)buffer[it.k]=(buffer[it.k]??0)+1;
-  for(const [k,n] of Object.entries(buffer))add('Buffered',k,n);
-  if((['assembler','assembler2','mixer','foundry','refinery'].includes(m.kind)))add('Finished output',recipeOutput(recipeOf(m)),m.out);
-  const settings=[`Artifact: ${m.artifact?'processing speed +10% (one slot)':'empty slot'}`, ...(m.hopperUpgrade?['Hopper capacity upgraded +25%']:[]),`Facing ${DIR_NAMES[m.dir]}`,`Footprint ${footprint(m).join(' × ')} tiles`];
+  for(const [k,n] of Object.entries(buffer))add('Buffered',k,n??0);
+  if((['alienworkbench','assembler','assembler2','mixer','foundry','refinery'].includes(m.kind)))add('Finished output',recipeOutput(recipeOf(m)),m.out);
+  const settings=[`Module: ${m.artifact?'processing speed +10% (one slot)':'empty slot'}`, ...(m.hopperUpgrade?['Hopper capacity upgraded +25%']:[]),`Facing ${DIR_NAMES[m.dir]}`,`Footprint ${footprint(m).join(' × ')} tiles`];
   if(['inserter','underground','splitter'].includes(m.kind))settings.push(routingDescription(st,m));
-  const ranges:Partial<Record<Machine['kind'],string>>={arclamp:'Light radius: 6 tiles',excavator:'Extraction: 5 × 5 tiles (one tile around footprint)',inserter:'Pickup/drop: adjacent tile behind/in front',turret:`Weapon range: ${TURRET_RANGE} tiles; hopper ${hopperCapacity(m,TURRET_HOPPER)} rounds`,lamp:`Light radius: ${LAMP_RADIUS} tiles`,floodlight:`Light cone range: ${FLOODLIGHT_RANGE} tiles`,pole:`Connection reach: ${POLE_REACH} tiles`,bigpole:`Connection reach: ${BIG_POLE_REACH} tiles`,underground:`Span: up to ${UNDERGROUND_HIDDEN} hidden tiles`,chest:`Storage: ${SUPPLY_CHEST_CAP} items`,tramstop:`Platform/arrivals: ${STOP_CAP} items each`,cannon:'Weapon range: 12 tiles; 50 damage per Shell; 2 s firing interval',tram:`Cargo: ${freightCapacity(st,TRAM_CAP)} items`};
+  const ranges:Partial<Record<Machine['kind'],string>>={arclamp:'Light radius: 6 tiles',excavator:'Extraction: 5 × 5 tiles (one tile around footprint)',inserter:'Pickup/drop: adjacent tile behind/in front',turret:`Weapon range: ${TURRET_RANGE} tiles; ${turretFireRate(st)} shots/s; 1 bullet/shot; hopper ${hopperCapacity(m,TURRET_HOPPER)} rounds`,lamp:`Light radius: ${LAMP_RADIUS} tiles`,floodlight:`Light cone range: ${FLOODLIGHT_RANGE} tiles`,pole:`Connection reach: ${POLE_REACH} tiles`,bigpole:`Connection reach: ${BIG_POLE_REACH} tiles`,underground:`Span: up to ${UNDERGROUND_HIDDEN} hidden tiles`,chest:`Storage: ${SUPPLY_CHEST_CAP} items`,tramstop:`Platform/arrivals: ${STOP_CAP} items each`,cannon:'Weapon range: 12 tiles; 50 damage per Shell; 2 s firing interval',tram:`Cargo: ${freightCapacity(st,TRAM_CAP)} items`};
   return {id,title:KIND_LABEL[m.kind],kind:m.kind,status,...machineConstraints(st,m),location:bi>=0?blockLabel(st,bi,false):'Outside a serviced block',
     reachable:inReach(st,m.x,m.y,...footprint(m)),circuit,draw,scale,recipe,recipeId:m.recipe??'shot',nominal,capacity,contents,settings,range:ranges[m.kind]??null,
-    measured:measured(m)?rates(m.observation,st.flow!.tick):null,measurement:(['assembler','assembler2','mixer','foundry','refinery'].includes(m.kind))||(m.kind==='excavator'||m.kind==='pumpjack')?'Completed production':'Transfers out'};
+    measured:measured(m)?rates(m.observation,st.flow!.tick):null,measurement:(['alienworkbench','assembler','assembler2','mixer','foundry','refinery'].includes(m.kind))||(m.kind==='excavator'||m.kind==='pumpjack')?'Completed production':'Transfers out'};
 }
 export function inspectionProblem(st:SimState):string {
   if(!st.flow)return '';
   for(const o of [st.flow.observation,...st.flow.machines.map(m=>m.observation)]){
     if(o===undefined)continue;
     if(!st.campaign||!o||!Array.isArray(o.samples)||!o.samples.length||o.samples.length>61)return 'invalid observation history';
-    const valid=(v:Counts)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.entries(v).every(([k,n])=>isItem(k)&&Number.isFinite(n)&&n>=0);
+    const valid=(v:Counts)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.entries(v).every(([k,n])=>isItem(k)&&typeof n==='number'&&Number.isFinite(n)&&n>=0);
     if(!valid(o.produced)||!valid(o.consumed))return 'invalid observation counters';
     let prev=-1;
     for(const s of o.samples){

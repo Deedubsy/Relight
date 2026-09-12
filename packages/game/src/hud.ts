@@ -1,8 +1,11 @@
+import {campaignGrid,CAMPAIGN_RULES} from '@relight/sim';
+import {itemName} from '@relight/sim';
+import {equipmentLabel,handLocked,HAND_LOCK_TEXT} from '@relight/sim';
 import {preferenceView,saveUiPreferences} from './uiPreferences';
 import {campaignOutages,baseCore,RIVERFRONT,fixedStops,machineRunning,blockName,blockOfTile,campaignClock,campaignAlerts,currentGoal,pocketUsed,invCap,ENGINEER_HP,ROUNDS_PER_MAG,KIND_LABEL,navigationTargets,ground,T_RIVER,T_STREET,campaignDiscoveries,type NextAction} from '@relight/sim';
 import {el,uiInput} from './uiShell';
 import {shortcut} from './controls';
-import {hudInset,objectiveView,type View} from './view';
+import {hudInset,objectiveView,inspectionView,type View} from './view';
 import type {Session} from './session';
 import type {Panel} from './panel';
 import type {WorldScene} from './worldScene';
@@ -10,9 +13,10 @@ import type {WorldScene} from './worldScene';
 export function createHud(session:Session,panel:Panel,world:WorldScene,view:View,toggleMap:()=>void,threatControls:HTMLElement){
   const goal=el('section','ui-hud hud-goal'),place=el('div','hud-place'),title=el('h2'),next=el('p'),details=el('details'),summary=el('summary',undefined,'Why this next?'),detail=el('p');
   const locate=el('button',undefined,'Show location'),back=el('button',undefined,`Return to engineer (${shortcut('engineer')})`);
-  details.append(summary,detail);details.append(locate);goal.append(place,title,next,details,back);goal.setAttribute('aria-label','Current objective');
+  const resources=el('ul','hud-goal-resources');resources.setAttribute('aria-label','Required resources in Backpack');let resourcesKey='';
+  details.append(summary,detail);details.append(locate);goal.append(place,title,next,resources,details,back);goal.setAttribute('aria-label','Current objective');
   const time=el('section','ui-hud hud-time'),clock=el('strong'),warning=el('div','hud-warning');
-  time.setAttribute('aria-label','Time and defence');const outages=el('div','hud-outages');outages.setAttribute('aria-label','Power outages');time.append(clock,warning,outages,threatControls);
+  time.setAttribute('aria-label','Time and defence');const outages=el('div','hud-outages');outages.setAttribute('aria-label','Power outages');const power=el('div','hud-power'),statusStrip=el('section','ui-hud hud-status-strip');statusStrip.append(clock,power);time.append(warning,outages,threatControls);
   const pockets=el('section','ui-hud hud-engineer'),health=el('strong'),equipment=el('div'),stock=el('div');
   pockets.setAttribute('aria-label','Engineer');pockets.append(health,equipment,stock);
   const map=el('section','ui-hud hud-minimap'),fold=el('button',undefined,'−'),mapButton=el('button',undefined,`Map (${shortcut('map')})`),canvas=el('canvas'),legend=el('div','hud-map-legend','● You  □ Known  ◆ Pin');
@@ -35,7 +39,7 @@ export function createHud(session:Session,panel:Panel,world:WorldScene,view:View
   locate.onclick=()=>{if(!action?.location)return;if(view.mode==='map')toggleMap();world.viewLocation(action.location.x,action.location.y);document.querySelector<HTMLCanvasElement>('#map > canvas')?.focus();panel.shell.sync();};
   back.onclick=()=>{if(view.mode==='map')toggleMap();world.returnToEngineer();document.querySelector<HTMLCanvasElement>('#map > canvas')?.focus();panel.shell.sync();};
   goal.append(hint);
-  for(const node of [goal,time,pockets,map]){document.getElementById('app')!.append(node);panel.shell.protect(node);}document.getElementById('app')!.append(prompt,identity,mining);
+  for(const node of [goal,time,pockets,map,statusStrip]){document.getElementById('app')!.append(node);panel.shell.protect(node);}document.getElementById('app')!.append(prompt,identity,mining);
   const mapKey=el('details','ui-hud full-map-legend');mapKey.append(el('summary',undefined,'Map & world symbols'),el('p',undefined,'Mint arrow: you · H: Home · P: plant · T: permanent tram stop. Red crossed lightning: power outage. Plant labels show ON, OFF or DAMAGED; stop overlays show power. Purple circle: broad core search, not the exact relay. Amber dot: current goal. Teal doorway: accessible · crossed boards: background · person marker: known survivor · red triangle: known hostile installation. Map clicks inspect; they never walk.'));document.getElementById('app')!.append(mapKey);panel.shell.protect(mapKey);
   const G=ground(session.state);
   const put=(node:HTMLElement,text:string)=>{if(node.textContent!==text)node.textContent=text;};
@@ -46,8 +50,15 @@ export function createHud(session:Session,panel:Panel,world:WorldScene,view:View
     const bi=blockOfTile(st,Math.floor(e.x),Math.floor(e.y));put(place,bi>=0?blockName(st,bi):'City streets');
     const tracked=objectiveView.targetId!==null||e.down>=0;
     put(title,tracked?action?.title??'Explore':'No tracked objective');put(next,tracked?action?.text??'Choose a known destination':'Track a known objective in Projects.');put(detail,action?.detail??'');details.hidden=!tracked;locate.hidden=!tracked||!action?.location;back.hidden=!world.viewingThreat;
+    const needs=tracked?action?.resources??[]:[],needsKey=JSON.stringify(needs);resources.hidden=!needs.length;
+    if(needsKey!==resourcesKey){resourcesKey=needsKey;resources.replaceChildren(...needs.map(n=>{const row=el('li',n.available>=n.required?'ready':undefined,`${(KIND_LABEL as Record<string,string>)[n.item]??itemName(n.item)} — ${n.available}/${n.required}`);row.title='Available in your Backpack';return row;}));}
     const key=discoveries.map(s=>s.id+s.title).join('|');if(optionsKey!==key){optionsKey=key;select.replaceChildren(...[{id:'auto',title:'Automatic next action'},{id:'none',title:'Untrack'},...discoveries].map(s=>{const o=el('option',undefined,s.title);o.value=s.id;return o;}));}select.value=objectiveView.targetId===undefined?'auto':objectiveView.targetId===null?'none':objectiveView.targetId;
-    put(clock,`Day ${c.day} · ${c.night?'Night':'Daylight'}${st.speed===0?' · Paused':''}`);
+    const minutes=Math.floor(c.elapsed/CAMPAIGN_RULES.daySeconds*1440);put(clock,`Day ${c.day} · ${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}${st.speed===0?' · Paused':''}`);
+    if(st.campaign&&st.flow){const grid=campaignGrid(st),near=st.flow.machines.filter(m=>grid.machines.has(m.id)).sort((a,b)=>Math.hypot(a.x-e.x,a.y-e.y)-Math.hypot(b.x-e.x,b.y-e.y))[0],selectedNet=inspectionView.machineId===null?undefined:grid.machines.get(inspectionView.machineId),net=inspectionView.machineId!==null?selectedNet:(near&&Math.hypot(near.x-e.x,near.y-e.y)<=12?grid.machines.get(near.id):grid.blocks[bi]);
+     // GP-POWER-FIX (2026-09-11): a block circuit with no source yet reads 0 / 0 kW, not the core's unmet demand against nothing.
+     const unsourced=!!net&&inspectionView.machineId===null&&net.rated<=0&&net.supply<=0;
+     put(power,net&&!unsourced?`${net.name}: ${Math.round(net.demand)} / ${Math.round(net.supply)} kW`:unsourced?'Power: 0 / 0 kW · no Generator linked':'Power: disconnected');power.title=net&&!unsourced?`Requested / available · delivered ${Math.round(net.load)} kW · installed ${net.rated} kW. Select a machine to inspect its own network.`:unsourced?`No source reaches this block yet. Build a Generator, fuel it and chain Poles to the substation; the block core still needs ${Math.round(net!.demand)} kW.`:'Connect a pole to a fuelled generator.';}
+    document.documentElement.style.setProperty('--hud-status-height',`${statusStrip.offsetHeight}px`);
     const lostPower=campaignOutages(st);outages.hidden=!lostPower.length;put(outages,lostPower.map(a=>'⚡× '+a.title).join(' · '));outages.title=lostPower.map(a=>a.detail).join(' · ');
     const alerts=campaignAlerts(st),urgent=alerts.find(a=>!a.id.startsWith('outage:')),shade=alerts.find(a=>a.id.startsWith('shade:')); put(warning,urgent?`${urgent.priority>=90?'⚠':'◷'} ${urgent.title}${urgent.id==='schedule'||urgent.title==='Alien relay draining health'?' · '+urgent.detail:''}${shade&&shade!==urgent?' · Shades need powered lighting.':''}`:'');warning.title=urgent?.detail??'';time.classList.toggle('urgent',!!urgent&&urgent.priority>=60);time.classList.toggle('danger',!!urgent&&urgent.priority>=90);
     panelAlert.hidden=!panel.shell.active()||(!lostPower.length&&(!urgent||urgent.priority<90));panelAlert.textContent=lostPower.length?lostPower.map(a=>'⚡× '+a.title).join(' · '):'Alert';panelAlert.title=urgent?`${urgent.title} · ${urgent.detail}`:'';panelAlert.setAttribute('aria-label',urgent?`${urgent.title}. Open alert inbox`:'Alerts');
@@ -57,10 +68,11 @@ export function createHud(session:Session,panel:Panel,world:WorldScene,view:View
     mapButton.textContent=`Map (${shortcut('map')})`;back.textContent=`Return to engineer (${shortcut('engineer')})`;
     (hint.firstChild as HTMLElement).textContent=`${shortcut('interact')} interacts · ${shortcut('north')}/${shortcut('west')}/${shortcut('south')}/${shortcut('east')} moves · ${shortcut('build')} opens Build. Hold left-click to mine.`;
     put(health,e.down>=0?`Engineer down · ${Math.ceil(Math.max(0,e.down-st.t))} s`:`Engineer · ${Math.ceil(e.hp)}/${ENGINEER_HP} HP`);
-    put(equipment,e.truckSeat?'Driving truck':tool.tool==='hand'?'':tool.tool==='rifle'?`Rifle · ${Math.floor((e.inv.magazine??0)*ROUNDS_PER_MAG)} rounds`:KIND_LABEL[tool.tool]);put(stock,`Backpack ${pocketUsed(e)}/${invCap(e)}`);
+    put(equipment,e.truckSeat?'Driving truck':tool.tool==='hand'?'':tool.tool==='rifle'?equipmentLabel(st):KIND_LABEL[tool.tool]);put(stock,`Backpack ${pocketUsed(e)}/${invCap(e)}`);
     const interaction=view.mode==='world'&&!uiInput.blocked&&tool.tool==='hand'&&!tool.mode?world.interaction():null;
     put(prompt,(tool.tool!=='hand'||tool.mode)&&view.mode==='world'&&!uiInput.blocked?(tool.reason||`${tool.tool==='rifle'?'Hold left-click to fire':`${shortcut('rotate')} rotates`} · Escape cancels`):interaction?`${shortcut('interact')} · ${interaction.label}${interaction.reason?` · ${interaction.reason}`:''}`:'');prompt.hidden=!prompt.textContent;
     if(tool.ports&&tool.tool==='hand'&&view.mode==='world'&&!uiInput.blocked){put(prompt,`Cyan arrows: IN · Amber arrows: OUT · ${shortcut('inspect')} inspects connections`);prompt.hidden=false;}
+    if(handLocked(st)&&view.mode==='world'){put(prompt,`${HAND_LOCK_TEXT} · Escape cancels`);prompt.hidden=false;}   // GP-PLAYTEST-FIX 4
     const mine=view.mode==='world'&&!uiInput.blocked?world.miningFeedback():null;mining.hidden=!mine;
     if(mine){put(mineTitle,mine.title);put(mineDetail,mine.detail);mineProgress.hidden=mine.progress===null;mineProgress.value=mine.progress??0;prompt.hidden=true;identity.hidden=true;}
     const placing=!!tool.point&&!!tool.reason&&(!!tool.mode||(tool.tool!=='hand'&&tool.tool!=='rifle'));prompt.classList.toggle('placement-prompt',placing);

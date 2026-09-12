@@ -27,7 +27,7 @@ export function campaignInteraction(st:SimState, hover?:{tx:number;ty:number}|nu
     const tram=st.flow!.machines.find(m=>m.kind==='tram'&&Math.abs(m.x-x)<2&&Math.abs(m.y-y)<2);
     if(tram)return result('Board tram',[{type:'progression',action:{type:'board'}}],progressionCheck(st,{type:'board'}));
     const core=coreAt(st,x,y),m=machineAt(st,x,y);
-    if((core&&core.hp<DEFENCE.coreHp)||(m&&defenceMax(m)>0&&defenceHp(m)<defenceMax(m)))return result(core?'Repair base core':`Repair ${KIND_LABEL[m!.kind]}`,[{type:'repairDefence',x,y}],repairCheck(st,x,y),core?.size??m!.size);
+    if(((core&&core.hp<DEFENCE.coreHp)||(m&&defenceMax(m)>0&&defenceHp(m)<defenceMax(m)))&&m?.kind!=='depot')return result(   /* GP-HOME-REPAIR: the Home core is the workshop — E opens it; its Base core card repairs */core?'Repair base core':`Repair ${KIND_LABEL[m!.kind]}`,[{type:'repairDefence',x,y}],repairCheck(st,x,y),core?.size??m!.size);
     const site=discoveries.find(s=>x>=s.x&&x<s.x+s.size&&y>=s.y&&y<s.y+s.size);
     if(site){if(st.campaign?.progression?.sites.some(s=>s.id===site.id&&(s.recovered||s.kind==='core'&&!s.seen)))return null;if(!site.actions.length)return null;const a=site.actions[0];return {...result(a?.label??site.title,a?.commands??[],a?.reason??'',site.size),detail:site.status};}
     const [wx,wy]=workbenchTile(st);

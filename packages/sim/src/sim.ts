@@ -997,7 +997,11 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
     const eff = effectiveSupply(st);
     if (t % 60 === 0) { pw.demandKw.push(demandUnshed(st)); pw.supplyKw.push(eff); }
     const short = dem > eff + 1e-9;
-    if (short) {
+    // GP-POWER-FIX (2026-09-11): in the campaign a block that has never carried supply is unsourced, not in outage — the
+    // substation's standing draw against no Generator must not announce "Power outage" on the first tick of a new game,
+    // nor "Power back" when the first Generator is linked. The event, like the outage alert, follows lost supply (BaseCore.poweredAt).
+    const unsourced = !!st.campaign && eff <= 0 && !(st.campaign.defence?.bases ?? []).some(b => b.poweredAt !== undefined);
+    if (short && !unsourced) {
       st.stats.brownoutS++;
       if (st.stats.firstBrownout < 0) st.stats.firstBrownout = t;
       // one toast per shortfall: a grid flickering around its demand (a Generator running dry as another is fed)
@@ -1007,7 +1011,7 @@ export function step(st: SimState, commands: readonly Command[] = NO_COMMANDS): 
       if (t - pw.shortAt >= 20) st.events.push({ type: 'power-ok', t });
       pw.okAt = t; pw.shortAt = -1;
     }
-    pw.short = short;
+    pw.short = short && !unsourced;
     pw.throttle = short ? Math.max(0, eff) / dem : 1;
     if (short) st.stats.throttleMin = Math.min(st.stats.throttleMin, pw.throttle);
     if (th) th.setLoad(st, eff, dem, Math.min(dem, eff), pw.throttle);

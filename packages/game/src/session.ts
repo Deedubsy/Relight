@@ -113,13 +113,14 @@ export async function loadSnapshot(ref: string): Promise<Loaded> {
   const upgradedHome = original.ruleset === CAMPAIGN_RULESET && (original.campaign?.version ?? 0) < 7;
   const upgradedDefence = original.ruleset === CAMPAIGN_RULESET && (original.campaign?.defence?.version ?? 0) < 2;
   // A new shelter reservation may intersect old building commands; keep the log without promising its replay.
+  const upgradedGameplay=original.ruleset===CAMPAIGN_RULESET&&!!original.city?.mapId&&(!original.campaign?.progression?.gameplay?.upgradesMigrated||!original.engineer.equipment||!original.campaign?.progression?.gameplay?.region||!original.campaign?.defence?.clock||!original.campaign?.progression?.gameplay?.legacyEquipment);
   const upgradedProgression=original.ruleset===CAMPAIGN_RULESET&&!original.campaign?.progression;
   const upgradedConstruction=original.ruleset===CAMPAIGN_RULESET&&(original.campaign?.version??0)<10;
   const olderSurvey=original.ruleset===CAMPAIGN_RULESET&&original.campaign?.expansion?.surveyVersion!==EXPANSION_SURVEY_VERSION;
   const upgradedFixedTram=original.ruleset===CAMPAIGN_RULESET&&!original.campaign?.fixedTram;
   const upgradedTransport=original.ruleset===CAMPAIGN_RULESET&&!original.campaign?.truck&&(original.campaign?.expansion?.station.restoredAt??-1)>=0;
   // The old log predates station geometry and local circuits: resume the save, but do not claim a new-factory replay of that history.
-  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && (!isCampaign(state)||!!state.city?.mapId) && !upgradedHome && !upgradedFixedTram && !upgradedTransport && !upgradedDefence && !upgradedConstruction && !upgradedProgression && !olderSurvey && (original.ruleset!==CAMPAIGN_RULESET||!!original.campaign?.navigation), ref, saved };
+  return { state, log: saved?.log ? saved.log.map(l => ({ tick: l.tick, c: JSON.parse(JSON.stringify(l.c)) })) : [], logComplete: !!saved?.logComplete && (!isCampaign(state)||!!state.city?.mapId) && !upgradedHome && !upgradedFixedTram && !upgradedTransport && !upgradedDefence && !upgradedConstruction && !upgradedProgression && !upgradedGameplay && (!original.city?.mapId||original.flow?.ammoVersion===1) && !olderSurvey && (original.ruleset!==CAMPAIGN_RULESET||!!original.campaign?.navigation), ref, saved };
 }
 
 export interface Session {

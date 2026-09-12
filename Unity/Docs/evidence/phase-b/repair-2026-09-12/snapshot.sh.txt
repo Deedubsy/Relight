@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Recoverable source snapshot of the Unity project: sources, assets and .meta files only (no Library/Temp/Logs/
+# obj/TestResults/UserSettings/generated csproj/sln). Also bundles the nested repo's history so it can be deleted
+# safely later. Output: E:\Factorio2\Unity\Snapshots\
+set -eu
+STAMP=$(date +%Y-%m-%d-%H%M)
+OUT=/mnt/e/Factorio2/Unity/Snapshots; mkdir -p "$OUT"
+cd /mnt/e/Factorio2/Unity/Relight
+tar --exclude='./Library' --exclude='./Temp' --exclude='./Logs' --exclude='./obj' --exclude='./TestResults' \
+    --exclude='./UserSettings' --exclude='./.git' --exclude='*.csproj' --exclude='*.sln' --exclude='*.slnx' \
+    -czf "$OUT/relight-source-$STAMP.tar.gz" .
+git bundle create "$OUT/relight-nested-git-$STAMP.bundle" --all 2>/dev/null || echo "bundle failed"
+( cd "$OUT" && sha256sum "relight-source-$STAMP.tar.gz" "relight-nested-git-$STAMP.bundle" > "relight-snapshot-$STAMP.sha256" )
+tar -tzf "$OUT/relight-source-$STAMP.tar.gz" | wc -l
+tar -tzf "$OUT/relight-source-$STAMP.tar.gz" | grep -c '\.meta$'
+ls -la "$OUT"

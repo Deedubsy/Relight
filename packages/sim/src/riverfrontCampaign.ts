@@ -1,3 +1,9 @@
+import {initFabrication} from './fabrication';
+import {initActiveRaidClock} from './campaignThreat';
+import {initOpeningEncounter} from './openingEncounter';
+import {initFirstRegion,tickFirstRegion} from './firstRegion';
+import {initEquipment} from './equipment';
+import {migrateOverclocks} from './overclockMigration';
 import {RIVERFRONT,RIVERFRONT_ID,riverfrontSpec} from './city/riverfront';
 import {riverfrontRail} from './city/riverfrontRail';
 import {createState} from './sim';
@@ -12,6 +18,7 @@ import {recruitId,type RecruitKind} from './campaignRecruits';
 import {newStalkerLayer} from './stalker';
 import {DISCOVERY,discoveryId} from './campaignDiscovery';
 import {CORRECTIONS,type ProgressionSite} from './progression';
+import {initGameplayProgress} from './gameplayProgress';
 /** All bindings refer to the authored definition. Old saves never enter this constructor. */
 export function createRiverfrontCampaign(){
  const st=createState(riverfrontSpec(),campaignConfig(),3,CAMPAIGN_RULESET),c=st.campaign!;c.authored={version:4,cleared:[],opened:[],visited:[]};const f=ensureFlow(st),G=ground(st);
@@ -33,6 +40,6 @@ export function createRiverfrontCampaign(){
  RIVERFRONT.plants.forEach(s=>add('plant',s));RIVERFRONT.cores.forEach((s,i)=>add('core',s,`core${i+1}` as Item));RIVERFRONT.artifacts.forEach((s,i)=>add('artifact',s,`artifact${i+1}` as Item));
  for(const [kind,name]of [['heart','Junction Heart / Arsenal'],['furnace','Furnace Walker'],['crown','Blackout Crown']] as const){const [x,y]=p[kind];add(kind,{id:`riverfront:${kind}`,name,x,y});}
  c.progression={version:1,sites,resources:RIVERFRONT.resources.filter(r=>['ironore','copperore','crude','stone'].includes(r[0])||r[0]==='coal'&&r[5]===12000).map(([item,x,y])=>({x,y,block:blockOfTile(st,x,y),item:item as Item,remaining:CORRECTIONS.resourceUnits})),arsenal:false,freightUpgrade:false,notice:''};
- c.version=10;initKnowledge(st,true);initNavigation(st);f.rev++;return st;
+ f.ammoVersion=1;for(const m of f.machines)m.ammoVersion=1;c.version=10;initGameplayProgress(st);migrateOverclocks(st);initEquipment(st,true);initFirstRegion(st,true);initFabrication(st,true);initActiveRaidClock(st);initOpeningEncounter(st);tickFirstRegion(st);initKnowledge(st,true);initNavigation(st);f.rev++;return st;
 }
 export const isRiverfront=(st:{city?:{mapId?:string}})=>st.city?.mapId===RIVERFRONT_ID;

@@ -1,0 +1,126 @@
+/*
+ * B-14 / R6 slot-grid prototype styles.
+ *
+ * Every colour and size is a token from Assets/Relight/UI/Styles/tokens.uss (B-13) — the rule stated there is that a
+ * panel stylesheet never writes a literal colour. Slot geometry (48 px cell, 4 px gutter, 8 columns) is the only
+ * literal set here and it is the grid's own metric.
+ *
+ * Class names are the reference's (packages/game/src/style.css): .inventory-slot, .stack-count, .drop-target,
+ * .drag-preview, .drag-stack, .ui-dragging — so C-06 can port the reference's remaining rules into this file.
+ */
+
+.slot-grid-root {
+    flex-grow: 1;
+    background-color: var(--ui-bg);
+    padding: var(--ui-space-4);
+}
+
+.slot-grid-title {
+    color: var(--ui-text);
+    font-size: var(--ui-font-size-title);
+    margin-bottom: var(--ui-space-3);
+}
+
+.slot-grid-pair {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+.slot-grid-side {
+    background-color: var(--ui-surface);
+    border-radius: var(--ui-radius);
+    border-width: 1px;
+    border-color: var(--ui-border);
+    padding: var(--ui-space-3);
+    margin-right: var(--ui-space-4);
+}
+
+.slot-grid-heading {
+    color: var(--ui-secondary);
+    font-size: var(--ui-font-size-small);
+    margin-bottom: var(--ui-space-2);
+}
+
+.slot-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.slot-grid.pack {
+    width: 416px;   /* 8 columns x (48 + 2 x 2) */
+}
+
+.slot-grid.store {
+    width: 208px;   /* 4 columns x (48 + 2 x 2) */
+}
+
+.inventory-slot {
+    width: 48px;
+    height: 48px;
+    margin: 2px;
+    background-color: var(--ui-raised);
+    border-radius: var(--ui-radius);
+    border-width: 1px;
+    border-color: var(--ui-border);
+    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+.inventory-slot.empty {
+    background-color: var(--ui-surface);
+}
+
+.inventory-slot.drop-target {
+    border-color: var(--ui-accent);
+    border-width: 2px;
+}
+
+.slot-icon {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    width: 32px;
+    height: 32px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.stack-count {
+    color: var(--ui-text);
+    font-size: var(--ui-font-size-small);
+    -unity-text-align: lower-right;
+    margin-right: 3px;
+}
+
+/* The element that follows the pointer. Never hit-tested (uiDrag.ts relies on pointer-events:none). */
+.drag-preview {
+    position: absolute;
+    flex-direction: row;
+    align-items: center;
+    background-color: var(--ui-surface);
+    border-radius: var(--ui-radius);
+    border-width: 1px;
+    border-color: var(--ui-accent);
+    padding: var(--ui-space-1);
+    opacity: 0.92;
+}
+
+.drag-stack {
+    position: relative;
+    left: 0;
+    top: 0;
+    width: 32px;
+    height: 32px;
+}
+
+.drag-label {
+    color: var(--ui-text);
+    font-size: var(--ui-font-size-small);
+    margin-left: var(--ui-space-2);
+    margin-right: var(--ui-space-1);
+}
+
+.slot-grid-status {
+    color: var(--ui-secondary);
+    font-size: var(--ui-font-size-small);
+    margin-top: var(--ui-space-3);
+}

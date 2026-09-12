@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Status panel — B-13, the one UI Toolkit panel of the minimal scene (reference: the HUD clock and status strip,
+  packages/game/src/hud.ts:18 and :47-56).
+
+  Authored as a file and edited in UI Builder. StatusPanelController only ever LOOKS UP the names below
+  (clock, health, position, condition, pockets, machines, ticks, walk-here, sort-pockets) — it creates nothing
+  and styles nothing — so moving, reordering, restyling or regrouping any of this survives with no code change.
+  The class "panel" and the name "status-panel" are what UiShell opens and closes.
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/Panels/StatusPanel.uss" />
+    <ui:VisualElement name="status-panel" class="panel">
+        <ui:Label name="title" text="Relight" class="panel-title" />
+
+        <ui:Label name="clock" text="Day 1 · 00:00" class="panel-heading" />
+
+        <ui:VisualElement name="row-health" class="row">
+            <ui:Label text="Engineer" class="row-label" />
+            <ui:Label name="health" text="— HP" class="row-value" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="row-position" class="row">
+            <ui:Label text="Position" class="row-label" />
+            <ui:Label name="position" text="—" class="row-value" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="row-condition" class="row">
+            <ui:Label text="Condition" class="row-label" />
+            <ui:Label name="condition" text="—" class="row-value" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="row-machines" class="row">
+            <ui:Label text="World" class="row-label" />
+            <ui:Label name="machines" text="—" class="row-value" />
+        </ui:VisualElement>
+
+        <ui:Label name="pockets" text="Pockets empty" class="hint" />
+
+        <ui:VisualElement name="row-ticks" class="row">
+            <ui:Label text="Simulation" class="row-label" />
+            <ui:Label name="ticks" text="—" class="row-value" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="actions" class="actions">
+            <ui:Button name="walk-here" text="Walk east" />
+            <ui:Button name="sort-pockets" text="Sort pockets" />
+        </ui:VisualElement>
+
+        <ui:Label name="help" text="Escape closes this panel and returns world controls; Escape again pauses. Tab reopens it."
+                  class="hint" />
+    </ui:VisualElement>
+</ui:UXML>

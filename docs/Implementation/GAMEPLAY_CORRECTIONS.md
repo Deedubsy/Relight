@@ -4,7 +4,7 @@
 
 ## Playable loop
 
-Ordinary entry now starts exploration-v2 with empty pockets, empty Home storage and no supplied generator or ammunition. Hand-mine Home salvage and coal; build and fuel production, manufacture Shot, load a turret, then scout the broad core-search circles. Clear a relay's defenders and recover its unique physical core. Its damaging equipment shuts off; independent living enemies continue behaving normally. Carry the core to any compatible regional plant, deliver preparation materials and deliberately install it.
+Ordinary entry now starts exploration-v2 with empty Home storage and no supplied generator or ammunition; since GP-START-POCKETS (2026-09-11) the Backpack opens with 20 Steel plates and 5 Copper so the first hand-mining session is short (see `CAMPAIGN_START_POCKETS`). Hand-mine Home salvage and coal; build and fuel production, manufacture Shot, load a turret, then scout the broad core-search circles. Clear a relay's defenders and recover its unique physical core. Its damaging equipment shuts off; independent living enemies continue behaving normally. Carry the core to any compatible regional plant, deliver preparation materials and deliberately install it.
 
 A commissioned plant supplies a finite local circuit and remains a raid candidate when switched off. Build a factory and defence, use generators for demand above plant capacity, exchange freight through powered permanent tram stops and carry the last mile or connect conveyors. Damage disables the local base; paid repair retains its installed core. No frontage, ring economy, block claims, derived Interior gate or territory-triggered truck work is used in this campaign. Legacy gameplay remains separately selectable.
 

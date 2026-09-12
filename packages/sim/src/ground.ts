@@ -1,3 +1,4 @@
+import {inFreightGate} from './city/gameplaySites';
 import {doorRect} from './city/parcelGeometry';
 /** Prompt B M1 — the ground on faces (D6). One derivation per state, cached on `st.blocks`: every tile's base kind
  *  and owner, each block's buildable tiles, substation, streetlights and rubble layout in dig order (global tile
@@ -640,6 +641,6 @@ const sightWalls=new WeakMap<SimState,{rev:number;tiles:Set<number>}>();
 export function citySight(st:SimState,ax:number,ay:number,bx:number,by:number):boolean {
  if(!st.city?.mapId)return true;const G=ground(st),n=Math.ceil(Math.hypot(bx-ax,by-ay)*4);
  let walls=sightWalls.get(st);if(!walls||walls.rev!==st.flow?.rev){const tiles=new Set<number>();for(const m of st.flow?.machines??[])if((m.kind==='wall'||m.kind==='barricade')&&m.hp!==0)for(let y=m.y;y<m.y+m.size;y++)for(let x=m.x;x<m.x+m.size;x++)tiles.add(y*G.tw+x);walls={rev:st.flow?.rev??0,tiles};sightWalls.set(st,walls);}const end=Math.floor(by)*G.tw+Math.floor(bx),start=Math.floor(ay)*G.tw+Math.floor(ax);
- for(let i=1;i<n;i++){const x=Math.floor(ax+(bx-ax)*i/n),y=Math.floor(ay+(by-ay)*i/n);if(!inGround(G,x,y)||G.urban?.solid[y*G.tw+x]||y*G.tw+x!==end&&y*G.tw+x!==start&&walls.tiles.has(y*G.tw+x))return false;}
+ for(let i=1;i<n;i++){const x=Math.floor(ax+(bx-ax)*i/n),y=Math.floor(ay+(by-ay)*i/n);if(!inGround(G,x,y)||st.campaign?.progression?.gameplay?.region&&!st.campaign.progression.gameplay.strongholds.freight.opened&&inFreightGate(x,y)||G.urban?.solid[y*G.tw+x]||y*G.tw+x!==end&&y*G.tw+x!==start&&walls.tiles.has(y*G.tw+x))return false;}
  return true;
 }

@@ -1,0 +1,1710 @@
+{
+  "ammunition": [
+    {
+      "displayName": "Bullets",
+      "item": "magazine",
+      "itemsPerCraft": 10,
+      "key": "bullet",
+      "kind": "approved",
+      "outputBuffer": 50,
+      "provisional": false,
+      "roundsPerItem": 1,
+      "source": "packages/sim/src/flow.ts:156; packages/sim/src/engineer.ts:35; packages/sim/src/constants.ts:18; packages/sim/src/flow.ts:953",
+      "stackSize": 200
+    },
+    {
+      "displayName": "Shells",
+      "item": "shell",
+      "itemsPerCraft": 1,
+      "key": "shell",
+      "kind": "current",
+      "outputBuffer": 5,
+      "provisional": false,
+      "roundsPerItem": 1,
+      "source": "packages/sim/src/engineer.ts:35; packages/sim/src/flow.ts:207",
+      "stackSize": 20
+    }
+  ],
+  "enemies": [
+    {
+      "damage": 5,
+      "displayName": "Skitter",
+      "hp": 20,
+      "intervalS": 1,
+      "key": "skitter",
+      "kind": "provisional",
+      "provisional": true,
+      "rangeTiles": 1.3,
+      "ranged": false,
+      "role": "common swarm type",
+      "source": "packages/sim/src/gameplayCombat.ts:13; packages/sim/src/campaignThreat.ts:198",
+      "speedTilesPerS": 5.4,
+      "windupS": 0.3
+    },
+    {
+      "damage": 10,
+      "displayName": "Spitter",
+      "hp": 50,
+      "intervalS": 2,
+      "key": "spitter",
+      "kind": "provisional",
+      "provisional": true,
+      "rangeTiles": 7,
+      "ranged": true,
+      "role": "ranged support",
+      "source": "packages/sim/src/gameplayCombat.ts:13; packages/sim/src/campaignThreat.ts:198",
+      "speedTilesPerS": 3.9,
+      "windupS": 0.6
+    }
+  ],
+  "engineer": {
+    "bodyRadiusTiles": 0.28,
+    "dashCooldownS": 1,
+    "dashCost": 0.25,
+    "dashSeconds": 0.25,
+    "dashTiles": 3,
+    "handBulletCopper": 1,
+    "handBulletSeconds": 20,
+    "handBulletSteel": 2,
+    "handBulletsPerCraft": 10,
+    "handMinePerS": 0.5,
+    "iFramesS": 0.25,
+    "invStacks": 40,
+    "key": "engineer",
+    "kind": "current",
+    "maxHp": 100,
+    "provisional": false,
+    "reachTiles": 8,
+    "regenDelayS": 5,
+    "regenPerS": 5,
+    "respawnS": 10,
+    "retaliateHpPerS": 5,
+    "source": "packages/sim/src/engineer.ts:16; packages/sim/src/engineer.ts:17; packages/sim/src/engineer.ts:18; packages/sim/src/engineer.ts:19; packages/sim/src/engineer.ts:25; packages/sim/src/engineer.ts:29; packages/sim/src/flow.ts:210; packages/sim/src/flow.ts:158; packages/sim/src/walk.ts:61",
+    "sprintDrainPerS": 0.25,
+    "sprintMul": 1.6,
+    "staminaRegenPerS": 0.16666666666666666,
+    "truckMul": 3,
+    "truckStacks": 200,
+    "walkTilesPerS": 6
+  },
+  "extensionPoints": [
+    {
+      "key": "enemy.stalker",
+      "why": "CONTENT_CATALOGUE §7.4 — Approved but not implemented; task E-13/E-14, out of the B-05 milestone"
+    },
+    {
+      "key": "enemy.breaker",
+      "why": "CONTENT_CATALOGUE §7.4 — Approved but not implemented (HP 220 provisional, Q14); task E-13/E-14"
+    },
+    {
+      "key": "enemy.howler",
+      "why": "CONTENT_CATALOGUE §7.4 — Approved but not implemented; damage and interval undecided; task E-13/E-14"
+    },
+    {
+      "key": "guardian.freight",
+      "why": "CONTENT_CATALOGUE §9.2 — a stronghold encounter, not part of the regular roster; Phase C site work"
+    },
+    {
+      "key": "guardian.quarry",
+      "why": "CONTENT_CATALOGUE §9.2 — Approved but not implemented (1,000 HP provisional); task E-15"
+    },
+    {
+      "key": "guardian.wharf",
+      "why": "CONTENT_CATALOGUE §9.2 — Approved but not implemented (1,500 HP provisional); task E-15"
+    },
+    {
+      "key": "raids.laterTiers",
+      "why": "CONTENT_CATALOGUE §8.5 — Approved Unity scope, not implemented; task E-16"
+    },
+    {
+      "key": "energyCells",
+      "why": "CONTENT_CATALOGUE §5 / §17.3 — architecture approved, numbers not yet written into the catalogue; task E-11"
+    },
+    {
+      "key": "sites.camps",
+      "why": "CONTENT_CATALOGUE §9.1 — authored in Unity outside Generated/ (U-M-15); Phase C"
+    },
+    {
+      "key": "services.recruits",
+      "why": "CONTENT_CATALOGUE §9.3 — services, recruits and encounters; Phase C progression work"
+    },
+    {
+      "key": "tram.freight",
+      "why": "CONTENT_CATALOGUE §1.1 / §4 — the fixed tram is world content, not a player-buildable (§17.2)"
+    },
+    {
+      "key": "campaign.ending",
+      "why": "CONTENT_CATALOGUE §17.3 — Unresolved by owner decision; generates nothing at all"
+    }
+  ],
+  "items": [
+    {
+      "displayName": "Overclock Module",
+      "enumName": "Overclock",
+      "key": "overclock",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 1
+    },
+    {
+      "displayName": "Alien Artifact",
+      "enumName": "AlienArtifact",
+      "key": "alienartifact",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 20
+    },
+    {
+      "displayName": "Iron ore",
+      "enumName": "IronOre",
+      "key": "ironore",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Copper ore",
+      "enumName": "CopperOre",
+      "key": "copperore",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Crude oil",
+      "enumName": "Crude",
+      "key": "crude",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Refined fuel",
+      "enumName": "Fuel",
+      "key": "fuel",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Polymer",
+      "enumName": "Polymer",
+      "key": "polymer",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Shells",
+      "enumName": "Shell",
+      "key": "shell",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 20
+    },
+    {
+      "displayName": "Power core 1",
+      "enumName": "Core1",
+      "key": "core1",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:36",
+      "stackSize": 1
+    },
+    {
+      "displayName": "Power core 2",
+      "enumName": "Core2",
+      "key": "core2",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:36",
+      "stackSize": 1
+    },
+    {
+      "displayName": "Power core 3",
+      "enumName": "Core3",
+      "key": "core3",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:36",
+      "stackSize": 1
+    },
+    {
+      "displayName": "Steel plates",
+      "enumName": "Steel",
+      "key": "steel",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Copper",
+      "enumName": "Copper",
+      "key": "copper",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Stone",
+      "enumName": "Stone",
+      "key": "stone",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Coal",
+      "enumName": "Coal",
+      "key": "coal",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Bullets",
+      "enumName": "Magazine",
+      "key": "magazine",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35; packages/sim/src/flow.ts:156",
+      "stackSize": 200
+    },
+    {
+      "displayName": "Wire",
+      "enumName": "Wire",
+      "key": "wire",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Frame",
+      "enumName": "Frame",
+      "key": "frame",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Board",
+      "enumName": "Board",
+      "key": "board",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    },
+    {
+      "displayName": "Concrete",
+      "enumName": "Concrete",
+      "key": "concrete",
+      "kind": "current",
+      "provisional": false,
+      "source": "packages/sim/src/engineer.ts:35",
+      "stackSize": 50
+    }
+  ],
+  "machines": [
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 10,
+          "item": "steel"
+        }
+      ],
+      "displayName": "Excavator",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 0,
+      "inventorySlots": 1,
+      "key": "excavator",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 60,
+      "provisional": false,
+      "ratePerS": 0.5,
+      "reachTiles": 0,
+      "size": 3,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/constants.ts:35",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 20,
+          "item": "steel"
+        },
+        {
+          "count": 10,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Pumpjack",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 0,
+      "inventorySlots": 1,
+      "key": "pumpjack",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 60,
+      "provisional": false,
+      "ratePerS": 0.5,
+      "reachTiles": 0,
+      "size": 3,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/constants.ts:35; packages/sim/src/flow.ts:943",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 30,
+          "item": "steel"
+        },
+        {
+          "count": 10,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Foundry",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 0,
+      "inventorySlots": 1,
+      "key": "foundry",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 80,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 3,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 40,
+          "item": "steel"
+        },
+        {
+          "count": 20,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Refinery",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 0,
+      "inventorySlots": 1,
+      "key": "refinery",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 100,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 3,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 40,
+          "item": "steel"
+        },
+        {
+          "count": 20,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Assembler",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 0,
+      "inventorySlots": 2,
+      "key": "assembler",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 100,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 3,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 4,
+          "item": "polymer"
+        },
+        {
+          "count": 60,
+          "item": "steel"
+        },
+        {
+          "count": 30,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Assembler Mk2",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 0,
+      "inventorySlots": 2,
+      "key": "assembler2",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 150,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 3,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232",
+      "unlock": "material (Polymer)"
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 20,
+          "item": "steel"
+        },
+        {
+          "count": 10,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Mixer",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 0,
+      "inventorySlots": 1,
+      "key": "mixer",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 60,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 3,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232",
+      "unlock": "Concrete crew"
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 30,
+          "item": "steel"
+        },
+        {
+          "count": 10,
+          "item": "copper"
+        },
+        {
+          "count": 4,
+          "item": "frame"
+        },
+        {
+          "count": 2,
+          "item": "board"
+        }
+      ],
+      "displayName": "Alien workbench",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 0,
+      "inventorySlots": 4,
+      "key": "alienworkbench",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 80,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 3,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232",
+      "unlock": "Schematic"
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 10,
+          "item": "steel"
+        }
+      ],
+      "displayName": "Supply chest",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 0,
+      "inventorySlots": 200,
+      "key": "chest",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 2,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/flow.ts:244",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 1,
+          "item": "steel"
+        }
+      ],
+      "displayName": "Belt",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "belt",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 7.5,
+      "reachTiles": 0,
+      "size": 1,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/constants.ts:37",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 1,
+          "item": "polymer"
+        },
+        {
+          "count": 2,
+          "item": "steel"
+        },
+        {
+          "count": 1,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Fast belt",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "fastbelt",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 15,
+      "reachTiles": 0,
+      "size": 1,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/constants.ts:37",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 1,
+          "item": "steel"
+        },
+        {
+          "count": 1,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Inserter",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "inserter",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 10,
+      "provisional": false,
+      "ratePerS": 1,
+      "reachTiles": 0,
+      "size": 1,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/constants.ts:37",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 5,
+          "item": "steel"
+        },
+        {
+          "count": 2,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Underground belt",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "underground",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 1,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 5,
+          "item": "steel"
+        },
+        {
+          "count": 2,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Priority splitter",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "splitter",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 1,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 30,
+          "item": "steel"
+        },
+        {
+          "count": 10,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Generator",
+      "fuelCap": 50,
+      "hasInventory": true,
+      "hp": 0,
+      "inventorySlots": 1,
+      "key": "generator",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": -300,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 2,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/recipes.ts:23; packages/sim/src/flow.ts:237",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 1,
+          "item": "steel"
+        },
+        {
+          "count": 1,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Pole",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "pole",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 8,
+      "size": 1,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/recipes.ts:38",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 4,
+          "item": "steel"
+        },
+        {
+          "count": 4,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Big pole",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "bigpole",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 12,
+      "size": 2,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/recipes.ts:43",
+      "unlock": "Electricians"
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 50,
+          "item": "steel"
+        },
+        {
+          "count": 25,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Substation",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "substation",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 8,
+      "size": 3,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/campaignPower.ts:20",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 1,
+          "item": "steel"
+        },
+        {
+          "count": 1,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Lamp",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "lamp",
+      "kind": "current",
+      "lightRadiusTiles": 4,
+      "powerKw": 5,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 1,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/recipes.ts:38",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 4,
+          "item": "steel"
+        },
+        {
+          "count": 4,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Arc lamp",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "arclamp",
+      "kind": "current",
+      "lightRadiusTiles": 6,
+      "powerKw": 12,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 1,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/flow.ts:68",
+      "unlock": "Lamplighters"
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0.5235987755982988,
+      "coneRangeTiles": 12,
+      "cost": [
+        {
+          "count": 10,
+          "item": "steel"
+        },
+        {
+          "count": 5,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Floodlight",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "floodlight",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 40,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 2,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/recipes.ts:43",
+      "unlock": "Electricians"
+    },
+    {
+      "ammoCap": 50,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 15,
+          "item": "steel"
+        },
+        {
+          "count": 5,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Gun turret",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 100,
+      "inventorySlots": 1,
+      "key": "turret",
+      "kind": "provisional",
+      "lightRadiusTiles": 0,
+      "powerKw": 20,
+      "provisional": true,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 2,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/recipes.ts:37; packages/sim/src/constants.ts:42; packages/sim/src/campaignDefence.ts:13",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 20,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 40,
+          "item": "steel"
+        },
+        {
+          "count": 20,
+          "item": "copper"
+        }
+      ],
+      "displayName": "Cannon",
+      "fuelCap": 0,
+      "hasInventory": true,
+      "hp": 140,
+      "inventorySlots": 1,
+      "key": "cannon",
+      "kind": "provisional",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": true,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 2,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/campaignDefence.ts:75; packages/sim/src/progression.ts:17",
+      "unlock": "Arsenal"
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 2,
+          "item": "steel"
+        }
+      ],
+      "displayName": "Wall",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 120,
+      "inventorySlots": 0,
+      "key": "wall",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 1,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/campaignDefence.ts:13",
+      "unlock": ""
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [
+        {
+          "count": 2,
+          "item": "steel"
+        },
+        {
+          "count": 4,
+          "item": "concrete"
+        }
+      ],
+      "displayName": "Barricade",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 240,
+      "inventorySlots": 0,
+      "key": "barricade",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 1,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/campaignDefence.ts:13",
+      "unlock": "Concrete crew"
+    },
+    {
+      "ammoCap": 0,
+      "coneHalfAngleRad": 0,
+      "coneRangeTiles": 0,
+      "cost": [],
+      "displayName": "Depot",
+      "fuelCap": 0,
+      "hasInventory": false,
+      "hp": 0,
+      "inventorySlots": 0,
+      "key": "depot",
+      "kind": "current",
+      "lightRadiusTiles": 0,
+      "powerKw": 0,
+      "provisional": false,
+      "ratePerS": 0,
+      "reachTiles": 0,
+      "size": 6,
+      "source": "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232",
+      "unlock": "world"
+    }
+  ],
+  "meta": {
+    "excludedItems": [
+      "iron",
+      "artifact1",
+      "artifact2",
+      "artifact3"
+    ],
+    "excludedMachines": [
+      "track",
+      "tramstop",
+      "tram"
+    ],
+    "generator": "Unity/Relight/Tools/export/exportCatalogue.ts",
+    "reference": "packages/sim/src/",
+    "scopeFilter": "Unity/Docs/CONTENT_CATALOGUE.md §17"
+  },
+  "opening": {
+    "ackS": 60,
+    "count": 5,
+    "guardS": 660,
+    "key": "opening",
+    "kind": "provisional",
+    "maxDurationS": 300,
+    "provisional": true,
+    "recoveryS": 300,
+    "source": "packages/sim/src/openingEncounter.ts:27; packages/sim/src/openingEncounter.ts:55",
+    "supplyAckS": 45,
+    "supplyChainDepth": 4,
+    "turretObjective": 3,
+    "warningS": 25
+  },
+  "power": {
+    "arcLampKw": 12,
+    "arcLampRadiusTiles": 6,
+    "bigPoleReachTiles": 12,
+    "brownoutRule": "proportional",
+    "coalMj": 4,
+    "coreKw": 100,
+    "floodlightHalfAngleRad": 0.5235987755982988,
+    "floodlightKw": 40,
+    "floodlightRangeTiles": 12,
+    "generatorFuelCap": 50,
+    "generatorKw": 300,
+    "key": "power",
+    "kind": "current",
+    "lampKw": 5,
+    "lampRadiusTiles": 4,
+    "plantKw": 600,
+    "poleReachTiles": 8,
+    "provisional": false,
+    "radioKw": 20,
+    "source": "packages/sim/src/recipes.ts:23; packages/sim/src/recipes.ts:22; packages/sim/src/flow.ts:237; packages/sim/src/progression.ts:17; packages/sim/src/campaignPower.ts:10; packages/sim/src/recipes.ts:38; packages/sim/src/recipes.ts:43; packages/sim/src/flow.ts:68; packages/sim/src/campaignPower.ts:20; packages/sim/src/recipes.ts:37; packages/sim/src/constants.ts:65",
+    "substationReachTiles": 8,
+    "turbineHallKw": 600,
+    "turretKw": 20
+  },
+  "raids": {
+    "activeRaidBudget": 48,
+    "alertRadiusTiles": 6,
+    "assaultHistory": 32,
+    "breakerStructureMul": 3,
+    "chaseEscapeTiles": 20,
+    "contactDps": 5,
+    "escapeTiles": 18,
+    "firstMinS": 1500,
+    "firstRangeS": 300,
+    "graceS": 780,
+    "guardLeashTiles": 12,
+    "guardNoticeTiles": 8,
+    "intervalMinS": 1080,
+    "intervalRangeS": 240,
+    "key": "raids",
+    "kind": "current",
+    "lightHesitateS": 0.65,
+    "livingBudget": 240,
+    "majorCount": 60,
+    "majorSectors": 4,
+    "majorSkitters": 40,
+    "majorSpitters": 20,
+    "minorAfterMajorS": 300,
+    "minorCountBase": 6,
+    "minorCountRange": 4,
+    "minorMinS": 300,
+    "minorRangeS": 120,
+    "noticeTiles": 8,
+    "patrolRadiusTiles": 6,
+    "projectileLifeS": 2,
+    "projectileSpeedTilesPerS": 8,
+    "provisional": false,
+    "radioUpgradeCopper": 10,
+    "radioUpgradeSteel": 15,
+    "recoveryS": 300,
+    "source": "packages/sim/src/campaignThreat.ts:27; packages/sim/src/campaignThreat.ts:23; packages/sim/src/campaignThreat.ts:83; packages/sim/src/campaignThreat.ts:198; packages/sim/src/campaignThreat.ts:49; packages/sim/src/gameplayCombat.ts:13; packages/sim/src/progression.ts:17",
+    "spawnEveryS": 4,
+    "speedTilesPerS": 2,
+    "structureDps": 8,
+    "total": 60,
+    "warningS": 300,
+    "windowS": 150
+  },
+  "recipes": [
+    {
+      "displayName": "Steel plates",
+      "inputs": [
+        {
+          "count": 2,
+          "item": "ironore"
+        }
+      ],
+      "key": "steel-plates",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 1,
+          "item": "steel"
+        }
+      ],
+      "provisional": false,
+      "seconds": 3,
+      "source": "packages/sim/src/flow.ts:183",
+      "station": "Foundry"
+    },
+    {
+      "displayName": "Refined copper",
+      "inputs": [
+        {
+          "count": 2,
+          "item": "copperore"
+        }
+      ],
+      "key": "refined-copper",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 1,
+          "item": "copper"
+        }
+      ],
+      "provisional": false,
+      "seconds": 3,
+      "source": "packages/sim/src/flow.ts:183",
+      "station": "Foundry"
+    },
+    {
+      "displayName": "Fuel",
+      "inputs": [
+        {
+          "count": 1,
+          "item": "crude"
+        }
+      ],
+      "key": "refined-fuel",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 4,
+          "item": "fuel"
+        }
+      ],
+      "provisional": false,
+      "seconds": 3,
+      "source": "packages/sim/src/recipes.ts:9",
+      "station": "Refinery"
+    },
+    {
+      "displayName": "Polymer",
+      "inputs": [
+        {
+          "count": 2,
+          "item": "crude"
+        }
+      ],
+      "key": "polymer",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 1,
+          "item": "polymer"
+        }
+      ],
+      "provisional": false,
+      "seconds": 3,
+      "source": "packages/sim/src/recipes.ts:9",
+      "station": "Refinery"
+    },
+    {
+      "displayName": "Wire",
+      "inputs": [
+        {
+          "count": 1,
+          "item": "copper"
+        }
+      ],
+      "key": "wire",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 2,
+          "item": "wire"
+        }
+      ],
+      "provisional": false,
+      "seconds": 1,
+      "source": "packages/sim/src/recipes.ts:9",
+      "station": "Assembler"
+    },
+    {
+      "displayName": "Frame",
+      "inputs": [
+        {
+          "count": 2,
+          "item": "steel"
+        }
+      ],
+      "key": "frame",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 1,
+          "item": "frame"
+        }
+      ],
+      "provisional": false,
+      "seconds": 2,
+      "source": "packages/sim/src/recipes.ts:9",
+      "station": "Assembler"
+    },
+    {
+      "displayName": "Board",
+      "inputs": [
+        {
+          "count": 1,
+          "item": "steel"
+        },
+        {
+          "count": 3,
+          "item": "wire"
+        }
+      ],
+      "key": "board",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 1,
+          "item": "board"
+        }
+      ],
+      "provisional": false,
+      "seconds": 4,
+      "source": "packages/sim/src/recipes.ts:9",
+      "station": "Assembler"
+    },
+    {
+      "displayName": "Concrete",
+      "inputs": [
+        {
+          "count": 2,
+          "item": "stone"
+        }
+      ],
+      "key": "concrete",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 1,
+          "item": "concrete"
+        }
+      ],
+      "provisional": false,
+      "seconds": 2,
+      "source": "packages/sim/src/recipes.ts:9",
+      "station": "Mixer"
+    },
+    {
+      "displayName": "Bullet batch",
+      "inputs": [
+        {
+          "count": 2,
+          "item": "steel"
+        },
+        {
+          "count": 1,
+          "item": "copper"
+        }
+      ],
+      "key": "bullet-batch",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 10,
+          "item": "magazine"
+        }
+      ],
+      "provisional": false,
+      "seconds": 6,
+      "source": "packages/sim/src/recipes.ts:9; packages/sim/src/constants.ts:18",
+      "station": "Assembler"
+    },
+    {
+      "displayName": "Bullet batch (Mk2)",
+      "inputs": [
+        {
+          "count": 2,
+          "item": "steel"
+        },
+        {
+          "count": 1,
+          "item": "copper"
+        }
+      ],
+      "key": "bullet-batch-mk2",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 10,
+          "item": "magazine"
+        }
+      ],
+      "provisional": false,
+      "seconds": 3,
+      "source": "packages/sim/src/constants.ts:17; packages/sim/src/constants.ts:18",
+      "station": "Assembler Mk2"
+    },
+    {
+      "displayName": "Shell",
+      "inputs": [
+        {
+          "count": 2,
+          "item": "steel"
+        },
+        {
+          "count": 1,
+          "item": "coal"
+        }
+      ],
+      "key": "shell",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 1,
+          "item": "shell"
+        }
+      ],
+      "provisional": false,
+      "seconds": 3,
+      "source": "packages/sim/src/recipes.ts:9",
+      "station": "Assembler"
+    },
+    {
+      "displayName": "Overclock Module",
+      "inputs": [
+        {
+          "count": 2,
+          "item": "alienartifact"
+        },
+        {
+          "count": 4,
+          "item": "wire"
+        },
+        {
+          "count": 2,
+          "item": "frame"
+        },
+        {
+          "count": 1,
+          "item": "board"
+        }
+      ],
+      "key": "overclock-module",
+      "kind": "current",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 1,
+          "item": "overclock"
+        }
+      ],
+      "provisional": false,
+      "seconds": 20,
+      "source": "packages/sim/src/flow.ts:183",
+      "station": "Alien workbench"
+    },
+    {
+      "displayName": "Hand bullet batch",
+      "inputs": [
+        {
+          "count": 2,
+          "item": "steel"
+        },
+        {
+          "count": 1,
+          "item": "copper"
+        }
+      ],
+      "key": "hand-bullets",
+      "kind": "provisional",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 10,
+          "item": "magazine"
+        }
+      ],
+      "provisional": true,
+      "seconds": 20,
+      "source": "packages/sim/src/flow.ts:158; packages/sim/src/recipes.ts:9",
+      "station": "Home workshop"
+    },
+    {
+      "displayName": "Rifle",
+      "inputs": [
+        {
+          "count": 10,
+          "item": "steel"
+        },
+        {
+          "count": 4,
+          "item": "copper"
+        }
+      ],
+      "key": "rifle",
+      "kind": "current",
+      "outputKey": "rifle",
+      "outputs": [],
+      "provisional": false,
+      "seconds": 6,
+      "source": "packages/sim/src/equipment.ts:17",
+      "station": "Home workshop"
+    },
+    {
+      "displayName": "Alien workbench decode",
+      "inputs": [],
+      "key": "alien-decode",
+      "kind": "provisional",
+      "outputKey": "",
+      "outputs": [
+        {
+          "count": 2,
+          "item": "alienartifact"
+        }
+      ],
+      "provisional": true,
+      "seconds": 15,
+      "source": "packages/sim/src/fabrication.ts:6",
+      "station": "Alien workbench"
+    }
+  ],
+  "stake": {
+    "key": "stake",
+    "kind": "approved",
+    "pockets": [
+      {
+        "count": 20,
+        "item": "steel"
+      },
+      {
+        "count": 5,
+        "item": "copper"
+      }
+    ],
+    "provisional": false,
+    "ruleset": "exploration-v2",
+    "source": "packages/sim/src/rules.ts:10; packages/sim/src/rules.ts:5"
+  },
+  "time": {
+    "campRepeatSeconds": 900,
+    "daySeconds": 1200,
+    "daylightSeconds": 900,
+    "decodeSeconds": 15,
+    "key": "time",
+    "kind": "current",
+    "openingId": "culdesac-v1",
+    "openingMinorSlotFirstS": 900,
+    "openingMinorSlotSecondS": 1080,
+    "provisional": false,
+    "source": "packages/sim/src/flow.ts:61; packages/sim/src/rules.ts:5; packages/sim/src/fabrication.ts:6; packages/sim/src/progression.ts:17",
+    "tileDt": 0.05,
+    "tileTps": 20
+  },
+  "turrets": [
+    {
+      "ammo": "magazine",
+      "damagePerRound": 10,
+      "displayName": "Gun turret",
+      "hopper": 50,
+      "hopperUpgradeMul": 1.25,
+      "hp": 100,
+      "key": "turret",
+      "kind": "provisional",
+      "muzzleTiles": 1,
+      "powerKw": 20,
+      "provisional": true,
+      "rangeTiles": 9,
+      "roundsPerS": 1,
+      "shotFlashS": 0.08,
+      "source": "packages/sim/src/turretTracking.ts:4; packages/sim/src/constants.ts:42; packages/sim/src/recipes.ts:37; packages/sim/src/campaignDefence.ts:13; packages/sim/src/turretTracking.ts:5; packages/sim/src/progression.ts:50",
+      "turnSpeedRadPerS": 6.283185307179586
+    },
+    {
+      "ammo": "shell",
+      "damagePerRound": 50,
+      "displayName": "Cannon",
+      "hopper": 20,
+      "hopperUpgradeMul": 1,
+      "hp": 140,
+      "key": "cannon",
+      "kind": "provisional",
+      "muzzleTiles": 1,
+      "powerKw": 0,
+      "provisional": true,
+      "rangeTiles": 12,
+      "roundsPerS": 0.5,
+      "shotFlashS": 0.08,
+      "source": "packages/sim/src/progression.ts:17; packages/sim/src/campaignDefence.ts:75; packages/sim/src/turretTracking.ts:5",
+      "turnSpeedRadPerS": 6.283185307179586
+    }
+  ],
+  "weapons": [
+    {
+      "capacity": 10,
+      "damage": 10,
+      "displayName": "Rifle",
+      "effectiveTiles": 18,
+      "hitRadiusTiles": 0.65,
+      "key": "rifle",
+      "kind": "provisional",
+      "maxTiles": 30,
+      "pellets": 1,
+      "projectileSpeed": 0,
+      "provisional": true,
+      "ratePerS": 2.5,
+      "reloadSeconds": 1.5,
+      "source": "packages/sim/src/weaponProfiles.ts:2; packages/sim/src/equipment.ts:17",
+      "spreadRad": 0
+    },
+    {
+      "capacity": 0,
+      "damage": 6,
+      "displayName": "Two-barrel shotgun",
+      "effectiveTiles": 6,
+      "hitRadiusTiles": 0.45,
+      "key": "double",
+      "kind": "provisional",
+      "maxTiles": 12,
+      "pellets": 5,
+      "projectileSpeed": 0,
+      "provisional": true,
+      "ratePerS": 1.25,
+      "reloadSeconds": 0,
+      "source": "packages/sim/src/weaponProfiles.ts:2",
+      "spreadRad": 0.36
+    },
+    {
+      "capacity": 0,
+      "damage": 10,
+      "displayName": "Arc projector",
+      "effectiveTiles": 9,
+      "hitRadiusTiles": 0.6,
+      "key": "arc",
+      "kind": "provisional",
+      "maxTiles": 9,
+      "pellets": 1,
+      "projectileSpeed": 0,
+      "provisional": true,
+      "ratePerS": 2.5,
+      "reloadSeconds": 0,
+      "source": "packages/sim/src/weaponProfiles.ts:2",
+      "spreadRad": 0
+    },
+    {
+      "capacity": 0,
+      "damage": 25,
+      "displayName": "Plasma lance",
+      "effectiveTiles": 14,
+      "hitRadiusTiles": 0.45,
+      "key": "plasma",
+      "kind": "provisional",
+      "maxTiles": 14,
+      "pellets": 1,
+      "projectileSpeed": 12,
+      "provisional": true,
+      "ratePerS": 1,
+      "reloadSeconds": 0,
+      "source": "packages/sim/src/weaponProfiles.ts:2",
+      "spreadRad": 0
+    }
+  ],
+  "world": {
+    "cellTiles": 32,
+    "depotLotTiles": 9,
+    "depotTiles": 6,
+    "key": "world",
+    "kind": "current",
+    "lotTiles": 24,
+    "marginTiles": 4,
+    "provisional": false,
+    "rubbleTilesMax": 350,
+    "rubbleTilesMin": 250,
+    "rubbleUnitsPerTile": 300,
+    "source": "packages/sim/src/tiles.ts:17; packages/sim/src/tiles.ts:18; packages/sim/src/tiles.ts:38; packages/sim/src/tiles.ts:58; packages/sim/src/tiles.ts:110; packages/sim/src/tiles.ts:114",
+    "streetTiles": 8,
+    "substationTiles": 3,
+    "tilePx": 32
+  }
+}

@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="70" result="Passed" total="70" passed="70" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:28Z" duration="0.7238177">
+  <test-suite type="TestSuite" id="1000" name="Relight" fullname="Relight" runstate="Runnable" testcasecount="201" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:28Z" duration="0.723818" total="70" passed="70" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1225" name="Relight.Sim.Tests.dll" fullname="C:/Users/Admin/AppData/Local/Temp/relight-check/Library/ScriptAssemblies/Relight.Sim.Tests.dll" runstate="Runnable" testcasecount="201" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:28Z" duration="0.700673" total="70" passed="70" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="104688" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1226" name="Relight" fullname="Relight" runstate="Runnable" testcasecount="201" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:28Z" duration="0.666546" total="70" passed="70" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1227" name="Sim" fullname="Relight.Sim" runstate="Runnable" testcasecount="201" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:28Z" duration="0.634566" total="70" passed="70" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1228" name="Tests" fullname="Relight.Sim.Tests" runstate="Runnable" testcasecount="201" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:28Z" duration="0.619489" total="70" passed="70" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestSuite" id="1229" name="Determinism" fullname="Relight.Sim.Tests.Determinism" runstate="Runnable" testcasecount="16" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.140513" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="1108" name="ReplayConsistencyTests" fullname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests" classname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.136147" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1115" name="ACommandLandsBeforeTheTickItIsLoggedOn" fullname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests.ACommandLandsBeforeTheTickItIsLoggedOn" methodname="ACommandLandsBeforeTheTickItIsLoggedOn" classname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests" runstate="Runnable" seed="834426580" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.037058" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1111" name="ADifferentSeedGivesADifferentHash" fullname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests.ADifferentSeedGivesADifferentHash" methodname="ADifferentSeedGivesADifferentHash" classname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests" runstate="Runnable" seed="941859094" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.025040" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1116" name="AnEmptyLogIsJustTicking" fullname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests.AnEmptyLogIsJustTicking" methodname="AnEmptyLogIsJustTicking" classname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests" runstate="Runnable" seed="951250780" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.000956" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1114" name="DropAimRemovesTheAimAndNothingElse" fullname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests.DropAimRemovesTheAimAndNothingElse" methodname="DropAimRemovesTheAimAndNothingElse" classname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests" runstate="Runnable" seed="1103667720" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.008245" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1113" name="ReplayingTheLogEqualsPlayingItLive" fullname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests.ReplayingTheLogEqualsPlayingItLive" methodname="ReplayingTheLogEqualsPlayingItLive" classname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests" runstate="Runnable" seed="361027531" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.015499" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1109" name="SameSeedAndCommandLogReplayTwiceToTheSameHash" fullname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests.SameSeedAndCommandLogReplayTwiceToTheSameHash" methodname="SameSeedAndCommandLogReplayTwiceToTheSameHash" classname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests" runstate="Runnable" seed="407315071" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.010387" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1112" name="SwappingTwoLoggedCommandsChangesTheOutcome" fullname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests.SwappingTwoLoggedCommandsChangesTheOutcome" methodname="SwappingTwoLoggedCommandsChangesTheOutcome" classname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests" runstate="Runnable" seed="564771804" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.010488" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1110" name="TheShortRunActuallyMovesCraftsAndTransfers" fullname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests.TheShortRunActuallyMovesCraftsAndTransfers" methodname="TheShortRunActuallyMovesCraftsAndTransfers" classname="Relight.Sim.Tests.Determinism.ReplayConsistencyTests" runstate="Runnable" seed="1165588224" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.005615" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestSuite" id="1230" name="Persistence" fullname="Relight.Sim.Tests.Persistence" runstate="Runnable" testcasecount="54" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:28Z" duration="0.436697" total="54" passed="54" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="1126" name="AutosaveTests" fullname="Relight.Sim.Tests.Persistence.AutosaveTests" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" testcasecount="20" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:28Z" duration="0.184165" total="20" passed="20" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1143" name="ADamagedNewestAutosaveFallsBackToTheNextOldest" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.ADamagedNewestAutosaveFallsBackToTheNextOldest" methodname="ADamagedNewestAutosaveFallsBackToTheNextOldest" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="481759748" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.037555" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1139" name="AFailedWriteLeavesTheBackupCopyIntact" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.AFailedWriteLeavesTheBackupCopyIntact" methodname="AFailedWriteLeavesTheBackupCopyIntact" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="1933658654" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.008693" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1135" name="ALongStallProducesOneAutosaveNotABurst" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.ALongStallProducesOneAutosaveNotABurst" methodname="ALongStallProducesOneAutosaveNotABurst" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="1001667979" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.002052" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1130" name="ALostIndexIsRebuiltFromTheFilesRatherThanRestartingAtSlotOne" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.ALostIndexIsRebuiltFromTheFilesRatherThanRestartingAtSlotOne" methodname="ALostIndexIsRebuiltFromTheFilesRatherThanRestartingAtSlotOne" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="1378919677" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.011836" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1131" name="AnAutosaveNeverWritesAManualSlot" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.AnAutosaveNeverWritesAManualSlot" methodname="AnAutosaveNeverWritesAManualSlot" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="926907925" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.025169" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1133" name="AnIndexNamingAFileOutsideTheRingIsIgnored" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.AnIndexNamingAFileOutsideTheRingIsIgnored" methodname="AnIndexNamingAFileOutsideTheRingIsIgnored" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="266372391" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.004990" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1138" name="AnInjectedWriteFailureLeavesThePreviousAutosaveLoadable" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.AnInjectedWriteFailureLeavesThePreviousAutosaveLoadable" methodname="AnInjectedWriteFailureLeavesThePreviousAutosaveLoadable" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="1605481431" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.007055" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1146" name="AnUnreadableSlotIsListedWithItsProblemRatherThanHidden" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.AnUnreadableSlotIsListedWithItsProblemRatherThanHidden" methodname="AnUnreadableSlotIsListedWithItsProblemRatherThanHidden" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="154143853" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.002990" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1140" name="ARetryAfterALockUsesAFreshTempName" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.ARetryAfterALockUsesAFreshTempName" methodname="ARetryAfterALockUsesAFreshTempName" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="1585709033" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:27Z" duration="0.002709" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1136" name="AutosavingCanBeTurnedOff" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.AutosavingCanBeTurnedOff" methodname="AutosavingCanBeTurnedOff" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="743290232" result="Passed" start-time="2026-09-12 01:23:27Z" end-time="2026-09-12 01:23:28Z" duration="0.001148" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1129" name="LoadingTheNewestAutosaveGivesTheStateThatWasSaved" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.LoadingTheNewestAutosaveGivesTheStateThatWasSaved" methodname="LoadingTheNewestAutosaveGivesTheStateThatWasSaved" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="553977946" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.016119" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1145" name="ManualSavesAreListedNewestFirstWithTheirHeaders" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.ManualSavesAreListedNewestFirstWithTheirHeaders" methodname="ManualSavesAreListedNewestFirstWithTheirHeaders" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="2095511680" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.003433" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1144" name="RecoverableAutosavesAreListedNewestFirst" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.RecoverableAutosavesAreListedNewestFirst" methodname="RecoverableAutosavesAreListedNewestFirst" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="1737911704" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.008495" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1137" name="SaveOnQuitWritesItsOwnFileAndNotARingSlot" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.SaveOnQuitWritesItsOwnFileAndNotARingSlot" methodname="SaveOnQuitWritesItsOwnFileAndNotARingSlot" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="823895434" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.005048" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1134" name="TheIntervalCountsOnlyUnpausedSimTime" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.TheIntervalCountsOnlyUnpausedSimTime" methodname="TheIntervalCountsOnlyUnpausedSimTime" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="395877623" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.002190" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1127" name="TheRecordedDefaultsAreFiveMinutesAndThreeSlots" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.TheRecordedDefaultsAreFiveMinutesAndThreeSlots" methodname="TheRecordedDefaultsAreFiveMinutesAndThreeSlots" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="1812051902" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000388" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1128" name="TheRingKeepsThreeSlotsAndOverwritesTheOldest" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.TheRingKeepsThreeSlotsAndOverwritesTheOldest" methodname="TheRingKeepsThreeSlotsAndOverwritesTheOldest" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="231591065" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.011389" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1132" name="TheRingRefusesAnyPathOutsideItsOwnFolder" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.TheRingRefusesAnyPathOutsideItsOwnFolder" methodname="TheRingRefusesAnyPathOutsideItsOwnFolder" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="2146024877" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.001082" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1141" name="ThreeConsecutiveFailuresStopTheRingAndAManualSaveResumesIt" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.ThreeConsecutiveFailuresStopTheRingAndAManualSaveResumesIt" methodname="ThreeConsecutiveFailuresStopTheRingAndAManualSaveResumesIt" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="1810126249" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.008648" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1142" name="TwoFailuresDoNotStopTheRing" fullname="Relight.Sim.Tests.Persistence.AutosaveTests.TwoFailuresDoNotStopTheRing" methodname="TwoFailuresDoNotStopTheRing" classname="Relight.Sim.Tests.Persistence.AutosaveTests" runstate="Runnable" seed="1407485918" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.006388" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-suite type="TestFixture" id="1147" name="RealDiskRecoveryTests" fullname="Relight.Sim.Tests.Persistence.RealDiskRecoveryTests" classname="Relight.Sim.Tests.Persistence.RealDiskRecoveryTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.053691" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1148" name="ADamagedPrimaryOnARealDiskRecoversFromItsBackupRepeatedly" fullname="Relight.Sim.Tests.Persistence.RealDiskRecoveryTests.ADamagedPrimaryOnARealDiskRecoversFromItsBackupRepeatedly" methodname="ADamagedPrimaryOnARealDiskRecoversFromItsBackupRepeatedly" classname="Relight.Sim.Tests.Persistence.RealDiskRecoveryTests" runstate="Runnable" seed="445715076" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.051509" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-suite type="TestFixture" id="1149" name="RecoveryTests" fullname="Relight.Sim.Tests.Persistence.RecoveryTests" classname="Relight.Sim.Tests.Persistence.RecoveryTests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.078198" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1155" name="AFailedIndexWriteDoesNotHideOrDestroyTheNewestAutosave" fullname="Relight.Sim.Tests.Persistence.RecoveryTests.AFailedIndexWriteDoesNotHideOrDestroyTheNewestAutosave" methodname="AFailedIndexWriteDoesNotHideOrDestroyTheNewestAutosave" classname="Relight.Sim.Tests.Persistence.RecoveryTests" runstate="Runnable" seed="1710522163" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.017384" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1153" name="AFailedRestoreKeepsTheBackupAndStillLoads" fullname="Relight.Sim.Tests.Persistence.RecoveryTests.AFailedRestoreKeepsTheBackupAndStillLoads" methodname="AFailedRestoreKeepsTheBackupAndStillLoads" classname="Relight.Sim.Tests.Persistence.RecoveryTests" runstate="Runnable" seed="68517434" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.006192" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1157" name="AnIndexEntryForAMissingFileIsDropped" fullname="Relight.Sim.Tests.Persistence.RecoveryTests.AnIndexEntryForAMissingFileIsDropped" methodname="AnIndexEntryForAMissingFileIsDropped" classname="Relight.Sim.Tests.Persistence.RecoveryTests" runstate="Runnable" seed="1807133341" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.013490" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1156" name="AnIndexWhoseOrderContradictsTheFilesIsCorrectedFromThem" fullname="Relight.Sim.Tests.Persistence.RecoveryTests.AnIndexWhoseOrderContradictsTheFilesIsCorrectedFromThem" methodname="AnIndexWhoseOrderContradictsTheFilesIsCorrectedFromThem" classname="Relight.Sim.Tests.Persistence.RecoveryTests" runstate="Runnable" seed="45015865" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.009147" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1158" name="ARingSlotThatExistsOnlyAsABackupIsStillRecoverable" fullname="Relight.Sim.Tests.Persistence.RecoveryTests.ARingSlotThatExistsOnlyAsABackupIsStillRecoverable" methodname="ARingSlotThatExistsOnlyAsABackupIsStillRecoverable" classname="Relight.Sim.Tests.Persistence.RecoveryTests" runstate="Runnable" seed="1792042693" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.005192" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1152" name="ASaveThatExistsOnlyAsABackupIsVisibleAndLoadable" fullname="Relight.Sim.Tests.Persistence.RecoveryTests.ASaveThatExistsOnlyAsABackupIsVisibleAndLoadable" methodname="ASaveThatExistsOnlyAsABackupIsVisibleAndLoadable" classname="Relight.Sim.Tests.Persistence.RecoveryTests" runstate="Runnable" seed="1706685130" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.004484" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1154" name="NoSaveAndNoUsableCopyAreStillRefused" fullname="Relight.Sim.Tests.Persistence.RecoveryTests.NoSaveAndNoUsableCopyAreStillRefused" methodname="NoSaveAndNoUsableCopyAreStillRefused" classname="Relight.Sim.Tests.Persistence.RecoveryTests" runstate="Runnable" seed="1087054008" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.003788" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1150" name="RecoveringFromTheBackupWorksTwiceAndLeavesTheSlotWhereItWas" fullname="Relight.Sim.Tests.Persistence.RecoveryTests.RecoveringFromTheBackupWorksTwiceAndLeavesTheSlotWhereItWas" methodname="RecoveringFromTheBackupWorksTwiceAndLeavesTheSlotWhereItWas" classname="Relight.Sim.Tests.Persistence.RecoveryTests" runstate="Runnable" seed="1155361843" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.005736" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1151" name="RecoveryStillWorksAfterARestart" fullname="Relight.Sim.Tests.Persistence.RecoveryTests.RecoveryStillWorksAfterARestart" methodname="RecoveryStillWorksAfterARestart" classname="Relight.Sim.Tests.Persistence.RecoveryTests" runstate="Runnable" seed="419621800" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.004935" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-suite type="TestFixture" id="1159" name="SaveRefusalTests" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" testcasecount="17" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.056084" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1173" name="ADamagedSaveFallsBackToItsPreviousCopy" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.ADamagedSaveFallsBackToItsPreviousCopy" methodname="ADamagedSaveFallsBackToItsPreviousCopy" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1839090477" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.006089" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1162" name="AFileFromAnotherProgramIsRefused" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.AFileFromAnotherProgramIsRefused" methodname="AFileFromAnotherProgramIsRefused" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1059823581" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000434" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1161" name="AFutureSchemaVersionIsRefusedByNumber" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.AFutureSchemaVersionIsRefusedByNumber" methodname="AFutureSchemaVersionIsRefusedByNumber" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="966281250" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.004219" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1163" name="AJsonDocumentThatIsNotASaveIsRefused" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.AJsonDocumentThatIsNotASaveIsRefused" methodname="AJsonDocumentThatIsNotASaveIsRefused" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1579919908" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000642" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1171" name="ALeadingByteOrderMarkIsTolerated" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.ALeadingByteOrderMarkIsTolerated" methodname="ALeadingByteOrderMarkIsTolerated" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1072670763" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.005225" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1174" name="AManualSlotCannotBeNamedIntoTheAutosaveNameSpace" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.AManualSlotCannotBeNamedIntoTheAutosaveNameSpace" methodname="AManualSlotCannotBeNamedIntoTheAutosaveNameSpace" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1041918738" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000323" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1168" name="AnEditedStateIsCaughtByTheChecksum" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.AnEditedStateIsCaughtByTheChecksum" methodname="AnEditedStateIsCaughtByTheChecksum" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1187805124" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.002358" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1166" name="AnEmptyFileIsRefused" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.AnEmptyFileIsRefused" methodname="AnEmptyFileIsRefused" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="136941840" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000268" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1160" name="AReferenceBuildSaveIsRefusedAndSaysWhatItIs" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.AReferenceBuildSaveIsRefusedAndSaysWhatItIs" methodname="AReferenceBuildSaveIsRefusedAndSaysWhatItIs" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1493231748" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000290" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1172" name="ARefusedLoadLeavesTheRunningGameAndTheGoodSaveUntouched" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.ARefusedLoadLeavesTheRunningGameAndTheGoodSaveUntouched" methodname="ARefusedLoadLeavesTheRunningGameAndTheGoodSaveUntouched" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1055541621" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.004005" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1169" name="ASaveWithNoChecksumIsRefused" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.ASaveWithNoChecksumIsRefused" methodname="ASaveWithNoChecksumIsRefused" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="411125371" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.001911" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1164" name="ASaveWithNoVersionIsRefused" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.ASaveWithNoVersionIsRefused" methodname="ASaveWithNoVersionIsRefused" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1635908065" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000431" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1175" name="ASlotNameCannotEscapeTheSavesFolder" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.ASlotNameCannotEscapeTheSavesFolder" methodname="ASlotNameCannotEscapeTheSavesFolder" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="253870247" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000746" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1165" name="ATruncatedFileIsRefusedWithThePositionOfTheDamage" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.ATruncatedFileIsRefusedWithThePositionOfTheDamage" methodname="ATruncatedFileIsRefusedWithThePositionOfTheDamage" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1793036427" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.002339" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1167" name="BytesThatAreNotTextAreRefused" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.BytesThatAreNotTextAreRefused" methodname="BytesThatAreNotTextAreRefused" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1364415748" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.001569" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1170" name="DifferentBalanceDataIsAWarningNotARefusal" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.DifferentBalanceDataIsAWarningNotARefusal" methodname="DifferentBalanceDataIsAWarningNotARefusal" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="988773737" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.004272" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1176" name="SavingToARefusedNameWritesNothing" fullname="Relight.Sim.Tests.Persistence.SaveRefusalTests.SavingToARefusedNameWritesNothing" methodname="SavingToARefusedNameWritesNothing" classname="Relight.Sim.Tests.Persistence.SaveRefusalTests" runstate="Runnable" seed="1837398767" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000777" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+              <test-suite type="TestFixture" id="1177" name="SaveRoundTripTests" fullname="Relight.Sim.Tests.Persistence.SaveRoundTripTests" classname="Relight.Sim.Tests.Persistence.SaveRoundTripTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.055992" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1181" name="ALoadedStateStillBalances" fullname="Relight.Sim.Tests.Persistence.SaveRoundTripTests.ALoadedStateStillBalances" methodname="ALoadedStateStillBalances" classname="Relight.Sim.Tests.Persistence.SaveRoundTripTests" runstate="Runnable" seed="567727635" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.011390" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1182" name="EventsAreNotSavedAndDoNotChangeTheHash" fullname="Relight.Sim.Tests.Persistence.SaveRoundTripTests.EventsAreNotSavedAndDoNotChangeTheHash" methodname="EventsAreNotSavedAndDoNotChangeTheHash" classname="Relight.Sim.Tests.Persistence.SaveRoundTripTests" runstate="Runnable" seed="1277861765" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.007774" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1180" name="H1_ALoadedStateKeepsRunningIdenticallyToTheOneItCameFrom" fullname="Relight.Sim.Tests.Persistence.SaveRoundTripTests.H1_ALoadedStateKeepsRunningIdenticallyToTheOneItCameFrom" methodname="H1_ALoadedStateKeepsRunningIdenticallyToTheOneItCameFrom" classname="Relight.Sim.Tests.Persistence.SaveRoundTripTests" runstate="Runnable" seed="570248353" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.008733" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1178" name="H1_SaveThenLoadGivesTheSameHashAndTheSameCanonicalText" fullname="Relight.Sim.Tests.Persistence.SaveRoundTripTests.H1_SaveThenLoadGivesTheSameHashAndTheSameCanonicalText" methodname="H1_SaveThenLoadGivesTheSameHashAndTheSameCanonicalText" classname="Relight.Sim.Tests.Persistence.SaveRoundTripTests" runstate="Runnable" seed="2060870377" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.007950" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1179" name="H1_SaveToAFileThenLoadItBackGivesTheSameHash" fullname="Relight.Sim.Tests.Persistence.SaveRoundTripTests.H1_SaveToAFileThenLoadItBackGivesTheSameHash" methodname="H1_SaveToAFileThenLoadItBackGivesTheSameHash" classname="Relight.Sim.Tests.Persistence.SaveRoundTripTests" runstate="Runnable" seed="660883396" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.007738" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1183" name="PlaySecondsSurvivesTheRoundTripAndIsOutsideTheHash" fullname="Relight.Sim.Tests.Persistence.SaveRoundTripTests.PlaySecondsSurvivesTheRoundTripAndIsOutsideTheHash" methodname="PlaySecondsSurvivesTheRoundTripAndIsOutsideTheHash" classname="Relight.Sim.Tests.Persistence.SaveRoundTripTests" runstate="Runnable" seed="77099785" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.003528" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1184" name="WritingTheSameStateTwiceGivesTheSameDocument" fullname="Relight.Sim.Tests.Persistence.SaveRoundTripTests.WritingTheSameStateTwiceGivesTheSameDocument" methodname="WritingTheSameStateTwiceGivesTheSameDocument" classname="Relight.Sim.Tests.Persistence.SaveRoundTripTests" runstate="Runnable" seed="2128479722" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.002453" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+            </test-suite>
+            <test-suite type="TestFixture" id="1031" name="StakeTests" fullname="Relight.Sim.Tests.StakeTests" classname="Relight.Sim.Tests.StakeTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.007633" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1038" name="AMissingOrEmptyStakeFallsBackToTheReferenceOpening" fullname="Relight.Sim.Tests.StakeTests.AMissingOrEmptyStakeFallsBackToTheReferenceOpening" methodname="AMissingOrEmptyStakeFallsBackToTheReferenceOpening" classname="Relight.Sim.Tests.StakeTests" runstate="Runnable" seed="1767445091" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000959" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1033" name="AnEditedStakeIsWhatTheEngineerStartsWith" fullname="Relight.Sim.Tests.StakeTests.AnEditedStakeIsWhatTheEngineerStartsWith" methodname="AnEditedStakeIsWhatTheEngineerStartsWith" classname="Relight.Sim.Tests.StakeTests" runstate="Runnable" seed="643900366" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000254" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1035" name="ANewGameGoesThroughTheSameStake" fullname="Relight.Sim.Tests.StakeTests.ANewGameGoesThroughTheSameStake" methodname="ANewGameGoesThroughTheSameStake" classname="Relight.Sim.Tests.StakeTests" runstate="Runnable" seed="1188305554" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000350" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1039" name="ANonPositiveStackIsRefusedRatherThanSubtractedFromThePockets" fullname="Relight.Sim.Tests.StakeTests.ANonPositiveStackIsRefusedRatherThanSubtractedFromThePockets" methodname="ANonPositiveStackIsRefusedRatherThanSubtractedFromThePockets" classname="Relight.Sim.Tests.StakeTests" runstate="Runnable" seed="107760590" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000231" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1037" name="AStakeForAnotherRulesetIsRefusedAndReported" fullname="Relight.Sim.Tests.StakeTests.AStakeForAnotherRulesetIsRefusedAndReported" methodname="AStakeForAnotherRulesetIsRefusedAndReported" classname="Relight.Sim.Tests.StakeTests" runstate="Runnable" seed="1460724484" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000308" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1036" name="AStakeThatNamesAnItemTwiceIsOneStackOfTheSum" fullname="Relight.Sim.Tests.StakeTests.AStakeThatNamesAnItemTwiceIsOneStackOfTheSum" methodname="AStakeThatNamesAnItemTwiceIsOneStackOfTheSum" classname="Relight.Sim.Tests.StakeTests" runstate="Runnable" seed="1885728263" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000207" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1032" name="TheCatalogueStakeIsWhatTheDefaultFixtureStartsWith" fullname="Relight.Sim.Tests.StakeTests.TheCatalogueStakeIsWhatTheDefaultFixtureStartsWith" methodname="TheCatalogueStakeIsWhatTheDefaultFixtureStartsWith" classname="Relight.Sim.Tests.StakeTests" runstate="Runnable" seed="61612724" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000244" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1034" name="TheLedgerOpensOnTheStakeSoConservationReadsZero" fullname="Relight.Sim.Tests.StakeTests.TheLedgerOpensOnTheStakeSoConservationReadsZero" methodname="TheLedgerOpensOnTheStakeSoConservationReadsZero" classname="Relight.Sim.Tests.StakeTests" runstate="Runnable" seed="1590036191" result="Passed" start-time="2026-09-12 01:23:28Z" end-time="2026-09-12 01:23:28Z" duration="0.000594" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: C:/Users/Admin/AppData/LocalLow/DefaultCompany/Relight\TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae170dbba83bf2b4a82e15f47a5c0ef3, type: 3}
+  m_Name: Enemy - Spitter
+  m_EditorClassIdentifier: Relight.Data::Relight.Data.EnemyDefinition
+  key: spitter
+  displayName: Spitter
+  kind: 2
+  source: packages/sim/src/gameplayCombat.ts:13; packages/sim/src/campaignThreat.ts:198
+  provisional: 1
+  generatedFingerprint: 52b5e202e320298baeb8fbef963039043e8c8d4e
+  hp: 50
+  speedTilesPerS: 3.9
+  damage: 10
+  intervalS: 2
+  windupS: 0.6
+  rangeTiles: 7
+  ranged: 1
+  role: ranged support

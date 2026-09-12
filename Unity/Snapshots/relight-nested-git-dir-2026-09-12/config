@@ -1,0 +1,18 @@
+[core]
+	repositoryformatversion = 0
+	filemode = false
+	bare = false
+	logallrefupdates = true
+	symlinks = false
+	ignorecase = true
+[lfs]
+	repositoryformatversion = 0
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
+[remote "origin"]
+	fetch = +refs/heads/*:refs/remotes/origin/*
+	url = https://github.com/rms-daniel-wormald/Relight-2026-09-11_22-25-47.git
