@@ -197,6 +197,55 @@ namespace Relight.Sim.Tests
             Assert.AreEqual("", Fixture.Off(ctx, st));
         }
 
+        /// <summary>
+        /// The refund is delivered through the player's own way of freeing space — moving the filler into chests
+        /// with <see cref="MachineTransferCommand"/> — not only through the direct inventory edits the tests above
+        /// use. A supply chest holds 200 items (U-M-31 (1)) and a magazine stack is 200 (U-D-08), so one stack fills
+        /// one chest and each chest frees one Backpack cell: the first frees a cell and the steel comes back while
+        /// the copper is still owed; the second frees another and the copper follows. The same sequence holds for
+        /// the state after a save/load (loose-ends pass 2026-09-13, U-M-38).
+        /// </summary>
+        [Test]
+        public void APendingRefundIsDeliveredAfterThePlayerMovesItemsIntoChests()
+        {
+            var (ctx, st) = BatchWithNoRoomToRefund();
+            var d = ctx.Data;
+            var magStack = d.StackSize(ItemKey.Of(ItemId.Magazine));
+            var first = Fixture.Place(ctx, st, "chest", 18, 16);
+            var second = Fixture.Place(ctx, st, "chest", 14, 16);
+            Assert.IsTrue(Fixture.Apply(ctx, st, new CancelCraftCommand()).Accepted);
+            Assert.AreEqual(2, st.Hand.RefundSteel);
+            Fixture.Run(ctx, st, 1);
+            Assert.AreEqual(2, st.Hand.RefundSteel, "nothing has been freed yet");
+            Assert.AreEqual("", Fixture.Off(ctx, st));
+
+            var loaded = SaveSerializer.ReadText(SaveSerializer.WriteText(st, d), d);
+            Assert.IsTrue(loaded.Ok, loaded.Reason);
+            Assert.AreEqual(2, loaded.State.Hand.RefundSteel);
+
+            var pass = 0;
+            foreach (var s in new[] { st, loaded.State })
+            {
+                pass++;
+                var put = Fixture.Apply(ctx, s, new MachineTransferCommand(first.Id, ItemId.Magazine, magStack, true));
+                Assert.IsTrue(put.Accepted, $"pass {pass}, first chest: {put.Problem}");
+                Assert.AreEqual(2, s.Hand.RefundSteel, "the command itself frees the cell; delivery is the tick's job");
+                Fixture.Run(ctx, s, Fixture.Dt);
+                Assert.AreEqual(2, s.Engineer.Inv[ItemId.Steel], $"pass {pass}: the steel is back one tick after a cell appeared");
+                Assert.AreEqual(0, s.Hand.RefundSteel);
+                Assert.AreEqual(0, s.Engineer.Inv[ItemId.Copper], "one cell only: the copper is still waiting");
+                Assert.AreEqual(1, s.Hand.RefundCopper);
+                Assert.AreEqual("", Fixture.Off(ctx, s));
+
+                put = Fixture.Apply(ctx, s, new MachineTransferCommand(second.Id, ItemId.Magazine, magStack, true));
+                Assert.IsTrue(put.Accepted, $"pass {pass}, second chest: {put.Problem}");
+                Fixture.Run(ctx, s, Fixture.Dt);
+                Assert.AreEqual(1, s.Engineer.Inv[ItemId.Copper], $"pass {pass}: the copper follows the next freed cell");
+                Assert.AreEqual(0, s.Hand.RefundCopper);
+                Assert.AreEqual("", Fixture.Off(ctx, s), "nothing was lost or duplicated on the way");
+            }
+        }
+
         [Test]
         public void CancellingAgainWhileARefundIsStillOutstandingBalances()
         {

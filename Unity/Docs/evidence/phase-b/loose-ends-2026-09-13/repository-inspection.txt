@@ -1,0 +1,79 @@
+# Repository inspection — 2026-09-13 (read-only; nothing staged, committed, moved or deleted)
+
+## Clone inspected
+path: C:\Users\dw\Desktop\Relight (WSL /mnt/c/Users/dw/Desktop/Relight); branch main = origin/main after the 2026-09-13 pull
+3fba8374 nightly: 2026-09-13 results
+
+## Commits that brought Unity/ into the parent
+aa00d1a8 Deedubsy Sat Sep 12 11:58:41 2026 +1000 Commit the whole tree: reference game state and the Unity port (Phase B + repair pass)
+f43a2f89 Deedubsy Sat Sep 12 12:11:27 2026 +1000 Merge pull request #6 from Deedubsy/unity-phase-b
+
+## Nested repository
+ls: cannot access 'Unity/Relight/.git': No such file or directory
+gitlinks under Unity:
+(none if empty)
+
+## Tracked files under Unity/ (by top directory)
+    839 Unity/Snapshots/relight-nested-git-dir-2026-09-12
+    694 Unity/Relight/Assets
+     35 Unity/Docs/evidence
+     30 Unity/Relight/ProjectSettings
+     14 Unity/Docs/generated
+      2 Unity/Relight/Tools
+      2 Unity/Relight/Packages
+      1 Unity/Snapshots/relight-source-2026-09-12-1129.tar.gz
+      1 Unity/Snapshots/relight-snapshot-2026-09-12-1129.sha256
+      1 Unity/Snapshots/relight-nested-git-2026-09-12-final.bundle
+      1 Unity/Snapshots/relight-nested-git-2026-09-12-1129.bundle
+      1 Unity/Relight/.vsconfig
+      1 Unity/Relight/.gitignore
+      1 Unity/Relight/.gitattributes
+      1 Unity/README.md
+      1 Unity/Docs/reference-snapshot.sha256
+      1 Unity/Docs/WORLD_AND_ASSETS.md
+      1 Unity/Docs/UI_AND_ONBOARDING.md
+      1 Unity/Docs/TECHNICAL_ARCHITECTURE.md
+      1 Unity/Docs/TASKS.md
+      1 Unity/Docs/SOURCE_INVENTORY.md
+      1 Unity/Docs/MIGRATION_MAP.md
+      1 Unity/Docs/GAME_DESIGN.md
+      1 Unity/Docs/DECISIONS.md
+      1 Unity/Docs/CONTENT_CATALOGUE.md
+
+tracked under Unity/Relight: 731; .meta: 382
+
+## Ignore rules honoured by the parent
+Unity/Relight/.gitignore:17:/[Ll]ibrary/	Unity/Relight/Library/foo
+Unity/Relight/.gitignore:18:/[Tt]emp/	Unity/Relight/Temp/x
+Unity/Relight/.gitignore:22:/[Ll]ogs/	Unity/Relight/Logs/x.log
+Unity/Relight/.gitignore:19:/[Oo]bj/	Unity/Relight/obj/x
+Unity/Relight/.gitignore:23:/[Uu]ser[Ss]ettings/	Unity/Relight/UserSettings/x
+Unity/Relight/.gitignore:54:*.csproj	Unity/Relight/Relight.csproj
+Unity/Relight/Assets/Relight/Prototypes/Scenes/.gitignore:5:R7-Tilemap.unity	Unity/Relight/Assets/Relight/Prototypes/Scenes/R7-Tilemap.unity
+
+## Large tracked files under Unity/ (> 1 MB)
+3942809 Unity/Relight/Assets/Settings/Lit2DSceneTemplate.scenetemplate
+1451944 Unity/Snapshots/relight-nested-git-2026-09-12-final.bundle
+1365458 Unity/Snapshots/relight-source-2026-09-12-1129.tar.gz
+
+## Snapshot verification
+relight-source-2026-09-12-1129.tar.gz: OK
+relight-nested-git-2026-09-12-1129.bundle: OK
+relight-nested-git-2026-09-12-final.bundle: OK
+The bundle records a complete history.
+The bundle uses this hash algorithm: sha1
+5080ca9322a2433f20e636cbad1beb906ba2d423 refs/heads/main
+bec7b56b172dbdc5d9bfe9ab70377143409ffe2f refs/remotes/origin/main
+5080ca9322a2433f20e636cbad1beb906ba2d423 HEAD
+tarball entries: 814; .meta in tarball: 383
+tarball minus tracked tree:
+Assets/InitTestSceneebf653bc-39a9-4729-aca1-45d9d368799b.unity
+Assets/InitTestSceneebf653bc-39a9-4729-aca1-45d9d368799b.unity.meta
+tracked tree minus tarball:
+(none)
+
+## Accidental snapshot
+Unity/Snapshots/relight-nested-git-dir-2026-09-12/: 839 tracked files, 2.2M — a raw copy of the nested .git (HEAD: ref: refs/heads/main)
+
+## Not visible to this pass
+E:\Factorio2 (the owner's working copy named in README/TASKS) is not mounted in this WSL session; whether it still contains Unity/Relight/.git is unknown here.

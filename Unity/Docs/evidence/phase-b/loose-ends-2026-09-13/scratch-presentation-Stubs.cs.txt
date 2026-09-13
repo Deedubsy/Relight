@@ -1,0 +1,6 @@
+// Scratch-compile stubs for the two Unity Test Framework attributes the PlayMode test uses; the real assembly
+// (UnityEngine.TestRunner) lives in the package cache the editor creates, which this machine does not have.
+namespace UnityEngine.TestTools
+{
+    [System.AttributeUsage(System.AttributeTargets.Method)] public sealed class UnityTestAttribute : System.Attribute { }
+}

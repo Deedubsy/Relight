@@ -83,6 +83,87 @@ namespace Relight.Sim
         /// <summary>The element at <paramref name="i"/>, or null when out of range.</summary>
         public JsonValue At(int i) => _values != null && i >= 0 && i < _values.Count ? _values[i] : null;
 
+        /// <summary>The member names of an object in document order; empty for anything that is not an object.</summary>
+        public IReadOnlyList<string> Keys => _keys != null ? (IReadOnlyList<string>)_keys : EmptyKeys;
+        private static readonly string[] EmptyKeys = new string[0];
+
+        /// <summary>
+        /// Add a member to an object — how <see cref="SaveUpgrade"/> defaults a field an older schema did not
+        /// have, on the parsed document and never on the file. Returns false and changes nothing when this is not
+        /// an object or the member already exists: an upgrade must never overwrite a value the file carries.
+        /// </summary>
+        internal bool TryAddMember(string name, JsonValue value)
+        {
+            if (Kind != JsonKind.Object || _keys == null || string.IsNullOrEmpty(name) || value == null) return false;
+            if (Member(name) != null) return false;
+            _keys.Add(name);
+            _values.Add(value);
+            if (_index != null) _index[name] = _keys.Count - 1;
+            return true;
+        }
+
+        /// <summary>A number, for <see cref="TryAddMember"/>.</summary>
+        internal static JsonValue NumberValue(double n)
+        {
+            var v = Scalar(JsonKind.Number);
+            v.Number = n;
+            return v;
+        }
+
+        /// <summary>
+        /// This document in exactly <see cref="CanonicalJsonWriter"/>'s form — members ordinal-sorted, numbers by
+        /// <see cref="CanonicalJsonWriter.Num"/>, strings by <see cref="CanonicalJsonWriter.QuoteString"/>, no
+        /// whitespace — so a parsed <c>state</c> can be checked against its <c>hash</c>, or re-hashed after an
+        /// upgrade, without building a <see cref="SimState"/>. For a document the writer produced this is the
+        /// identity: <c>Parse(x).ToCanonicalJson() == x</c> (pinned by <c>SaveUpgradeTests</c>).
+        /// </summary>
+        public string ToCanonicalJson()
+        {
+            var sb = new StringBuilder();
+            WriteCanonical(sb);
+            return sb.ToString();
+        }
+
+        private void WriteCanonical(StringBuilder sb)
+        {
+            switch (Kind)
+            {
+                case JsonKind.Null: sb.Append("null"); return;
+                case JsonKind.Bool: sb.Append(Bool ? "true" : "false"); return;
+                case JsonKind.Number: sb.Append(CanonicalJsonWriter.Num(Number)); return;
+                case JsonKind.String: sb.Append(Text == null ? "null" : CanonicalJsonWriter.QuoteString(Text)); return;
+                case JsonKind.Array:
+                    sb.Append('[');
+                    for (var i = 0; i < Count; i++)
+                    {
+                        if (i > 0) sb.Append(',');
+                        _values[i].WriteCanonical(sb);
+                    }
+                    sb.Append(']');
+                    return;
+                default:
+                {
+                    // Keys are unique (the parser refuses duplicates), so an ordinal sort is total.
+                    var n = _keys == null ? 0 : _keys.Count;
+                    var order = new int[n];
+                    for (var i = 0; i < n; i++) order[i] = i;
+                    var keys = _keys;
+                    Array.Sort(order, (a, b) => string.CompareOrdinal(keys[a], keys[b]));
+                    sb.Append('{');
+                    for (var i = 0; i < n; i++)
+                    {
+                        if (i > 0) sb.Append(',');
+                        var k = order[i];
+                        sb.Append(CanonicalJsonWriter.QuoteString(keys[k]));
+                        sb.Append(':');
+                        _values[k].WriteCanonical(sb);
+                    }
+                    sb.Append('}');
+                    return;
+                }
+            }
+        }
+
         /// <summary>
         /// Parses a whole document. Returns null and sets <paramref name="error"/> on any malformed input; the
         /// message names the character offset so a truncated file reports where it stopped.

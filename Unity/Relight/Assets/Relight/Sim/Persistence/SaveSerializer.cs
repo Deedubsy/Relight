@@ -5,8 +5,10 @@ using System.Text;
 namespace Relight.Sim
 {
     /// <summary>
-    /// Turns a <see cref="SimState"/> into the bytes of a schema-v1 save and back (B-11, TECHNICAL_ARCHITECTURE.md
-    /// §9.1). It is the only place that knows the file shape; the stores below deal in bytes and paths.
+    /// Turns a <see cref="SimState"/> into the bytes of a save at <see cref="SaveSchema.Version"/> and back (B-11,
+    /// TECHNICAL_ARCHITECTURE.md §9.1). It is the only place that knows the file shape; the stores below deal in
+    /// bytes and paths. A file from <see cref="SaveSchema.OldestReadable"/> up to the current version is read; an
+    /// older one goes through <see cref="SaveUpgrade"/> on the parsed document (the file is never rewritten).
     ///
     /// Writing is the canonical writer plus a header (<see cref="SaveSchema"/>). Reading is strict and answers with
     /// data, never an exception: a file that is not this build's save comes back as a refusal with a reason the UI
@@ -117,9 +119,8 @@ namespace Relight.Sim
             if (versionMember == null || versionMember.Kind != JsonKind.Number)
                 return LoadResult.Refuse("this save does not say which version it is");
             var version = (int)versionMember.Number;
-            if (version != SaveSchema.Version)
-                return LoadResult.Refuse("unsupported save version " + version.ToString(CultureInfo.InvariantCulture)
-                                         + " (this build reads version " + SaveSchema.Version.ToString(CultureInfo.InvariantCulture) + ")");
+            var unsupported = VersionProblem(version);
+            if (unsupported != null) return LoadResult.Refuse(unsupported);
 
             var stateJson = root.Member(SaveSchema.FieldState);
             if (stateJson == null || !stateJson.IsObject) return LoadResult.Refuse("this save has no state in it");
@@ -138,17 +139,30 @@ namespace Relight.Sim
                 Hash = root.TextOf(SaveSchema.FieldHash, ""),
             };
 
+            // An older schema is brought up to date on the parsed document, after its own checksum has been
+            // verified as written; the state is then read from the upgraded document and must hash to THAT.
+            var expectedHash = header.Hash;
+            string upgraded = null;
+            if (version != SaveSchema.Version)
+            {
+                var refusal = SaveUpgrade.ToCurrent(stateJson, version, header.Hash, out var damaged, out upgraded);
+                if (refusal.Length > 0) return LoadResult.Refuse(refusal, damaged);
+                expectedHash = StateHash.Of(stateJson.ToCanonicalJson());
+            }
+
             var state = new SimState();
             if (!JsonStateReader.Read(stateJson, state, out var problem))
                 return LoadResult.Refuse("this save does not match this build's save format (" + problem + ")", true);
 
             if (string.IsNullOrEmpty(header.Hash)) return LoadResult.Refuse("this save has no integrity check in it", true);
             var actual = StateHash.Compute(state);
-            if (string.CompareOrdinal(actual, header.Hash) != 0)
+            if (string.CompareOrdinal(actual, expectedHash) != 0)
                 return LoadResult.Refuse("this save is damaged (its contents do not match its checksum)", true);
 
             // Header metadata the state does not carry.
             state.PlaySeconds = header.PlaySeconds;
+            // An upgraded state is a current one from here on: the next save writes the current version throughout.
+            if (upgraded != null) state.Version = SaveSchema.Version;
 
             // Balance data is a warning, never a refusal: a changed recipe is a difference, not damage.
             string warning = null;
@@ -156,7 +170,24 @@ namespace Relight.Sim
             if (data != null && !string.IsNullOrEmpty(header.DataVersion) && string.CompareOrdinal(current, header.DataVersion) != 0)
                 warning = "this save was made with different balance data (" + header.DataVersion + " vs " + current + ")";
 
-            return LoadResult.Loaded(state, header, warning);
+            return LoadResult.Loaded(state, header, warning, upgraded);
+        }
+
+        /// <summary>
+        /// Why <paramref name="version"/> cannot be read, or null when it can. The message names both what this
+        /// build writes and what it still upgrades, so a refusal of a future file says what the player can do.
+        /// </summary>
+        private static string VersionProblem(int version)
+        {
+            if (version >= SaveSchema.OldestReadable && version <= SaveSchema.Version) return null;
+            var current = SaveSchema.Version.ToString(CultureInfo.InvariantCulture);
+            var older = SaveSchema.OldestReadable < SaveSchema.Version
+                ? " and upgrades version " + SaveSchema.OldestReadable.ToString(CultureInfo.InvariantCulture)
+                  + (SaveSchema.Version - SaveSchema.OldestReadable > 1
+                      ? "–" + (SaveSchema.Version - 1).ToString(CultureInfo.InvariantCulture) : "")
+                : "";
+            return "unsupported save version " + version.ToString(CultureInfo.InvariantCulture)
+                   + " (this build reads version " + current + older + ")";
         }
 
         /// <summary>
@@ -193,10 +224,10 @@ namespace Relight.Sim
                 return null;
             }
             var version = (int)versionMember.Number;
-            if (version != SaveSchema.Version)
+            var unsupported = VersionProblem(version);
+            if (unsupported != null)
             {
-                problem = "unsupported save version " + version.ToString(CultureInfo.InvariantCulture)
-                          + " (this build reads version " + SaveSchema.Version.ToString(CultureInfo.InvariantCulture) + ")";
+                problem = unsupported;
                 return null;
             }
 
@@ -241,6 +272,11 @@ namespace Relight.Sim
         public string Path { get; internal set; }
         /// <summary>Set when the file asked for was unusable and this one was used instead.</summary>
         public string Recovered { get; internal set; }
+        /// <summary>
+        /// Set when the file was an older schema read through <see cref="SaveUpgrade"/>: what was defaulted, and
+        /// that the file itself is unchanged. Information for the player, never a warning about damage.
+        /// </summary>
+        public string Upgraded { get; private set; }
 
         /// <summary>
         /// True when the file <i>is</i> one of ours but is broken (truncated, edited, checksum mismatch), false when
@@ -253,8 +289,8 @@ namespace Relight.Sim
         public static LoadResult Refuse(string reason, bool damaged = false)
             => new LoadResult { Ok = false, Reason = reason ?? "refused", Damaged = damaged };
 
-        public static LoadResult Loaded(SimState state, SaveHeader header, string warning = null)
-            => new LoadResult { Ok = true, Reason = "", State = state, Header = header, Warning = warning };
+        public static LoadResult Loaded(SimState state, SaveHeader header, string warning = null, string upgraded = null)
+            => new LoadResult { Ok = true, Reason = "", State = state, Header = header, Warning = warning, Upgraded = upgraded };
 
         public override string ToString() => Ok ? "loaded" : "refused: " + Reason;
     }

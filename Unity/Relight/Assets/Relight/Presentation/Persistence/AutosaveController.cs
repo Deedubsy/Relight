@@ -13,13 +13,20 @@ namespace Relight.Presentation
     /// decision, every path, every refusal and every recovery lives in <c>Relight.Sim</c>, where it is testable
     /// without an editor; this file has no logic worth a test of its own, which is the point.
     ///
-    /// Two details matter here and nowhere else:
+    /// Three details matter here and nowhere else:
     /// <list type="bullet">
     /// <item>the autosave clock is fed <b>ticks × <see cref="Simulation.TickSeconds"/></b>, not
     ///       <see cref="Time.deltaTime"/> and not <see cref="SimHost.AcceptedRealSeconds"/> (which keeps accruing
     ///       while paused). Ticks run <i>is</i> unpaused sim time, which is what §9.4.2 specifies;</item>
     /// <item>the save is taken from <see cref="SimHost.TickBoundary"/>, which the host raises after the frame's
-    ///       ticks and before the next frame's commands — the only moment the state is not mid-anything.</item>
+    ///       ticks and before the next frame's commands — the only moment the state is not mid-anything;</item>
+    /// <item>the scheduler belongs to <b>one session</b>. Every <see cref="SimHost.SessionChanged"/> — a new game
+    ///       from <c>WorldBootstrap</c>, a load adopted here, a detach — resets it (elapsed interval, failure
+    ///       count, stopped ring, notice), and a swap that happened while this component was disabled is caught
+    ///       by comparing <see cref="SimHost.Session"/> on enable and at every tick boundary. Before 2026-09-13
+    ///       only this component's own <see cref="Load"/> reset it, so a new game started elsewhere inherited the
+    ///       previous session's clock (an autosave seconds after starting) or its stopped ring (no autosave at
+    ///       all until a manual save) — TASKS.md B-13 residue, closed by U-M-38.</item>
     /// </list>
     /// </summary>
     [DisallowMultipleComponent]
@@ -44,6 +51,7 @@ namespace Relight.Presentation
         private SaveStore _store;
         private AutosaveScheduler _scheduler;
         private bool _subscribed;
+        private int _session = -1;      // the SimHost.Session the scheduler was last reset for
 
         /// <summary>Where saves live: <c>{persistentDataPath}/saves/{profile}/…</c> (§9.4.1).</summary>
         public SaveStore Store => _store;
@@ -77,18 +85,38 @@ namespace Relight.Presentation
         {
             if (host == null || _subscribed) return;
             host.TickBoundary += OnTickBoundary;
+            host.SessionChanged += OnSessionChanged;
             _subscribed = true;
+            // A session that changed while this component was disabled is still a change.
+            if (host.Session != _session) OnSessionChanged(host.Simulation);
         }
 
         private void OnDisable()
         {
             if (host == null || !_subscribed) return;
             host.TickBoundary -= OnTickBoundary;
+            host.SessionChanged -= OnSessionChanged;
             _subscribed = false;
+        }
+
+        /// <summary>
+        /// The scheduler starts again for the session that is live now: the elapsed interval, the failure count,
+        /// a stopped ring and its notice all belonged to the previous one. Timed and event autosaves only ever
+        /// serialise <see cref="SimHost.Simulation"/> at the moment they fire, so no pending work can save an old
+        /// session; what this prevents is the old session's <i>clock</i> and <i>failure state</i> deciding when —
+        /// or whether — the new one is saved.
+        /// </summary>
+        private void OnSessionChanged(Simulation sim)
+        {
+            _session = host.Session;
+            _scheduler?.Reset();
+            LastSave = null;
+            LastLoad = null;
         }
 
         private void OnTickBoundary(int ticks)
         {
+            if (host.Session != _session) OnSessionChanged(host.Simulation);
             if (ticks <= 0 || host.Simulation == null) return;
             // Ticks run is unpaused sim time by construction: a paused host runs none (§9.4.2).
             var result = _scheduler.Advance(PlayClock.SecondsFor(ticks), host.Simulation);
@@ -141,19 +169,22 @@ namespace Relight.Presentation
 
         /// <summary>
         /// Swap a loaded state into the host. The scene is never reloaded — a load replaces the state behind the
-        /// same <see cref="SimHost"/> — and the autosave clock starts again so the first autosave after a load is a
-        /// full interval away rather than immediate.
+        /// same <see cref="SimHost"/> — and the attach raises <see cref="SimHost.SessionChanged"/>, which starts
+        /// the autosave clock again so the first autosave after a load is a full interval away rather than
+        /// immediate. <see cref="LastLoad"/> is recorded after the attach, so the reset does not clear it.
         /// </summary>
         private LoadResult Adopt(LoadResult r)
         {
-            LastLoad = r;
             if (!r.Ok)
             {
+                LastLoad = r;
                 Debug.LogWarning("Relight: load refused — " + r.Reason);
                 return r;
             }
             host.Attach(Simulation.Wrap(host.Simulation.Context, r.State));
-            _scheduler.Reset();
+            if (host.Session != _session) OnSessionChanged(host.Simulation);   // in case this component is disabled
+            LastLoad = r;
+            if (!string.IsNullOrEmpty(r.Upgraded)) Debug.Log("Relight: " + r.Upgraded);
             if (!string.IsNullOrEmpty(r.Warning)) Debug.LogWarning("Relight: " + r.Warning);
             if (!string.IsNullOrEmpty(r.Recovered)) Debug.LogWarning("Relight: " + r.Recovered);
             return r;

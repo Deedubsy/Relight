@@ -8,8 +8,11 @@ namespace Relight.Sim
     /// Version 2 (2026-09-12) adds the hand's pending-refund fields (<c>state.hand.refundSteel</c> /
     /// <c>refundCopper</c>, HandCraft.cs). Because <see cref="JsonStateReader"/> guesses nothing, a schema-1 file
     /// would otherwise fail as a <i>missing field</i> — which reads as damage and gets a good file quarantined as
-    /// <c>.corrupt</c>. Bumping the number instead refuses it by version, undamaged and with the existing clear
-    /// message, so Phase B development saves are simply out of date rather than broken.
+    /// <c>.corrupt</c>. Bumping the number keeps such a file undamaged, and since 2026-09-13 a version-1 file is
+    /// <b>read through <see cref="SaveUpgrade"/></b>: its checksum is verified as written, the two refund members
+    /// are defaulted to zero on the parsed document, and the file on disk is never touched (U-M-38). Anything
+    /// older than <see cref="OldestReadable"/> or newer than <see cref="Version"/> is refused by number, as before.
+    /// This is a default for a field a Unity save did not yet have, not the reference-save converter U-D-27 rules out.
     ///
     /// The document is one JSON object:
     /// <code>
@@ -36,8 +39,14 @@ namespace Relight.Sim
     /// </summary>
     public static class SaveSchema
     {
-        /// <summary>Schema version this build writes and the only one it reads.</summary>
+        /// <summary>Schema version this build writes. Files from <see cref="OldestReadable"/> up to it are read.</summary>
         public const int Version = 2;
+
+        /// <summary>
+        /// The oldest schema version this build still reads (through <see cref="SaveUpgrade"/>). Never 0: there
+        /// was no version 0, and the reference build's <c>relight-save</c> files are a different kind entirely.
+        /// </summary>
+        public const int OldestReadable = 1;
 
         /// <summary>File marker. The reference's marker is <c>relight-save</c>; a different string by design.</summary>
         public const string Kind = "relight-save-unity";
