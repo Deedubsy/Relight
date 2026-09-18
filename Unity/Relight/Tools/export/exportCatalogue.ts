@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   ITEMS, MACHINE_SIZE, MACHINE_COST, MACHINE_KW, GENERATOR_COAL_CAP, SUPPLY_CHEST_CAP,
-  ASSEMBLER_RECIPES, HAND_BULLET_SECONDS, HAND_MINE_PER_S, ASM_OUTPUT_CAP, KIND_LABEL,
+  ASSEMBLER_RECIPES, HAND_BULLET_SECONDS, HAND_MINE_PER_S, ASM_INPUT_MULT, ASM_OUTPUT_CAP, KIND_LABEL, recipeOf,
   ARC_LAMP_RADIUS, TILE_TPS, TILE_DT, isProcessor, recipesFor, type Kind,
 } from '../../../../packages/sim/src/flow';
 import {
@@ -40,7 +40,7 @@ import { OPENING_ENCOUNTER } from '../../../../packages/sim/src/openingEncounter
 import { CAMPAIGN_RULES, CAMPAIGN_START_POCKETS, CAMPAIGN_RULESET } from '../../../../packages/sim/src/rules';
 import { CAMPAIGN_POWER } from '../../../../packages/sim/src/campaignPower';
 import { CAMPAIGN_TURRET_RATE, TURRET_TURN_SPEED, TURRET_MUZZLE, TURRET_SHOT_FLASH } from '../../../../packages/sim/src/turretTracking';
-import { CORRECTIONS } from '../../../../packages/sim/src/progression';
+import { CORRECTIONS, processingMultiplier } from '../../../../packages/sim/src/progression';
 import { DEFENCE } from '../../../../packages/sim/src/campaignDefence';
 import {
   ROUNDS_PER_MAG, SHOT_MAGAZINE_MK2_SECONDS, EXCAVATOR_PER_S, BELT_PER_S, FAST_BELT_PER_S,
@@ -49,6 +49,8 @@ import {
 import { itemName } from '../../../../packages/sim/src/itemNames';
 import { RIFLE } from '../../../../packages/sim/src/equipment';
 import { FABRICATION } from '../../../../packages/sim/src/fabrication';
+import { STREETLIGHT_RADIUS } from '../../../../packages/sim/src/constants';
+import { RIVERFRONT } from '../../../../packages/sim/src/city/riverfront';
 import {
   TILE_PX, CELL_TILES, LOT_TILES, MARGIN_TILES, STREET_TILES, DEPOT_TILES, DEPOT_LOT, SUBSTATION_TILES,
   RUBBLE_UNITS_PER_TILE, RUBBLE_TILES_MIN, RUBBLE_TILES_MAX,
@@ -87,6 +89,9 @@ const SRC = {
   chestCap: sim('flow.ts', 'export const TRAM_CAP'),
   generatorCap: sim('flow.ts', 'export const GENERATOR_COAL_CAP'),
   asmCaps: sim('flow.ts', 'export const ASM_INPUT_MULT'),
+  recipeOf: sim('flow.ts', 'export function recipeOf'),
+  isProcessor: sim('flow.ts', 'export const isProcessor'),
+  processingMul: sim('progression.ts', 'export function processingMultiplier'),
   asmAmmoBuffer: sim('flow.ts', 'export function asmCanStart'),
   recipes: SIM + 'recipes.ts',
   recipesTable: sim('recipes.ts', 'export const RECIPES'),
@@ -137,6 +142,8 @@ const SRC = {
   coalMj: sim('recipes.ts', 'export const COAL_MJ'),
   lamp: sim('recipes.ts', 'export const LAMP_KW'),
   floodlight: sim('recipes.ts', 'export const FLOODLIGHT_KW'),
+  streetLightKw: sim('city/riverfront.ts', '"lightKw"'),
+  streetLightRadius: sim('constants.ts', 'export const STREETLIGHT_RADIUS'),
   arcLamp: sim('flow.ts', 'export const ARC_LAMP_RADIUS'),
 };
 const eng = (needle: string) => sim('engineer.ts', needle);
@@ -201,6 +208,41 @@ const MACHINE_HP: Partial<Record<Kind, [number, string]>> = {
 };
 const MACHINE_KIND: Partial<Record<Kind, Row['kind']>> = { turret: 'provisional', cannon: 'provisional' };
 
+// ---- processing (B-07): the reference's hard-coded kind lists become data on the machine row ------------------
+/**
+ * The §3 Station each processing kind runs (reference flow.ts `isProcessor` / `recipesFor`). The Mk2 carries the
+ * plain "Assembler" station because the reference runs the same recipe set on it, only faster
+ * (progression.ts `processingMultiplier`), and the Mixer carries "Mixer" because `recipeOf` forces Concrete on it
+ * even though `recipesFor` returns nothing for it.
+ */
+const MACHINE_STATION: Partial<Record<Kind, string>> = {
+  foundry: 'Foundry', refinery: 'Refinery', assembler: 'Assembler', assembler2: 'Assembler',
+  mixer: 'Mixer', alienworkbench: 'Alien workbench',
+};
+/** The ASSEMBLER_RECIPES id each kind falls back to in `recipeOf`, and its exported recipe key. */
+const DEFAULT_RECIPE_ID: Partial<Record<Kind, keyof typeof ASSEMBLER_RECIPES>> = {
+  foundry: 'iron', refinery: 'fuel', assembler: 'shot', assembler2: 'shot', alienworkbench: 'overclock',
+};
+const RECIPE_KEY_OF_ID: Record<string, string> = {
+  iron: 'steel-plates', copper: 'refined-copper', fuel: 'refined-fuel', polymer: 'polymer', shot: 'bullet-batch',
+  wire: 'wire', frame: 'frame', board: 'board', shell: 'shell', overclock: 'overclock-module',
+};
+/** The recipe a newly placed machine runs, checked against `recipeOf` so the table above cannot rot. */
+function defaultRecipe(k: Kind): string {
+  if (!isProcessor({ kind: k })) return '';
+  const actual = recipeOf({ kind: k } as never).name;
+  if (k === 'mixer') {
+    if (actual !== 'Concrete') throw new Error(`exportCatalogue: the Mixer's default is now "${actual}"`);
+    return 'concrete';
+  }
+  const id = DEFAULT_RECIPE_ID[k];
+  if (!id) throw new Error(`exportCatalogue: no default recipe id for ${k}`);
+  if (ASSEMBLER_RECIPES[id].name !== actual) throw new Error(`exportCatalogue: ${k} defaults to "${actual}", not "${ASSEMBLER_RECIPES[id].name}"`);
+  return RECIPE_KEY_OF_ID[id];
+}
+/** The Mk2's 2x, read from the reference rather than restated (an unupgraded machine, so no artifact bonus). */
+const speedMul = (k: Kind) => (isProcessor({ kind: k }) ? processingMultiplier({ kind: k } as never) : 1);
+
 const costStacks = (k: Kind) => {
   const c = MACHINE_COST[k] as Record<string, number | undefined>;
   return ITEM_ORDER.filter(i => (c[i] ?? 0) > 0).map(i => ({ item: i, count: c[i]! }));
@@ -229,6 +271,8 @@ const machines = MACHINE_ORDER.map(k => {
   if (k === 'chest') src.push(SRC.chestCap);
   if (k === 'floodlight') src.push(SRC.floodlight);
   if (k === 'cannon') src.push(SRC.corrections);
+  if (isProcessor({ kind: k })) src.push(SRC.isProcessor, SRC.recipeOf, SRC.asmCaps);
+  if (k === 'assembler2') src.push(SRC.processingMul);
   return {
     ...row(k, kind, join2(...src)),
     displayName: MACHINE_LABEL[k] ?? KIND_LABEL[k],
@@ -248,6 +292,11 @@ const machines = MACHINE_ORDER.map(k => {
     coneHalfAngleRad: k === 'floodlight' ? FLOODLIGHT_HALF_ANGLE : 0,
     hp: hp ? hp[0] : 0,
     unlock: MACHINE_UNLOCK[k] ?? '',
+    recipeStation: MACHINE_STATION[k] ?? '',
+    defaultRecipe: defaultRecipe(k),
+    speedMul: speedMul(k),
+    inputBufferMul: ASM_INPUT_MULT,
+    outputBufferCap: ASM_OUTPUT_CAP,
   };
 });
 
@@ -416,13 +465,15 @@ const turrets = [
 // ------------------------------------------------------------------ single tuning tables
 
 const power = {
-  ...row('power', 'current', join2(SRC.generatorKw, SRC.coalMj, SRC.generatorCap, SRC.corrections, SRC.power, SRC.lamp, SRC.floodlight, SRC.arcLamp, SRC.nodeReach, SRC.turretKw, SRC.brownout)),
+  ...row('power', 'current', join2(SRC.generatorKw, SRC.coalMj, SRC.generatorCap, SRC.corrections, SRC.power, SRC.lamp, SRC.floodlight, SRC.arcLamp, SRC.nodeReach, SRC.turretKw, SRC.brownout, SRC.streetLightKw, SRC.streetLightRadius)),
   generatorKw: GENERATOR_KW, coalMj: COAL_MJ, generatorFuelCap: GENERATOR_COAL_CAP,
   plantKw: CORRECTIONS.plantKw, turbineHallKw: CORRECTIONS.plantKw, coreKw: CAMPAIGN_POWER.coreKw,
   radioKw: CAMPAIGN_POWER.radioKw, poleReachTiles: POLE_REACH, bigPoleReachTiles: BIG_POLE_REACH,
   substationReachTiles: POLE_REACH, turretKw: TURRET_KW, lampKw: LAMP_KW, lampRadiusTiles: LAMP_RADIUS,
   arcLampKw: MACHINE_KW.arclamp, arcLampRadiusTiles: ARC_LAMP_RADIUS, floodlightKw: FLOODLIGHT_KW,
-  floodlightRangeTiles: FLOODLIGHT_RANGE, floodlightHalfAngleRad: FLOODLIGHT_HALF_ANGLE, brownoutRule: BROWNOUT_RULE,
+  floodlightRangeTiles: FLOODLIGHT_RANGE, floodlightHalfAngleRad: FLOODLIGHT_HALF_ANGLE,
+  // C-11 kerb street lights: the authored map's lightKw and the reference STREETLIGHT_RADIUS (D-B5-4).
+  streetLightKw: RIVERFRONT.lightKw, streetLightRadiusTiles: STREETLIGHT_RADIUS, brownoutRule: BROWNOUT_RULE,
 };
 
 const time = {
@@ -461,6 +512,16 @@ const opening = {
   supplyAckS: OPENING_ENCOUNTER.supplyAck,
   supplyChainDepth: 4,          // openingEncounter.ts `supplyChainReaches(..., depth = 4)`
   turretObjective: 3,           // CATALOGUE §6.2 "Opening objective: three turrets", approved
+};
+
+/** C-05 row B-10/C-05: DEFENCE plus the Cannon's 140, which `defenceMax` keeps as a literal on its own line. */
+const defence = {
+  ...row('defence', 'provisional', join2(SRC.defence, SRC.defenceMax)),
+  barricadeHp: DEFENCE.barricadeHp, wallHp: DEFENCE.wallHp, turretHp: DEFENCE.turretHp,
+  cannonHp: 140,                // campaignDefence.ts `defenceMax`: `m.kind==='cannon'?140:...`
+  coreHp: DEFENCE.coreHp, repairHp: DEFENCE.repairHp, repairSeconds: DEFENCE.repairSeconds,
+  repairSteel: DEFENCE.repairSteel, repairCopper: DEFENCE.repairCopper,
+  coreSteel: DEFENCE.coreSteel, coreCopper: DEFENCE.coreCopper, coreRepairSeconds: DEFENCE.coreRepairSeconds,
 };
 
 const stake = {
@@ -514,7 +575,7 @@ const catalogue = {
     excludedMachines: EXCLUDED_MACHINES,
   },
   items, machines, recipes, weapons, ammunition, turrets, enemies,
-  power, time, raids, opening, stake, engineer, world, extensionPoints,
+  power, time, raids, opening, defence, stake, engineer, world, extensionPoints,
 };
 
 const outDir = join(HERE, 'out');
@@ -569,6 +630,15 @@ for (const m of machines) {
   L.push(`            new MachineSpec(${q(m.key)}, ${q(m.displayName)}, ${i(m.size)}, ${stackList(m.cost)}, ${b(m.hasInventory)}, ${d(m.powerKw)}, ${i(m.inventorySlots)},`);
   L.push(`                FuelCap: ${d(m.fuelCap)}, AmmoCap: ${i(m.ammoCap)}, RatePerS: ${d(m.ratePerS)}, ReachTiles: ${d(m.reachTiles)}, LightRadiusTiles: ${d(m.lightRadiusTiles)},`);
   L.push(`                ConeRangeTiles: ${d(m.coneRangeTiles)}, ConeHalfAngleRad: ${d(m.coneHalfAngleRad)}, Hp: ${d(m.hp)}, Unlock: ${q(m.unlock)},`);
+  // The processing members are emitted only where they differ from the record's defaults, so a non-processing row
+  // stays the three lines it was before B-07.
+  if (m.recipeStation !== '' || m.speedMul !== 1 || m.inputBufferMul !== 4 || m.outputBufferCap !== 5) {
+    const parts = [`RecipeStation: ${q(m.recipeStation)}`, `DefaultRecipe: ${q(m.defaultRecipe)}`];
+    if (m.speedMul !== 1) parts.push(`SpeedMul: ${d(m.speedMul)}`);
+    if (m.inputBufferMul !== 4) parts.push(`InputBufferMul: ${d(m.inputBufferMul)}`);
+    if (m.outputBufferCap !== 5) parts.push(`OutputBufferCap: ${d(m.outputBufferCap)}`);
+    L.push(`                ${parts.join(', ')},`);
+  }
   L.push(`                Kind: ${q(m.kind)}, Source: ${q(m.source)}, Provisional: ${b(m.provisional)}),`);
 }
 L.push('        };');
@@ -627,6 +697,7 @@ L.push(`            ${d(power.plantKw)}, ${d(power.turbineHallKw)}, ${d(power.co
 L.push(`            ${d(power.poleReachTiles)}, ${d(power.bigPoleReachTiles)}, ${d(power.substationReachTiles)},`);
 L.push(`            ${d(power.turretKw)}, ${d(power.lampKw)}, ${d(power.lampRadiusTiles)}, ${d(power.arcLampKw)}, ${d(power.arcLampRadiusTiles)},`);
 L.push(`            ${d(power.floodlightKw)}, ${d(power.floodlightRangeTiles)}, ${d(power.floodlightHalfAngleRad)},`);
+L.push(`            ${d(power.streetLightKw)}, ${d(power.streetLightRadiusTiles)},`);
 L.push(`            ${q(power.brownoutRule)}, ${q(power.kind)}, ${q(power.source)}, ${b(power.provisional)});`);
 L.push('');
 
@@ -657,6 +728,13 @@ L.push(`            ${i(opening.supplyChainDepth)}, ${i(opening.turretObjective)
 L.push(`            ${q(opening.kind)}, ${q(opening.source)}, ${b(opening.provisional)});`);
 L.push('');
 
+L.push('        public static DefenceTuning Defence() => new DefenceTuning(');
+L.push(`            ${i(defence.barricadeHp)}, ${i(defence.wallHp)}, ${i(defence.turretHp)}, ${i(defence.cannonHp)}, ${i(defence.coreHp)},`);
+L.push(`            ${i(defence.repairHp)}, ${d(defence.repairSeconds)}, ${i(defence.repairSteel)}, ${i(defence.repairCopper)},`);
+L.push(`            ${i(defence.coreSteel)}, ${i(defence.coreCopper)}, ${d(defence.coreRepairSeconds)},`);
+L.push(`            ${q(defence.kind)}, ${q(defence.source)}, ${b(defence.provisional)});`);
+L.push('');
+
 L.push('        public static StartingStake Stake() => new StartingStake(');
 L.push(`            ${stackList(stake.pockets)}, ${q(stake.ruleset)}, ${q(stake.kind)}, ${q(stake.source)}, ${b(stake.provisional)});`);
 L.push('');
@@ -682,7 +760,7 @@ L.push('        /// <summary>The whole exported catalogue as one <see cref="Game
 L.push('        public static GameData Build() => new GameData(');
 L.push('            Items(), Machines(), Recipes(), Engineer(), World(),');
 L.push('            Weapons(), Enemies(), Ammunition(), Turrets(),');
-L.push('            Power(), Time(), Raids(), Opening(), Stake());');
+L.push('            Power(), Time(), Raids(), Opening(), Stake(), Defence());');
 L.push('    }');
 L.push('}');
 

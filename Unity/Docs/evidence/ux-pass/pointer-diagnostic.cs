@@ -1,0 +1,4 @@
+var r=UnityEngine.Object.FindAnyObjectByType<Relight.UI.InputRouter>();
+var d=UnityEngine.Object.FindObjectsByType<UnityEngine.UIElements.UIDocument>().First(d=>d.visualTreeAsset!=null && d.visualTreeAsset.name=="GameUI");
+var b=UnityEngine.UIElements.UQueryExtensions.Q<UnityEngine.UIElements.Button>(d.rootVisualElement,"open-inventory");
+return new { mouse=UnityEngine.InputSystem.Mouse.current.position.ReadValue(),screen=new{UnityEngine.Screen.width,UnityEngine.Screen.height},root=d.rootVisualElement.worldBound,button=b.worldBound,active=UnityEngine.Object.FindAnyObjectByType<Relight.UI.UiShell>().Active,maps=r.Actions.actionMaps.Select(m=>new{m.name,m.enabled,actions=m.actions.Select(a=>new{a.name,a.enabled}).ToArray()}).ToArray(), modules=UnityEngine.Object.FindObjectsByType<UnityEngine.EventSystems.BaseInputModule>().Select(m=>m.GetType().FullName).ToArray()};

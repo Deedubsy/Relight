@@ -1,0 +1,4 @@
+UnityEngine.InputSystem.InputSystem.QueueStateEvent(UnityEngine.InputSystem.Keyboard.current,new UnityEngine.InputSystem.LowLevel.KeyboardState());
+var router=UnityEngine.Object.FindAnyObjectByType<Relight.UI.InputRouter>();
+var doc=UnityEngine.Object.FindObjectsByType<UnityEngine.UIElements.UIDocument>(UnityEngine.FindObjectsSortMode.None).First(d=>d.visualTreeAsset!=null&&d.visualTreeAsset.name=="GameUI");
+return new {active=UnityEngine.Object.FindAnyObjectByType<Relight.UI.UiShell>().Active, keyboard=UnityEngine.InputSystem.Keyboard.current.bKey.isPressed, buttons=UnityEngine.UIElements.UQueryExtensions.Query<UnityEngine.UIElements.Button>(doc.rootVisualElement).ToList().Where(b=>b.name.Contains("build")||b.name.Contains("inventory")||b.name.Contains("nav")).Select(b=>new{name=b.name,text=b.text}).ToArray()};

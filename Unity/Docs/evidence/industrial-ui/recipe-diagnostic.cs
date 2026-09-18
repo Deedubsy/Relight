@@ -1,0 +1,2 @@
+var doc=UnityEngine.Object.FindObjectsByType<UnityEngine.UIElements.UIDocument>().First(d=>d.visualTreeAsset!=null&&d.visualTreeAsset.name=="GameUI");
+var root=doc.rootVisualElement;return UnityEngine.UIElements.UQueryExtensions.Query<UnityEngine.UIElements.VisualElement>(root,className:"recipe-card").ToList().Select(e=>new{e.name,bounds=e.worldBound.ToString(),children=UnityEngine.UIElements.UQueryExtensions.Query<UnityEngine.UIElements.Button>(e).ToList().Select(b=>b.name).ToArray()}).ToArray();

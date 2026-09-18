@@ -106,8 +106,12 @@ namespace Relight.Editor
                 var raids = Single<RaidDirectorTuningAsset>("Tuning - Raids", a => a.Fill(CatalogueData.Raids()), log);
                 var opening = Single<OpeningEncounterTuningAsset>("Tuning - Opening", a => a.Fill(CatalogueData.Opening()), log);
                 var stake = Single<StartingStakeAsset>("Tuning - Starting stake", a => a.Fill(CatalogueData.Stake()), log);
+                var defence = Single<DefenceTuningAsset>("Tuning - Defence", a => a.Fill(CatalogueData.Defence()), log);
                 var engineer = Single<EngineerTuningAsset>("Tuning - Engineer", a => a.Fill(CatalogueData.Engineer()), log);
                 var world = Single<WorldTuningAsset>("Tuning - World", a => a.Fill(CatalogueData.World()), log);
+                // GP-W4: the siege shape is this port's own, not the reference export's, so its default
+                // comes from SiegeTuning.Fallback rather than from CatalogueData.
+                var siege = Single<SiegeTuningAsset>("Tuning - Siege", a => a.Fill(SiegeTuning.Fallback), log);
 
                 var registry = AssetDatabase.LoadAssetAtPath<GameDataRegistry>(RegistryPath);
                 if (registry == null)
@@ -117,7 +121,7 @@ namespace Relight.Editor
                     log.Add("created GameDataRegistry.asset");
                 }
                 registry.SetContents(items, machines, recipes, weapons, enemies, ammunition, turrets,
-                    power, time, raids, opening, stake, engineer, world);
+                    power, time, raids, opening, stake, defence, engineer, world, siege);
                 EditorUtility.SetDirty(registry);
 
                 AssetDatabase.SaveAssets();

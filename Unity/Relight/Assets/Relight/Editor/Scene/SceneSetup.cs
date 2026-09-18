@@ -299,6 +299,7 @@ namespace Relight.Editor
             var autosave = Get<AutosaveController>(sim);
             var input = Get<WorldInput>(sim);
             var presenter = Get<MachinePresenter>(sim);
+            Get<PowerConnectionPresenter>(sim);
 
             var actors = Find(roots, "Actors") ?? new GameObject("Actors");
             var machines = Find(actors.transform, "Machines");
@@ -361,6 +362,7 @@ namespace Relight.Editor
             var router = Get<InputRouter>(ui);
             var escape = Get<EscapeChain>(ui);
             var shell = Get<UiShell>(ui);
+            Get<AdminPanelController>(ui);
             var status = Get<StatusPanelController>(ui);
 
             var controls = AssetDatabase.LoadAssetAtPath<Object>(ControlsAsset);

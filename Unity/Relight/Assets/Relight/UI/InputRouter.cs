@@ -7,7 +7,8 @@ namespace Relight.UI
     /// B-13. Owns which Input System action map is live (TECHNICAL_ARCHITECTURE.md §8.3 rows 1-2, §8.4). There are
     /// three maps in <c>RelightControls.inputactions</c> and exactly one rule:
     /// <list type="bullet">
-    /// <item><c>World</c> — engineer movement, click-to-move, placement. Disabled while a panel is open, which is
+    /// <item><c>World</c> — engineer movement (WASD only; the correction pass removed click-to-move), mining,
+    ///       shooting and placement. Disabled while a panel is open, which is
     ///       the port of the reference's capture-phase <c>stopImmediatePropagation</c> wall (uiShell.ts:104-131):
     ///       there the world listeners were starved of events, here the map is simply off.</item>
     /// <item><c>UI</c> — panel navigation. Enabled while a panel is open.</item>
@@ -42,8 +43,30 @@ namespace Relight.UI
         /// <summary>The Global map's Pause action.</summary>
         public InputAction Pause { get; private set; }
 
-        /// <summary>The Global map's panel toggle (Tab), the reference's drawer buttons in one key.</summary>
+        /// <summary>The Global map's panel toggle (Tab). Correction pass: Tab is the Backpack, not the status drawer.</summary>
         public InputAction TogglePanel { get; private set; }
+
+        /// <summary>
+        /// The Global map's build-menu toggle (B). It sits beside <see cref="TogglePanel"/> on the always-live
+        /// Global map for the same reason: the key that OPENS a drawer cannot live on a map a drawer disables.
+        /// </summary>
+        public InputAction ToggleBuild { get; private set; }
+
+        /// <summary>The Global map's Reload action (C-06: the Backpack drawer's Reload, and R in the world).</summary>
+        public InputAction Reload { get; private set; }
+
+        /// <summary>The Global map's action-bar keys 1..9 and 0 as one action with ten bindings (C-06, §5.5).</summary>
+        public InputAction Slot { get; private set; }
+
+        /// <summary>
+        /// The <b>World</b> map's Move action. It is exposed although this map is off while a drawer is open,
+        /// because <see cref="UiShell"/> has to know which keys the player has bound to walking in order to obey
+        /// "a movement key closes the drawer". The action itself reports nothing while its map is disabled, so the
+        /// shell reads the player's OWN controls through it (<see cref="MovementKeys"/>) rather than mirroring
+        /// WASD onto the Global map: a mirror would stop matching the moment the player rebound north or east
+        /// (UI/Settings/BindingMap.cs maps those onto this action's composite parts).
+        /// </summary>
+        public InputAction Move { get; private set; }
 
         /// <summary>The asset, so a test or a settings screen can reach the maps without a second reference.</summary>
         public InputActionAsset Actions => actions;
@@ -58,9 +81,13 @@ namespace Relight.UI
             _world = actions.FindActionMap("World", false);
             _ui = actions.FindActionMap("UI", false);
             _global = actions.FindActionMap("Global", false);
+            Move = _world?.FindAction("Move", false);
             Cancel = _global?.FindAction("Cancel", false);
             Pause = _global?.FindAction("Pause", false);
             TogglePanel = _global?.FindAction("TogglePanel", false);
+            ToggleBuild = _global?.FindAction("ToggleBuild", false);
+            Reload = _global?.FindAction("Reload", false);
+            Slot = _global?.FindAction("Slot", false);
         }
 
         private void OnEnable()

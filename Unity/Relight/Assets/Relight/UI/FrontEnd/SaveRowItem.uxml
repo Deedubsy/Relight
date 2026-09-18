@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One save row — C-10 (UI_AND_ONBOARDING.md §2.6.2, §2.7.1).
+
+  The same template is used for a manual slot and for an autosave, because §2.7.1 says they show the same facts
+  and differ only in their group and their label. TitleScreenController (and the pause menu's Load and Save
+  screens) instantiate this per row and only ever set text, tooltip, class and `enabledSelf`.
+
+  A row that cannot be loaded is NOT removed: its actions are disabled and `row-reason` carries the store's own
+  words. Empty labels collapse to nothing, so an ordinary row shows one line. -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <ui:VisualElement name="save-row" class="save-row">
+        <ui:VisualElement name="row-text" class="save-row-text">
+            <ui:Label name="row-line" text="" class="save-row-line" />
+            <ui:Label name="row-detail" text="" class="save-row-detail" />
+            <ui:Label name="row-reason" text="" class="save-row-reason" />
+        </ui:VisualElement>
+        <ui:VisualElement name="row-actions" class="save-row-actions">
+            <ui:Button name="row-primary" text="Load" class="action-button" />
+            <ui:Button name="row-delete" text="Delete" class="action-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -52,27 +52,33 @@ namespace Relight.Sim
             new MachineSpec("foundry", "Foundry", 3, new[] { new ItemStack(ItemId.Steel, 30), new ItemStack(ItemId.Copper, 10) }, true, 80.0, 1,
                 FuelCap: 0.0, AmmoCap: 0, RatePerS: 0.0, ReachTiles: 0.0, LightRadiusTiles: 0.0,
                 ConeRangeTiles: 0.0, ConeHalfAngleRad: 0.0, Hp: 0.0, Unlock: "",
-                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232", Provisional: false),
+                RecipeStation: "Foundry", DefaultRecipe: "steel-plates",
+                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/flow.ts:146; packages/sim/src/flow.ts:200; packages/sim/src/flow.ts:207", Provisional: false),
             new MachineSpec("refinery", "Refinery", 3, new[] { new ItemStack(ItemId.Steel, 40), new ItemStack(ItemId.Copper, 20) }, true, 100.0, 1,
                 FuelCap: 0.0, AmmoCap: 0, RatePerS: 0.0, ReachTiles: 0.0, LightRadiusTiles: 0.0,
                 ConeRangeTiles: 0.0, ConeHalfAngleRad: 0.0, Hp: 0.0, Unlock: "",
-                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232", Provisional: false),
+                RecipeStation: "Refinery", DefaultRecipe: "refined-fuel",
+                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/flow.ts:146; packages/sim/src/flow.ts:200; packages/sim/src/flow.ts:207", Provisional: false),
             new MachineSpec("assembler", "Assembler", 3, new[] { new ItemStack(ItemId.Steel, 40), new ItemStack(ItemId.Copper, 20) }, true, 100.0, 2,
                 FuelCap: 0.0, AmmoCap: 0, RatePerS: 0.0, ReachTiles: 0.0, LightRadiusTiles: 0.0,
                 ConeRangeTiles: 0.0, ConeHalfAngleRad: 0.0, Hp: 0.0, Unlock: "",
-                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232", Provisional: false),
+                RecipeStation: "Assembler", DefaultRecipe: "bullet-batch",
+                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/flow.ts:146; packages/sim/src/flow.ts:200; packages/sim/src/flow.ts:207", Provisional: false),
             new MachineSpec("assembler2", "Assembler Mk2", 3, new[] { new ItemStack(ItemId.Polymer, 4), new ItemStack(ItemId.Steel, 60), new ItemStack(ItemId.Copper, 30) }, true, 150.0, 2,
                 FuelCap: 0.0, AmmoCap: 0, RatePerS: 0.0, ReachTiles: 0.0, LightRadiusTiles: 0.0,
                 ConeRangeTiles: 0.0, ConeHalfAngleRad: 0.0, Hp: 0.0, Unlock: "material (Polymer)",
-                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232", Provisional: false),
+                RecipeStation: "Assembler", DefaultRecipe: "bullet-batch", SpeedMul: 2.0,
+                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/flow.ts:146; packages/sim/src/flow.ts:200; packages/sim/src/flow.ts:207; packages/sim/src/progression.ts:49", Provisional: false),
             new MachineSpec("mixer", "Mixer", 3, new[] { new ItemStack(ItemId.Steel, 20), new ItemStack(ItemId.Copper, 10) }, true, 60.0, 1,
                 FuelCap: 0.0, AmmoCap: 0, RatePerS: 0.0, ReachTiles: 0.0, LightRadiusTiles: 0.0,
                 ConeRangeTiles: 0.0, ConeHalfAngleRad: 0.0, Hp: 0.0, Unlock: "Concrete crew",
-                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232", Provisional: false),
+                RecipeStation: "Mixer", DefaultRecipe: "concrete",
+                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/flow.ts:146; packages/sim/src/flow.ts:200; packages/sim/src/flow.ts:207", Provisional: false),
             new MachineSpec("alienworkbench", "Alien workbench", 3, new[] { new ItemStack(ItemId.Steel, 30), new ItemStack(ItemId.Copper, 10), new ItemStack(ItemId.Frame, 4), new ItemStack(ItemId.Board, 2) }, true, 80.0, 4,
                 FuelCap: 0.0, AmmoCap: 0, RatePerS: 0.0, ReachTiles: 0.0, LightRadiusTiles: 0.0,
                 ConeRangeTiles: 0.0, ConeHalfAngleRad: 0.0, Hp: 0.0, Unlock: "Schematic",
-                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232", Provisional: false),
+                RecipeStation: "Alien workbench", DefaultRecipe: "overclock-module",
+                Kind: "current", Source: "packages/sim/src/flow.ts:211; packages/sim/src/flow.ts:218; packages/sim/src/flow.ts:232; packages/sim/src/flow.ts:146; packages/sim/src/flow.ts:200; packages/sim/src/flow.ts:207", Provisional: false),
             new MachineSpec("chest", "Supply chest", 2, new[] { new ItemStack(ItemId.Steel, 10) }, true, 0.0, 200,
                 FuelCap: 0.0, AmmoCap: 0, RatePerS: 0.0, ReachTiles: 0.0, LightRadiusTiles: 0.0,
                 ConeRangeTiles: 0.0, ConeHalfAngleRad: 0.0, Hp: 0.0, Unlock: "",
@@ -229,7 +235,8 @@ namespace Relight.Sim
             8.0, 12.0, 8.0,
             20.0, 5.0, 4.0, 12.0, 6.0,
             40.0, 12.0, 0.5235987755982988,
-            "proportional", "current", "packages/sim/src/recipes.ts:23; packages/sim/src/recipes.ts:22; packages/sim/src/flow.ts:237; packages/sim/src/progression.ts:17; packages/sim/src/campaignPower.ts:10; packages/sim/src/recipes.ts:38; packages/sim/src/recipes.ts:43; packages/sim/src/flow.ts:68; packages/sim/src/campaignPower.ts:20; packages/sim/src/recipes.ts:37; packages/sim/src/constants.ts:65", false);
+            2.0, 7.0,
+            "proportional", "current", "packages/sim/src/recipes.ts:23; packages/sim/src/recipes.ts:22; packages/sim/src/flow.ts:237; packages/sim/src/progression.ts:17; packages/sim/src/campaignPower.ts:10; packages/sim/src/recipes.ts:38; packages/sim/src/recipes.ts:43; packages/sim/src/flow.ts:68; packages/sim/src/campaignPower.ts:20; packages/sim/src/recipes.ts:37; packages/sim/src/constants.ts:65; packages/sim/src/city/riverfront.ts:415; packages/sim/src/constants.ts:58", false);
 
         public static TimeTuning Time() => new TimeTuning(
             20, 0.05, 1200.0, 900.0, "culdesac-v1",
@@ -255,6 +262,12 @@ namespace Relight.Sim
             4, 3,
             "provisional", "packages/sim/src/openingEncounter.ts:27; packages/sim/src/openingEncounter.ts:55", true);
 
+        public static DefenceTuning Defence() => new DefenceTuning(
+            240, 120, 100, 140, 300,
+            40, 4.0, 2, 1,
+            10, 5, 12.0,
+            "provisional", "packages/sim/src/campaignDefence.ts:13; packages/sim/src/campaignDefence.ts:75", true);
+
         public static StartingStake Stake() => new StartingStake(
             new[] { new ItemStack(ItemId.Steel, 20), new ItemStack(ItemId.Copper, 5) }, "exploration-v2", "approved", "packages/sim/src/rules.ts:10; packages/sim/src/rules.ts:5", false);
 
@@ -277,6 +290,6 @@ namespace Relight.Sim
         public static GameData Build() => new GameData(
             Items(), Machines(), Recipes(), Engineer(), World(),
             Weapons(), Enemies(), Ammunition(), Turrets(),
-            Power(), Time(), Raids(), Opening(), Stake());
+            Power(), Time(), Raids(), Opening(), Stake(), Defence());
     }
 }

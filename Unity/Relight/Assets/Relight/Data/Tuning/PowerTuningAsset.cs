@@ -30,13 +30,17 @@ namespace Relight.Data
         [SerializeField] private double floodlightKw = 40;
         [SerializeField] private double floodlightRangeTiles = 12;
         [SerializeField] private double floodlightHalfAngleRad = 0.5235987755982988;
+        [Tooltip("Authored kerb street lights (C-11): draw per light and lit radius in tiles.")]
+        [SerializeField] private double streetLightKw = 2;
+        [SerializeField] private double streetLightRadiusTiles = 7;
 
         [Tooltip("How a shortfall is shared out. 'proportional' is the reference rule.")]
         [SerializeField] private string brownoutRule = "proportional";
 
         public PowerTuning ToRecord() => new PowerTuning(generatorKw, coalMj, generatorFuelCap, plantKw, turbineHallKw,
             coreKw, radioKw, poleReachTiles, bigPoleReachTiles, substationReachTiles, turretKw, lampKw, lampRadiusTiles,
-            arcLampKw, arcLampRadiusTiles, floodlightKw, floodlightRangeTiles, floodlightHalfAngleRad, brownoutRule,
+            arcLampKw, arcLampRadiusTiles, floodlightKw, floodlightRangeTiles, floodlightHalfAngleRad,
+            streetLightKw, streetLightRadiusTiles, brownoutRule,
             KindText, Source, Provisional);
 
         public void Fill(PowerTuning r)
@@ -49,6 +53,7 @@ namespace Relight.Data
             lampRadiusTiles = r.LampRadiusTiles; arcLampKw = r.ArcLampKw; arcLampRadiusTiles = r.ArcLampRadiusTiles;
             floodlightKw = r.FloodlightKw; floodlightRangeTiles = r.FloodlightRangeTiles;
             floodlightHalfAngleRad = r.FloodlightHalfAngleRad; brownoutRule = r.BrownoutRule;
+            streetLightKw = r.StreetLightKw; streetLightRadiusTiles = r.StreetLightRadiusTiles;
         }
 
         public override string Problem()

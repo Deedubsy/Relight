@@ -119,6 +119,84 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &900316276
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 900316279}
+  - component: {fileID: 900316278}
+  - component: {fileID: 900316277}
+  m_Layer: 0
+  m_Name: PauseMenu
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &900316277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900316276}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2aedfd50d3b120d48908eadf89b27e9f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.PauseMenu.PauseMenuController
+  document: {fileID: 900316278}
+  host: {fileID: 0}
+  escape: {fileID: 0}
+  autosave: {fileID: 0}
+  settings: {fileID: 1874396184}
+  session: {fileID: 0}
+  saveRow: {fileID: 9197481963319205126, guid: 9749c4fbb4359434fa18bd1b3ae96a58, type: 3}
+  titleSceneName: MainMenu
+  daySeconds: 1200
+  currentMapId: riverfront-arc-v4-editor-ac16d9188c05
+--- !u!114 &900316278
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900316276}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.UIDocument
+  m_PanelSettings: {fileID: 11400000, guid: 35808e5af4809ff4ba4bcb7c74823abd, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 9197481963319205126, guid: a7de9bbc03ecd1249a1c76ccb4c699e8, type: 3}
+  m_SortingOrder: 10
+  m_Position: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
+  m_PivotReferenceSize: 0
+  m_Pivot: 0
+  m_WorldSpaceCollider: {fileID: 0}
+--- !u!4 &900316279
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900316276}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1874396177
 GameObject:
   m_ObjectHideFlags: 0
@@ -133,6 +211,16 @@ GameObject:
   - component: {fileID: 1874396181}
   - component: {fileID: 1874396180}
   - component: {fileID: 1874396179}
+  - component: {fileID: 1874396187}
+  - component: {fileID: 1874396186}
+  - component: {fileID: 1874396185}
+  - component: {fileID: 1874396184}
+  - component: {fileID: 1874396190}
+  - component: {fileID: 1874396189}
+  - component: {fileID: 1874396188}
+  - component: {fileID: 1874396192}
+  - component: {fileID: 1874396191}
+  - component: {fileID: 1874396193}
   m_Layer: 0
   m_Name: GameUI
   m_TagString: Untagged
@@ -169,7 +257,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Relight.UI::Relight.UI.StatusPanelController
   document: {fileID: 1874396183}
   host: {fileID: 0}
-  walkTarget: {x: 20.5, y: 6.5}
 --- !u!114 &1874396180
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -186,7 +273,9 @@ MonoBehaviour:
   router: {fileID: 1874396182}
   escape: {fileID: 1874396181}
   host: {fileID: 0}
-  openOnStart: status-panel
+  openOnStart: 
+  tabPanel: inventory-panel
+  buildPanel: build-panel
 --- !u!114 &1874396181
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -226,7 +315,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.UIDocument
   m_PanelSettings: {fileID: 11400000, guid: 35808e5af4809ff4ba4bcb7c74823abd, type: 2}
   m_ParentUI: {fileID: 0}
-  sourceAsset: {fileID: 9197481963319205126, guid: 2188f70259fcebb4bb0d6fe8529db65b, type: 3}
+  sourceAsset: {fileID: 9197481963319205126, guid: ef45787325bdf0f40b342c9f49166247, type: 3}
   m_SortingOrder: 0
   m_Position: 0
   m_WorldSpaceSizeMode: 1
@@ -235,8 +324,160 @@ MonoBehaviour:
   m_PivotReferenceSize: 0
   m_Pivot: 0
   m_WorldSpaceCollider: {fileID: 0}
+--- !u!114 &1874396184
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874396177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a55f996f83995540971889d45c29438, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.Settings.SettingsController
+  mixer: {fileID: 0}
+  actions: {fileID: -944628639613478452, guid: 897682d5c3a06e241b0f5f5132518df7, type: 3}
+  autosave: {fileID: 0}
+  panel: {fileID: 11400000, guid: 35808e5af4809ff4ba4bcb7c74823abd, type: 2}
+--- !u!114 &1874396185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874396177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dbd5da01161573c4aac24ab78df07737, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.FrontEnd.FrontEndBootstrap
+  host: {fileID: 0}
+  autosave: {fileID: 0}
+--- !u!114 &1874396186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874396177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea6fc9ebba2f4fc4a99e4d9a2674cef3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.WorkshopPanelController
+  document: {fileID: 1874396183}
+  host: {fileID: 0}
+  recipeCard: {fileID: 9197481963319205126, guid: f8dcaec632ecc084888d73daf9a6754e, type: 3}
+--- !u!114 &1874396187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874396177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3a582c584dbda647aabbdfeb03852dc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.InventoryPanelController
+  document: {fileID: 1874396183}
+  host: {fileID: 0}
+  escape: {fileID: 0}
+  router: {fileID: 0}
+--- !u!114 &1874396188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874396177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3729f7617896efa10ab9e53d7bcf89ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.HudController
+  document: {fileID: 1874396183}
+  host: {fileID: 0}
+  shell: {fileID: 1874396180}
+  placeName: Home
+--- !u!114 &1874396189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874396177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9050817f2892fb84d9dbd1bba9a08afc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.OpeningHintController
+  document: {fileID: 0}
+  host: {fileID: 0}
+  router: {fileID: 0}
+  shell: {fileID: 0}
+--- !u!114 &1874396190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874396177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a75dbb83f85ad3547bae6252fa26e370, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.GoalCardController
+  document: {fileID: 0}
+  host: {fileID: 0}
+  rig: {fileID: 0}
+  router: {fileID: 0}
+--- !u!114 &1874396191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874396177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91fdf5be3ac38294ba23131ae2b30927, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.BuildPanelController
+  document: {fileID: 1874396183}
+  host: {fileID: 0}
+  shell: {fileID: 1874396180}
+  buildCard: {fileID: 9197481963319205126, guid: 8c9bb6824a1a0534ea54800677850454, type: 3}
+  icons: {fileID: 0}
+--- !u!114 &1874396192
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874396177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49c74c3ccb07e3f429452e3d11351053, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.TooltipController
+  document: {fileID: 1874396183}
+--- !u!114 &1874396193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874396177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9be613de8e190743a4330721c4215e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.AdminPanelController
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1874396178}
+  - {fileID: 900316279}

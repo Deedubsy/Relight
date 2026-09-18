@@ -369,6 +369,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1892430402}
+  - component: {fileID: 1892430405}
+  - component: {fileID: 1892430404}
+  - component: {fileID: 1892430403}
   m_Layer: 0
   m_Name: MainMenuUI
   m_TagString: Untagged
@@ -391,6 +394,64 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1892430403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1892430401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a999d7a4b5324a4d85c98a1fcd97750, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.FrontEnd.TitleScreenController
+  document: {fileID: 1892430405}
+  saveRow: {fileID: 9197481963319205126, guid: 9749c4fbb4359434fa18bd1b3ae96a58, type: 3}
+  settings: {fileID: 1892430404}
+  worldSceneName: World
+  buildString: "Phase C \xB7 2026-09-14"
+  currentMapId: riverfront-arc-v4-editor-ac16d9188c05
+  daySeconds: 1200
+--- !u!114 &1892430404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1892430401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a55f996f83995540971889d45c29438, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.UI::Relight.UI.Settings.SettingsController
+  mixer: {fileID: 0}
+  actions: {fileID: -944628639613478452, guid: 897682d5c3a06e241b0f5f5132518df7, type: 3}
+  autosave: {fileID: 0}
+  panel: {fileID: 11400000, guid: 35808e5af4809ff4ba4bcb7c74823abd, type: 2}
+--- !u!114 &1892430405
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1892430401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.UIDocument
+  m_PanelSettings: {fileID: 11400000, guid: 35808e5af4809ff4ba4bcb7c74823abd, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 9197481963319205126, guid: 32bba17e0f70d6e47b4640b1c6e925fb, type: 3}
+  m_SortingOrder: 0
+  m_Position: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
+  m_PivotReferenceSize: 0
+  m_Pivot: 0
+  m_WorldSpaceCollider: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

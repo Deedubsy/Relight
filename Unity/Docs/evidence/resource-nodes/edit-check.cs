@@ -1,0 +1,13 @@
+if(UnityEditor.EditorApplication.isPlaying)throw new System.Exception("Requires Edit Mode");
+Relight.Editor.SceneWorldEditor.RefreshNow();
+var world=UnityEngine.Object.FindFirstObjectByType<Relight.World.SceneWorld>();
+var site=world.GetComponentsInChildren<Relight.World.SceneSite>().First(s=>s.kind==Relight.Sim.SiteKind.Resource&&s.item=="ironore");
+var renderers=site.GetComponentsInChildren<UnityEngine.SpriteRenderer>();
+if(renderers.Length!=site.size.x*site.size.y)throw new System.Exception("Resource tiles not parented to editable site");
+var original=site.transform.position;var first=renderers[0].transform.position;
+UnityEditor.Undo.RecordObject(site.transform,"Verify resource sprite movement");
+site.transform.position+=new UnityEngine.Vector3(1,0,0);
+if(renderers[0].transform.position!=first+new UnityEngine.Vector3(1,0,0))throw new System.Exception("Sprite did not follow site");
+UnityEditor.Undo.FlushUndoRecordObjects();UnityEditor.Undo.PerformUndo();
+if(site.transform.position!=original)throw new System.Exception("Resource Undo failed");
+return "Editable resource parenting, movement and Undo passed: "+renderers.Length+" tiles on "+site.id;

@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--
+  Relight — Unity port — opening objective ladder.
+  Standalone copy of the published artifact https://claude.ai/artifact/2Ee9Rw3L8KWncueo69XRKu
+  Generated 2026-09-16. Derived from code and asset inspection only; Play Mode was not available.
+  Open this file directly in a browser — no server, no network needed except Google Fonts.
+-->
+<style>
+  :root{
+    color-scheme:light;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f1efe8;}
+  img{max-width:100%;}
+  [hidden]{display:none!important;}
+</style>
+</head>
+<body>
+<title>Opening Objective Ladder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..110,400..700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400..600&display=swap">
+<style>
+  :root{
+    --ground:#f1efe8;
+    --surface:#fbfaf5;
+    --inset:#e7e4d9;
+    --ink:#22251f;
+    --ink-2:#5c6155;
+    --ink-3:#878b7c;
+    --line:#d6d2c5;
+    --line-soft:#e3dfd3;
+    --accent:#9a5a33;
+    --ok:#3d6e5f;
+    --ok-soft:#dde9e4;
+    --warn:#946719;
+    --warn-soft:#f1e7cf;
+    --never:#9c4436;
+    --never-soft:#f3ded9;
+    --rail:#c9c4b4;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#14170f;
+      --surface:#1b1f18;
+      --inset:#232819;
+      --ink:#e9e7dc;
+      --ink-2:#a3a897;
+      --ink-3:#7d8272;
+      --line:#333926;
+      --line-soft:#2a301f;
+      --accent:#cd8a58;
+      --ok:#76af9b;
+      --ok-soft:#1d2d27;
+      --warn:#d7a748;
+      --warn-soft:#312917;
+      --never:#d47764;
+      --never-soft:#331e1a;
+      --rail:#3b4130;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#14170f;
+    --surface:#1b1f18;
+    --inset:#232819;
+    --ink:#e9e7dc;
+    --ink-2:#a3a897;
+    --ink-3:#7d8272;
+    --line:#333926;
+    --line-soft:#2a301f;
+    --accent:#cd8a58;
+    --ok:#76af9b;
+    --ok-soft:#1d2d27;
+    --warn:#d7a748;
+    --warn-soft:#312917;
+    --never:#d47764;
+    --never-soft:#331e1a;
+    --rail:#3b4130;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding-inline:20px;padding-block:46px 70px;}
+
+  h1,h2,h3,.label,.chip,.node,.tag,.node-inline{
+    font-family:"Archivo","Helvetica Neue",Arial,sans-serif;
+  }
+  .label{
+    font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+    font-stretch:82%;color:var(--ink-3);margin:0;
+  }
+  h1{
+    font-size:clamp(34px,6.4vw,56px);line-height:1.02;font-weight:700;font-stretch:80%;
+    letter-spacing:-.018em;margin:12px 0 0;text-wrap:balance;
+  }
+  .deck{max-width:62ch;margin:18px 0 0;color:var(--ink-2);font-size:17px;}
+  .deck strong{color:var(--ink);font-weight:600;}
+  code,.mono{font-family:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+  code{font-size:.88em;}
+
+  .mast{border-bottom:2px solid var(--ink);padding-bottom:26px;}
+  .basis{
+    margin:24px 0 0;padding:13px 16px;background:var(--surface);
+    border:1px solid var(--line-soft);border-left:3px solid var(--accent);
+    font-size:14px;color:var(--ink-2);max-width:72ch;
+  }
+
+  .tally{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1px;
+    background:var(--line-soft);border:1px solid var(--line-soft);margin-top:32px;}
+  .tally > div{background:var(--surface);padding:15px 17px;}
+  .tally .n{font-size:32px;font-weight:700;font-stretch:78%;line-height:1;display:block;
+    font-family:"Archivo",sans-serif;font-variant-numeric:tabular-nums;}
+  .tally .k{display:block;margin-top:7px;font-size:13px;color:var(--ink-2);line-height:1.4;}
+  .n.ok{color:var(--ok);} .n.warn{color:var(--warn);} .n.never{color:var(--never);} .n.gate{color:var(--accent);}
+
+  .stage{margin-top:48px;}
+  .stage-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);padding-bottom:9px;}
+  .stage-head h2{font-size:21px;font-weight:700;font-stretch:84%;margin:0;letter-spacing:-.012em;}
+  .stage-head .label{margin-left:auto;}
+  .stage-note{margin:13px 0 0;font-size:14.5px;color:var(--ink-2);max-width:70ch;}
+
+  .rungs{position:relative;display:grid;grid-template-columns:42px 1fr;
+    column-gap:14px;row-gap:12px;margin-top:18px;align-items:start;}
+  .rungs::before{content:"";position:absolute;left:20px;top:6px;bottom:22px;
+    width:2px;background:var(--rail);}
+  .gutter{position:relative;z-index:1;display:flex;justify-content:center;padding-top:12px;}
+  .node{min-width:34px;height:24px;display:flex;align-items:center;justify-content:center;
+    background:var(--ground);border:1px solid var(--line);font-size:12px;font-weight:600;
+    font-stretch:78%;color:var(--ink-2);font-variant-numeric:tabular-nums;padding:0 5px;}
+
+  .card{background:var(--surface);border:1px solid var(--line-soft);
+    border-left:3px solid var(--rail);padding:13px 16px 15px;}
+  .card.ok{border-left-color:var(--ok);}
+  .card.warn{border-left-color:var(--warn);}
+  .card.never{border-left-color:var(--never);background:var(--never-soft);}
+
+  .top{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .title{font-family:"Archivo",sans-serif;font-weight:600;font-stretch:88%;font-size:16.5px;
+    line-height:1.28;margin:0;letter-spacing:-.005em;flex:1 1 230px;}
+  .ref{font-size:11.5px;color:var(--ink-3);white-space:nowrap;padding-top:4px;}
+
+  .chip{font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    font-stretch:78%;padding:3px 7px;white-space:nowrap;border:1px solid;}
+  .chip.ok{background:var(--ok-soft);color:var(--ok);border-color:var(--ok);}
+  .chip.warn{background:var(--warn-soft);color:var(--warn);border-color:var(--warn);}
+  .chip.never{background:var(--never-soft);color:var(--never);border-color:var(--never);}
+
+  .guard{margin-top:11px;background:var(--inset);border:1px solid var(--line-soft);
+    padding:7px 10px;font-size:12.5px;line-height:1.55;color:var(--ink-2);
+    overflow-x:auto;white-space:pre;}
+  .done{margin:11px 0 0;font-size:14.5px;line-height:1.55;}
+  .done b{font-family:"Archivo",sans-serif;font-weight:600;font-stretch:82%;font-size:10.5px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:1px;}
+  .note{margin:9px 0 0;font-size:13.5px;color:var(--ink-2);padding-left:11px;
+    border-left:2px solid var(--line);}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px;}
+  .tag{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    font-stretch:78%;color:var(--accent);border:1px dashed var(--accent);padding:2px 6px;}
+  .node-inline{display:none;font-size:11px;font-weight:600;font-stretch:78%;color:var(--ink-3);
+    border:1px solid var(--line);padding:1px 6px;margin-right:6px;font-variant-numeric:tabular-nums;}
+
+  .close{margin-top:58px;border-top:2px solid var(--ink);padding-top:24px;}
+  .close h2{font-size:21px;font-weight:700;font-stretch:84%;margin:4px 0 0;letter-spacing:-.012em;}
+  .finds{display:grid;gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);margin-top:20px;}
+  .find{background:var(--surface);padding:15px 17px;}
+  .find h3{font-family:"Archivo",sans-serif;font-size:15px;font-weight:600;font-stretch:86%;margin:0 0 5px;}
+  .find p{margin:0;font-size:14.5px;color:var(--ink-2);}
+  .find code{color:var(--ink);}
+  footer{margin-top:40px;font-size:13px;color:var(--ink-3);border-top:1px solid var(--line);
+    padding-top:16px;max-width:76ch;}
+
+  @media (max-width:640px){
+    .wrap{padding-block:32px 54px;}
+    .rungs{grid-template-columns:1fr;column-gap:0;}
+    .rungs::before{display:none;}
+    .gutter{display:none;}
+    .node-inline{display:inline-block;}
+    .card{border-left-width:4px;}
+  }
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <p class="label">Relight · Unity port · OpeningQueries.Chain</p>
+    <h1>Opening Objective Ladder</h1>
+    <p class="deck">Forty rows, in the order the code tests them. There is no checklist and no completion flag — <strong>a row ends when its guard stops matching and control falls through to the next <code>if</code></strong>. One objective is returned per call and the goal card recomputes it about every 150&nbsp;ms, so rows can re-arm, and some never fire at all.</p>
+    <p class="basis">Read from the shipped sources and scene assets, not from play. Play Mode is unavailable on this machine, so nothing below was observed running — every verdict is a guard traced against <code>CatalogueData.g.cs</code>, <code>OpeningBalance.cs</code> and the authored sites in <code>World.unity</code>. <strong>Re-traced 2026-09-16 against the code as it stands after U-D-53</strong>, which fixed all four findings below; the findings themselves are kept as they were written.</p>
+  </header>
+
+  <section class="tally" aria-label="Tally by outcome">
+    <div><span class="n ok">31</span><span class="k">fire on the ordinary new-game path</span></div>
+    <div><span class="n warn">9</span><span class="k">fire only on a branch you may never take</span></div>
+    <div><span class="n gate">4</span><span class="k">findings fixed under U-D-53 — rows 10, 28, 32, 34</span></div>
+    <div><span class="n gate">8</span><span class="k">need <code>OpeningResourceVersion&nbsp;&#8805;&nbsp;1</code>; dark on a pre-v1 save</span></div>
+  </section>
+
+  <main id="ladder"></main>
+
+  <section class="close">
+    <p class="label">What the trace turned up</p>
+    <h2>Three dead things and one hard gate</h2>
+    <p class="basis">All four were fixed on 2026-09-16 under <strong>U-D-53</strong> (<code>Unity/Docs/DECISIONS.md</code>), on the owner's instruction — <em>“Give the foundry no default. Do the rest”</em>. The findings below are left as first written; each one says what was done. Verified by offline tests only — Play Mode has not been run on this machine.</p>
+    <div class="finds">
+      <div class="find">
+        <h3>Row 10 can never appear</h3>
+        <p>“Set up the Foundry — select the Steel plates recipe” tests <code>RecipeOf(…)?.Key != "steel-plates"</code>, but <code>RecipeOf</code> falls back to <code>DefaultRecipe</code> and the Foundry already defaults to <code>steel-plates</code>. Only a deliberate switch to <code>refined-copper</code> can bring it back.</p>
+        <p><strong>Fixed.</strong> The Foundry, Assembler and Assembler Mk2 now ship with an empty <code>DefaultRecipe</code>, set in <code>OpeningBalance.Apply</code> — the one seam both data paths run through, so the generated catalogue and the editor <code>.asset</code> files are covered without either being edited.</p>
+      </div>
+      <div class="find">
+        <h3>Half of row 28 is vacuous</h3>
+        <p>“Build 1 Assembler <em>and set it to Bullets</em>” clears the moment the machine is placed — the Assembler's <code>DefaultRecipe</code> is already <code>bullet-batch</code>, so setting it is never something the player has to do.</p>
+        <p><strong>Fixed.</strong> With no default, “built but unset” is a state the player can sit in, so the step is now two rows: build one, then <em>Set up the Assembler — select the Bullets recipe</em>, pointing at the machine.</p>
+      </div>
+      <div class="find">
+        <h3><code>Words[0] = "no"</code> is unreachable text</h3>
+        <p>Row 34 computes <code>more = Math.Max(0, 3 - live)</code> inside <code>if (live &lt; 3)</code>, so <code>more</code> is always at least 1. “Build no more turrets” can never print.</p>
+        <p><strong>Fixed.</strong> <code>Words</code> is <code>{ "one", "two", "three" }</code> and the index shifts by one — a deliberate divergence from <code>goal.ts:69</code>, recorded as such.</p>
+      </div>
+      <div class="find">
+        <h3>Row 32 can hold the chain open forever</h3>
+        <p><code>op.SuppliedAt</code> moves only when <code>Stats.TurretFed</code> rises, and only the belt/inserter path touches that counter. Rows 33–37 sit after it, so a player who keeps hand-loading is never told to build turrets two and three.</p>
+        <p><strong>Fixed.</strong> <code>NoteSupply</code> also latches on a turret with <em>no room</em> whose supplier still resolves, so a working line is recognised even when the player leaves it nothing to deliver. The walk is gated on a real producer and on production having happened, so a hand load still cannot fake it.</p>
+      </div>
+    </div>
+    <footer>
+      Line references are <code>Assets/Relight/Sim/Campaign/Opening/OpeningQueries.cs</code> unless named otherwise. The shipped opening tuning — 25&nbsp;s warning, 5 enemies, 300&nbsp;s duration, 300&nbsp;s recovery, 660&nbsp;s guard, 60&nbsp;s acknowledgement, 45&nbsp;s supply acknowledgement, supply chain depth 4, turret objective 3 — is still flagged <code>Provisional: true</code>.
+    </footer>
+  </section>
+</div>
+
+<script>
+const STAGES = [
+ {name:"Interrupts", eyebrow:"checked first, every call",
+  note:"These outrank the whole ladder, so an attack part-way through pulls the card back here and then hands it on again.",
+  rows:[
+  {n:"0a",t:"Recover at Home",s:"warn",r:":198",g:"e.IsDown",
+   d:"The downed timer <code>e.Down</code> runs out."},
+  {n:"0b",t:"Restore Home power",s:"warn",r:":204",
+   g:"st.Home.Placed && !HomeQueries.CoreOperational(st)",
+   d:"Carry 10 Steel + 5 Copper, aim at the core and hold E — a 12&nbsp;s repair."}
+ ]},
+ {name:"1 · First metal", eyebrow:"before anything can be built", rows:[
+  {n:"1",t:"Smelt your first Steel plates",s:"ok",r:":219, :223",tags:["needs v1"],
+   g:"OpeningResourceVersion > 0 && st.Stats.Made[Steel] < 5",
+   d:"Five Steel plates have been <em>made</em>. <code>Stats.Made</code> only ever rises, so this row cannot re-arm.",
+   note:"It fires even though the starting stake already puts 20 Steel in the Backpack: <code>st.Stats</code> is reset <em>after</em> the pockets are filled (<code>SimComposition.Inventory.cs:86</code>), so <code>Made[Steel]</code> is 0 at tick 0."}
+ ]},
+ {name:"2 · The extraction line", eyebrow:"rows 2–8", rows:[
+  {n:"2",t:"1 · Build a Generator",s:"ok",r:":228",g:'FirstOfKind(st, "generator") == null',
+   d:"A Generator exists. Costs 20 Steel + 5 Copper — exactly the starting stake."},
+  {n:"3",t:"2 · Build an Excavator",s:"ok",r:":231",g:'FirstOfKind(st, "excavator") == null',
+   d:"An Excavator exists. Costs 10 Steel."},
+  {n:"4",t:"3 · Build storage",s:"ok",r:":235",g:'FirstOfKind(st, "chest") == null',
+   d:"A Supply chest exists. Costs 5 Steel."},
+  {n:"5",t:"4 · Connect belts to storage",s:"ok",r:":238",
+   g:'!ReachesKind(st, excavator, "chest")',
+   d:"A conveyor sits behind the Excavator and <code>FlowRules.RouteOf</code> ends at a chest — or, with v1, at a Foundry."},
+  {n:"6",t:"Fuel your Generator",s:"ok",r:":245",g:"gen.Inv[Coal] + gen.Inv[Fuel] <= 0",
+   d:"Any fuel at all in the slot. One Coal is enough to clear it."},
+  {n:"7",t:"Connect your extraction power",s:"ok",r:":252",
+   g:"!PowerQueries.Supplied(ctx, st, excavator.Id)",
+   d:"The Excavator falls inside the coverage of a Pole (8 tiles) on a circuit that has supply."},
+  {n:"8",t:"Start your extraction line",s:"warn",r:":260",
+   g:"State != Running && State != Throttled\n&& st.Stats.MinedOf[IronOre] == 0",
+   d:"Only appears if the Excavator still cannot run — wrong resource under it, no power, or a blocked output.",
+   note:"Once it has mined a single ore the row is suppressed permanently, even if the machine later stops."}
+ ]},
+ {name:"3 · Automating plates", eyebrow:"v1 layout only · rows 9–12", rows:[
+  {n:"9",t:"Automate Steel plates",s:"ok",r:":267",tags:["needs v1"],
+   g:'FirstOfKind(st, "foundry") == null',
+   d:"A Foundry exists. Costs 20 Steel + 5 Copper."},
+  {n:"10",t:"Set up the Foundry",s:"ok",r:":268",tags:["needs v1","fixed U-D-53"],
+   g:'RecipeOf(d, st, foundry)?.Key != "steel-plates"',
+   d:"The Foundry is set to <code>steel-plates</code>. <strong>U-D-53 cleared the Foundry's <code>DefaultRecipe</code></strong> in <code>OpeningBalance.Apply</code>, so a freshly placed Foundry has no recipe and <code>RecipeOf</code> returns null.",
+   note:"Before U-D-53 this row could never appear: <code>RecipeOf</code> fell through to <code>DefaultRecipe</code>, and the Foundry's default already <em>was</em> <code>steel-plates</code>, so the step completed itself on placement. It is now a real action — open the Foundry and pick the recipe. Setting <code>refined-copper</code> instead brings the row back, as it always did."},
+  {n:"11",t:"Connect your plate production",s:"ok",r:":269",tags:["needs v1"],
+   g:"!ReachesKind(excavator, foundry) || !ReachesKind(foundry, chest)",
+   d:"Belts run Excavator → Foundry → Supply chest, each output rotated toward the next machine."},
+  {n:"12",t:"Power your Foundry",s:"ok",r:":270",tags:["needs v1"],
+   g:"!PowerQueries.Supplied(foundry.Id)",
+   d:"The Foundry is on a supplied circuit. With the Excavator it draws 140&nbsp;kW of the Generator's 300."}
+ ]},
+ {name:"4 · The block and the Rifle", eyebrow:"rows 13–15", rows:[
+  {n:"13",t:"Connect Founders Court’s substation",s:"ok",r:":275",
+   g:"sub != null && !SubstationLive(ctx, st, sub)",
+   d:"A machine with reach — a Pole at 8 tiles will do — covers the substation footprint and sits on a circuit with supply.",
+   note:"Confirmed reachable: nine <code>SiteKind.Substation</code> rows are authored in <code>World.unity</code>, and Poles carry <code>ReachTiles: 8</code>."},
+  {n:"14",t:"Prepare your expedition Rifle",s:"ok",r:":285",g:"st.Weapons.Owned.Count == 0",
+   d:"The craft finishes — 10 Steel + 4 Copper, 6&nbsp;s at the Home workshop.",
+   note:"Re-arms by itself if you cancel the craft: nothing is owned, so the row comes back."},
+  {n:"15",t:"Equip your crafted Rifle",s:"ok",r:":296",
+   g:"st.Weapons.Slot0 == null && st.Weapons.Slot1 == null",
+   d:"Either equipment slot holds a weapon. Crafting does not auto-equip — <code>Equipment.Create</code> only adds to <code>Owned</code>."}
+ ]},
+ {name:"5 · Preparing the defence", eyebrow:"rows 16–20",
+  note:"The whole block is skipped when <code>op.Status == Skipped</code> — set by <code>OpeningRules.Init</code> on a state that isn't fresh (raid history, a pending assault, the next raid nearer than the 660&nbsp;s guard, or three turrets already standing), and by <code>OpeningPhase.Capped()</code> once three turrets are loaded or you have walked to the first camp.",
+  rows:[
+  {n:"16",t:"Make turret ammunition",s:"ok",r:":327",g:"first == null && e.Inv[Magazine] < 1",
+   d:"One magazine in the Backpack. <code>hand-bullets</code> is 2 Steel + 1 Copper → 10 bullets in 12&nbsp;s."},
+  {n:"17",t:"Prepare your first turret — build",s:"ok",r:":337",g:"first == null",
+   d:"A live turret exists. Costs 15 Steel + 5 Copper; draws 20&nbsp;kW and reaches 9 tiles."},
+  {n:"18",t:"Connect your turret power",s:"ok",r:":349",
+   g:"!PowerQueries.Supplied(ctx, st, first.Id)",
+   d:"The turret is supplied. Unpowered, it holds fire."},
+  {n:"19",t:"Enemy group delayed",s:"warn",r:":359",
+   g:"op.Status == Deferred && TurretQueries.Ready(first.Id)",
+   d:"The director unblocks and the encounter schedules.",
+   note:"Only seen if the director happened to be busy at the moment the turret came ready. A clean opening never shows it."},
+  {n:"20",t:"Prepare your first turret — fill",s:"ok",r:":375",
+   g:"first.Rounds < TurretHopper.Capacity(d, first)",
+   d:"The hopper reaches 50. Filling it is what <em>arms</em> the encounter, so this row ending and row 21 appearing are the same event."}
+ ]},
+ {name:"6 · The encounter", eyebrow:"rows 21–23 · driven by op.Status", rows:[
+  {n:"21",t:"Small enemy group approaching",s:"ok",r:":396",g:"op.Status == Scheduled",
+   d:"<code>st.T</code> reaches <code>op.StartsAt</code> — 25&nbsp;s after arming — and about five enemies spawn."},
+  {n:"22",t:"Defend your turret",s:"ok",r:":406",g:"op.Status == Active",
+   d:"The group is dead or withdrawn; it withdraws on its own after 300&nbsp;s."},
+  {n:"23",t:"Attack repelled",s:"ok",r:":415",g:"ended && st.T < op.EndedAt + t.AckS",
+   d:"A pure timer — 60&nbsp;s. Nothing to do.",
+   note:"The alternate wording, “Attack over”, needs <code>op.Status == Lost</code>: your turret destroyed. Win and you never see it."}
+ ]},
+ {name:"7 · Automated resupply", eyebrow:"rows 24–32",
+  note:"Everything here sits inside <code>if (op.SuppliedAt &lt; 0)</code>, so the block holds until produced bullets physically reach a turret.",
+  rows:[
+  {n:"24",t:"Expand power for ammunition",s:"ok",r:":435",tags:["needs v1"],g:"generators < 2",
+   d:"A second Generator exists. Two supply 600&nbsp;kW, which ore processing, Home and the Assembler together need."},
+  {n:"25",t:"Fuel your extra Generator",s:"warn",r:":436",tags:["needs v1"],
+   g:"emptyGenerator != null && supplying < 2",
+   d:"Both Generators report <code>GeneratorShareKw &gt; 0</code>.",
+   note:"Only appears if the new Generator was wired up before it was fuelled. Fuel it first and you get row 26 instead."},
+  {n:"26",t:"Connect your extra Generator",s:"warn",r:":437",tags:["needs v1"],g:"supplying < 2",
+   d:"Both Generators are on the production network.",
+   note:"The mirror of row 25 — only if it is fuelled but not yet linked."},
+  {n:"27",t:"Rebuild your turret",s:"warn",r:":442",g:"turrets.Count == 0",
+   d:"A live turret exists again.",
+   note:"Only if every turret was destroyed. The title reads “Rebuild” when the encounter ended <code>Lost</code>, and “Prepare your first turret” otherwise."},
+  {n:"28",t:"Build 1 Assembler and set it to Bullets",s:"ok",r:":450",tags:["fixed U-D-53"],
+   g:"BulletAssembler(ctx, st) == null",
+   d:"A processor whose recipe outputs <code>Magazine</code> exists. The Assembler costs 40 Steel + 20 Copper and draws 100&nbsp;kW.",
+   note:"Placing the machine no longer finishes this step. U-D-53 cleared the Assembler's <code>DefaultRecipe</code>, so a placed-but-unset Assembler does not answer <code>BulletAssembler</code> and the chain falls through to row 28b."},
+  {n:"28b",t:"Set up the Assembler",s:"ok",r:":463",tags:["fixed U-D-53","new"],
+   g:"UnsetBulletProcessor(ctx, st) != null",
+   d:"The machine has a recipe on it. “Select the Bullets recipe”, pointing at the machine you just placed.",
+   note:"Added by U-D-53 because “…and set it to Bullets” had to become something the player can act on, and the row above cannot say “Build 1 Assembler” to someone who has built one. The title is taken from the machine's own display name, so an Assembler Mk2 names itself."},
+  {n:"29",t:"Automate resupply — get it running",s:"warn",r:":479",
+   g:"State != Running && State != Throttled && buffered == 0",
+   d:"The Assembler runs, or already holds output.",
+   note:"Only appears if it is starved of Steel or Copper, unpowered, or backed up."},
+  {n:"30",t:"Automate resupply — connect the route",s:"ok",r:":484",
+   g:"!ReachesAny(ctx, st, ammo, turrets)",
+   d:"A belt route from the Assembler output reaches a turret within 4 relay hops (<code>SupplyChainDepth</code>)."},
+  {n:"31",t:"Automate resupply — wait for production",s:"ok",r:":492",
+   g:"op.ProducedAt < 0 && buffered <= 0",
+   d:"The Assembler finishes its first batch."},
+  {n:"32",t:"Automate resupply — wait for delivery",s:"ok",r:":498",tags:["fixed U-D-53"],
+   g:"op.SuppliedAt < 0",
+   d:"<code>Stats.TurretFed</code> rises on a turret that has a supplier (only the belt/inserter path moves that counter, <code>MachinePhase.cs:122</code>) — <strong>or</strong>, since U-D-53, a turret the line genuinely supplies is too full to accept a delivery.",
+   note:"<strong>This was the hard gate.</strong> A hand load counts as <code>HandFedMags</code> and is still invisible here, and rows 33–37 all sit after this block, so a player who kept the turret topped up by hand was never told to build turrets two and three — the belt worked and the counter could not move, because both write sites of <code>TurretFed</code> need room in the hopper. <code>OpeningPhase.NoteSupply</code> now also walks the live turrets when nothing moved and latches on one with no room whose <code>TurretSupplier</code> still resolves. Hand loading alone still cannot clear it: that walk needs a real producer connected to the turret, and is skipped entirely until a batch has actually been made."}
+ ]},
+ {name:"8 · Three turrets, then out", eyebrow:"rows 33–37", rows:[
+  {n:"33",t:"Automatic resupply working",s:"ok",r:":504",
+   g:"st.T < op.SuppliedAt + t.SupplyAckS",
+   d:"A pure timer — 45&nbsp;s. Acknowledgement only."},
+  {n:"34",t:"Expand your defences (N/3)",s:"ok",r:":512",g:"turrets.Count < t.TurretObjective",
+   d:"Three live turrets stand. Existing ones count; destroyed ones don't."},
+  {n:"35",t:"Load your new turret",s:"warn",r:":526",g:"FirstEmpty(turrets) != null",
+   d:"No live turret sits at zero rounds.",
+   note:"Often skipped outright — if the ammunition belt already reaches the new turret it fills before the row can show."},
+  {n:"36",t:"Prepare to scout",s:"ok",r:":533",
+   g:"e.Inv[Magazine] < 8 && !LeftForFirstCamp(ctx, st)",
+   d:"Eight bullets carried — or you are already nearer an authored camp than the Home core."},
+  {n:"37",t:"Keep your workshop producing",s:"ok",r:":539",g:"— terminal —",
+   d:"Never clears. <code>HasLocation</code> is false, so the goal card stops pointing anywhere and the opening is over."}
+ ]}
+];
+
+const CHIP = {ok:"Fires", warn:"Branch only", never:"Never fires"};
+
+function esc(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+const out = [];
+for (const st of STAGES) {
+  out.push('<section class="stage">');
+  out.push('<div class="stage-head"><h2>' + st.name + '</h2>'
+    + (st.eyebrow ? '<span class="label">' + st.eyebrow + '</span>' : '') + '</div>');
+  if (st.note) out.push('<p class="stage-note">' + st.note + '</p>');
+  out.push('<div class="rungs">');
+  for (const r of st.rows) {
+    out.push('<div class="gutter"><span class="node">' + r.n + '</span></div>');
+    out.push('<article class="card ' + r.s + '">');
+    out.push('<div class="top"><h3 class="title"><span class="node-inline">' + r.n + '</span>' + r.t + '</h3>'
+      + '<span class="chip ' + r.s + '">' + CHIP[r.s] + '</span>'
+      + '<span class="ref mono">' + r.r + '</span></div>');
+    out.push('<div class="guard mono">' + esc(r.g) + '</div>');
+    out.push('<p class="done"><b>Clears when</b>' + r.d + '</p>');
+    if (r.note) out.push('<p class="note">' + r.note + '</p>');
+    if (r.tags) out.push('<div class="tags">'
+      + r.tags.map(function(t){ return '<span class="tag">' + t + '</span>'; }).join('') + '</div>');
+    out.push('</article>');
+  }
+  out.push('</div></section>');
+}
+document.getElementById("ladder").innerHTML = out.join("");
+</script>
+</body>
+</html>

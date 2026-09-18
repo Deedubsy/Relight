@@ -4,7 +4,7 @@
   packages/game/src/hud.ts:18 and :47-56).
 
   Authored as a file and edited in UI Builder. StatusPanelController only ever LOOKS UP the names below
-  (clock, health, position, condition, pockets, machines, ticks, walk-here, sort-pockets) — it creates nothing
+  (clock, health, position, condition, pockets, machines, ticks, sort-pockets) — it creates nothing
   and styles nothing — so moving, reordering, restyling or regrouping any of this survives with no code change.
   The class "panel" and the name "status-panel" are what UiShell opens and closes.
 -->
@@ -13,6 +13,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
     <Style src="project://database/Assets/Relight/UI/Panels/StatusPanel.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
     <ui:VisualElement name="status-panel" class="panel">
         <ui:Label name="title" text="Relight" class="panel-title" />
 
@@ -46,8 +47,7 @@
         </ui:VisualElement>
 
         <ui:VisualElement name="actions" class="actions">
-            <ui:Button name="walk-here" text="Walk east" />
-            <ui:Button name="sort-pockets" text="Sort pockets" />
+            <ui:Button name="sort-pockets" text="Sort pockets" class="ui-button ui-button-secondary" />
         </ui:VisualElement>
 
         <ui:Label name="help" text="Escape closes this panel and returns world controls; Escape again pauses. Tab reopens it."

@@ -115,7 +115,9 @@ namespace Relight.Editor
                     P("Lamp radius tiles", Num(power.LampRadiusTiles)), P("Arc lamp kW", Num(power.ArcLampKw)),
                     P("Arc lamp radius tiles", Num(power.ArcLampRadiusTiles)), P("Floodlight kW", Num(power.FloodlightKw)),
                     P("Floodlight range tiles", Num(power.FloodlightRangeTiles)),
-                    P("Floodlight half angle rad", Num(power.FloodlightHalfAngleRad)), P("Brownout rule", power.BrownoutRule),
+                    P("Floodlight half angle rad", Num(power.FloodlightHalfAngleRad)),
+                    P("Street light kW", Num(power.StreetLightKw)), P("Street light radius tiles", Num(power.StreetLightRadiusTiles)),
+                    P("Brownout rule", power.BrownoutRule),
                 }, written);
 
                 var time = registry.Time.ToRecord();
@@ -168,6 +170,17 @@ namespace Relight.Editor
                 Pairs(folder, "stake", "Starting stake (CONTENT_CATALOGUE.md §15)", stake.Kind, stake.Source, new[]
                 {
                     P("Pockets", Stacks(stake.Pockets)), P("Ruleset", stake.Ruleset),
+                }, written);
+
+                var defence = registry.Defence.ToRecord();
+                Pairs(folder, "defence", "Defence and repair (campaignDefence.ts:13, :75)", defence.Kind, defence.Source, new[]
+                {
+                    P("Barricade HP", Count(defence.BarricadeHp)), P("Wall HP", Count(defence.WallHp)),
+                    P("Turret HP", Count(defence.TurretHp)), P("Cannon HP", Count(defence.CannonHp)),
+                    P("Core HP", Count(defence.CoreHp)), P("Repair restores (HP)", Count(defence.RepairHp)),
+                    P("Repair (s)", Num(defence.RepairSeconds)), P("Repair steel", Count(defence.RepairSteel)),
+                    P("Repair copper", Count(defence.RepairCopper)), P("Recommission steel", Count(defence.CoreSteel)),
+                    P("Recommission copper", Count(defence.CoreCopper)), P("Recommission (s)", Num(defence.CoreRepairSeconds)),
                 }, written);
 
                 var engineer = registry.Engineer.ToRecord();

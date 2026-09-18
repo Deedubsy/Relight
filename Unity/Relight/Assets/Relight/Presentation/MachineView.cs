@@ -21,6 +21,22 @@ namespace Relight.Presentation
         [SerializeField] private float z = -1f;
 
         private SpriteRenderer _sprite;
+        private LineRenderer _direction;
+        private Material _directionMaterial;
+        private MachineActivityVisual _activity;
+        public MachineOperatingState ActivityState => _activity?.State ?? MachineOperatingState.Idle;
+        public float ActivityMotion => _activity?.Motion ?? 0;
+
+        public void Animate(Simulation sim,float dt,Material material)
+        {
+            if (_sprite == null || !_sprite.isVisible) return;
+            var m=sim.State.MachineById(MachineId);
+            if(m==null || !MachineActivityVisual.Supports(sim.Context.Data,m))return;
+            if(_activity==null)_activity=new MachineActivityVisual(transform,material);
+            _activity.Draw(sim,m,dt);
+            if(_direction!=null && FlowRules.IsConveyor(m.Kind))
+                _direction.startColor=_direction.endColor=_activity.State==MachineOperatingState.OutputFull?new Color(1,.66f,.2f,.95f):new Color(.82f,.85f,.67f,.85f);
+        }
 
         /// <summary>The sim id of the machine this view stands for; -1 before <see cref="Bind"/>.</summary>
         public int MachineId { get; private set; } = -1;
@@ -41,9 +57,38 @@ namespace Relight.Presentation
             var centre = WorldSpace.RectCentre(m.X, m.Y, m.W, m.H);
             transform.position = new Vector3(centre.x, centre.y, z);
             // The placeholder sprite is one tile; scale it to the footprint the sim actually occupies.
-            if (_sprite != null) _sprite.transform.localScale = new Vector3(m.W, m.H, 1f);
+            if (_sprite != null)
+            {
+                _sprite.transform.localScale = new Vector3(m.W, m.H, 1f);
+                if (FlowRules.IsConveyor(m.Kind)) _sprite.color = new Color(.22f,.26f,.22f,1);
+            }
+            PaintDirection(m);
             name = $"{(definition != null ? definition.DisplayName : m.Kind)} #{m.Id}";
         }
+
+        private void PaintDirection(in MachinePlacement m)
+        {
+            var miner = m.Kind == "excavator" || m.Kind == "pumpjack";
+            if (!miner && !FlowRules.IsConveyor(m.Kind) && !FlowRules.IsInserter(m.Kind)) return;
+            if (_direction == null)
+            {
+                var go = new GameObject("Travel direction"); go.transform.SetParent(transform, false);
+                _direction = go.AddComponent<LineRenderer>();
+                _directionMaterial = new Material(Shader.Find("Sprites/Default"));
+                _direction.sharedMaterial = _directionMaterial;
+                _direction.useWorldSpace = true; _direction.positionCount=3;
+                _direction.widthMultiplier=.055f; _direction.sortingOrder=10;
+                _direction.startColor=_direction.endColor=new Color(.96f,.74f,.32f,.95f);
+            }
+            var dx=Dirs.DX[(int)m.Dir]; var dy=Dirs.DY[(int)m.Dir];
+            var cx=m.X+m.W/2.0; var cy=m.Y+m.H/2.0;
+            var reach=miner ? (dx == 0 ? m.H : m.W)/2.0+.24 : .28;
+            var tx=cx+dx*reach; var ty=cy+dy*reach;
+            _direction.SetPosition(0,WorldSpace.World(new Vec2(tx-dx*.22-dy*.18,ty-dy*.22+dx*.18),-1.6f));
+            _direction.SetPosition(1,WorldSpace.World(new Vec2(tx,ty),-1.6f));
+            _direction.SetPosition(2,WorldSpace.World(new Vec2(tx-dx*.22+dy*.18,ty-dy*.22-dx*.18),-1.6f));
+        }
+        private void OnDestroy() { if (_directionMaterial != null) Destroy(_directionMaterial); }
 
         /// <summary>Used by the editor generator when it authors the prefab.</summary>
         public void SetDefinition(MachineDefinition d) => definition = d;

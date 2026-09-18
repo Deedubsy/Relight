@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Title screen — C-10 (UI_AND_ONBOARDING.md §2.6.1, §2.6.5).
+
+  This is a SEPARATE DOCUMENT in the MainMenu scene, not a drawer of the in-game shell: nothing carries the USS
+  class `panel`, because UiShell is not present here and must never be given a second set of panels to manage.
+
+  Structure, in the order §2.6.1 fixes:
+    - the masthead (game name, build string),
+    - `screen-menu`   : Continue · New Game · Load · Settings · Quit, each a `menu-button`, with one reason line
+                        under Continue that is filled when Continue is disabled (never hidden),
+    - `screen-new`    : seed field (default 3), the read-only ruleset line, Start and Back,
+    - `screen-load`   : Manual saves, then Autosaves; rows are instanced from SaveRowItem.uxml,
+    - `screen-settings`: the ONE settings document, instanced here and again in PauseMenu.uxml (§3.8),
+    - `modal`         : the confirmation / failure card, last in document order so it paints over the screens
+                        without a z-index (UI Toolkit draws siblings in order; USS has no z-index).
+
+  TitleScreenController only LOOKS UP the names below. It creates one row per save (a save list is data, not
+  layout) and one button per confirmation choice, and it never sets a style property. -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/FrontEnd/TitleScreen.uss" />
+    <Style src="project://database/Assets/Relight/UI/Settings/SettingsPanel.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+
+    <ui:Template name="settings-section"
+                 src="project://database/Assets/Relight/UI/Settings/SettingsPanel.uxml" />
+
+    <ui:VisualElement name="title-screen" class="title-screen">
+        <ui:Label name="title-name" text="Relight" class="title-name" />
+        <ui:Label name="title-build" text="" class="title-build" />
+
+        <ui:VisualElement name="title-body" class="title-body">
+
+            <!-- Menu -->
+            <ui:VisualElement name="screen-menu" class="screen">
+                <ui:VisualElement name="title-menu" class="title-menu">
+                    <ui:Button name="menu-continue" text="Continue" class="menu-button" />
+                    <ui:Label name="continue-reason" text="" class="menu-reason" />
+                    <ui:Button name="menu-new" text="New Game" class="menu-button" />
+                    <ui:Button name="menu-load" text="Load" class="menu-button" />
+                    <ui:Button name="menu-settings" text="Settings" class="menu-button" />
+                    <ui:Button name="menu-quit" text="Quit" class="menu-button" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- New Game -->
+            <ui:VisualElement name="screen-new" class="screen hidden">
+                <ui:Label name="new-heading" text="New Game" class="screen-heading" />
+                <ui:VisualElement name="seed-row" class="field-row">
+                    <ui:Label name="seed-label" text="Seed" class="field-label" />
+                    <!-- A TextField, not an IntegerField: an empty or mistyped seed must be refusable with a
+                         sentence rather than silently coerced to 0. -->
+                    <ui:TextField name="seed-field" value="3" class="field-input" />
+                </ui:VisualElement>
+                <ui:Label name="ruleset-line" text="" class="ruleset-line" />
+                <ui:VisualElement name="new-buttons" class="button-row">
+                    <ui:Button name="new-start" text="Start" class="action-button" />
+                    <ui:Button name="new-back" text="Back" class="action-button" />
+                </ui:VisualElement>
+                <ui:Label name="new-notice" text="" class="notice-line" />
+            </ui:VisualElement>
+
+            <!-- Load -->
+            <ui:VisualElement name="screen-load" class="screen hidden">
+                <ui:Label name="load-heading" text="Load" class="screen-heading" />
+                <ui:ScrollView name="save-scroll" class="save-scroll">
+                    <ui:Label name="manual-heading" text="Manual saves" class="group-heading" />
+                    <ui:VisualElement name="manual-list" />
+                    <ui:Label name="autosave-heading" text="Autosaves" class="group-heading" />
+                    <ui:VisualElement name="autosave-list" />
+                    <ui:Label name="no-saves" text="No saved games yet." class="empty-line" />
+                </ui:ScrollView>
+                <ui:VisualElement name="load-buttons" class="button-row">
+                    <ui:Button name="load-back" text="Back" class="action-button" />
+                </ui:VisualElement>
+                <ui:Label name="load-notice" text="" class="notice-line" />
+            </ui:VisualElement>
+
+            <!-- Settings -->
+            <ui:VisualElement name="screen-settings" class="screen hidden">
+                <ui:Instance template="settings-section" name="settings-host" />
+                <ui:VisualElement name="settings-buttons" class="button-row">
+                    <ui:Button name="settings-back" text="Back" class="action-button" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+
+        <!-- Confirmation / failure modal -->
+        <ui:VisualElement name="modal" class="modal-overlay">
+            <ui:VisualElement name="modal-card" class="modal-card">
+                <ui:Label name="modal-title" text="" class="modal-title" />
+                <ui:Label name="modal-body" text="" class="modal-body" />
+                <ui:VisualElement name="modal-buttons" class="modal-buttons" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

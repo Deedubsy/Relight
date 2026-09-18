@@ -1,0 +1,61 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="project://database/Assets/Relight/UI/Admin/AdminPanel.uss" />
+    <ui:Button name="admin-launcher" text="Admin [F8]" class="hud-block" />
+    <ui:Label name="admin-indicator" text="" picking-mode="Ignore" />
+    <ui:VisualElement name="admin-panel" class="panel">
+        <ui:VisualElement class="admin-header"><ui:Label text="ADMIN TOOLS" class="panel-title" /><ui:Button name="admin-close" text="Close · F8" /></ui:VisualElement>
+        <ui:Label text="Testing tools. Item grants, spawns and repairs affect your current save. Temporary toggles reset on load." class="admin-help" />
+        <ui:VisualElement class="admin-tabs">
+            <ui:Button name="admin-tab-supplies" text="Supplies" /><ui:Button name="admin-tab-enemies" text="Enemies" />
+            <ui:Button name="admin-tab-player" text="Player / Base" /><ui:Button name="admin-tab-world" text="World" />
+        </ui:VisualElement>
+        <ui:ScrollView name="admin-body" mode="Vertical" horizontal-scroller-visibility="Hidden">
+            <ui:VisualElement name="admin-page-supplies" class="admin-page">
+                <ui:Label text="Resources &amp; packed structures" class="admin-section" />
+                <ui:TextField name="admin-search" label="Search" />
+                <ui:DropdownField name="admin-item" label="Item" />
+                <ui:IntegerField name="admin-amount" label="Quantity" value="100" />
+                <ui:VisualElement class="admin-row"><ui:Button name="admin-give" text="Add to Backpack" /><ui:Button name="admin-kit" text="Starter supplies" /></ui:VisualElement>
+                <ui:Label text="Grants only what fits. Starter supplies: 50 steel, 50 copper, 50 coal and 100 bullets." class="admin-help" />
+                <ui:Label text="Weapons" class="admin-section" />
+                <ui:DropdownField name="admin-weapon" label="Weapon" />
+                <ui:Button name="admin-give-weapon" text="Give selected weapon" />
+                <ui:Label text="Weapons arrive unloaded in Backpack. Equip normally, then use Refill ammo in Player / Base." class="admin-help" />
+            </ui:VisualElement>
+            <ui:VisualElement name="admin-page-enemies" class="admin-page admin-hidden">
+                <ui:Label text="Spawn nearby enemies" class="admin-section" />
+                <ui:DropdownField name="admin-enemy" label="Enemy" />
+                <ui:IntegerField name="admin-enemy-count" label="Count" value="5" />
+                <ui:DropdownField name="admin-direction" label="Approach" />
+                <ui:IntegerField name="admin-distance" label="Distance" value="8" />
+                <ui:VisualElement class="admin-row"><ui:Button name="admin-spawn" text="Spawn nearby" /><ui:Button name="admin-raid" text="Trigger raid at Home" /></ui:VisualElement>
+                <ui:Label text="Nearby spawns use the selected type, on clear ground 3–30 tiles away. Raids use the normal mixed roster and selected approach. Up to 100 per action; 250 living enemies for nearby spawning." class="admin-help" />
+                <ui:Toggle name="admin-freeze" label="Freeze enemy movement and attacks" />
+                <ui:Button name="admin-clear" text="Clear enemies &amp; cancel active raids" class="ui-button-danger" />
+                <ui:Label text="Removes living enemies and hostile projectiles without kill rewards. Automatic raids can occur again later." class="admin-help" />
+            </ui:VisualElement>
+            <ui:VisualElement name="admin-page-player" class="admin-page admin-hidden">
+                <ui:Label text="Engineer" class="admin-section" />
+                <ui:Toggle name="admin-god" label="Invulnerable engineer" />
+                <ui:VisualElement class="admin-row"><ui:Button name="admin-heal" text="Heal / revive" /><ui:Button name="admin-home" text="Return to Home" /></ui:VisualElement>
+                <ui:Label text="Home &amp; production" class="admin-section" />
+                <ui:Button name="admin-repair" text="Repair Home and all defences" />
+                <ui:Button name="admin-fuel" text="Fill all generators with coal" />
+                <ui:Button name="admin-ammo" text="Refill weapons &amp; turret ammo" />
+                <ui:Label text="Repairs and refills apply to your existing equipment and machines, with normal capacity limits. Generator connections still matter." class="admin-help" />
+            </ui:VisualElement>
+            <ui:VisualElement name="admin-page-world" class="admin-page admin-hidden">
+                <ui:Label text="Simulation" class="admin-section" />
+                <ui:Button name="admin-pause" text="Pause simulation" />
+                <ui:Label text="Admin actions also work while paused. Opening this menu leaves the world running." class="admin-help" />
+                <ui:Label text="Lighting test" class="admin-section" />
+                <ui:VisualElement class="admin-row"><ui:Button name="admin-day" text="Daylight" /><ui:Button name="admin-night" text="Night" /><ui:Button name="admin-natural" text="Follow clock" /></ui:VisualElement>
+                <ui:Label text="Changes daylight and night behaviour without skipping production or moving raid timers." class="admin-help" />
+                <ui:Button name="admin-reset" text="Reset temporary overrides" />
+                <ui:Label text="Turns off invulnerability and enemy freeze, and restores natural lighting. Granted items, repairs and spawns remain." class="admin-help" />
+            </ui:VisualElement>
+        </ui:ScrollView>
+        <ui:Label name="admin-status" text="Choose a tool. F8 or Escape closes this menu." />
+        <ui:Label name="admin-readout" text="" />
+    </ui:VisualElement>
+</ui:UXML>

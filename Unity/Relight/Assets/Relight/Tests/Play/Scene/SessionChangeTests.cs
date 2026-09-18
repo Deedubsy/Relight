@@ -23,6 +23,13 @@ namespace Relight.Tests.Play
     public sealed class SessionChangeTests
     {
         private const string Chest = "chest";
+
+        /// <summary>Phase C placement rules (C-10): stand on the tile and carry the chest, then the place is accepted.</summary>
+        private static void ReadyToPlace(Simulation sim, int x, int y)
+        {
+            sim.State.Engineer.Pos = new Vec2(x + 0.5, y + 0.5);
+            Pockets.Take(sim.Context.Data, sim.State.Engineer, new ItemKey(Chest), 1);
+        }
         private const int ChestSize = 2;
 
         [UnityTest, Timeout(30000)]
@@ -35,12 +42,18 @@ namespace Relight.Tests.Play
             var ctx = host.Simulation.Context;
 
             // Two sessions that are structurally identical — one machine each — but on different tiles.
+            // Phase C: the imported region starts with the Home Depot and its origin tiles are city structures,
+            // so the two chests go on free ground near the spawn (SceneFixture.FreeTile) rather than fixed tiles.
             var first = Simulation.NewGame(ctx, 1);
-            var placedFirst = first.Apply(new PlaceMachineCommand(Chest, 8, 8));
+            var (ax, ay) = SceneFixture.FreeTile(first, Chest, 0);
+            ReadyToPlace(first, ax, ay);
+            var placedFirst = first.Apply(new PlaceMachineCommand(Chest, ax, ay));
             Assert.That(placedFirst.Accepted, placedFirst.Problem);
 
             var second = Simulation.NewGame(ctx, 1);
-            var placedSecond = second.Apply(new PlaceMachineCommand(Chest, 10, 4));
+            var (bx, by) = SceneFixture.FreeTile(second, Chest, 1);
+            ReadyToPlace(second, bx, by);
+            var placedSecond = second.Apply(new PlaceMachineCommand(Chest, bx, by));
             Assert.That(placedSecond.Accepted, placedSecond.Problem);
 
             Assert.That(MachineSnapshot.Revision(second.State), Is.EqualTo(MachineSnapshot.Revision(first.State)),
@@ -49,27 +62,32 @@ namespace Relight.Tests.Play
             host.Attach(first);
             yield return null;
             yield return null;
-            var firstId = first.State.Machines[0].Id;
+            var firstId = SceneFixture.Last(first, Chest).Id;
             Assert.That(presenter.Views.ContainsKey(firstId), "the first session's machine was never drawn.");
 
             host.Attach(second);
             yield return null;
             yield return null;
 
-            var secondId = second.State.Machines[0].Id;
-            Assert.That(presenter.Views.Count, Is.EqualTo(1), "one machine is placed in the loaded state.");
+            var secondId = SceneFixture.Last(second, Chest).Id;
+            Assert.That(presenter.Views.Count, Is.EqualTo(second.State.Machines.Count),
+                "one view per machine in the loaded state (the chest, plus the Home Depot on the imported map).");
             Assert.That(presenter.Views.ContainsKey(secondId), "no view for the loaded state's machine.");
 
-            var expected = WorldSpace.RectCentre(10, 4, ChestSize, ChestSize);
-            var stale = WorldSpace.RectCentre(8, 8, ChestSize, ChestSize);
+            var expected = WorldSpace.RectCentre(bx, by, ChestSize, ChestSize);
+            var stale = WorldSpace.RectCentre(ax, ay, ChestSize, ChestSize);
             foreach (var view in Object.FindObjectsByType<MachineView>())
             {
                 var p = new Vector2(view.transform.position.x, view.transform.position.y);
                 Assert.That(Vector2.Distance(p, new Vector2(stale.x, stale.y)), Is.GreaterThan(0.5f),
                     "a machine view is still standing where the PREVIOUS session had one.");
-                Assert.That(Vector2.Distance(p, new Vector2(expected.x, expected.y)), Is.LessThan(0.01f),
-                    $"machine view at {p}, but the loaded state puts it at {expected}.");
             }
+            // Only the chest's own view is checked against the loaded tile: the Home Depot draws through the
+            // PrefabRegistry fallback (the Chest placeholder), so its Kind cannot tell it apart; its id can.
+            var chestView = presenter.Views[secondId];
+            var cp = new Vector2(chestView.transform.position.x, chestView.transform.position.y);
+            Assert.That(Vector2.Distance(cp, new Vector2(expected.x, expected.y)), Is.LessThan(0.01f),
+                $"machine view at {cp}, but the loaded state puts it at {expected}.");
         }
 
         [UnityTest, Timeout(30000)]
@@ -115,11 +133,13 @@ namespace Relight.Tests.Play
             var ctx = host.Simulation.Context;
 
             var sim = Simulation.NewGame(ctx, 1);
-            Assert.That(sim.Apply(new PlaceMachineCommand(Chest, 8, 8)).Accepted);
+            var (ax, ay) = SceneFixture.FreeTile(sim, Chest, 0);
+            ReadyToPlace(sim, ax, ay);
+            Assert.That(sim.Apply(new PlaceMachineCommand(Chest, ax, ay)).Accepted);
             host.Attach(sim);
             yield return null;
             yield return null;
-            Assert.That(presenter.Views.Count, Is.EqualTo(1));
+            Assert.That(presenter.Views.Count, Is.EqualTo(sim.State.Machines.Count));
 
             var session = host.Session;
             host.Detach();
@@ -128,12 +148,14 @@ namespace Relight.Tests.Play
             yield return null;
 
             var next = Simulation.NewGame(ctx, 2);
-            Assert.That(next.Apply(new PlaceMachineCommand(Chest, 10, 4)).Accepted);
+            var (bx, by) = SceneFixture.FreeTile(next, Chest, 1);
+            ReadyToPlace(next, bx, by);
+            Assert.That(next.Apply(new PlaceMachineCommand(Chest, bx, by)).Accepted);
             host.Attach(next);
             yield return null;
             yield return null;
-            Assert.That(presenter.Views.Count, Is.EqualTo(1), "the new session was never drawn.");
-            Assert.That(presenter.Views.ContainsKey(next.State.Machines[0].Id));
+            Assert.That(presenter.Views.Count, Is.EqualTo(next.State.Machines.Count), "the new session was never drawn.");
+            Assert.That(presenter.Views.ContainsKey(SceneFixture.Last(next, Chest).Id));
         }
     }
 }

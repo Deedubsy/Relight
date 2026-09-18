@@ -13,13 +13,20 @@ namespace Relight.Sim
         public ICityGeometry Geometry { get; }
         public ITileLayer Tiles { get; }
         public IThreatLayer Threat { get; }
+        /// <summary>The authored sites of the loaded region (C-01); <see cref="WorldSites.Empty"/> on the synthetic map.</summary>
+        public WorldSites Sites { get; }
+        /// <summary>The imported region this game runs on, written into every save header; "" on the synthetic map.</summary>
+        public string MapId { get; }
 
-        public SimContext(GameData data, ICityGeometry geometry, ITileLayer tiles = null, IThreatLayer threat = null)
+        public SimContext(GameData data, ICityGeometry geometry, ITileLayer tiles = null, IThreatLayer threat = null,
+            WorldSites sites = null, string mapId = null)
         {
+            MapId = mapId ?? "";
             Data = data ?? throw new ArgumentNullException(nameof(data));
             Geometry = geometry ?? throw new ArgumentNullException(nameof(geometry));
             Tiles = tiles ?? new NoTileLayer();
             Threat = threat ?? new NoThreatLayer();
+            Sites = sites ?? WorldSites.Empty;
         }
     }
 }

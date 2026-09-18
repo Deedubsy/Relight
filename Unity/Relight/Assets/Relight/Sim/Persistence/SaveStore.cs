@@ -78,12 +78,28 @@ namespace Relight.Sim
         public string PathOf(string name) => Path.Combine(Directory, ManualPrefix + name + SaveSchema.Extension);
 
         /// <summary>Serialise and save to a manual slot.</summary>
-        public SaveResult Save(string name, SimState st, GameData data, string savedAt = null)
+        public SaveResult Save(string name, SimState st, GameData data, string savedAt = null, string mapId = null)
         {
             var bad = SlotNameProblem(name);
             if (bad.Length > 0) return SaveResult.Failed(null, bad);
             byte[] bytes;
-            try { bytes = SaveSerializer.Write(st, data, savedAt); }
+            try { bytes = SaveSerializer.Write(st, data, savedAt, mapId); }
+            catch (Exception e) { return SaveResult.Failed(PathOf(name), AtomicWrite.Describe(e, "the save could not be prepared")); }
+            return SaveBytes(name, bytes);
+        }
+
+        /// <summary>
+        /// Serialise and save the game <paramref name="ctx"/> describes. Prefer this to the <see cref="GameData"/>
+        /// overload: it records the imported region as well as the map (C6), which is what lets the save be moved
+        /// onto another crop of the same city later (<see cref="SaveRelocate"/>). A save written without it binds to
+        /// the map only, and a later build has to guess its region from the map id (<see cref="SaveUpgrade"/>).
+        /// </summary>
+        public SaveResult Save(string name, SimState st, SimContext ctx, string savedAt = null)
+        {
+            var bad = SlotNameProblem(name);
+            if (bad.Length > 0) return SaveResult.Failed(null, bad);
+            byte[] bytes;
+            try { bytes = SaveSerializer.Write(st, ctx, savedAt, out _); }
             catch (Exception e) { return SaveResult.Failed(PathOf(name), AtomicWrite.Describe(e, "the save could not be prepared")); }
             return SaveBytes(name, bytes);
         }
@@ -104,11 +120,24 @@ namespace Relight.Sim
         /// Load a manual slot. A file that is damaged is set aside as <c>.corrupt</c> and its <c>.bak</c> is offered
         /// (§9.4.5); a file that is simply not one of our saves is refused and left alone.
         /// </summary>
-        public LoadResult Load(string name, GameData data)
+        public LoadResult Load(string name, GameData data, string expectedMapId = null)
         {
             var bad = SlotNameProblem(name);
             if (bad.Length > 0) return LoadResult.Refuse(bad);
-            return LoadFile(_fs, PathOf(name), data, true);
+            return LoadFile(_fs, PathOf(name), data, true, expectedMapId);
+        }
+
+        /// <summary>
+        /// Load a manual slot onto the game <paramref name="onto"/> is running. Prefer this to the
+        /// <see cref="GameData"/> overload: a save made on a different crop of the same city is moved onto this one
+        /// (C6, <see cref="SaveRelocate"/>) instead of loading 43 tiles away, and one that cannot be moved is
+        /// refused with the reason rather than loaded wrong.
+        /// </summary>
+        public LoadResult Load(string name, SimContext onto)
+        {
+            var bad = SlotNameProblem(name);
+            if (bad.Length > 0) return LoadResult.Refuse(bad);
+            return LoadFile(_fs, PathOf(name), onto?.Data, true, onto?.MapId, onto);
         }
 
         /// <summary>
@@ -221,22 +250,23 @@ namespace Relight.Sim
         /// back over the missing primary before returning (below): the next load is then an ordinary one, the slot
         /// stays in <see cref="Exists"/> and <see cref="List"/>, and a restart changes nothing.
         /// </summary>
-        internal static LoadResult LoadFile(IFileSystem fs, string path, GameData data, bool recover)
+        internal static LoadResult LoadFile(IFileSystem fs, string path, GameData data, bool recover, string expectedMapId = null,
+            SimContext onto = null)
         {
             byte[] bytes;
             try { bytes = fs.ReadAllBytes(path); }
-            catch (FileNotFoundException) { return Missing(fs, path, data, recover); }
-            catch (DirectoryNotFoundException) { return Missing(fs, path, data, recover); }
+            catch (FileNotFoundException) { return Missing(fs, path, data, recover, expectedMapId, onto); }
+            catch (DirectoryNotFoundException) { return Missing(fs, path, data, recover, expectedMapId, onto); }
             catch (Exception e) { return LoadResult.Refuse(AtomicWrite.Describe(e, "the save could not be read")); }
 
-            var r = SaveSerializer.Read(bytes, data);
+            var r = SaveSerializer.Read(bytes, data, expectedMapId, onto);
             if (r.Ok) { r.Path = path; return r; }
             if (!recover || !r.Damaged) { r.Path = path; return r; }
 
             var firstReason = r.Reason;
             var backup = path + AtomicWrite.BackupSuffix;
             AtomicWrite.SetAside(fs, path);                 // never overwritten silently; kept for inspection
-            var recovered = LoadBackup(fs, path, data, "that save was damaged (" + firstReason + ")");
+            var recovered = LoadBackup(fs, path, data, "that save was damaged (" + firstReason + ")", expectedMapId, onto);
             if (recovered != null) return recovered;
             if (fs.FileExists(backup))
                 return LoadResult.Refuse(firstReason + "; the previous copy is unusable too", true);
@@ -245,11 +275,12 @@ namespace Relight.Sim
         }
 
         /// <summary>The file is not there: the previous copy may still be, and it is a save the player made.</summary>
-        private static LoadResult Missing(IFileSystem fs, string path, GameData data, bool recover)
+        private static LoadResult Missing(IFileSystem fs, string path, GameData data, bool recover, string expectedMapId,
+            SimContext onto)
         {
             if (recover)
             {
-                var recovered = LoadBackup(fs, path, data, "the newest copy of that save was missing");
+                var recovered = LoadBackup(fs, path, data, "the newest copy of that save was missing", expectedMapId, onto);
                 if (recovered != null) return recovered;
             }
             return LoadResult.Refuse("there is no save there");
@@ -262,14 +293,15 @@ namespace Relight.Sim
         /// the <c>.bak</c> and destroy the last copy that works), and a failed restore leaves the <c>.bak</c>
         /// untouched and is reported in <see cref="LoadResult.Recovered"/> rather than failing the load.
         /// </summary>
-        private static LoadResult LoadBackup(IFileSystem fs, string path, GameData data, string why)
+        private static LoadResult LoadBackup(IFileSystem fs, string path, GameData data, string why, string expectedMapId,
+            SimContext onto)
         {
             var backup = path + AtomicWrite.BackupSuffix;
             byte[] bytes;
             try { bytes = fs.ReadAllBytes(backup); }
             catch (Exception) { return null; }
 
-            var r = SaveSerializer.Read(bytes, data);
+            var r = SaveSerializer.Read(bytes, data, expectedMapId, onto);
             if (!r.Ok) return null;
 
             var restored = RestorePrimary(fs, path, bytes);

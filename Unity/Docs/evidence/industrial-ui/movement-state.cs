@@ -1,0 +1,2 @@
+var h=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.SimHost>();var s=h.Simulation.State;var c=h.Simulation.Context;
+return new{speed=c.Data.Engineer.WalkTilesPerS,locked=Relight.Sim.HandCraft.HandLocked(s),weapons=Newtonsoft.Json.JsonConvert.SerializeObject(s.Weapons),machine=Relight.Sim.ProductionRules.MachineAt(s,(int)s.Engineer.Pos.X,(int)s.Engineer.Pos.Y)?.Kind,solid=c.Geometry.Solid((int)s.Engineer.Pos.X,(int)s.Engineer.Pos.Y),tick=s.Tick,phaseCount=Relight.Sim.SimComposition.Phases.Count};

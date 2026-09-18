@@ -25,6 +25,7 @@ namespace Relight.Sim
         public int Rev;
         /// <summary>Next machine id (reference `f.next`).</summary>
         public int NextId = 1;
+        public int OpeningResourceVersion;
 
         /// <summary>Events of the current tick; drained by the host each frame; never saved.</summary>
         public readonly List<SimEvent> Events = new List<SimEvent>();
@@ -41,6 +42,7 @@ namespace Relight.Sim
             v.Field("rng", ref Rng);
             v.Field("rev", ref Rev);
             v.Field("next", ref NextId);
+            v.Field("openingResourceVersion", ref OpeningResourceVersion);
             v.Object("engineer", ref Engineer, () => new Engineer());
             v.List("machines", Machines, () => new Machine());
             VisitCore(v);       // B-03: campaign clock, hourly rows, anything else core

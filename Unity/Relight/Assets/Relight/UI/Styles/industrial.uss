@@ -1,0 +1,271 @@
+/* Illustrated industrial art direction, 2026-09-15. Import LAST.
+   Texture borders are authored in the sprite importer; slice-scale keeps them physically small.
+   All text, quantities, icons and fills are separate UI elements. */
+:root { --ui-drawer-bottom: 128px; --ui-toolbar-bottom: 150px; }
+.panel, #inventory-panel, #build-panel, #status-panel, #pause-card, #modal-card, .title-body,
+#goal-card, #world-target, #status-content, #action-bar, #engineer-block, #tooltip, .slot-menu {
+    background-image: url("project://database/Assets/Relight/UI/Art/Industrial/panel-frame.png?fileID=901173127204631227&guid=04f3b38a40bd14c409de3526118577e2&type=3#panel-frame"); -unity-slice-scale: 0.12; background-color: rgba(0,0,0,0); border-width: 0; border-radius: 0;
+    padding: 16px;
+}
+#pause-card, #modal-card, .title-body { padding: 26px; }
+.panel-title, #drawer-heading, #goal-title, #target-title, #tooltip-title, .workshop-heading, .inventory-heading, .pause-title, .modal-title, .screen-heading {
+    background-image: url("project://database/Assets/Relight/UI/Art/Industrial/enamel-plate.png?fileID=-4628022180814281444&guid=b1ab6ec1048c7bb4885453b92b6c2665&type=3#enamel-plate"); -unity-slice-scale: 0.1; background-color: rgba(0,0,0,0); border-width: 0; border-radius: 0;
+    color: #25281e; -unity-font-style: bold; font-size: 18px;
+    padding: 5px 16px; margin: 0 0 8px 0; min-height: 32px; flex-shrink: 0; white-space: normal;
+}
+Button, .ui-button, .strip-button, .detail-row > Button, .card-button, .slot-menu > Button {
+    background-image: url("project://database/Assets/Relight/UI/Art/Industrial/button-face.png?fileID=-3696548708904710024&guid=5c9c32c41faa079428bee84c970eb806&type=3#button-face"); -unity-slice-scale: 0.1; background-color: rgba(0,0,0,0); border-width: 0; border-radius: 0;
+    color: #f0e2c3; min-height: 32px; padding: 6px 12px; margin: 2px;
+    transition-property: -unity-background-image-tint-color, color;
+    transition-duration: 0.08s;
+}
+Button:hover, .ui-button:hover, .strip-button:hover, .detail-row > Button:hover { -unity-background-image-tint-color: #dcd4ac; color: #fff4d6; }
+Button:active, .ui-button:active, .strip-button:active { -unity-background-image-tint-color: #8b8975; }
+Button:disabled, .ui-button:disabled, .strip-button:disabled, .detail-row > Button:disabled { -unity-background-image-tint-color: #74786b; color: #bac0aa; background-color: rgba(0,0,0,0); opacity: 0.8; }
+Button:focus { border-width: 1px; border-color: #e3b96f; }
+.ui-button-danger { color: #ffaaa0; }
+.inventory-slot, .dock-slot, .equipment-slot, .ingredient, .recipe-output {
+    background-image: url("project://database/Assets/Relight/UI/Art/Industrial/item-slot.png?fileID=-1153906792560794746&guid=6cb5f00173772574c940b49c3af329e2&type=3#item-slot"); -unity-slice-scale: 0.07; background-color: rgba(0,0,0,0); border-width: 0; border-radius: 0;
+    padding: 0; -unity-background-image-tint-color: white;
+}
+.inventory-slot:hover, .dock-slot:hover, .equipment-slot:hover { background-color: rgba(0,0,0,0); -unity-background-image-tint-color: #d3c597; border-width: 0; }
+.inventory-slot.selected, .dock-slot.selected, .equipment-slot.active { background-color: rgba(0,0,0,0); border-width: 0; }
+#selection-rim { position: absolute; left: -1px; top: -1px; right: -1px; bottom: -1px; background-image: url("project://database/Assets/Relight/UI/Art/Industrial/selection-rim.png?fileID=3715822991208777616&guid=0abf9332201ae02428bc6c1533e91b5a&type=3#selection-rim"); -unity-background-scale-mode: stretch-to-fill; display: none; }
+.selected > #selection-rim { display: flex; }
+.inventory-slot.drop-target, .dock-slot.drop-target { border-width: 2px; border-color: #92d8b5; }
+.item-icon { background-color: rgba(0,0,0,0); border-width: 0; -unity-background-scale-mode: scale-to-fit; }
+#action-bar { left: auto; right: auto; bottom: 10px; width: 94%; max-width: 1080px; flex-direction: row; align-items: stretch; padding: 10px 13px 8px 13px; }
+#dock-tray { flex-grow: 1; flex-shrink: 1; min-width: 0; }
+#hud-slots { flex-direction: row; flex-grow: 0; }
+.dock-slot { height: 68px; margin: 0 2px; flex-basis: 0; flex-grow: 1; flex-shrink: 1; min-width: 0; }
+#dock-icon { position: absolute; top: 12px; bottom: 9px; left: 8px; right: 8px; width: auto; height: auto; margin: 0; }
+#slot-key { top: -2px; left: 7px; margin: 0; font-size: 12px; color: #e5d9be; -unity-font-style: bold; }
+.selected #slot-key { color: #ffc86d; }
+#dock-count { top: auto; bottom: 4px; right: 7px; font-size: 14px; margin: 0; }
+#dock-name { display: none; }
+.dock-slot.unavailable #dock-icon { opacity: 0.65; }
+#dock-header { flex-direction: row; margin: 1px 4px 0 4px; height: 22px; align-items: center; }
+#current-action { font-size: 13px; color: #d8caa8; }
+#dock-header #clear-tool { min-height: 20px; height: 20px; padding: 0 12px; font-size: 12px; margin: 0; }
+#dock-actions { width: 155px; justify-content: center; margin-left: 7px; flex-shrink: 0; }
+#dock-actions .ui-button { height: 36px; margin: 2px 0; font-size: 15px; }
+#status-strip { top: 3px; padding: 0; }
+#status-content { padding: 7px 10px; height: 54px; max-width: 700px; }
+.strip-block { padding: 2px 14px; justify-content: center; min-height: 0; height: auto; }
+.strip-value { font-size: 15px; }
+#clock-block { width: 160px; }
+#power-block { max-width: 290px; }
+#core-block { width: 210px; }
+.strip-rule { background-color: #777158; margin: 7px 0; }
+.hud-meter { margin: 4px 0 1px 0; }
+.hud-meter .unity-progress-bar__background, .card-progress { background-color: #101915; border-width: 1px; border-color: #565e4f; border-radius: 2px; }
+.hud-meter .unity-progress-bar__progress, .card-progress-fill { background-color: #92d8b5; border-radius: 2px; }
+#engineer-block { width: 230px; bottom: 130px; padding: 12px 15px; }
+#engineer-block .hud-line, #engineer-block .hud-sub { font-size: 14px; }
+#world-target { width: 258px; right: auto; bottom: auto; padding: 10px 12px; }
+#target-title { font-size: 16px; padding: 4px 13px; margin-bottom: 3px; min-height: 28px; }
+#target-action { font-size: 14px; margin-top: 2px; }
+#target-detail { font-size: 13px; margin-top: 4px; }
+.target-outline { border-width: 2px; border-color: #e1d7b6; background-color: rgba(0,0,0,0); border-radius: 2px; }
+.target-outline.target-active { border-color: #92d8b5; }
+.target-outline.target-blocked { border-color: #d5997b; }
+#goal-card { top: 14px; left: 14px; width: 312px; padding: 13px; }
+#goal-place { font-size: 11px; color: #bcb798; margin: 0 2px 4px 2px; }
+#goal-title { font-size: 17px; }
+#goal-text { font-size: 14px; margin-bottom: 7px; }
+#goal-materials { margin: 0; padding: 0; border-width: 0; }
+#goal-materials-heading { font-size: 10px; color: #b4b6a1; margin: 2px 0; }
+#goal-card .goal-material { font-size: 14px; margin: 2px 0; color: #e2d9c6; }
+#goal-card .goal-material-ready { color: #9edfba; }
+#goal-why { margin: 6px 0 0 0; }
+#goal-why > Toggle { font-size: 13px; }
+#goal-detail { font-size: 13px; }
+#goal-actions { margin-top: 3px; }
+#goal-actions Button { min-height: 25px; font-size: 12px; padding: 3px 10px; }
+#goal-details-scroll { max-height: 190px; }
+/* GP-UX-4 (owner, 2026-09-16: "I have to scroll down to see the inventory slots. The UI can take up more of
+   the screen if needed"). 520/800 gave each side about five 69px columns, so a 40-slot Backpack was EIGHT rows
+   behind a 144px window — two rows visible. Widths here are what decide the column count: 900 carries twelve
+   columns for the Backpack alone, and a producer (storage-open) gets 96% of the window, ten columns a side at
+   1920, so the forty slots come to four rows and the machine's own slots to one. */
+/* U-D-51: `storage-open` means "the right column has a producer in it", and the Home workshop is a producer, so
+   the two-column width is now the ordinary case. The 900px width is what is left when a paired machine has no
+   inventory and no workshop beside it — a belt — and the drawer is honestly the Backpack alone. */
+#inventory-panel { top: 72px; bottom: 128px; width: 900px; max-width: 94%; padding: 15px; }
+#inventory-panel.storage-open { width: 96%; max-width: 1560px; }
+.drawer-heading-row { margin-bottom: 6px; }
+#drawer-heading { flex-grow: 0; margin-bottom: 0; margin-right: 8px; }
+.drawer-heading-row Button { font-size: 13px; padding: 5px 9px; }
+/* GP-UX-4 made the pair the drawer’s growing child; U-D-51 made it the drawer’s ONLY child between the heading
+   row and the footer, so it takes every pixel those two do not want. Each column then divides its own height. */
+.inventory-pair { flex-grow: 1; flex-shrink: 1; min-height: 0; }
+.inventory-side { margin-right: 0; min-height: 0; }
+.store-hint { flex-shrink: 0; }
+.storage-open #side-pack { margin-right: 12px; }
+.inventory-heading { font-size: 15px; min-height: 28px; padding: 4px 14px; }
+.inventory-capacity { font-size: 12px; margin-bottom: 0; }
+/* GP-UX-4: 144px was exactly two rows of slots, whatever the drawer's height. The grid now takes the height
+   its side has; the floor is one row, and there is no ceiling short of the drawer band itself. */
+.inventory-scroll { flex-grow: 1; flex-shrink: 1; height: auto; min-height: 72px; max-height: none; }
+.inventory-slot { width: 66px; height: 66px; margin: 0 3px 3px 0; flex-shrink: 0; }
+.inventory-slot .slot-icon { left: 7px; top: 5px; width: 51px; height: 47px; }
+.inventory-slot .slot-item { display: none; }
+.inventory-slot .stack-count { position: absolute; top: auto; bottom: 4px; right: 6px; font-size: 14px; color: #f3e8d0; margin: 0; -unity-font-style: bold; }
+.equipment-strip { margin-top: 8px; padding-top: 6px; border-top-color: #777158; }
+.equipment-label { font-size: 13px; margin-bottom: 4px; }
+.equipment-row { flex-wrap: wrap; }
+.equipment-slot { min-width: 0; width: 118px; min-height: 44px; margin: 0 3px 3px 0; padding: 5px 8px; font-size: 12px; white-space: normal; }
+.equipment-slot.active { color: #ffc86d; border-width: 1px; border-color: #e3b96f; }
+.equipment-row .strip-button { font-size: 12px; min-height: 30px; padding: 3px 9px; }
+/* U-D-51: the workshop’s foldout is gone — it fills the drawer’s right column the way a machine does. Its
+   heading is the column’s name now, so it comes BACK (GP-UX-2 hid it because the foldout’s own toggle already
+   said "Home workshop"); it carries `inventory-heading`, so it is the same enamel plate as "Backpack" opposite. */
+.workshop { padding: 0; border-width: 0; background-color: rgba(0,0,0,0); margin-bottom: 0; flex-grow: 1; flex-shrink: 1; min-height: 0; }
+.workshop-heading { display: flex; font-size: 15px; min-height: 28px; padding: 4px 14px; margin-bottom: 6px; }
+/* U-D-52: `.workshop-cards` is a ScrollView now, so its own children are the viewport and the scrollers —
+   column, as a ScrollView is. The cards live in its content container, and THAT is what runs two to a row.
+   A host is exactly half the row (Yoga sizes flex-basis border-box, so the 8px gutter is padding, not
+   margin, and two of them still come to 100%); `min-width` drops it back to one per row in a column too
+   narrow for two. GP-UX-6, owner: “Make the recipes fit 2 horizontally per row instead of 1.” */
+.workshop-cards { flex-direction: column; flex-wrap: nowrap; flex-grow: 1; flex-shrink: 1; min-height: 0; }
+.workshop-cards .unity-scroll-view__content-container { flex-direction: row; flex-wrap: wrap; }
+/* Owner, 2026-09-16: “The recipe cards need to have the same height each. At the moment they're all
+   different.” The HOST carries the height and the card fills it (`flex-grow` below), because the host is
+   what the row can equalise: hosts in one wrapped row stretch to the tallest of them, and `min-height`
+   then matches one row to the next — wrapped rows are measured independently, so without a floor a row of
+   short recipes would still be shorter than a row of long ones.
+   152px is arithmetic on the values in this sheet, not an observation: 16px padding + 2px border + ~21px
+   title (14px and a 4px margin) + 58px ingredient row + 9px bar (5px and a 4px margin) + ~18px for a
+   one-line note (12px and a 3px margin) ≈ 124px of card, + ~15px for a second wrapped note line, + the
+   host's own 8px bottom gutter ≈ 147px, rounded up. A rarer three-line note grows its own row rather than
+   leaving the card next to it short, and `.compact-ui` trades 4px of padding for a taller title, so it
+   needs no figure of its own. Tune this one number if a recipe turns out to run longer than that.
+   The card's bottom margin goes with it: the host's padding is the only gutter now, 8px each way. */
+.recipe-host { flex-basis: 50%; min-width: 180px; min-height: 152px; flex-shrink: 0; margin: 0; padding: 0 8px 8px 0; }
+.recipe-card { width: auto; min-width: 0; margin: 0; padding: 8px; border-width: 1px; border-color: #5f6350; border-radius: 2px; background-color: #1b2520; }
+.recipe-card.core-card { border-color: #756c4d; }
+.card-title { font-size: 14px; margin: 0 0 4px 0; -unity-font-style: bold; color: #e5d5b5; }
+.recipe-equation { flex-direction: row; align-items: center; }
+.card-chips { flex-direction: row; flex-wrap: nowrap; margin: 0; flex-shrink: 0; }
+.ingredient, .recipe-output { width: 58px; height: 58px; margin-right: 4px; flex-shrink: 0; }
+#ingredient-icon, #card-output-icon { position: absolute; top: 4px; left: 7px; width: 44px; height: 36px; margin: 0; }
+.ingredient-count { position: absolute; left: 2px; right: 2px; bottom: 3px; font-size: 12px; -unity-text-align: middle-center; }
+.ingredient.short .ingredient-count { color: #ffaaa0; }
+.recipe-arrow { margin: 0 7px 0 3px; font-size: 24px; color: #d4c49c; }
+.card-buttons { flex-grow: 1; flex-direction: column; align-items: stretch; margin: 0 0 0 5px; }
+.card-buttons #card-detail { font-size: 12px; margin: 0; -unity-text-align: middle-center; }
+.card-button { min-height: 26px; padding: 3px 8px; margin: 2px 0 0 0; font-size: 13px; }
+#card-note { font-size: 12px; margin: 3px 0 0 0; white-space: normal; }
+.card-progress { height: 5px; min-height: 5px; margin: 4px 0 0 0; }
+.card-progress-fill { height: 3px; }
+#drawer-footer { margin-top: 6px; }
+.item-detail { margin-top: 0; padding-top: 7px; border-top-color: #686b55; }
+.detail-title { font-size: 14px; margin-bottom: 1px; }
+.detail-description { font-size: 12px; margin-bottom: 3px; }
+.detail-row { flex-wrap: wrap; }
+.detail-row > Button { font-size: 12px; min-height: 28px; padding: 4px 8px; margin: 2px; }
+.quantity-field { width: 125px; margin-right: 4px; }
+.quantity-field > Label { font-size: 12px; }
+.quantity-field .unity-text-field__input { min-height: 28px; padding: 3px 6px; }
+#drawer-footer #hint { font-size: 11px; margin-top: 3px; }
+#drawer-footer #notice { font-size: 12px; min-height: 0; margin-top: 2px; }
+#tooltip { padding: 12px; max-width: 340px; }
+#tooltip-title { font-size: 16px; }
+#tooltip-body, #tooltip-footer, .tooltip-row Label { font-size: 13px; }
+#build-panel { top: 72px; bottom: 128px; width: 760px; }
+#alerts { top: 75px; right: 16px; width: 310px; padding: 0; }
+.notice-row, .alert-strip, .problem-row { background-color: #202920; border-color: #837452; border-radius: 2px; font-size: 14px; }
+/* U-D-55. The line above repainted the urgent strip's GROUND and left Hud.uss's `color: var(--ui-bg)` (#151d1e)
+   on it, so “No power · Home” was #151d1e text on #202920 — about 1.2:1, which is not dim, it is invisible.
+   That is why the player only ever noticed the toast beside it. The strip keeps this sheet's radius and size and
+   takes back a ground of its own: a deep red that belongs to the industrial palette rather than the token's bright
+   salmon, with light text on it (~11:1) and bold, because it is the only HUD row that means act now.
+   Grouping it with .notice-row was the mistake: a standing outage is not a notice. */
+.alert-strip { background-color: #4a1d18; border-color: #ff8a80; color: #ffd9d3; -unity-font-style: bold; }
+#threat { top: 62px; right: 18px; max-width: 280px; }
+#problems { top: 230px; right: 16px; bottom: auto; }
+.compact-ui #goal-card { top: 68px; width: 275px; padding: 12px; }
+.compact-ui #goal-title { font-size: 16px; }
+.compact-ui #goal-details-scroll { max-height: 105px; }
+.compact-ui #status-content { max-width: 660px; }
+.compact-ui #core-block { width: 210px; }
+.compact-ui #world-target { width: 248px; }
+/* GP-UX-4: a small window cannot buy rows with height, so it buys columns with smaller slots. A 1280x720
+   drawer band is 520px tall and its grid still scrolls — there is no height there to give — but it shows
+   roughly twice the rows and half again the columns it did. */
+.compact-ui #inventory-panel { width: 860px; }
+.compact-ui #inventory-panel.storage-open { width: 96%; max-width: 1240px; }
+.compact-ui .inventory-scroll { min-height: 62px; }
+.compact-ui .inventory-slot { width: 56px; height: 56px; }
+.compact-ui .inventory-slot .slot-icon { left: 6px; top: 4px; width: 44px; height: 40px; }
+.compact-ui .inventory-slot .stack-count { font-size: 12px; bottom: 3px; right: 5px; }
+.compact-ui #engineer-block { top: 70px; bottom: auto; right: 16px; width: 200px; padding: 10px 14px; }
+.compact-ui #dock-actions { width: 140px; }
+.compact-ui #action-bar { max-width: 1000px; }
+.compact-ui #dock-actions .ui-button { font-size: 13px; }
+.compact-ui #build-panel { width: 680px; }
+
+/* Live inspection corrections: keep the objective visible, remove inherited stretch. */
+.drawer-open #goal-card { display: flex; }
+#action-bar { max-width: 1010px; padding-bottom: 11px; }
+#dock-header { height: 24px; }
+#current-action { margin: 0; padding: 0; }
+/* `height: auto` stood here from a live inspection made when a card was a full-width row of its own and
+   stretching one meant stretching it down the whole column. Two to a row with a bounded host, that reading
+   no longer holds and the auto height is exactly what made the cards ragged, so the card fills its host.
+   `flex-grow` rather than `height: 100%`: the host has no height of its own — it takes the row's, and the
+   row takes the tallest card's — so a percentage would resolve against a parent still being measured. */
+.recipe-card { flex-grow: 1; flex-shrink: 0; }
+.recipe-host { flex-grow: 0; }
+.card-buttons { flex-wrap: nowrap; }
+#card-note { margin-bottom: 0; padding: 0; }
+#goal-card .goal-material { margin: 1px 0; }
+#goal-text { margin: 0 0 5px 0; }
+#goal-title { letter-spacing: 0; }
+.goal-material-line { flex-direction: row; align-items: center; }
+.goal-material-line .goal-material { flex-grow: 1; }
+.goal-requirement-meter { width: 48px; margin-left: 6px; }
+.compact-ui #card-output-icon { width: 44px; height: 36px; margin: 0; }
+.compact-ui .card-title { font-size: 14px; }
+.compact-ui .card-line { font-size: 12px; }
+#engineer-block #weapon, #engineer-block #ammo { margin: 2px 0; }
+.equipment-slot { position: relative; width: 86px; height: 63px; padding: 0; justify-content: flex-end; -unity-text-align: lower-center; }
+.equipment-slot .equipment-icon { position: absolute; top: 3px; left: 9px; right: 9px; height: 41px; }
+.equipment-caption { font-size: 10px; -unity-text-align: middle-center; margin: 0 3px 4px 3px; }
+.equipment-slot #selection-rim { display: none; }
+.equipment-slot.active #selection-rim { display: flex; }
+.equipment-slot.active { border-width: 0; }
+#power-meter { margin-top: 4px; }
+#power-block.power-off #power-meter .unity-progress-bar__progress { background-color: #ff8a80; }
+
+/* Vertical inventory scrolling only; spare two pixels absorb scaled flex rounding. */
+#inventory-pair { margin-right: 2px; }
+.equipment-caption { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
+#drawer-heading, #target-title, #tooltip-title, .pause-title, .modal-title, .screen-heading { letter-spacing: 0; }
+.unity-scroller--vertical { width: 14px; min-width: 14px; }
+.unity-scroller--vertical .unity-scroller__low-button, .unity-scroller--vertical .unity-scroller__high-button { width: 14px; height: 14px; min-height: 14px; padding: 0; margin: 0; background-color: #283228; -unity-background-image-tint-color: #bbb18a; }
+.unity-scroller #unity-tracker { background-color: #111b16; border-width: 1px; border-color: #68694f; }
+.unity-scroller #unity-dragger { background-color: #7d8766; border-width: 1px; border-color: #b3aa81; border-radius: 2px; }
+
+#placement-problem { background-color: #202920; padding: 4px 9px; margin: 4px 0; align-self: center; border-radius: 2px; }
+
+/* ---- U-D-51: the drawer is two columns, and the right one is the producer ----------------------------------
+ *
+ * Owner, 2026-09-16: "I want the players inventory to be on the left and the producer to be on the right. The
+ * Producers UI needs to be redone a little to have the slots at the top." The left column was already the
+ * Backpack; what was wrong is that the producer’s controls sat in a strip UNDER both columns. They are in the
+ * right column now, under that producer’s own slots, and the Home workshop fills the column the same way.
+ */
+/* U-D-52 replaced the 46%/52% share-of-the-column cap: the slots are fixed at their own height at the top
+   and everything below them divides what is left, so neither half has to be rationed against the other.
+   InventoryPanel.uss carries the id rules that actually decide this — these keep the classes honest. */
+.store-inventory { flex-grow: 0; flex-shrink: 1; min-height: 0; }
+.store-body { flex-grow: 1; flex-shrink: 1; min-height: 0; margin-top: 8px; }
+.machine-controls { background-color: #1b2520; border-width: 1px; border-color: #5f6350; border-radius: 2px; padding: 9px; margin-bottom: 0; }
+#machine-status { font-size: 15px; min-height: 28px; padding: 4px 14px; }
+.machine-field > Label { min-width: 104px; font-size: 13px; }
+.workshop-output { padding: 0; background-color: rgba(0,0,0,0); flex-grow: 0; flex-shrink: 0; }
+.workshop-output-scroll { min-height: 72px; max-height: 300px; }
+.workshop-output-text, .workshop-output-hint { font-size: 12px; }
+.workshop-cards { margin-top: 8px; }
+.compact-ui .store-body { min-height: 0; }

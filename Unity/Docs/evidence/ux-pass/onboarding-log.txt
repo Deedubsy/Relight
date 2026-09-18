@@ -1,0 +1,34 @@
+Normal starting inventory: 20 steel, 5 copper
+PASS Normal opening stock
+PASS Tab opens Backpack
+PASS Tab closes Backpack
+PASS B opens Build
+PASS Escape closes Build
+Walk to Steel: 69,360;69,361;68,361;67,361;66,361;65,361;64,361;63,361;63,360;63,359;63,358;63,357;63,356
+PASS Hover identifies Steel: Steel plates salvage
+Live MineProg=0.225
+PASS Real mining progress Steel
+FAIL Mined into Backpack: Steel=27
+Normal starting inventory: 27 steel, 5 copper
+Walk to Steel: 63,356
+PASS Hover identifies Steel: Steel plates salvage
+Live MineProg=0.225
+PASS Real mining progress Steel
+PASS Mined into Backpack: Steel=30
+PASS Release interrupts mining
+Walk to Copper: 62,356;62,357;62,358;62,359
+PASS Hover identifies Copper: Copper salvage
+Live MineProg=0.225
+PASS Real mining progress Copper
+PASS Mined into Backpack: Copper=10
+PASS Release interrupts mining
+Opening materials gathered using only WASD and LMB.
+DONE
+Normal starting inventory: 30 steel, 10 copper
+PASS Shortcut 1 selects Generator
+PASS R rotates the selected structure
+PASS Reachable Generator placement
+PASS LMB places Generator with mined materials
+PASS Objective advances after placement
+PASS Escape cancels placement
+FAIL Mouse Inventory button opens Backpack

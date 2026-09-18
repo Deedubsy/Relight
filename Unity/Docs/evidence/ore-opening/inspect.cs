@@ -1,0 +1,11 @@
+var host=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.SimHost>();
+if(host.Simulation==null)return "No live sim";
+host.Paused=true;
+var st=host.Simulation.State;var ctx=host.Simulation.Context;
+var result=new System.Text.StringBuilder();result.AppendLine("Layout="+st.OpeningResourceVersion+"; Objective="+Relight.Sim.OpeningQueries.Objective(ctx,st).Title);
+foreach(var s in ctx.Sites.OfKind(Relight.Sim.SiteKind.Resource)) if(s.X<110 && s.Y>340 && s.Y<380)result.AppendLine(s.Name+" @ "+s.X+","+s.Y+" "+s.W+"x"+s.H);
+result.AppendLine("Old patch "+Relight.Sim.Ground.TileAt(ctx,st,59,352));
+result.AppendLine("New iron "+Relight.Sim.Mining.TryTile(ctx,st,84,352,out var item,out var units)+" "+item+" "+units);
+UnityEngine.ScreenCapture.CaptureScreenshot("E:/Factorio2/Unity/Docs/evidence/ore-opening/opening.png");
+System.IO.File.WriteAllText("E:/Factorio2/Unity/Docs/evidence/ore-opening/layout.txt",result.ToString());
+return result.ToString();

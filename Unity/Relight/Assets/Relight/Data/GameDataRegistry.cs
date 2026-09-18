@@ -25,8 +25,10 @@ namespace Relight.Data
         [SerializeField] private RaidDirectorTuningAsset raids;
         [SerializeField] private OpeningEncounterTuningAsset opening;
         [SerializeField] private StartingStakeAsset stake;
+        [SerializeField] private DefenceTuningAsset defence;
         [SerializeField] private EngineerTuningAsset engineer;
         [SerializeField] private WorldTuningAsset world;
+        [SerializeField] private SiegeTuningAsset siege;
 
         public IReadOnlyList<ItemDefinition> Items => items;
         public IReadOnlyList<MachineDefinition> Machines => machines;
@@ -40,20 +42,22 @@ namespace Relight.Data
         public RaidDirectorTuningAsset Raids => raids;
         public OpeningEncounterTuningAsset Opening => opening;
         public StartingStakeAsset Stake => stake;
+        public DefenceTuningAsset Defence => defence;
         public EngineerTuningAsset Engineer => engineer;
         public WorldTuningAsset World => world;
+        public SiegeTuningAsset Siege => siege;
 
         /// <summary>Used by the editor generator. Authoring is otherwise done in the Inspector.</summary>
         public void SetContents(ItemDefinition[] newItems, MachineDefinition[] newMachines, RecipeDefinition[] newRecipes,
             WeaponDefinition[] newWeapons, EnemyDefinition[] newEnemies, AmmoDefinition[] newAmmunition,
             TurretDefinition[] newTurrets, PowerTuningAsset newPower, TimeTuningAsset newTime,
-            RaidDirectorTuningAsset newRaids, OpeningEncounterTuningAsset newOpening, StartingStakeAsset newStake,
-            EngineerTuningAsset newEngineer, WorldTuningAsset newWorld)
+            RaidDirectorTuningAsset newRaids, OpeningEncounterTuningAsset newOpening, StartingStakeAsset newStake, DefenceTuningAsset newDefence,
+            EngineerTuningAsset newEngineer, WorldTuningAsset newWorld, SiegeTuningAsset newSiege)
         {
             items = newItems; machines = newMachines; recipes = newRecipes; weapons = newWeapons;
             enemies = newEnemies; ammunition = newAmmunition; turrets = newTurrets;
-            power = newPower; time = newTime; raids = newRaids; opening = newOpening; stake = newStake;
-            engineer = newEngineer; world = newWorld;
+            power = newPower; time = newTime; raids = newRaids; opening = newOpening; stake = newStake; defence = newDefence;
+            engineer = newEngineer; world = newWorld; siege = newSiege;
         }
 
         /// <summary>Every definition asset, in family order, for the validator and the table exporter.</summary>
@@ -71,12 +75,16 @@ namespace Relight.Data
             yield return raids;
             yield return opening;
             yield return stake;
+            yield return defence;
             yield return engineer;
             yield return world;
+            yield return siege;
         }
 
         /// <summary>Converts the whole registry into the simulation's data record. Call this once, at boot.</summary>
-        public GameData Build()
+        public GameData Build() => CombatBalance.Apply(OpeningBalance.Apply(BuildOriginal()));
+
+        public GameData BuildOriginal()
         {
             var itemDefs = new ItemDef[items.Length];
             for (var i = 0; i < items.Length; i++) itemDefs[i] = items[i].ToRecord();
@@ -101,7 +109,9 @@ namespace Relight.Data
                 time != null ? time.ToRecord() : null,
                 raids != null ? raids.ToRecord() : null,
                 opening != null ? opening.ToRecord() : null,
-                stake != null ? stake.ToRecord() : null);
+                stake != null ? stake.ToRecord() : null,
+                defence != null ? defence.ToRecord() : null,
+                siege != null ? siege.ToRecord() : null);
         }
     }
 }

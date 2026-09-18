@@ -104,7 +104,7 @@ namespace Relight.Sim.Tests
 
             var feed = Fixture.Apply(ctx, st, new MachineTransferCommand(turret.Id, ItemId.Magazine, 30, true));
             Assert.IsTrue(feed.Accepted, feed.Problem);
-            Assert.AreEqual(50, MachineInventory.TurretHopper(ctx.Data));
+            Assert.AreEqual(50, TurretHopper.Capacity(ctx.Data, turret));   // the helper moved to W-B's kind-agnostic hopper
             Assert.AreEqual(30, turret.Rounds);
             Assert.AreEqual(0, st.Engineer.Inv[ItemId.Magazine]);
             Assert.AreEqual(30, st.Stats.HandFedMags);
@@ -135,6 +135,80 @@ namespace Relight.Sim.Tests
             Assert.IsTrue(reopened.Ok, string.Join(" | ", reopened.Problems));
             Assert.AreEqual(40, reopened.OpenedAt);
             Assert.AreEqual(7, reopened.Opening[ItemId.Coal]);
+        }
+
+        /// <summary>
+        /// GP-W5. Dying costs the engineer the WALK BACK, not the cargo. Conservation is the whole of the rule:
+        /// every unit that leaves the pockets is on the ground, counted where it stands, and every unit collected
+        /// comes back — nothing is a source and nothing is a sink at either end.
+        ///
+        /// Two things are asserted here that the sim cannot express any other way. An unequipped weapon is held in
+        /// the bag as its own key (<c>rifle:3</c>), so "it is not in the backpack" is not true of the
+        /// representation and the retain-through-death rule has to be enforced in <see cref="DeathCache.Spill"/>;
+        /// and two deaths on one tile merge into one pile, so repeated deaths cannot double anything.
+        /// </summary>
+        [Test]
+        public void DyingDropsTheCargoWhereTheBodyFellAndCollectingItBringsEveryUnitBack()
+        {
+            var ctx = Fixture.Context();
+            var st = Fixture.State(ctx);
+            var rifle = new ItemKey("rifle:3");
+            st.Engineer.Inv[rifle] = 1;                     // an unequipped weapon: never dropped, never ledger-counted
+
+            var fell = new Vec2(10.5, 12.5);
+            st.Engineer.Pos = fell;
+            st.Engineer.TakeDamage(ctx, st, ctx.Data.Engineer.MaxHp);
+
+            Assert.IsTrue(st.Engineer.IsDown);
+            Assert.AreEqual(0, st.Engineer.Inv[ItemId.Steel], "the cargo went to the ground");
+            Assert.AreEqual(0, st.Engineer.Inv[ItemId.Copper]);
+            Assert.AreEqual(1, st.Engineer.Inv[rifle], "the rifle did not: losing it is what stops people exploring");
+            Assert.AreEqual(1, st.Drops.Caches.Count);
+
+            var pile = st.Drops.Caches[0];
+            Assert.AreEqual(10, pile.X, "on the tile the body fell on");
+            Assert.AreEqual(12, pile.Y);
+            Assert.AreEqual(20, pile.Items[ItemKey.Of(ItemId.Steel)]);
+            Assert.AreEqual(5, pile.Items[ItemKey.Of(ItemId.Copper)]);
+            Assert.AreEqual("", Fixture.Off(ctx, st), "a pile is held where it stands, not lost");
+
+            var v = LedgerQueries.Conservation(ctx, st);
+            Assert.AreEqual(0, v.At(LedgerPlace.Pockets, ItemId.Steel));
+            Assert.AreEqual(20, v.At(LedgerPlace.Machines, ItemId.Steel), "counted on the workshop tray's precedent");
+            Assert.AreEqual(20, v.Held[ItemId.Steel], "nothing entered or left the world");
+
+            // Die again on the same tile: one pile, not two, and still nothing invented.
+            st.Engineer.Down = -1;
+            st.Engineer.Hp = ctx.Data.Engineer.MaxHp;
+            st.Engineer.Inv[ItemId.Coal] = 3;
+            st.Stats.Made[ItemId.Coal] = 3;                 // the only honest way to have them: they were made
+            st.Engineer.TakeDamage(ctx, st, ctx.Data.Engineer.MaxHp);
+
+            Assert.AreEqual(1, st.Drops.Caches.Count, "two deaths on one tile are one pile, not a second marker");
+            Assert.AreEqual(3, pile.Items[ItemKey.Of(ItemId.Coal)]);
+            Assert.AreEqual("", Fixture.Off(ctx, st));
+
+            // Who may collect it, and from where.
+            Assert.AreEqual("Engineer down", Fixture.Apply(ctx, st, new CollectCacheCommand()).Problem);
+            st.Engineer.Down = -1;
+            st.Engineer.Hp = ctx.Data.Engineer.MaxHp;
+            st.Engineer.Pos = new Vec2(2, 2);
+            Assert.AreEqual("No dropped cargo within reach.", Fixture.Apply(ctx, st, new CollectCacheCommand()).Problem);
+            Assert.AreEqual(DeathCache.ReachText, Fixture.Apply(ctx, st, new CollectCacheCommand(pile.Id)).Problem);
+            Assert.AreEqual("", Fixture.Off(ctx, st), "a refused collect moves nothing");
+
+            st.Engineer.Pos = fell;
+            var got = Fixture.Apply(ctx, st, new CollectCacheCommand(pile.Id));
+            Assert.IsTrue(got.Accepted, got.Problem);
+            Assert.AreEqual("Recovered 28 from the dropped cargo.", got.Problem);
+            Assert.AreEqual(20, st.Engineer.Inv[ItemId.Steel], "every unit came back");
+            Assert.AreEqual(5, st.Engineer.Inv[ItemId.Copper]);
+            Assert.AreEqual(3, st.Engineer.Inv[ItemId.Coal]);
+            Assert.AreEqual(1, st.Engineer.Inv[rifle]);
+            Assert.AreEqual(0, st.Drops.Caches.Count, "and an emptied pile is not left lying on the map");
+            Assert.AreEqual("", Fixture.Off(ctx, st));
+            Assert.AreEqual("There is no dropped cargo to collect.",
+                Fixture.Apply(ctx, st, new CollectCacheCommand()).Problem);
         }
     }
 }

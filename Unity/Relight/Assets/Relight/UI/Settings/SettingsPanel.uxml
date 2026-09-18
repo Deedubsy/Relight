@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings — C-10 (UI_AND_ONBOARDING.md §3.8; reference game/src/settingsPanel.ts).
+
+  ONE document, instanced by both the title screen and the pause menu, exactly as the brief requires. It is a
+  section, not a drawer: the root carries `settings-panel` and deliberately NOT `panel`, because UiShell.Rebuild()
+  hides every element whose class list holds `panel`.
+
+  SettingsController only ever looks up the names below and sets text, choices, values and enabled state. It
+  creates no element and styles nothing, so this file can be rearranged in UI Builder without touching code.
+
+  Correction pass (W-B R6): every button carries the shared hierarchy from Styles/tokens.uss — `ui-button` plus
+  one of `ui-button-primary` / `-secondary` / `-danger`. Applying a binding is the primary action of its section;
+  the two "restore defaults" buttons are danger, because they throw away what the player chose.
+
+  Sections are in §3.8's order: Interface, Audio, Saving, Keyboard bindings, Restore and recover. Every label,
+  note and sentence is set from Relight.Sim.UI.FrontEndText / AutosaveChoices at bind time so the ported strings
+  have exactly one home; the text attributes here are only what an author sees in UI Builder. -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/Settings/SettingsPanel.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+
+    <ui:VisualElement name="settings-panel" class="settings-panel">
+        <ui:ScrollView name="settings-scroll" class="settings-scroll">
+
+            <!-- Interface -->
+            <ui:VisualElement name="section-interface" class="settings-section">
+                <ui:Label name="heading-interface" text="Interface" class="settings-heading" />
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="scale-label" text="Interface scale" class="settings-label" />
+                    <ui:DropdownField name="scale-field" class="settings-control" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="motion-label" text="Interface motion" class="settings-label" />
+                    <ui:DropdownField name="motion-field" class="settings-control" />
+                </ui:VisualElement>
+
+                <ui:Label name="interface-note" text="" class="settings-note" />
+            </ui:VisualElement>
+
+            <!-- Audio -->
+            <ui:VisualElement name="section-audio" class="settings-section">
+                <ui:Label name="heading-audio" text="Audio" class="settings-heading" />
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="master-label" text="Master volume" class="settings-label" />
+                    <ui:Slider name="master-slider" low-value="0" high-value="1" class="settings-control" />
+                    <ui:Label name="master-value" text="" class="settings-value" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="mute-label" text="Mute all" class="settings-label" />
+                    <ui:Toggle name="mute-toggle" class="settings-control" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="ui-label" text="Interface" class="settings-label" />
+                    <ui:Slider name="ui-slider" low-value="0" high-value="1" class="settings-control" />
+                    <ui:Label name="ui-value" text="" class="settings-value" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="world-label" text="Effects" class="settings-label" />
+                    <ui:Slider name="world-slider" low-value="0" high-value="1" class="settings-control" />
+                    <ui:Label name="world-value" text="" class="settings-value" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="alerts-label" text="Alerts" class="settings-label" />
+                    <ui:Slider name="alerts-slider" low-value="0" high-value="1" class="settings-control" />
+                    <ui:Label name="alerts-value" text="" class="settings-value" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Saving -->
+            <ui:VisualElement name="section-saving" class="settings-section">
+                <ui:Label name="heading-saving" text="Saving" class="settings-heading" />
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="autosave-label" text="Autosave" class="settings-label" />
+                    <ui:DropdownField name="autosave-interval" class="settings-control" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="kept-label" text="Autosaves kept" class="settings-label" />
+                    <ui:DropdownField name="autosave-kept" class="settings-control" />
+                </ui:VisualElement>
+
+                <ui:Label name="autosave-consequence" text="" class="settings-consequence" />
+                <ui:Label name="autosave-note" text="" class="settings-note" />
+            </ui:VisualElement>
+
+            <!-- Keyboard bindings -->
+            <ui:VisualElement name="section-bindings" class="settings-section">
+                <ui:Label name="heading-bindings" text="Keyboard bindings" class="settings-heading" />
+                <ui:Label name="bindings-note" text="" class="settings-note" />
+
+                <!-- W-A's correction-pass request: SettingsController paints one `controls-row` Label per control
+                     line into this container, so the ten controls are readable without leaving the game. -->
+                <ui:VisualElement name="controls-list" class="controls-list" />
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="action-label" text="Action" class="settings-label" />
+                    <ui:DropdownField name="binding-action" class="settings-control" />
+                </ui:VisualElement>
+
+                <ui:Label name="binding-current" text="" class="binding-current" />
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="key-label" text="New key" class="settings-label" />
+                    <ui:TextField name="binding-key" readonly="true" class="binding-capture" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-buttons">
+                    <ui:Button name="binding-apply" text="Apply binding" class="ui-button ui-button-primary settings-button" />
+                    <ui:Button name="binding-restore" text="Restore default bindings" class="ui-button ui-button-danger settings-button" />
+                </ui:VisualElement>
+
+                <ui:Label name="binding-problem" text="" class="settings-problem" />
+                <ui:Label name="binding-good" text="" class="settings-good" />
+            </ui:VisualElement>
+
+            <!-- Restore and recover -->
+            <ui:VisualElement name="section-restore" class="settings-section">
+                <ui:Label name="heading-restore" text="Restore and recover" class="settings-heading" />
+
+                <ui:VisualElement class="settings-buttons">
+                    <ui:Button name="restore-hint" text="Restore opening hint for new cities" class="ui-button ui-button-secondary settings-button" />
+                    <ui:Button name="restore-quickbar" text="Restore default quickbar" class="ui-button ui-button-danger settings-button" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings-buttons">
+                    <ui:Button name="retry-settings" text="Retry saving settings" class="ui-button ui-button-secondary settings-button" />
+                </ui:VisualElement>
+
+                <ui:Label name="settings-status" text="" class="settings-note" />
+            </ui:VisualElement>
+
+        </ui:ScrollView>
+    </ui:VisualElement>
+</ui:UXML>

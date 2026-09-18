@@ -29,12 +29,9 @@ namespace Relight.UI
         [Tooltip("The host read through selectors and written to through Submit. Found in the scene if left empty.")]
         [SerializeField] private SimHost host;
 
-        [Tooltip("Sim tile the walk button sends the engineer to. Default: east along the street from the spawn crossroads.")]
-        [SerializeField] private Vector2 walkTarget = new Vector2(20.5f, 6.5f);
-
         private readonly StatusPanelViewModel _model = new StatusPanelViewModel();
         private Label _clock, _health, _position, _condition, _pockets, _machines, _ticks;
-        private Button _walk, _sort;
+        private Button _sort;
 
         /// <summary>The view-model, for tests.</summary>
         public StatusPanelViewModel Model => _model;
@@ -54,15 +51,18 @@ namespace Relight.UI
         private void OnDisable()
         {
             if (host != null) host.TickBoundary -= OnTickBoundary;
-            if (_walk != null) _walk.clicked -= WalkToTarget;
             if (_sort != null) _sort.clicked -= SortPockets;
         }
 
         /// <summary>Re-query the document. Public so a test (or a hot-reloaded UXML) can rebind.</summary>
         public void Bind()
         {
-            var root = document == null ? null : document.rootVisualElement;
-            if (root == null) return;
+            var doc = document == null ? null : document.rootVisualElement;
+            if (doc == null) return;
+            // Scope every query to the panel itself: GameUI.uxml puts the HUD and this panel in one document, and
+            // the HUD's status strip also has a Label named "clock" (Hud.uxml:22). An unscoped root.Q found that one
+            // first, so the panel's own heading stayed at its UXML placeholder (Phase C integrated run, 2026-09-14).
+            var root = doc.Q("status-panel") ?? doc;
             _clock = root.Q<Label>("clock");
             _health = root.Q<Label>("health");
             _position = root.Q<Label>("position");
@@ -71,11 +71,8 @@ namespace Relight.UI
             _machines = root.Q<Label>("machines");
             _ticks = root.Q<Label>("ticks");
 
-            if (_walk != null) _walk.clicked -= WalkToTarget;
             if (_sort != null) _sort.clicked -= SortPockets;
-            _walk = root.Q<Button>("walk-here");
             _sort = root.Q<Button>("sort-pockets");
-            if (_walk != null) _walk.clicked += WalkToTarget;
             if (_sort != null) _sort.clicked += SortPockets;
 
             Paint(true);
@@ -107,13 +104,12 @@ namespace Relight.UI
             if (l != null) l.text = text;
         }
 
-        /// <summary>The proof that the UI can act, not only read: one click, one command, no state written here.</summary>
-        public void WalkToTarget()
-        {
-            if (host != null) host.Submit(new MoveCommand(walkTarget.x, walkTarget.y));
-        }
-
-        /// <summary>The B-06 pocket sort, the other end of the same path.</summary>
+        /// <summary>
+        /// The B-06 pocket sort: the proof that the UI can ACT, not only read — one click, one command, no state
+        /// written here. It replaces the old "Walk east" proof button, which the correction pass removed along
+        /// with click-to-move: the engineer is driven by WASD and by nothing else, so no controller anywhere may
+        /// submit a <c>MoveCommand</c>.
+        /// </summary>
         public void SortPockets()
         {
             if (host != null) host.Submit(new InventorySortCommand());

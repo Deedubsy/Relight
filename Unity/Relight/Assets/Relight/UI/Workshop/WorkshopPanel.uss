@@ -1,0 +1,295 @@
+/*
+ * Home workshop section — C-06.
+ *
+ * This is a SECTION of the Backpack drawer (UI_AND_ONBOARDING.md §5.1 item 1, reference inventoryPanel.ts's
+ * `crafting` block inside `root`), not a drawer of its own: the root element carries `workshop` but never
+ * `panel`, because UiShell.Rebuild() hides every element with the `panel` class and a section that hid itself
+ * would take the first card — the Base core — with it.
+ *
+ * Values come from Styles/tokens.uss only. Per the USS rules in the brief: no `border` / `gap` / `outline` /
+ * `box-shadow` shorthands, no structural selectors, and transitions declared on the base class so hover-out
+ * animates too.
+ */
+
+/* U-D-52: the section fills the drawer's right column under the producer's slots, so it is the grower here
+   and its cards are what scrolls inside it. */
+.workshop {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+    margin-bottom: var(--ui-space-2);
+    padding-left: var(--ui-space-3);
+    padding-right: var(--ui-space-3);
+    padding-top: var(--ui-space-2);
+    padding-bottom: var(--ui-space-2);
+    background-color: var(--ui-surface);
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+}
+
+.workshop-heading {
+    font-size: var(--ui-font-size-heading);
+    color: var(--ui-text);
+    -unity-font-style: bold;
+    margin-bottom: var(--ui-space-2);
+}
+
+/* The cards. U-D-51 put them BELOW the output tray — the cards are this producer's controls, and a producer's
+   controls go under its slots — and U-D-52 made them a ScrollView, the one scrolling thing in the column now
+   that the tray above is fixed. The row and the wrap move with them, onto the scroller's content container:
+   the ScrollView's own children are its viewport and its bars, and those must stay a column. */
+.workshop-cards {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+    margin-top: var(--ui-space-2);
+}
+
+.workshop-cards .unity-scroll-view__content-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+/* The output tray (U-D-44, regridded under GP-UX-2, reordered by U-D-51, fixed in place by U-D-52): the tray's slot grid FIRST, then the
+   capacity line with Collect and the hint under it. This tray is the workshop's inventory and the workshop is a
+   producer, so its slots sit where a machine's slots sit — at the top of the drawer's right column. The grid is
+   still capped and scrolls, so twenty slots cannot push the recipe cards off screen. */
+.workshop-output {
+    flex-direction: column;
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-top: var(--ui-space-1);
+    padding-left: var(--ui-space-2);
+    padding-right: var(--ui-space-2);
+    padding-top: var(--ui-space-1);
+    padding-bottom: var(--ui-space-1);
+    background-color: var(--ui-raised);
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+}
+
+.workshop-output-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--ui-space-1);
+}
+
+.workshop-output-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-top: 0;
+    margin-right: var(--ui-space-2);
+}
+
+/* GP-UX-4: the drawer is wide enough now that the twenty tray slots are one or two rows, and the cap is only
+   here so a full tray cannot push the recipe cards out of the column altogether. U-D-51 gave it a one-row floor,
+   the same floor `.inventory-scroll` has, so an empty tray still reads as a container rather than as nothing. */
+.workshop-output-scroll {
+    flex-grow: 0;
+    flex-shrink: 0;
+    min-height: 72px;
+    max-height: 300px;
+    margin-top: 0;
+}
+
+.workshop-output-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.workshop-output-hint {
+    opacity: 0.8;
+}
+
+/* The tray is holding a finished batch the workshop cannot put down: say so in the same red the cards use. */
+.workshop-output.tray-full .workshop-output-text {
+    color: var(--ui-danger);
+}
+
+/* ---- one card ---------------------------------------------------------------------------------------- */
+
+.recipe-card {
+    /* 232 + 8 margin = 240; three cards (core, bullets, rifle) are 720px, inside the ~744px the section offers in
+       the 820px Backpack drawer (body scrollbar and paddings taken). In a 720px drawer the third card wrapped. */
+    width: 232px;
+    margin-right: var(--ui-space-2);
+    margin-bottom: var(--ui-space-2);
+    padding-left: var(--ui-space-2);
+    padding-right: var(--ui-space-2);
+    padding-top: var(--ui-space-2);
+    padding-bottom: var(--ui-space-2);
+    background-color: var(--ui-raised);
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    transition-duration: 0.12s;
+}
+
+/* Hovering a card is what raises its C5 tooltip, so the frame acknowledges the pointer (R6). */
+.recipe-card:hover {
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+/* The Base core card is the section's first card and is marked so the opening reads at a glance. */
+.recipe-card.core-card {
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+/* A core at 0 HP: the title already says "· DISABLED"; the frame agrees with it. */
+.recipe-card.core-down {
+    border-left-color: var(--ui-danger);
+    border-right-color: var(--ui-danger);
+    border-top-color: var(--ui-danger);
+    border-bottom-color: var(--ui-danger);
+}
+
+.card-title {
+    font-size: var(--ui-font-size-body);
+    color: var(--ui-text);
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+.card-line {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    white-space: normal;
+    margin-top: var(--ui-space-1);
+}
+
+/* The refusal / shortfall line. Whatever the sim said, said in the sim's own words. */
+.card-line.shortfall {
+    color: var(--ui-danger);
+}
+
+.card-line.working {
+    color: var(--ui-working);
+}
+
+/* ---- ingredient chips -------------------------------------------------------------------------------- */
+
+.card-chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: var(--ui-space-1);
+}
+
+.card-chip {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    background-color: var(--ui-surface);
+    padding-left: var(--ui-space-1);
+    padding-right: var(--ui-space-1);
+    padding-top: 2px;
+    padding-bottom: 2px;
+    margin-right: var(--ui-space-1);
+    margin-top: var(--ui-space-1);
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+}
+
+/* Not enough carried for this ingredient: the chip says so before the player presses anything. */
+.card-chip.short {
+    color: var(--ui-danger);
+}
+
+/* ---- progress ---------------------------------------------------------------------------------------- */
+
+.card-progress {
+    height: 6px;
+    margin-top: var(--ui-space-2);
+    background-color: var(--ui-surface);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    overflow: hidden;
+}
+
+.card-progress-fill {
+    height: 6px;
+    width: 0;
+    background-color: var(--ui-working);
+}
+
+/* ---- buttons ----------------------------------------------------------------------------------------- */
+
+.card-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: var(--ui-space-2);
+}
+
+/* Size only (W-B R6): the card's buttons are a touch smaller than a panel's. Palette, hover, active, focus and
+   disabled all come from `.ui-button` + `ui-button-primary` / `ui-button-danger` in Styles/tokens.uss. */
+.card-button {
+    font-size: var(--ui-font-size-small);
+    min-height: 26px;
+    padding-left: var(--ui-space-2);
+    padding-right: var(--ui-space-2);
+    padding-top: var(--ui-space-1);
+    padding-bottom: var(--ui-space-1);
+    margin-right: var(--ui-space-1);
+    margin-left: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    transition-duration: 0.12s;
+}
+
+/*
+ * A card's Craft button is never HIDDEN when the workshop refuses: it is disabled, and the card's line says why
+ * in the sim's own words (the same rule the Load screen follows for a mismatched save). Cancel is the reverse —
+ * it exists only while something is running, so the controller adds `hidden` to it the rest of the time.
+ */
+.card-button:disabled {
+    opacity: 0.5;
+}
+
+.card-button.hidden {
+    display: none;
+}
+
+#card-output-icon { width: 36px; height: 36px; margin-bottom: 6px; }
+.card-chips { flex-wrap: wrap; }
+.card-chip { white-space: normal; }
+
+/* U-D-52: exactly two to a row. The gutter is padding, not margin, because Yoga measures flex-basis
+   border-box — two 50% hosts with margins would be more than the row and the second would wrap away. */
+.recipe-host { flex-grow: 0; flex-shrink: 0; flex-basis: 50%; min-width: 180px; min-height: 152px; padding-right: var(--ui-space-2); padding-bottom: var(--ui-space-2); margin-right: 0; margin-bottom: 0; }
+.recipe-card { width: auto; flex-grow: 1; margin-right: 0; margin-bottom: 0; }
+
+.compact-ui #card-output-icon { width: 24px; height: 24px; margin-bottom: 2px; }
+.compact-ui .card-title { font-size: 16px; }
+.compact-ui .card-line, .compact-ui .card-chip { font-size: 14px; }
+.compact-ui .recipe-card { padding: 6px; }

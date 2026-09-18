@@ -146,7 +146,7 @@ namespace Relight.Sim.Tests
         {
             var data = ReferenceData.Create();
             Assert.That(data.Weapons.Count, Is.EqualTo(4));
-            Assert.That(data.Enemies.Count, Is.EqualTo(2));
+            Assert.That(data.Enemies.Count, Is.EqualTo(3));   // GP-W5: CombatBalance appends the approved Breaker
             Assert.That(data.Ammunition.Count, Is.EqualTo(2));
             Assert.That(data.Turrets.Count, Is.EqualTo(2));
 
@@ -157,6 +157,11 @@ namespace Relight.Sim.Tests
             Assert.That(skitter.Hp, Is.EqualTo(20));
             Assert.That(data.TryEnemy("spitter", out var spitter), Is.True);
             Assert.That(spitter.Ranged, Is.True);
+            Assert.That(data.TryEnemy("breaker", out var breaker), Is.True);
+            Assert.That(breaker.Hp, Is.EqualTo(220));
+            Assert.That(breaker.Ranged, Is.False);
+            Assert.That(Enemies.BreaksStructures(breaker), Is.True);
+            Assert.That(Enemies.BreaksStructures(skitter), Is.False);
             Assert.That(data.TryTurret("turret", out var turret), Is.True);
             Assert.That(turret.RangeTiles, Is.EqualTo(9));
             Assert.That(turret.Ammo, Is.EqualTo(ItemId.Magazine));

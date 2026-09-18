@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backpack / producer drawer — C-06 (reference packages/game/src/inventoryPanel.ts `createInventoryPanel`).
+
+  Order is UI_AND_ONBOARDING.md §5.1. **U-D-51 (owner report, 2026-09-16: "I want the players inventory to be
+  on the left and the producer to be on the right. The Producers UI needs to be redone a little to have the slots
+  at the top.")** settles what goes in which column, and that is part of the contract, not a preference:
+
+    1. `.inventory-pair` is the drawer’s body. LEFT (`#side-pack`) is the player and nothing else: Backpack grid,
+       equipment strip, quickbar. RIGHT (`#side-store`) is the producer and nothing else, and it holds the WHOLE
+       producer UI — name and capacity, then its SLOTS, then its own controls underneath them.
+    2. Every producer fills that right column the same way, the Home workshop included: its tray slots sit at the
+       top where a machine’s slots sit, and its recipe cards sit underneath where a machine’s recipe, filter and
+       priority sit. There is no longer a shared strip beneath both columns and no workshop foldout.
+    3. `#drawer-footer`: `.item-detail` (quantity, Transfer, Split stack, Move to slot, Sort), then the notice
+       line (the reference’s role="status" paragraph), then the hint.
+
+  InventoryPanelController only LOOKS UP the names below; it creates one Button per slot (a 40-slot grid is data,
+  not layout) and never sets a style property. The class `panel` and the name `inventory-panel` are what UiShell
+  opens and closes; the workshop instance deliberately does NOT carry `panel`, because it is a section of this
+  drawer and not a drawer of its own. -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/Panels/StatusPanel.uss" />
+    <Style src="project://database/Assets/Relight/UI/Inventory/InventoryPanel.uss" />
+    <Style src="project://database/Assets/Relight/UI/Workshop/WorkshopPanel.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+
+    <ui:Template name="workshop-section"
+                 src="project://database/Assets/Relight/UI/Workshop/WorkshopPanel.uxml" />
+
+    <ui:VisualElement name="inventory-panel" class="panel">
+        <ui:VisualElement class="drawer-heading-row">
+            <ui:Label name="drawer-heading" text="Backpack" class="panel-title" />
+            <!-- U-D-51: the way back from a machine to the Home workshop, which is the right column’s other
+                 occupant. Hidden while no machine is paired, because then the workshop is already on screen. -->
+            <ui:Button name="jump-workshop" text="Home workshop" class="ui-button ui-button-secondary hidden" />
+            <ui:Button name="close-inventory" text="Close · Tab" class="strip-button" />
+        </ui:VisualElement>
+
+        <!-- U-D-51. Two columns, and every pixel the heading row and the footer do not want. Nothing else lives
+             between them: whatever a producer has to say, it says inside its own column. -->
+        <ui:VisualElement name="inventory-pair" class="inventory-pair">
+
+            <!-- LEFT: the player. -->
+            <ui:VisualElement name="side-pack" class="inventory-side pack">
+                <!-- Name and capacity share one line: two stacked lines cost 48px of grid height per side. -->
+                <ui:VisualElement name="pack-head" class="inventory-side-head">
+                    <ui:Label name="pack-heading" text="Backpack" class="inventory-heading" />
+                    <ui:Label name="pack-capacity" text="0 / 40 slots" class="inventory-capacity" />
+                    <!-- GP-UX-9: Sort belongs to the Backpack, not to a selected stack, so it lives on the
+                         Backpack's own header and needs no selection. The footer copy and the right-click menu
+                         entry are both still there and send the same command. -->
+                    <ui:Button name="pack-sort" text="Sort" class="strip-button" />
+                </ui:VisualElement>
+                <ui:ScrollView name="pack-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden" class="inventory-scroll">
+                    <ui:VisualElement name="pack-grid" class="inventory-grid" />
+                </ui:ScrollView>
+
+                <!-- §5.6: the equipment strip belongs under the Backpack grid and nowhere else. -->
+                <ui:VisualElement name="equipment-strip" class="equipment-strip">
+                    <ui:Label name="equipment-label" text="No weapon equipped" class="equipment-label" />
+                    <ui:VisualElement name="equipment-row" class="equipment-row">
+                        <ui:Button name="equipment-slot-0" text="Slot 1: Empty" class="equipment-slot" />
+                        <ui:Button name="equipment-slot-1" text="Slot 2: Empty" class="equipment-slot" />
+                        <ui:Button name="reload" text="Reload" class="strip-button" />
+                        <ui:Button name="swap" text="Swap" class="strip-button" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- §5.5: ten stable slots, keys 1-0. Built by the controller into this row. -->
+                <ui:VisualElement name="quickbar" class="quickbar" />
+            </ui:VisualElement>
+
+            <!-- RIGHT: the producer, whichever one is open. `#store-inventory` is a machine’s own container and is
+                 hidden for the Home workshop (whose container is its tray, inside the section below); `#store-body`
+                 carries everything that producer has to say UNDERNEATH its slots and is the only thing here that
+                 scrolls. Both cannot be empty at once: the controller hides the whole column instead. -->
+            <ui:VisualElement name="side-store" class="inventory-side store">
+
+                <ui:VisualElement name="store-inventory" class="store-inventory hidden">
+                    <ui:VisualElement name="store-head" class="inventory-side-head">
+                        <ui:Label name="store-heading" text="Storage" class="inventory-heading" />
+                        <ui:Label name="store-capacity" text="Home · supplies remain here until collected"
+                                  class="inventory-capacity" />
+                    </ui:VisualElement>
+                    <ui:ScrollView name="store-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden" class="inventory-scroll">
+                        <ui:VisualElement name="store-grid" class="inventory-grid" />
+                    </ui:ScrollView>
+                    <ui:Label name="store-hint" class="store-hint" />
+                </ui:VisualElement>
+
+                <!-- U-D-52: the producer’s SLOTS above are fixed — this is the part that scrolls, and the only
+                     part. It is a plain column rather than a scroller of its own, because each producer brings
+                     the scroller its own contents need: a machine scrolls its controls (`#machine-scroll`), and
+                     the Home workshop scrolls its recipe cards while its tray stays up with the other slots. -->
+                <ui:VisualElement name="store-body" class="store-body">
+
+                    <ui:ScrollView name="machine-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden"
+                                   class="machine-scroll hidden">
+                        <ui:VisualElement name="machine-controls" class="machine-controls hidden">
+                            <!-- U-D-51: in a column this wide the status line and the bar each take a row of their
+                                 own; the bar is the machine’s, so it spans the column rather than a fixed 280px. -->
+                            <ui:VisualElement name="machine-headline" class="machine-headline">
+                                <ui:Label name="machine-status" class="inventory-heading" />
+                                <ui:ProgressBar name="machine-progress" low-value="0" high-value="100" class="machine-progress" />
+                            </ui:VisualElement>
+                            <!-- GP-W5. A damaged or destroyed machine is repaired HERE, at the machine, not at the Home
+                                 workshop (that card is the core’s). The row is hidden while the machine is whole. -->
+                            <ui:VisualElement name="machine-repair" class="machine-repair hidden">
+                                <ui:Label name="machine-repair-text" class="machine-repair-text" />
+                                <ui:Button name="machine-repair-button" text="Repair" class="strip-button" />
+                            </ui:VisualElement>
+                            <!-- U-D-51: recipe, filter and priority are one per row now that they are in the
+                                 producer’s own column rather than spread across the whole drawer. -->
+                            <ui:VisualElement name="machine-fields" class="machine-fields">
+                                <ui:DropdownField name="machine-recipe" label="Recipe" class="machine-field" />
+                                <ui:DropdownField name="machine-filter" label="Item filter" class="machine-field" />
+                                <ui:DropdownField name="machine-priority" label="Output priority" class="machine-field" />
+                                <ui:Button name="apply-recipe" text="Set recipe" class="strip-button" />
+                            </ui:VisualElement>
+                            <ui:Label name="recipe-description" class="detail-description" />
+                        </ui:VisualElement>
+                    </ui:ScrollView>
+
+                    <!-- The Home workshop, treated as the producer it is (U-D-51): its twenty tray slots at the
+                         top of this column, its recipe cards — the Base core card first — underneath them. It
+                         holds NO equipment block (U-D-11). -->
+                    <ui:Instance template="workshop-section" name="workshop-host" />
+
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+
+        <!-- 3. Item detail. The drawer’s pinned footer, so the quantity field and the Transfer / Split / Move /
+             Sort buttons are on screen whatever the window height and whichever column the stack came from. -->
+        <ui:VisualElement name="drawer-footer" class="drawer-footer">
+            <ui:VisualElement name="item-detail" class="item-detail">
+                <ui:Label name="detail-title" text="Select a stack" class="detail-title" />
+                <ui:Label name="detail-description" text="Your carried items stay with the engineer."
+                          class="detail-description" />
+                <ui:VisualElement name="detail-row" class="detail-row">
+                    <!-- Empty means the whole stack (half, for Split). A quantity that cannot be read is refused with
+                         "Choose a whole positive quantity." — which is why this is a TextField, not an IntegerField. -->
+                    <ui:TextField name="quantity" label="Quantity" value="" class="quantity-field" />
+                    <ui:Button name="transfer" text="Load into Home storage" />
+                    <ui:Button name="split" text="Split stack" />
+                    <ui:Button name="move" text="Move to slot" />
+                    <ui:Button name="sort" text="Sort" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- 4. Notice, then hint. Every word here comes from the sim or from TransferText; none is invented. -->
+            <ui:Label name="notice" text="" class="action-result" />
+            <ui:Label name="hint" text="Drag to move · Shift-drag to split · Shift-click to transfer · Sort is on the Backpack header"
+                      class="hint" />
+        </ui:VisualElement>
+
+        <!-- The slot context menu. Hidden until a slot asks for it; EscapeOrder.CloseSlotMenu closes it. -->
+        <ui:VisualElement name="slot-menu" class="slot-menu">
+            <ui:Button name="menu-transfer" text="Take into Backpack" />
+            <ui:Button name="menu-split" text="Split stack" />
+            <ui:Button name="menu-move" text="Move to slot" />
+            <ui:Button name="menu-sort" text="Sort" />
+        </ui:VisualElement>
+
+        <!-- The drag ghost. picking-mode=Ignore so the element UNDER the pointer is the drop target. -->
+        <ui:VisualElement name="drag-preview" class="drag-preview" picking-mode="Ignore">
+            <ui:VisualElement name="drag-icon" class="drag-item-icon" picking-mode="Ignore">
+                <ui:Label name="drag-icon-code" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:Label name="drag-stack" text="" class="drag-stack" picking-mode="Ignore" />
+            <ui:Label name="drag-label" text="" class="drag-label" picking-mode="Ignore" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

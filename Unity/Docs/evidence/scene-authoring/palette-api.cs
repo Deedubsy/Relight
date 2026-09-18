@@ -1,0 +1,1 @@
+var t=typeof(UnityEditor.Tilemaps.GridPaletteUtility);var s=new System.Text.StringBuilder();foreach(var m in t.GetMethods())if(m.Name=="CreateNewPalette"){s.AppendLine(m.ToString());foreach(var p in m.GetParameters())s.AppendLine(p.Name+" "+p.ParameterType.FullName);}return s.ToString();

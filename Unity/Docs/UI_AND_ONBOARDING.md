@@ -2,6 +2,44 @@
 
 Worker C draft, 2026-09-11. Branch `main` @ `586d4525` plus the uncommitted GP-* working tree described in `Unity/Docs/SOURCE_INVENTORY.md`.
 
+## Inventory slot and drag correction — owner report, 2026-09-15
+
+Machine storage shows empty typed fuel/input/output/ammo slots with actual limits; chest storage shows empty cells and its shared capacity. The inventory pair precedes machine settings so slots are immediately visible at 720p. Drag previews show the carried icon/quantity, follow the pointer outside the drawer and clamp to the viewport after resizing. Compatible targets highlight; wrong inputs and output-only targets refuse visibly. Backpack move/swap/merge, machine transfers, Shift-click, scrolled-slot drops and packed-structure/weapon hotbar assignment use the existing simulation commands. Closing or replacing a panel cancels the drag. [Implementation, captures and actual gesture verification](INVENTORY_FIXES_2026-09-15.md).
+
+## Machine activity feedback — owner request, 2026-09-15
+
+Energized cables carry subtle travelling highlights. Working processors/extractors rotate a small mechanism with a mint lamp; low supply slows it. Full output uses an amber double-bar warning, absent input an amber clock, and no power a red broken-lightning symbol. Generators distinguish supplying load, fuelled standby and out of fuel. Conveyors remain independent of electricity by explicit owner choice: animated tread follows travel direction, stops with an amber jam cue when blocked, and resumes when clear. Pause freezes the new animations. [Implementation and actual verification](ACTIVITY_ANIMATIONS_2026-09-15.md).
+
+## Debug admin controls — owner request, 2026-09-15
+
+F8 or **Admin [F8]** opens the admin drawer: Supplies, Enemies, Player / Base and World. Resource/weapon grants, enemy/raid controls, recovery/refill tools and pause work against the real simulation, including while paused. Temporary invulnerability, enemy freeze and lighting overrides reset on load and remain visibly indicated while active. Persistent edits affect normal saves and mark unsaved progress even without a tick. Text/number entry owns keyboard input; Escape/F8 closes the drawer. [Full controls, limits and actual verification](ADMIN_MENU_2026-09-15.md).
+
+## Power and conveyor feedback — owner corrections, 2026-09-15
+
+Machine hover and inspection independently show electrical supply and operation. Extractors display a real one-item output buffer, available through the usual storage transfer controls; a belt pointing away from any adjacent edge pulls it, and the marked facing port can also push directly. Conveyor chevrons show forward travel only. Carried items use actual item sprites and interpolate between fixed ticks, with gaps preserved at tile joins. Persistent amber/grey cables show live/dead connections to power-consuming machines; pole placement previews include consumer candidates. Passive furniture does not require power. [Implementation and checked Unity captures](FLOW_POWER_FIXES_2026-09-15.md).
+
+## Illustrated presentation contract — owner reference, 2026-09-15
+
+The approved reference now governs the interface's material treatment: painted charcoal/olive steel, restrained aged brass, ivory enamel headings, recessed slots, amber selection and mint operation. `UI/Styles/industrial.uss` is the shared appearance layer, imported after component sheets; `Styles/tokens.uss` owns base palette variables. See [implementation, asset provenance and captures](UI_INDUSTRIAL_PASS_2026-09-15.md). Earlier visual prescriptions below are historical where they conflict.
+
+Background art contains no text or game quantities. Crop rectangles and 9-slice borders live in Unity importers; dynamic text, item icons, count overlays and meters stay separate. The permanent dock has ten shortcuts and adjacent Build/Inventory controls. Backpack expands only for paired storage; the two approved weapon slots remain beneath its dense grid. Workshop uses actual ingredient have/need → output equations and retains focused access on short screens. Vertical scrolling must reach all inventory slots, equipment and recipes; horizontal scrolling is suppressed in the inventory surfaces.
+
+The goal ticket stays visible beside drawers. Material ticks mean that exact resource requirement is met, never that construction or turret loading has completed. Its small meters use available/required quantities. World inspection is positioned beside the actual projected target and clamps clear of the dock. The power meter shows delivered demand fraction; labels and tooltips distinguish generation, demand and disconnected/unfuelled states. These presentation changes grant no inventory and change no recipes or balance. TASKS.md alone owns status; C-ACC remains pending.
+
+## Current Unity UI contract — owner brief, 2026-09-14
+
+The comprehensive UI/UX brief authorises implementation and supersedes conflicting earlier UI/control proposals. [UI/UX pass and evidence](UI_UX_PASS_2026-09-14.md) describes the current port; the reference catalogue below remains historical where it differs. **TASKS.md alone owns Unity migration status** (the reference PROGRESS tracker is paused).
+
+Tab opens Backpack, B opens Build, 1–9/0 select the persistent ten-slot HUD dock, E interacts with the pointed target, and R is contextual rotate/reload. WASD/arrows move; there is no click-to-move. Escape cancels the current UI/tool layer before pausing. UI presses and paused text entry must not reach world actions.
+
+The dock contains shortcut references, never extra inventory. New-game construction defaults grant no materials; saved layouts persist. Construction counts show packed stock plus currently affordable builds, weapon counts show loaded bullets. Drag owned weapons from Backpack or use Build → Add to action bar → a dock slot; existing assignments swap. Right-click clears a slot.
+
+The independent world hover names the visible resource/machine, outlines its actual tile/footprint, and reports the action/binding or blocking reason. Mining progress and gains come from the sim. The opening retains 20 steel/5 copper and guides to reachable unpowered salvage. Exactly one compact goal is shown, with visible real material requirements, expandable details and source-aware Show location.
+
+Backpack retains the equipment strip and storage/quantity controls. Workshop has a focused drawer view with icon cards, have/need, duration, progress and Cancel; its Backpack button returns to the inventory grid. Shared tooltips refresh live, clamp at edges and clear on drag/close. Compact HUD layout separates health from expanded goals. Title, Save and Settings fields use the shared readable palette; absent audio mixer controls explicitly report unavailable.
+
+C-ACC and native mouse/campaign acceptance remain owner checks. Exact evidence and limits are in the pass report.
+
 ## 1. Purpose, status legend and source authority
 
 ### 1.1 Purpose
@@ -101,6 +139,15 @@ Pause actions (`panel.ts:739-751`): `Save (Ctrl+S)`, `Load (Ctrl+O)`, `Download 
 **Modal vs overlay:** the drawer and HUD are *overlays* — the world keeps running and stays visible and interactive underneath. `controlsHelp()` says so verbatim:
 
 > "Panels stay live: enemies and machines keep moving. Escape closes the panel; press Escape again to Pause. Closing a panel returns world controls."
+
+**U-D-49a (2026-09-16) added a second way out.** The quote above is the reference's `controlsHelp()` and stays as
+written; in the port Escape is no longer the only exit. **Any key the player has bound to walking also closes the
+open panel, and the walk begins on that same press** — a drawer is a place the engineer is standing, not a mode.
+`UiShell` reads the player's OWN `World/Move` bindings through `InputRouter.Move` (`UI/MovementKeys.cs` resolves the
+bound controls while the map is disabled) rather than mirroring WASD onto the always-live Global map, because
+movement is rebindable through `UI/Settings/BindingMap` and a mirror would silently stop matching. It does **not**
+fire while the game is paused, while a drag is in flight, or while a text field has focus (W is a letter in the
+save-name, rename and quantity boxes), and it can be turned off with `UiShell.movementClosesPanels`.
 
 Only the pause modal is truly modal (focus trap, speed 0).
 
@@ -235,6 +282,23 @@ The player-facing promise behind all of this is the owner's: **a save that fails
 
 ### 3.1 Default bindings
 
+**Unity bindings as built (correction pass 2026-09-14, `Assets/Relight/Input/RelightControls.inputactions`; DECISIONS U-M-39).** The reference table below is the Phaser set; the port binds this subset, and `Global/TogglePanel` is **Tab → Backpack** (R-CP-1), not `I` with a Tab alias:
+
+| Unity action | Key | Effect |
+|---|---|---|
+| `World/Move` / `Sprint` / `Dodge` | WASD, arrows / Shift / Space | Walk, sprint, dodge — the only way to move (click-to-move removed, R-CP-3) |
+| `World/Click` | left mouse | The hand's action only: fire, mine, place; nothing with an empty hand; never reaches the world from over UI |
+| `World/Place` | right mouse | Empty the hand / pick a placed machine up |
+| `World/Equip` | E | Equip / use |
+| `Global/Reload` | R | Rotate the ghost, else rotate the machine under the cursor, else reload (R-CP-6) |
+| `Global/Slot` | 1–9, 0 | Action-bar slots 1–10 |
+| `Global/TogglePanel` | Tab | Backpack drawer |
+| `Global/ToggleBuild` | B | Build menu |
+| `Global/Pause` | P | Pause |
+| `Global/Cancel` | Escape | The ladder in §3.5 plus 600 close drawer → 700 empty the hand → 800 pause |
+
+Settings lists these ten (`BindingMap.Controls`) and the HUD's *Inventory [Tab]* / *Build [B]* buttons read the stored rebinding. Map, Projects, threat, engineer and debug panels do not exist in the port yet.
+
 ```ts
 export const DEFAULT_BINDINGS = {
   copy: ['c'], paste: ['v'], mirrorX: ['h'], mirrorY: ['v'],
@@ -278,7 +342,7 @@ Note the deliberate **disjoint-context collisions**: `C` is both Ctrl+C copy and
 |---|---|
 | Rebinding a `FIXED` action | "Escape and numbered quickbar slots stay fixed; edit slot contents in Build." |
 | Key outside the allowed set | (rejected) — allowed: `[a-zA-Z]`, `Arrow*`, `F1`–`F12`, `Shift`, `Space`, and `` - = [ ] ; ' , . / ` `` |
-| Escape or Tab | "This key is reserved for interface navigation." |
+| Escape or Tab | "This key is reserved for interface navigation." — **Unity:** Tab is the Backpack key (R-CP-1) and is rebindable like the rest; only Escape is reserved. |
 | Same-context duplicate | "Already used by X in this context." |
 
 The Settings panel (`packages/game/src/settingsPanel.ts`, 29 lines) exposes an action `<select>` (excluding `FIXED`), a read-only key-capture input, an Apply button and live `bindingProblem` text, plus **Restore default bindings**.
@@ -314,6 +378,16 @@ Preferences are explicitly **outside SimState and replay hashes** (`RI-02B_UI_SP
 - Cancels on `pointercancel`, `lostpointercapture`, window `blur` and `visibilitychange`.
 - A **250 ms click suppressor** runs after a drag so the release does not also click through.
 - `onUiDragEnd` hooks let panels re-render after a drop or a cancel.
+- **U-D-49c (2026-09-16): the ghost is anchored by its icon, never clamped.** The port's first pass placed the whole
+  ~300 px card at pointer + (16, 16) and clamped that rectangle into the drawer's bounds, so within a card's width of
+  the right-hand edge the card pinned and the icon slid up to a card's width off the cursor — and the storage
+  column and the workshop output tray sit on exactly that side, so the ordinary gesture was the one that came apart.
+  `StackDragManipulator.Place` (a pure static, pinned by `Tests/Play/Ui/DragGhostPlacementTests.cs`) now centres the
+  **icon** on the pointer in both axes and, when the card will not fit to the right, flips it to the pointer's left
+  with the `drag-flip` class (`InventoryPanel.uss`: `flex-direction: row-reverse`, with the icon's gap and the text
+  alignment moved to match). Y is deliberately not clamped: the card's far end may overhang at the top or bottom of
+  the screen, but the icon — the thing the player is carrying — stays under the pointer, and the pointer is
+  by definition on screen.
 
 ### 3.5 Escape order — **Implemented and retained**
 
@@ -404,7 +478,7 @@ No **Controller** section (§3.7), no **Graphics** section beyond what the port 
 
 Power readings come from `hud.ts:58-60` (GP-POWER-FIX): normally `Name: D / S kW`; with no source, `'Power: 0 / 0 kW · no Generator linked'`; when the circuit is unreachable, `'Power: disconnected'`.
 
-Hand-craft lock (`hud.ts:75`, GP-PLAYTEST-FIX 4): `handLocked(st)` renders `${HAND_LOCK_TEXT} · Escape cancels` — the player-facing string is **"Handcrafting — Cancel to move. · Escape cancels"**.
+Stationary-action lock (`hud.ts:75`, GP-PLAYTEST-FIX 4): the HUD renders `${lockText} · Escape cancels`. **Amended by U-D-44 (2026-09-15):** the only thing that pins the engineer is a running Home core repair, so the sim's lock text is `Home.LockText` and the player-facing string is **"Repairing — Cancel to move. · Escape cancels"**. The reference's `HAND_LOCK_TEXT` ("Handcrafting — Cancel to move.") is retired with the immobilising craft; a queued workshop job shows no prompt because it takes nothing away.
 
 ### 4.1 Region contract
 
@@ -413,6 +487,8 @@ Hand-craft lock (`hud.ts:75`, GP-PLAYTEST-FIX 4): `handLocked(st)` renders `${HA
 Layer order (`style.css:127`, matching `RI-02B_UI_SPEC.md:40`): world 0, HUD 10, drawer 20, attached inventory 21, tooltip 30, modal 40, urgent alert 50.
 
 ### 4.2 The 2026-09-11 HUD strip decision (GP-HUD-STRIP) — **Implemented but needs correction (owner retest open)**
+
+**Unity (correction pass 2026-09-14, R-CP-8):** the port's strip carries **no objective row** — the objective is stated once, on the goal card (`UI/Guide/GoalCard.*`, with *Why this next?* and material rows sourced from `OpeningQueries.Source`); the strip is three aligned blocks (clock/power, core, ammo/hand) on one token sheet, each with a tooltip, plus the *Inventory [Tab]* / *Build [B]* action bar and the placement toolbar at the bottom. Captures: `evidence/correction-pass/hud-1920.png`, `hud-1280.png`.
 
 Owner report, quoted in `docs/Implementation/GP_CHECKPOINT.md`:
 
@@ -445,6 +521,160 @@ So: the strip now **hugs its text** (`width:max-content`), is offset 332 px × s
 
 ### 5.1 Layout
 
+**Unity (correction pass 2026-09-14, U-M-39):** the Backpack is an 820 px right-side drawer in the shared drawer band (`--ui-drawer-top` 72 px / `--ui-drawer-bottom` 64 px, the same geometry as the Build menu, so the strip and the action bar stay uncovered); its body is a `ScrollView` holding the workshop section and the Backpack/Storage pair, grids capped at two rows (128 px) and scrolling, and the item detail, notice and hint sit in a pinned footer. The Storage side shows only with a machine open. The list below is the Phaser layout it follows.
+
+**U-D-50 (2026-09-16) moved the grids out of that body and let the drawer take the screen — and U-D-51, below, then withdrew its rule 1.** The paragraph above
+describes the correction-pass drawer and is kept for provenance; where it disagrees with what follows, this is the
+live contract. The owner reported: *"The inventory for every producer, can you improve the UI? I have to scroll down
+to see the inventory slots. The UI can take up more of the screen if needed"*. Three things changed.
+
+1. **`.inventory-pair` is a SIBLING of the scrolling body, not a child of it.** `#inventory-panel` is now a column of
+   four: the heading row, the pair, the body `ScrollView`, and the pinned footer. The pair is the growing child; the
+   body is `flex-grow: 0` with `max-height: 42%` and carries only the SECONDARY blocks — the machine controls and the
+   collapsed Home workshop foldout. Nothing above the grids can push them below the fold, whatever a machine's
+   controls are showing, because the grids are no longer in the same scroller as those controls.
+2. **A grid's window is whatever its side has left, with no ceiling.** `.inventory-scroll` was `height: 144px` in
+   `UI/Styles/industrial.uss` — exactly two rows of slots at any drawer height, which is where the wasted space came
+   from. It is now `flex-grow: 1; height: auto; max-height: none`, with a one-row floor (`min-height` 72 px, 62 px
+   under `compact-ui`). §5.3's rule is unaffected: every slot is still a real element at all times, so a drop on a
+   slot that HAS scrolled out of view still works.
+3. **The drawer takes the width the owner offered.** `#inventory-panel` is 900 px for the Backpack alone and, with a
+   producer open (`storage-open`), `96%` of the window capped at 1560 px (`compact-ui`: 860 px / 96% capped at
+   1240 px). Width is what decides the column count, and the column count is what decides how many rows the forty
+   Backpack slots need. The secondary blocks were re-laid out as wrapping rows so they cost height only when they
+   are used: a side's name and capacity share one line (`.inventory-side-head`), the machine's status and progress
+   bar share one (`#machine-headline`), and recipe / item filter / output priority sit side by side on a 260 px
+   basis each and stack again below that (`.machine-fields`).
+
+**What that comes to, by computation from the shipped values — not observed.** At
+1920×1080 with a producer open the drawer is 1560 px, each side about 759 px, and at the theme's 69 px slot pitch
+that is 10–11 columns: the forty Backpack slots are **4 rows** inside a window of roughly 370–530 px depending on
+what the machine controls are showing, and the producer's own slots (1 for an extractor, 2 for a generator, the
+recipe's inputs and output for a processor, 10 for a chest) are **one row**. Neither grid scrolls. Before the change
+the same drawer was 800 px wide — 5 columns, so 8 rows — behind a fixed 144 px window: **2 rows of 8**. At
+1280×720 (`compact-ui`) the drawer band is only 520 px tall, so the Backpack still scrolls, but by about one row
+instead of six: **3 of 4 rows** at 10 columns, against **2 of 8** at 5 columns before.
+
+**Limitation.** Unity Play Mode is not available on the machine this was built on: no screenshot and no
+live measurement was taken, and the figures above are arithmetic on the shipped USS values rather than
+observations. The layout is guarded by four Play-mode tests in `Tests/Play/Ui/InventoryLayoutTests.cs`
+— the pair is not inside the body scroller; a producer's slots are all inside their window; each grid
+takes the height its side offers and is not back at the 144 px cap; a chest shows all ten slots where the
+band has room — which compile offline but have not been RUN. (U-D-51 replaced the first of those four and
+added a fifth; see its own Limitation below.) The owner has not playtested or accepted it.
+
+**U-D-51 (2026-09-16) is the live contract: two columns, and a producer owns its own — as amended by U-D-52, below, which fixed the producer's slots at the top of that column.** The U-D-50 block above is
+kept for provenance — its rule 2 (a grid’s window has a floor and no ceiling) and its rule 3 (the drawer takes
+the width, and the secondary blocks wrap) both still stand — but its rule 1, the scrolling body under both
+columns, is withdrawn, and with it every sentence above about
+`#backpack-body`, its 42% cap and the "collapsed Home workshop foldout". The owner rejected what U-D-50 shipped:
+*"That's not what I wanted. I want the players inventory to be on the left and the producer to be on the right. The
+Producers UI needs to be redone a little to have the slots at the top. Do you know what I mean?"* The Backpack was
+already the left column and the producer the right (`InventoryPanel.uxml` orders `#side-pack` before `#side-store`;
+no `row-reverse` anywhere), so what was wrong was the third thing on the screen. Four rules.
+
+1. **`#inventory-panel` is a heading row, `.inventory-pair` and the pinned footer.** `#backpack-body` is deleted,
+   and with it `#workshop-foldout` and the `workshop-view` mode that let the Home workshop take the drawer over.
+   Nothing sits under both columns any more.
+2. **The left column (`#side-pack`) is the player and only the player**: the Backpack heading and capacity, the
+   Backpack grid, the equipment strip, the quickbar. It always shows its own name now, because it always sits
+   beside a right column.
+3. **The right column (`#side-store`) IS the open producer**, top to bottom: `#store-inventory` — its heading,
+   capacity, slot grid and hint — then `#store-body`, a `ScrollView` holding the machine status and progress bar,
+   the repair row, recipe / item filter / output priority, the recipe description, and the workshop section. A
+   producer just opened starts at the top of its column (`OpenStore` zeroes `#store-body`'s scroll offset). Where
+   the column has to be divided the slots win: with a machine open, `store-machine` caps `#store-body` at 46%
+   (52% under `compact-ui`). At Home the cap comes off — the depot's storage AND the workshop are open at once, so
+   the two halves divide the column instead of sharing one capped scroller. **(U-D-52 withdrew this last part:
+   `#store-body` is no longer a `ScrollView`, `store-machine` and both caps are gone, and the slots are pinned to
+   their own height instead of competing for the column. The rest of rule 3 stands.)**
+4. **The Home workshop is a producer like any other** (§6): its 20 tray slots first, the recipe cards under them,
+   reached from the drawer heading's **Home workshop** button, which hides while the workshop is what the column
+   holds. The section keeps its heading — `industrial.uss` had hidden it for the foldout — and drops its own frame,
+   because the column is now its frame.
+
+`storage-open` therefore means **"the right column has a producer in it"**, not "a store is paired": a machine with
+no storage at all (a belt: controls only) still gets the wide drawer, and so does the workshop. **Drawer widths, the
+69 px slot pitch and every `compact-ui` rule are unchanged from U-D-50**, so the computed geometry above still
+holds; what changes is the vertical division. At 1920×1080 the drawer band is about 880 px and the pair about
+720 px, so a machine's controls get about 331 px against the roughly 250 px they need — no scrolling — and the
+workshop case gets the column's whole 720 px for a section of about 530 px. **These figures are arithmetic on the
+shipped USS values, not observations.**
+
+**Limitation, unchanged.** Unity Play Mode is not available on the machine this was built on: no screenshot and no
+live measurement was taken. The layout is guarded by five Play-mode tests in `Tests/Play/Ui/InventoryLayoutTests.cs`
+— the producer column owns its controls and the pair is a direct child of the drawer; the workshop tray sits above
+its recipe cards; a producer's slots are all inside their window; each grid takes the height its side offers; a
+chest shows all ten slots where the band has room — which compile offline but have not been RUN. (U-D-52 added three
+more, and removed this list's fourth claim for the producer's grid; see its own Limitation below.) The owner has not
+playtested or accepted it.
+
+**U-D-52 (2026-09-16) fixed the producer's slots in place and gave the scrolling to what sits below them.** The
+owner accepted U-D-51's shape and corrected what it still did with the height: *“Can you make it so the inventory on
+the producer is fixed at the top and only the recipes are scrollable? Make the recipes fit 2 horizontally per row
+instead of 1.”* Two things were wrong. The producer's grid still had `flex-grow: 1`, so the column was divided by
+capping the controls rather than by the slots taking what they need; and `#store-body` was ONE scroller, so at Home
+the workshop's twenty-slot output tray scrolled together with its recipe cards — the tray is slots, and slots were
+supposed to have stopped scrolling. Three rules, and a fourth added the same day.
+
+1. **`#store-inventory` is pinned, not shared.** `flex-grow: 0`, with its grid (`#store-scroll`) between a one-row
+   72 px floor and a 300 px ceiling, so it takes exactly the height its heading, slots and hint need and a
+   forty-slot chest still cannot push what is under it off the bottom. `#store-body` takes everything left. The
+   46%/52% `store-machine` cap is retired with the competition it settled. In a window too short for the whole
+   column both halves shrink against their floors — the last resort, not the default.
+2. **Each producer brings its own scroller.** `#store-body` is a plain `VisualElement`; a machine's controls sit in
+   a new `#machine-scroll` `ScrollView` inside it, shown and hidden with the controls it wraps, and the workshop's
+   cards are a `ScrollView` themselves, so the tray above them stays fixed with the other slots. `OpenStore` zeroes
+   whichever of the two the producer brought.
+3. **Recipe cards run two to a row.** `.workshop-cards` is the `ScrollView`, so the row and the wrap belong to its
+   content container (`.unity-scroll-view__content-container`) and not to the element itself, whose own children
+   are the viewport and the scrollers. A `.recipe-host` is `flex-basis: 50%` with `flex-grow: 0`, its 8 px gutter
+   as PADDING rather than margin — Yoga measures `flex-basis` border-box, so two hosts with margins would be more
+   than the row and the second card would wrap away. `min-width: 180px` is the one-per-row fallback in a column too
+   narrow for two.
+4. **Every card is the same height.** A fourth report followed the other three: *“The recipe cards need to
+   have the same height each. At the moment they're all different”* — which two to a row is what made
+   visible, a short card now sitting BESIDE a tall one instead of above it. Two mechanisms, doing different
+   jobs. The card fills its host (`flex-grow: 1`, replacing an `industrial.uss` `height: auto` left over from a
+   live inspection made when a card was a full-width row of its own), which squares the two cards in a ROW off
+   against each other, because hosts in one wrapped row stretch to the tallest of them. And `.recipe-host`
+   carries a `min-height: 152px`, which squares one row off against the NEXT — flex cannot do that on its
+   own: `align-content` is `flex-start`, so wrapped rows are measured independently. `flex-grow` rather than
+   `height: 100%` because the host has no height of its own, it takes the row's, so a percentage would resolve
+   against a parent still being measured. The card's bottom margin goes with the change, leaving the host's
+   padding as the only gutter.
+
+The new geometry is written as **id** rules in `UI/Inventory/InventoryPanel.uss` (`#store-inventory`,
+`#store-scroll`, `#store-body`, `#machine-scroll`, `#workshop-host`) on purpose: `UI/Styles/industrial.uss` imports
+last and wins every equal-specificity tie, and an id beats a class whatever the import order does.
+
+**What that comes to, by computation from the shipped values — not observed.** At 1920×1080 with a producer open
+the right column is about 758 px wide, so the cards' scroller is about 730 px across its content: a host is about
+365 px and a card about 357 px against the 232 px these cards were designed at, two to a row with room to spare.
+Vertically the column is about 720 px, of which a one-row producer grid takes about 130 px and `#store-body` about
+590 px — so a machine's roughly 250 px of controls never scroll, and at Home the cards keep roughly 360 px
+underneath the tray. The one-per-row fallback needs a column under about 390 px — 2 × 180 px plus the
+scroller — which with a producer open means a drawer under about 800 px, so a window under about 840 px wide.
+At 1280×720 under `compact-ui` the drawer is 1229 px and the cards are still two to a row.
+
+The 152 px floor is arithmetic of the same kind: 16 px padding + 2 px border + ~21 px title + 58 px
+ingredient row + 9 px bar + ~18 px for a one-line note ≈ 124 px of card, plus ~15 px for a second
+wrapped note line, plus the host's 8 px bottom gutter ≈ 147 px, rounded up; `.compact-ui` trades 4 px of
+padding for a taller title, so it needs no figure of its own. It is the single number to raise if a recipe
+ever runs longer than that, and the test below fails with the height to raise it to rather than letting the
+cards go quietly ragged again.
+
+**Limitation.** Unity Play Mode is not available on the machine this was built on: no screenshot and no live
+measurement was taken, and every figure above is arithmetic on the shipped USS values. Three Play-mode tests were
+added to `Tests/Play/Ui/InventoryLayoutTests.cs` — `AProducersSlotsAreFixedAtTheTopOfItsColumn` (the grid is pinned
+to its slots' height, sits above `#store-body`, and does not scroll inside itself) and `TheRecipeCardsSitTwoToARow`
+(two hosts share a row and each is 40–60% of it, which fails for three per row as well as for one), and
+`TheRecipeCardsAreAllTheSameHeight` (every card fills its host, and every host is the same height as the
+first — a card that outgrows the floor fails here, naming the height to raise the floor to, rather than
+going quietly ragged again). `EachGridTakesTheHeightItsSideOffers` lost its producer-grid assertion, which
+now asserts the opposite of the contract. They compile offline and have **not** been RUN. The owner has not playtested or accepted it.
+
+
 `.backpack-panel` contains, top to bottom:
 
 1. The **Home workshop** crafting section (§6).
@@ -452,6 +682,16 @@ So: the strip now **hugs its text** (`width:max-content`), is offset 332 px × s
 3. `.item-detail` — quantity input, **Transfer**, **Split stack**, **Move to slot**, **Sort**.
 4. A notice element with `role="status"`.
 5. The hint: **"Drag to move · Shift-click to transfer · Select a stack for actions"**.
+
+**Unity amendment (U-D-57, GP-UX-9).** Two of these move. **Sort** gains a second, always-enabled copy on the
+Backpack column's own header (`pack-sort` in `#pack-head`), because the `.item-detail` copy sits inside a
+"Select a stack" block and is disabled until a stack is selected — and sorting is not an action on a selected
+stack. The `.item-detail` copy and the right-click `menu-sort` entry are both kept and send the same
+`InventorySortCommand`. **Splitting** gains a gesture: Shift while dragging splits into the slot under the
+pointer, for the quantity field's amount or half when it is empty. The **Split stack** BUTTON is unchanged and
+still uses the first empty slot, because a button has no destination to read. The Unity hint is therefore
+**"Drag to move · Shift-drag to split · Shift-click to transfer · Sort is on the Backpack header"**
+(`Sim/UI/TransferText.Hint`; the `#hint` literal in `InventoryPanel.uxml` is kept identical).
 
 The drawer heading becomes `${storeName()} & Backpack` when a store is open; the drawer widens to `min(860px × scale, 100vw − 24px)` (`style.css`, `.storage-window`) and gets a distinctive border while `body[data-panel=inventory]`.
 
@@ -467,6 +707,17 @@ This asymmetry is the single most important thing to preserve: dropping a Backpa
 ### 5.3 Transfer across all visible and scrolled slots — **Implemented and retained (was a defect)**
 
 The second-pass fix in `GP_CHECKPOINT.md` explicitly covers "drops onto **rightmost slot 24** and **scrolled slot 39**" — both previously failed. Unity must accept a drop on **every** slot including the last column and any slot only reachable by scrolling. See §9, defect U-1.
+
+**Unity amendment (U-D-57, GP-UX-9): a near miss belongs to the slot it nearly hit.** `panel.Pick` — the port of
+`document.elementFromPoint` — answers "what is exactly under this pixel", and `#pack-grid` is a WRAPPING grid
+inside a ScrollView: between its slots are 4 px gutters, behind them the grid's own background, and around them
+the scroll viewport and scroller. None of those is a slot, so a release a few pixels off a slot used to resolve
+to nothing, move nothing and **say** nothing — and because a Backpack with no recorded layout is displayed
+auto-compacted, that is indistinguishable from an unwanted sort to the front, which is exactly how it was
+reported. The rule now: resolve the picked element first; failing that, snap to the nearest slot **in the grid
+the pointer is inside**, clipped to that grid's `ScrollView.contentViewport`. The grid is the bound, so a
+release over the Backpack can never snap into storage and a slot scrolled out of sight is never a target; a
+release genuinely away from every grid moves nothing and says `TransferText.DropOffSlot`.
 
 ### 5.4 Transfer messages (exact strings)
 
@@ -519,14 +770,57 @@ The Backpack/storage drawer opens with a compact **Home workshop** section of re
 - output icon, name and quantity — e.g. **"Bullets ×10"**, **"Rifle ×1"**;
 - the duration;
 - one ingredient chip per input with icon, required and carried counts (`2 /20`), short chips highlighted;
-- a **Craft** button and a concise missing-resource note;
-- while a craft runs: a progress bar, remaining seconds and **Cancel**.
+- a **Craft** button, a **Queue 5 batches** button and a concise missing-resource note;
+- the line **"Uses Backpack materials · N s a batch · keeps working while you are away"**;
+- while a job processes: a progress bar, remaining seconds, the queued-batch count ("3 batches queued · processing
+  continues while you are away"), **"Cancel returns the unused ingredients."** and **Cancel**;
+- when the batch is finished but the tray is full: **"Output tray full · collect the finished goods to resume"**, in
+  the danger colour, with the job held at full progress and nothing consumed.
+
+Under the cards the section ends with the **output tray row** — **"Output tray: empty. Finished goods wait here until
+you collect them."**, or `Output tray: <contents> · N/6 stacks` — and a **Collect** button. Out of reach the row adds
+**"Walk to the Home workshop to collect."** The strings are `Relight.Sim.UI.WorkshopText`; the panel is
+`UI/Workshop/WorkshopPanel.uxml` + `WorkshopPanelController.cs`, and every control sends a command
+(`HandCraftCommand`, `CancelCraftCommand`, `CollectWorkshopCommand`) and shows the refusal verbatim.
+
+**U-D-49b (2026-09-16) made the tray an inventory.** The paragraph above describes the reference row and is kept for
+provenance; the port now shows, under that row, a **grid of `HandCraft.OutputStacks` (20) slots** holding the same
+stock chunked by exactly the rule `HandCraft.TrayUsed` uses, so the grid can never disagree with what the workshop
+calls full. The row keeps the count and the button, and the button is now **"Collect all"** (`WorkshopText.Collect`)
+because it is no longer the only way to take anything: a stack can be dragged into the Backpack or clicked to take
+that one stack, both through `CollectWorkshopCommand(item, count)`. The row line is `WorkshopText.OutputStacksLine`
+(`Output tray · N / 20 stacks`; `OutputHolding` is withdrawn) with `WorkshopText.OutputGridHint` beneath it.
+The grid itself belongs to `UI/Inventory/InventoryPanelController.cs` as `SlotKind.Tray` — the tray is
+`HandState.Output`, the engineer's own hand-craft state with **no machine id**, which is why it is a third grid
+beside the Backpack and the paired store rather than a store. **Nothing may be dropped INTO it:** it is an output,
+and a tray that accepted stock would be a second, invisible store the sim has no command to empty.
+
+**U-D-51 (2026-09-16) put the tray FIRST and made the section a producer's column.** "Under the cards the section
+ends with the output tray row" above is now the reverse: `WorkshopPanel.uxml` is the heading, then `.workshop-output`
+(the 20-slot grid, then the count line with **Collect all**, then the hint), then `.workshop-cards`. The workshop is
+a producer and a producer wears its slots at the top of the drawer's right column, the same as a machine — which is
+what opening the Home workshop now fills, instead of the collapsed foldout under both columns that U-D-50 left it
+in. The section keeps its heading (`industrial.uss` had hidden it for the foldout) and drops its own frame, because
+the column is its frame; the tray scroller keeps a one-row floor and a 300 px cap so twenty slots cannot push the
+three recipe cards out of the column. `workshop-output-text` stays INSIDE `.workshop-output` so the tray-full red
+(`.workshop-output.tray-full .workshop-output-text`) still selects it.
+
+**U-D-52 (2026-09-16) made the cards the only thing here that scrolls, two to a row.** The tray above them is fixed
+— it is this producer's slots, and U-D-52 fixed every producer's slots at the top of its column — so `.workshop-cards`
+is a `ScrollView` now and takes whatever height the section has left. The row and the wrap moved onto its content
+container, because a `ScrollView`'s own children are its viewport and its scrollers; a `.recipe-host` is
+`flex-basis: 50%` with `flex-grow: 0` and an 8 px padding gutter, which is exactly two to a row, falling back to
+one below `min-width: 180px`. Rule 4 then squared the cards off: `industrial.uss`'s `.recipe-card
+{ height: auto }` is gone, the card fills its host with `flex-grow: 1` so the two in a row match each
+other, and a `min-height` on `.recipe-host` matches one row to the next.
 
 Names and tooltips remain alongside icons throughout.
 
 The section's **first card is the Base core card** (`coreCard`, GP-HOME-REPAIR): "Base core · DISABLED", an HP `<progress>`, steel/copper chips against carried counts from the sim's `repairCost`, and one button queuing `repairDefence` — disabled with the `repairCheck` reason, or showing a countdown (`Recommission core · N s`, `Repair +N HP · N s`, "Repairing · N s left"), plus a note pointing at Home storage when the Backpack is short. **`E` on the Home always opens this drawer, damaged or not.**
 
-Handcrafting locks the engineer in place: the sim refuses walking, dashing, aiming/firing and hand mining while a craft runs, and the HUD prompt reads **"Handcrafting — Cancel to move. · Escape cancels"**. Cancel on the card, Escape, closing the drawer (`cancelHandcraft` runs on drawer leave, GP-PLAYTEST-FIX 4), leaving workshop reach, or going down all cancel the batch and return its reserved ingredients — completed output stays, and a second cancel returns nothing. Factory machines keep running independently; movement and firing resume on the same tick the lock clears.
+**U-D-44 (2026-09-15) replaced the immobilising craft.** The workshop processes its queue while the player is anywhere else, at the same slow speeds: walking, dashing, aiming/firing and hand mining are never refused for a workshop job, closing the drawer and leaving reach cancel nothing, and going down stops nothing. Queueing moves the ingredients out of the Backpack into the workshop's reservation, so they cannot be spent twice; finished goods land in the workshop's physical output tray and only a **Collect** in reach puts them in the Backpack. **Cancel** on a card drops that recipe's queued batches and returns every unprocessed ingredient — Backpack first, the remainder left in the tray — and a second cancel returns nothing. A full tray pauses the job at full progress without consuming ingredients or producing the same output twice. What survives from U-D-10: Escape still cancels, and the accounting is a sim rule.
+
+The one stationary action left at Home is a **core repair**: while it runs the sim refuses walking, dashing and the dodge, and the HUD prompt reads **"Repairing — Cancel to move. · Escape cancels"**. Factory machines keep running independently; movement and firing resume on the same tick the lock clears.
 
 **Build panel** (`buildPanel.ts`, `buildCatalogue.ts`): four category tabs — **Production | Logistics | Power | Defence** — over a draggable catalogue grid, plus an item-detail block showing purpose (from `FACTORY_TEXT.purpose`), `Cost:`, and stock/lock status; "Add to action bar" with ten destination buttons; a `.placement-toolbar` carrying the selection name, `Rotate (R)` / `Reload (R)` and `Cancel (Esc)`; and a **"Blueprints and construction tools"** `<details>` holding "Use equipped weapon", history, clipboard and library. Undiscovered equipment is **omitted**, not greyed; known-locked equipment explains its recruit/requirement.
 
@@ -556,7 +850,7 @@ The gameplay rule is `GAME_DESIGN.md` §4.0 — this is the presentation side of
 | 2 | Short directional warning | **Small enemy group approaching** naming a compass direction, plus the threat marker on the real origin tile and `Arrives in N s` | **IR** | §7.4 |
 | 3 | Small introductory attack from one approach | **Defend your turret**, ~5 basics, withdrawal after 5 minutes stated in the detail | **IR** | §7.4 |
 | 4 | Actual ammunition-consumption feedback | **Attack repelled** — "Your turret used N bullets" with the real count, for 60 s | **IR** (detail wording **INC**, §7.5) | §7.4 |
-| 5 | Automatic replenishment through **real delivery** | The five resupply texts, then **Automatic resupply working** for 45 s — reached only by belt/inserter delivery | **IR** (wording **INC**, §7.5) | §7.5 |
+| 5 | Automatic replenishment through **real delivery** | The five resupply texts — six in the port, see §7.5 — then **Automatic resupply working** for 45 s, reached by belt/inserter delivery or, since U-D-53, by a working supply chain that a full turret has no room to accept from | **IR** (wording **INC**, §7.5) | §7.5 |
 | 6 | Three turrets covering different approaches | `Expand your defences (N/3)` pointing at an uncovered approach, with "not guaranteed protection" in the detail | **IR** | §7.6 |
 | 7 | A useful nearby excursion while production continues | `Prepare to scout` → the nearest freight camp, with the base still producing | **IR** | §7.7 |
 
@@ -628,6 +922,8 @@ Every `buildStep` detail ends with the same reminder:
 
 and, when materials are short, begins "Still need N <item> (M available at Home). Hold left-click on salvage to gather, or collect stored supplies." — otherwise "Materials ready in Backpack. Open Build to place it."
 
+**Where the Unity port has deliberately diverged from the strings above.** The table quotes `goal.ts` as the migration source; the port is the authority on what ships. **U-D-53** cleared the data default on the Foundry and both Assemblers, so row 11 is now two rows — build, then “Set up the Assembler / Select the Bullets recipe”. **U-D-54** then changed five of these rows and added one, all from a 30 sim-minute playthrough: row 5 computes its fuel arithmetic from `PowerTuning` (one Coal ≈ 13 s at the full 300 kW, the slot holds 50) and names the way off the treadmill instead of sending the player back for another hand load; rows 9 and 10 say the finished Rifle waits in the Home workshop’s **output tray** and is never delivered to the Backpack (U-D-44), so row 10’s text is “Collect the Rifle from the Home workshop tray, then Equip it in slot 1”; row 13 quotes the machine’s own status in quotation marks rather than splicing it into the sentence, which had read “hold fire without power. no power. Poles connect…”; row 0b carries the core repair’s Steel and Copper as **material rows** rather than prose; and a new row sits between rows 4 and 6 for the shared-chest deadlock — raised only once the chest is half full of raw ore or the Foundry already reports `OutputFull`, because both belts ending at one 200-item chest stalls the Foundry for the rest of the run while `ReachesKind` still calls the line connected. Resource rows also name the tile a resource sits on (“Steel plates on salvage rubble”, “Coal on the patch”) instead of calling every source salvage.
+
 ### 7.4 The opening encounter
 
 `packages/sim/src/openingEncounter.ts` (98 lines) is the state machine:
@@ -652,13 +948,15 @@ Player-facing strings (`goal.ts:130-132`):
 
 `{direction}` comes from `COMPASS`. The `scheduled` detail adds "Arrives in N s · about 5 basic enemies from the {direction} marker. Your turret fires automatically within TURRET_RANGE tiles… use your Rifle on anything that gets past it." The `active` detail adds "…the group withdraws once beaten or after **5 minutes**" (`maxDuration/60`).
 
+**Port divergence (U-D-54): `repelled` consults the core, not only the turret.** The reference line is `core && core.hp === 0 ? 'lost' : 'repelled'`; the wave-3 brief restated it as “repelled if the turret lives else lost” and the port implemented the brief, so a run whose attackers walked past an out-of-range turret and flattened the core still showed **Attack repelled** over a core at 0 HP. `OpeningPhase.Active` now requires the turret alive **and** `HomeQueries.CoreOperational`; **U-D-54 supersedes the wave-3 rule**, and the reference line is what it restores. The `lost` strings are unchanged and stay turret-shaped, because row 0b outranks the whole chain while the core is down and §7.8’s `Rebuild your turret` still keys off the turret. The `scheduled` and `active` details also gain one sentence when the approach C-09 chose still passes outside the turret’s range (“Their path passes about N tiles from your turret, which only reaches M — it will not fire on them.”): `DirectorQueries.OpeningOrigin` already steers the group down the approach passing NEAREST the turret, so this never fires on a turret the director could have covered — but the nearest of a poor set can still be far out of reach, and until now the only way to find out was to watch it happen.
+
 ### 7.5 Automated resupply
 
 `Automate your turret’s ammunition supply` has **five** distinct texts (`goal.ts:138-144`). They are quoted here **as they are in the tree**; rows 1 and 5 (and the detail strings at `goal.ts:132`, `:140`, `:143`, plus `flow.ts:2142` "No Shot magazines in Backpack. Open Home workshop to craft them.") are **Implemented but needs correction** — the player-facing item is **Bullets** (`itemNames.ts:6`) under `ammoVersion 1`, and `magazine` / `Shot magazine` survive only as the **internal item id** and **internal recipe name** (`flow.ts:155`, `:175`). The port must use the intended wording:
 
 | # | Current string (do not copy) | Intended Unity wording |
 |---|---|---|
-| 1 | `Build 1 Assembler and set it to Shot magazines` | `Build 1 Assembler and set it to Bullets` |
+| 1 | `Build 1 Assembler and set it to Shot magazines` | **Two rows in the port (U-D-53).** `Build 1 Assembler and set it to Bullets` while none is placed; then, for a machine that can run `bullet-batch` but has no recipe on it, `Set up the Assembler` / `Select the Bullets recipe`, pointing at that machine. The Assembler ships with no `DefaultRecipe`, so “built but unset” is a state the player can sit in and the second half of the reference’s sentence has to be a step they can act on. The title uses the machine’s own display name, so an Assembler Mk2 names itself. |
 | 2 | *(the Assembler's own status reason — not running)* | unchanged; its detail "Inspect your magazine Assembler…" becomes "Inspect your bullet Assembler…" |
 | 3 | `Extend the route from the Assembler output to a turret` / `Connect the Assembler output to your turret` | unchanged |
 | 4 | `Route connected; waiting for the Assembler to produce` | unchanged; its detail "Follow the first magazine along the belt" becomes "Follow the first bullets along the belt" |
@@ -671,6 +969,8 @@ then, for 45 s (`supplyAck`):
 > **Automatic resupply working** — "Automatic resupply working. Your production line is replenishing the turret."
 
 `noteTurretSupply` records `suppliedAt` **only for belt/inserter delivery** — the comment in `openingEncounter.ts` is explicit: "hand loading never records a supply chain". `supplyChainReaches` walks belts, undergrounds, splitters and inserters through up to **4** relay stores (`RELAYS = ['chest','tramstop','depot']`).
+
+**Port divergence (U-D-53):** the Unity `OpeningPhase.NoteSupply` keeps that rule — a hand load never records a supply chain — and adds one escape hatch, because the reference’s rule deadlocks a player who keeps the turret topped up by hand. Both write sites of `Stats.TurretFed` require room in the hopper (`TurretHopper.Give` returns 0 when nothing was taken), so a full turret can never record a delivery and the chain stops at this row for good. When nothing moved, the port also walks the live turrets and latches on one with **no room** whose `OpeningRules.TurretSupplier` still resolves. That still requires a real bullet producer connected to that turret, and the walk is skipped entirely until `ProducedAt >= 0`, which only a machine that finished a batch sets — so hand loading still cannot fake the step.
 
 ### 7.6 Three-turret guidance
 
@@ -752,6 +1052,8 @@ Source: `docs/Implementation/GP_CHECKPOINT.md` (2026-09-11) unless noted. "Fixed
 | U-11 | **Heart wiring: a ~29-tile break near the tram corridor that a 12-tile Big pole cannot bridge.** | `PLAYER_EXPERIENCE_CORRECTIONS.md`, "Practical findings" | **No** — the blocker is now *explicit*, the route problem is unsolved | **Unresolved design question**, not a UI bug. Flagged here because the *symptom* is player-facing. Belongs to Worker A / the owner. |
 | U-12 | **Furnace / Crown payoff unproven.** | Same | **No** | **Unresolved.** Worker A. |
 
+**Historical — reference build only (annotated 2026-09-14).** The paragraph below records the state of the paused Phaser reference; the browser retests it names are not to be performed, and §9.1 below says what each became in Unity. The three rows are covered by the C-12 Unity checks, run 2026-09-14 ([TASKS.md](TASKS.md) §8) and by [`evidence/phase-c/wave3-WC-superseded.md`](evidence/phase-c/wave3-WC-superseded.md), which records them as superseded, never as passed.
+
 **Open owner retests on port 5178** (mutable preview): GP-HOME-REPAIR (base core repair + action bar, U-2/U-6) and GP-HUD-STRIP (top status strip, U-5). `CLAUDE.md`: "Reload 5178 for owner retest."
 
 ### 9.1 The three browser retests become Unity checks — Owner decisions 2026-09-11 (Q20)
@@ -764,7 +1066,9 @@ Source: `docs/Implementation/GP_CHECKPOINT.md` (2026-09-11) unless noted. "Fixed
 | **U-6** (GP-HOME-REPAIR, core repair) | Fixed in the working tree; **owner browser retest not performed** | **Core repair is reachable in one interaction from the damaged core.** Interact with a damaged Home core and assert the repair control is present and actionable in the surface that opens — no intervening screen, and the same for an undamaged core (the drawer still opens). |
 | **U-5** (GP-HUD-STRIP) | Fixed in `style.css` only; **owner browser retest not performed** | **The HUD status strip is content-width.** At each layout in the target matrix (§2.5), assert the strip's measured width equals its content width and that it does not span the gap between the goal card and the minimap, and does not overlap either. Port the *intent*, not the pixel offsets of §4.2. |
 
-The Unity checks are C-12's (TASKS.md); C-ACC is not held for the browser verdicts, and a later negative owner verdict becomes a new corrective row rather than a retrospective failure. Until a Unity check has actually run, its row says so — these three are **not yet verified anywhere**.
+The Unity checks are C-12's (TASKS.md); C-ACC is not held for the browser verdicts, and a later negative owner verdict becomes a new corrective row rather than a retrospective failure. Until a Unity check has actually run, its row says so.
+
+**Run 2026-09-14 (C-12).** U-2 and U-6 are covered in EditMode by `Tests/Sim/Regression/OpeningDefectsTests.cs` (U-2 ×3, U-6 ×3). U-5 has no sim half at all — the strip's width is a fact about the rendered panel — so it is evidenced only by `Tests/Play/OpeningUiPlayTests.cs` in the Play Mode run of 44 run / 40 passed / 0 failed / 4 skipped (07:00 UTC 2026-09-14). The browser evidence status in the table above is unchanged and still reads "not performed": the Unity checks supersede those retests, they do not retrospectively pass them.
 
 ---
 
@@ -908,7 +1212,7 @@ This reverses DECISIONS.md **U-M-24** ("Audio defaults to silence with a hook po
 | Cue | Source system (verified) | Visible counterpart |
 |---|---|---|
 | Hand-mining strike loop and per-unit collection tick | `{type:'mineAt'}` → `setHandMine(st,[c.x,c.y])` (`flow.ts:2324`); progress is the hand state's `prog` (`flow.ts:1008`) | `hud-mining` title, `<progress>` and detail (§8) |
-| Hand-craft start, the progress bed, completion, and cancel | `{type:'craft'; item; count?}` (`packages/sim/src/types.ts:203`); the stationary lock is `flow.ts:1465` and the both-hands rule `flow.ts:1008` | The recipe card's progress bar and remaining seconds, and the prompt "Handcrafting — Cancel to move. · Escape cancels" (§6) |
+| Workshop job queued, the progress bed, completion into the tray, collection and cancel | `HandCraftCommand` / `CollectWorkshopCommand` / `CancelCraftCommand` (reference `{type:'craft'; item; count?}`, `packages/sim/src/types.ts:203`); **the reference's stationary lock at `flow.ts:1465` is retired by U-D-44** | The recipe card's progress bar, remaining seconds and queued-batch line, and the output tray row with **Collect** (§6). No lock prompt — a workshop job pins nobody |
 | Craft refused | The card's missing-resource note; `flow.ts:2142` for the ammunition case | The note itself |
 | Placement confirmed | `{type:'place'; item; x; y; dir?}` (`types.ts:204`) and `{type:'construct'; edits}` (`:186`) | The ghost resolving into a built machine |
 | Rotate / pipette / cancel placement | The `rotate`, `pipette` and `cancel` bindings (`packages/game/src/controls.ts`, §3.1) | The `.placement-toolbar` controls `Rotate (R)` and `Cancel (Esc)` (§6) |

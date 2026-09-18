@@ -107,6 +107,7 @@ namespace Relight.Sim
             v.Object("stats", ref Stats, () => new Stats());
             v.Object("ledger", ref Ledger, () => new LedgerOpening());
             v.Object("hand", ref Hand, () => new HandState());
+            v.Object("drops", ref Drops, () => new DropState());   // GP-W5: cargo waiting on the ground
         }
     }
 }

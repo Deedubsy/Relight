@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Build menu (correction pass W-B R3) — the port of packages/game/src/buildPanel.ts.
+
+  A drawer like the Backpack: the root carries the "panel" class, so UiShell finds it by name ("build-panel",
+  contract C1) and B toggles it (contract C2). The HUD's action bar and the placement toolbar are NOT in here —
+  they live in Hud.uxml, so they stay on screen when this panel closes, which is what happens the instant a card
+  is clicked (the ruling in the brief: the panel closes so the ghost is visible).
+
+  BuildPanelController only looks these names up and copies strings in. Cards are instances of BuildCard.uxml.
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/Build/BuildPanel.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+    <ui:VisualElement name="build-panel" class="panel">
+        <ui:Label name="build-title" text="Build" class="panel-title" />
+
+        <ui:VisualElement name="build-tabs" class="build-tabs">
+            <ui:Button name="tab-production" text="Production" class="ui-button ui-tab" />
+            <ui:Button name="tab-logistics" text="Logistics" class="ui-button ui-tab" />
+            <ui:Button name="tab-power" text="Power" class="ui-button ui-tab" />
+            <ui:Button name="tab-defence" text="Defence" class="ui-button ui-tab" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="build-body" class="build-body">
+            <ui:ScrollView name="build-scroll" class="build-scroll">
+                <ui:VisualElement name="build-grid" class="build-grid" />
+            </ui:ScrollView>
+
+            <ui:VisualElement name="build-detail" class="build-detail">
+                <ui:Label name="detail-name" text="" class="panel-heading" />
+                <ui:VisualElement name="detail-icon-row" class="detail-icon-row" />
+                <ui:Label name="detail-facts" text="" class="panel-sub" />
+                <ui:Label name="detail-power" text="" class="panel-sub" />
+                <ui:Label name="detail-cost" text="" class="build-detail-line" />
+                <ui:Label name="detail-status" text="" class="build-detail-line" />
+                <ui:Label name="detail-unlock" text="" class="panel-sub is-hidden" />
+                <ui:Button name="add-to-bar" text="Add to action bar" class="ui-button ui-button-secondary" />
+                <ui:VisualElement name="bar-destinations" class="bar-destinations is-hidden" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:Label name="build-hint" text="Click a card to take it in hand · R rotates · Escape cancels" class="panel-sub" />
+        <ui:Label name="build-notice" text="" class="build-notice" />
+    </ui:VisualElement>
+</ui:UXML>

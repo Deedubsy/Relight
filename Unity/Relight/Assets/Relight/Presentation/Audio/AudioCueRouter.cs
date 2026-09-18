@@ -1,0 +1,286 @@
+using System;
+using System.Collections.Generic;
+using Relight.Sim;
+using Relight.World;
+using UnityEngine;
+using UnityEngine.Audio;
+
+namespace Relight.Presentation
+{
+    /// <summary>
+    /// C-11. Turns this frame's sim events into cue keys and voices them, and is the <see cref="IAudioCueSink"/>
+    /// the UI's own keys reach too. It ships with an empty clip table, so the whole thing is silent until D-11
+    /// supplies assets — that is deliberate (§12.9: sourcing, formats and licensing are WORLD_AND_ASSETS §9.2).
+    ///
+    /// Structure, per §12:
+    /// <list type="bullet">
+    /// <item>The key table below is the port of §12.2-12.8. Each row names the sim record it comes from, so a new
+    /// event is a new row here and needs no other wiring.</item>
+    /// <item>Mixer groups are exactly the four <c>SettingsController</c> drives — <c>MasterVol</c>, <c>UiVol</c>,
+    /// <c>WorldVol</c>, <c>AlertsVol</c> (wave-2 W-C). This class chooses a <b>group</b> per cue from the key's
+    /// prefix and never writes an exposed parameter: volume is the player's, through Settings.</item>
+    /// <item>Voice limiting (§12.1 rule 4, "budgeted like alerts"): a key may sound at most once per
+    /// <see cref="CoalesceSeconds"/>, which collapses a turret's stream of shots the way the alert strip collapses
+    /// repeats. <see cref="AudioSource"/>s are pooled and capped.</item>
+    /// <item>§12.1 rule 1: no cue is raised here that the sim has not already resolved, and nothing is written back.
+    /// The whole class reads <see cref="SimHost.LastFrameEvents"/> and nothing else.</item>
+    /// </list>
+    ///
+    /// <b>Deliberate omissions.</b> §12.4's per-machine running loops and §12.8's ambience beds are continuous, not
+    /// event-driven, so they are not routed here; they need clips and a loop manager and belong with D-11. §12.5's
+    /// UI and placement cues are raised by the UI with <see cref="AudioCue.Ui"/> keys, because they are input
+    /// facts and never appear in <c>SimState.Events</c>. Both are recorded in the wave-3 W-B report.
+    /// </summary>
+    [DisallowMultipleComponent]
+    [AddComponentMenu("Relight/Audio Cue Router")]
+    public sealed class AudioCueRouter : MonoBehaviour, IAudioCueSink
+    {
+        /// <summary>The same key may sound at most this often (§12.1 rule 4).</summary>
+        public const float CoalesceSeconds = 0.06f;
+
+        /// <summary>One clip against one key. The table ships empty; adding a row is all an asset needs.</summary>
+        [Serializable]
+        public sealed class Cue
+        {
+            [Tooltip("The cue key, e.g. turret.shot. See AudioCueRouter's table and AudioCue.Ui.")]
+            public string key = "";
+
+            [Tooltip("Clips for this key. One is picked at random so a repeated cue does not machine-gun.")]
+            public AudioClip[] clips = Array.Empty<AudioClip>();
+
+            [Tooltip("Linear gain for this cue, before the mixer.")]
+            [Range(0f, 1f)] public float volume = 1f;
+
+            [Tooltip("Random pitch spread, +/- this fraction.")]
+            [Range(0f, 0.5f)] public float pitchJitter = 0.05f;
+        }
+
+        [Tooltip("The host whose events are routed. Found in the scene if left empty.")]
+        [SerializeField] private SimHost host;
+
+        [Tooltip("Group for cues the player causes in the interface (ui.*). Exposed parameter UiVol.")]
+        [SerializeField] private AudioMixerGroup uiGroup;
+
+        [Tooltip("Group for cues that happen in the world (weapon, machine, enemy). Exposed parameter WorldVol.")]
+        [SerializeField] private AudioMixerGroup worldGroup;
+
+        [Tooltip("Group for warnings and alerts (raid, core, engineer). Exposed parameter AlertsVol.")]
+        [SerializeField] private AudioMixerGroup alertsGroup;
+
+        [Tooltip("Fallback group. Exposed parameter MasterVol.")]
+        [SerializeField] private AudioMixerGroup masterGroup;
+
+        [Tooltip("Cue table. EMPTY BY DESIGN: an unmapped key plays nothing and logs nothing (brief C-11).")]
+        [SerializeField] private List<Cue> cues = new List<Cue>();
+
+        [Tooltip("Most sources that may sound at once. Beyond this the quietest-ranked cue is simply dropped.")]
+        [SerializeField, Min(1)] private int voices = 16;
+
+        [Tooltip("Tiles beyond which a positional cue is inaudible.")]
+        [SerializeField, Min(1f)] private float hearingTiles = 40f;
+
+        private readonly Dictionary<string, Cue> _byKey = new Dictionary<string, Cue>(StringComparer.Ordinal);
+        private readonly Dictionary<string, float> _lastAt = new Dictionary<string, float>(StringComparer.Ordinal);
+        private readonly List<AudioSource> _pool = new List<AudioSource>();
+
+        /// <summary>Cues asked for since enable. A wiring check the coordinator can read with no clips present.</summary>
+        public int Routed { get; private set; }
+
+        /// <summary>Cues that actually reached an <see cref="AudioSource"/>. Zero until clips exist.</summary>
+        public int Played { get; private set; }
+
+        private void Awake()
+        {
+            if (host == null) host = FindAnyObjectByType<SimHost>();
+            for (var i = 0; i < cues.Count; i++)
+            {
+                var c = cues[i];
+                if (c != null && !string.IsNullOrEmpty(c.key)) _byKey[c.key] = c;
+            }
+        }
+
+        private void OnEnable() => AudioCue.Sink = this;
+
+        private void OnDisable()
+        {
+            if (ReferenceEquals(AudioCue.Sink, this)) AudioCue.Sink = null;
+        }
+
+        private void LateUpdate()
+        {
+            // A paused host produced no ticks and therefore no events, so §12.1 rule 3 ("at speed 0 ... one-shots
+            // do not queue up to replay on resume") holds without a special case.
+            var events = host == null ? null : host.LastFrameEvents;
+            if (events == null) return;
+            for (var i = 0; i < events.Count; i++) Route(events[i]);
+        }
+
+        /// <summary>
+        /// The key table: §12.2-12.6, one arm per sim record. Anything not named here is silent on purpose —
+        /// §12.1 rule 5 makes the names provisional, but the coverage is the owner's decision.
+        /// </summary>
+        private void Route(SimEvent e)
+        {
+            switch (e)
+            {
+                // 12.2 Player and turret weapons.
+                case WeaponFiredEvent w:
+                    Cast("weapon.shot." + w.Kind, null);
+                    break;
+                case ReloadedEvent _:
+                    Cast("weapon.reload", null);
+                    break;
+                case TurretShotEvent t:
+                    Cast("turret.shot", new Vector2((float)t.TargetX, (float)t.TargetY));
+                    // 12.3: the hit/miss distinction is the shot's own `Hit`, exactly as the tracer colour is.
+                    Cast(t.Hit ? "impact.hit" : "impact.miss", new Vector2((float)t.TargetX, (float)t.TargetY));
+                    break;
+
+                // 12.3 Impacts and enemy cues.
+                case ProjectileExpiredEvent p:
+                    Cast(p.Stopped ? "impact.hit" : "impact.miss", new Vector2((float)p.X, (float)p.Y));
+                    break;
+                case EnemySpitEvent s:
+                    Cast("enemy.spit", new Vector2((float)s.X, (float)s.Y));
+                    break;
+                case EnemyKilledEvent k:
+                    Cast("enemy.death." + k.Kind, new Vector2((float)k.X, (float)k.Y));
+                    break;
+                case StructureDamagedEvent _:
+                    Cast("structure.hit", null);
+                    break;
+                case StructureDestroyedEvent sd:
+                    Cast("structure.destroyed." + sd.Kind, null);
+                    break;
+                case EngineerDownEvent ed:
+                    Cast("engineer.down", new Vector2((float)ed.X, (float)ed.Y));
+                    break;
+                case EngineerUpEvent _:
+                    Cast("engineer.up", null);
+                    break;
+
+                // 12.4 Machine operation. The running loops are continuous and are not routed here (see the class
+                // remarks); what an event can say is the moment a machine stopped or started.
+                case PowerOutageEvent _:
+                    Cast("machine.stop", null);
+                    break;
+                case PowerRestoredEvent _:
+                    Cast("machine.start", null);
+                    break;
+                case GeneratorDryEvent _:
+                    Cast("power.generator-dry", null);
+                    break;
+                case MachineProducedEvent _:
+                    Cast("machine.produced", null);
+                    break;
+
+                // 12.5 Crafting and construction feedback.
+                case MinedEvent m:
+                    Cast(m.Cleared ? "mine.cleared" : "mine.tick", new Vector2(m.X, m.Y));
+                    break;
+                case MiningStoppedEvent _:
+                    Cast("mine.stopped", null);
+                    break;
+                case WeaponCraftedEvent _:
+                    Cast("craft.done", null);
+                    break;
+                case EquipmentChangedEvent _:
+                    Cast(AudioCue.Ui.SlotSelect, null);
+                    break;
+                case CoreRepairedEvent _:
+                    Cast("core.repaired", null);
+                    break;
+                case CoreRepairAbortedEvent _:
+                    Cast(AudioCue.Ui.Refused, null);
+                    break;
+
+                // 12.6 Raid warnings. One warning per announced attack, played once, never one per sector: only
+                // the two announcing kinds map, exactly as the coordinator's wave-2 W-B note requires.
+                case RaidNoticeEvent r:
+                    if (r.Kind == RaidNoticeKind.Announced || r.Kind == RaidNoticeKind.MinorRaid) Cast("raid.warning", null);
+                    break;
+                case OpeningScheduledEvent _:
+                    Cast("raid.warning", null);
+                    break;
+                case OpeningStartedEvent _:
+                    Cast("raid.begins", null);
+                    break;
+                case CoreDamagedEvent _:
+                    Cast("structure.hit", null);
+                    break;
+                case CoreDisabledEvent _:
+                    Cast("core.disabled", null);
+                    break;
+            }
+        }
+
+        private void Cast(string key, Vector2? at)
+        {
+            Routed++;
+            AudioCue.Play(key, at);
+        }
+
+        /// <inheritdoc />
+        public void Play(string key, Vector2? at)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+
+            // Unmapped is silence, and silence is the shipped state: no clip, no log (brief C-11).
+            if (!_byKey.TryGetValue(key, out var cue) || cue.clips == null || cue.clips.Length == 0) return;
+
+            var now = Time.unscaledTime;
+            if (_lastAt.TryGetValue(key, out var last) && now - last < CoalesceSeconds) return;
+            _lastAt[key] = now;
+
+            var clip = cue.clips[cue.clips.Length == 1 ? 0 : UnityEngine.Random.Range(0, cue.clips.Length)];
+            if (clip == null) return;
+
+            var src = Free();
+            if (src == null) return;
+
+            src.clip = clip;
+            src.outputAudioMixerGroup = Group(key);
+            src.volume = cue.volume;
+            src.pitch = cue.pitchJitter <= 0f ? 1f : 1f + UnityEngine.Random.Range(-cue.pitchJitter, cue.pitchJitter);
+            if (at.HasValue)
+            {
+                src.spatialBlend = 1f;
+                src.maxDistance = hearingTiles * WorldSpace.UnitsPerTile;
+                src.transform.position = WorldSpace.World(new Vec2(at.Value.x, at.Value.y));
+            }
+            else
+            {
+                src.spatialBlend = 0f;
+                src.transform.localPosition = Vector3.zero;
+            }
+            src.Play();
+            Played++;
+        }
+
+        /// <summary>The mixer group a key belongs to, chosen from its prefix so a new key needs no routing edit.</summary>
+        private AudioMixerGroup Group(string key)
+        {
+            if (key.StartsWith("ui.", StringComparison.Ordinal)) return uiGroup != null ? uiGroup : masterGroup;
+            if (key.StartsWith("raid.", StringComparison.Ordinal)
+                || key.StartsWith("core.", StringComparison.Ordinal)
+                || key.StartsWith("engineer.", StringComparison.Ordinal)
+                || key.StartsWith("power.", StringComparison.Ordinal))
+                return alertsGroup != null ? alertsGroup : masterGroup;
+            return worldGroup != null ? worldGroup : masterGroup;
+        }
+
+        private AudioSource Free()
+        {
+            for (var i = 0; i < _pool.Count; i++) if (!_pool[i].isPlaying) return _pool[i];
+            if (_pool.Count >= voices) return null;
+            var go = new GameObject("Cue " + _pool.Count);
+            go.transform.SetParent(transform, false);
+            var src = go.AddComponent<AudioSource>();
+            src.playOnAwake = false;
+            src.rolloffMode = AudioRolloffMode.Linear;
+            src.minDistance = 4f * WorldSpace.UnitsPerTile;
+            _pool.Add(src);
+            return src;
+        }
+    }
+}

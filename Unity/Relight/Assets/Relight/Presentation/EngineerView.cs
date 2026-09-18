@@ -91,7 +91,12 @@ namespace Relight.Presentation
             _current = e.Pos;
             _seeded = true;
             // Facing is the reference's e.face (engineer.ts); the placeholder square only mirrors on it.
-            if (_sprite != null && e.Face.X != 0) _sprite.flipX = e.Face.X < 0;
+            // C-03: while the trigger is pointed somewhere the body turns towards the AIM instead, which is what
+            // the reference draws (worldScene.ts:1330 uses the aim vector for the rifle pose). The aim is a tile
+            // point, so the sign of (aim - pos).x is the mirror; an aim exactly overhead leaves the facing alone.
+            var (aiming, at) = WeaponQueries.Aim(sim.State);
+            var fx = aiming ? at.X - e.Pos.X : e.Face.X;
+            if (_sprite != null && fx != 0) _sprite.flipX = fx < 0;
         }
 
         private void LateUpdate()

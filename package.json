@@ -30,6 +30,7 @@
     "snapshot:check": "npm run snapshot -w packages/harness -- --check",
     "replay": "tsx packages/harness/src/replay.ts",
     "map:export-tiled": "tsx packages/tools/src/exportTiled.ts",
+    "map:export-unity": "tsx packages/tools/src/exportUnity.ts",
     "editor:dev": "node scripts/phaser-editor-dev.mjs",
     "editor:assets": "node scripts/phaser-editor-assets.mjs",
     "editor:scene": "node scripts/phaser-editor-city.mjs export",

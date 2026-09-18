@@ -1,0 +1,119 @@
+/*
+ * Goal card - C-09 (UI_AND_ONBOARDING.md §4.1: top-left, max 360 px, three short lines; §4 table row "Goal card").
+ *
+ * Every value is a token from Styles/tokens.uss. No literal colour, no literal type size; the only literals are
+ * the 1px borders UI Toolkit needs spelled per side and the 360px region cap the spec fixes.
+ *
+ * The card is NOT a "panel": UiShell.Rebuild hides every element carrying the panel class, and the goal card is
+ * HUD furniture that must stay on screen while a drawer is open.
+ */
+
+.goal-card {
+    position: absolute;
+    /* Below the HUD strip. The objective row that used to sit at top 64px is GONE (W-B R1: the objective is
+       stated ONCE, here), so 96px is clear air under the strip's three blocks at 1280x720 and 1920x1080.
+       The Phase B status panel used to share this corner and hid the card's first lines; it is a right-side drawer now. */
+    top: 96px;
+    left: var(--ui-space-4);
+    width: 360px;
+    max-width: 360px;
+    padding-left: var(--ui-space-4);
+    padding-right: var(--ui-space-4);
+    padding-top: var(--ui-space-3);
+    padding-bottom: var(--ui-space-3);
+    background-color: var(--ui-surface);
+    color: var(--ui-text);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+}
+
+.goal-place {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    white-space: normal;
+}
+
+.goal-title {
+    font-size: var(--ui-font-size-heading);
+    color: var(--ui-accent);
+    white-space: normal;
+    margin-top: var(--ui-space-1);
+}
+
+.goal-text {
+    font-size: var(--ui-font-size-body);
+    color: var(--ui-text);
+    white-space: normal;
+    margin-top: var(--ui-space-1);
+}
+
+.goal-materials {
+    margin-top: var(--ui-space-3);
+}
+
+.goal-materials-heading {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    white-space: normal;
+}
+
+.goal-material {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    white-space: normal;
+    margin-top: var(--ui-space-1);
+    padding-left: var(--ui-space-2);
+}
+
+/* A row the Backpack already satisfies reads as done; a short row keeps the plain text colour. */
+.goal-material-ready {
+    color: var(--ui-working);
+}
+
+.goal-why {
+    margin-top: var(--ui-space-3);
+}
+
+.goal-why > Toggle Label {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+}
+
+.goal-detail {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    white-space: normal;
+    padding-left: var(--ui-space-2);
+}
+
+.goal-actions {
+    flex-direction: row;
+    margin-top: var(--ui-space-3);
+}
+
+/* Size only (W-B R6): the palette, hover, focus and disabled states are the shared `.ui-button` ones. */
+.goal-button {
+    flex-grow: 1;
+    min-height: 32px;
+    height: 32px;
+    font-size: var(--ui-font-size-small);
+    margin-left: var(--ui-space-1);
+    margin-right: var(--ui-space-1);
+    transition-duration: 0.12s;
+}
+
+
+/* The controller only ever adds or removes this class; it never writes an inline style. */
+.is-hidden {
+    display: none;
+}

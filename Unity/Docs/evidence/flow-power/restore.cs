@@ -1,0 +1,3 @@
+UnityEngine.InputSystem.InputSystem.settings.backgroundBehavior=(UnityEngine.InputSystem.InputSettings.BackgroundBehavior)0;
+UnityEngine.InputSystem.InputSystem.settings.editorInputBehaviorInPlayMode=(UnityEngine.InputSystem.InputSettings.EditorInputBehaviorInPlayMode)0;
+return new {playing=UnityEditor.EditorApplication.isPlaying,background=(int)UnityEngine.InputSystem.InputSystem.settings.backgroundBehavior,editorInput=(int)UnityEngine.InputSystem.InputSystem.settings.editorInputBehaviorInPlayMode,scenes=Enumerable.Range(0,UnityEngine.SceneManagement.SceneManager.sceneCount).Select(i=>new {path=UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).path,dirty=UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty}).ToArray()};

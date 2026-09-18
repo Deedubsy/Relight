@@ -1,0 +1,142 @@
+/* Settings — C-10, UI_AND_ONBOARDING.md §3.8 (reference: game/src/settingsPanel.ts and style.css).
+
+   ONE document serves both the title screen and the pause menu, so nothing here positions the section: it is a
+   plain column that fills whatever parent instances it. The root deliberately does NOT carry `panel`, because
+   UiShell.Rebuild() hides every element that does.
+
+   House restrictions observed throughout: per-side border widths and colours (no `border` shorthand), no `gap`,
+   no `z-index`, no attribute or :nth-child selectors, transitions declared on the base class. */
+
+.settings-panel {
+    flex-direction: column;
+    flex-grow: 1;
+    color: var(--ui-text);
+    font-size: var(--ui-font-size-body);
+}
+
+.settings-scroll {
+    flex-grow: 1;
+}
+
+/* A section: heading, then rows. */
+
+.settings-section {
+    flex-direction: column;
+    margin-bottom: var(--ui-space-5);
+}
+
+.settings-heading {
+    font-size: var(--ui-font-size-heading);
+    -unity-font-style: bold;
+    color: var(--ui-accent);
+    margin-bottom: var(--ui-space-2);
+    padding-bottom: var(--ui-space-1);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--ui-border);
+}
+
+.settings-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: var(--ui-space-2);
+}
+
+.settings-label {
+    width: 40%;
+    min-width: 160px;
+    color: var(--ui-secondary);
+    white-space: normal;
+}
+
+.settings-control {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+/* The read-out beside a slider. §3.8.1: a level is never signalled by slider position alone. */
+.settings-value {
+    width: 64px;
+    -unity-text-align: middle-right;
+    color: var(--ui-text);
+}
+
+.settings-note {
+    white-space: normal;
+    color: var(--ui-secondary);
+    font-size: var(--ui-font-size-small);
+    margin-top: var(--ui-space-1);
+    margin-bottom: var(--ui-space-2);
+}
+
+.settings-consequence {
+    white-space: normal;
+    color: var(--ui-accent);
+    font-size: var(--ui-font-size-small);
+    margin-bottom: var(--ui-space-2);
+}
+
+.settings-problem {
+    white-space: normal;
+    color: var(--ui-danger);
+    font-size: var(--ui-font-size-small);
+    margin-bottom: var(--ui-space-2);
+}
+
+.settings-good {
+    white-space: normal;
+    color: var(--ui-working);
+    font-size: var(--ui-font-size-small);
+    margin-bottom: var(--ui-space-2);
+}
+
+/* Buttons: layout only (W-B R6). Palette, hover, active, focus and disabled come from `.ui-button` and its
+   primary/secondary/danger modifiers in Styles/tokens.uss, which every button in this document now carries. */
+
+.settings-button {
+    padding-top: var(--ui-space-2);
+    padding-bottom: var(--ui-space-2);
+    padding-left: var(--ui-space-4);
+    padding-right: var(--ui-space-4);
+    margin-left: 0;
+    margin-right: var(--ui-space-2);
+    margin-top: var(--ui-space-1);
+    margin-bottom: var(--ui-space-1);
+    transition-duration: 0.12s;
+    transition-property: background-color;
+}
+
+.settings-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* The key-capture field. settingsPanel.ts makes it read-only and listens for the key itself. */
+
+.binding-capture {
+    flex-grow: 1;
+}
+
+.binding-current {
+    color: var(--ui-text);
+    margin-top: var(--ui-space-1);
+    margin-bottom: var(--ui-space-1);
+}
+
+.hidden {
+    display: none;
+}
+
+/* Controls list (correction pass, W-A's request): one `controls-row` Label per control line, painted by
+   SettingsController. Same type scale and colours as the rest of the sheet — nothing here relies on a theme
+   default (R7). */
+.controls-list {
+    margin-top: var(--ui-space-2);
+}
+
+.controls-row {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    white-space: normal;
+    margin-top: var(--ui-space-1);
+}

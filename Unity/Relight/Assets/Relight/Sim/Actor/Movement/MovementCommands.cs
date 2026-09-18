@@ -23,10 +23,12 @@ namespace Relight.Sim
     /// CONTENT_CATALOGUE.md §17; the player's click-to-move is <see cref="MoveCommand"/>), <c>fire</c> and
     /// <c>enterTruck</c> (Phase C combat / truck), and the passenger guard, which reads Phase C state.
     ///
-    /// The hand-crafting lock (reference walk.ts:181-183) IS enforced: while a batch runs, a walk-here and a dodge
-    /// are refused with <see cref="HandCraft.LockText"/> so the UI can say why, and held keys are still recorded but
-    /// produce no movement until the batch ends (<see cref="EngineerMovementPhase"/>). Cancelling stays available:
-    /// <c>CancelCraftCommand</c> belongs to the hand-craft handler and is never gated on movement.
+    /// The stationary-action lock IS enforced: while it holds, a walk-here and a dodge are refused with
+    /// <see cref="HandCraft.LockTextFor"/> so the UI can say why, and held keys are still recorded but produce no
+    /// movement until it lifts (<see cref="EngineerMovementPhase"/>). U-D-44 narrowed what sets it: a running Home
+    /// core repair does, a queued workshop batch does NOT — the workshop processes while the player walks away.
+    /// Cancelling stays available: <c>CancelRepairCommand</c> and <c>CancelCraftCommand</c> are never gated on
+    /// movement.
     /// </summary>
     public sealed class MovementCommandHandler : ICommandHandler
     {
@@ -37,7 +39,7 @@ namespace Relight.Sim
             switch (c)
             {
                 case MoveCommand m:
-                    if (locked) { result = CommandResult.Refuse(HandCraft.LockText); return true; }
+                    if (locked) { result = CommandResult.Refuse(HandCraft.LockTextFor(st)); return true; }
                     if (!e.IsDown)
                     {
                         e.HasTarget = true;
@@ -65,7 +67,7 @@ namespace Relight.Sim
                     return true;
 
                 case DodgeCommand _:
-                    if (locked) { result = CommandResult.Refuse(HandCraft.LockText); return true; }
+                    if (locked) { result = CommandResult.Refuse(HandCraft.LockTextFor(st)); return true; }
                     // The guard is the reference's, including its 1e-9 slack on the stamina cost.
                     var d = ctx.Data.Engineer;
                     if (!e.IsDown && e.Dash <= 0 && e.DashCooldown <= 0

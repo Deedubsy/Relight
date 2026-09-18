@@ -30,7 +30,7 @@ namespace Relight.Sim
         /// </summary>
         public void TakeDamage(SimContext ctx, SimState st, double hp)
         {
-            if (IsDown || hp <= 0) return;
+            if (st.Admin.Invulnerable || IsDown || hp <= 0) return;
             Hp -= hp;
             Hurt += hp;
             LastHit = st.T;
@@ -45,6 +45,9 @@ namespace Relight.Sim
             Vel = Vec2.Zero;
             Plan = null;
             st.Events.Add(new EngineerDownEvent(st.T, Pos.X, Pos.Y));
+            // GP-W5: what the body was carrying stays where the body fell. The walk back is the cost of dying;
+            // the cargo is not. Weapons are retained — see DeathCache for why that is enforced there.
+            DeathCache.Spill(ctx, st, this);
         }
     }
 
@@ -54,8 +57,8 @@ namespace Relight.Sim
     ///
     /// Ported: respawn, dodge-cooldown decay, facing from held keys, the dash, sprint and the stamina bar,
     /// walk-here path following with re-planning, WASD movement with axis-separated collision sliding, the
-    /// <c>walked</c> accumulator, health regeneration, weapon-cooldown decay, and the hand-crafting lock
-    /// (walk.ts:181-183, GP-PLAYTEST-FIX 2).
+    /// <c>walked</c> accumulator, health regeneration, weapon-cooldown decay, and the stationary-action lock
+    /// (walk.ts:181-183, GP-PLAYTEST-FIX 2; narrowed by U-D-44 to a Home repair, never a workshop batch).
     ///
     /// NOT ported, and why: the truck seat and <c>driveTruck</c> and the passenger lock
     /// (both read Phase C state); the block walk (<c>e.dest</c>, <c>e.remaining</c>, <c>e.block</c>,
@@ -89,10 +92,10 @@ namespace Relight.Sim
                 return;
             }
 
-            // Reference walk.ts:181-183 (GP-PLAYTEST-FIX 2): a running hand-craft batch pins the engineer at the
-            // workbench. The route, the walk-here target and any dash in flight are dropped, and nothing below
-            // this point runs, so the body cannot be displaced until the batch finishes or is cancelled
-            // (`CancelCraftCommand` is still accepted while locked — see MovementCommandHandler).
+            // A stationary action pins the engineer in place: since U-D-44 that is a running Home core repair,
+            // and a queued workshop batch no longer is. The route, the walk-here target and any dash in flight are
+            // dropped, and nothing below this point runs, so the body cannot be displaced until the repair finishes
+            // or is cancelled (`CancelRepairCommand` is still accepted while locked — see MovementCommandHandler).
             if (HandCraft.HandLocked(st))
             {
                 e.Plan = null;

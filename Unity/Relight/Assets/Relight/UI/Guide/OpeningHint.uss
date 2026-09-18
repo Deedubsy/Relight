@@ -1,0 +1,80 @@
+/*
+ * Opening hint - C-09 (UI_AND_ONBOARDING.md §7.2, the only hint overlay: reference hud.ts:32 hud-opening-hint).
+ *
+ * Bottom-centre, clear of the quickbar height (--ui-nav-height), so it never covers the goal card or the
+ * engineer readouts. Tokens only.
+ */
+
+.opening-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: var(--ui-nav-height);
+    flex-direction: row;
+    align-self: center;
+    justify-content: center;
+    align-items: center;
+}
+
+.opening-hint-body {
+    flex-direction: row;
+    align-items: center;
+    /* 640, not 720: centred at 1280 the bar starts at x=320, clear of the 300px engineer block in the corner. */
+    max-width: 640px;
+    padding-left: var(--ui-space-4);
+    padding-right: var(--ui-space-3);
+    padding-top: var(--ui-space-2);
+    padding-bottom: var(--ui-space-2);
+    background-color: var(--ui-surface);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+}
+
+.opening-hint-text {
+    flex-shrink: 1;
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    white-space: normal;
+}
+
+.opening-hint-button {
+    height: 28px;
+    margin-left: var(--ui-space-3);
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    background-color: var(--ui-raised);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    transition-duration: 0.12s;
+}
+
+.opening-hint-button:hover {
+    background-color: var(--ui-border);
+    color: var(--ui-bg);
+}
+
+.is-hidden {
+    display: none;
+}
+
+#opening-hint { top: 76px; bottom: auto; left: auto; right: 16px; width: 330px; max-width: 34%; }

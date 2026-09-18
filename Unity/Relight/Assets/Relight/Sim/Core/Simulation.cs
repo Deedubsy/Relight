@@ -143,7 +143,16 @@ namespace Relight.Sim
             if (_pending.Count == 0) return;
             // Applied in submission order; a handler may queue more, which are taken on the next flush.
             var n = _pending.Count;
-            for (var i = 0; i < n; i++) CommandDispatcher.Apply(Context, State, _pending[i]);
+            for (var i = 0; i < n; i++)
+            {
+                var c = _pending[i];
+                var r = CommandDispatcher.Apply(Context, State, c);
+                // C-13: a queued command has no caller to return to, so anything it has to SAY becomes an event
+                // (the reference toasts every dispatch result). Silent acceptance says nothing: the held intents
+                // — walk, move, aim — are submitted every frame and would otherwise flood the list.
+                if (r.Problem.Length > 0)
+                    State.Events.Add(new CommandResultEvent(State.T, c.GetType().Name, r.Accepted, r.Problem));
+            }
             _pending.RemoveRange(0, n);
         }
 

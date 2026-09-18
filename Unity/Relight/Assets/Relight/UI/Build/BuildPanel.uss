@@ -1,0 +1,238 @@
+/*
+ * Build menu — W-B R3. Every colour, size and space is a token from Styles/tokens.uss; the chrome (.panel,
+ * .panel-title, .ui-button, .ui-tab, .item-icon) is shared, so this sheet only says where things sit.
+ *
+ * Fitting the viewport (R1): a right-side drawer with the same geometry as the Backpack, so the two occupy the
+ * same space and neither covers the goal card (top-left, 360px wide). The bottom stops at 72px, above the HUD's
+ * action bar and placement toolbar — the brief's rule that the action bar stays visible while a panel is open.
+ * The catalogue is the only thing allowed to grow, and it grows inside a ScrollView, so the tabs, the title, the
+ * hint and the notice can never be pushed off the bottom at 1280×720.
+ *
+ * Widths: this sheet asks for 820, but Styles/industrial.uss imports last and narrows the drawer to 760 (680 under
+ * .compact-ui), so the honest sum is 760 − 32 padding = 728 for the body; the detail pane takes 260 + 16 margin
+ * + 13 border/padding and the grid's own scrollbar about 13 more, which leaves ~426 for the grid. Two of the old
+ * fixed 210px cards and their 8px gutters wanted 436, so the grid could silently fall back to ONE column. U-D-55
+ * stopped pricing the card in pixels and gave it `flex-basis: 50%` on a host, the way U-D-52 did the recipe cards:
+ * two to a row at any width that can hold two, one when it cannot. The drawer is still a fixed width, so a bigger
+ * screen shows more world, not a bigger menu — the same ConstantPixelSize reasoning as the HUD.
+ */
+
+#build-panel {
+    /* The drawer band, shared with the Backpack (tokens.uss --ui-drawer-top/-bottom). */
+    top: var(--ui-drawer-top);
+    right: var(--ui-space-4);
+    bottom: var(--ui-drawer-bottom);
+    width: 820px;
+    max-width: 96%;
+    padding-left: var(--ui-space-4);
+    padding-right: var(--ui-space-4);
+    padding-top: var(--ui-space-3);
+    padding-bottom: var(--ui-space-3);
+}
+
+.build-tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-bottom: var(--ui-space-2);
+}
+
+.build-body {
+    flex-direction: row;
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.build-scroll {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-height: 0;
+    min-width: 0;
+}
+
+.build-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    align-content: flex-start;
+}
+
+/* ---- one card ------------------------------------------------------------------------------------------- */
+
+/*
+ * U-D-55 — every card the same height, by U-D-52 rule (d): each card FILLS a host and every host carries the same
+ * `min-height`. Neither half is optional. `flex-grow: 1` on the card squares the cards in ONE wrapped row against
+ * each other and nothing further, because `align-content: flex-start` has flex measure wrapped rows independently,
+ * so only a floor on the host squares one row against the next. The gutter is the host's PADDING, never a margin
+ * on the card, because Yoga measures `flex-basis` border-box and a margin would push two 50% hosts onto separate
+ * rows.
+ *
+ * Where 144px comes from. A 200px host leaves the card 174px of text column (200 − 8 gutter − 16 padding − 2
+ * border); the dearest machine's cost line, "Cost: 30 Steel plates + 10 Copper plate + 4 Frame + 2 Board", is
+ * 458px at --ui-font-size-small and so wraps to three 19.4px lines there (Inter-Regular, measured, because Play
+ * Mode is unavailable on this machine). The tallest card is then 28 (head row) + 4 + 58 (cost) + 20 (status)
+ * + 16 (padding) + 2 (border) = 128px, and the host adds its own 8px bottom gutter: 144px leaves that headroom.
+ * A dearer machine, a longer item name or a bigger font needs the floor raised, and the Play test
+ * TheBuildCardsAreAllTheSameHeight fails with the height to raise it to rather than letting the grid go ragged.
+ * The 200px floor is itself load-bearing: at 180px the text column drops to 154px and the same cost line takes a
+ * FOURTH line, which is the defect this rule exists to remove.
+ */
+.build-host {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 50%;
+    min-width: 200px;
+    min-height: 144px;
+    padding-right: var(--ui-space-2);
+    padding-bottom: var(--ui-space-2);
+}
+
+.build-card {
+    flex-direction: column;
+    align-items: stretch;
+    width: auto;
+    min-width: 0;
+    flex-grow: 1;
+    overflow: hidden;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: var(--ui-space-2);
+    padding-right: var(--ui-space-2);
+    padding-top: var(--ui-space-2);
+    padding-bottom: var(--ui-space-2);
+    background-color: var(--ui-raised);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+}
+
+.build-card:hover {
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+.build-card.selected {
+    background-color: var(--ui-surface);
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+/* Greyed, not disabled: the reason is on the card and the simulation refuses the placement in its own words. */
+.build-card.unavailable {
+    opacity: 0.55;
+}
+
+/* The icon and the name, one line across the top of the card. */
+.card-head {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* The cost and the status, under the head row and across the card's whole width. The 30px the icon used to take
+   out of their wrapping column is what pushed the dearest costs onto a fourth line and made the cards unequal. */
+.card-text {
+    flex-grow: 1;
+    min-width: 0;
+    margin-top: var(--ui-space-1);
+    overflow: hidden;
+}
+
+.card-name {
+    flex-grow: 1;
+    min-width: 0;
+    margin-left: var(--ui-space-2);
+    font-size: var(--ui-font-size-body);
+    color: var(--ui-text);
+    -unity-text-align: middle-left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+/* The cost wraps: it is the one thing a player scans the grid for, so it is never abbreviated. */
+.card-cost {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    -unity-text-align: middle-left;
+    white-space: normal;
+}
+
+/* The status does NOT wrap. "Missing: 30 Steel plates + 10 Copper plate + 4 Frame + 2 Board" is three more lines
+   of the cost line's own numbers, and paying for them in every card's height buys nothing: the card is greyed,
+   and the detail pane beside the grid already lists the shortage item by item. U-D-55. */
+.card-status {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-working);
+    -unity-text-align: middle-left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.card-status.ui-bad {
+    color: var(--ui-danger);
+}
+
+/* ---- detail pane ------------------------------------------------------------------------------------------ */
+
+.build-detail {
+    width: 260px;
+    flex-shrink: 0;
+    margin-left: var(--ui-space-4);
+    padding-left: var(--ui-space-3);
+    border-left-color: var(--ui-border);
+    border-left-width: 1px;
+}
+
+.detail-icon-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: var(--ui-space-2);
+}
+
+.build-detail-line {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    white-space: normal;
+    margin-top: var(--ui-space-1);
+}
+
+.bar-destinations {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: var(--ui-space-2);
+}
+
+.bar-slot {
+    width: 40px;
+    min-height: 32px;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: 0;
+    margin-right: var(--ui-space-1);
+    margin-bottom: var(--ui-space-1);
+}
+
+.build-notice {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-accent);
+    white-space: normal;
+    min-height: 20px;
+}
+
+#build-panel { top: 80px; bottom: 144px; }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+    <ui:VisualElement name="recipe-card" class="recipe-card">
+        <ui:Label name="card-title" class="card-title" />
+        <ui:VisualElement class="recipe-equation">
+            <ui:VisualElement name="card-chips" class="card-chips" />
+            <ui:Label text="→" class="recipe-arrow" picking-mode="Ignore" />
+            <ui:VisualElement class="recipe-output">
+                <ui:VisualElement name="card-output-icon" class="item-icon" picking-mode="Ignore"><ui:Label name="card-output-icon-code" class="item-icon-code" picking-mode="Ignore" /></ui:VisualElement>
+                <ui:Label name="card-output-count" class="ingredient-count" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="card-buttons" class="card-buttons">
+                <ui:Label name="card-detail" class="card-line" />
+                <ui:Button name="card-craft" text="Craft" class="ui-button ui-button-primary card-button" />
+                <ui:Button name="card-cancel" text="Cancel" class="ui-button ui-button-danger card-button hidden" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="card-progress" class="card-progress"><ui:VisualElement name="card-progress-fill" class="card-progress-fill" /></ui:VisualElement>
+        <ui:Label name="card-note" class="card-line" />
+    </ui:VisualElement>
+</ui:UXML>

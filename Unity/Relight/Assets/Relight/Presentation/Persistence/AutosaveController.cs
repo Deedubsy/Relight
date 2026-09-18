@@ -143,7 +143,7 @@ namespace Relight.Presentation
         {
             if (host == null || host.Simulation == null) return SaveResult.Failed(null, "there is no game to save");
             var sim = host.Simulation;
-            var r = _store.Save(name, sim.State, sim.Context.Data);
+            var r = _store.Save(name, sim.State, sim.Context);
             LastSave = r;
             if (r.Ok) _scheduler.OnManualSaveSucceeded();
             else Debug.LogWarning("Relight: save failed — " + r.Reason);
@@ -157,14 +157,25 @@ namespace Relight.Presentation
         public LoadResult Load(string name)
         {
             if (host == null || host.Simulation == null) return LoadResult.Refuse("there is no session to load into");
-            return Adopt(_store.Load(name, host.Simulation.Context.Data));
+            return Adopt(_store.Load(name, LoadContext()));
+        }
+
+        /// <summary>
+        /// Load one named autosave file ("auto-3.json", "auto-quit.json") into the running host — the Load
+        /// screen's row action (C-10, §2.7.1). Added beside <see cref="LoadNewestAutosave"/> rather than changing
+        /// it: the ring's own recovery still uses the newest, and this is only the player naming a different one.
+        /// </summary>
+        public LoadResult LoadAutosave(string fileName)
+        {
+            if (host == null || host.Simulation == null) return LoadResult.Refuse("there is no session to load into");
+            return Adopt(_store.Autosaves.Load(fileName, LoadContext()));
         }
 
         /// <summary>Load the newest autosave — "continue" (§9.4.5's recovery order applies).</summary>
         public LoadResult LoadNewestAutosave()
         {
             if (host == null || host.Simulation == null) return LoadResult.Refuse("there is no session to load into");
-            return Adopt(_store.Autosaves.LoadNewest(host.Simulation.Context.Data));
+            return Adopt(_store.Autosaves.LoadNewest(LoadContext()));
         }
 
         /// <summary>
@@ -173,6 +184,13 @@ namespace Relight.Presentation
         /// the autosave clock again so the first autosave after a load is a full interval away rather than
         /// immediate. <see cref="LastLoad"/> is recorded after the attach, so the reset does not clear it.
         /// </summary>
+        private SimContext LoadContext()
+        {
+            var ctx=host.Simulation.Context;
+            // The header is checked against both supported layouts in Adopt, before changing the running world.
+            return new SimContext(ctx.Data,ctx.Geometry,threat:new EnemyThreatLayer(),sites:ctx.Sites,mapId:null);
+        }
+
         private LoadResult Adopt(LoadResult r)
         {
             if (!r.Ok)
@@ -181,7 +199,25 @@ namespace Relight.Presentation
                 Debug.LogWarning("Relight: load refused — " + r.Reason);
                 return r;
             }
-            host.Attach(Simulation.Wrap(host.Simulation.Context, r.State));
+            var bootstrap=FindAnyObjectByType<WorldBootstrap>();
+            var useScene=false;
+            if(bootstrap!=null && !string.IsNullOrEmpty(r.Header?.MapId) && r.Header.MapId!=bootstrap.SourceGeometry?.MapId)
+            {
+                var authored=FindFirstObjectByType<Relight.World.SceneWorld>();
+                string sceneId=null;
+                if(authored!=null && authored.useForNewGames)
+                {
+                    var candidate=authored.Compile(out _);sceneId=candidate.MapId;Destroy(candidate);
+                }
+                if(sceneId!=r.Header.MapId)
+                {
+                    LastLoad=LoadResult.Refuse("this save belongs to a different scene layout; restore that layout or start a New Game");
+                    return LastLoad;
+                }
+                useScene=true;
+            }
+            var ctx=bootstrap!=null ? bootstrap.ContextForLayout(r.State.OpeningResourceVersion,useScene) : host.Simulation.Context;
+            host.Attach(Simulation.Wrap(ctx, r.State));
             if (host.Session != _session) OnSessionChanged(host.Simulation);   // in case this component is disabled
             LastLoad = r;
             if (!string.IsNullOrEmpty(r.Upgraded)) Debug.Log("Relight: " + r.Upgraded);

@@ -1,0 +1,32 @@
+# Founders Court decisions
+
+| ID | Decision | Value | In this pass |
+|---|---|---|---|
+| D1 | What blocks enemies | Houses and fences. Nothing else. Amended by D17. | Yes |
+| D2 | Do fences block the player too | Yes. One rule for everyone. The player leaves the block through the mouth. | Yes |
+| D3 | Perimeter rule | Every segment of the perimeter is covered by a house or a fence. The only gap is the mouth. | Yes |
+| D4 | House spacing on the perimeter | Add houses until the perimeter is lined. About two thirds of neighbouring houses touch. About one third have a gap, and every gap is closed by a fence. | Yes |
+| D5 | Interior houses | Only along the court road, doors facing the road, one driveway stub each. No house sits on the road. | Yes |
+| D6 | Driveways to ring roads | Perimeter houses may keep outward driveways. Those driveways are outside the block and do not matter for defence. | Yes |
+| D7 | The paved lot becomes a Works Yard | Rename it. Keep the paving. Nodes: iron = scrap pile, copper = cable spool next to the transformer, coal = fuel bunker. | Yes |
+| D8 | Works Yard position | Inside the perimeter, between the head and the mouth, closer to the head. | Yes |
+| D9 | Node spacing | Each node is at least 8 belt tiles from the workshop input. Nodes are at least 4 belt tiles apart. | Yes |
+| D10 | Objects with no job | Tiled footpath, tall grey bar, triangle: the AI reports their GameObject names first. Default is remove unless the human says otherwise. Resolved by D27 and D28. | Yes |
+| D11 | Court road width | Half the ring road width. Deferred by D23. | No |
+| D12 | Enemy road preference | Grass costs 4 times road cost in enemy pathing. Applies map-wide. | No |
+| D13 | Spawn points | Player spawn stays on the workbench. Enemy spawn stays at the mouth. Nothing else changes about waves. Amended by D19 and D25. | Yes |
+| D14 | Works Yard as a map-wide site type | Every paved lot on the map becomes a Works Yard with nodes. | No |
+| D15 | Project paths | Project root is `Unity/Relight`. Editor script at `Unity/Relight/Assets/Editor/FoundersCourtChecks.cs`. Docs stay in `Unity/Docs`. | Yes |
+| D16 | What a fence is | A `SceneProp` of kind `fence` with `blocksMovement` 1. No prefab. The two existing fences at x 27 get `blocksMovement` 1 and stay. | Yes |
+| D17 | D1 amended | Buildings, fence props, and the substation block. Trees and debris do not. | Yes |
+| D18 | Baseline solids | Remove every baseline solid tile inside the block rectangle so the only solids come from objects in the scene. Verify with a compile before and after. | Yes |
+| D19 | Raid line | Move the raid line to the mouth on the south ring road centre line, y 432, x 69 to 74. | Yes |
+| D20 | Entry step cap | Measure the walk steps from the core to the mouth after the perimeter is closed. If the cap of 68 is less than that plus 10: raise the cap in `DirectorRules` to that plus 10 and report the old and new value. If not: leave it. | Yes |
+| D21 | "House" in D3, D4, D5 | Any `SceneBuilding`. Garages count. | Yes |
+| D22 | Maintenance garage | Move it to touch the Salvage garages so it becomes part of the workshop lot. | Yes |
+| D23 | D11 court road width | Defer. Record as not done. Per-path road width becomes its own task later. | No |
+| D24 | "Workshop input" in D9 | The workshop door tiles. Already satisfied. Verify and change nothing. | Yes |
+| D25 | D13 player spawn | Stays where it is, on the workshop door tile. | Yes |
+| D26 | Gap check method | Band projection per edge on the compiled `Solid` grid. Gap threshold 1 tile. | Yes |
+| D27 | Debris | Keep `debris [court-brush]`. Clearing debris is taught. Its `blocksMovement` stays 0 under D17. Its baseline solid tiles are removed under D18. | Yes |
+| D28 | Objects to remove | `Court garden walk`, `Drive 1`. Keep the street lights and the label. | Yes |

@@ -101,14 +101,7 @@ namespace Relight.UI
         }
 
         /// <summary>Reference hud.ts:56, with the campaign clock's day length taken from the data record.</summary>
-        public static string FormatClock(double t, double daySeconds, bool paused)
-        {
-            if (daySeconds <= 0) daySeconds = 1;
-            var day = (int)Math.Floor(t / daySeconds) + 1;
-            var elapsed = t - (day - 1) * daySeconds;
-            var minutes = (int)Math.Floor(elapsed / daySeconds * 1440.0);
-            return string.Format(CultureInfo.InvariantCulture, "Day {0} · {1:00}:{2:00}{3}",
-                day, minutes / 60, minutes % 60, paused ? " · Paused" : "");
-        }
+        public static string FormatClock(double t, double daySeconds, bool paused) =>
+            Relight.Sim.UI.HudViewModel.FormatClock(t, daySeconds, paused);   // C-07: one clock, not two that can drift
     }
 }

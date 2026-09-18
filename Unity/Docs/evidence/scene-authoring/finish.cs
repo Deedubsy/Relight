@@ -1,0 +1,16 @@
+if(UnityEditor.EditorApplication.isPlaying)throw new System.Exception("Still playing");
+var w=UnityEngine.Object.FindFirstObjectByType<Relight.World.SceneWorld>();
+Relight.Editor.SceneWorldEditor.ClearPreview();
+foreach(var b in w.GetComponentsInChildren<Relight.World.SceneBuilding>())if(b.id=="test-enterable")UnityEngine.Object.DestroyImmediate(b.gameObject);
+w.showRoofs=true;
+var before=w.Compile(out _);var id=before.MapId;UnityEngine.Object.DestroyImmediate(before);
+var prop=w.GetComponentsInChildren<Relight.World.SceneProp>().First(p=>!p.blocksMovement);var old=prop.transform.position;
+UnityEditor.Undo.IncrementCurrentGroup();var group=UnityEditor.Undo.GetCurrentGroup();UnityEditor.Undo.RecordObject(prop.transform,"Verify prop move undo");prop.transform.position+=new UnityEngine.Vector3(1,0,0);UnityEditor.Undo.FlushUndoRecordObjects();
+Relight.Editor.SceneWorldEditor.RefreshNow();var moved=prop.GetComponentsInChildren<UnityEngine.SpriteRenderer>().First();if(UnityEngine.Mathf.Abs(moved.transform.position.x-prop.transform.position.x)>.01f)throw new System.Exception("Prop preview did not follow move");
+UnityEditor.Undo.RevertAllDownToGroup(group);if(prop.transform.position!=old)throw new System.Exception("Undo failed");Relight.Editor.SceneWorldEditor.RefreshNow();
+var g=w.Compile(out _);if(g.MapId!=id)throw new System.Exception("Map identity changed after Undo");UnityEngine.Object.DestroyImmediate(g);
+Relight.Editor.SceneWorldEditor.ClearPreview();UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(w.gameObject.scene);UnityEditor.SceneManagement.EditorSceneManager.SaveScene(w.gameObject.scene);
+Relight.Editor.SceneWorldEditor.RefreshNow();Relight.Editor.SceneWorldEditor.FocusHome();UnityEditor.Selection.activeGameObject=w.gameObject;
+var count=w.GetComponentsInChildren<Relight.World.SceneBuilding>().Length;
+var msg="PASS preview follows prop move; Undo restores position and map identity. PASS temporary test objects removed; "+count+" buildings saved. Preview error="+Relight.Editor.SceneWorldEditor.LastError+"; scene dirty="+w.gameObject.scene.isDirty;
+System.IO.File.WriteAllText("E:/Factorio2/Unity/Docs/evidence/scene-authoring/finish.txt",msg);return msg;

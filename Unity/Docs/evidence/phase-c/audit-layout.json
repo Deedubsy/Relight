@@ -1,0 +1,152 @@
+{
+  "success": true,
+  "command": "command eval_file",
+  "data": {
+    "command": "eval_file",
+    "parameters": {
+      "file": "E:/Factorio2/Unity/Docs/evidence/phase-c/audit-layout.cs"
+    },
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "result": {
+        "screen": [
+          1920,
+          1080
+        ],
+        "elements": [
+          {
+            "name": "hud-host",
+            "rect": [
+              0,
+              0,
+              1920,
+              0
+            ],
+            "display": "Flex",
+            "parent": "GameUI-container"
+          },
+          {
+            "name": "hud-root",
+            "rect": [
+              0,
+              0,
+              1920,
+              0
+            ],
+            "display": "Flex",
+            "parent": "hud-host"
+          },
+          {
+            "name": "status-strip",
+            "rect": [
+              703,
+              0,
+              515,
+              72
+            ],
+            "display": "Flex",
+            "parent": "hud-root"
+          },
+          {
+            "name": "engineer-block",
+            "rect": [
+              16,
+              -141,
+              300,
+              125
+            ],
+            "display": "Flex",
+            "parent": "hud-root"
+          },
+          {
+            "name": "backpack",
+            "rect": [
+              31,
+              -53,
+              268,
+              26
+            ],
+            "display": "Flex",
+            "parent": "engineer-block"
+          },
+          {
+            "name": "inventory-panel-host",
+            "rect": [
+              0,
+              0,
+              1920,
+              0
+            ],
+            "display": "Flex",
+            "parent": "GameUI-container"
+          },
+          {
+            "name": "inventory-panel",
+            "rect": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display": "None",
+            "parent": "inventory-panel-host"
+          },
+          {
+            "name": "opening-hint-host",
+            "rect": [
+              0,
+              0,
+              1920,
+              0
+            ],
+            "display": "Flex",
+            "parent": "GameUI-container"
+          },
+          {
+            "name": "opening-hint",
+            "rect": [
+              0,
+              -133,
+              1920,
+              69
+            ],
+            "display": "Flex",
+            "parent": "opening-hint-host"
+          },
+          {
+            "name": "goal-card-host",
+            "rect": [
+              0,
+              0,
+              1920,
+              0
+            ],
+            "display": "Flex",
+            "parent": "GameUI-container"
+          },
+          {
+            "name": "goal-card",
+            "rect": [
+              16,
+              96,
+              360,
+              328
+            ],
+            "display": "Flex",
+            "parent": "goal-card-host"
+          }
+        ]
+      }
+    },
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7800,
+      "projectPath": "E:\\Factorio2\\Unity\\Relight"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}

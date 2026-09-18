@@ -1,5 +1,7 @@
 # Relight — Content Catalogue
 
+**Current Unity opening override, 2026-09-15:** New Game uses the owner-approved ore balance in `OpeningBalance`: 1:1 smelting, Home smelting, 12-second hand bullets and cheaper starter buildings. Existing saves retain the original profile. [Exact values, locations and verification](ORE_OPENING_2026-09-15.md). The exported-reference tables below retain their provenance.
+
 **Owner:** Worker A. **Companion to** [GAME_DESIGN.md](GAME_DESIGN.md), which describes the experience and the rules; this file holds the data. Decisions and their IDs are in [DECISIONS.md](DECISIONS.md).
 
 ## How to read these tables
@@ -101,8 +103,8 @@ Base times are per completed craft at full power with inputs available and outpu
 | Bullet batch (Mk2) *(internal `Shot magazine`)* | 2 Steel plates + 1 Copper | 10 Bullets | 3 | Assembler Mk2 | `constants.ts` `SHOT_MAGAZINE_MK2_SECONDS` | current | Implemented and retained |
 | Shell | 2 Steel plates + 1 Coal | 1 Shell | 3 | Assembler (Arsenal required) | `recipes.ts` "Shell" | current | Implemented and retained |
 | **Overclock Module** | 2 Alien Artifacts + 2 Frames + 1 Board + 4 Wire | 1 Overclock | 20 | Alien workbench | `flow.ts` `ASSEMBLER_RECIPES.overclock` | current | Implemented and retained |
-| **Hand bullet batch** | 2 Steel plates + 1 Copper | 10 Bullets | **20** | Home workshop, player stationary | `flow.ts:158` `HAND_BULLET_SECONDS`, `:1037` | provisional | **Implemented and retained** — provisional starting point (6 → 12 → 20 s), **retest pending** (U-P-02; GAME_DESIGN.md §12.2.2) |
-| **Rifle** | 10 Steel plates + 4 Copper | 1 Rifle instance | 6 | Home workshop (`nearDepot`) | `equipment.ts` `RIFLE` | current | Implemented and retained |
+| **Hand bullet batch** | 2 Steel plates + 1 Copper | 10 Bullets | **20** (Unity runs **12**, `OpeningBalance`) | Home workshop, **unattended** (U-D-44) | `flow.ts:158` `HAND_BULLET_SECONDS`, `:1037` | provisional | **Implemented and retained** — provisional starting point (6 → 12 → 20 s), **retest pending** (U-P-02; GAME_DESIGN.md §12.2.2) |
+| **Rifle** | 10 Steel plates + 4 Copper | 1 Rifle instance | 6 | Home workshop (`nearDepot`), **unattended** (U-D-44) | `equipment.ts` `RIFLE` | current | Implemented and retained |
 | Alien workbench decode | — | 2 Alien Artifacts per cycle | 15 decode | Alien workbench | `fabrication.ts` `FABRICATION` | provisional | Implemented and retained |
 
 **Multipliers.** Assembler Mk2 = ×2 (`processingMultiplier`); an installed Overclock/artifact = ×1.1; they stack multiplicatively. Throughput: Mk1 on the Shot recipe = `ASSEMBLER_MK1_MAG_PER_MIN = 10` crafts/min = 100 bullets/min; Mk2 = `ASSEMBLER_MAG_PER_MIN = 20` crafts/min = 200 bullets/min; hand = 30 bullets/min.

@@ -27,7 +27,9 @@ namespace Relight.Sim
             AddCorePhases(list);        // B-03: campaign clock / hourly sampling
             AddWorldPhases(list);       // B-08: engineer movement on tiles
             AddInventoryPhases(list);   // B-06: hand mining / hand crafting
-            // Phase C: production, power, combat, campaign — appended here in their own partial files.
+            AddProductionPhases(list);  // Phase C: power, machines, flow (Sim/Production/SimComposition.Production.cs)
+            AddCombatPhases(list);      // Phase C: weapons, turrets, enemies, director (Sim/Combat/SimComposition.Combat.cs)
+            AddCampaignPhases(list);    // Phase C: home core, opening, light (Sim/Campaign/SimComposition.Campaign.cs)
             return list;
         }
 
@@ -37,6 +39,9 @@ namespace Relight.Sim
             AddCoreInitializers(list);       // B-03: seed, rng, clock
             AddWorldInitializers(list);      // B-08: ground grid, engineer spawn position
             AddInventoryInitializers(list);  // B-06: starting pockets, stats, ledger opening
+            AddProductionInitializers(list);
+            AddCombatInitializers(list);
+            AddCampaignInitializers(list);
             return list;
         }
 
@@ -46,6 +51,10 @@ namespace Relight.Sim
             AddCoreHandlers(list);
             AddWorldHandlers(list);
             AddInventoryHandlers(list);
+            AddProductionHandlers(list);
+            AddCombatHandlers(list);
+            AddCampaignHandlers(list);
+            list.Add(new AdminHandler());
             return list;
         }
 
@@ -58,5 +67,17 @@ namespace Relight.Sim
         static partial void AddCoreHandlers(List<ICommandHandler> list);
         static partial void AddWorldHandlers(List<ICommandHandler> list);
         static partial void AddInventoryHandlers(List<ICommandHandler> list);
+
+        // Phase C slots (Wave 0, 2026-09-14). Each is implemented once, in the subsystem's own partial file, and
+        // fans out to per-task sub-slots there so three workers can extend the composition without sharing a file.
+        static partial void AddProductionPhases(List<ITickPhase> list);
+        static partial void AddCombatPhases(List<ITickPhase> list);
+        static partial void AddCampaignPhases(List<ITickPhase> list);
+        static partial void AddProductionInitializers(List<IStateInitializer> list);
+        static partial void AddCombatInitializers(List<IStateInitializer> list);
+        static partial void AddCampaignInitializers(List<IStateInitializer> list);
+        static partial void AddProductionHandlers(List<ICommandHandler> list);
+        static partial void AddCombatHandlers(List<ICommandHandler> list);
+        static partial void AddCampaignHandlers(List<ICommandHandler> list);
     }
 }

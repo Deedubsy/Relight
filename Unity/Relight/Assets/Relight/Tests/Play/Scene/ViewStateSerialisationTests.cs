@@ -23,7 +23,7 @@ namespace Relight.Tests.Play
         private static readonly Type[] ViewTypes =
         {
             typeof(ViewState), typeof(DebugView), typeof(HudInset), typeof(TransportView),
-            typeof(InspectionView), typeof(NavigationView), typeof(ObjectiveView), typeof(ViewMode)
+            typeof(InspectionView), typeof(NavigationView), typeof(ObjectiveTrackingView), typeof(ViewMode)
         };
 
         [Test]

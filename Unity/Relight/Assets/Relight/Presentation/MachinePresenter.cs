@@ -7,11 +7,9 @@ namespace Relight.Presentation
     /// <summary>
     /// B-13. Keeps one <see cref="MachineView"/> alive per placed machine, keyed by sim id (TA §4.5: the
     /// presentation holds ids, never sim objects). It rebuilds only when the sim's structural revision changes —
-    /// the reference's <c>f.rev</c> pattern (flow.ts:313, TA §4.5 mechanism 2) — so a machine that merely ticks
-    /// costs nothing here, and it does that work at a tick boundary, never mid-tick.
-    ///
-    /// Not pooled: machines are long-lived and bounded (TA §7.2). Items, projectiles and enemies are the pooled
-    /// families and none of them exist yet.
+    /// the reference's <c>f.rev</c> pattern (flow.ts:313, TA §4.5 mechanism 2). Placement sync also catches paused
+    /// structural changes; read-only activity details animate between ticks with one shared material.
+    /// Machines are long-lived; their activity strokes are retained and reused (TA §7.2).
     /// </summary>
     [DisallowMultipleComponent]
     [AddComponentMenu("Relight/Machine Presenter")]
@@ -32,6 +30,16 @@ namespace Relight.Presentation
         private int _revision = -1;
         /// <summary>The simulation the views were last built from; a different one means a different session.</summary>
         private Simulation _session;
+        private Material _activityMaterial;
+        private void LateUpdate()
+        {
+            Sync();
+            var sim=host==null?null:host.Simulation;if(sim==null)return;
+            if(_activityMaterial==null)_activityMaterial=new Material(Shader.Find("Sprites/Default"));
+            var dt=host.Paused?0:Mathf.Min(Time.deltaTime,.1f);
+            foreach(var view in _views.Values)if(view!=null)view.Animate(sim,dt,_activityMaterial);
+        }
+        private void OnDestroy(){if(_activityMaterial!=null)Destroy(_activityMaterial);}
 
         /// <summary>Live views by machine id, for tests.</summary>
         public IReadOnlyDictionary<int, MachineView> Views => _views;

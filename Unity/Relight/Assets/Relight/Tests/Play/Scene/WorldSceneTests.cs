@@ -63,16 +63,24 @@ namespace Relight.Tests.Play
             var host = Object.FindAnyObjectByType<SimHost>();
             var presenter = Object.FindAnyObjectByType<MachinePresenter>();
             Assert.That(presenter, Is.Not.Null, "World.unity has no MachinePresenter.");
-            Assert.That(presenter.Views.Count, Is.Zero, "the synthetic map starts with no machines placed.");
+            // Phase C: the imported region starts with the Home Depot placed (HomeCoreInitializer), so the baseline
+            // is whatever the fresh game holds, and the chest goes on free ground near the spawn.
+            var st0 = host.Simulation.State;
+            var baseline = st0.Machines.Count;
+            Assert.That(presenter.Views.Count, Is.EqualTo(baseline), "one view per machine the fresh game starts with.");
 
-            host.Submit(new PlaceMachineCommand("chest", 8, 8));
+            // Phase C placement rules (C-10): the engineer must be in reach and carry the machine or its price.
+            var (tx, ty) = SceneFixture.FreeTile(host.Simulation, "chest", 0);
+            st0.Engineer.Pos = new Vec2(tx + 0.5, ty + 0.5);
+            Pockets.Take(host.Simulation.Context.Data, st0.Engineer, new ItemKey("chest"), 1);
+            host.Submit(new PlaceMachineCommand("chest", tx, ty));
             // One frame applies the queued command; the presenter syncs on the same frame's tick boundary.
             yield return null;
             yield return null;
 
             var st = host.Simulation.State;
-            Assert.That(st.Machines.Count, Is.EqualTo(1), "the place command was refused.");
-            var id = st.Machines[0].Id;
+            Assert.That(st.Machines.Count, Is.EqualTo(baseline + 1), "the place command was refused.");
+            var id = SceneFixture.Last(host.Simulation, "chest").Id;
             Assert.That(presenter.Views.ContainsKey(id), "no MachineView was spawned for the placed machine.");
 
             var machineView = presenter.Views[id];
@@ -83,7 +91,7 @@ namespace Relight.Tests.Play
                 "the prefab's data asset is not the one the sim placed.");
 
             // The view sits on the machine's footprint, in Unity space.
-            var expected = WorldSpace.RectCentre(8, 8, 2, 2);
+            var expected = WorldSpace.RectCentre(tx, ty, 2, 2);
             Assert.That(Vector2.Distance(
                     new Vector2(machineView.transform.position.x, machineView.transform.position.y),
                     new Vector2(expected.x, expected.y)),
@@ -112,12 +120,24 @@ namespace Relight.Tests.Play
             Assert.That(status.Model.Refreshes, Is.GreaterThan(1));
 
             // Writes: the button submits a real command and the sim acts on it.
-            var document = Object.FindAnyObjectByType<UIDocument>();
-            var button = document.rootVisualElement.Q<Button>("walk-here");
-            Assert.That(button, Is.Not.Null, "StatusPanel.uxml has no #walk-here button.");
+            // Correction pass: the panel's write seam used to be #walk-here. Click-to-move is gone (the empty hand
+            // does nothing on a click now), so the button and its MoveCommand handler went with it, and the panel's
+            // remaining action button — #sort-pockets — is the seam this half of the test exercises instead.
+            // Phase C added a second UIDocument (the pause menu); the button sits in the one that instances StatusPanel.uxml.
+            Button button = null;
+            foreach (var document in Object.FindObjectsByType<UIDocument>(FindObjectsSortMode.None))
+            {
+                var root = document != null ? document.rootVisualElement : null;
+                button = root?.Q<Button>("sort-pockets");
+                if (button != null) break;
+            }
+            Assert.That(button, Is.Not.Null, "StatusPanel.uxml has no #sort-pockets button.");
 
+            // InventorySortCommand rebuilds Engineer.Pack from the inventory (InventoryCommands.cs:36). A fresh game
+            // has never laid the pack out, so Pack is null until the command actually reaches the sim: that null →
+            // not-null flip is the observable effect of this click, and it cannot happen on the UI side alone.
             var engineer = host.Simulation.State.Engineer;
-            Assert.That(engineer.HasTarget, Is.False, "the engineer already had a walk target.");
+            engineer.Pack = null;
             var clicked = 0;
             button.clicked += () => clicked++;
             using (var submit = NavigationSubmitEvent.GetPooled())
@@ -130,11 +150,15 @@ namespace Relight.Tests.Play
 
             // Submit() queues; the command lands on the next sim tick (20 Hz), not on the next frame.
             var deadline = Time.realtimeSinceStartup + 2f;
-            while (!engineer.HasTarget && Time.realtimeSinceStartup < deadline) yield return null;
+            while (engineer.Pack == null && Time.realtimeSinceStartup < deadline) yield return null;
 
-            Assert.That(engineer.HasTarget, Is.True, "the button click did not reach the simulation.");
-            Assert.That(engineer.Target.X, Is.GreaterThan(engineer.Pos.X),
-                "the walk command did not carry the button's target.");
+            Assert.That(engineer.Pack, Is.Not.Null, "the button click did not reach the simulation.");
+
+            // …and the panel is still reading the live sim afterwards.
+            var refreshes = status.Model.Refreshes;
+            yield return new WaitForSecondsRealtime(0.5f);
+            Assert.That(status.Model.Refreshes, Is.GreaterThan(refreshes),
+                "the panel stopped reading the simulation after the command.");
         }
     }
 }

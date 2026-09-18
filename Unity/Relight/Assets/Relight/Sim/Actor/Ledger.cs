@@ -47,26 +47,57 @@ namespace Relight.Sim
                 var n = inv[(ItemId)i];
                 if (n > 0) pockets.Add((ItemId)i, n);
             }
-            // Phase C equipment: a holstered weapon's `loaded` rounds count as magazines in the pockets.
-            // Phase B has no equipment, so that term is fixed at zero.
+            // Phase C equipment (reference flow.ts heldItems): a holstered weapon's `loaded` rounds count as
+            // magazines in the pockets.
+            var weapons = st.Weapons;
+            if (weapons != null)
+                for (var i = 0; i < weapons.Owned.Count; i++)
+                    if (weapons.Owned[i].Loaded > 0) pockets.Add(ItemId.Magazine, weapons.Owned[i].Loaded);
 
-            // A cancelled hand-craft batch's plates that the Backpack could not take back yet are still the
-            // engineer's: they are owed to the pockets and HandCraft.Drain pays them in as space appears, so they
-            // are counted here rather than left as a sink. No new LedgerPlace — the four slots are unchanged.
+            // A pre-schema-6 cancelled batch's plates that the Backpack could not take back yet are still the
+            // engineer's: they are owed to the pockets and HandCraft.DrainLegacy pays them in as space appears,
+            // so they are counted here rather than left as a sink. No new LedgerPlace — the four slots are unchanged.
             var hand = st.Hand;
             if (hand != null)
             {
+                for(var i=0;i<hand.Refunds.Length;i++) if(hand.Refunds[i]>0) pockets.Add((ItemId)i,hand.Refunds[i]);
                 if (hand.RefundSteel > 0) pockets.Add(ItemId.Steel, hand.RefundSteel);
                 if (hand.RefundCopper > 0) pockets.Add(ItemId.Copper, hand.RefundCopper);
             }
 
             var machines = where[(int)LedgerPlace.Machines];
+
+            // U-D-44: the Home workshop is a physical store. Ingredients reserved for its queue and finished goods
+            // waiting in its output tray are held there — never consumed, never delivered remotely — so they are
+            // counted with the machines. A batch is counted as consumed only when it actually completes.
+            if (hand != null)
+                for (var i = 0; i < Items.Count; i++)
+                {
+                    var n = hand.Reserved.Items[(ItemId)i] + hand.Output.Items[(ItemId)i];
+                    if (n > 0) machines.Add((ItemId)i, n);
+                }
+
+            // GP-W5: cargo the engineer dropped on dying is a physical pile on the ground, never a sink. It is
+            // held where it stands and counted exactly once — with the machines, on the workshop tray's precedent.
+            // No fifth LedgerPlace: the four slots are unchanged.
+            var drops = st.Drops;
+            if (drops != null)
+                for (var ci = 0; ci < drops.Caches.Count; ci++)
+                {
+                    var bag = drops.Caches[ci].Items;
+                    for (var i = 0; i < Items.Count; i++)
+                    {
+                        var n = bag[(ItemId)i];
+                        if (n > 0) machines.Add((ItemId)i, n);
+                    }
+                }
+
             for (var mi = 0; mi < st.Machines.Count; mi++)
             {
                 var m = st.Machines[mi];
-                if (string.Equals(m.Kind, "turret", StringComparison.Ordinal))
+                if (TurretHopper.IsTurret(d, m))
                 {
-                    if (m.Rounds > 0) machines.Add(ItemId.Magazine, m.Rounds);
+                    if (m.Rounds > 0) machines.Add(TurretHopper.Ammo(d, m), m.Rounds);   // a cannon holds shells, a turret magazines
                     continue;
                 }
                 for (var i = 0; i < Items.Count; i++)
@@ -74,10 +105,11 @@ namespace Relight.Sim
                     var n = m.Inv[(ItemId)i];
                     if (n > 0) machines.Add((ItemId)i, n);
                 }
-                // Reference: a processor's finished output is its recipe's output item, anything else is magazines.
-                // Phase B machines carry no recipe (production is Phase C), so `out` counts as magazines throughout.
-                if (m.Out > 0) machines.Add(ItemId.Magazine, m.Out);
+                // `Machine.Out` is retired (B-07 puts a processor's output in `Inv[outputItem]`); nothing writes it.
             }
+
+            // B-10: items riding a belt and the one in an inserter's hand are held, in LedgerPlace.Belts.
+            FlowQueries.HeldItems(st, where[(int)LedgerPlace.Belts]);
 
             for (var p = 0; p < PlaceCount; p++)
                 for (var i = 0; i < Items.Count; i++) total.Add((ItemId)i, where[p][(ItemId)i]);

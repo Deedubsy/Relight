@@ -52,7 +52,7 @@ namespace Relight.Sim.Tests.Determinism
 
             // The run must have moved items about, or "nothing unexplained" would be trivially true.
             Assert.That(c.Sources[ItemId.Magazine], Is.EqualTo(Scenarios.ExpectedBullets).Within(1e-9), "bullets entered the game");
-            Assert.That(c.Sinks[ItemId.Steel], Is.EqualTo(10).Within(1e-9), "steel left it as a recipe input");
+            Assert.That(c.Sinks[ItemId.Steel], Is.EqualTo(15).Within(1e-9), "steel left it as a recipe input");
             Assert.That(c.At(LedgerPlace.Machines, ItemId.Magazine), Is.EqualTo(25).Within(1e-9), "bullets counted inside the chest");
             Assert.That(c.At(LedgerPlace.Pockets, ItemId.Magazine), Is.EqualTo(25).Within(1e-9), "and in the Backpack");
         }

@@ -14,6 +14,6 @@ namespace Relight.Sim
     public static class ReferenceData
     {
         /// <summary>The full exported catalogue as a <see cref="GameData"/>.</summary>
-        public static GameData Create() => CatalogueData.Build();
+        public static GameData Create() => CombatBalance.Apply(OpeningBalance.Apply(CatalogueData.Build()));
     }
 }

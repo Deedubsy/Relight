@@ -26,24 +26,53 @@ namespace Relight.Sim
         private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
 
         /// <summary>The bytes of a save of <paramref name="st"/>. <paramref name="savedAt"/> defaults to now (UTC).</summary>
-        public static byte[] Write(SimState st, GameData data, string savedAt = null)
-            => Utf8.GetBytes(WriteText(st, data, savedAt));
+        public static byte[] Write(SimState st, GameData data, string savedAt = null, string mapId = null,
+            SaveRegion region = null)
+            => Utf8.GetBytes(WriteText(st, data, savedAt, mapId, region, out _));
 
         /// <summary>
         /// The bytes of a save, with the header that describes them — what the stores put in the autosave index
         /// and the slot list, without re-parsing or re-hashing the file they just wrote.
         /// </summary>
         public static byte[] Write(SimState st, GameData data, string savedAt, out SaveHeader header)
-            => Utf8.GetBytes(WriteText(st, data, savedAt, out header));
+            => Utf8.GetBytes(WriteText(st, data, savedAt, null, null, out header));
+
+        /// <summary>The bytes of a save bound to a map (<see cref="SaveSchema.FieldMapId"/>), with its header.</summary>
+        public static byte[] Write(SimState st, GameData data, string savedAt, string mapId, out SaveHeader header)
+            => Utf8.GetBytes(WriteText(st, data, savedAt, mapId, null, out header));
+
+        /// <summary>The bytes of a save bound to a map and an imported region (C6), with its header.</summary>
+        public static byte[] Write(SimState st, GameData data, string savedAt, string mapId, SaveRegion region,
+            out SaveHeader header)
+            => Utf8.GetBytes(WriteText(st, data, savedAt, mapId, region, out header));
+
+        /// <summary>The bytes of a save of the game <paramref name="ctx"/> describes: its map and its region, recorded.</summary>
+        public static byte[] Write(SimState st, SimContext ctx, string savedAt, out SaveHeader header)
+            => Utf8.GetBytes(WriteText(st, ctx?.Data, savedAt, ctx?.MapId, SaveRegion.Of(ctx), out header));
 
         /// <summary>The save document as text (the bytes are its UTF-8 encoding).</summary>
-        public static string WriteText(SimState st, GameData data, string savedAt = null)
-            => WriteText(st, data, savedAt, out _);
+        public static string WriteText(SimState st, GameData data, string savedAt = null, string mapId = null,
+            SaveRegion region = null)
+            => WriteText(st, data, savedAt, mapId, region, out _);
 
         /// <summary>The save document as text, with its header.</summary>
         public static string WriteText(SimState st, GameData data, string savedAt, out SaveHeader header)
+            => WriteText(st, data, savedAt, null, null, out header);
+
+        /// <summary>The save document as text, bound to <paramref name="mapId"/> ("" or null for none), with its header.</summary>
+        public static string WriteText(SimState st, GameData data, string savedAt, string mapId, out SaveHeader header)
+            => WriteText(st, data, savedAt, mapId, null, out header);
+
+        /// <summary>
+        /// The save document as text, bound to <paramref name="mapId"/> ("" or null for none) and to the imported
+        /// region it was played on (<paramref name="region"/>, null for "this game does not say"), with its header.
+        /// </summary>
+        public static string WriteText(SimState st, GameData data, string savedAt, string mapId, SaveRegion region,
+            out SaveHeader header)
         {
             if (st == null) throw new ArgumentNullException(nameof(st));
+            mapId = mapId ?? "";
+            region = region ?? SaveRegion.Unknown;
             var state = CanonicalJsonWriter.Write(st);
             var hash = StateHash.Of(state);
             var stamp = savedAt ?? NowIso();
@@ -61,6 +90,8 @@ namespace Relight.Sim
                 Profile = profile,
                 DataVersion = dataVersion,
                 Hash = hash,
+                MapId = mapId,
+                Region = region,
             };
 
             // Header keys in ordinal order, as every canonical object is written.
@@ -69,8 +100,10 @@ namespace Relight.Sim
             Member(sb, SaveSchema.FieldDataVersion, CanonicalJsonWriter.QuoteString(dataVersion), true);
             Member(sb, SaveSchema.FieldHash, CanonicalJsonWriter.QuoteString(hash), false);
             Member(sb, SaveSchema.FieldKind, CanonicalJsonWriter.QuoteString(SaveSchema.Kind), false);
+            Member(sb, SaveSchema.FieldMapId, CanonicalJsonWriter.QuoteString(mapId), false);
             Member(sb, SaveSchema.FieldPlaySeconds, CanonicalJsonWriter.Num(st.PlaySeconds), false);
             Member(sb, SaveSchema.FieldProfile, CanonicalJsonWriter.QuoteString(profile), false);
+            Member(sb, SaveSchema.FieldRegion, region.ToCanonicalJson(), false);
             Member(sb, SaveSchema.FieldSavedAt, CanonicalJsonWriter.QuoteString(stamp), false);
             Member(sb, SaveSchema.FieldSeed, st.Seed.ToString(CultureInfo.InvariantCulture), false);
             Member(sb, SaveSchema.FieldState, state, false);
@@ -85,7 +118,10 @@ namespace Relight.Sim
         public static string NowIso() => DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ", CultureInfo.InvariantCulture);
 
         /// <summary>Reads a save. Never throws for bad input; see <see cref="LoadResult"/>.</summary>
-        public static LoadResult Read(byte[] bytes, GameData data)
+        /// <param name="expectedMapId">The map the running game is on; a save from a different map is refused (not damaged). Null or "" checks nothing.</param>
+        /// <param name="onto">The running game the save is being loaded into; when given, a save from another
+        /// imported region of the same map is moved onto this one (<see cref="SaveRelocate"/>) or refused.</param>
+        public static LoadResult Read(byte[] bytes, GameData data, string expectedMapId = null, SimContext onto = null)
         {
             if (bytes == null || bytes.Length == 0) return LoadResult.Refuse("the file is empty", true);
             string text;
@@ -93,11 +129,15 @@ namespace Relight.Sim
             catch (Exception) { return LoadResult.Refuse("the file is not a text save (its bytes are not UTF-8)", true); }
             // A byte-order mark is legal in a file someone re-saved from an editor; the parser does not want it.
             if (text.Length > 0 && text[0] == '\uFEFF') text = text.Substring(1);
-            return ReadText(text, data);
+            return ReadText(text, data, expectedMapId, onto);
         }
 
+        /// <summary>Reads a save into the running game <paramref name="onto"/> describes: its map binding and its region.</summary>
+        public static LoadResult Read(byte[] bytes, SimContext onto)
+            => Read(bytes, onto?.Data, onto?.MapId, onto);
+
         /// <summary>Reads a save from its text. Never throws for bad input.</summary>
-        public static LoadResult ReadText(string text, GameData data)
+        public static LoadResult ReadText(string text, GameData data, string expectedMapId = null, SimContext onto = null)
         {
             if (string.IsNullOrEmpty(text)) return LoadResult.Refuse("the file is empty", true);
             // A file re-saved by a text editor can arrive with a byte-order mark; the parser does not want one.
@@ -137,7 +177,17 @@ namespace Relight.Sim
                 Profile = root.TextOf(SaveSchema.FieldProfile, SimVersion.Ruleset),
                 DataVersion = root.TextOf(SaveSchema.FieldDataVersion, ""),
                 Hash = root.TextOf(SaveSchema.FieldHash, ""),
+                MapId = root.TextOf(SaveSchema.FieldMapId, ""),
+                Region = SaveRegion.Read(root.Member(SaveSchema.FieldRegion)),
             };
+            // Schema 4 added the region. A file that predates it says where it was made only through its map id,
+            // and there was exactly one imported region when it was written (SaveUpgrade.RegionOfOlder).
+            if (!header.Region.Known) header.Region = SaveUpgrade.RegionOfOlder(version, header.MapId);
+
+            // A save from another map is a whole different world: refused with the two names, and left where it is.
+            // A save that does not say (older, or synthetic) is not refused — there is nothing to disagree with.
+            var mismatch = MapProblem(header.MapId, expectedMapId);
+            if (mismatch != null) return LoadResult.Refuse(mismatch);
 
             // An older schema is brought up to date on the parsed document, after its own checksum has been
             // verified as written; the state is then read from the upgraded document and must hash to THAT.
@@ -159,10 +209,48 @@ namespace Relight.Sim
             if (string.CompareOrdinal(actual, expectedHash) != 0)
                 return LoadResult.Refuse("this save is damaged (its contents do not match its checksum)", true);
 
+            if(state.OpeningResourceVersion<0 || state.OpeningResourceVersion>1)
+                return LoadResult.Refuse("this save uses a resource layout unavailable in this build");
+            if(state.Hand.Refunds==null || state.Hand.Refunds.Length!=Items.Count)
+                return LoadResult.Refuse("this save has an invalid workshop refund inventory",true);
+            foreach(var amount in state.Hand.Refunds)
+                if(double.IsNaN(amount) || double.IsInfinity(amount) || amount<0)
+                    return LoadResult.Refuse("this save has an invalid workshop refund amount",true);
+            if((state.Hand.Crafting || state.Hand.Crafts>0) && HandCraft.Recipe(data,state.Hand.RecipeKey)==null)
+                return LoadResult.Refuse("this save requires an unavailable Home workshop recipe");
+            if(state.Hand.Jobs==null)
+                return LoadResult.Refuse("this save has an invalid Home workshop queue",true);
+            foreach(var job in state.Hand.Jobs)
+            {
+                if(job==null || job.Batches<0 || double.IsNaN(job.Progress) || double.IsInfinity(job.Progress) || job.Progress<0)
+                    return LoadResult.Refuse("this save has an invalid Home workshop job",true);
+                if(job.Batches>0 && HandCraft.Recipe(data,job.RecipeKey)==null)
+                    return LoadResult.Refuse("this save requires an unavailable Home workshop recipe");
+            }
+
             // Header metadata the state does not carry.
             state.PlaySeconds = header.PlaySeconds;
             // An upgraded state is a current one from here on: the next save writes the current version throughout.
             if (upgraded != null) state.Version = SaveSchema.Version;
+
+            // C6: the same city can be imported as the Home crop or whole, so a save can be on this map and still
+            // be in another region's coordinates. Moving it happens HERE — after the checksum has been verified, so
+            // the hash goes on meaning the file as written — and a move that cannot be made refuses the load
+            // without touching anything (SaveRelocate). A refusal here is not damage: the file is fine, it is this
+            // game that is somewhere else.
+            var running = SaveRegion.Of(onto);
+            if (onto != null && !string.IsNullOrEmpty(header.MapId) && !header.Region.Known)
+                return LoadResult.Refuse("This save does not record which city region it uses. Its coordinates cannot be migrated safely. The original file has been preserved.");
+            if (onto != null && header.Region.Known && !running.Known)
+                return LoadResult.Refuse("The current world is missing its region information. This save has been preserved; repair the world configuration before loading it.");
+            if (SaveRelocate.Needed(header.Region, running))
+            {
+                if (!SaveRelocate.Apply(state, header.Region, running, onto.Geometry, out var cannot))
+                    return LoadResult.Refuse(cannot);
+                var moved = "this save was made on " + header.Region + " and was moved onto " + running
+                            + "; the file itself is unchanged";
+                upgraded = string.IsNullOrEmpty(upgraded) ? moved : upgraded + "; " + moved;
+            }
 
             // Balance data is a warning, never a refusal: a changed recipe is a difference, not damage.
             string warning = null;
@@ -195,6 +283,17 @@ namespace Relight.Sim
         /// does <b>not</b> verify the hash: reading a directory of saves must not cost a full parse-and-hash of
         /// every one, and a listed entry is verified for real when it is actually loaded.
         /// </summary>
+        /// <summary>
+        /// The refusal for a save made on <paramref name="savedMap"/> when the game is on <paramref name="currentMap"/>,
+        /// or null when they agree or either side is unknown. Shared by the reader and the Load screen (C-10).
+        /// </summary>
+        public static string MapProblem(string savedMap, string currentMap)
+        {
+            if (string.IsNullOrEmpty(savedMap) || string.IsNullOrEmpty(currentMap)) return null;
+            if (string.CompareOrdinal(savedMap, currentMap) == 0) return null;
+            return "this save was made on a different map (" + savedMap + "; this game is on " + currentMap + ")";
+        }
+
         public static SaveHeader ReadHeader(byte[] bytes, out string problem)
         {
             problem = "";
@@ -231,6 +330,8 @@ namespace Relight.Sim
                 return null;
             }
 
+            var mapId = root.TextOf(SaveSchema.FieldMapId, "");
+            var region = SaveRegion.Read(root.Member(SaveSchema.FieldRegion));
             return new SaveHeader
             {
                 Version = version,
@@ -243,6 +344,8 @@ namespace Relight.Sim
                 Profile = root.TextOf(SaveSchema.FieldProfile, SimVersion.Ruleset),
                 DataVersion = root.TextOf(SaveSchema.FieldDataVersion, ""),
                 Hash = root.TextOf(SaveSchema.FieldHash, ""),
+                MapId = mapId,
+                Region = region.Known ? region : SaveUpgrade.RegionOfOlder(version, mapId),
             };
         }
 

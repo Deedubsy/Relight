@@ -1,0 +1,152 @@
+/* Pause menu — C-10, UI_AND_ONBOARDING.md §2.2, §2.6.4, §2.6.5, §2.7.1, §2.7.3.
+
+   An OVERLAY over a world that is still there: §2.6.5 keeps the in-game menus as overlays under §2.2 and §2.3,
+   and opening or closing one must not shift the camera, so nothing in this file touches the world's layout.
+   The scrim is a colour over the top, never a change to anything underneath.
+
+   The root does NOT carry `panel`: UiShell.Rebuild() hides every element that does, and this surface is opened
+   by SimHost.Paused rather than by the shell's one-panel-at-a-time rule.
+
+   USS ordering note: there is no z-index in USS. This overlay is painted above the panels because it is the LAST
+   child of the document root; that is the ordering contract and it must stay last. */
+
+.pause-menu {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(10, 16, 17, 0.72);
+}
+
+.pause-menu.hidden {
+    display: none;
+}
+
+.pause-card {
+    flex-direction: column;
+    min-width: 420px;
+    max-width: 760px;
+    max-height: 88%;
+    padding-top: var(--ui-space-5);
+    padding-bottom: var(--ui-space-5);
+    padding-left: var(--ui-space-5);
+    padding-right: var(--ui-space-5);
+    background-color: var(--ui-surface);
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+}
+
+.pause-title {
+    font-size: var(--ui-font-size-title);
+    -unity-font-style: bold;
+    color: var(--ui-text);
+    margin-bottom: var(--ui-space-4);
+}
+
+.pause-screen {
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.pause-screen.hidden {
+    display: none;
+}
+
+.pause-actions {
+    flex-direction: column;
+}
+
+/* Layout only (W-B R6). The palette, hover, active, focus and disabled states come from `.ui-button` and its
+   primary/secondary/danger modifiers in Styles/tokens.uss, which every button in this document now carries. The
+   only thing the pause menu asks for is a full-width, left-aligned, stacked button. */
+.pause-button {
+    padding-top: var(--ui-space-3);
+    padding-bottom: var(--ui-space-3);
+    padding-left: var(--ui-space-4);
+    padding-right: var(--ui-space-4);
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: var(--ui-space-2);
+    -unity-text-align: middle-left;
+    transition-duration: 0.12s;
+    transition-property: background-color;
+}
+
+.pause-heading {
+    font-size: var(--ui-font-size-heading);
+    color: var(--ui-accent);
+    margin-bottom: var(--ui-space-2);
+}
+
+.pause-scroll {
+    max-height: 320px;
+    margin-bottom: var(--ui-space-3);
+}
+
+.pause-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: var(--ui-space-2);
+}
+
+.pause-field-label {
+    width: 120px;
+    color: var(--ui-secondary);
+}
+
+.pause-field {
+    flex-grow: 1;
+}
+
+.pause-notice {
+    white-space: normal;
+    color: var(--ui-secondary);
+    font-size: var(--ui-font-size-small);
+    margin-top: var(--ui-space-2);
+}
+
+.pause-notice.bad {
+    color: var(--ui-danger);
+}
+
+.pause-empty {
+    color: var(--ui-secondary);
+    margin-bottom: var(--ui-space-2);
+}
+
+/* The world-side autosave strip. It is NOT part of the pause card: §2.7.1 shows it while play continues. */
+
+.autosave-notice {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: var(--ui-space-4);
+    -unity-text-align: middle-center;
+    color: var(--ui-text);
+    font-size: var(--ui-font-size-small);
+    padding-top: var(--ui-space-2);
+    padding-bottom: var(--ui-space-2);
+    background-color: rgba(10, 16, 17, 0.70);
+}
+
+.autosave-notice.hidden {
+    display: none;
+}
+
+.autosave-notice.bad {
+    color: var(--ui-danger);
+}

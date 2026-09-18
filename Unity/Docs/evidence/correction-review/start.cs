@@ -1,0 +1,13 @@
+var h=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.SimHost>();
+var a=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.AutosaveController>();
+var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
+a.GetType().GetField("saveOnQuit",flags).SetValue(a,false);
+a.ApplySettings(new Relight.Sim.AutosaveSettings(0,3,false,false));
+var settings=UnityEngine.InputSystem.InputSystem.settings;
+System.IO.File.WriteAllText("E:/Factorio2/Unity/Docs/evidence/correction-review/input-original.json", Newtonsoft.Json.JsonConvert.SerializeObject(new {background=(int)settings.backgroundBehavior,editor=(int)settings.editorInputBehaviorInPlayMode}));
+settings.backgroundBehavior=UnityEngine.InputSystem.InputSettings.BackgroundBehavior.IgnoreFocus;
+settings.editorInputBehaviorInPlayMode=UnityEngine.InputSystem.InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+var doc=UnityEngine.Object.FindObjectsByType<UnityEngine.UIElements.UIDocument>(UnityEngine.FindObjectsSortMode.None).First(d=>d.visualTreeAsset!=null&&d.visualTreeAsset.name=="GameUI");
+var names=new[]{"hud-host","engineer-block","opening-hint","action-bar","goal-card"};
+UnityEngine.ScreenCapture.CaptureScreenshot("E:/Factorio2/Unity/Docs/evidence/correction-review/hud.png");
+return new {region=Relight.Sim.SaveRegion.Of(h.Simulation.Context), t=h.Simulation.State.T, elements=names.Select(n=>{var e=UnityEngine.UIElements.UQueryExtensions.Q<UnityEngine.UIElements.VisualElement>(doc.rootVisualElement,n);return new {name=n,rect=e==null?new float[0]:new[]{e.worldBound.x,e.worldBound.y,e.worldBound.width,e.worldBound.height}};}).ToArray()};

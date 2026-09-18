@@ -212,6 +212,17 @@ namespace Relight.Sim
         /// </summary>
         public AutosaveIndex RebuildIndex() => Reconcile(null);
 
+        /// <summary>Delete one autosave and its backup, then reconcile the index. "" or the reason it failed (C-10).</summary>
+        public string Delete(string fileName)
+        {
+            var path = Resolve(fileName, out var problem);
+            if (path == null) return problem;
+            try { _fs.Delete(path); _fs.Delete(path + AtomicWrite.BackupSuffix); }
+            catch (Exception e) { return AtomicWrite.Describe(e, "the save could not be deleted"); }
+            var written = WriteIndex(RebuildIndex());
+            return written != null && !written.Ok ? written.Reason : "";
+        }
+
         /// <summary>The index exactly as written, or null when there is none we can use.</summary>
         private AutosaveIndex ParseIndex()
         {
@@ -268,6 +279,7 @@ namespace Relight.Sim
                     entry.Tick = header.Tick;
                     entry.PlaySeconds = header.PlaySeconds;
                     entry.Hash = header.Hash ?? "";
+                    entry.MapId = header.MapId ?? "";
                 }
                 else
                 {
@@ -278,6 +290,7 @@ namespace Relight.Sim
                     entry.Tick = known?.Tick ?? 0;
                     entry.PlaySeconds = known?.PlaySeconds ?? 0;
                     entry.Hash = known?.Hash ?? "";
+                    entry.MapId = known?.MapId ?? "";
                     entry.Problem = string.IsNullOrEmpty(problem) ? "the autosave could not be read" : problem;
                 }
                 entries.Add(entry);
@@ -342,6 +355,7 @@ namespace Relight.Sim
                     Tick = e.Tick,
                     PlaySeconds = e.PlaySeconds,
                     Hash = e.Hash,
+                    MapId = e.MapId,
                     FromBackup = e.FromBackup,
                     Problem = e.Problem,
                 });
@@ -354,7 +368,17 @@ namespace Relight.Sim
         /// <c>.bak</c> is tried, and failing that the next-newest slot is tried — §9.4.5's recovery order. The
         /// result says which file it came from and why, so the UI can tell the player.
         /// </summary>
-        public LoadResult LoadNewest(GameData data)
+        public LoadResult LoadNewest(GameData data, string expectedMapId = null)
+            => LoadNewest(data, expectedMapId, null);
+
+        /// <summary>
+        /// The newest working autosave, loaded onto the game <paramref name="onto"/> is running: a ring file written
+        /// on another crop of the same city is moved onto this one (C6), and one that cannot be moved counts as
+        /// unusable, so the recovery walks on to the next-newest instead of failing the load outright.
+        /// </summary>
+        public LoadResult LoadNewest(SimContext onto) => LoadNewest(onto?.Data, onto?.MapId, onto);
+
+        private LoadResult LoadNewest(GameData data, string expectedMapId, SimContext onto)
         {
             var entries = ListRecoverable();
             if (entries.Count == 0) return LoadResult.Refuse("there are no autosaves yet");
@@ -362,7 +386,7 @@ namespace Relight.Sim
             string firstReason = null;
             for (var i = 0; i < entries.Count; i++)
             {
-                var r = SaveStore.LoadFile(_fs, entries[i].Path, data, true);
+                var r = SaveStore.LoadFile(_fs, entries[i].Path, data, true, expectedMapId, onto);
                 if (r.Ok)
                 {
                     if (i > 0 && string.IsNullOrEmpty(r.Recovered))
@@ -375,11 +399,19 @@ namespace Relight.Sim
         }
 
         /// <summary>Load one named ring file (<c>auto-2.json</c>, <c>auto-quit.json</c>), with the same recovery.</summary>
-        public LoadResult Load(string fileName, GameData data)
+        public LoadResult Load(string fileName, GameData data, string expectedMapId = null)
         {
             var path = Resolve(fileName, out var bad);
             if (path == null) return LoadResult.Refuse(bad);
-            return SaveStore.LoadFile(_fs, path, data, true);
+            return SaveStore.LoadFile(_fs, path, data, true, expectedMapId);
+        }
+
+        /// <summary>One named ring file, loaded onto the game <paramref name="onto"/> is running (C6 relocation).</summary>
+        public LoadResult Load(string fileName, SimContext onto)
+        {
+            var path = Resolve(fileName, out var bad);
+            if (path == null) return LoadResult.Refuse(bad);
+            return SaveStore.LoadFile(_fs, path, onto?.Data, true, onto?.MapId, onto);
         }
     }
 
@@ -400,6 +432,8 @@ namespace Relight.Sim
         public int Tick { get; set; }
         public double PlaySeconds { get; set; }
         public string Hash { get; set; } = "";
+        /// <summary>The map the autosave was made on (<see cref="SaveHeader.MapId"/>); "" when unknown.</summary>
+        public string MapId { get; set; } = "";
         /// <summary>
         /// True when this entry describes the slot's <c>.bak</c> because the slot itself is missing or unreadable.
         /// The save still loads: <see cref="SaveStore.LoadFile"/> recovers it and puts the file back. Not stored.
@@ -450,6 +484,7 @@ namespace Relight.Sim
             entry.Tick = header?.Tick ?? 0;
             entry.PlaySeconds = header?.PlaySeconds ?? 0;
             entry.Hash = header?.Hash ?? "";
+            entry.MapId = header?.MapId ?? "";
         }
 
         public string ToJson()
@@ -462,6 +497,7 @@ namespace Relight.Sim
                 if (i > 0) sb.Append(',');
                 sb.Append("{\"file\":").Append(CanonicalJsonWriter.QuoteString(e.File));
                 sb.Append(",\"hash\":").Append(CanonicalJsonWriter.QuoteString(e.Hash ?? ""));
+                sb.Append(",\"mapId\":").Append(CanonicalJsonWriter.QuoteString(e.MapId ?? ""));
                 sb.Append(",\"playSeconds\":").Append(CanonicalJsonWriter.Num(e.PlaySeconds));
                 sb.Append(",\"savedAt\":").Append(CanonicalJsonWriter.QuoteString(e.SavedAt ?? ""));
                 sb.Append(",\"seq\":").Append(e.Seq.ToString(CultureInfo.InvariantCulture));
@@ -503,6 +539,7 @@ namespace Relight.Sim
                     Tick = (int)item.NumberOf("tick"),
                     PlaySeconds = item.NumberOf("playSeconds"),
                     Hash = item.TextOf("hash", ""),
+                    MapId = item.TextOf("mapId", ""),
                 };
                 if (entry.Seq > highest) highest = entry.Seq;
                 index.Add(entry);

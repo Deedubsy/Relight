@@ -37,7 +37,11 @@ namespace Relight.Tests.Play
         {
             var s = saver.Scheduler;
             var seconds = s.Settings.IntervalSeconds - 1;
-            Assert.That(s.Advance(seconds, host.Simulation), Is.Null, "no autosave may be written by the setup");
+            // Phase C: the frames between the scene load and this call may already have accepted a few ticks
+            // (the HUD binds and the lighting texture builds on the first frames), so advance to the mark rather
+            // than by it — the assertions below still pin "one second short of a write" exactly.
+            var already = s.SecondsSinceSave;
+            Assert.That(s.Advance(seconds - already, host.Simulation), Is.Null, "no autosave may be written by the setup");
             Assert.That(s.SecondsSinceSave, Is.EqualTo(seconds).Within(1e-9));
             return seconds;
         }

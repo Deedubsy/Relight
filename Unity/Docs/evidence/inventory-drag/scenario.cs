@@ -1,0 +1,10 @@
+var host=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.SimHost>();var sim=host.Simulation;
+var inv=UnityEngine.Object.FindAnyObjectByType<Relight.UI.InventoryPanelController>();var shell=UnityEngine.Object.FindAnyObjectByType<Relight.UI.UiShell>();
+var doc=inv.GetComponent<UnityEngine.UIElements.UIDocument>();var root=doc.rootVisualElement;
+UnityEngine.InputSystem.InputSystem.settings.backgroundBehavior=UnityEngine.InputSystem.InputSettings.BackgroundBehavior.IgnoreFocus;
+UnityEngine.InputSystem.InputSystem.settings.editorInputBehaviorInPlayMode=UnityEngine.InputSystem.InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+UnityEngine.InputSystem.InputSystem.EnableDevice(UnityEngine.InputSystem.Mouse.current);
+sim.Apply(new Relight.Sim.AdminCommand("grant","coal",20));sim.Context.Data.TryMachine("generator",out var spec);
+var gen=new Relight.Sim.Machine{Id=sim.State.NextId++,Kind="generator",X=72,Y=360,Size=spec.Size};sim.State.Machines.Add(gen);sim.State.Rev++;
+sim.State.Engineer.Pos=new Relight.Sim.Vec2(71,361);inv.OpenStore(gen.Id);shell.Open("inventory-panel");
+return new {generator=gen.Id,slots=inv.Model.Store.Count};

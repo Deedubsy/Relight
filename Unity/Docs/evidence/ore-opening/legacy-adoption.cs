@@ -1,0 +1,15 @@
+var host=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.SimHost>();
+var boot=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.WorldBootstrap>();
+var legacy=boot.ContextForLayout(0);var old=Relight.Sim.Simulation.NewGame(legacy,42).State;
+old.Ground.SetDug(352*legacy.Geometry.Width+59,legacy.Geometry.Width*legacy.Geometry.Height,123);
+var read=Relight.Sim.SaveSerializer.Read(Relight.Sim.SaveSerializer.Write(old,legacy.Data),host.Simulation.Context);
+if(!read.Ok)throw new System.Exception(read.Reason);
+var saves=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.AutosaveController>();
+saves.GetType().GetMethod("Adopt",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).Invoke(saves,new object[]{read});
+var sim=host.Simulation;var ok=sim.State.OpeningResourceVersion==0;
+ok &= Relight.Sim.Mining.TryTile(sim.Context,sim.State,59,352,out var item,out var units)&&item==Relight.Sim.ItemId.Steel&&units==123;
+ok &= sim.Context.Data.TryRecipe("steel-plates",out var recipe)&&recipe.Inputs[0].Count==2;
+ok &= !sim.Context.Data.TryRecipe("hand-steel",out _);
+if(!ok)throw new System.Exception("Legacy layout or balance was changed on adoption");
+System.IO.File.WriteAllText("E:/Factorio2/Unity/Docs/evidence/ore-opening/legacy-adoption.txt","PASS Actual save adoption restores the original resource layout and original 2-ore recipe. Saved tile depletion (123 units) is retained. No player save files were read or written.\n");
+return "Legacy save adoption retains layout, recipe costs and depletion.";

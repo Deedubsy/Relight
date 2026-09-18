@@ -52,7 +52,10 @@ namespace Relight.Sim.Tests
         {
             var handlers = new List<ICommandHandler>
             {
-                new InventoryCommandHandler(), new HandCraftHandler(), new MachineTransferHandler(), new PlacementHandler(),
+                // Composition order (SimComposition.Inventory.cs): the dropped-cargo handler sits third, after
+                // hand crafting and before the machine transfers.
+                new InventoryCommandHandler(), new HandCraftHandler(), new DeathCacheHandler(),
+                new MachineTransferHandler(), new PlacementHandler(),
             };
             for (var i = 0; i < handlers.Count; i++)
                 if (handlers[i].TryApply(ctx, st, c, out var r)) return r;
@@ -68,6 +71,15 @@ namespace Relight.Sim.Tests
 
         public static Machine Place(SimContext ctx, SimState st, string kind, int x, int y)
         {
+            // Wave 1 (W-C): placement charges the data cost, so the fixture funds it first and books the plates
+            // as made so the ledger still balances.
+            if (ctx.Data.TryMachine(kind, out var spec) && spec.Cost != null)
+                for (var i = 0; i < spec.Cost.Count; i++)
+                {
+                    var c = spec.Cost[i];
+                    st.Engineer.Inv[c.Item] = st.Engineer.Inv[c.Item] + c.Count;
+                    st.Stats.Made.Add(c.Item, c.Count);
+                }
             var r = Placement.Place(ctx, st, kind, x, y, Dir.N);
             NUnit.Framework.Assert.IsTrue(r.ok, $"place {kind}: {r.reason}");
             return st.Machines[st.Machines.Count - 1];

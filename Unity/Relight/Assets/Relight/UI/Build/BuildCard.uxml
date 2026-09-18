@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One build card (W-B R3, reference buildPanel.ts `catalogue-tile`).
+
+  A Button, so it is focusable and clickable without the controller wiring a pointer handler; its children are
+  picking-mode="Ignore" so the click always lands on the button itself. The icon square is filled by ItemIcons:
+  a colour and a two-letter code until real art exists.
+
+  BuildPanelController instantiates this per catalogue row and only sets text and USS classes. A card the
+  Backpack cannot pay for gets the "unavailable" class and says why; it is NOT disabled, because taking a ghost
+  in hand while you fetch the materials is a legitimate thing to do, and the placement itself refuses in the
+  simulation's own words.
+
+  U-D-55 stacks the card: the icon and the name share a head row, and the cost and status sit UNDER them across
+  the card's whole width. Beside a 28px icon the cost had 156px to wrap in and ran to four lines on the dearest
+  machines; across the card it has 187px at the default drawer width and, because `.build-host` floors itself
+  at 200px, never less than 174px — three lines either way, which is what lets every card hold one height.
+  Every query is by name from the card root, so the controller is untouched by the move. -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <ui:Button name="build-card" class="build-card">
+        <ui:VisualElement name="card-head" class="card-head" picking-mode="Ignore">
+            <ui:VisualElement name="card-icon" class="item-icon" picking-mode="Ignore">
+                <ui:Label name="card-icon-code" text="" class="item-icon-code" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:Label name="card-name" text="" class="card-name" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="card-text" class="card-text" picking-mode="Ignore">
+            <ui:Label name="card-cost" text="" class="card-cost" picking-mode="Ignore" />
+            <ui:Label name="card-status" text="" class="card-status" picking-mode="Ignore" />
+        </ui:VisualElement>
+    </ui:Button>
+</ui:UXML>

@@ -1,0 +1,329 @@
+/*
+ * Title screen — C-10 (UI_AND_ONBOARDING.md §2.6.1).
+ *
+ * The front end is a SEPARATE DOCUMENT, not an overlay: no world runs behind it, so §2.3's camera-inset rule does
+ * not apply and this sheet may fill the screen (§2.6.5). Every colour and size is a token from Styles/tokens.uss;
+ * no literal colour appears below (the tokens sheet's own rule).
+ *
+ * Two conventions the controller depends on and that must survive any restyle:
+ *   - a screen is shown by REMOVING the class `hidden`; the controller never writes element.style.*,
+ *   - a row that cannot be loaded is `SetEnabled(false)` and carries `.row-disabled`; it is never hidden.
+ */
+
+.title-screen {
+    flex-grow: 1;
+    background-color: var(--ui-bg);
+    color: var(--ui-text);
+    font-size: var(--ui-font-size-body);
+    padding-top: var(--ui-space-6);
+    padding-bottom: var(--ui-space-6);
+    padding-left: var(--ui-space-6);
+    padding-right: var(--ui-space-6);
+}
+
+.hidden {
+    display: none;
+}
+
+/* ---- Masthead ------------------------------------------------------------------------------------------ */
+
+.title-name {
+    font-size: var(--ui-font-size-title);
+    -unity-font-style: bold;
+    color: var(--ui-text);
+    margin-bottom: var(--ui-space-1);
+}
+
+.title-build {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    margin-bottom: var(--ui-space-5);
+}
+
+/* ---- Screens ------------------------------------------------------------------------------------------- */
+
+.title-body {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.screen {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.screen-heading {
+    font-size: var(--ui-font-size-heading);
+    color: var(--ui-text);
+    margin-bottom: var(--ui-space-3);
+}
+
+/* ---- The menu ------------------------------------------------------------------------------------------ */
+
+.title-menu {
+    flex-direction: column;
+    width: 340px;
+    max-width: 100%;
+}
+
+.menu-button {
+    background-color: var(--ui-raised);
+    color: var(--ui-text);
+    font-size: var(--ui-font-size-body);
+    -unity-text-align: middle-left;
+    padding-top: var(--ui-space-3);
+    padding-bottom: var(--ui-space-3);
+    padding-left: var(--ui-space-4);
+    padding-right: var(--ui-space-4);
+    margin-bottom: var(--ui-space-2);
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    transition-duration: 0.12s;
+}
+
+.menu-button:hover {
+    background-color: var(--ui-surface);
+}
+
+.menu-button:focus {
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+/* A disabled entry keeps readable text and states its reason beside it (RI-02B_UI_SPEC.md:38-43). */
+.menu-button:disabled {
+    opacity: 0.55;
+}
+
+.menu-reason {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    white-space: normal;
+    margin-bottom: var(--ui-space-3);
+    margin-left: var(--ui-space-1);
+}
+
+/* ---- New Game ------------------------------------------------------------------------------------------ */
+
+.field-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: var(--ui-space-3);
+}
+
+.field-label {
+    width: 180px;
+    color: var(--ui-secondary);
+}
+
+.field-input {
+    width: 180px;
+}
+
+.ruleset-line {
+    color: var(--ui-secondary);
+    margin-bottom: var(--ui-space-4);
+    white-space: normal;
+}
+
+.button-row {
+    flex-direction: row;
+    margin-top: var(--ui-space-4);
+}
+
+.action-button {
+    background-color: var(--ui-raised);
+    color: var(--ui-text);
+    padding-top: var(--ui-space-2);
+    padding-bottom: var(--ui-space-2);
+    padding-left: var(--ui-space-4);
+    padding-right: var(--ui-space-4);
+    margin-right: var(--ui-space-2);
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    transition-duration: 0.12s;
+}
+
+.action-button:hover {
+    background-color: var(--ui-surface);
+}
+
+.action-button:disabled {
+    opacity: 0.55;
+}
+
+/* ---- Load list ----------------------------------------------------------------------------------------- */
+
+.save-scroll {
+    flex-grow: 1;
+    margin-bottom: var(--ui-space-3);
+}
+
+.group-heading {
+    font-size: var(--ui-font-size-heading);
+    color: var(--ui-accent);
+    margin-top: var(--ui-space-4);
+    margin-bottom: var(--ui-space-2);
+}
+
+.save-row {
+    flex-direction: row;
+    align-items: center;
+    background-color: var(--ui-surface);
+    padding-top: var(--ui-space-2);
+    padding-bottom: var(--ui-space-2);
+    padding-left: var(--ui-space-3);
+    padding-right: var(--ui-space-3);
+    margin-bottom: var(--ui-space-2);
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+}
+
+.save-row.row-latest {
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+.save-row.row-disabled {
+    opacity: 0.65;
+}
+
+.save-row-text {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.save-row-line {
+    color: var(--ui-text);
+    white-space: normal;
+}
+
+.save-row-detail {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    white-space: normal;
+}
+
+.save-row-reason {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-danger);
+    white-space: normal;
+}
+
+.save-row-actions {
+    flex-direction: row;
+    flex-shrink: 0;
+}
+
+.empty-line {
+    color: var(--ui-secondary);
+    margin-top: var(--ui-space-2);
+}
+
+/* ---- Notices ------------------------------------------------------------------------------------------- */
+
+.notice-line {
+    color: var(--ui-secondary);
+    white-space: normal;
+    margin-top: var(--ui-space-2);
+    min-height: 22px;
+}
+
+.notice-line.bad {
+    color: var(--ui-danger);
+}
+
+/* ---- Confirmation / failure modal ---------------------------------------------------------------------- */
+
+/* The overlay is the last child of the document, so it paints above the screens without a z-index (which USS
+   does not have): UI Toolkit draws siblings in document order. */
+.modal-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(21, 29, 30, 0.82);
+    display: none;
+}
+
+.modal-overlay.open {
+    display: flex;
+}
+
+.modal-card {
+    width: 460px;
+    max-width: 92%;
+    background-color: var(--ui-surface);
+    padding-top: var(--ui-space-4);
+    padding-bottom: var(--ui-space-4);
+    padding-left: var(--ui-space-4);
+    padding-right: var(--ui-space-4);
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+}
+
+.modal-title {
+    font-size: var(--ui-font-size-heading);
+    -unity-font-style: bold;
+    color: var(--ui-text);
+    margin-bottom: var(--ui-space-2);
+    white-space: normal;
+}
+
+.modal-body {
+    color: var(--ui-secondary);
+    white-space: normal;
+    margin-bottom: var(--ui-space-4);
+}
+
+.modal-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+}

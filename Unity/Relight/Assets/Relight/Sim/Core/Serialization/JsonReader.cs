@@ -102,11 +102,27 @@ namespace Relight.Sim
             return true;
         }
 
+        /// <summary>A boolean, for <see cref="TryAddMember"/>.</summary>
+        internal static JsonValue BoolValue(bool b)
+        {
+            var v = Scalar(JsonKind.Bool);
+            v.Bool = b;
+            return v;
+        }
+
         /// <summary>A number, for <see cref="TryAddMember"/>.</summary>
         internal static JsonValue NumberValue(double n)
         {
             var v = Scalar(JsonKind.Number);
             v.Number = n;
+            return v;
+        }
+
+        /// <summary>A string, for <see cref="TryAddMember"/>.</summary>
+        internal static JsonValue TextValue(string s)
+        {
+            var v = Scalar(JsonKind.String);
+            v.Text = s ?? "";
             return v;
         }
 

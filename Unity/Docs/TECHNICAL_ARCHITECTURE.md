@@ -559,6 +559,8 @@ The sim appends to `state.Events`; `SimHost` drains them once per frame (`DrainE
 
 **A note on `tileHooks`.** The reference's module-global `tileHooks.current` / `threatHooks.current` (§2.4) should **not** be ported as globals. Replace with explicit interfaces (`ITileLayer`, `IThreatLayer`) constructed once and held on the sim's own context object. This removes a class of cross-test contamination and makes the two layers testable in isolation.
 
+**As built (2026-09-14, C-08).** Both names are live interfaces and they are not the same seam: `IThreatLayer` (`Sim/Core/Contracts/Layers.cs`) is the danger-seconds layer described above, while the **raid seam** — reserve, release, defer, blocked, next-major, schedule-group — shipped as **`IRaidDirector`** (`Sim/Combat/Director/Threat.cs`) with a static `Director` facade, because the brief's name was already taken.
+
 ### 4.4 Data ownership
 
 | Data | Owner | Lives in | Mutable at runtime? |
@@ -837,7 +839,7 @@ Keep the reference's shape — it is well-designed and battle-tested:
 
 ```jsonc
 {
-  "version": 2,                 // Unity save schema version, restarts at 1; v2 since the 2026-09-12 repair pass (state.hand.refundSteel/refundCopper, U-M-37)
+  "version": 4,                 // Unity save schema version, restarts at 1; v2 since the 2026-09-12 repair pass (state.hand.refundSteel/refundCopper, U-M-37); v4 since the 2026-09-14 correction pass adds "region": {id, originX, originY, width, height} — v1–v3 riverfront saves are read as the Home crop (43,91) 78×367 and relocated on load (SaveRelocate, U-M-40)
   "kind": "relight-save-unity",
   "savedAt": "…",               // metadata only, excluded from hash
   "seed": 3,

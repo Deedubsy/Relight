@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pause menu — C-10 (UI_AND_ONBOARDING.md §2.2, §2.6.4, §2.6.5, §2.7.1, §2.7.3).
+
+  Its own document, meant for a UIDocument whose sortingOrder is above the shell's, so the overlay is over the
+  panels without any USS z-index (there is none in USS; ordering is document order and sortingOrder).
+
+  Neither root carries the class `panel`, because UiShell.Rebuild() hides every element that does and neither of
+  these is one of the shell's one-at-a-time drawers.
+
+  Two roots on purpose:
+    1. `autosave-notice` — the transient line of §2.7.1, shown while play CONTINUES. It is not in the pause card
+       because it is not part of pausing.
+    2. `pause-menu` — the overlay itself. It is last, so it paints over the notice.
+
+  Correction pass (W-B R6): the buttons now carry the shared hierarchy from Styles/tokens.uss — `ui-button` plus
+  ONE of `ui-button-primary` (the action the screen exists for), `ui-button-secondary` or `ui-button-danger`. The
+  `pause-button` class that remains is layout only (full width, left aligned, stacked), so the palette, the hover
+  and the focus ring are the same here as in the Backpack and the build menu.
+
+  Save rows are instances of UI/FrontEnd/SaveRowItem.uxml, built by SaveListView, so a row looks and behaves the
+  same here as on the title screen. Settings is an instance of the ONE settings document (§3.8). -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/FrontEnd/TitleScreen.uss" />
+    <Style src="project://database/Assets/Relight/UI/PauseMenu/PauseMenu.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+
+    <ui:Template name="settings-section" src="project://database/Assets/Relight/UI/Settings/SettingsPanel.uxml" />
+
+    <ui:Label name="autosave-notice" text="" class="autosave-notice hidden" />
+
+    <ui:VisualElement name="pause-menu" class="pause-menu hidden">
+        <ui:VisualElement name="pause-card" class="pause-card">
+
+            <ui:Label name="pause-title" text="Paused" class="pause-title" />
+
+            <!-- The menu itself -->
+            <ui:VisualElement name="screen-pause" class="pause-screen">
+                <ui:VisualElement name="pause-actions" class="pause-actions">
+                    <ui:Button name="pause-resume" text="Resume" class="ui-button ui-button-primary pause-button" />
+                    <ui:Button name="pause-save" text="Save" class="ui-button ui-button-secondary pause-button" />
+                    <ui:Button name="pause-load" text="Load" class="ui-button ui-button-secondary pause-button" />
+                    <ui:Button name="pause-settings" text="Settings" class="ui-button ui-button-secondary pause-button" />
+                    <ui:Button name="pause-exit" text="Save and exit to title" class="ui-button ui-button-danger pause-button" />
+                </ui:VisualElement>
+                <ui:Label name="pause-notice" text="" class="pause-notice" />
+            </ui:VisualElement>
+
+            <!-- Save -->
+            <ui:VisualElement name="screen-save" class="pause-screen hidden">
+                <ui:Label name="save-heading" text="Manual saves" class="pause-heading" />
+                <ui:ScrollView name="save-scroll" class="pause-scroll">
+                    <ui:VisualElement name="save-list" />
+                </ui:ScrollView>
+                <ui:Label name="save-empty" text="" class="pause-empty" />
+                <ui:VisualElement class="pause-row">
+                    <ui:Label name="save-name-label" text="Save name" class="pause-field-label" />
+                    <ui:TextField name="save-name" class="pause-field" />
+                </ui:VisualElement>
+                <ui:VisualElement name="save-buttons" class="pause-actions">
+                    <ui:Button name="save-confirm" text="Save" class="ui-button ui-button-primary pause-button" />
+                    <ui:Button name="save-back" text="Back" class="ui-button ui-button-secondary pause-button" />
+                </ui:VisualElement>
+                <ui:Label name="save-notice" text="" class="pause-notice" />
+            </ui:VisualElement>
+
+            <!-- Load -->
+            <ui:VisualElement name="screen-load" class="pause-screen hidden">
+                <ui:ScrollView name="load-scroll" class="pause-scroll">
+                    <ui:Label name="manual-heading" text="Manual saves" class="pause-heading" />
+                    <ui:VisualElement name="manual-list" />
+                    <ui:Label name="autosave-heading" text="Autosaves" class="pause-heading" />
+                    <ui:VisualElement name="autosave-list" />
+                    <ui:Label name="no-saves" text="" class="pause-empty" />
+                </ui:ScrollView>
+                <ui:Button name="load-back" text="Back" class="ui-button ui-button-secondary pause-button" />
+                <ui:Label name="load-notice" text="" class="pause-notice" />
+            </ui:VisualElement>
+
+            <!-- Settings -->
+            <ui:VisualElement name="screen-settings" class="pause-screen hidden">
+                <ui:ScrollView name="settings-scroll-host" class="pause-scroll">
+                    <ui:Instance template="settings-section" name="settings-host" />
+                </ui:ScrollView>
+                <ui:Button name="settings-back" text="Back" class="ui-button ui-button-secondary pause-button" />
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+
+        <!-- Confirmations and the save-failure modal. Last child, so it paints over the card. -->
+        <ui:VisualElement name="modal" class="modal-overlay">
+            <ui:VisualElement name="modal-card" class="modal-card">
+                <ui:Label name="modal-title" text="" class="modal-title" />
+                <ui:Label name="modal-body" text="" class="modal-body" />
+                <ui:VisualElement name="modal-buttons" class="modal-buttons" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

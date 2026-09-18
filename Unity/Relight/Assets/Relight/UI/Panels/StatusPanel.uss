@@ -1,29 +1,18 @@
 /*
- * Status panel — B-13. Every value here is a token from Styles/tokens.uss; there are no literals except the
- * 1px borders UI Toolkit needs spelled per side. Edit this file, or the panel, in UI Builder: no C# reads it.
+ * Status panel — B-13, tidied in the correction pass (W-B R6).
+ *
+ * Every value is a token from Styles/tokens.uss. The chrome (.panel, .panel-title, .panel-heading, .ui-button)
+ * now lives ONLY in that sheet — this file used to carry its own byte-identical copies, which is exactly the
+ * "two places to edit" the one-consistent-style requirement is against. What is left is this panel's own
+ * geometry and its rows. Edit this file, or the panel, in UI Builder: no C# reads it.
  */
 
-.panel {
-    position: absolute;
-    background-color: var(--ui-surface);
-    border-left-color: var(--ui-border);
-    border-right-color: var(--ui-border);
-    border-top-color: var(--ui-border);
-    border-bottom-color: var(--ui-border);
-    border-left-width: 1px;
-    border-right-width: 1px;
-    border-top-width: 1px;
-    border-bottom-width: 1px;
-    border-top-left-radius: var(--ui-radius);
-    border-top-right-radius: var(--ui-radius);
-    border-bottom-left-radius: var(--ui-radius);
-    border-bottom-right-radius: var(--ui-radius);
-    color: var(--ui-text);
-}
 
 #status-panel {
-    top: var(--ui-space-4);
-    left: var(--ui-space-4);
+    /* Phase C (2026-09-14): a right-side drawer like the Backpack, so it never covers the top-left goal card
+       (UI_AND_ONBOARDING.md §4.1 fixes the top-left for the goal card; this Phase B panel is a drawer, not HUD). */
+    top: 96px;   /* under the HUD strip, level with the goal card (GoalCard.uss) */
+    right: var(--ui-space-4);
     width: 320px;
     padding-left: var(--ui-space-4);
     padding-right: var(--ui-space-4);
@@ -31,18 +20,7 @@
     padding-bottom: var(--ui-space-3);
 }
 
-.panel-title {
-    font-size: var(--ui-font-size-title);
-    color: var(--ui-accent);
-    margin-bottom: var(--ui-space-2);
-}
 
-.panel-heading {
-    font-size: var(--ui-font-size-heading);
-    color: var(--ui-text);
-    margin-top: var(--ui-space-2);
-    margin-bottom: var(--ui-space-1);
-}
 
 .row {
     flex-direction: row;
@@ -73,25 +51,8 @@
     margin-top: var(--ui-space-3);
 }
 
+/* Layout only: the button carries `ui-button ui-button-secondary`, so its palette, hover, focus and disabled
+   states are the shared ones. */
 .actions > Button {
     flex-grow: 1;
-    height: 32px;
-    font-size: var(--ui-font-size-small);
-    color: var(--ui-text);
-    background-color: var(--ui-raised);
-    border-left-color: var(--ui-border);
-    border-right-color: var(--ui-border);
-    border-top-color: var(--ui-border);
-    border-bottom-color: var(--ui-border);
-    border-top-left-radius: var(--ui-radius);
-    border-top-right-radius: var(--ui-radius);
-    border-bottom-left-radius: var(--ui-radius);
-    border-bottom-right-radius: var(--ui-radius);
-    margin-left: var(--ui-space-1);
-    margin-right: var(--ui-space-1);
-}
-
-.actions > Button:hover {
-    background-color: var(--ui-border);
-    color: var(--ui-bg);
 }

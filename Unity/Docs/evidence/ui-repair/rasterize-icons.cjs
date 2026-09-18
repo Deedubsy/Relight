@@ -1,0 +1,5 @@
+const fs=require('fs');const vm=require('vm');const sharp=require('C:/Users/Admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/sharp');
+let source=fs.readFileSync('packages/game/src/itemIcons.ts','utf8').replace('const shapes:Record<string,string>','const shapes').replaceAll('export function','function').replaceAll('item:string','item').replaceAll('):string',')').replaceAll('):HTMLElement',')');
+const ctx={};vm.createContext(ctx);vm.runInContext(source+'\nglobalThis.icons=shapes;',ctx);
+const dir='Unity/Relight/Assets/Relight/UI/Icons/Textures';fs.mkdirSync(dir,{recursive:true});
+(async()=>{for(const [key,shape] of Object.entries(ctx.icons)){const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="128" height="128"><ellipse cx="32" cy="55" rx="24" ry="4" fill="#071417" opacity=".65"/>'+shape+'</svg>';await sharp(Buffer.from(svg)).png().toFile(dir+'/'+key+'.png');}console.log('Rasterized '+Object.keys(ctx.icons).length+' reference icons.');})().catch(e=>{console.error(e);process.exit(1)});

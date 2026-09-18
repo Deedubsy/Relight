@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  GameUI shell root (Phase C, coordinator). UiShell scans this document for every element carrying the
+  "panel" class, so each panel document is instanced here as a template: the Phase B status panel and the
+  Phase C Backpack drawer (which itself instances the Home workshop section). The pause menu is a separate
+  UIDocument with a higher sortingOrder so it overlays everything here. Add further panels as templates;
+  the controllers only ever look names up, they create nothing.
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/Hud/Hud.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+    <ui:Template name="hud-doc" src="project://database/Assets/Relight/UI/Hud/Hud.uxml" />
+    <ui:Template name="status-panel-doc" src="project://database/Assets/Relight/UI/Panels/StatusPanel.uxml" />
+    <ui:Template name="inventory-panel-doc" src="project://database/Assets/Relight/UI/Inventory/InventoryPanel.uxml" />
+    <ui:Template name="goal-card-doc" src="project://database/Assets/Relight/UI/Guide/GoalCard.uxml" />
+    <ui:Template name="opening-hint-doc" src="project://database/Assets/Relight/UI/Guide/OpeningHint.uxml" />
+    <ui:Template name="build-panel-doc" src="project://database/Assets/Relight/UI/Build/BuildPanel.uxml" />
+    <ui:Template name="admin-panel-doc" src="project://database/Assets/Relight/UI/Admin/AdminPanel.uxml" />
+    <!-- Correction pass (coordinator, 2026-09-14): every host carries "doc-host" (tokens.uss: absolute, all four
+         insets 0) and ignores picking. A TemplateContainer is otherwise a zero-height relative box, so a document
+         anchored with `bottom:` (the Backpack and Build drawers, the HUD action bar and placement toolbar) computed
+         its height against 0 and collapsed: overlapping labels, an invisible build menu and no action bar in the
+         first correction-pass screenshots. Ignoring picking keeps the empty screen the world's (UiShell.PointerOverUi
+         already discounts these hosts; the class makes the geometry right as well). -->
+    <ui:Instance template="hud-doc" name="hud-host" class="doc-host" picking-mode="Ignore" />
+    <ui:Instance template="status-panel-doc" name="status-panel-host" class="doc-host" picking-mode="Ignore" />
+    <ui:Instance template="inventory-panel-doc" name="inventory-panel-host" class="doc-host" picking-mode="Ignore" />
+    <ui:Instance template="goal-card-doc" name="goal-card-host" class="doc-host" picking-mode="Ignore" />
+    <ui:Instance template="opening-hint-doc" name="opening-hint-host" class="doc-host" picking-mode="Ignore" />
+
+    <!-- Correction pass W-B R3: the build menu. Instanced after the goal card and the opening hint so the drawer
+         paints over them (USS has no z-index; DOM order is the layer order). -->
+    <ui:Instance template="build-panel-doc" name="build-panel-host" class="doc-host" picking-mode="Ignore" />
+
+    <!-- Correction pass W-B R4 / contract C5: the tooltip layer, LAST so it is above every panel, and ignored by
+         picking at every level so it can never swallow the pointer event that is keeping it open.
+         TooltipController (on this document) is the only thing that writes into it. -->
+    <ui:Instance template="admin-panel-doc" name="admin-panel-host" class="doc-host" picking-mode="Ignore" />
+    <ui:VisualElement name="tooltip-layer" class="tooltip-layer" picking-mode="Ignore">
+        <ui:VisualElement name="tooltip" class="tooltip is-hidden" picking-mode="Ignore">
+            <ui:Label name="tooltip-title" text="" class="tooltip-title" picking-mode="Ignore" />
+            <ui:Label name="tooltip-body" text="" class="tooltip-body" picking-mode="Ignore" />
+            <ui:VisualElement name="tooltip-rows" class="tooltip-rows" picking-mode="Ignore" />
+            <ui:Label name="tooltip-footer" text="" class="tooltip-footer" picking-mode="Ignore" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

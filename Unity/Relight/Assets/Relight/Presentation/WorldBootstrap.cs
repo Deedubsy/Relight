@@ -1,5 +1,6 @@
 using Relight.Data;
 using Relight.Sim;
+using Relight.World;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -12,7 +13,8 @@ namespace Relight.Presentation
     /// GameObject, no camera, no tilemap and no view. Everything visible is authored in the scene asset (the editor
     /// menu <c>Relight/Setup/Build World Scene</c> writes it once, a human edits it afterwards). All this does is
     /// hand <see cref="SimHost"/> the two things only code can build — the data record from the B-05 registry and
-    /// the Phase B synthetic geometry — and pick the seed.
+    /// the world geometry (the C-01 imported region when one is assigned, the Phase B synthetic map otherwise) —
+    /// and pick the seed.
     ///
     /// The UI scene is loaded additively from here rather than from <c>Boot</c> because the world scene is what the
     /// Editor's Play button runs when a developer opens it directly, and the panel has to be there when it does.
@@ -29,6 +31,22 @@ namespace Relight.Presentation
         [Tooltip("The B-05 data registry asset. Its Build() is the sim's GameData.")]
         [SerializeField] private GameDataRegistry registry;
 
+        [Tooltip("Imported authored region (C-01). Leave empty to run the Phase B synthetic map instead.")]
+        [SerializeField] private WorldGeometryAsset geometry;
+
+        [Tooltip("Generated sites of the imported region (C-01). Read only when Geometry is set.")]
+        [SerializeField] private HomeSitesAsset sites;
+
+        [Tooltip("Optional manual site overrides (outside Generated/); win per site id.")]
+        [SerializeField] private HomeSitesOverrides siteOverrides;
+
+        [Tooltip("Fills the Terrain/Solid tilemaps from Geometry at session start (U-M-35: the scene stores no cells). " +
+                 "Found in the scene when left empty.")]
+        [SerializeField] private WorldPainter painter;
+
+        [Tooltip("Draws the city (roads, buildings, props, labels) from Geometry. Found in the scene when left empty.")]
+        [SerializeField] private CityPresenter city;
+
         [Tooltip("Campaign seed. Same seed plus same commands plus same data = same state (TA 10.4).")]
         [SerializeField] private int seed = 1;
 
@@ -40,6 +58,25 @@ namespace Relight.Presentation
 
         /// <summary>The seed the session was started with, for the report line in a debug panel.</summary>
         public int Seed => seed;
+
+        /// <summary>
+        /// The authored city the session is running on (riverfront.ts <c>RIVERFRONT_ID</c>), or empty on the
+        /// synthetic map. A save written from this session belongs to this map: the binding belongs in the save
+        /// HEADER, next to the schema version, not in <see cref="SimState"/> — the coordinator owns
+        /// <c>SaveSerializer</c>, so this property is the hand-off (see the Wave 1 W-A report).
+        /// </summary>
+        public string MapId => host != null && host.Simulation != null ? host.Simulation.Context.MapId : geometry != null ? geometry.MapId : string.Empty;
+        public WorldGeometryAsset SourceGeometry => geometry;
+        public WorldSites SourceSites => geometry != null ? SiteBridge.ToSim(HomeSites.Resolve(sites,siteOverrides),geometry.RegionId,geometry.OriginX,geometry.OriginY) : WorldSites.Empty;
+
+        /// <summary>Which region of that city is loaded (<c>city.json</c> <c>region.id</c>), or empty.</summary>
+        public string RegionId => geometry != null ? geometry.RegionId : string.Empty;
+
+        /// <summary>The sha256 of the reference sources the region was exported from, or empty.</summary>
+        public string MapSourceSha256 => geometry != null ? geometry.SourceSha256 : string.Empty;
+
+        /// <summary>True when the session runs on imported authored geometry rather than the synthetic map.</summary>
+        public bool HasImportedRegion => geometry != null;
 
         private void Awake()
         {
@@ -60,6 +97,9 @@ namespace Relight.Presentation
         }
 
         /// <summary>Build the context and start a new campaign. Safe to call again; the host replaces its simulation.</summary>
+        /// <summary>Start a new campaign on an explicit seed (C-10 New Game). Same contract as StartSession().</summary>
+        public Simulation StartSession(int withSeed) { seed = withSeed; return StartSession(); }
+
         public Simulation StartSession()
         {
             if (host == null)
@@ -74,8 +114,46 @@ namespace Relight.Presentation
             }
             // A new session starts with fresh view state: the static survives a domain reload, the session does not.
             ViewState.Reset();
-            var ctx = new SimContext(registry.Build(), SyntheticMap.Create());
-            return host.StartNewGame(ctx, seed);
+            // C-01: the imported Home region when one is assigned, the Phase B synthetic map when not. Build()
+            // returns null and logs when the asset is inconsistent, and the synthetic map then keeps the scene
+            // runnable rather than starting a session on half a world.
+            var ctx=ContextForLayout(OpeningResourceLayout.Version);
+            if(ctx==null)return null;
+            var sim=Simulation.NewGame(ctx,seed);
+            sim.State.OpeningResourceVersion=OpeningResourceLayout.Version;
+            return host.Attach(sim);
+        }
+
+        private WorldGeometryAsset _openingGeometry;
+        public SimContext ContextForLayout(int version, bool useScene = true)
+        {
+            var active=geometry;
+            var siteList=geometry!=null ? SiteBridge.ToSim(HomeSites.Resolve(sites,siteOverrides),geometry.RegionId,geometry.OriginX,geometry.OriginY):WorldSites.Empty;
+            var authored=FindFirstObjectByType<SceneWorld>();
+            if(version>0 && useScene && authored!=null && authored.useForNewGames)
+            {
+                if(_openingGeometry!=null) Destroy(_openingGeometry);
+                _openingGeometry=authored.Compile(out siteList);
+                active=_openingGeometry;
+            }
+            else if(version>0 && geometry!=null)
+            {
+                if(_openingGeometry!=null) Destroy(_openingGeometry);
+                _openingGeometry=OpeningResourceLayout.Build(geometry,siteList,out siteList);
+                active=_openingGeometry;
+            }
+            if(Application.isPlaying&&authored!=null)authored.SetRuntimeVisuals(version>0&&useScene&&authored.useForNewGames);
+            var map=active!=null ? ImportedGeometry.Build(active):null;
+            if(active!=null && map==null)return null;
+            if(map!=null)
+            {
+                if(painter==null)painter=FindFirstObjectByType<WorldPainter>(FindObjectsInactive.Include);
+                if(painter!=null)painter.Paint(active);
+                if(city==null)city=FindFirstObjectByType<CityPresenter>(FindObjectsInactive.Include);
+                if(city!=null)city.Build(active,siteList);
+            }
+            return new SimContext(version>0 ? registry.Build() : registry.BuildOriginal(),map??SyntheticMap.Create(),threat:new EnemyThreatLayer(),sites:siteList,mapId:active!=null?active.MapId:null);
+
         }
     }
 }

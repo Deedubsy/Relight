@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Opening hint - C-09. The ONLY hint overlay in the game (UI_AND_ONBOARDING.md §7.2; reference hud.ts:32).
+  One line of control help with a "Dismiss hint" button. OpeningHintController writes the text from the live
+  input bindings and remembers the dismissal in PlayerPrefs, so the element itself carries only placeholder text.
+
+  Not a "panel": it must survive a drawer opening, and it is removed by dismissal or by the player having
+  demonstrated movement and mining, never by UiShell.
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/Guide/OpeningHint.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+    <ui:VisualElement name="opening-hint" class="opening-hint" picking-mode="Ignore">
+        <ui:VisualElement name="opening-hint-body" class="opening-hint-body">
+            <ui:Label name="hint-text" text="" class="opening-hint-text" />
+            <ui:Button name="dismiss-hint" text="Dismiss hint" class="opening-hint-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

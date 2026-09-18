@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home workshop section — C-06 (reference inventoryPanel.ts, the `crafting` block of `createInventoryPanel`).
+
+  The root element carries `workshop`, NOT `panel`: UiShell.Rebuild() hides every element whose class list holds
+  `panel`, and this is a section instanced inside the Backpack drawer (UI_AND_ONBOARDING.md §5.1 item 1), not a
+  drawer of its own.
+
+  **U-D-51 (2026-09-16) put the tray slots FIRST.** The workshop is a producer, so it fills the drawer’s right
+  column the way every other producer does: name and capacity, then its slots, then its controls — which for the
+  workshop are its recipe cards. Before this the cards came first and the twenty tray slots were below them, so
+  the one producer the player visits most was the one whose output needed scrolling to.
+
+  There is no equipment block here and there must never be one again (U-D-11 / GP-PLAYTEST-FIX 3): the two
+  equipped slots live in the equipment strip under the Backpack grid, §5.6.
+
+  Cards are instantiated from RecipeCard.uxml into `workshop-cards`, core card first, then one per
+  GameData.Recipes row whose Station is "Home workshop". -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/Workshop/WorkshopPanel.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+
+    <ui:VisualElement name="workshop" class="workshop">
+        <!-- The column’s name, carrying `inventory-heading` so it is the same plate as "Backpack" opposite it. -->
+        <ui:Label name="workshop-heading" text="Home workshop" class="workshop-heading inventory-heading" />
+
+        <!-- U-D-44: the workshop keeps processing while the engineer is elsewhere and its finished goods wait in a
+             PHYSICAL output tray at the workshop.
+
+             GP-UX-2: the tray is a GRID, not a sentence with a button. It used to be one line of text ("Bullets
+             x40 . Rifle x1") and a single Collect that took the lot, which is the one container in the game the
+             player could not reach into — they could see what the workshop had made and not choose any of it. The
+             slots are built by InventoryPanelController into `workshop-output-grid`, from the same Fit/PaintCell
+             code as the Backpack, and are draggable the same way; Collect stays as the take-everything shortcut.
+             `.inventory-slot` styling reaches here because this template is instanced inside the Backpack drawer,
+             whose root carries InventoryPanel.uss.
+
+             U-D-51: the grid leads, and the capacity line, Collect and the hint follow it — the tray is this
+             producer’s inventory and sits where a machine’s slots sit. -->
+        <ui:VisualElement name="workshop-output" class="workshop-output">
+            <ui:ScrollView name="workshop-output-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden"
+                           class="workshop-output-scroll">
+                <ui:VisualElement name="workshop-output-grid" class="inventory-grid workshop-output-grid" />
+            </ui:ScrollView>
+            <ui:VisualElement name="workshop-output-row" class="workshop-output-row">
+                <ui:Label name="workshop-output-text" text="" class="card-line workshop-output-text" />
+                <ui:Button name="workshop-collect" text="Collect all" class="ui-button card-button" />
+            </ui:VisualElement>
+            <ui:Label name="workshop-output-hint" text="" class="card-line workshop-output-hint" />
+        </ui:VisualElement>
+
+        <!-- U-D-52: the cards are the only thing in this column that scrolls. The tray above them is fixed,
+             exactly as a machine’s slots are fixed, and the cards sit TWO to a row so a growing recipe
+             list costs half the scrolling it used to. The row/wrap belongs to the scroller’s content
+             container, not to the ScrollView itself, whose own children are the viewport and the bars. -->
+        <ui:ScrollView name="workshop-cards" mode="Vertical" horizontal-scroller-visibility="Hidden"
+                       class="workshop-cards" />
+        <ui:Label name="workshop-notice" text="" class="card-line" />
+    </ui:VisualElement>
+</ui:UXML>

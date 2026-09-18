@@ -1,0 +1,336 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bfd448baa5b9ac4a81d2612a53dca33, type: 3}
+  m_Name: HomeSites
+  m_EditorClassIdentifier: Relight.World::Relight.World.HomeSitesAsset
+  regionId: home
+  sites:
+  - id: home-workshop
+    name: Home workshop
+    kind: 0
+    rect:
+      x: 22
+      y: 256
+      width: 10
+      height: 14
+    item: 
+    amount: 0
+  - id: substation:0
+    name: Substation 0
+    kind: 1
+    rect:
+      x: 35
+      y: 256
+      width: 3
+      height: 3
+    item: 
+    amount: 0
+  - id: substation:1
+    name: Substation 1
+    kind: 1
+    rect:
+      x: 72
+      y: 85
+      width: 3
+      height: 3
+    item: 
+    amount: 0
+  - id: resource:steel:16:261
+    name: steel salvage
+    kind: 2
+    rect:
+      x: 16
+      y: 261
+      width: 5
+      height: 5
+    item: steel
+    amount: 7680
+  - id: resource:copper:16:268
+    name: copper salvage
+    kind: 2
+    rect:
+      x: 16
+      y: 268
+      width: 4
+      height: 3
+    item: copper
+    amount: 1200
+  - id: resource:coal:33:268
+    name: coal salvage
+    kind: 2
+    rect:
+      x: 33
+      y: 268
+      width: 3
+      height: 3
+    item: coal
+    amount: 700
+  - id: freight:camp:1
+    name: West passage camp
+    kind: 3
+    rect:
+      x: 52
+      y: 195
+      width: 1
+      height: 1
+    item: 
+    amount: 20
+  - id: freight:camp:1:group:0
+    name: West passage camp group 0
+    kind: 3
+    rect:
+      x: 25
+      y: 192
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:1:group:1
+    name: West passage camp group 1
+    kind: 3
+    rect:
+      x: 50
+      y: 188
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:1:group:2
+    name: West passage camp group 2
+    kind: 3
+    rect:
+      x: 26
+      y: 171
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:1:group:3
+    name: West passage camp group 3
+    kind: 3
+    rect:
+      x: 53
+      y: 172
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:2
+    name: Old utility camp
+    kind: 3
+    rect:
+      x: 53
+      y: 97
+      width: 1
+      height: 1
+    item: 
+    amount: 22
+  - id: freight:camp:2:group:0
+    name: Old utility camp group 0
+    kind: 3
+    rect:
+      x: 25
+      y: 95
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:2:group:1
+    name: Old utility camp group 1
+    kind: 3
+    rect:
+      x: 50
+      y: 95
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:2:group:2
+    name: Old utility camp group 2
+    kind: 3
+    rect:
+      x: 27
+      y: 73
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:2:group:3
+    name: Old utility camp group 3
+    kind: 3
+    rect:
+      x: 53
+      y: 74
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:3
+    name: Northwood approach camp
+    kind: 3
+    rect:
+      x: 52
+      y: 12
+      width: 1
+      height: 1
+    item: 
+    amount: 20
+  - id: freight:camp:3:group:0
+    name: Northwood approach camp group 0
+    kind: 3
+    rect:
+      x: 27
+      y: 8
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:3:group:1
+    name: Northwood approach camp group 1
+    kind: 3
+    rect:
+      x: 51
+      y: 8
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:3:group:2
+    name: Northwood approach camp group 2
+    kind: 3
+    rect:
+      x: 27
+      y: 27
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: freight:camp:3:group:3
+    name: Northwood approach camp group 3
+    kind: 3
+    rect:
+      x: 54
+      y: 29
+      width: 9
+      height: 9
+    item: 
+    amount: 0
+  - id: opening:raid-line
+    name: Opening raid approach
+    kind: 4
+    rect:
+      x: 26
+      y: 300
+      width: 6
+      height: 1
+    item: 
+    amount: 0
+  - id: tram:home
+    name: "T1 \xB7 Founders Court"
+    kind: 5
+    rect:
+      x: 29
+      y: 357
+      width: 2
+      height: 2
+    item: 
+    amount: 0
+  - id: yard:0
+    name: Factory yard 0
+    kind: 6
+    rect:
+      x: 40
+      y: 259
+      width: 30
+      height: 29
+    item: 
+    amount: 0
+  - id: label:0
+    name: Founders Court
+    kind: 7
+    rect:
+      x: 29
+      y: 281
+      width: 1
+      height: 1
+    item: 
+    amount: 0
+  - id: light:0
+    name: Street light
+    kind: 8
+    rect:
+      x: 21
+      y: 272
+      width: 1
+      height: 1
+    item: 
+    amount: 0
+  - id: light:1
+    name: Street light
+    kind: 8
+    rect:
+      x: 35
+      y: 272
+      width: 1
+      height: 1
+    item: 
+    amount: 0
+  - id: light:2
+    name: Street light
+    kind: 8
+    rect:
+      x: 46
+      y: 269
+      width: 1
+      height: 1
+    item: 
+    amount: 0
+  - id: light:3
+    name: Street light
+    kind: 8
+    rect:
+      x: 65
+      y: 269
+      width: 1
+      height: 1
+    item: 
+    amount: 0
+  - id: light:4
+    name: Street light
+    kind: 8
+    rect:
+      x: 46
+      y: 284
+      width: 1
+      height: 1
+    item: 
+    amount: 0
+  - id: light:5
+    name: Street light
+    kind: 8
+    rect:
+      x: 65
+      y: 284
+      width: 1
+      height: 1
+    item: 
+    amount: 0
+  - id: light:6
+    name: Street light
+    kind: 8
+    rect:
+      x: 71
+      y: 100
+      width: 1
+      height: 1
+    item: 
+    amount: 0

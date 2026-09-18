@@ -18,6 +18,7 @@ namespace Relight.Sim
         {
             list.Add(new InventoryCommandHandler());
             list.Add(new HandCraftHandler());
+            list.Add(new DeathCacheHandler());
             list.Add(new MachineTransferHandler());
             list.Add(new PlacementHandler());
         }

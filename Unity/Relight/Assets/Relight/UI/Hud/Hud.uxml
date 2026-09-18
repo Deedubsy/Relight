@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  HUD (C-07) — the player's only always-on readout, UI_AND_ONBOARDING.md §4.
+
+  Deliberately NOT a panel: the root carries no "panel" class, so UiShell.Rebuild() leaves it alone and it stays
+  visible behind every drawer. HudController only looks the names below up, copies strings into them and adds or
+  removes USS classes; it creates nothing and writes no inline style, so this file can be rebuilt in UI Builder
+  without touching C#.
+
+  The three notice rows and the three problem rows are authored here rather than created at runtime for the same
+  reason. §8 caps both at three, so three is the whole set.
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/Hud/Hud.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+    <ui:VisualElement name="hud-root" class="hud" picking-mode="Ignore">
+
+        <!--
+          Correction pass W-B R1: three contained blocks of equal height, separated by hairlines, each one
+          clipping its own text. The core meter lives INSIDE the core block (it used to be a 150px bar under a
+          label that was wider than its parent, which is what the owner saw overflowing). Nothing here is
+          full-width: the strip is content-width and centred, so it never spans the window.
+
+          The three blocks are the ONLY pickable things in the strip (R4): each carries a C5 tooltip, and a
+          tooltip needs the pointer to be able to rest on the whole block, not just on the glyphs of its label.
+          Their parents stay picking-mode="Ignore" so the empty space around the strip still belongs to the
+          world; the blocks themselves are opaque chrome, so a click on one is correctly not a click on a tile.
+        -->
+        <ui:VisualElement name="status-strip" class="hud-block" picking-mode="Ignore">
+            <ui:VisualElement name="status-content" picking-mode="Ignore">
+                <ui:VisualElement name="clock-block" class="strip-block">
+                    <ui:Label name="clock" text="Day 1 · 00:00" class="strip-value" />
+                </ui:VisualElement>
+                <ui:VisualElement name="strip-rule-1" class="strip-rule" picking-mode="Ignore" />
+                <ui:VisualElement name="power-block" class="strip-block">
+                    <ui:Label name="power" text="Power: disconnected" class="strip-value" />
+                    <ui:ProgressBar name="power-meter" low-value="0" high-value="1" title=" " class="hud-meter" />
+                </ui:VisualElement>
+                <ui:VisualElement name="strip-rule-2" class="strip-rule" picking-mode="Ignore" />
+                <ui:VisualElement name="core-block" class="strip-block">
+                    <ui:Label name="core" text="" class="strip-value" />
+                    <ui:ProgressBar name="core-meter" low-value="0" high-value="1" value="1" title=" " class="hud-meter" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="threat" class="hud-block is-hidden" picking-mode="Ignore">
+            <ui:VisualElement name="threat-pip" picking-mode="Ignore" />
+            <ui:Label name="threat-text" text="" class="hud-line" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="alerts" class="hud-block" picking-mode="Ignore">
+            <ui:Label name="alert" text="" class="alert-strip is-hidden" />
+            <ui:Label name="notice-0" text="" class="notice-row is-hidden" />
+            <ui:Label name="notice-1" text="" class="notice-row is-hidden" />
+            <ui:Label name="notice-2" text="" class="notice-row is-hidden" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="problems" class="hud-block" picking-mode="Ignore">
+            <ui:Label name="problem-0" text="" class="problem-row is-hidden" />
+            <ui:Label name="problem-1" text="" class="problem-row is-hidden" />
+            <ui:Label name="problem-2" text="" class="problem-row is-hidden" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="mining" class="hud-block is-hidden" picking-mode="Ignore">
+            <ui:Label name="mining-title" text="" />
+            <ui:ProgressBar name="mining-meter" low-value="0" high-value="1" value="0" title=" " class="hud-meter" />
+            <ui:Label name="mining-detail" text="" class="hud-sub" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="engineer-block" class="hud-block" picking-mode="Ignore">
+            <ui:Label name="engineer" text="" class="hud-line" />
+            <ui:ProgressBar name="engineer-meter" low-value="0" high-value="1" value="1" title=" " class="hud-meter" />
+            <ui:Label name="weapon" text="" class="hud-line" />
+            <ui:ProgressBar name="reload-meter" low-value="0" high-value="1" value="0" title=" " class="hud-meter is-hidden" />
+            <ui:Label name="ammo" text="" class="hud-sub" />
+            <ui:Label name="backpack" text="" class="hud-sub" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="hand-lock" class="hud-block is-hidden" picking-mode="Ignore">
+            <ui:Label name="hand-lock-text" text="" />
+        </ui:VisualElement>
+
+        <!--
+          Placement toolbar (W-B R3). Hidden unless WorldInput.PlacementActive; BuildPanelController owns it, so
+          it needs no scene component of its own. The buttons are real buttons: PickingMode.Ignore on an ancestor
+          stops THAT element being picked, it does not stop its children, so the HUD stays click-through around
+          them while these still take clicks.
+        -->
+        <ui:VisualElement name="placement-toolbar" class="hud-block is-hidden">
+            <ui:Label name="placement-label" text="" class="hud-line is-accent" />
+            <ui:Label name="placement-problem" text="" class="hud-sub" />
+            <ui:VisualElement name="placement-buttons" class="placement-buttons">
+                <ui:Button name="placement-rotate" text="Rotate (R)" class="ui-button ui-button-secondary" />
+                <ui:Button name="placement-cancel" text="Cancel (Esc)" class="ui-button ui-button-danger" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!--
+          Action bar (W-B R1). The owner could not find the Backpack because nothing on screen said it existed.
+          It is part of the HUD, not of a panel, so it stays visible while a drawer is open. HudController wires
+          both buttons to UiShell.Toggle.
+        -->
+        <ui:VisualElement name="target-outline" picking-mode="Ignore" class="target-outline is-hidden" />
+        <ui:VisualElement name="world-target" class="hud-block is-hidden" picking-mode="Ignore">
+            <ui:Label name="target-title" class="target-title" picking-mode="Ignore" />
+            <ui:Label name="target-action" class="target-action" picking-mode="Ignore" />
+            <ui:Label name="target-detail" class="target-detail" picking-mode="Ignore" />
+            <ui:ProgressBar name="target-progress" low-value="0" high-value="1" title=" " class="hud-meter is-hidden" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="action-bar" class="hud-block">
+            <ui:VisualElement name="dock-tray">
+                <ui:VisualElement name="hud-slots" />
+                <ui:VisualElement name="dock-header">
+                    <ui:Label name="current-action" text="Hands · Hold LMB on salvage to mine" />
+                    <ui:Button name="clear-tool" text="Hands" class="ui-button ui-button-secondary" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="dock-actions">
+                <ui:Button name="open-build" text="Build [B]" class="ui-button ui-button-primary" />
+                <ui:Button name="open-inventory" text="Inventory [Tab]" class="ui-button ui-button-primary" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,11 @@
+var assembly=typeof(UnityEditor.Editor).Assembly;
+var t=assembly.GetType("UnityEditor.GameViewSizes");
+var singleton=typeof(UnityEditor.ScriptableSingleton<>).MakeGenericType(t);
+var instance=singleton.GetProperty("instance").GetValue(null);
+var groupType=assembly.GetType("UnityEditor.GameViewSizeGroupType");
+var group=t.GetMethod("GetGroup").Invoke(instance,new[]{System.Enum.Parse(groupType,"Standalone")});
+var labels=(string[])group.GetType().GetMethod("GetDisplayTexts").Invoke(group,null);
+var game=UnityEditor.EditorWindow.GetWindow(assembly.GetType("UnityEditor.GameView"));
+var sizeProperty=game.GetType().GetProperty("selectedSizeIndex",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic);
+System.IO.File.WriteAllText("E:/Factorio2/Unity/Docs/evidence/ui-repair/original-view.json",Newtonsoft.Json.JsonConvert.SerializeObject(new{index=sizeProperty.GetValue(game)}));
+return new{labels,selected=sizeProperty.GetValue(game)};

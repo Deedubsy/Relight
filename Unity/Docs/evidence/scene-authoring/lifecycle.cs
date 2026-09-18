@@ -1,0 +1,10 @@
+if(UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode)throw new System.Exception("Lifecycle check requires settled Edit Mode");
+var w=UnityEngine.Object.FindFirstObjectByType<Relight.World.SceneWorld>();
+int Sprites()=>UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.Sprite>().Count(x=>x.name.StartsWith("city-")||x.name=="paving-grid");
+Relight.Editor.SceneWorldEditor.RefreshNow();var before=Sprites();
+for(var i=0;i<3;i++)Relight.Editor.SceneWorldEditor.RefreshNow();
+var after=Sprites();if(after!=before)throw new System.Exception("Preview leaked sprites "+before+" -> "+after);
+var renderer=w.terrainEdits.GetComponent<UnityEngine.Tilemaps.TilemapRenderer>();w.SetRuntimeVisuals(true);if(renderer.enabled)throw new System.Exception("Terrain overrides drawn twice");w.SetRuntimeVisuals(false);if(renderer.enabled)throw new System.Exception("Terrain overrides leaked to old layout");renderer.enabled=true;
+var palette=UnityEditor.AssetDatabase.LoadAllAssetsAtPath("Assets/Relight/World/Manual/Relight Terrain.prefab");if(!palette.Any(a=>a is UnityEditor.GridPalette))throw new System.Exception("Native palette metadata missing");
+Relight.Editor.SceneWorldEditor.FocusHome();var msg="PASS three preview rebuilds have stable generated sprite count ("+before+"). PASS terrain override renderer hidden for compiled and original layouts. PASS native GridPalette subasset present. Preview error="+Relight.Editor.SceneWorldEditor.LastError;
+System.IO.File.WriteAllText("E:/Factorio2/Unity/Docs/evidence/scene-authoring/lifecycle.txt",msg);return msg;

@@ -1,0 +1,682 @@
+/*
+ * Backpack / storage panel — C-06.
+ *
+ * Ported from the reference's `.backpack-panel` rules (packages/game/src/style.css) with every value taken from
+ * Styles/tokens.uss: no literal colour, no literal spacing. The layout is the one UI_AND_ONBOARDING.md §5.1
+ * specifies, top to bottom: Home workshop section, the Backpack/Storage pair, the item detail block, the notice
+ * line and the hint.
+ *
+ * Two rules are load-bearing and must not be "tidied":
+ *   - `.inventory-grid` wraps and its scroller is the panel's, so EVERY slot is a real element at all times
+ *     (§5.3 / defect U-1: the rightmost slot and a slot only reachable by scrolling must both accept a drop).
+ *   - `.drag-preview` is positioned absolutely against the document root and is `picking-mode: ignore` in UXML,
+ *     so the element under the pointer is the drop target and never the ghost (uiDrag.ts elementFromPoint).
+ */
+
+#inventory-panel {
+    /* The drawer band (tokens.uss --ui-drawer-top/-bottom): under the status strip, above the opening hint and the
+       action bar, so "Inventory [Tab]" and "Build [B]" stay visible and clickable while the drawer is open. */
+    top: var(--ui-drawer-top);
+    right: var(--ui-space-4);
+    bottom: var(--ui-drawer-bottom);
+    /* GP-UX-4 (owner, 2026-09-16: "The UI can take up more of the screen if needed"). 820 was picked so three
+       232px workshop cards fit one row, but it also left each inventory side ~388px — four slot columns — so a
+       40-slot Backpack came to TEN rows and most of the player’s own items were only reachable by scrolling.
+       96% of the window is nine columns at 1920 and six at 1280; the cap stops an ultrawide monitor stretching
+       one row of slots across the whole desk. The Build drawer keeps its own width; only one drawer is open. */
+    width: 96%;
+    max-width: 1720px;
+    padding-left: var(--ui-space-4);
+    padding-right: var(--ui-space-4);
+    padding-top: var(--ui-space-3);
+    padding-bottom: var(--ui-space-3);
+}
+
+/* U-D-51 replaced the drawer-wide `.backpack-body` with the producer's own column; **U-D-52** then pinned that
+   column's SLOTS in place and left the scrolling to what sits below them.
+
+   Owner, 2026-09-16: “Can you make it so the inventory on the producer is fixed at the top and only the recipes
+   are scrollable?” So `#store-inventory` — the producer's heading, slot grid and hint — takes exactly the height
+   its slots need and never grows past it, and `#store-body` beneath it takes everything that is left.
+
+   `#store-body` is a plain column rather than a scroller of its own, because the two producers do not scroll the
+   same thing: a machine scrolls its controls, and the Home workshop scrolls its recipe cards while its output
+   tray stays up top with the other slots. Each brings the scroller its own contents need.
+
+   These are ID rules on purpose. Styles/industrial.uss imports last, so its `.store-body` / `.store-inventory`
+   class rules win every equal-specificity tie; an id beats a class whatever the import order does. */
+#store-inventory {
+    flex-grow: 0;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+/* The producer's slot grid. `.inventory-scroll` (industrial.uss) grows it — right for the Backpack opposite,
+   wrong here now — so this pins it to its content, between the one-row floor every grid has and the same 300px
+   ceiling the workshop's tray carries: forty slots in a chest still cannot push the controls off the bottom.
+
+   `flex-shrink: 1` against a `min-height` floor, not `0`: in a window too short for the whole column something
+   has to give, and the honest answer is that both halves give a little and the grid falls back to one scrolling
+   row rather than that the controls under it are pushed off the screen. It only ever applies as a last resort —
+   with room to spare nothing shrinks, and the grid sits at exactly the height its slots need. */
+#store-scroll {
+    flex-grow: 0;
+    flex-shrink: 1;
+    height: auto;
+    min-height: 72px;
+    max-height: 300px;
+}
+
+/* What the producer has to say about itself, under its slots: a machine's status, repair row and
+   recipe/filter/priority, or the Home workshop's recipe cards. It fills the rest of the column. */
+#store-body {
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+/* A machine's controls are a fixed list of rows: they take their own height at the top of the body and scroll
+   only when the column is too short to hold them, which is the whole reason they have a scroller. */
+#machine-scroll {
+    flex-grow: 0;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+/* The Home workshop is the other producer and the one that fills the body: its tray is fixed with the slots
+   above it and its cards take the remaining height, scrolling inside it. */
+#workshop-host {
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+/* ---- the Backpack / Storage pair --------------------------------------------------------------------- */
+
+/* GP-UX-4: the drawer's growing child, and a SIBLING of the body scroller rather than a child of it, so the
+   grids are laid out against the drawer's own height. min-height 0 lets it be shorter than its content in a
+   short window — then the grids inside scroll, as a last resort instead of as the default. */
+.inventory-pair {
+    flex-direction: row;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+    margin-top: 0;
+    margin-bottom: var(--ui-space-2);
+}
+
+.inventory-side {
+    flex-grow: 1;
+    flex-basis: 0;
+    /* Allowed to be shorter than its content, so its GRID is what scrolls and never the side. */
+    min-height: 0;
+    margin-right: var(--ui-space-3);
+}
+
+.inventory-side.store {
+    margin-right: 0;
+}
+
+/* Narrow windows put the Backpack first, above Storage (§5.1). */
+.inventory-pair.narrow {
+    flex-direction: column;
+}
+
+.inventory-pair.narrow > .inventory-side {
+    margin-right: 0;
+    margin-bottom: var(--ui-space-3);
+}
+
+/* GP-UX-4: the side's name and its capacity line share one row. Stacked they cost 48px of grid height per side
+   for a dozen words that sit side by side comfortably in a drawer this wide. */
+.inventory-side-head {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-shrink: 0;
+    margin-bottom: var(--ui-space-1);
+}
+
+.inventory-heading {
+    font-size: var(--ui-font-size-heading);
+    color: var(--ui-text);
+    flex-shrink: 0;
+    margin-right: var(--ui-space-3);
+    margin-bottom: 0;
+}
+
+.inventory-capacity {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-bottom: 0;
+    white-space: normal;
+}
+
+/* GP-UX-9: Sort, on the Backpack's own header. It rides the same .strip-button skin as the equipment strip (the
+   industrial button face) so it needs no colours of its own, but that skin is sized for a footer action: a 32px
+   min-height and a 2px margin all round would set the height of a row that is otherwise two labels.
+
+   This is selected by #ID, not by .pack-sort, and that is load-bearing. industrial.uss is imported LAST
+   (InventoryPanel.uxml), so for equal specificity it wins every geometry argument — its own
+   `.strip-button { min-height: 32px; margin: 2px; }` would beat a .pack-sort rule in this sheet no matter what
+   this sheet said. An id outranks a class whatever the sheet order, which is the one way to override it without
+   editing it. Both min-height and height are set, because a min-height alone is a floor Yoga will not go under.
+
+   .inventory-capacity grows, so this sits at the end of the header row. */
+#pack-sort {
+    min-height: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-left: var(--ui-space-2);
+    padding-right: var(--ui-space-2);
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* GP-UX-4: the grid takes the height its side has, instead of a fixed 180-268px window. That window showed two
+   or three rows of a ten-row Backpack — the scrolling the owner reported. There is deliberately NO max-height:
+   the drawer band (--ui-drawer-top/-bottom) is the limit, and the scroller survives only for the cases height
+   genuinely cannot cover, a short window or a chest holding hundreds of chunks.
+
+   The wrapping grid inside is unchanged, so the load-bearing rule at the top of this sheet still holds: every
+   slot is a real element at all times, whether or not it is scrolled into view. */
+.inventory-scroll {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 92px;
+}
+/* The non-scrolling footer: item detail, notice, hint. */
+.drawer-footer {
+    flex-shrink: 0;
+}
+
+.inventory-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+/* ---- one slot ---------------------------------------------------------------------------------------- */
+
+.inventory-slot {
+    width: 88px;
+    /* GP-UX-4: 84 -> 80. The icon, the stack count and the name all sit inside 80px, and four pixels a row buys
+       back a whole row of Backpack every five. */
+    height: 80px;
+    flex-shrink: 0;
+    margin-right: var(--ui-space-1);
+    margin-bottom: var(--ui-space-1);
+    margin-left: 0;
+    margin-top: 0;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    justify-content: flex-end;
+    align-items: stretch;
+    background-color: var(--ui-raised);
+    color: var(--ui-text);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    transition-duration: 0.12s;
+}
+
+.inventory-slot:hover {
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+/* The reference's aria-pressed slot. */
+.inventory-slot.selected {
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+    background-color: var(--ui-surface);
+}
+
+/* uiDrag.ts adds `.drop-target` to whatever the pointer is over; removed on every move and on finish. */
+.inventory-slot.drop-target,
+.equipment-slot.drop-target,
+.quick-slot.drop-target {
+    background-color: var(--ui-border);
+    color: var(--ui-bg);
+}
+
+.slot-item {
+    position: absolute;
+    bottom: 6px;
+    left: 4px;
+    right: 4px;
+    height: 20px;
+    font-size: 14px;
+    color: var(--ui-text);
+    -unity-text-align: middle-center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.stack-count {
+    position: absolute;
+    top: 6px;
+    right: 4px;
+    height: 22px;
+    -unity-font-style: bold;
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-accent);
+    -unity-text-align: lower-right;
+    padding-right: var(--ui-space-1);
+}
+
+/* ---- equipment strip (UNDER the Backpack grid only — §5.6) -------------------------------------------- */
+
+/* GP-UX-4: the label sits beside the slots rather than above them; the strip is one line under the grid. */
+.equipment-strip {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: var(--ui-space-1);
+    padding-top: var(--ui-space-1);
+    border-top-color: var(--ui-border);
+    border-top-width: 1px;
+}
+
+.equipment-label {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    white-space: normal;
+    flex-shrink: 1;
+    margin-right: var(--ui-space-2);
+    margin-bottom: 0;
+}
+
+.equipment-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.equipment-slot,
+.strip-button {
+    height: 32px;
+    margin-right: var(--ui-space-1);
+    margin-bottom: var(--ui-space-1);
+    margin-left: 0;
+    margin-top: 0;
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    background-color: var(--ui-raised);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    transition-duration: 0.12s;
+}
+
+.equipment-slot.active {
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+.equipment-slot:hover,
+.strip-button:hover {
+    background-color: var(--ui-border);
+    color: var(--ui-bg);
+}
+
+.equipment-slot:disabled,
+.strip-button:disabled {
+    color: var(--ui-secondary);
+    background-color: var(--ui-surface);
+}
+
+/* ---- quickbar: ten stable slots, keys 1-0 (§5.5) ------------------------------------------------------ */
+
+.quickbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: var(--ui-space-1);
+}
+
+.quick-slot {
+    width: 48px;
+    height: 48px;
+    margin-right: var(--ui-space-1);
+    margin-left: 0;
+    margin-top: 0;
+    margin-bottom: var(--ui-space-1);
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    background-color: var(--ui-raised);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    white-space: normal;
+}
+
+/* ---- item detail (§5.1: quantity, Transfer, Split stack, Move to slot, Sort) -------------------------- */
+
+/* GP-UX-4: the selected stack's name, its note and its actions on ONE line. Stacked they were ~60px of footer
+   that the drawer paid for on every frame whether or not a stack was selected; in a drawer this wide they fit
+   across, and the 60px goes to the grids. They still wrap back into a column when the drawer is narrow. */
+.item-detail {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: var(--ui-space-2);
+    padding-top: var(--ui-space-2);
+    border-top-color: var(--ui-border);
+    border-top-width: 1px;
+}
+
+.detail-title {
+    font-size: var(--ui-font-size-heading);
+    color: var(--ui-text);
+    flex-shrink: 0;
+    margin-right: var(--ui-space-3);
+}
+
+.detail-description {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    white-space: normal;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 160px;
+    margin-right: var(--ui-space-3);
+    margin-bottom: 0;
+}
+
+.detail-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.detail-row > Button {
+    height: 32px;
+    margin-right: var(--ui-space-1);
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    background-color: var(--ui-raised);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    transition-duration: 0.12s;
+}
+
+.detail-row > Button:hover {
+    background-color: var(--ui-border);
+    color: var(--ui-bg);
+}
+
+.detail-row > Button:disabled {
+    color: var(--ui-secondary);
+    background-color: var(--ui-surface);
+}
+
+.quantity-field {
+    width: 156px;
+    margin-right: var(--ui-space-2);
+}
+
+.quantity-field > Label {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    min-width: auto;
+}
+
+/* ---- notice line (role="status" in the reference) ----------------------------------------------------- */
+
+.action-result {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-accent);
+    white-space: normal;
+    margin-top: var(--ui-space-2);
+    min-height: 20px;
+}
+
+/* ---- the slot context menu (EscapeOrder.CloseSlotMenu) ------------------------------------------------ */
+
+.slot-menu {
+    display: none;
+    position: absolute;
+    background-color: var(--ui-bg);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    padding-left: var(--ui-space-1);
+    padding-right: var(--ui-space-1);
+    padding-top: var(--ui-space-1);
+    padding-bottom: var(--ui-space-1);
+    min-width: 180px;
+}
+
+.slot-menu > Button {
+    height: 30px;
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    background-color: var(--ui-bg);
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+    -unity-text-align: middle-left;
+    transition-duration: 0.12s;
+}
+
+.slot-menu > Button:hover {
+    background-color: var(--ui-raised);
+}
+
+/* ---- the drag ghost (uiDrag.ts `.drag-preview`) ------------------------------------------------------- */
+
+.drag-preview {
+    width: 300px;
+    max-width: 330px;
+    min-height: 54px;
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    flex-direction: row;
+    align-items: center;
+    padding-left: var(--ui-space-2);
+    padding-right: var(--ui-space-2);
+    padding-top: var(--ui-space-1);
+    padding-bottom: var(--ui-space-1);
+    background-color: var(--ui-bg);
+    color: var(--ui-text);
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    opacity: 0.92;
+}
+
+.drag-stack {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-accent);
+    margin-right: var(--ui-space-2);
+}
+
+.drag-label {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+}
+
+/*
+ * Shown states. The menu and the ghost are absent by default and are revealed by a class, not by a style the
+ * controller writes: a UI Builder change to either survives, and there is no frame in which a stale menu is
+ * visible before the controller has run.
+ */
+.slot-menu.open {
+    display: flex;
+}
+
+/* The one generic state class in this sheet. Used by the equipment strip and the workshop's Cancel button. */
+.hidden {
+    display: none;
+}
+
+
+.slot-icon { position: absolute; top: 8px; left: 8px; width: 32px; height: 32px; }
+.drawer-heading-row { flex-direction: row; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.drawer-heading-row > .panel-title { flex-grow: 1; }
+.machine-controls { flex-shrink: 0; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px; margin-bottom: 16px; background-color: var(--ui-bg); border-radius: 6px; }
+.machine-controls.hidden { display: none; }
+.machine-progress { height: 18px; margin-bottom: 12px; }
+.machine-progress .unity-progress-bar__background { background-color: var(--ui-raised); }
+.machine-progress .unity-progress-bar__progress { background-color: var(--ui-working); }
+.machine-progress .unity-progress-bar__title { color: var(--ui-bg); font-size: 12px; }
+/* GP-W5: the machine repair row. Ordinary damage is secondary text; a wreck is the danger colour, because
+   "it is standing there doing nothing and you can bring it back" is the one thing the player must not miss. */
+.machine-repair { flex-shrink: 0; margin-bottom: 8px; }
+.machine-repair.hidden { display: none; }
+.machine-repair-text { color: var(--ui-secondary); white-space: normal; margin-bottom: 6px; }
+.machine-repair.is-wrecked .machine-repair-text { color: var(--ui-danger); }
+.machine-field { margin-top: 4px; margin-bottom: 8px; flex-shrink: 0; }
+.machine-field > Label { min-width: 110px; color: var(--ui-secondary); }
+.machine-field .unity-base-popup-field__input,
+.quantity-field .unity-text-field__input { background-color: var(--ui-bg); color: var(--ui-text); border-color: var(--ui-border); border-width: 1px; border-radius: 4px; padding: 6px; min-height: 30px; }
+#inventory-panel { top: 80px; bottom: 144px; width: 96%; max-width: 1720px; }
+#quickbar, #quickbar-heading { display: none; }
+.machine-progress .unity-progress-bar__title { color: var(--ui-text); }
+
+.slot-name { white-space: normal; max-height: 34px; font-size: 13px; }
+
+.slot-item { white-space: normal; max-height: 34px; font-size: 13px; }
+
+/* U-D-51 retired the full-screen `workshop-view`. The workshop is a producer like any other and lives in the
+   right column, so crafting is reachable in every window without a second mode to switch into. */
+.compact-ui .detail-title { font-size: 16px; }
+.compact-ui .detail-description { margin-bottom: 2px; }
+.compact-ui .item-detail { margin-top: 4px; padding-top: 4px; }
+.compact-ui .drawer-footer #hint { display: none; }
+.compact-ui .drawer-footer #notice { min-height: 0; margin-top: 2px; }
+/* GP-UX-4: a small window buys rows by making the slots smaller, not by capping the grid at two rows. */
+.compact-ui #pack-sort { min-height: 20px; height: 20px; font-size: 11px; }
+.compact-ui .inventory-slot { width: 76px; height: 70px; }
+.compact-ui .slot-icon { width: 26px; height: 26px; top: 6px; left: 6px; }
+.compact-ui .inventory-scroll { min-height: 76px; }
+
+.store-hint { font-size: 12px; color: #c6c3a8; white-space: normal; flex-shrink: 0; margin-top: 6px; }
+.inventory-slot .slot-role { position: absolute; left: 5px; top: 3px; font-size: 10px; color: #e7d6aa; }
+.inventory-slot.reserved-empty .slot-icon { opacity: 0.25; }
+.inventory-slot.output-slot .slot-role { color: #92d8b5; }
+.inventory-slot.drop-invalid { border-width: 2px; border-color: #dc8069; }
+.drag-item-icon { width: 42px; height: 42px; margin-right: 8px; flex-shrink: 0; -unity-background-scale-mode: scale-to-fit; }
+
+/* The ghost carries the icon UNDER the pointer, so near the right-hand edge the card is drawn to the left of
+   the icon instead of being clamped away from it (StackDragManipulator.FlipClass). Reversing the row moves
+   the icon to the card's trailing edge; the icon's gap has to move with it or the text sits on top of it. */
+.drag-flip { flex-direction: row-reverse; }
+.drag-flip .drag-item-icon { margin-right: 0; margin-left: 8px; }
+.drag-flip .drag-stack, .drag-flip .drag-label { -unity-text-align: middle-right; }
+.drag-stack, .drag-label { white-space: normal; flex-shrink: 1; }
+
+/* ---- GP-UX-4: the machine controls are a block of rows, not a column of full-width fields -------------------
+ *
+ * Opening a producer used to add ~300px of stacked dropdowns under the grids. They are secondary — the slots are
+ * what the player came for — so they wrap across the wide drawer instead: status and progress on one line, the
+ * repair row on its own, then recipe / item filter / output priority / Set recipe together. Each field keeps a
+ * 260px floor, so a narrow drawer gets the old stacked column back rather than four unreadable columns.
+ */
+.machine-headline { flex-basis: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
+#machine-status { flex-grow: 1; flex-shrink: 1; margin-right: 12px; margin-bottom: 0; }
+.machine-progress { width: 280px; flex-grow: 0; flex-shrink: 0; height: 18px; margin-bottom: 0; }
+.machine-repair { flex-basis: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
+.machine-repair-text { flex-grow: 1; flex-shrink: 1; margin-right: 8px; margin-bottom: 0; }
+.machine-fields { flex-basis: 100%; flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
+.machine-field { flex-grow: 1; flex-shrink: 1; flex-basis: 260px; margin-right: 8px; margin-top: 4px; margin-bottom: 4px; }
+#apply-recipe { flex-shrink: 0; margin-bottom: 4px; }
+#recipe-description { flex-basis: 100%; min-width: auto; margin-right: 0; margin-top: 4px; margin-bottom: 0; }
+
+/* ---- U-D-51: the machine controls, inside the producer's own column ----------------------------------------
+ *
+ * GP-UX-4 spread these across the whole drawer, and that is exactly where the owner found them: under BOTH
+ * columns, in a strip belonging to neither ("That's not what I wanted"). They now sit in the right column under
+ * the machine's own slots. A column is about half the width the wrapping row assumed, so each block takes a line
+ * of its own instead of wrapping unpredictably: status, then the bar, then the repair row, then one field per
+ * line, then Set recipe. The margin goes too — this is the last thing in the column, not a strip above a footer.
+ */
+.machine-controls { flex-direction: column; align-items: stretch; padding: 10px; margin-bottom: 0; }
+.machine-headline { flex-basis: auto; flex-direction: column; align-items: stretch; margin-bottom: 6px; }
+#machine-status { flex-grow: 0; flex-shrink: 1; white-space: normal; margin-right: 0; margin-bottom: 6px; }
+.machine-progress { width: auto; flex-grow: 0; flex-shrink: 0; height: 18px; margin-bottom: 0; }
+.machine-repair { flex-basis: auto; flex-direction: row; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+.machine-fields { flex-basis: auto; flex-direction: column; align-items: stretch; }
+.machine-field { flex-grow: 0; flex-shrink: 0; flex-basis: auto; margin-right: 0; margin-top: 4px; margin-bottom: 4px; }
+#apply-recipe { flex-shrink: 0; align-self: flex-start; margin-top: 4px; margin-bottom: 4px; }
+#recipe-description { flex-basis: auto; min-width: auto; margin-right: 0; margin-top: 6px; margin-bottom: 0; }

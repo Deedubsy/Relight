@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Goal card - C-09. The single objective surface of the opening (UI_AND_ONBOARDING.md §4 row "Goal card" and
+  §4.1): place name, objective title, next action text, a "Required resources in Backpack" list, a
+  "Why this next?" foldout holding the detail, and the two camera buttons. There is no walk command: map and
+  goal clicks inspect, they never walk (§7.8, "Map clicks inspect; they never walk.").
+
+  GoalCardController only LOOKS UP the names below and copies strings into them. It creates nothing, sizes
+  nothing and positions nothing, so this document can be reordered or restyled in UI Builder with no code change.
+  The six material rows are authored, not generated, for the same reason; the controller hides the unused ones.
+
+  This element deliberately does NOT carry the "panel" class: UiShell hides every panel when a drawer opens,
+  and the goal card is HUD furniture that stays on screen.
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Style src="project://database/Assets/Relight/UI/Styles/tokens.uss" />
+    <Style src="project://database/Assets/Relight/UI/Guide/GoalCard.uss" />
+    <Style src="project://database/Assets/Relight/UI/Styles/industrial.uss" />
+    <ui:VisualElement name="goal-card" class="goal-card">
+        <ui:Label name="goal-place" text="Founders Court" class="goal-place" />
+        <ui:Label name="goal-title" text="1 · Build a Generator" class="goal-title" />
+        <ui:Label name="goal-text" text="Place 1 Generator in Founders Court" class="goal-text" />
+
+        <ui:VisualElement name="goal-materials" class="goal-materials">
+            <ui:Label name="goal-materials-heading" text="BACKPACK REQUIREMENTS" class="goal-materials-heading" />
+            <ui:VisualElement name="material-line-0" class="goal-material-line"><ui:Label name="material-0" class="goal-material" /><ui:ProgressBar name="material-progress-0" low-value="0" high-value="1" title=" " class="hud-meter goal-requirement-meter" picking-mode="Ignore" /></ui:VisualElement>
+            <ui:VisualElement name="material-line-1" class="goal-material-line"><ui:Label name="material-1" class="goal-material" /><ui:ProgressBar name="material-progress-1" low-value="0" high-value="1" title=" " class="hud-meter goal-requirement-meter" picking-mode="Ignore" /></ui:VisualElement>
+            <ui:VisualElement name="material-line-2" class="goal-material-line"><ui:Label name="material-2" class="goal-material" /><ui:ProgressBar name="material-progress-2" low-value="0" high-value="1" title=" " class="hud-meter goal-requirement-meter" picking-mode="Ignore" /></ui:VisualElement>
+            <ui:VisualElement name="material-line-3" class="goal-material-line"><ui:Label name="material-3" class="goal-material" /><ui:ProgressBar name="material-progress-3" low-value="0" high-value="1" title=" " class="hud-meter goal-requirement-meter" picking-mode="Ignore" /></ui:VisualElement>
+            <ui:VisualElement name="material-line-4" class="goal-material-line"><ui:Label name="material-4" class="goal-material" /><ui:ProgressBar name="material-progress-4" low-value="0" high-value="1" title=" " class="hud-meter goal-requirement-meter" picking-mode="Ignore" /></ui:VisualElement>
+            <ui:VisualElement name="material-line-5" class="goal-material-line"><ui:Label name="material-5" class="goal-material" /><ui:ProgressBar name="material-progress-5" low-value="0" high-value="1" title=" " class="hud-meter goal-requirement-meter" picking-mode="Ignore" /></ui:VisualElement>
+        </ui:VisualElement>
+        <ui:Foldout name="goal-why" text="Details &amp; material sources" value="false" class="goal-why">
+            <ui:ScrollView name="goal-details-scroll" mode="Vertical"><ui:Label name="goal-detail" class="goal-detail" /></ui:ScrollView>
+        </ui:Foldout>
+
+        <ui:VisualElement name="goal-actions" class="goal-actions">
+            <ui:Button name="show-location" text="Show location" class="ui-button ui-button-secondary goal-button" />
+            <ui:Button name="return-to-engineer" text="Return to engineer" class="ui-button ui-button-secondary goal-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

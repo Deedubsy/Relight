@@ -35,6 +35,10 @@ namespace Relight.Sim
         public OpeningEncounterTuning Opening { get; }
         /// <summary>The campaign starting stake (CONTENT_CATALOGUE.md §15).</summary>
         public StartingStake Stake { get; }
+        /// <summary>Defence and repair constants (C-05; reference campaignDefence.ts:13 <c>DEFENCE</c>).</summary>
+        public DefenceTuning Defence { get; }
+        /// <summary>The director tuning this port owns rather than exports (GP-W3; <see cref="SiegeTuning"/>).</summary>
+        public SiegeTuning Siege { get; }
 
         private readonly ItemDef[] _byItem = new ItemDef[Sim.Items.Count];
         private readonly Dictionary<string, MachineSpec> _machineByKey = new Dictionary<string, MachineSpec>(StringComparer.Ordinal);
@@ -58,7 +62,8 @@ namespace Relight.Sim
             IReadOnlyList<WeaponDef> weapons = null, IReadOnlyList<EnemyDef> enemies = null,
             IReadOnlyList<AmmoDef> ammunition = null, IReadOnlyList<TurretDef> turrets = null,
             PowerTuning power = null, TimeTuning time = null, RaidTuning raids = null,
-            OpeningEncounterTuning opening = null, StartingStake stake = null)
+            OpeningEncounterTuning opening = null, StartingStake stake = null, DefenceTuning defence = null,
+            SiegeTuning siege = null)
         {
             Items = items ?? throw new ArgumentNullException(nameof(items));
             Machines = machines ?? throw new ArgumentNullException(nameof(machines));
@@ -74,6 +79,8 @@ namespace Relight.Sim
             Raids = raids;
             Opening = opening;
             Stake = stake;
+            Defence = defence ?? DefenceTuning.Fallback;
+            Siege = siege ?? SiegeTuning.Fallback;
             foreach (var it in items) _byItem[(int)it.Id] = it;
             for (var i = 0; i < _byItem.Length; i++)
                 if (_byItem[i] == null) throw new InvalidOperationException($"GameData is missing item '{Sim.Items.Key((ItemId)i)}'");
@@ -142,6 +149,21 @@ namespace Relight.Sim
         double Hp = 0,
         /// <summary>What gates the kind ("", "Arsenal", "Electricians", …); free text from the §4 Unlock column.</summary>
         string Unlock = "",
+        /// <summary>
+        /// The recipe station this kind runs, matching <see cref="Recipe.Station"/>; "" for a kind that processes
+        /// nothing. Replaces the reference's hard-coded kind lists (flow.ts:146 <c>isProcessor</c>, :151
+        /// <c>recipesFor</c>): the Mk2 carries the plain "Assembler" station because the reference runs the same
+        /// recipe set on it, only faster (progression.ts:49).
+        /// </summary>
+        string RecipeStation = "",
+        /// <summary>The recipe key a newly placed machine runs (reference flow.ts:200 <c>recipeOf</c>'s defaults); "" when the kind has none.</summary>
+        string DefaultRecipe = "",
+        /// <summary>Processing-speed multiplier (reference progression.ts:49 <c>processingMultiplier</c>: the Mk2's 2); 1 elsewhere.</summary>
+        double SpeedMul = 1,
+        /// <summary>Input buffer depth, in crafts' worth of each input (reference flow.ts:207 ASM_INPUT_MULT = 4).</summary>
+        double InputBufferMul = 4,
+        /// <summary>Finished-output buffer, in batches (reference flow.ts:207 ASM_OUTPUT_CAP = 5).</summary>
+        double OutputBufferCap = 5,
         string Kind = "current", string Source = "", bool Provisional = false);
 
     /// <summary>
@@ -183,6 +205,7 @@ namespace Relight.Sim
         double PoleReachTiles, double BigPoleReachTiles, double SubstationReachTiles,
         double TurretKw, double LampKw, double LampRadiusTiles, double ArcLampKw, double ArcLampRadiusTiles,
         double FloodlightKw, double FloodlightRangeTiles, double FloodlightHalfAngleRad,
+        double StreetLightKw, double StreetLightRadiusTiles,
         string BrownoutRule,
         string Kind = "current", string Source = "", bool Provisional = false);
 
@@ -216,6 +239,28 @@ namespace Relight.Sim
         double WarningS, int Count, double MaxDurationS, double RecoveryS, double GuardS, double AckS, double SupplyAckS,
         int SupplyChainDepth, int TurretObjective,
         string Kind = "provisional", string Source = "", bool Provisional = true);
+
+    /// <summary>
+    /// Defence and repair constants (C-05; reference campaignDefence.ts:13 <c>DEFENCE</c>, plus the Cannon's 140 HP
+    /// from <c>defenceMax</c> on the same file's line 75, which the reference keeps as a literal).
+    /// </summary>
+    public sealed record DefenceTuning(
+        int BarricadeHp, int WallHp, int TurretHp, int CannonHp, int CoreHp,
+        int RepairHp, double RepairSeconds, int RepairSteel, int RepairCopper,
+        int CoreSteel, int CoreCopper, double CoreRepairSeconds,
+        string Kind = "provisional", string Source = "", bool Provisional = true)
+    {
+        /// <summary>
+        /// The same numbers <c>CatalogueData.Defence()</c> carries, so a <see cref="GameData"/> assembled without a
+        /// defence row (a pre-C-05 test fixture, or the Unity registry before its DefenceTuningAsset is wired up)
+        /// still has tuning rather than a null. The catalogue row always wins when one is supplied.
+        /// </summary>
+        public static readonly DefenceTuning Fallback = new DefenceTuning(
+            240, 120, 100, 140, 300,
+            40, 4.0, 2, 1,
+            10, 5, 12.0,
+            "provisional", "packages/sim/src/campaignDefence.ts:13; packages/sim/src/campaignDefence.ts:75", true);
+    }
 
     /// <summary>The campaign starting stake (CONTENT_CATALOGUE.md §15; reference rules.ts CAMPAIGN_START_POCKETS). Home storage is empty.</summary>
     public sealed record StartingStake(IReadOnlyList<ItemStack> Pockets, string Ruleset,

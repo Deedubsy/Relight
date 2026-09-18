@@ -56,7 +56,7 @@ namespace Relight.Sim.Tests.Determinism
 
             var chest = st.MachineById(Scenarios.ChestId);
             Assert.That(chest, Is.Not.Null);
-            Assert.That(chest.Inv[ItemId.Steel], Is.EqualTo(6).Within(1e-9), "10 steel in, 4 back out");
+            Assert.That(chest.Inv[ItemId.Steel], Is.EqualTo(3).Within(1e-9), "4 steel in, 1 back out");
             Assert.That(chest.Inv[ItemId.Magazine], Is.EqualTo(25).Within(1e-9), "25 bullets loaded");
             Assert.That(st.Engineer.Inv[ItemId.Magazine], Is.EqualTo(25).Within(1e-9), "the rest stayed in the Backpack");
         }

@@ -1,0 +1,1 @@
+Relight.Editor.SceneWorldEditor.RestoreImportedInteriors();Relight.Editor.SceneWorldEditor.RefreshNow();return "Imported interior collision as editable prop/blocker components.";

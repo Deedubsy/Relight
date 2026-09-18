@@ -1,0 +1,2 @@
+var h=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.SimHost>(); var b=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.WorldBootstrap>();
+return new {bootstrap=b.MapId,region=b.RegionId,ctxMap=h.Simulation.Context.MapId,ctxRegion=h.Simulation.Context.Sites.RegionId,width=h.Simulation.Context.Geometry.Width,height=h.Simulation.Context.Geometry.Height,siteJson=UnityEditor.EditorJsonUtility.ToJson(b)};

@@ -16,7 +16,7 @@ namespace Relight.Presentation
     ///       previous play session's view state into the next one, so <see cref="Reset"/> is called when a session
     ///       starts;</item>
     /// <item>the reference's <c>objectiveView.targetId: string|null|undefined</c> three-state is spelled as
-    ///       <see cref="ObjectiveView.Automatic"/> plus <see cref="ObjectiveView.TargetId"/>, because C# has no
+    ///       <see cref="ObjectiveTrackingView.Automatic"/> plus <see cref="ObjectiveTrackingView.TargetId"/>, because C# has no
     ///       null/undefined distinction. The three states are the same three.</item>
     /// </list>
     /// Phase B uses only <see cref="Mode"/>, <see cref="Debug"/> and <see cref="HudInset"/>; the rest are ported now
@@ -63,7 +63,7 @@ namespace Relight.Presentation
         public readonly NavigationView Navigation = new NavigationView();
 
         /// <summary>One known objective, presentation only; Automatic follows automatic guidance, a null id untracks.</summary>
-        public readonly ObjectiveView Objective = new ObjectiveView();
+        public readonly ObjectiveTrackingView Objective = new ObjectiveTrackingView();
     }
 
     public sealed class DebugView
@@ -96,7 +96,7 @@ namespace Relight.Presentation
         public string TargetId;
     }
 
-    public sealed class ObjectiveView
+    public sealed class ObjectiveTrackingView
     {
         /// <summary>The reference's <c>undefined</c>: follow automatic guidance.</summary>
         public bool Automatic = true;

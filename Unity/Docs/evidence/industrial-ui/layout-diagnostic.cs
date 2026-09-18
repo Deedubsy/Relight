@@ -1,0 +1,4 @@
+var root=UnityEngine.Object.FindObjectsByType<UnityEngine.UIElements.UIDocument>().First(d=>d.visualTreeAsset!=null && d.visualTreeAsset.name=="GameUI").rootVisualElement;
+var names=new[]{"inventory-panel","backpack-body","workshop-host","workshop-foldout","workshop","workshop-cards","card-core","card-hand-bullets","card-rifle","equipment-slot-0","hud-slot-8"};
+var rows=names.Select(n=>{var e=UnityEngine.UIElements.UQueryExtensions.Q<UnityEngine.UIElements.VisualElement>(root,n);return new{name=n,bounds=e.worldBound.ToString(),classes=string.Join(",",e.GetClasses())};}).ToArray();
+var b=UnityEngine.UIElements.UQueryExtensions.Q<UnityEngine.UIElements.ScrollView>(root,"backpack-body");return new{rows,viewport=b.contentViewport.worldBound.ToString(),content=b.contentContainer.worldBound.ToString(),hmax=b.horizontalScroller.highValue,tool=UnityEngine.Object.FindAnyObjectByType<Relight.Presentation.WorldInput>().Tool};

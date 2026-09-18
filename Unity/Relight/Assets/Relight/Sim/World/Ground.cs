@@ -69,6 +69,22 @@ namespace Relight.Sim
             _slotCount = -1;
         }
 
+        /// <summary>
+        /// Replace both dug lists at once and drop every derived cache built from them. Correction pass C6:
+        /// <see cref="SaveRelocate"/> re-forms the tile indices against a different region's width, which can leave
+        /// the lists the same LENGTH with different contents — the one change <see cref="SlotOf"/>'s
+        /// <c>_slotCount</c> guard cannot see. Nothing else may assign the arrays wholesale.
+        /// </summary>
+        public void SetDugLists(int[] tiles, double[] units)
+        {
+            DugTiles = tiles ?? Array.Empty<int>();
+            DugUnits = units ?? Array.Empty<double>();
+            if (DugUnits.Length != DugTiles.Length) Array.Resize(ref DugUnits, DugTiles.Length);
+            _slotOf = null;
+            _slotCount = -1;
+            _solidRev = int.MinValue;
+        }
+
         // ---- A* scratch (derived; reference walk.ts:60 scratchOf, a module WeakMap there — state lives here
         // instead so the sim keeps no module-global mutable state, TECHNICAL_ARCHITECTURE.md §10.5) ----
         private PathScratch _path;
@@ -92,8 +108,13 @@ namespace Relight.Sim
             {
                 var m = st.Machines[i];
                 if (Ground.WalkThrough(m.Kind)) continue;
-                // Reference walk.ts:37 also skips wall/barricade/turret machines whose `hp === 0` (destroyed but
-                // not removed). Machine.Hp is Phase C; a machine that exists is treated as present and intact.
+                // Reference walk.ts:37 also skips machines whose `hp === 0` — destroyed but not removed. GP-W5
+                // implements that: a WRECK still stands and is still the player's to repair, but it has stopped
+                // being a barrier, so bodies walk over it instead of queueing at a line of ruins. This is the same
+                // gate DirectorRules.HostileOpen already used, so the raid's own passability and the shared
+                // pathfinder now agree. The cache is safe because TurretRules.Damage bumps SimState.Rev the tick a
+                // structure goes down, and the repair hook bumps it again when one comes back.
+                if (TurretRules.Wrecked(ctx.Data, st, m)) continue;
                 var r = m.Rect;
                 for (var y = r.Y; y < r.Y + r.H; y++)
                     for (var x = r.X; x < r.X + r.W; x++)
@@ -215,6 +236,13 @@ namespace Relight.Sim
             var w = ctx.Geometry.Width;
             var slot = st.Ground.SlotOf(y * w + x, w * ctx.Geometry.Height);
             if (slot >= 0) return st.Ground.DugUnits[slot];
+            if(st.OpeningResourceVersion>0)
+                foreach(var site in ctx.Sites.OfKind(SiteKind.Resource))
+                    if(site.Contains(x,y) && site.Amount>0)
+                    {
+                        var cells=site.W*site.H;var offset=(y-site.Y)*site.W+x-site.X;
+                        return site.Amount/cells+(offset<site.Amount%cells?1:0);
+                    }
             return ctx.Data.World.RubbleUnitsPerTile;
         }
 

@@ -1,0 +1,8 @@
+UnityEngine.InputSystem.InputSystem.settings.backgroundBehavior=(UnityEngine.InputSystem.InputSettings.BackgroundBehavior)0;
+UnityEngine.InputSystem.InputSystem.settings.editorInputBehaviorInPlayMode=(UnityEngine.InputSystem.InputSettings.EditorInputBehaviorInPlayMode)0;
+var game=UnityEditor.EditorWindow.GetWindow(typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.GameView"));game.GetType().GetProperty("selectedSizeIndex",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic).SetValue(game,3);
+foreach(var panel in UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.UIElements.PanelSettings>())if(UnityEditor.AssetDatabase.GetAssetPath(panel).StartsWith("Assets/Relight/"))panel.scale=1;
+var world=UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Relight/Scenes/World.unity",UnityEditor.SceneManagement.OpenSceneMode.Single);
+var ui=UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Relight/Scenes/GameUI.unity",UnityEditor.SceneManagement.OpenSceneMode.Additive);
+UnityEngine.SceneManagement.SceneManager.SetActiveScene(world);
+return new {playing=UnityEditor.EditorApplication.isPlaying,world=world.name,worldDirty=world.isDirty,ui=ui.name,uiDirty=ui.isDirty,background=(int)UnityEngine.InputSystem.InputSystem.settings.backgroundBehavior,editorInput=(int)UnityEngine.InputSystem.InputSystem.settings.editorInputBehaviorInPlayMode};

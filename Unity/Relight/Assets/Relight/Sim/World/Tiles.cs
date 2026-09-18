@@ -61,6 +61,7 @@ namespace Relight.Sim
         Steel = 1,
         Copper = 2,
         Coal = 3,
+        IronOre = 4, CopperOre = 5, Crude = 6, Stone = 7,
     }
 
     public static class PatchTypes
@@ -73,6 +74,10 @@ namespace Relight.Sim
                 case PatchType.Steel: return "steel";
                 case PatchType.Copper: return "copper";
                 case PatchType.Coal: return "coal";
+                case PatchType.IronOre: return "ironore";
+                case PatchType.CopperOre: return "copperore";
+                case PatchType.Crude: return "crude";
+                case PatchType.Stone: return "stone";
                 default: return "";
             }
         }
@@ -85,6 +90,10 @@ namespace Relight.Sim
                 case PatchType.Steel: id = ItemId.Steel; return true;
                 case PatchType.Copper: id = ItemId.Copper; return true;
                 case PatchType.Coal: id = ItemId.Coal; return true;
+                case PatchType.IronOre: id = ItemId.IronOre; return true;
+                case PatchType.CopperOre: id = ItemId.CopperOre; return true;
+                case PatchType.Crude: id = ItemId.Crude; return true;
+                case PatchType.Stone: id = ItemId.Stone; return true;
                 default: id = default; return false;
             }
         }

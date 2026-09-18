@@ -16,14 +16,14 @@
 :root {
     /* Palette (UI_AND_ONBOARDING §10 / style.css:120-132) */
     --ui-bg: #151d1e;           /* page and modal ground */
-    --ui-surface: #203536;      /* panel body */
-    --ui-raised: #2b4546;       /* rows, slots, raised controls */
+    --ui-surface: #1d2824;      /* panel body */
+    --ui-raised: #354035;       /* rows, slots, raised controls */
     --ui-text: #f3ecdd;         /* primary text */
     --ui-secondary: #c2ceca;    /* secondary text, hints, units */
     --ui-accent: #e3b96f;       /* selection, focus, current objective */
     --ui-working: #92d8b5;      /* healthy / running */
     --ui-danger: #ff8a80;       /* refusal, damage, outage */
-    --ui-border: #8da79f;       /* 1px separations */
+    --ui-border: #777158;       /* 1px separations */
 
     /* Spacing scale — 4 / 8 / 12 / 16 / 24 / 32, no other gaps */
     --ui-space-1: 4px;
@@ -34,7 +34,7 @@
     --ui-space-6: 32px;
 
     /* Shape */
-    --ui-radius: 6px;
+    --ui-radius: 2px;
 
     /* Type. The reference's stack is "Segoe UI", system-ui; UI Toolkit needs a font ASSET for a custom face,
        and Phase B ships no fonts, so panels inherit the project default face and only the sizes are tokens.
@@ -51,4 +51,388 @@
        Nothing outside the UI may read them (D-UI-10). */
     --ui-top-inset: 0px;
     --ui-drawer-inset: 0px;
+
+    /* Correction pass (coordinator): the vertical band the right-side drawers (Backpack, Build) live in. Top 72px
+       is clear air under the centred status strip (its content ends at ~60px; the goal card starts at 96px), so a
+       drawer never covers the strip's right end (it did at 1920 with top 16). Bottom 64px is above the action bar
+       (bottom 16px, ~40px tall). Measured at 1920x1080 the Backpack's scrolling body is then exactly its content
+       (workshop 329 + pair ~330), so nothing scrolls at that size and the footer actions are always on screen. The opening-hint bar (bottom 64px) hides while a drawer is open
+       (OpeningHintController), so the drawers do not have to clear it; the placement toolbar shows with the
+       drawers closed and the hint bar visible, so IT sits above the bar, at --ui-toolbar-bottom. */
+    --ui-drawer-top: 72px;
+    --ui-drawer-bottom: 64px;
+    --ui-toolbar-bottom: 112px;
 }
+
+/*
+ * Layer order — C-07, UI_AND_ONBOARDING.md §4.1. APPENDED, nothing above is changed.
+ *
+ * USS has no z-index, so these are not applied by any rule: they are the authoritative NUMBERS for the stacking
+ * order, which UI Toolkit expresses as document order (later siblings draw on top). A panel that needs to sit
+ * above another is placed after it in GameUI.uxml, in the order below.
+ */
+:root {
+    --ui-world: 0;
+    --ui-hud: 10;
+    --ui-drawer: 20;
+    --ui-inventory: 21;
+    --ui-tooltip: 30;
+    --ui-modal: 40;
+    --ui-alert: 50;
+}
+
+/*
+ * ============================================================================================================
+ * Correction pass (W-B, 2026-09-14) — APPENDED. Nothing above is changed.
+ *
+ * The brief asked for "one UI/Theme/Tokens.uss imported from every panel USS". This file already IS that sheet:
+ * every panel UXML in UI/** carries <Style src=".../Styles/tokens.uss" />, so a second file under UI/Theme/
+ * would only have been an alias with two places to edit. The deviation is deliberate and recorded in the report.
+ *
+ * Two things land here that used to be assumed:
+ *   R7 — type and colour are stated explicitly on the base rules below, never inherited from Unity's default
+ *        runtime theme. UI Toolkit needs a FontAsset for a custom face and the project ships none, so the FACE
+ *        is still the project default; the SIZES and COLOURS no longer are. If a face is added, set
+ *        -unity-font-definition on .ui-root and on nothing else.
+ *   R1/R6 — one button hierarchy (primary / secondary / danger), one card, one slot, one tooltip, shared by the
+ *        HUD, the Backpack, the build menu, the workshop, the pause menu and settings.
+ * ============================================================================================================
+ */
+
+/* ---- base type and colour (R7) ----------------------------------------------------------------------------- */
+
+.ui-root {
+    font-size: var(--ui-font-size-body);
+    color: var(--ui-text);
+    -unity-font-style: normal;
+}
+
+Label {
+    font-size: var(--ui-font-size-body);
+    color: var(--ui-text);
+    -unity-font-style: normal;
+}
+
+Button {
+    font-size: var(--ui-font-size-body);
+    color: var(--ui-text);
+    -unity-font-style: normal;
+}
+
+TextField {
+    font-size: var(--ui-font-size-body);
+    color: var(--ui-text);
+}
+
+Foldout {
+    font-size: var(--ui-font-size-body);
+    color: var(--ui-text);
+}
+
+/* ---- document hosts ------------------------------------------------------------------------------------- */
+
+/* Correction pass (coordinator): the TemplateContainer GameUI.uxml instances each authored document into. It must
+   fill the screen, because every drawer, the HUD root and the toolbar are absolute children of it and resolve
+   `bottom:` against ITS height — a default TemplateContainer is a zero-height relative box, which collapsed the
+   Backpack, the Build menu and the action bar to nothing. Picking is ignored in the UXML, not here (USS cannot
+   set it), so the empty screen stays the world's. */
+.doc-host {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* ---- panel chrome, shared so a new panel needs no chrome of its own --------------------------------------- */
+
+.panel {
+    position: absolute;
+    background-color: var(--ui-surface);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    color: var(--ui-text);
+}
+
+.panel-title {
+    font-size: var(--ui-font-size-title);
+    color: var(--ui-accent);
+    margin-bottom: var(--ui-space-2);
+}
+
+.panel-heading {
+    font-size: var(--ui-font-size-heading);
+    color: var(--ui-text);
+    margin-top: var(--ui-space-2);
+    margin-bottom: var(--ui-space-1);
+}
+
+.panel-sub {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+}
+
+/* ---- button hierarchy (R1, R6) ------------------------------------------------------------------------------
+ * Every clickable in the game is one of three: primary (the action this screen exists for), secondary (a
+ * supporting action) and danger (destructive or cancelling). Hover and active states are here once, so no panel
+ * has to invent its own.
+ */
+
+.ui-button {
+    font-size: var(--ui-font-size-body);
+    color: var(--ui-text);
+    background-color: var(--ui-raised);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    padding-left: var(--ui-space-3);
+    padding-right: var(--ui-space-3);
+    padding-top: var(--ui-space-1);
+    padding-bottom: var(--ui-space-1);
+    margin-left: var(--ui-space-1);
+    margin-right: var(--ui-space-1);
+    margin-top: 0;
+    margin-bottom: 0;
+    min-height: 32px;
+    -unity-text-align: middle-center;
+}
+
+.ui-button:hover {
+    background-color: var(--ui-surface);
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+.ui-button:active {
+    background-color: var(--ui-bg);
+}
+
+/* Keyboard focus must be visible: the pause menu and settings are navigable without a mouse. */
+.ui-button:focus {
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+.ui-button:disabled {
+    opacity: 0.45;
+}
+
+.ui-button-primary {
+    background-color: var(--ui-accent);
+    color: var(--ui-bg);
+    border-left-color: var(--ui-accent);
+    border-right-color: var(--ui-accent);
+    border-top-color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+.ui-button-primary:hover {
+    background-color: var(--ui-text);
+    color: var(--ui-bg);
+}
+
+.ui-button-secondary {
+    background-color: var(--ui-raised);
+    color: var(--ui-text);
+}
+
+.ui-button-danger {
+    background-color: var(--ui-raised);
+    color: var(--ui-danger);
+    border-left-color: var(--ui-danger);
+    border-right-color: var(--ui-danger);
+    border-top-color: var(--ui-danger);
+    border-bottom-color: var(--ui-danger);
+}
+
+.ui-button-danger:hover {
+    background-color: var(--ui-danger);
+    color: var(--ui-bg);
+}
+
+/* A button that is really a tab. Selected is a class the controller sets, not a pseudo-state. */
+.ui-tab {
+    background-color: rgba(0, 0, 0, 0);
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 2px;
+    border-bottom-color: rgba(0, 0, 0, 0);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    color: var(--ui-secondary);
+}
+
+.ui-tab:hover {
+    color: var(--ui-text);
+    border-bottom-color: var(--ui-border);
+}
+
+.ui-tab.selected {
+    color: var(--ui-accent);
+    border-bottom-color: var(--ui-accent);
+}
+
+/* ---- shared states ------------------------------------------------------------------------------------------ */
+
+.ui-ok {
+    color: var(--ui-working);
+}
+
+.ui-warn {
+    color: var(--ui-accent);
+}
+
+.ui-bad {
+    color: var(--ui-danger);
+}
+
+.ui-muted {
+    color: var(--ui-secondary);
+}
+
+/* ---- tooltip (C5) -------------------------------------------------------------------------------------------
+ * One element, in a layer of its own at the end of GameUI.uxml. picking-mode="Ignore" is authored on the element
+ * so it can never eat the pointer event that is keeping it open.
+ */
+
+.tooltip-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.tooltip {
+    position: absolute;
+    max-width: 320px;
+    background-color: var(--ui-bg);
+    border-left-color: var(--ui-border);
+    border-right-color: var(--ui-border);
+    border-top-color: var(--ui-border);
+    border-bottom-color: var(--ui-border);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    padding-left: var(--ui-space-3);
+    padding-right: var(--ui-space-3);
+    padding-top: var(--ui-space-2);
+    padding-bottom: var(--ui-space-2);
+}
+
+.tooltip-title {
+    font-size: var(--ui-font-size-body);
+    color: var(--ui-accent);
+    white-space: normal;
+}
+
+.tooltip-body {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    white-space: normal;
+    margin-top: var(--ui-space-1);
+}
+
+.tooltip-rows {
+    margin-top: var(--ui-space-1);
+}
+
+.tooltip-row {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.tooltip-row-label {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    margin-right: var(--ui-space-3);
+}
+
+.tooltip-row-value {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-working);
+    -unity-text-align: middle-right;
+}
+
+.tooltip-row-value.ui-bad {
+    color: var(--ui-danger);
+}
+
+.tooltip-footer {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    white-space: normal;
+    margin-top: var(--ui-space-1);
+}
+
+.is-hidden {
+    display: none;
+}
+
+/* ---- item icons (W-B R2) -----------------------------------------------------------------------------------
+ * Placeholder art: a rounded square in the item's colour with a two-letter code. ItemIcons writes only the
+ * background colour (or a sprite, once an ItemIconLibrary has real art); the shape and the code are here.
+ */
+
+.item-icon {
+    width: 28px;
+    height: 28px;
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.item-icon-code {
+    font-size: 13px;
+    color: var(--ui-bg);
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+/* Runtime scrollbars share the game's palette instead of the editor-default white chrome. */
+.unity-scroller { background-color: var(--ui-bg); }
+.unity-scroller__low-button, .unity-scroller__high-button { background-color: var(--ui-raised); -unity-background-image-tint-color: var(--ui-secondary); border-width: 0; }
+.unity-scroller .unity-base-slider__tracker { background-color: var(--ui-bg); }
+.unity-scroller .unity-base-slider__dragger { background-color: var(--ui-secondary); border-width: 0; border-radius: 3px; }
+.unity-scroller .unity-base-slider__dragger:hover { background-color: var(--ui-accent); }
+
+/* All editable fields retain readable contrast in title, pause and settings documents. */
+.unity-base-text-field__input, .unity-text-field__input, .unity-base-popup-field__input { background-color: var(--ui-bg); color: var(--ui-text); border-color: var(--ui-border); border-width: 1px; border-radius: 4px; padding: 6px; }
+.unity-base-popup-field__text { color: var(--ui-text); }
+.unity-base-popup-field__arrow { -unity-background-image-tint-color: var(--ui-secondary); }

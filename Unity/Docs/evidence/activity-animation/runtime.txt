@@ -1,0 +1,20 @@
+PASS Live circuit has current highlights
+PASS Current highlight travels along its cable
+PASS Empty unpowered-independent belt tread moves
+PASS Loaded generator rotor animates while supplying power
+PASS Full extractor shows full state
+PASS Disconnected extractor shows no power
+PASS Empty generator shows off state
+PASS Conveyor tread is drawn above the deck
+PASS Pause freezes cable and machine motion
+PASS Rendering while paused leaves serialized gameplay unchanged
+PASS Power loss removes every current highlight even while paused
+PASS Machines and generator change to outage/off indicators
+PASS Conveyor continues during an electrical outage
+PASS Blocked belt shows amber jam state
+PASS Jammed belt tread stops
+PASS Clearing the blockage restarts tread motion
+PASS Refuelling immediately restores live lines and generator state
+PASS Waiting for input is distinct from no power and output full
+PASS Fuelled disconnected generator is standby, not running
+DONE

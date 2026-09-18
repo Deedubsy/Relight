@@ -203,7 +203,9 @@ namespace Relight.Sim
             failure = null;
             try
             {
-                return SaveSerializer.Write(sim.State, sim.Context?.Data, SaveSerializer.NowIso(), out header);
+                // The context, not just its data and map id: C6 records WHICH crop of the city the game is running
+                // in the header, so a save made on the Home crop can be moved onto the whole city and back.
+                return SaveSerializer.Write(sim.State, sim.Context, SaveSerializer.NowIso(), out header);
             }
             catch (Exception e)
             {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Relight.Presentation;
 using UnityEngine;
 
 namespace Relight.UI
@@ -18,6 +19,10 @@ namespace Relight.UI
     public sealed class EscapeChain : MonoBehaviour
     {
         private readonly List<IEscapeHandler> _handlers = new List<IEscapeHandler>();
+        private bool _defaultsInstalled;
+
+        /// <summary>True once <see cref="InstallDefaults"/> has run; the shell's links are present.</summary>
+        public bool DefaultsInstalled => _defaultsInstalled;
 
         /// <summary>Handlers in run order, for tests and for a debug panel.</summary>
         public IReadOnlyList<IEscapeHandler> Handlers => _handlers;
@@ -73,6 +78,12 @@ namespace Relight.UI
         /// </summary>
         public void InstallDefaults(System.Func<bool> closeDrawer, System.Func<bool> pause)
         {
+            // Correction pass: PauseMenuController registers its three rungs from its own OnEnable, and component
+            // order put it before UiShell on the GameUI object. The shell used to install the defaults only when
+            // the chain was empty, so the drawer and pause links were never added and Escape with the Backpack
+            // open did nothing (the playtest's "Escape is inconsistent"). The chain now owns the guard itself.
+            if (_defaultsInstalled) return;
+            _defaultsInstalled = true;
             // TODO(C-06): Backpack drag cancel — uiDrag.ts cancelUiDrag(); Escape must cancel a drag before anything else.
             Register(new Placeholder(EscapeOrder.CancelDrag, "C-06 Backpack drag"));
             // TODO(C-06): the slot context menu (uiShell.ts .slot-menu).
@@ -84,9 +95,24 @@ namespace Relight.UI
             // TODO(C-10): unpause from the pause modal. B-13 has no pause modal, only SimHost.Paused.
             Register(new Placeholder(EscapeOrder.Unpause, "C-10 pause modal"));
             Register(new Link(EscapeOrder.CloseDrawer, closeDrawer));
-            // TODO(C-02): cancel a world selection / placement ghost.
-            Register(new Placeholder(EscapeOrder.CancelWorldSelection, "C-02 world selection"));
+            // C-02 link 400: put away whatever is in the hand — a machine ghost or a weapon. It sits AFTER the
+            // drawer link, so Escape with the Backpack open closes the Backpack and leaves the hand alone, and
+            // BEFORE pause, so the first Escape after picking a machine cancels the placement instead of pausing.
+            Register(new Link(EscapeOrder.CancelWorldSelection, CancelHand));
             Register(new Link(EscapeOrder.Pause, pause));
+        }
+
+        /// <summary>
+        /// The hand link. <see cref="WorldInput"/> lives in World.unity and this chain on the GameUI document, so
+        /// the two cannot be wired in the inspector; the lookup is lazy and cached, and a scene with no world
+        /// input (Boot, a UI-only test) simply falls through to pause.
+        /// </summary>
+        private WorldInput _hand;
+
+        private bool CancelHand()
+        {
+            if (_hand == null) _hand = FindAnyObjectByType<WorldInput>();
+            return _hand != null && _hand.CancelHand();
         }
     }
 }

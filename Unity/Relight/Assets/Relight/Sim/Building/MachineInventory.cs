@@ -22,8 +22,10 @@ namespace Relight.Sim
     {
         /// <summary>Reference flow.ts GENERATOR_COAL_CAP (50), read from the machine spec so the data export owns it.</summary>
         public static double GeneratorFuelCap(GameData d) => d.TryMachine("generator", out var spec) && spec.FuelCap > 0 ? spec.FuelCap : 50;
-        /// <summary>Reference recipes.ts TURRET_HOPPER (CONTENT_CATALOGUE §1.1: 50 rounds), read from the machine spec.</summary>
-        public static double TurretHopper(GameData d) => d.TryMachine("turret", out var spec) && spec.AmmoCap > 0 ? spec.AmmoCap : 50;
+        // The turret hopper's capacity, ammunition item and "is this a turret at all" now come from W-B's
+        // kind-agnostic <see cref="TurretHopper"/> (Sim/Combat/Turrets/TurretRules.cs), which answers for the cannon
+        // too. The old `TurretHopper(GameData)` helper here is gone: a method of that name would shadow the class
+        // inside this type, and `TurretHopper.Capacity(d, m)` already reads the same `MachineSpec.AmmoCap` fallback.
 
         private const double Eps = 1e-9;
 
@@ -46,27 +48,52 @@ namespace Relight.Sim
         public static void Contents(GameData d, Machine m, ItemCounts into)
         {
             into.Clear();
-            if (string.Equals(m.Kind, "turret", StringComparison.Ordinal)) { into[ItemId.Magazine] = m.Rounds; return; }
+            if (TurretHopper.IsTurret(d, m)) { into[TurretHopper.Ammo(d, m)] = m.Rounds; return; }
             for (var i = 0; i < Items.Count; i++)
             {
                 var n = m.Inv[(ItemId)i];
                 if (n > 0) into[(ItemId)i] = n;
             }
-            // A processor's finished output is its recipe's output item; recipes reach machines with Phase C, so
-            // Phase B counts `out` as magazines (the reference's own default branch).
-            if (m.Out > 0) into.Add(ItemId.Magazine, m.Out);
+            // B-10 (W-B's request, wave-2 integration note 1): `Machine.Out` is the reference's single untyped
+            // output slot, and reading it as a Magazine count was its second meaning. B-07 puts a processor's
+            // finished craft in `Inv[output]` instead, nothing in the port ever writes `Out`, so the interpretation
+            // is gone. The field itself stays, unread and always 0, because schema v3 forbids changing `Machine`.
         }
 
-        /// <summary>Reference flow.ts `accepts`, restricted to the kinds Phase B can place.</summary>
-        public static bool Accepts(GameData d, Machine m, ItemId k)
+        /// <summary>
+        /// Reference flow.ts:769 `accepts`, for the kinds this port places. Belts, splitters, undergrounds and the
+        /// Depot's abstract delivery are B-10's and are not answered here.
+        /// The processor branch needs the machine's chosen recipe, which lives in <see cref="ProductionState"/>
+        /// rather than on <see cref="Machine"/> (schema v3 forbids new members inside list elements), so it is on
+        /// the state-aware overload; this one answers with the machine's data default recipe.
+        /// </summary>
+        public static bool Accepts(GameData d, Machine m, ItemId k) =>
+            Accepts(d, m, k, ProductionRules.DefaultRecipe(d, m));
+
+        /// <summary>Reference flow.ts:769 `accepts`, using the recipe the machine is actually set to.</summary>
+        public static bool Accepts(GameData d, SimState st, Machine m, ItemId k) =>
+            Accepts(d, m, k, ProductionRules.IsProcessor(d, m) ? ProductionRules.RecipeOf(d, st, m) : null);
+
+        private static bool Accepts(GameData d, Machine m, ItemId k, Recipe recipe)
         {
+            // Reference flow.ts:770 `if (m.kind === 'turret') return k === 'magazine' && ...`, generalised to every
+            // kind with a hopper: the same predicate <see cref="TurretHopper.Accepts"/> answers, without a SimState.
+            if (TurretHopper.IsTurret(d, m))
+            {
+                var hopper = TurretHopper.Capacity(d, m);
+                return k == TurretHopper.Ammo(d, m) && hopper > 0 && m.Rounds + 1 <= hopper + Eps;
+            }
             switch (m.Kind)
             {
-                case "turret": return k == ItemId.Magazine && m.Rounds + 1 <= TurretHopper(d) + Eps;
                 case "generator": return (k == ItemId.Coal || k == ItemId.Fuel)
                     && m.Inv[ItemId.Coal] + m.Inv[ItemId.Fuel] < GeneratorFuelCap(d);
                 case "chest": return m.Inv.Total < ChestCap(d);
-                default: return false;   // processors accept their recipe's inputs — Phase C
+                default:
+                    // Reference flow.ts:774: `const need = recipeNeed(recipeOf(m), k); return need !== undefined &&
+                    // (m.inv[k] ?? 0) < need * ASM_INPUT_MULT;` — four crafts' worth of each input, then it stops.
+                    if (recipe == null || !ProductionRules.IsProcessor(d, m)) return false;
+                    var need = ProductionRules.Need(recipe, k);
+                    return need > 0 && m.Inv[k] < need * ProductionRules.InputBufferMul(d, m);
             }
         }
 
@@ -95,9 +122,9 @@ namespace Relight.Sim
                 var copy = new Machine { Id = m.Id, Kind = m.Kind, X = m.X, Y = m.Y, Dir = m.Dir, Size = m.Size,
                     Inv = m.Inv.Clone(), Out = m.Out, Rounds = m.Rounds };
                 double moved = 0;
-                while (moved < have && Accepts(d, copy, item))
+                while (moved < have && Accepts(d, st, copy, item))
                 {
-                    if (string.Equals(m.Kind, "turret", StringComparison.Ordinal)) copy.Rounds += 1;
+                    if (TurretHopper.IsTurret(d, m)) copy.Rounds += 1;
                     else copy.Inv.Add(item, 1);
                     moved++;
                 }
@@ -144,8 +171,12 @@ namespace Relight.Sim
 
             if (a.Put)
             {
-                if (string.Equals(m.Kind, "turret", StringComparison.Ordinal))
+                if (TurretHopper.IsTurret(d, m))
                 {
+                    // Deliberately NOT `TurretHopper.Give`: that counts `Stats.TurretFed`, which reference
+                    // machineInventory.ts:55 does not — a hand load counts `handFed`/`handFedMags` and only the
+                    // belt/inserter path (flow.ts:803 `giveItem`) counts `turretFed`. The rounds still land in
+                    // `Machine.Rounds`, the one place the hopper lives.
                     m.Rounds += (int)moved;
                     st.Stats.HandFed += (int)moved;
                     st.Stats.HandFedMags += (int)moved;
@@ -172,13 +203,8 @@ namespace Relight.Sim
                 Pockets.Take(d, st.Engineer, key, moved);
                 Pockets.Allocate(d, st.Engineer, key, moved, a.Target, slots);
                 var left = moved;
-                if (string.Equals(m.Kind, "turret", StringComparison.Ordinal)) { m.Rounds -= (int)left; left = 0; }
-                if (left > 0 && m.Out > 0 && a.Item == ItemId.Magazine)
-                {
-                    var take = Math.Min(left, m.Out);
-                    m.Out -= (int)take;
-                    left -= take;
-                }
+                if (TurretHopper.IsTurret(d, m)) { m.Rounds -= (int)left; left = 0; }
+                // B-10: the `Machine.Out`-as-magazines branch is retired with the rest of that double meaning.
                 if (left > 0) m.Inv.Add(a.Item, -left);
             }
             return (true, moved, $"{PackLayout.Num(moved)} {name} {(a.Put ? "loaded" : "taken")}");
@@ -190,6 +216,10 @@ namespace Relight.Sim
         public bool TryApply(SimContext ctx, SimState st, Command c, out CommandResult result)
         {
             if (!(c is MachineTransferCommand t)) { result = default; return false; }
+            // U-D-44 narrowed this: a queued workshop batch no longer refuses a transfer, because its ingredients
+            // were reserved at the workshop and are not in the pockets to be taken. What is left is the repair —
+            // both hands are on the machine — refused with the repair's own words, as a move is.
+            if (HandCraft.HandLocked(st)) { result = CommandResult.Refuse(HandCraft.LockTextFor(st)); return true; }
             var (ok, _, reason) = MachineInventory.Transfer(ctx, st, t);
             result = ok ? CommandResult.Ok(reason) : CommandResult.Refuse(reason);
             return true;

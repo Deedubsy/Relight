@@ -1,5 +1,7 @@
 # Relight — World Data and Assets (Unity migration reference)
 
+**Current Scene editing (2026-09-15):** [Editable world workflow](SCENE_EDITING_2026-09-15.md) supersedes older runtime-only authoring descriptions below. Imported assets remain preserved; World.unity contains authored objects and terrain overrides.
+
 Worker C draft, 2026-09-11. Branch `main` @ `586d4525` plus the uncommitted GP-* working tree described in `Unity/Docs/SOURCE_INVENTORY.md`.
 
 ## 1. Purpose, status legend and canonical-source statement
@@ -109,14 +111,14 @@ Renderer chunking is separate: `packages/sim/src/ground.ts:29` — `CHUNK = 32` 
 
 | Collection | Count | Source |
 |---|---|---|
-| Buildings (`Parcel[]`) | **479** | `riverfront.ts:12516` |
+| Buildings (`Parcel[]`) | **479** (imported 479, correction pass 2026-09-14 — every row of this table with a Unity counterpart matched the import, §7) | `riverfront.ts:12516` |
 | Props (`MapProp[]`) | **370** | `riverfront.ts:30896` |
 | Road polylines | 371 | `RIVERFRONT.roads` |
 | Road graph nodes / edges | 210 / **371** | `RIVERFRONT.roadNodes`, `roadEdges` |
 | Entrance/footpath polylines | 479 | `RIVERFRONT.paths` (one per building) |
 | Named squares | 113 | `RIVERFRONT.squares` |
 | Resource patches | 11 | `RIVERFRONT.resources` |
-| Street lights | 18 | `riverfront.ts:341` |
+| Street lights | 18 (city-wide; 7 fall inside the Home import window, §2.8) | `riverfront.ts:341` |
 | Substations | 9 | `riverfront.ts:416` |
 | Service drives | 4 | `riverfront.ts:480` |
 | Regions | 9 | `RIVERFRONT.regions` |
@@ -190,7 +192,9 @@ A 26 × 26 tile ring (`frame + 2`, `opening.ts:8`) around `homeOrigin`, with a 4
 - **Authoritative:** the sim owns `lightMask` / `litAt` in `packages/sim/src/light.ts`. Light affects gameplay.
 - **Presentation only:** `packages/game/src/riverfrontLighting.ts` computes a `daylight(t)` smoothstep for the renderer tint. It must never feed gameplay.
 - Day length constants live in `packages/sim/src/rules.ts:7` (`CAMPAIGN_RULES = {daySeconds: 1200, daylightSeconds: 900, …}`). The **rule** is Worker A's (`GAME_DESIGN.md`); it is cited here only because §7's export must carry the light positions and `lightKw` field.
-- Unity: street lights are 18 point positions plus one kW scalar. The sim light mask is a per-tile computation, not authored data — port the algorithm (Worker B), export only the emitter positions.
+- Unity: street lights are point positions plus one kW scalar, exported as `sites.lights` and `scalars.lightKw` in `Unity/Import/home/city.json`. The sim light mask is a per-tile computation, not authored data — the algorithm is ported (`Sim/Campaign/Light/**`, C-11), and only the emitter positions are exported.
+- **Counts (2026-09-14).** The reference city authors **18** street lights (`riverfront.ts:341`). The **Home import window carries 7**: the D-01a exporter emits only the emitters that fall inside the imported Home rect (`78x367 at (43,91)`), so the Phase C build lights 7 positions, not 18. Nothing in the port depends on the count — the mask is stamped from whatever emitters exist — and the two numbers must not be reconciled by changing one into the other.
+- **Where the values live in Unity.** `Data/Generated/Tuning/Tuning - Power.asset` carries `streetLightKw` = **2** (the reference's `lightKw`, unchanged) and `streetLightRadiusTiles` = **7** (`constants.ts:58 STREETLIGHT_RADIUS`, D-B5-4). The imported emitter positions are `WorldSiteKind.Light` entries in `World/Generated/Home/HomeSites.asset`. A street light draws its demand unconditionally and is lit when the circuit it joined has `Throttle > 0` (`Sim/Power/PowerNetwork.cs`, the port's reading of `flow.ts:620 subPowered`). Recorded as U-P-10 in [DECISIONS.md](DECISIONS.md) §3 under the U-M-12 tuning rule, and in [TASKS.md](TASKS.md) §8.
 
 ---
 
@@ -266,7 +270,7 @@ Factory yards (`RIVERFRONT.yards`, 4 entries, tile rects): `{83,350,30,29}` (Fou
 
 ### 4.5 Power infrastructure — Implemented and retained
 
-Substations (`riverfront.ts:416`, `[x,y][]`): **(78, 347) — the Founders Court substation named in the opening tutorial**, (304, 424), (416, 94), (720, 420), (115, 176), (278, 178), (98, 59), (833, 91), (834, 408). Street lights: 18 positions at `riverfront.ts:341`. Service drives: 4 polylines at `riverfront.ts:480`.
+Substations (`riverfront.ts:416`, `[x,y][]`): **(78, 347) — the Founders Court substation named in the opening tutorial**, (304, 424), (416, 94), (720, 420), (115, 176), (278, 178), (98, 59), (833, 91), (834, 408). Street lights: **18** positions city-wide at `riverfront.ts:341`; the Home import window carries **7** of them (§2.8). Service drives: 4 polylines at `riverfront.ts:480`.
 
 ### 4.6 First-region combat sites — Implemented and retained
 
@@ -379,7 +383,7 @@ Roof artwork selection is a pure function of the building record. The rule is im
 
 House textures encode N/E/W facing; all other roof textures face south (`docs/PHASER_EDITOR.md:22`). `variant` selects roof variants `0`, `1`, `2` (`docs/PHASER_EDITOR.md:21`).
 
-Street lighting: 18 emitters, `lightKw: 2` each; lit-state is a sim computation (§2.8).
+Street lighting: **18** emitters city-wide, `lightKw: 2` each (`streetLightKw` in `Data/Generated/Tuning/Tuning - Power.asset`); the imported Home region carries **7** of them. Lit-state is a sim computation (§2.8).
 
 ### 6.3 Fixed campaign buildings
 
@@ -419,7 +423,15 @@ assert current[...] == definition and current[...] == tail, \
 
 ## 7. Export / import mapping for Unity
 
-**Status of this whole section: PROPOSAL.** Nothing below exists yet. It is Worker C's recommended shape for the data hand-off; Worker B owns the runtime architecture that consumes it and may revise field names, containers and load order in `TECHNICAL_ARCHITECTURE.md`.
+**Status of this whole section: the proposal below was the shape; the exporter and importer now exist and the full map is imported (correction pass 2026-09-14, DECISIONS U-M-40; TASKS.md CP-06, D-01b done, D-02b partial).** What was built:
+
+- **Exporter** `packages/tools/src/exportUnity.ts` (`--region home` | `--region full`) writes `Unity/Import/<region>/city.json` (1,030,827 B for `full`) plus four 497,664-byte side-cars (land, accessible, solid, lit masks) and `export-report.json` with a `counts` block; the `full` region is 864×576 at (0,0), `mapId riverfront-arc-v4-editor-ac16d9188c05`, `sourceSha256 b19f5a64…`; the Home export is byte-identical to Phase C's.
+- **Importer** `Editor/World/RegionImporter.cs` (menu *Relight/World/Import Full City*) writes `World/Generated/Full/FullGeometry.asset` (`WorldGeometryAsset`, 4,475,315 B: cells, masks, roads, paths, drives, tram samples/rail tiles, buildings, props, squares, labels) and `FullSites.asset` (`HomeSitesAsset`, 11,582 B: 72 site records — 9 substations, 18 lights, 11 resources, 4 yards, 1 service area, 3 plants, 3 cores, 3 artifacts, 9 projects, 7 recruits, 4 stops — plus 3 camps / 12 groups, 2 freight gates and the arena), re-deriving the solid mask (0 mismatches of 497,664) and failing on a count mismatch against `validation`. **Imported counts equal §2.4** (479 buildings, 370 props, 210/371 road graph, 479 paths, 4 drives, 113 squares, 9 labels). `CityValidator` (§4.7.1) is not ported.
+- **Runtime painting** `World/WorldPainter.cs` paints Terrain at Awake from the geometry asset (9 `SetTilesBlock` bands, 555–593 ms measured) — no serialised Tilemap (`World.unity` 38,433 B).
+- **Presentation** `Presentation/City/{CityPresenter,CityPalette,CitySprites}.cs`: the §7.1 draw modules ported procedurally with the `riverfrontDraw.ts` palette (one generated 80×64 texture, 3,901 renderers in 101–107 ms, roof fade on the 22 enterable buildings, `TextMesh` labels); `World/CityArtSet.cs` is the art hook keyed by the 40 roof and 13 floor names (see `evidence/correction-pass/full-map-import.md`).
+- **Save compatibility** save schema v4 `region {id, originX, originY, width, height}`; older riverfront saves are treated as the Home crop `(43,91) 78×367` and relocated on load (`Sim/Persistence/SaveRelocate.cs`).
+
+The field-by-field proposal is kept below as the record of the mapping the importer follows.
 
 ### 7.1 Field-by-field mapping
 
@@ -525,6 +537,8 @@ Design intent of that shape:
 | `Assets/urban-decay/48px+MVMZ/*.png` | PNG | **15** | **Third party** | ⚠️ **NO licence, readme or attribution file anywhere under `Assets/`.** RPG Maker MV/MZ 48 px tilesheet format: `Modern_Outside_A1`–`A5`, `Modern_Outside_B_Sheet`, `C_Sheet`, `D_Sheet`, `E_Sheet`, `!doors`, `!doors_dark`, plus four `non-rm-*` sheets. Git-tracked. **Referenced by zero code.** | **Quarantined: excluded from the Unity build** until the owner provides source and licence (Owner decisions 2026-09-11, Q04). See §9.1.2 and §11. |
 
 ### 8.1 Notes on the SVG pipeline
+
+**Unity (correction pass 2026-09-14, R-CP-11):** the SVG set could not be brought into the port on this machine — `com.unity.vectorgraphics` is not installed and no SVG rasteriser is available — so every city surface is a flat procedural tint from `CityPalette` and `World/CityArtSet.cs` is the drop-in hook for rasterised sprites (keys listed in `evidence/correction-pass/full-map-import.md`). The pipeline below remains the reference's.
 
 The SVG art is fully reproducible: `build-assets.py`, `build-downtown.py` and `build-facing-houses.py` emit the 65 files, `npm run editor:assets` adds any new file to `relight-asset-pack.json` additively (`docs/PHASER_EDITOR.md:37`), and `docs/evidence/phaser-editor/browser.json` records a real Chrome session fetching and loading **all 65 assets** through Phaser's asset-pack loader without errors (`docs/PHASER_EDITOR.md:59`).
 
