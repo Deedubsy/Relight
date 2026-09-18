@@ -137,6 +137,12 @@ namespace Relight.Sim
         /// not overlap the half of the map the raid line allows — the band and the filter were disjoint, every tile
         /// was rejected, and the director fell back to a map-edge tile. The box is now derived from the band
         /// (<see cref="EntryFarSteps"/>), which is what "use the actual map" means here.
+        ///
+        /// 2026-09-18: a tile whose tier is <see cref="int.MaxValue"/> is skipped outright. Before this the loop
+        /// only compared tiers, so when NO tile qualified the first cheapest non-entry tile "won" — on Founders
+        /// Court that was (62, 347), three tiles west of the Home workshop, and the introductory attack was born
+        /// inside the fence. The <see cref="RaidField"/> box was the reason no tile qualified (see its remarks);
+        /// this guard is what keeps a future map fault an honest -1 instead of an interior spawn.
         /// </summary>
         public static int Origin(SimContext ctx, SimState st)
         {
@@ -153,7 +159,7 @@ namespace Relight.Sim
                 for (var x = Math.Max(0, bx - reach); x < Math.Min(w, bx + size + reach); x++)
                 {
                     var tier = OriginTier(ctx, st, fld, line, x, y);
-                    if (tier > bestTier) continue;
+                    if (tier == int.MaxValue || tier > bestTier) continue;
                     var s = Math.Abs(fld.At(x, y) - 24) * 100 + Distance(x, y, bx, by);
                     if (tier == bestTier && s >= score) continue;
                     bestTier = tier;

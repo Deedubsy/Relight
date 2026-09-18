@@ -50,7 +50,9 @@
 | D51 | Broken fence art | Until broken fence art exists, the gap uses the debris prop as a placeholder. Recorded as an art task with D47. | Yes |
 | D52 | Closure test | Unchanged. The flood fill treats court plus yard as one enclosure. | Yes |
 | D53 | Yard office | One building inside the yard, against the east fence beside the gate, door on the west wall facing into the yard. Copied from the smallest house in the block. Not enterable yet. Named "Works Yard office". | Yes |
+| D54 | First attack origin | The introductory attack, and every raid after it, is born at or below the raid line on the south ring road, never inside the block. The director's distance field reaches 88 tiles beyond every edge of the core rect (`RaidField.Reach`, was a 70-tile box measured from the core's top-left tile, which stopped at row 417 and left the raid line at row 432 unreachable, so the first group was born at (62,347) beside the workshop). `Origin` skips tiles that are not entry tiles instead of falling back to the cheapest interior tile. Verify C20 checks the origin on every run; the `Relight/Gizmos/Raid Director` Scene gizmo shows it. Record: `FOUNDERS-COURT-SPAWN-FIX.md`. | Yes |
 
 D3, D4 and D26 are superseded by D34, D36, D38 and D42. D16 is amended by D34.
 D39 is amended for the Foreman workshop by D45.
 D34 is amended by D48: the fence tiles beside the yard belong to the yard fence.
+D19 is completed by D54: the raid line at row 432 is now inside the director's field, and the first attack enters there.

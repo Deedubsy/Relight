@@ -699,10 +699,49 @@ public static class FoundersCourtCompound
                     }
                 }
             }
+
+            // C20 first attack origin (2026-09-18): the director, run on this very geometry, must choose an entry tile at or
+            // below the raid line, inside its distance band, with a staging tile, and never a tile inside the block.
+            {
+                var raid = sites.OfKind(SiteKind.RaidLine).FirstOrDefault();
+                var core = sites.OfKind(SiteKind.Core).FirstOrDefault();
+                if (raid == null || core == null) check("C20 first attack origin", false, (raid == null ? "no RaidLine site" : "") + (core == null ? " no Core site" : ""));
+                else
+                {
+                    var reachable = raid.Y - (core.Y + core.H - 1) <= RaidField.Reach;
+                    var map = ImportedGeometry.Build(g);
+                    var ctx = new SimContext(ReferenceData.Create(), map, threat: new EnemyThreatLayer(), sites: sites, mapId: g.MapId);
+                    var sim = Simulation.NewGame(ctx, 1);
+                    var st = sim.State;
+                    var w = ctx.Geometry.Width;
+                    int bx, by, size;
+                    var has = DirectorRules.Target(ctx, st, out bx, out by, out size);
+                    var line = DirectorRules.RaidLineY(ctx);
+                    var origin = has ? DirectorRules.Origin(ctx, st) : -1;
+                    var staged = DirectorRules.Staging(ctx, st, origin);
+                    var detail = "raid line row " + raid.Y + " is " + (raid.Y - (core.Y + core.H - 1)) + " rows below the core's last row (field reach " + RaidField.Reach + ")";
+                    if (origin < 0) check("C20 first attack origin", false, detail + "; the director found no entry tile (origin -1)");
+                    else
+                    {
+                        var ox = origin % w; var oy = origin / w;
+                        var fld = st.Director.Fields.Field(ctx, st, bx, by, size, true);
+                        var steps = fld.At(ox, oy);
+                        var entry = DirectorRules.EntryTile(ctx, st, fld, line, ox, oy, DirectorRules.EntryNearSteps, DirectorRules.EntryFarSteps);
+                        var heading = DirectorRules.HeadingWord(DirectorRules.Heading(ox + .5 - (bx + size / 2.0), oy + .5 - (by + size / 2.0)));
+                        var bad = new List<string>();
+                        if (!reachable) bad.Add("raid line beyond the field's reach");
+                        if (!entry) bad.Add("origin is not an entry tile");
+                        if (oy < raid.Y) bad.Add("origin above the raid line");
+                        if (Contains(block, ox, oy)) bad.Add("origin inside the block");
+                        if (staged < 0) bad.Add("no staging tile");
+                        check("C20 first attack origin", bad.Count == 0, detail + "; origin (" + ox + "," + oy + ") " + steps + " steps, heading " + heading + ", staging " + (staged < 0 ? "none" : "(" + staged % w + "," + staged / w + ")") + (bad.Count == 0 ? "" : "; " + string.Join("; ", bad)));
+                    }
+                }
+            }
         }
         catch (Exception e) { failed++; L("FAIL Verify: exception " + e.Message + "\n" + e.StackTrace); }
         finally { if (g != null) UnityEngine.Object.DestroyImmediate(g); }
-        L("Verify: " + passed + " passed, " + failed + " failed of nineteen checks");
+        L("Verify: " + passed + " passed, " + failed + " failed of twenty checks");
         Flush("fc_verify_log.txt");
     }
 

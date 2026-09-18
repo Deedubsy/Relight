@@ -6,14 +6,31 @@ namespace Relight.Sim
     /// <summary>
     /// A breadth-first distance field toward one rectangle, the port of campaignThreat.ts <c>field()</c>.
     ///
-    /// DIFFERENCE FROM THE REFERENCE (memory, not behaviour): the reference allocates one <c>Int32Array</c> the size
-    /// of the whole map per field and caches up to 32 of them. Since <c>open()</c> already rejects anything more
-    /// than 70 tiles from the seed, the reachable set can never leave a 141×141 box, so the port stores the box
-    /// only (79 KB instead of 2 MB on an 864×576 region) and translates on lookup. Every distance the reference
-    /// would report is reported here, and everything outside the box is -1 in both.
+    /// DIFFERENCE FROM THE REFERENCE (memory): the reference allocates one <c>Int32Array</c> the size of the whole
+    /// map per field and caches up to 32 of them. Its <c>open()</c> rejects anything more than 70 tiles from the
+    /// seed's top-left tile, so the port stores only the box the field can occupy and translates on lookup.
+    ///
+    /// DIFFERENCE FROM THE REFERENCE (behaviour, 2026-09-18): the box is now <see cref="Reach"/> tiles beyond every
+    /// EDGE of the seed rectangle, not 70 tiles from its top-left corner. The reference's 70 was never derived from
+    /// anything; it happened to cover the reference city's Home raid line (row 391, 44 rows below the core) and
+    /// nothing more. On the authored Founders Court the raid line sits 85 rows below the core's top row and 72
+    /// below its last row, so a 70-tile box measured from the top-left corner ended at row 417, every tile at or
+    /// below the raid line read -1, no legal entry tile existed, and the introductory attack was born INSIDE the
+    /// court (see DirectorRules.Origin). The box is now derived from the one rule that actually bounds where a wave
+    /// may enter, <see cref="DirectorRules.EntryFarSteps"/>, plus the 12 steps <see cref="DirectorRules.Staging"/>
+    /// may search outward from an entry tile. Every distance the reference reported is still reported; distances
+    /// in the extra ring are new, and everything outside the box is -1 in both.
     /// </summary>
     public sealed class RaidField
     {
+        /// <summary>
+        /// How far beyond the seed rectangle's edges the field is computed, in tiles: the furthest a wave may enter
+        /// (<see cref="DirectorRules.EntryFarSteps"/> BFS steps, which is at most that many tiles) plus the 12-step
+        /// outward search <see cref="DirectorRules.Staging"/> makes from an entry tile. A raid line further than
+        /// this from the core can never be reached and the director will say so (-1) rather than guess.
+        /// </summary>
+        public const int Reach = DirectorRules.EntryFarSteps + 12;
+
         /// <summary>Box origin in tiles (already clipped to the map).</summary>
         public readonly int X0, Y0, BW, BH;
         private readonly int[] _dist;
@@ -72,13 +89,15 @@ namespace Relight.Sim
 
         private static RaidField Build(SimContext ctx, SimState st, int x, int y, int size, bool breach, int clearance)
         {
-            const int Box = 70;
             var w = ctx.Geometry.Width;
             var h = ctx.Geometry.Height;
-            var x0 = Math.Max(0, x - Box);
-            var y0 = Math.Max(0, y - Box);
-            var x1 = Math.Min(w - 1, x + Box);
-            var y1 = Math.Min(h - 1, y + Box);
+            // The seed rectangle's last tile on each axis; a point seed (size 0) is its own last tile.
+            var xLast = x + Math.Max(size, 1) - 1;
+            var yLast = y + Math.Max(size, 1) - 1;
+            var x0 = Math.Max(0, x - RaidField.Reach);
+            var y0 = Math.Max(0, y - RaidField.Reach);
+            var x1 = Math.Min(w - 1, xLast + RaidField.Reach);
+            var y1 = Math.Min(h - 1, yLast + RaidField.Reach);
             var bw = Math.Max(0, x1 - x0 + 1);
             var bh = Math.Max(0, y1 - y0 + 1);
             var dist = new int[bw * bh];
@@ -90,7 +109,7 @@ namespace Relight.Sim
             bool Open(int xx, int yy)
             {
                 if (!Ground.InBounds(ctx, xx, yy)) return false;
-                if (Math.Abs(xx - x) > Box || Math.Abs(yy - y) > Box) return false;
+                if (xx < x - RaidField.Reach || xx > xLast + RaidField.Reach || yy < y - RaidField.Reach || yy > yLast + RaidField.Reach) return false;
                 if (!Ground.Walkable(ctx, xx, yy)) return false;
                 if (clearance > 0)
                 {
