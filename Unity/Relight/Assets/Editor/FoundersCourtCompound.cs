@@ -193,6 +193,46 @@ public static class FoundersCourtCompound
             foreach (var n in yard["nodes"]) MoveSite(root, (string)n["name"], R(n["rect"]));
             MoveSite(root, (string)yard["substation"]["name"], R(yard["substation"]["rect"]));
 
+            // 8. D48–D53: the yard as its own property. The two former YARD side fences are replaced by the yard's own
+            //    west edge and south edge; the compound north/east fences arrive already split through plan fenceLine.
+            foreach (var oldKey in new[] { "fc-sidefence-WS-YARD", "fc-sidefence-E2-YARD" })
+            {
+                var t = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x != root && Key(x.name) == oldKey);
+                if (t == null) { L("side fence " + oldKey + " not present (replaced by the yard fence)"); continue; }
+                L("deleted side fence " + t.name + " [" + oldKey + "] " + Pos(t) + " (replaced by the yard fence)"); Undo.DestroyObjectImmediate(t.gameObject);
+            }
+            if (yard["yardFences"] != null)
+            {
+                var compoundKeys = new HashSet<string>(plan["fenceLine"]["segments"].Select(x => (string)x["key"]));
+                foreach (var s in yard["yardFences"])
+                {
+                    var key = (string)s["key"]; var r = R(s["rect"]);
+                    // The north run and the east run are compound fence segments already generated in step 4 (shared tiles, one object each).
+                    if (compoundKeys.Contains(key)) { L("yard fence " + (string)s["side"] + " [" + key + "] " + RS(r) + " is compound fence segment, already generated"); continue; }
+                    Fence("Yard fence " + (string)s["side"] + " [" + key + "]", props, key, r);
+                }
+                // D49/D51: the broken section, a non-blocking debris placeholder over exactly the four gap tiles.
+                var gap = yard["yardGap"]; var gr = R(gap["rect"]); var gk = (string)gap["key"];
+                var gg = New((string)gap["name"] + " [" + gk + "]", props, gr.x, gr.y);
+                var gp = gg.AddComponent<SceneProp>(); gp.id = gk; gp.kind = (string)gap["propKind"]; gp.size = new Vector2Int(gr.width, gr.height); gp.blocksMovement = false; gp.clearable = false;
+                L("generated SceneProp " + gp.kind + " " + gg.name + " [" + gk + "] " + RS(gr) + " blocksMovement=0 (D51 placeholder)");
+                // D50: the closed gate, a solid fence object over exactly the four gate tiles.
+                var gate = yard["yardGate"]; var tr = R(gate["rect"]); var tk = (string)gate["key"];
+                Fence((string)gate["name"] + " [" + tk + "]", props, tk, tr);
+                // D53: the office, copied from the smallest house in the block (plan yard.office.sourceKey), door on the west wall.
+                var of = yard["office"]; var orc = R(of["rect"]); var ok = (string)of["key"]; var srcKey = (string)of["sourceKey"];
+                var srcB = root.GetComponentsInChildren<SceneBuilding>().FirstOrDefault(b => b.id == srcKey);
+                var og = New((string)of["name"] + " [" + ok + "]", buildings, orc.x, orc.y);
+                var ob = og.AddComponent<SceneBuilding>();
+                ob.id = ok; ob.buildingName = (string)of["name"]; ob.kind = srcB != null ? srcB.kind : (string)of["kind"]; ob.variant = srcB != null ? srcB.variant : (int)of["variant"];
+                ob.size = new Vector2Int(orc.width, orc.height); ob.enterable = false; ob.campaignBuilding = false; ob.roofKey = (string)of["roofKey"];
+                ob.doors = of["doorsLocal"].Select(R).ToList();
+                L("generated SceneBuilding " + og.name + " [" + ok + "] " + RS(orc) + " roof=" + ob.roofKey + " door=" + string.Join(";", ob.doors.Select(RS)) + " (copy of " + (srcB != null ? srcB.name : srcKey + " (not in scene; plan fields)") + ", not enterable)");
+                var vergeLot = plan["lots"].FirstOrDefault(l => (string)l["name"] == "VERGE");
+                if (vergeLot != null) L("lot VERGE [" + (string)vergeLot["key"] + "] " + string.Join(" ", vergeLot["rects"].Select(x => RS(R(x)))) + ": plan data only, lots have no scene object");
+            }
+            else L("Generate: plan has no yard.yardFences; yard property objects not generated");
+
             EditorSceneManager.MarkSceneDirty(root.gameObject.scene);
             L("Generate: done");
         }
@@ -299,9 +339,13 @@ public static class FoundersCourtCompound
                         seen.Add(n); q.Enqueue(n);
                     }
                 }
-                var reached = seen.Where(t => Contains(interior, t.x, t.y)).OrderBy(t => t.y).ThenBy(t => t.x).ToList();
+                // D52: the enclosure is the court interior plus the yard rect plus the verge; a reached verge or yard tile is a failure too.
+                var yardRectC1 = R(plan["yard"]["rect"]); var vergeRectsC1 = plan["yard"]["verge"] == null ? new List<RectInt>() : new List<RectInt> { R(plan["yard"]["verge"]) };
+                Func<Vector2Int, bool> inEnclosure = t => Contains(interior, t.x, t.y) || Contains(yardRectC1, t.x, t.y) || vergeRectsC1.Any(v => Contains(v, t.x, t.y));
+                var reached = seen.Where(inEnclosure).OrderBy(t => t.y).ThenBy(t => t.x).ToList();
+                var reachedYard = reached.Count(t => Contains(yardRectC1, t.x, t.y)); var reachedVerge = reached.Count(t => vergeRectsC1.Any(v => Contains(v, t.x, t.y)));
                 var sample = string.Join(" ", reached.Take(20).Select(t => t.x + "," + t.y));
-                check("C1 compound closed", reached.Count == 0, "interior tiles reached with mouth solid = " + reached.Count + " (mouth x " + mouthX0 + ".." + mouthX1 + ", y " + Mathf.Min(fenceY1, mouthY) + ".." + Mathf.Max(fenceY1, mouthY) + " blocked; start " + start.x + "," + start.y + ", start walkable " + walk(start.x, start.y) + ")" + (reached.Count > 0 ? "; first: " + sample : ""));
+                check("C1 compound closed", reached.Count == 0, "enclosure tiles reached with mouth solid = " + reached.Count + " (court " + (reached.Count - reachedYard - reachedVerge) + ", verge " + reachedVerge + ", yard " + reachedYard + "; enclosure = interior " + RS(interior) + " + yard " + RS(yardRectC1) + " + verge " + string.Join(" ", vergeRectsC1.Select(RS)) + "; mouth x " + mouthX0 + ".." + mouthX1 + ", y " + Mathf.Min(fenceY1, mouthY) + ".." + Mathf.Max(fenceY1, mouthY) + " blocked; start " + start.x + "," + start.y + ", start walkable " + walk(start.x, start.y) + ")" + (reached.Count > 0 ? "; first: " + sample : ""));
             }
 
             // C2 fence solid.
@@ -491,6 +535,13 @@ public static class FoundersCourtCompound
                 foreach (var s in plan["fenceLine"]["segments"]) expected[(string)s["key"]] = R(s["rect"]);
                 foreach (var s in plan["sideFences"]) expected[(string)s["key"]] = R(s["rect"]);
                 foreach (var s in plan["sidewalk"]["strips"]) expected[(string)s["key"]] = R(s["rect"]);
+                if (plan["yard"]["yardFences"] != null)
+                {
+                    foreach (var s in plan["yard"]["yardFences"]) expected[(string)s["key"]] = R(s["rect"]);
+                    expected[(string)plan["yard"]["yardGap"]["key"]] = R(plan["yard"]["yardGap"]["rect"]);
+                    expected[(string)plan["yard"]["yardGate"]["key"]] = R(plan["yard"]["yardGate"]["rect"]);
+                    expected[(string)plan["yard"]["office"]["key"]] = R(plan["yard"]["office"]["rect"]);
+                }
                 var stubRects = new Dictionary<string, (Vector2Int a, Vector2Int b)>();
                 foreach (var h in plan["houses"])
                 {
@@ -546,10 +597,112 @@ public static class FoundersCourtCompound
                 var report = ClearBaseline(world.baseline, block, band, V(plan["road"]["circle"]["centre"]), (float)plan["road"]["circle"]["radius"], true);
                 check("C14 baseline clear", report.StartsWith("clear"), report);
             }
+
+            // C15–C19: the Works Yard as its own property (D48–D53).
+            {
+                var yard = plan["yard"];
+                var yardRect = R(yard["rect"]);
+                var edges = new (string name, RectInt r)[] { ("west edge", R(yard["westEdge"])), ("south edge", R(yard["southEdge"])), ("north run", R(yard["northRun"])), ("east run", R(yard["eastRun"])) };
+                var gapTiles = new HashSet<Vector2Int>(yard["yardGap"]["tiles"].Select(V)); var gapKey = (string)yard["yardGap"]["key"];
+                var gateTiles = new HashSet<Vector2Int>(yard["yardGate"]["tiles"].Select(V)); var gateKey = (string)yard["yardGate"]["key"];
+                var yardFenceKeys = new HashSet<string>(yard["yardFences"].Select(f => (string)f["key"]));
+                var all = bld.Concat(prp).Concat(sts).Concat(ars).ToList();
+                Func<Vector2Int, List<Item>> at = t => all.Where(o => Contains(o.rect, t.x, t.y)).ToList();
+
+                // C15 yard boundary: every tile of the west edge, south edge, north run and east run is a fence, gate or gap tile and nothing else.
+                {
+                    var bad = new List<string>(); var total = 0; var nFence = 0; var nGate = 0; var nGap = 0;
+                    foreach (var e in edges) foreach (var t in Tiles(e.r))
+                    {
+                        total++;
+                        var here = at(t);
+                        var want = gapTiles.Contains(t) ? "gap" : gateTiles.Contains(t) ? "gate" : "fence";
+                        var okTile = false;
+                        if (here.Count == 1)
+                        {
+                            var o = here[0]; var sp = o.c as SceneProp;
+                            if (want == "gap") okTile = o.key == gapKey && sp != null && sp.kind == "debris" && !sp.blocksMovement;
+                            else if (want == "gate") okTile = o.key == gateKey && sp != null && sp.kind == "fence" && sp.blocksMovement;
+                            else okTile = yardFenceKeys.Contains(o.key) && sp != null && sp.kind == "fence" && sp.blocksMovement;
+                        }
+                        if (okTile) { if (want == "gap") nGap++; else if (want == "gate") nGate++; else nFence++; }
+                        else if (bad.Count < 12) bad.Add(e.name + " " + t.x + "," + t.y + " want " + want + " got [" + string.Join(", ", here.Select(o => o.name)) + "]");
+                    }
+                    check("C15 yard boundary", bad.Count == 0, total + " edge tiles: " + nFence + " fence, " + nGate + " gate, " + nGap + " gap" + (bad.Count == 0 ? ", nothing else" : "; " + string.Join("; ", bad)));
+                }
+
+                // Flood fill from the circle centre tile over non-solid tiles, 4-connected, optional extra solid tiles.
+                var centre = V(plan["road"]["circle"]["centre"]);
+                var limY = new RectInt(block.xMin - 15, block.yMin - 15, block.width + 30, block.height + 30);
+                Func<HashSet<Vector2Int>, HashSet<Vector2Int>> flood = extraSolid =>
+                {
+                    var seen = new HashSet<Vector2Int>(); var q = new Queue<Vector2Int>();
+                    if (walk(centre.x, centre.y) && !extraSolid.Contains(centre)) { seen.Add(centre); q.Enqueue(centre); }
+                    while (q.Count > 0)
+                    {
+                        var t = q.Dequeue();
+                        foreach (var d in new[] { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down })
+                        {
+                            var n = t + d;
+                            if (seen.Contains(n) || extraSolid.Contains(n) || !Contains(limY, n.x, n.y) || !walk(n.x, n.y)) continue;
+                            seen.Add(n); q.Enqueue(n);
+                        }
+                    }
+                    return seen;
+                };
+
+                // C16 gap open: the flood from the circle centre reaches a yard tile.
+                {
+                    var seen = flood(new HashSet<Vector2Int>());
+                    var yardReached = seen.Where(t => Contains(yardRect, t.x, t.y)).OrderBy(t => t.y).ThenBy(t => t.x).ToList();
+                    var gapWalk = string.Join(" ", gapTiles.OrderBy(t => t.y).Select(t => t.x + "," + t.y + (walk(t.x, t.y) ? " open" : " solid")));
+                    check("C16 gap open", yardReached.Count > 0, "flood from circle centre " + centre.x + "," + centre.y + " (walkable " + walk(centre.x, centre.y) + ") reached " + seen.Count + " tiles, " + yardReached.Count + " in the yard rect " + RS(yardRect) + (yardReached.Count > 0 ? "; first " + yardReached[0].x + "," + yardReached[0].y : "") + "; gap tiles " + gapWalk);
+                }
+
+                // C17 gap only: with the four gap tiles temporarily solid the flood reaches no yard tile.
+                {
+                    var seen = flood(new HashSet<Vector2Int>(gapTiles));
+                    var yardReached = seen.Where(t => Contains(yardRect, t.x, t.y)).OrderBy(t => t.y).ThenBy(t => t.x).ToList();
+                    check("C17 gap only", yardReached.Count == 0, "flood from circle centre with gap tiles " + string.Join(" ", gapTiles.OrderBy(t => t.y).Select(t => t.x + "," + t.y)) + " solid reached " + seen.Count + " tiles, " + yardReached.Count + " in the yard rect" + (yardReached.Count > 0 ? "; first: " + string.Join(" ", yardReached.Take(20).Select(t => t.x + "," + t.y)) : ""));
+                }
+
+                // C18 gate solid: the four gate tiles are solid in the compiled grid.
+                {
+                    var states = gateTiles.OrderBy(t => t.y).Select(t => t.x + "," + t.y + (g.SolidAt(t.x, t.y) ? " solid" : " OPEN")).ToList();
+                    var solid = gateTiles.Count(t => g.SolidAt(t.x, t.y));
+                    check("C18 gate solid", gateTiles.Count == 4 && solid == gateTiles.Count, solid + " of " + gateTiles.Count + " gate tiles solid: " + string.Join(" ", states));
+                }
+
+                // C19 office: inside the yard rect, door tiles on its west wall, no overlap with node, substation or gate.
+                {
+                    var of = yard["office"]; var ok = (string)of["key"];
+                    var it = bld.FirstOrDefault(b => b.key == ok);
+                    if (it == null) check("C19 office", false, "no building with key " + ok + " in the scene");
+                    else
+                    {
+                        var sb = (SceneBuilding)it.c; var bad = new List<string>();
+                        if (!Inside(it.rect, yardRect)) bad.Add("rect " + RS(it.rect) + " not inside yard rect " + RS(yardRect));
+                        var doorTiles = new List<Vector2Int>();
+                        foreach (var d in sb.doors) foreach (var t in Tiles(new RectInt(it.rect.x + d.x, it.rect.y + d.y, d.width, d.height))) doorTiles.Add(t);
+                        if (doorTiles.Count == 0) bad.Add("no door");
+                        foreach (var t in doorTiles) if (t.x != it.rect.xMin) bad.Add("door tile " + t.x + "," + t.y + " not on the west wall x=" + it.rect.xMin);
+                        var gateRect = R(yard["yardGate"]["rect"]);
+                        // Nodes and the substation: the plan's yard.nodes keys/rects and yard.substation rect, plus any scene Substation site (the yard site itself contains the office by D53).
+                        var nodeKeys = new HashSet<string>(yard["nodes"].Select(n => (string)n["key"]));
+                        foreach (var n in yard["nodes"]) if (Overlaps(it.rect, R(n["rect"]))) bad.Add("overlaps node " + (string)n["name"] + " " + RS(R(n["rect"])));
+                        if (Overlaps(it.rect, R(yard["substation"]["rect"]))) bad.Add("overlaps substation " + RS(R(yard["substation"]["rect"])));
+                        foreach (var s in sts) if ((nodeKeys.Contains(s.key) || s.kind == "Substation") && Overlaps(it.rect, s.rect)) bad.Add("overlaps " + s.name + " " + RS(s.rect));
+                        if (Overlaps(it.rect, gateRect)) bad.Add("overlaps gate " + RS(gateRect));
+                        foreach (var p in prp) if (p.key == gateKey && Overlaps(it.rect, p.rect)) bad.Add("overlaps gate object " + p.name);
+                        if (sb.enterable) bad.Add("enterable");
+                        check("C19 office", bad.Count == 0, it.name + " " + RS(it.rect) + " inside yard rect " + RS(yardRect) + ", door tiles " + string.Join(" ", doorTiles.Select(t => t.x + "," + t.y)) + " on west wall x=" + it.rect.xMin + ", enterable=" + sb.enterable + ", roof " + sb.roofKey + (bad.Count == 0 ? ", no overlap with nodes, substation or gate" : "; " + string.Join("; ", bad)));
+                    }
+                }
+            }
         }
         catch (Exception e) { failed++; L("FAIL Verify: exception " + e.Message + "\n" + e.StackTrace); }
         finally { if (g != null) UnityEngine.Object.DestroyImmediate(g); }
-        L("Verify: " + passed + " passed, " + failed + " failed of fourteen checks");
+        L("Verify: " + passed + " passed, " + failed + " failed of nineteen checks");
         Flush("fc_verify_log.txt");
     }
 

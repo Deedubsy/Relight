@@ -44,6 +44,13 @@
 | D45 | Foreman workshop door | South wall. Stub runs south from the door, then west to the road band. | Yes |
 | D46 | Baseline decor | Every baseline decor entry inside the block rectangle is cleared. The generator clears baseline decor and baseline solids inside its block before it builds. | Yes |
 | D47 | Fence art | Fence art uses no colour shared with path or sidewalk art. | No |
+| D48 | Works Yard ownership | The yard is a separate fenced property, not a court lot. It shares a fence with the court on its west and south edges. | Yes |
+| D49 | Broken section | One gap of 4 tiles in the yard's west fence, centred on the circle's row. The gap tiles hold a non-blocking broken fence prop. | Yes |
+| D50 | Yard outer fence | Intact on the north and east. A closed gate object on the east fence, 4 tiles wide, solid, not openable yet. | Yes |
+| D51 | Broken fence art | Until broken fence art exists, the gap uses the debris prop as a placeholder. Recorded as an art task with D47. | Yes |
+| D52 | Closure test | Unchanged. The flood fill treats court plus yard as one enclosure. | Yes |
+| D53 | Yard office | One building inside the yard, against the east fence beside the gate, door on the west wall facing into the yard. Copied from the smallest house in the block. Not enterable yet. Named "Works Yard office". | Yes |
 
 D3, D4 and D26 are superseded by D34, D36, D38 and D42. D16 is amended by D34.
 D39 is amended for the Foreman workshop by D45.
+D34 is amended by D48: the fence tiles beside the yard belong to the yard fence.
