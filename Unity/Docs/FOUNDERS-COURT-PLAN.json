@@ -457,7 +457,7 @@
     ]
    },
    {
-    "key": "fc-fence-east-1",
+    "key": "fc-fence-east-yard-1",
     "side": "east",
     "start": [
      119,
@@ -465,20 +465,84 @@
     ],
     "end": [
      119,
-     425
+     360
     ],
     "rect": [
      119,
      331,
      1,
-     95
-    ]
+     30
+    ],
+    "splitFrom": "fc-fence-east-1",
+    "part": "yard",
+    "note": "north of the gate; includes the compound NE corner tile"
    },
    {
-    "key": "fc-fence-north-1",
+    "key": "fc-fence-east-yard-2",
+    "side": "east",
+    "start": [
+     119,
+     365
+    ],
+    "end": [
+     119,
+     394
+    ],
+    "rect": [
+     119,
+     365,
+     1,
+     30
+    ],
+    "splitFrom": "fc-fence-east-1",
+    "part": "yard",
+    "note": "south of the gate"
+   },
+   {
+    "key": "fc-fence-east-court",
+    "side": "east",
+    "start": [
+     119,
+     395
+    ],
+    "end": [
+     119,
+     425
+    ],
+    "rect": [
+     119,
+     395,
+     1,
+     31
+    ],
+    "splitFrom": "fc-fence-east-1",
+    "part": "court"
+   },
+   {
+    "key": "fc-fence-north-court",
     "side": "north",
     "start": [
      26,
+     331
+    ],
+    "end": [
+     79,
+     331
+    ],
+    "rect": [
+     26,
+     331,
+     54,
+     1
+    ],
+    "splitFrom": "fc-fence-north-1",
+    "part": "court"
+   },
+   {
+    "key": "fc-fence-north-yard",
+    "side": "north",
+    "start": [
+     80,
      331
     ],
     "end": [
@@ -486,11 +550,13 @@
      331
     ],
     "rect": [
-     26,
+     80,
      331,
-     93,
+     39,
      1
-    ]
+    ],
+    "splitFrom": "fc-fence-north-1",
+    "part": "yard"
    },
    {
     "key": "fc-fence-south-1",
@@ -529,7 +595,8 @@
     ]
    }
   ],
-  "tileCount": 366
+  "tileCount": 362,
+  "note": "D48/M6: north-1 and east-1 split at the yard boundary; the gate (yard.yardGate) occupies 4 further tiles of the east column"
  },
  "sidewalk": {
   "objectKind": "SceneArea",
@@ -803,41 +870,26 @@
    "merged_into": "YARD"
   },
   {
-   "name": "YARD",
-   "key": "fc-lot-YARD",
+   "name": "VERGE",
+   "key": "fc-lot-VERGE",
    "rects": [
-    [
-     80,
-     332,
-     39,
-     37
-    ],
     [
      77,
      369,
-     42,
-     10
-    ],
-    [
-     77,
-     379,
-     42,
-     16
+     2,
+     26
     ]
    ],
    "side": "E",
    "fronts": "band+circle",
-   "merged_from": [
-    "CE",
-    "E3"
-   ],
    "frontage_axis": "y",
    "frontage_span": [
-    379,
+    369,
     394
    ],
    "road_edge": 76,
-   "front_wall": 81
+   "front_wall": null,
+   "note": "M5: court ground; no house, no stub, no side fence; ends at the yard west edge x 79"
   }
  ],
  "straight": {
@@ -966,7 +1018,7 @@
   {
    "lot": "W3",
    "key": "fc-house-W3",
-   "source": "Court gardener\u2019s home [court-northwest-home]",
+   "source": "Court gardener’s home [court-northwest-home]",
    "sourceKey": "court-northwest-home",
    "templateRoof": "rf-house-E-roof-0",
    "kind": "house",
@@ -1102,40 +1154,46 @@
    "roof": "rf-workshop-roof-0",
    "doorsLocal": [
     [
-     0,
+     4,
+     8,
      3,
-     1,
-     3
+     1
     ]
    ],
    "fate": "keep and move",
    "doorTiles": [
     [
-     81,
-     401
+     85,
+     406
     ],
     [
-     81,
-     402
+     86,
+     406
     ],
     [
-     81,
-     403
+     87,
+     406
     ]
    ],
    "stub": {
     "key": "fc-stub-E2",
     "points": [
      [
-      80,
-      402
+      86,
+      407
+     ],
+     [
+      86,
+      407
      ],
      [
       76,
-      402
+      407
      ]
     ]
-   }
+   },
+   "doorWall": "S",
+   "decision": "D45 applied"
   },
   {
    "lot": "CW",
@@ -1276,7 +1334,7 @@
     37,
     1
    ],
-   "note": "x 26..62 (fence line \u2192 front yard line x 62)"
+   "note": "x 26..62 (fence line → front yard line x 62)"
   },
   {
    "key": "fc-sidefence-W2-W3",
@@ -1299,7 +1357,7 @@
     37,
     1
    ],
-   "note": "x 26..62 (fence line \u2192 front yard line x 62)"
+   "note": "x 26..62 (fence line → front yard line x 62)"
   },
   {
    "key": "fc-sidefence-W3-CW",
@@ -1322,7 +1380,7 @@
     37,
     1
    ],
-   "note": "x 26..62 (fence line \u2192 front yard line x 62)"
+   "note": "x 26..62 (fence line → front yard line x 62)"
   },
   {
    "key": "fc-sidefence-E1-E2",
@@ -1345,30 +1403,7 @@
     38,
     1
    ],
-   "note": "x 81..118 (front yard line x 81 \u2192 fence line)"
-  },
-  {
-   "key": "fc-sidefence-E2-YARD",
-   "lots": [
-    "E2",
-    "YARD"
-   ],
-   "in_lot": "E2",
-   "start": [
-    81,
-    395
-   ],
-   "end": [
-    118,
-    395
-   ],
-   "rect": [
-    81,
-    395,
-    38,
-    1
-   ],
-   "note": "x 81..118 (front yard line x 81 \u2192 fence line)"
+   "note": "x 81..118 (front yard line x 81 → fence line)"
   },
   {
    "key": "fc-sidefence-WS-CW",
@@ -1391,30 +1426,7 @@
     1,
     33
    ],
-   "note": "y 332..364 (fence line \u2192 front yard line y 364 of WS)"
-  },
-  {
-   "key": "fc-sidefence-WS-YARD",
-   "lots": [
-    "WS",
-    "YARD"
-   ],
-   "in_lot": "WS",
-   "start": [
-    79,
-    332
-   ],
-   "end": [
-    79,
-    364
-   ],
-   "rect": [
-    79,
-    332,
-    1,
-    33
-   ],
-   "note": "y 332..364 (fence line \u2192 front yard line y 364 of WS)"
+   "note": "y 332..364 (fence line → front yard line y 364 of WS)"
   }
  ],
  "yard": {
@@ -1432,26 +1444,36 @@
    39,
    63
   ],
-  "lot": "YARD",
-  "lotRects": [
-   [
-    80,
-    332,
-    39,
-    37
-   ],
-   [
-    77,
-    369,
-    42,
-    10
-   ],
-   [
-    77,
-    379,
-    42,
-    16
-   ]
+  "property": "D48: separate fenced property, not a court lot",
+  "westEdge": [
+   79,
+   332,
+   1,
+   63
+  ],
+  "southEdge": [
+   79,
+   395,
+   40,
+   1
+  ],
+  "northRun": [
+   80,
+   331,
+   39,
+   1
+  ],
+  "eastRun": [
+   119,
+   332,
+   1,
+   63
+  ],
+  "verge": [
+   77,
+   369,
+   2,
+   26
   ],
   "nodes": [
    {
@@ -1579,6 +1601,238 @@
    "D9": true,
    "nodesInside": true,
    "nodeEdgeMargin2": true
+  },
+  "yardFences": [
+   {
+    "key": "fc-fence-north-yard",
+    "side": "north run",
+    "start": [
+     80,
+     331
+    ],
+    "end": [
+     118,
+     331
+    ],
+    "rect": [
+     80,
+     331,
+     39,
+     1
+    ],
+    "of": "fc-fence-north-1"
+   },
+   {
+    "key": "fc-fence-east-yard-1",
+    "side": "east run",
+    "start": [
+     119,
+     331
+    ],
+    "end": [
+     119,
+     360
+    ],
+    "rect": [
+     119,
+     331,
+     1,
+     30
+    ],
+    "of": "fc-fence-east-1",
+    "note": "north of the gate; includes the compound NE corner tile (119,331)"
+   },
+   {
+    "key": "fc-fence-east-yard-2",
+    "side": "east run",
+    "start": [
+     119,
+     365
+    ],
+    "end": [
+     119,
+     394
+    ],
+    "rect": [
+     119,
+     365,
+     1,
+     30
+    ],
+    "of": "fc-fence-east-1",
+    "note": "south of the gate"
+   },
+   {
+    "key": "fc-yardfence-west-1",
+    "side": "west edge",
+    "start": [
+     79,
+     332
+    ],
+    "end": [
+     79,
+     371
+    ],
+    "rect": [
+     79,
+     332,
+     1,
+     40
+    ],
+    "note": "north of the gap"
+   },
+   {
+    "key": "fc-yardfence-west-2",
+    "side": "west edge",
+    "start": [
+     79,
+     376
+    ],
+    "end": [
+     79,
+     394
+    ],
+    "rect": [
+     79,
+     376,
+     1,
+     19
+    ],
+    "note": "south of the gap"
+   },
+   {
+    "key": "fc-yardfence-south",
+    "side": "south edge",
+    "start": [
+     79,
+     395
+    ],
+    "end": [
+     118,
+     395
+    ],
+    "rect": [
+     79,
+     395,
+     40,
+     1
+    ]
+   }
+  ],
+  "yardGap": {
+   "key": "fc-yard-gap",
+   "decision": "D49/D51",
+   "rect": [
+    79,
+    372,
+    1,
+    4
+   ],
+   "tiles": [
+    [
+     79,
+     372
+    ],
+    [
+     79,
+     373
+    ],
+    [
+     79,
+     374
+    ],
+    [
+     79,
+     375
+    ]
+   ],
+   "propKind": "debris",
+   "blocksMovement": 0,
+   "method": "M2: circle row 374 and the row above it, plus one row above and one below those",
+   "name": "Works Yard broken fence"
+  },
+  "yardGate": {
+   "key": "fc-yard-gate",
+   "name": "Works Yard gate",
+   "decision": "D50",
+   "rect": [
+    119,
+    361,
+    1,
+    4
+   ],
+   "tiles": [
+    [
+     119,
+     361
+    ],
+    [
+     119,
+     362
+    ],
+    [
+     119,
+     363
+    ],
+    [
+     119,
+     364
+    ]
+   ],
+   "propKind": "fence",
+   "blocksMovement": 1,
+   "middleRow": 363,
+   "method": "M3: 4 tiles centred on the yard rect's middle row 363, rounded north"
+  },
+  "office": {
+   "key": "fc-yard-office",
+   "name": "Works Yard office",
+   "decision": "D53",
+   "sourceKey": "fc-house-W1",
+   "sourceTemplate": "Salvage garages [home-garage]",
+   "footprintArea": 84,
+   "size": [
+    12,
+    7
+   ],
+   "kind": "garage",
+   "variant": 2,
+   "enterable": false,
+   "campaign": false,
+   "rect": [
+    106,
+    353,
+    12,
+    7
+   ],
+   "doorsLocal": [
+    [
+     0,
+     2,
+     1,
+     3
+    ]
+   ],
+   "doorTiles": [
+    [
+     106,
+     355
+    ],
+    [
+     106,
+     356
+    ],
+    [
+     106,
+     357
+    ]
+   ],
+   "doorWall": "W",
+   "roofKey": "rf-garage-roof-2",
+   "roofWestKeyTried": "rf-garage-W-roof-2",
+   "movesSouth": 0,
+   "stub": null,
+   "placement": "go message 2026-09-18: south wall row 359 = gate top row 361 minus 2; east wall one tile from the yard east run"
   }
  },
  "fates": [
@@ -1681,7 +1935,7 @@
    "reason": "M9: template only, copied"
   },
   {
-   "name": "Court gardener\u2019s home [court-northwest-home]",
+   "name": "Court gardener’s home [court-northwest-home]",
    "key": "court-northwest-home",
    "category": "Buildings",
    "kind": "house",

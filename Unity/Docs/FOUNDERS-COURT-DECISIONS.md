@@ -41,5 +41,9 @@
 | D42 | Gap test | Temporarily mark the mouth solid, flood fill from a ring road tile, report every interior tile reached. Zero means closed. | Yes |
 | D43 | Build as a generator | An editor command that takes a block rectangle and a road polyline, so it can be run on other blocks later. Founders Court is the first run. | Yes |
 | D44 | Houses on the circle | Three lots touch the circle: the workshop lot north of the circle, one lot west of it, one lot east of it. Each house is axis aligned with its door on the wall facing the circle. No other lot touches the circle. | Yes |
+| D45 | Foreman workshop door | South wall. Stub runs south from the door, then west to the road band. | Yes |
+| D46 | Baseline decor | Every baseline decor entry inside the block rectangle is cleared. The generator clears baseline decor and baseline solids inside its block before it builds. | Yes |
+| D47 | Fence art | Fence art uses no colour shared with path or sidewalk art. | No |
 
 D3, D4 and D26 are superseded by D34, D36, D38 and D42. D16 is amended by D34.
+D39 is amended for the Foreman workshop by D45.

@@ -427,63 +427,6 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 4}
---- !u!1 &5865181
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5865182}
-  - component: {fileID: 5865183}
-  m_Layer: 0
-  m_Name: 'Court brick home [fc-house-E1]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5865182
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5865181}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 81, y: -413, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1829253760}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5865183
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5865181}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80abc80b19eb4fd4483b84d8bc8247c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneBuilding
-  id: fc-house-E1
-  buildingName: Court brick home
-  kind: house
-  size: {x: 10, y: 9}
-  enterable: 0
-  doors:
-  - x: 0
-    y: 3
-    width: 1
-    height: 3
-  variant: 1
-  roofKey: rf-house-W-roof-1
-  campaignBuilding: 0
 --- !u!1 &6437831
 GameObject:
   m_ObjectHideFlags: 0
@@ -931,55 +874,6 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 4}
---- !u!1 &13061741
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 13061742}
-  - component: {fileID: 13061743}
-  m_Layer: 0
-  m_Name: 'Side fence W2-W3 [fc-sidefence-W2-W3]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &13061742
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 13061741}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 26, y: -395, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &13061743
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 13061741}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-sidefence-W2-W3
-  kind: fence
-  size: {x: 37, y: 1}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &13562265
 GameObject:
   m_ObjectHideFlags: 0
@@ -1796,6 +1690,55 @@ MonoBehaviour:
   variant: 1
   roofKey: rf-house-E-roof-1
   campaignBuilding: 0
+--- !u!1 &26740712
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 26740713}
+  - component: {fileID: 26740714}
+  m_Layer: 0
+  m_Name: 'Side fence W2-W3 [fc-sidefence-W2-W3]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &26740713
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 26740712}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 26, y: -395, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &26740714
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 26740712}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-sidefence-W2-W3
+  kind: fence
+  size: {x: 37, y: 1}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &27229755
 GameObject:
   m_ObjectHideFlags: 0
@@ -4000,55 +3943,6 @@ MonoBehaviour:
   variant: 1
   roofKey: rf-house-roof-1
   campaignBuilding: 0
---- !u!1 &69286647
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 69286648}
-  - component: {fileID: 69286649}
-  m_Layer: 0
-  m_Name: 'Compound fence south [fc-fence-south-1]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &69286648
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 69286647}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 26, y: -425, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &69286649
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 69286647}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-fence-south-1
-  kind: fence
-  size: {x: 41, y: 1}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &71334586
 GameObject:
   m_ObjectHideFlags: 0
@@ -4373,6 +4267,54 @@ MonoBehaviour:
   variant: 2
   roofKey: rf-house-N-roof-2
   campaignBuilding: 0
+--- !u!1 &81968419
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 81968420}
+  - component: {fileID: 81968421}
+  m_Layer: 0
+  m_Name: 'Stub WS [fc-stub-WS]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &81968420
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 81968419}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 70, y: -361, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 916323704}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &81968421
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 81968419}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
+  kind: 1
+  points:
+  - {x: 0, y: 0}
+  - {x: 0, y: 8}
 --- !u!1 &82159641
 GameObject:
   m_ObjectHideFlags: 0
@@ -4468,53 +4410,6 @@ MonoBehaviour:
   areaName: block-14-1 garden court walk
   serviceArea: 0
   size: {x: 6, y: 38}
---- !u!1 &90601268
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 90601269}
-  - component: {fileID: 90601270}
-  m_Layer: 0
-  m_Name: 'Sidewalk south [fc-sidewalk-south-w]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &90601269
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 90601268}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 25, y: -426, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 363213396}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &90601270
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 90601268}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f061790dda1920948a40dd2179a506b7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneArea
-  areaName: Founders Court sidewalk
-  serviceArea: 0
-  size: {x: 42, y: 2}
 --- !u!1 &95064608
 GameObject:
   m_ObjectHideFlags: 0
@@ -8315,6 +8210,54 @@ MonoBehaviour:
   variant: 0
   roofKey: rf-house-roof-0
   campaignBuilding: 0
+--- !u!1 &182300720
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 182300721}
+  - component: {fileID: 182300722}
+  m_Layer: 0
+  m_Name: 'Stub W2 [fc-stub-W2]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &182300721
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 182300720}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 63, y: -402, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 916323704}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &182300722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 182300720}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
+  kind: 1
+  points:
+  - {x: 0, y: 0}
+  - {x: 4, y: 0}
 --- !u!1 &182422291
 GameObject:
   m_ObjectHideFlags: 0
@@ -10425,55 +10368,6 @@ MonoBehaviour:
   variant: 2
   roofKey: rf-shop-roof-2
   campaignBuilding: 0
---- !u!1 &230343971
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 230343972}
-  - component: {fileID: 230343973}
-  m_Layer: 0
-  m_Name: 'Compound fence east [fc-fence-east-1]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &230343972
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 230343971}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 119, y: -331, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &230343973
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 230343971}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-fence-east-1
-  kind: fence
-  size: {x: 1, y: 95}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &230529445
 GameObject:
   m_ObjectHideFlags: 0
@@ -10888,18 +10782,18 @@ Transform:
   - {fileID: 639857978}
   - {fileID: 1429150815}
   - {fileID: 162154391}
-  - {fileID: 1178129994}
-  - {fileID: 230343972}
-  - {fileID: 1051703353}
-  - {fileID: 69286648}
-  - {fileID: 1074887447}
-  - {fileID: 566385795}
-  - {fileID: 13061742}
-  - {fileID: 379215311}
-  - {fileID: 520092094}
-  - {fileID: 819084994}
-  - {fileID: 1713248955}
-  - {fileID: 1530559207}
+  - {fileID: 874990067}
+  - {fileID: 643813383}
+  - {fileID: 297445670}
+  - {fileID: 1348227970}
+  - {fileID: 861153241}
+  - {fileID: 1231016366}
+  - {fileID: 26740713}
+  - {fileID: 1973606715}
+  - {fileID: 1183293121}
+  - {fileID: 2097590592}
+  - {fileID: 440262265}
+  - {fileID: 1562231156}
   m_Father: {fileID: 1190810836}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &231818102
@@ -11812,6 +11706,63 @@ MonoBehaviour:
   variant: 1
   roofKey: rf-terrace-roof-1
   campaignBuilding: 0
+--- !u!1 &247906910
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 247906911}
+  - component: {fileID: 247906912}
+  m_Layer: 0
+  m_Name: 'Salvage garages [fc-house-W1]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &247906911
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 247906910}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 51, y: -414, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1829253760}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &247906912
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 247906910}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80abc80b19eb4fd4483b84d8bc8247c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneBuilding
+  id: fc-house-W1
+  buildingName: Salvage garages
+  kind: garage
+  size: {x: 12, y: 7}
+  enterable: 0
+  doors:
+  - x: 11
+    y: 2
+    width: 1
+    height: 3
+  variant: 2
+  roofKey: rf-garage-roof-2
+  campaignBuilding: 0
 --- !u!1 &248746543
 GameObject:
   m_ObjectHideFlags: 0
@@ -12021,6 +11972,53 @@ MonoBehaviour:
   variant: 0
   roofKey: rf-house-roof-0
   campaignBuilding: 0
+--- !u!1 &253622650
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 253622651}
+  - component: {fileID: 253622652}
+  m_Layer: 0
+  m_Name: 'Sidewalk west [fc-sidewalk-west]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &253622651
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 253622650}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 23, y: -329, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 363213396}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &253622652
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 253622650}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f061790dda1920948a40dd2179a506b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneArea
+  areaName: Founders Court sidewalk
+  serviceArea: 0
+  size: {x: 2, y: 99}
 --- !u!1 &254169274
 GameObject:
   m_ObjectHideFlags: 0
@@ -13727,53 +13725,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 126866736}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &285720234
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 285720235}
-  - component: {fileID: 285720236}
-  m_Layer: 0
-  m_Name: 'Sidewalk north [fc-sidewalk-north]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &285720235
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 285720234}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 25, y: -329, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 363213396}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &285720236
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 285720234}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f061790dda1920948a40dd2179a506b7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneArea
-  areaName: Founders Court sidewalk
-  serviceArea: 0
-  size: {x: 95, y: 2}
 --- !u!1 &286223642
 GameObject:
   m_ObjectHideFlags: 0
@@ -14324,6 +14275,55 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 54}
+--- !u!1 &297445669
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 297445670}
+  - component: {fileID: 297445671}
+  m_Layer: 0
+  m_Name: 'Compound fence north [fc-fence-north-1]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &297445670
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 297445669}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 26, y: -331, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &297445671
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 297445669}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-fence-north-1
+  kind: fence
+  size: {x: 93, y: 1}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &298541623
 GameObject:
   m_ObjectHideFlags: 0
@@ -17659,11 +17659,11 @@ Transform:
   - {fileID: 1033626490}
   - {fileID: 2024242178}
   - {fileID: 729031168}
-  - {fileID: 2075329121}
-  - {fileID: 2120265711}
-  - {fileID: 285720235}
-  - {fileID: 90601269}
-  - {fileID: 1006093367}
+  - {fileID: 253622651}
+  - {fileID: 1258670165}
+  - {fileID: 1936273494}
+  - {fileID: 1211656588}
+  - {fileID: 771568683}
   m_Father: {fileID: 1190810836}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &363447573
@@ -18476,55 +18476,6 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   item: 
   amount: 0
---- !u!1 &379215310
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 379215311}
-  - component: {fileID: 379215312}
-  m_Layer: 0
-  m_Name: 'Side fence W3-CW [fc-sidefence-W3-CW]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &379215311
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 379215310}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 26, y: -379, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &379215312
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 379215310}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-sidefence-W3-CW
-  kind: fence
-  size: {x: 37, y: 1}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &380078922
 GameObject:
   m_ObjectHideFlags: 0
@@ -19103,6 +19054,63 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 4}
+--- !u!1 &390984011
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 390984012}
+  - component: {fileID: 390984013}
+  m_Layer: 0
+  m_Name: 'Court End home [fc-house-CW]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &390984012
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 390984011}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 53, y: -369, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1829253760}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &390984013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 390984011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80abc80b19eb4fd4483b84d8bc8247c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneBuilding
+  id: fc-house-CW
+  buildingName: Court End home
+  kind: house
+  size: {x: 10, y: 10}
+  enterable: 0
+  doors:
+  - x: 9
+    y: 3
+    width: 1
+    height: 3
+  variant: 1
+  roofKey: rf-house-E-roof-1
+  campaignBuilding: 0
 --- !u!1 &391014481
 GameObject:
   m_ObjectHideFlags: 0
@@ -19957,63 +19965,6 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   blocksMovement: 0
   clearable: 0
---- !u!1 &413813975
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 413813976}
-  - component: {fileID: 413813977}
-  m_Layer: 0
-  m_Name: 'Court End home [fc-house-CW]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &413813976
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 413813975}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 53, y: -369, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1829253760}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &413813977
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 413813975}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80abc80b19eb4fd4483b84d8bc8247c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneBuilding
-  id: fc-house-CW
-  buildingName: Court End home
-  kind: house
-  size: {x: 10, y: 10}
-  enterable: 0
-  doors:
-  - x: 9
-    y: 3
-    width: 1
-    height: 3
-  variant: 1
-  roofKey: rf-house-E-roof-1
-  campaignBuilding: 0
 --- !u!1 &414777359
 GameObject:
   m_ObjectHideFlags: 0
@@ -21092,6 +21043,55 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: -5}
+--- !u!1 &440262264
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 440262265}
+  - component: {fileID: 440262266}
+  m_Layer: 0
+  m_Name: 'Side fence WS-CW [fc-sidefence-WS-CW]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &440262265
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 440262264}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 63, y: -332, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &440262266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 440262264}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-sidefence-WS-CW
+  kind: fence
+  size: {x: 1, y: 33}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &440760735
 GameObject:
   m_ObjectHideFlags: 0
@@ -21352,54 +21352,6 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   blocksMovement: 0
   clearable: 0
---- !u!1 &442555419
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 442555420}
-  - component: {fileID: 442555421}
-  m_Layer: 0
-  m_Name: 'Stub E2 [fc-stub-E2]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &442555420
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 442555419}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 80, y: -402, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 916323704}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &442555421
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 442555419}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
-  kind: 1
-  points:
-  - {x: 0, y: 0}
-  - {x: -4, y: 0}
 --- !u!1 &443830516
 GameObject:
   m_ObjectHideFlags: 0
@@ -21918,63 +21870,6 @@ MonoBehaviour:
     height: 1
   variant: 1
   roofKey: rf-terrace-roof-1
-  campaignBuilding: 0
---- !u!1 &456438647
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 456438648}
-  - component: {fileID: 456438649}
-  m_Layer: 0
-  m_Name: "Court gardener\u2019s home [fc-house-W3]"
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &456438648
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 456438647}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 53, y: -382, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1829253760}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &456438649
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 456438647}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80abc80b19eb4fd4483b84d8bc8247c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneBuilding
-  id: fc-house-W3
-  buildingName: "Court gardener\u2019s home"
-  kind: house
-  size: {x: 10, y: 9}
-  enterable: 0
-  doors:
-  - x: 9
-    y: 3
-    width: 1
-    height: 3
-  variant: 0
-  roofKey: rf-house-E-roof-0
   campaignBuilding: 0
 --- !u!1 &456908494
 GameObject:
@@ -25144,55 +25039,6 @@ MonoBehaviour:
   viewTilesHigh: 20
   clampToMapBounds: 1
   edgePaddingTiles: 0
---- !u!1 &520092093
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 520092094}
-  - component: {fileID: 520092095}
-  m_Layer: 0
-  m_Name: 'Side fence E1-E2 [fc-sidefence-E1-E2]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &520092094
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 520092093}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 81, y: -410, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &520092095
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 520092093}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-sidefence-E1-E2
-  kind: fence
-  size: {x: 38, y: 1}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &522071075
 GameObject:
   m_ObjectHideFlags: 0
@@ -26914,55 +26760,6 @@ MonoBehaviour:
   variant: 2
   roofKey: rf-shop-roof-2
   campaignBuilding: 0
---- !u!1 &566385794
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 566385795}
-  - component: {fileID: 566385796}
-  m_Layer: 0
-  m_Name: 'Side fence W1-W2 [fc-sidefence-W1-W2]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &566385795
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 566385794}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 26, y: -410, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &566385796
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 566385794}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-sidefence-W1-W2
-  kind: fence
-  size: {x: 37, y: 1}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &566571729
 GameObject:
   m_ObjectHideFlags: 0
@@ -29543,54 +29340,6 @@ MonoBehaviour:
   size: {x: 1, y: 1}
   item: 
   amount: 0
---- !u!1 &621699722
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 621699723}
-  - component: {fileID: 621699724}
-  m_Layer: 0
-  m_Name: 'Stub W2 [fc-stub-W2]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &621699723
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 621699722}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 63, y: -402, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 916323704}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &621699724
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 621699722}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
-  kind: 1
-  points:
-  - {x: 0, y: 0}
-  - {x: 4, y: 0}
 --- !u!1 &621865976
 GameObject:
   m_ObjectHideFlags: 0
@@ -30841,6 +30590,55 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   blocksMovement: 0
   clearable: 0
+--- !u!1 &643813382
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 643813383}
+  - component: {fileID: 643813384}
+  m_Layer: 0
+  m_Name: 'Compound fence east [fc-fence-east-1]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &643813383
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 643813382}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 119, y: -331, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &643813384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 643813382}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-fence-east-1
+  kind: fence
+  size: {x: 1, y: 95}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &644924346
 GameObject:
   m_ObjectHideFlags: 0
@@ -31133,10 +30931,10 @@ MonoBehaviour:
   size: {x: 12, y: 9}
   enterable: 1
   doors:
-  - x: 0
-    y: 3
-    width: 1
-    height: 3
+  - x: 4
+    y: 8
+    width: 3
+    height: 1
   variant: 0
   roofKey: rf-workshop-roof-0
   campaignBuilding: 1
@@ -33486,6 +33284,54 @@ MonoBehaviour:
   areaName: block-10-1 garden mews
   serviceArea: 0
   size: {x: 40, y: 3}
+--- !u!1 &708688715
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 708688716}
+  - component: {fileID: 708688717}
+  m_Layer: 0
+  m_Name: 'Stub W3 [fc-stub-W3]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &708688716
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708688715}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 63, y: -386, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 916323704}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &708688717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708688715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
+  kind: 1
+  points:
+  - {x: 0, y: 0}
+  - {x: 4, y: 0}
 --- !u!1 &709241312
 GameObject:
   m_ObjectHideFlags: 0
@@ -36380,6 +36226,53 @@ MonoBehaviour:
   size: {x: 1, y: 1}
   item: 
   amount: 0
+--- !u!1 &771568682
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 771568683}
+  - component: {fileID: 771568684}
+  m_Layer: 0
+  m_Name: 'Sidewalk south [fc-sidewalk-south-e]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &771568683
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 771568682}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 77, y: -426, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 363213396}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &771568684
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 771568682}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f061790dda1920948a40dd2179a506b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneArea
+  areaName: Founders Court sidewalk
+  serviceArea: 0
+  size: {x: 43, y: 2}
 --- !u!1 &772533925
 GameObject:
   m_ObjectHideFlags: 0
@@ -38070,6 +37963,63 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 18}
+--- !u!1 &807561043
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 807561044}
+  - component: {fileID: 807561045}
+  m_Layer: 0
+  m_Name: 'Court brick home [fc-house-E1]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &807561044
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807561043}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 81, y: -413, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1829253760}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &807561045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807561043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80abc80b19eb4fd4483b84d8bc8247c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneBuilding
+  id: fc-house-E1
+  buildingName: Court brick home
+  kind: house
+  size: {x: 10, y: 9}
+  enterable: 0
+  doors:
+  - x: 0
+    y: 3
+    width: 1
+    height: 3
+  variant: 1
+  roofKey: rf-house-W-roof-1
+  campaignBuilding: 0
 --- !u!1 &808759310
 GameObject:
   m_ObjectHideFlags: 0
@@ -38628,55 +38578,6 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 54}
---- !u!1 &819084993
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 819084994}
-  - component: {fileID: 819084995}
-  m_Layer: 0
-  m_Name: 'Side fence E2-YARD [fc-sidefence-E2-YARD]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &819084994
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 819084993}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 81, y: -395, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &819084995
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 819084993}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-sidefence-E2-YARD
-  kind: fence
-  size: {x: 38, y: 1}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &825526472
 GameObject:
   m_ObjectHideFlags: 0
@@ -40165,6 +40066,55 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 36, y: 0}
+--- !u!1 &861153240
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 861153241}
+  - component: {fileID: 861153242}
+  m_Layer: 0
+  m_Name: 'Compound fence south [fc-fence-south-2]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &861153241
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 861153240}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 77, y: -425, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &861153242
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 861153240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-fence-south-2
+  kind: fence
+  size: {x: 42, y: 1}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &861226508
 GameObject:
   m_ObjectHideFlags: 0
@@ -40461,6 +40411,55 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 18}
+--- !u!1 &874990066
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 874990067}
+  - component: {fileID: 874990068}
+  m_Layer: 0
+  m_Name: 'Compound fence west [fc-fence-west-1]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &874990067
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 874990066}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 25, y: -331, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &874990068
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 874990066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-fence-west-1
+  kind: fence
+  size: {x: 1, y: 95}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1001 &875555837
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -43519,13 +43518,13 @@ Transform:
   - {fileID: 1216968320}
   - {fileID: 320561119}
   - {fileID: 570457652}
-  - {fileID: 957542965}
-  - {fileID: 621699723}
-  - {fileID: 1691040330}
-  - {fileID: 2032364854}
-  - {fileID: 442555420}
-  - {fileID: 1627652107}
-  - {fileID: 1306134006}
+  - {fileID: 1579987654}
+  - {fileID: 182300721}
+  - {fileID: 708688716}
+  - {fileID: 1000800954}
+  - {fileID: 1536292505}
+  - {fileID: 1051975283}
+  - {fileID: 81968420}
   m_Father: {fileID: 1190810836}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &917446044
@@ -45248,54 +45247,6 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 4}
---- !u!1 &957542964
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 957542965}
-  - component: {fileID: 957542966}
-  m_Layer: 0
-  m_Name: 'Stub W1 [fc-stub-W1]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &957542965
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 957542964}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 63, y: -417, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 916323704}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &957542966
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 957542964}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
-  kind: 1
-  points:
-  - {x: 0, y: 0}
-  - {x: 4, y: 0}
 --- !u!1 &960379147
 GameObject:
   m_ObjectHideFlags: 0
@@ -45849,63 +45800,6 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 36, y: 0}
---- !u!1 &974511134
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 974511135}
-  - component: {fileID: 974511136}
-  m_Layer: 0
-  m_Name: 'North Court home [fc-house-W2]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &974511135
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 974511134}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 53, y: -398, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1829253760}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &974511136
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 974511134}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80abc80b19eb4fd4483b84d8bc8247c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneBuilding
-  id: fc-house-W2
-  buildingName: North Court home
-  kind: house
-  size: {x: 10, y: 9}
-  enterable: 0
-  doors:
-  - x: 9
-    y: 3
-    width: 1
-    height: 3
-  variant: 2
-  roofKey: rf-house-E-roof-2
-  campaignBuilding: 0
 --- !u!1 &975316268
 GameObject:
   m_ObjectHideFlags: 0
@@ -47345,6 +47239,54 @@ Transform:
   - {fileID: 1950953382}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1000800953
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1000800954}
+  - component: {fileID: 1000800955}
+  m_Layer: 0
+  m_Name: 'Stub E1 [fc-stub-E1]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1000800954
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000800953}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 80, y: -417, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 916323704}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1000800955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000800953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
+  kind: 1
+  points:
+  - {x: 0, y: 0}
+  - {x: -4, y: 0}
 --- !u!1 &1001135482
 GameObject:
   m_ObjectHideFlags: 0
@@ -47588,53 +47530,6 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 10}
---- !u!1 &1006093366
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1006093367}
-  - component: {fileID: 1006093368}
-  m_Layer: 0
-  m_Name: 'Sidewalk south [fc-sidewalk-south-e]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1006093367
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1006093366}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 77, y: -426, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 363213396}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1006093368
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1006093366}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f061790dda1920948a40dd2179a506b7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneArea
-  areaName: Founders Court sidewalk
-  serviceArea: 0
-  size: {x: 43, y: 2}
 --- !u!1 &1006682020
 GameObject:
   m_ObjectHideFlags: 0
@@ -49395,55 +49290,6 @@ MonoBehaviour:
   variant: 1
   roofKey: rf-house-N-roof-1
   campaignBuilding: 0
---- !u!1 &1051703352
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1051703353}
-  - component: {fileID: 1051703354}
-  m_Layer: 0
-  m_Name: 'Compound fence north [fc-fence-north-1]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1051703353
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1051703352}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 26, y: -331, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1051703354
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1051703352}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-fence-north-1
-  kind: fence
-  size: {x: 93, y: 1}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &1051852537
 GameObject:
   m_ObjectHideFlags: 0
@@ -49492,6 +49338,54 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 54}
+--- !u!1 &1051975282
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1051975283}
+  - component: {fileID: 1051975284}
+  m_Layer: 0
+  m_Name: 'Stub CW [fc-stub-CW]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1051975283
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1051975282}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 63, y: -373, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 916323704}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1051975284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1051975282}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
+  kind: 1
+  points:
+  - {x: 0, y: 0}
+  - {x: 4, y: 0}
 --- !u!1 &1056352600
 GameObject:
   m_ObjectHideFlags: 0
@@ -50142,55 +50036,6 @@ MonoBehaviour:
   areaName: block-9-7 shop frontage
   serviceArea: 0
   size: {x: 40, y: 2}
---- !u!1 &1074887446
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1074887447}
-  - component: {fileID: 1074887448}
-  m_Layer: 0
-  m_Name: 'Compound fence south [fc-fence-south-2]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1074887447
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1074887446}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 77, y: -425, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1074887448
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1074887446}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-fence-south-2
-  kind: fence
-  size: {x: 42, y: 1}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &1077585459
 GameObject:
   m_ObjectHideFlags: 0
@@ -54558,55 +54403,6 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   blocksMovement: 0
   clearable: 0
---- !u!1 &1178129993
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1178129994}
-  - component: {fileID: 1178129995}
-  m_Layer: 0
-  m_Name: 'Compound fence west [fc-fence-west-1]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1178129994
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1178129993}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 25, y: -331, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1178129995
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1178129993}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-fence-west-1
-  kind: fence
-  size: {x: 1, y: 95}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &1182814560
 GameObject:
   m_ObjectHideFlags: 0
@@ -54664,6 +54460,55 @@ MonoBehaviour:
   variant: 1
   roofKey: rf-house-E-roof-1
   campaignBuilding: 0
+--- !u!1 &1183293120
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1183293121}
+  - component: {fileID: 1183293122}
+  m_Layer: 0
+  m_Name: 'Side fence E1-E2 [fc-sidefence-E1-E2]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1183293121
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1183293120}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 81, y: -410, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1183293122
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1183293120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-sidefence-E1-E2
+  kind: fence
+  size: {x: 38, y: 1}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &1184630899
 GameObject:
   m_ObjectHideFlags: 0
@@ -56133,6 +55978,53 @@ MonoBehaviour:
   variant: 2
   roofKey: rf-house-N-roof-2
   campaignBuilding: 0
+--- !u!1 &1211656587
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1211656588}
+  - component: {fileID: 1211656589}
+  m_Layer: 0
+  m_Name: 'Sidewalk south [fc-sidewalk-south-w]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1211656588
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1211656587}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 25, y: -426, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 363213396}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1211656589
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1211656587}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f061790dda1920948a40dd2179a506b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneArea
+  areaName: Founders Court sidewalk
+  serviceArea: 0
+  size: {x: 42, y: 2}
 --- !u!1 &1212572508
 GameObject:
   m_ObjectHideFlags: 0
@@ -56882,6 +56774,55 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 54}
+--- !u!1 &1231016365
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1231016366}
+  - component: {fileID: 1231016367}
+  m_Layer: 0
+  m_Name: 'Side fence W1-W2 [fc-sidefence-W1-W2]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1231016366
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231016365}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 26, y: -410, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1231016367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231016365}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-sidefence-W1-W2
+  kind: fence
+  size: {x: 37, y: 1}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &1233933549
 GameObject:
   m_ObjectHideFlags: 0
@@ -58227,6 +58168,53 @@ MonoBehaviour:
   size: {x: 39, y: 63}
   item: 
   amount: 0
+--- !u!1 &1258670164
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1258670165}
+  - component: {fileID: 1258670166}
+  m_Layer: 0
+  m_Name: 'Sidewalk east [fc-sidewalk-east]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1258670165
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1258670164}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 120, y: -329, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 363213396}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1258670166
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1258670164}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f061790dda1920948a40dd2179a506b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneArea
+  areaName: Founders Court sidewalk
+  serviceArea: 0
+  size: {x: 2, y: 99}
 --- !u!1 &1264295404
 GameObject:
   m_ObjectHideFlags: 0
@@ -60105,54 +60093,6 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 4}
---- !u!1 &1306134005
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1306134006}
-  - component: {fileID: 1306134007}
-  m_Layer: 0
-  m_Name: 'Stub WS [fc-stub-WS]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1306134006
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1306134005}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 70, y: -361, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 916323704}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1306134007
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1306134005}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
-  kind: 1
-  points:
-  - {x: 0, y: 0}
-  - {x: 0, y: 8}
 --- !u!1 &1306951073
 GameObject:
   m_ObjectHideFlags: 0
@@ -62053,6 +61993,55 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 36, y: 0}
+--- !u!1 &1348227969
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1348227970}
+  - component: {fileID: 1348227971}
+  m_Layer: 0
+  m_Name: 'Compound fence south [fc-fence-south-1]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1348227970
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1348227969}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 26, y: -425, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1348227971
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1348227969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-fence-south-1
+  kind: fence
+  size: {x: 41, y: 1}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &1350207389
 GameObject:
   m_ObjectHideFlags: 0
@@ -69734,55 +69723,6 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 54}
---- !u!1 &1530559206
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1530559207}
-  - component: {fileID: 1530559208}
-  m_Layer: 0
-  m_Name: 'Side fence WS-YARD [fc-sidefence-WS-YARD]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1530559207
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1530559206}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 79, y: -332, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1530559208
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1530559206}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-sidefence-WS-YARD
-  kind: fence
-  size: {x: 1, y: 33}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &1532190607
 GameObject:
   m_ObjectHideFlags: 0
@@ -70085,6 +70025,55 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   blocksMovement: 0
   clearable: 0
+--- !u!1 &1536292504
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1536292505}
+  - component: {fileID: 1536292506}
+  m_Layer: 0
+  m_Name: 'Stub E2 [fc-stub-E2]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1536292505
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1536292504}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 86, y: -407, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 916323704}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1536292506
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1536292504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
+  kind: 1
+  points:
+  - {x: 0, y: 0}
+  - {x: 0, y: 0}
+  - {x: -10, y: 0}
 --- !u!1 &1536915344
 GameObject:
   m_ObjectHideFlags: 0
@@ -71205,6 +71194,55 @@ MonoBehaviour:
   variant: 1
   roofKey: rf-house-N-roof-1
   campaignBuilding: 0
+--- !u!1 &1562231155
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1562231156}
+  - component: {fileID: 1562231157}
+  m_Layer: 0
+  m_Name: 'Side fence WS-YARD [fc-sidefence-WS-YARD]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1562231156
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1562231155}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 79, y: -332, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1562231157
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1562231155}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-sidefence-WS-YARD
+  kind: fence
+  size: {x: 1, y: 33}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &1565365555
 GameObject:
   m_ObjectHideFlags: 0
@@ -71926,6 +71964,54 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 4}
+--- !u!1 &1579987653
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1579987654}
+  - component: {fileID: 1579987655}
+  m_Layer: 0
+  m_Name: 'Stub W1 [fc-stub-W1]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1579987654
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1579987653}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 63, y: -417, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 916323704}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1579987655
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1579987653}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
+  kind: 1
+  points:
+  - {x: 0, y: 0}
+  - {x: 4, y: 0}
 --- !u!1 &1580247761
 GameObject:
   m_ObjectHideFlags: 0
@@ -73972,54 +74058,6 @@ MonoBehaviour:
   variant: 0
   roofKey: rf-shop-roof-0
   campaignBuilding: 0
---- !u!1 &1627652106
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1627652107}
-  - component: {fileID: 1627652108}
-  m_Layer: 0
-  m_Name: 'Stub CW [fc-stub-CW]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1627652107
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1627652106}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 63, y: -373, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 916323704}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1627652108
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1627652106}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
-  kind: 1
-  points:
-  - {x: 0, y: 0}
-  - {x: 4, y: 0}
 --- !u!1 &1627799258
 GameObject:
   m_ObjectHideFlags: 0
@@ -77220,54 +77258,6 @@ MonoBehaviour:
   variant: 2
   roofKey: rf-house-roof-2
   campaignBuilding: 0
---- !u!1 &1691040329
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1691040330}
-  - component: {fileID: 1691040331}
-  m_Layer: 0
-  m_Name: 'Stub W3 [fc-stub-W3]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1691040330
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1691040329}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 63, y: -386, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 916323704}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1691040331
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1691040329}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
-  kind: 1
-  points:
-  - {x: 0, y: 0}
-  - {x: 4, y: 0}
 --- !u!1 &1691462851
 GameObject:
   m_ObjectHideFlags: 0
@@ -78028,55 +78018,6 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 4}
---- !u!1 &1713248954
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1713248955}
-  - component: {fileID: 1713248956}
-  m_Layer: 0
-  m_Name: 'Side fence WS-CW [fc-sidefence-WS-CW]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1713248955
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1713248954}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 63, y: -332, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 231045127}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1713248956
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1713248954}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
-  id: fc-sidefence-WS-CW
-  kind: fence
-  size: {x: 1, y: 33}
-  blocksMovement: 1
-  clearable: 0
 --- !u!1 &1715398160
 GameObject:
   m_ObjectHideFlags: 0
@@ -83640,11 +83581,11 @@ Transform:
   - {fileID: 709241313}
   - {fileID: 1751263853}
   - {fileID: 1124116854}
-  - {fileID: 1880351616}
-  - {fileID: 974511135}
-  - {fileID: 456438648}
-  - {fileID: 5865182}
-  - {fileID: 413813976}
+  - {fileID: 247906911}
+  - {fileID: 1996071524}
+  - {fileID: 2078529655}
+  - {fileID: 807561044}
+  - {fileID: 390984012}
   m_Father: {fileID: 1190810836}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1830087135
@@ -86391,63 +86332,6 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 18, y: 0}
---- !u!1 &1880351615
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1880351616}
-  - component: {fileID: 1880351617}
-  m_Layer: 0
-  m_Name: 'Salvage garages [fc-house-W1]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1880351616
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1880351615}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 51, y: -414, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1829253760}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1880351617
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1880351615}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80abc80b19eb4fd4483b84d8bc8247c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneBuilding
-  id: fc-house-W1
-  buildingName: Salvage garages
-  kind: garage
-  size: {x: 12, y: 7}
-  enterable: 0
-  doors:
-  - x: 11
-    y: 2
-    width: 1
-    height: 3
-  variant: 2
-  roofKey: rf-garage-roof-2
-  campaignBuilding: 0
 --- !u!1 &1881195536
 GameObject:
   m_ObjectHideFlags: 0
@@ -88823,6 +88707,53 @@ MonoBehaviour:
   variant: 0
   roofKey: rf-workshop-roof-0
   campaignBuilding: 1
+--- !u!1 &1936273493
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1936273494}
+  - component: {fileID: 1936273495}
+  m_Layer: 0
+  m_Name: 'Sidewalk north [fc-sidewalk-north]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1936273494
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1936273493}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 25, y: -329, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 363213396}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1936273495
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1936273493}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f061790dda1920948a40dd2179a506b7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneArea
+  areaName: Founders Court sidewalk
+  serviceArea: 0
+  size: {x: 95, y: 2}
 --- !u!1 &1936465645
 GameObject:
   m_ObjectHideFlags: 0
@@ -90047,6 +89978,55 @@ MonoBehaviour:
   size: {x: 3, y: 1}
   blocksMovement: 0
   clearable: 0
+--- !u!1 &1973606714
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1973606715}
+  - component: {fileID: 1973606716}
+  m_Layer: 0
+  m_Name: 'Side fence W3-CW [fc-sidefence-W3-CW]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1973606715
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1973606714}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 26, y: -379, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1973606716
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1973606714}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-sidefence-W3-CW
+  kind: fence
+  size: {x: 37, y: 1}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &1973812709
 GameObject:
   m_ObjectHideFlags: 0
@@ -91174,6 +91154,63 @@ MonoBehaviour:
   size: {x: 1, y: 3}
   blocksMovement: 0
   clearable: 0
+--- !u!1 &1996071523
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1996071524}
+  - component: {fileID: 1996071525}
+  m_Layer: 0
+  m_Name: 'North Court home [fc-house-W2]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1996071524
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1996071523}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 53, y: -398, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1829253760}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1996071525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1996071523}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80abc80b19eb4fd4483b84d8bc8247c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneBuilding
+  id: fc-house-W2
+  buildingName: North Court home
+  kind: house
+  size: {x: 10, y: 9}
+  enterable: 0
+  doors:
+  - x: 9
+    y: 3
+    width: 1
+    height: 3
+  variant: 2
+  roofKey: rf-house-E-roof-2
+  campaignBuilding: 0
 --- !u!1 &1996345400
 GameObject:
   m_ObjectHideFlags: 0
@@ -93207,54 +93244,6 @@ MonoBehaviour:
   variant: 2
   roofKey: rf-house-N-roof-2
   campaignBuilding: 0
---- !u!1 &2032364853
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2032364854}
-  - component: {fileID: 2032364855}
-  m_Layer: 0
-  m_Name: 'Stub E1 [fc-stub-E1]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2032364854
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2032364853}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 80, y: -417, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 916323704}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2032364855
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2032364853}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c355f99361467d4b98c4661b2aae1bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.ScenePath
-  kind: 1
-  points:
-  - {x: 0, y: 0}
-  - {x: -4, y: 0}
 --- !u!1 &2032407806
 GameObject:
   m_ObjectHideFlags: 0
@@ -95274,53 +95263,6 @@ MonoBehaviour:
   size: {x: 6, y: 3}
   blocksMovement: 1
   clearable: 0
---- !u!1 &2075329120
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2075329121}
-  - component: {fileID: 2075329122}
-  m_Layer: 0
-  m_Name: 'Sidewalk west [fc-sidewalk-west]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2075329121
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2075329120}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 23, y: -329, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 363213396}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2075329122
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2075329120}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f061790dda1920948a40dd2179a506b7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneArea
-  areaName: Founders Court sidewalk
-  serviceArea: 0
-  size: {x: 2, y: 99}
 --- !u!1 &2075356829
 GameObject:
   m_ObjectHideFlags: 0
@@ -95588,6 +95530,63 @@ MonoBehaviour:
     height: 1
   variant: 2
   roofKey: rf-house-N-roof-2
+  campaignBuilding: 0
+--- !u!1 &2078529654
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2078529655}
+  - component: {fileID: 2078529656}
+  m_Layer: 0
+  m_Name: "Court gardener\u2019s home [fc-house-W3]"
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2078529655
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2078529654}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 53, y: -382, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1829253760}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2078529656
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2078529654}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80abc80b19eb4fd4483b84d8bc8247c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneBuilding
+  id: fc-house-W3
+  buildingName: "Court gardener\u2019s home"
+  kind: house
+  size: {x: 10, y: 9}
+  enterable: 0
+  doors:
+  - x: 9
+    y: 3
+    width: 1
+    height: 3
+  variant: 0
+  roofKey: rf-house-E-roof-0
   campaignBuilding: 0
 --- !u!1 &2078937775
 GameObject:
@@ -96754,6 +96753,55 @@ MonoBehaviour:
   points:
   - {x: 0, y: 0}
   - {x: 0, y: 54}
+--- !u!1 &2097590591
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2097590592}
+  - component: {fileID: 2097590593}
+  m_Layer: 0
+  m_Name: 'Side fence E2-YARD [fc-sidefence-E2-YARD]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2097590592
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2097590591}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 81, y: -395, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 231045127}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2097590593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2097590591}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b1f817183285a448ac4c27dc6f56700, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.World::Relight.World.SceneProp
+  id: fc-sidefence-E2-YARD
+  kind: fence
+  size: {x: 38, y: 1}
+  blocksMovement: 1
+  clearable: 0
 --- !u!1 &2101059709
 GameObject:
   m_ObjectHideFlags: 0
@@ -97566,53 +97614,6 @@ MonoBehaviour:
   size: {x: 2, y: 2}
   blocksMovement: 0
   clearable: 0
---- !u!1 &2120265710
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2120265711}
-  - component: {fileID: 2120265712}
-  m_Layer: 0
-  m_Name: 'Sidewalk east [fc-sidewalk-east]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2120265711
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2120265710}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 120, y: -329, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 363213396}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2120265712
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2120265710}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f061790dda1920948a40dd2179a506b7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Relight.World::Relight.World.SceneArea
-  areaName: Founders Court sidewalk
-  serviceArea: 0
-  size: {x: 2, y: 99}
 --- !u!1 &2121452927
 GameObject:
   m_ObjectHideFlags: 0

@@ -79,11 +79,11 @@ Assignment order W1..W3, E1..E3, CW; E3 is YARD; E2 is the Foreman workshop's lo
 | W2 | `North Court home [court-north-home]` | rf-house-N-roof-2 | 10×9 | rf-house-E-roof-2 | (53,398) 10×9, x 53..62, y 398..406 | (62,401), (62,402), (62,403) | `fc-stub-W2` | (63,402) | (67,402) | new copy |
 | W3 | `Court gardener’s home [court-northwest-home]` | rf-house-E-roof-0 | 10×9 | rf-house-E-roof-0 | (53,382) 10×9, x 53..62, y 382..390 | (62,385), (62,386), (62,387) | `fc-stub-W3` | (63,386) | (67,386) | new copy |
 | E1 | `Court brick home [court-west-home]` | rf-house-E-roof-1 | 10×9 | rf-house-W-roof-1 | (81,413) 10×9, x 81..90, y 413..421 | (81,416), (81,417), (81,418) | `fc-stub-E1` | (80,417) | (76,417) | new copy |
-| E2 | `Foreman workshop [foreman-shelter]` | rf-workshop-roof-0 | 12×9 | rf-workshop-roof-0 | (81,398) 12×9, x 81..92, y 398..406 | (81,401), (81,402), (81,403) | `fc-stub-E2` | (80,402) | (76,402) | keep and move |
+| E2 | `Foreman workshop [foreman-shelter]` | rf-workshop-roof-0 | 12×9 | rf-workshop-roof-0 | (81,398) 12×9, x 81..92, y 398..406 | (85,406), (86,406), (87,406) on the south wall | `fc-stub-E2` | (86,407) | (76,407), via (86,407): L stub south then west, 3 points | keep and move; D45 applied |
 | CW | `Court End home [court-southwest-home]` | rf-house-roof-1 | 10×10 | rf-house-E-roof-1 | (53,369) 10×10, x 53..62, y 369..378 | (62,372), (62,373), (62,374) | `fc-stub-CW` | (63,373) | (67,373) | new copy |
 | WS | `Home workshop [home-workshop]` | rf-workshop-roof-1 | 10×14 | rf-workshop-roof-1 | (65,347) 10×14, x 65..74, y 347..360 | (69,360), (70,360), (71,360) | `fc-stub-WS` | (70,361) | (70,369) | keep in place |
 
-Stubs are straight `ScenePath` kind Path from the tile in front of the door to the first road band / circle tile.
+Stubs are straight `ScenePath` kind Path from the tile in front of the door to the first road band / circle tile. Exception under D45: `fc-stub-E2` is one 3-point polyline (86,407) → (86,407) → (76,407): south leg from the tile below the middle south-wall door tile to the row below the south wall (the same row 407, so that leg is zero length), then west to the road band edge x 76.
 
 | House | Inside lot, clear of fence line, road, sidewalk and other houses |
 |---|---|
@@ -278,3 +278,90 @@ Keep count: 20 (18 keep in place, 2 keep and move)
 3. CW's frontage on the circle is 6 tiles (rows 371..376), so every template is taller than frontage−2 (M7). The plan places `Court End home` (10×10) centred on it anyway. Accept, or name a different rule for circle lots?
 4. YARD is L-shaped; the yard site rectangle is (80,332) 39×63, leaving the 3×26 strip x 77..79, y 369..394 unpaved. Accept?
 5. The W1–W2 side fence (row 410) passes over the tree `tree [neighbourhood:court-tree-b]` at (44,410) 2×2, and the yard rectangle covers `tree [court-east-cottage:garden-tree]` at (83,380). Trees keep in place per M10. Accept, or delete those two trees?
+## 11. Works Yard property
+
+D48: the Works Yard is a separate fenced property, not a court lot. Its site rectangle is unchanged from heading 6; the YARD lot is removed from the lot table and the two side fences `fc-sidefence-WS-YARD` and `fc-sidefence-E2-YARD` are replaced by the yard's own west edge and south edge (heading 12). Road band edge for the verge: x 76 (lot E2 'Road edge', heading 3). Circle's first row: y 369.
+
+| Item | Rectangle | Tiles |
+|---|---|---|
+| Yard rectangle | (80,332) 39×63, x 80..118, y 332..394 | 2457 |
+| Yard west edge (column one tile west of the yard rect) | (79,332) 1×63, x 79..79, y 332..394 | 63 |
+| Yard south edge (row one tile south of the yard rect, from the west edge column to the yard's east column) | (79,395) 40×1, x 79..118, y 395..395 | 40 |
+| Yard north run (compound fence north row above the yard rect's columns) | (80,331) 39×1, x 80..118, y 331..331 | 39 |
+| Yard east run (compound fence east column beside the yard rect's rows) | (119,332) 1×63, x 119..119, y 332..394 | 63 |
+| Verge (between the road band edge and the yard west edge, from the circle's first row to the yard's south row) | (77,369) 2×26, x 77..78, y 369..394 | 52 |
+
+Lot VERGE: key `fc-lot-VERGE`, rectangle (77,369) 2×26, x 77..78, y 369..394, court ground; no house, no stub, no side fence (M5). Plan data: `lots` gains VERGE and loses YARD; `sideFences` loses `fc-sidefence-WS-YARD` and `fc-sidefence-E2-YARD`; `yard` gains `westEdge`, `southEdge`, `northRun`, `eastRun`, `verge`; the lots W1, W2, W3, E1, E2, WS, CW are unchanged.
+
+Coverage check (Phase 3 rule, M5: every interior tile in exactly one lot or the yard rectangle, or a fence tile): 8089 interior tiles; 8063 in exactly one of W1, W2, W3, E1, E2, WS, CW, VERGE or the yard rectangle; 22 fence tiles in none (the yard west edge x 79, y 369..394 outside the gap); 0 tiles in two; 0 tiles in none and not fence. The 4 gap tiles (79,372), (79,373), (79,374), (79,375) are in no lot, not in the yard rectangle and not fence tiles (they hold the non-blocking debris placeholder): see heading 14. Result: PASS apart from the gap tiles.
+
+## 12. Yard fence, gap and gate
+
+M1: the yard west edge and south edge are new 1-thick fence runs; `fc-sidefence-WS-YARD` (79,332) 1×33 and `fc-sidefence-E2-YARD` (81,395) 38×1 are deleted and replaced by them. `fc-fence-north-1` and `fc-fence-east-1` are split at the yard's boundary. Keys per M6.
+
+| Key | Run | Start | End | Rect | Tiles |
+|---|---|---|---|---|---|
+| `fc-fence-north-yard` | north run | (80,331) | (118,331) | (80,331) 39×1, x 80..118, y 331..331 | 39 |
+| `fc-fence-east-yard-1` | east run — north of the gate; includes the compound NE corner tile (119,331) | (119,331) | (119,360) | (119,331) 1×30, x 119..119, y 331..360 | 30 |
+| `fc-fence-east-yard-2` | east run — south of the gate | (119,365) | (119,394) | (119,365) 1×30, x 119..119, y 365..394 | 30 |
+| `fc-yardfence-west-1` | west edge — north of the gap | (79,332) | (79,371) | (79,332) 1×40, x 79..79, y 332..371 | 40 |
+| `fc-yardfence-west-2` | west edge — south of the gap | (79,376) | (79,394) | (79,376) 1×19, x 79..79, y 376..394 | 19 |
+| `fc-yardfence-south` | south edge | (79,395) | (118,395) | (79,395) 40×1, x 79..118, y 395..395 | 40 |
+
+Gap (D49, M2): yard west edge column x 79; circle row y 374 and the row above it y 373, plus one row above (y 372) and one below (y 375); centred on the boundary between rows 373 and 374. Four tiles: (79,372), (79,373), (79,374), (79,375) = rect (79,372) 1×4, x 79..79, y 372..375. No fence tile on them; one debris object (D51 placeholder, SceneProp kind `debris`, `blocksMovement` 0) covers exactly those four, name "Works Yard broken fence" (go message, 2026-09-18), key `fc-yard-gap`.
+
+Gate (D50, M3): yard east run column x 119; yard rect rows 332..394 (63 rows), middle row 363; four tiles centred on it, rounded toward north: rows 361..364 (centre 362.5). Tiles: (119,361), (119,362), (119,363), (119,364) = rect (119,361) 1×4, x 119..119, y 361..364. No fence tile there; one fence object (SceneProp kind `fence`, `blocksMovement` 1) covering exactly those four, name "Works Yard gate", key `fc-yard-gate`.
+
+Splits of the compound fence:
+
+| Old key | Old rect | New key | Part | Rect |
+|---|---|---|---|---|
+| `fc-fence-east-1` | (119,331) 1×95, x 119..119, y 331..425 | `fc-fence-east-yard-1` | yard — north of the gate; includes the compound NE corner tile | (119,331) 1×30, x 119..119, y 331..360 |
+| `fc-fence-east-1` | (119,331) 1×95, x 119..119, y 331..425 | `fc-fence-east-yard-2` | yard — south of the gate | (119,365) 1×30, x 119..119, y 365..394 |
+| `fc-fence-east-1` | (119,331) 1×95, x 119..119, y 331..425 | `fc-fence-east-court` | court | (119,395) 1×31, x 119..119, y 395..425 |
+| `fc-fence-north-1` | (26,331) 93×1, x 26..118, y 331..331 | `fc-fence-north-court` | court | (26,331) 54×1, x 26..79, y 331..331 |
+| `fc-fence-north-1` | (26,331) 93×1, x 26..118, y 331..331 | `fc-fence-north-yard` | yard | (80,331) 39×1, x 80..118, y 331..331 |
+
+Compound fence tile count: 366 before; 362 in the eight `fenceLine` segments after, plus 4 gate tiles = 366, the same tiles. Court fence = `fc-fence-west-1`, `fc-fence-north-court`, `fc-fence-east-court`, `fc-fence-south-1`, `fc-fence-south-2` and the five unchanged side fences; yard fence = the six runs above. Plan data: `yard.yardFences`, `yard.yardGap`, `yard.yardGate`; `fenceLine.segments` now holds the split parts.
+
+## 13. Yard office
+
+| Field | Value |
+|---|---|
+| Footprint areas (heading 4 houses) | W1 `fc-house-W1` 12×7 = 84, W2 `fc-house-W2` 10×9 = 90, W3 `fc-house-W3` 10×9 = 90, E1 `fc-house-E1` 10×9 = 90, E2 `fc-house-E2` 12×9 = 108, CW `fc-house-CW` 10×10 = 100, WS `fc-house-WS` 10×14 = 140 |
+| Source house (smallest footprint, M4) | `fc-house-W1` (lot W1, copy of `Salvage garages [home-garage]`, kind garage, variant 2), 12×7 = 84 tiles |
+| Office rectangle | (106,353) 12×7, x 106..117, y 353..359; east wall x 117, one tile west of the yard east run x 119 (tile x 118 between); south wall row y 359, two rows above the gate's top row y 361 (go message, 2026-09-18; supersedes the M4 centring on the gate rows, which gave (106,359)) |
+| Door | west wall x 106, centred: local [0, 2, 1, 3], tiles (106,355), (106,356), (106,357) (the source's door is 1×3 on its east wall; same length, moved to the west wall) |
+| Stub | none (M4) |
+| Roof key | `rf-garage-roof-2` (source `rf-garage-roof-2`; west-door key `rf-garage-W-roof-2` does not exist in the scene, so unchanged) |
+| Name / key | "Works Yard office" / `fc-yard-office`; not enterable (D53) |
+| Moves south | 0 (M4 rule); then moved north 6 rows by the go message so the south wall is two rows above the gate |
+
+| Check | Result |
+|---|---|
+| office inside yard rect | PASS |
+| no overlap with Works Yard Iron Scrap Pile [opening-iron-v1] | PASS |
+| no overlap with Works Yard Copper Cable Spool [opening-copper-v1] | PASS |
+| no overlap with Works Yard Coal Fuel Bunker [opening-coal-v1] | PASS |
+| no overlap with substation | PASS |
+| no overlap with gate | PASS |
+| ≥ 4 from Works Yard Iron Scrap Pile [opening-iron-v1] (axis gap 19, -3; largest 19) | PASS |
+| ≥ 4 from Works Yard Copper Cable Spool [opening-copper-v1] (axis gap 7, -3; largest 7) | PASS |
+| ≥ 4 from Works Yard Coal Fuel Bunker [opening-coal-v1] (axis gap 7, 9; largest 9) | PASS |
+
+Plan data: `yard.office` with `rect`, `doorTiles`, `roofKey`, `sourceKey` (and `doorsLocal`, `doorWall`, `size`, `kind`, `variant`, `name`, `key`).
+
+## 14. Gaps in the yard plan
+
+1. **Coverage: the four gap tiles.** (79,372), (79,373), (79,374), (79,375) lie in no lot, outside the yard rectangle, and are not fence tiles (they hold the non-blocking debris placeholder, D49/D51). Every other interior tile passes the M5 rule. They are the broken section of the yard west edge; no lot was widened to take them (rule 9).
+2. **East yard fence key.** M6 names one east part, `fc-fence-east-yard`, but the gate (M3) breaks the yard east run into two fence objects. Used `fc-fence-east-yard-1` (north of the gate) and `fc-fence-east-yard-2` (south of the gate), the same pattern M6 gives for the west edge. The name is not in M6.
+3. **North-east corner tile (119,331).** By the definitions it is in neither the yard north run (x 80..118) nor the yard east run (y 332..394), so it is court fence; splitting `fc-fence-east-1` strictly would leave a one-tile court piece between the yard's north and east fences. It is placed in `fc-fence-east-yard-1`, which therefore starts at y 331. Change the plan data if it must be a court fence object.
+4. **M4 "heading 9 of Part A".** Part A adds headings 11–14 only; no heading 9 is written in this pass. The office overlapped nothing, so it moved 0 rows; recorded here and as `yard.office.movesSouth`.
+5. **Smallest house is a garage.** M4 says the smallest footprint area; that is `fc-house-W1` (12×7 = 84, kind garage, copy of `Salvage garages [home-garage]`). If "house" excludes garages, the smallest are W2, W3 and E1 at 10×9 = 90 (tie). W1 was used.
+6. **Gap object name.** The gap had a key (`fc-yard-gap`) but no object name in the decisions. Resolved by the go message (2026-09-18): "Works Yard broken fence".
+7. **VERGE as a scene object.** Lots are plan data only: the generator creates no `fc-lot-*` objects (Phase 3 C12 counts 29 objects without lots), so `fc-lot-VERGE` is a plan key unless the go message says a scene object is wanted.
+8. **Old lot records.** E3 and CE stay in the plan data marked `merged_into: YARD` as history; YARD itself is removed. `yard.lot` and `yard.lotRects` (the YARD lot's rectangles) are removed and `yard.property` added. The generator's step 7 and C9 read `yard.siteName`, `rect`, `nodes` and `substation` only, which are unchanged.
+9. **Fence tiles inside unchanged lots.** The yard west edge x 79, y 332..368 lies inside lot WS and the yard south edge y 395, x 79..118 lies inside lot E2 (both lots unchanged, rule 9), exactly where the two deleted side fences lay. The coverage rule accepts a fence tile inside one lot.
+10. **Gate tiles and the compound fence count.** The four gate tiles are in `yard.yardGate`, not `fenceLine.segments`, so `fenceLine.tileCount` is 362 (was 366); the gate makes up the difference. Part B's C2 count line will change accordingly.
+11. **D49 wording.** D49 says the gap is centred on the circle's row; M2 centres it on the boundary between the circle row (374) and the row above (373), giving rows 372..375. M2 is the stated method and was used.
+12. **Read-only Editor query.** To apply M4's roof rule the open Editor was asked (eval) for the roof keys of every `SceneBuilding`; `rf-garage-W-roof-2` is not among them, so the office keeps `rf-garage-roof-2`. Nothing in the scene, assets or code was changed in Part A.

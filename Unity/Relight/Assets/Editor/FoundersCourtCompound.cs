@@ -106,6 +106,10 @@ public static class FoundersCourtCompound
             L("Generate: block " + RS(block) + ", road polyline " + string.Join(" -> ", poly.Select(p => "(" + p.x + "," + p.y + ")")));
             Undo.IncrementCurrentGroup(); Undo.SetCurrentGroupName("Founders Court compound");
 
+            // 0. D46: clear baseline decor and baseline solids inside the block before anything is built.
+            L("Generate: baseline " + ClearBaseline(root.GetComponent<SceneWorld>().baseline, block, R(plan["road"]["bandRect"]),
+                V(plan["road"]["circle"]["centre"]), (float)plan["road"]["circle"]["radius"], false));
+
             // 1. Delete every existing fc- object (rerunnable).
             var fcOld = root.GetComponentsInChildren<Transform>(true).Where(t => t != root && t.name.Contains(FcMarker)).ToList();
             var removedFc = 0;
@@ -177,10 +181,10 @@ public static class FoundersCourtCompound
                     L((fate == "keep and move" ? "moved " : "kept ") + t.name + " [" + b.id + "] old " + RS(old) + " new " + RS(SceneWorld.Rect(t, b.size)) +
                       " doors old " + oldDoors + " new " + string.Join(";", doors.Select(RS)) + " roof old " + oldRoof + " new " + b.roofKey + " (lot " + lot + ")");
                 }
-                var stub = h["stub"]; var sk = (string)stub["key"]; var p0 = V(stub["points"][0]); var p1 = V(stub["points"][1]);
+                var stub = h["stub"]; var sk = (string)stub["key"]; var spts = stub["points"].Select(V).ToList(); var p0 = spts[0];
                 var pg = New("Stub " + lot + " [" + sk + "]", paths, p0.x, p0.y);
-                var sp = pg.AddComponent<ScenePath>(); sp.kind = ScenePathKind.Path; sp.points = new List<Vector2Int> { Vector2Int.zero, p1 - p0 };
-                L("generated ScenePath " + pg.name + " [" + sk + "] (" + p0.x + "," + p0.y + ")->(" + p1.x + "," + p1.y + ")");
+                var sp = pg.AddComponent<ScenePath>(); sp.kind = ScenePathKind.Path; sp.points = spts.Select(q => q - p0).ToList();
+                L("generated ScenePath " + pg.name + " [" + sk + "] " + string.Join("->", spts.Select(q => "(" + q.x + "," + q.y + ")")));
             }
 
             // 7. Works Yard, nodes and substation.
@@ -370,6 +374,8 @@ public static class FoundersCourtCompound
                 {
                     if (it == null) continue;
                     var lot = (string)h["lot"]; var side = (string)lots[lot]["side"]; var b = (SceneBuilding)it.c;
+                    // D45: the plan may name the door wall itself (Foreman workshop: "S"); otherwise the door sits on the wall facing the road for the lot's side.
+                    var wall = h["doorWall"] != null ? (string)h["doorWall"] : side == "W" ? "E" : side == "E" ? "W" : side == "N" ? "S" : "N";
                     var doorTiles = new List<Vector2Int>();
                     foreach (var d in b.doors)
                     {
@@ -377,8 +383,8 @@ public static class FoundersCourtCompound
                         foreach (var t in Tiles(w))
                         {
                             doorTiles.Add(t);
-                            var onFront = side == "W" ? t.x == it.rect.xMax - 1 : side == "E" ? t.x == it.rect.xMin : side == "N" ? t.y == it.rect.yMax - 1 : t.y == it.rect.yMin;
-                            if (!onFront) bad.Add(lot + ": door tile " + t.x + "," + t.y + " not on front wall");
+                            var onFront = wall == "W" ? t.x == it.rect.xMin : wall == "E" ? t.x == it.rect.xMax - 1 : wall == "N" ? t.y == it.rect.yMin : t.y == it.rect.yMax - 1;
+                            if (!onFront) bad.Add(lot + ": door tile " + t.x + "," + t.y + " not on the " + wall + " wall");
                         }
                     }
                     if (doorTiles.Count == 0) bad.Add(lot + ": no door");
@@ -393,7 +399,7 @@ public static class FoundersCourtCompound
                     }
                     if (touching != 1) bad.Add(lot + ": " + touching + " stubs touch the door");
                 }
-                check("C6 doors and stubs", bad.Count == 0, bad.Count == 0 ? houses.Count + " houses, each door on the front wall with one stub to the road" : string.Join("; ", bad));
+                check("C6 doors and stubs", bad.Count == 0, bad.Count == 0 ? houses.Count + " houses, each door on its planned wall with one stub (first point at the door, last point on the road, any point count)" : string.Join("; ", bad));
             }
 
             // C7 roof variety between neighbours (pairs from the plan's side fences).
@@ -489,7 +495,7 @@ public static class FoundersCourtCompound
                 foreach (var h in plan["houses"])
                 {
                     if ((string)h["fate"] == "new copy") expected[(string)h["key"]] = R(h["rect"]);
-                    stubRects[(string)h["stub"]["key"]] = (V(h["stub"]["points"][0]), V(h["stub"]["points"][1]));
+                    stubRects[(string)h["stub"]["key"]] = (V(h["stub"]["points"].First()), V(h["stub"]["points"].Last()));
                 }
                 var actual = new Dictionary<string, RectInt>();
                 foreach (var o in bld.Concat(prp).Concat(ars)) if (o.name.Contains(FcMarker)) actual[Key(o.name)] = o.rect;
@@ -534,11 +540,83 @@ public static class FoundersCourtCompound
                 var cap = DirectorRules.EntryFarSteps;
                 check("C13 walk steps", steps >= 0 && steps + 10 <= cap, "core -> mouth row " + steps + " steps, + 10 = " + (steps + 10) + ", cap EntryFarSteps = " + cap);
             }
+
+            // C14 baseline clear (D46): nothing left to clear in the baseline asset inside the block.
+            {
+                var report = ClearBaseline(world.baseline, block, band, V(plan["road"]["circle"]["centre"]), (float)plan["road"]["circle"]["radius"], true);
+                check("C14 baseline clear", report.StartsWith("clear"), report);
+            }
         }
         catch (Exception e) { failed++; L("FAIL Verify: exception " + e.Message + "\n" + e.StackTrace); }
         finally { if (g != null) UnityEngine.Object.DestroyImmediate(g); }
-        L("Verify: " + passed + " passed, " + failed + " failed");
+        L("Verify: " + passed + " passed, " + failed + " failed of fourteen checks");
         Flush("fc_verify_log.txt");
+    }
+
+    /// <summary>
+    /// D46: clears baseline decor and baseline solids inside the block. Tile classes other than Ground/River become
+    /// Ground, solids are cleared, props/squares/service areas overlapping the block are removed and paths/drives
+    /// are cut so only their parts outside the block remain. Road-owned tiles are never touched: the plan road band,
+    /// the circle (tile centre strictly inside the radius) and the block's four edge rows/columns (ring-road
+    /// pavement). Roads, road nodes, tram samples, court and river are left alone. With <paramref name="dryRun"/>
+    /// nothing is changed; the returned text starts with "clear" when there is nothing to clear, else "dirty".
+    /// </summary>
+    public static string ClearBaseline(WorldGeometryAsset g, RectInt block, RectInt band, Vector2Int centre, float radius, bool dryRun)
+    {
+        if (g == null) return "dirty: Editable World has no baseline asset";
+        Func<int, int, bool> inBlock = (x, y) => Contains(block, x, y);
+        Func<Vector2Int, bool> inV = v => inBlock(v.x, v.y);
+        Func<RectInt, bool> ov = r => Overlaps(r, block);
+        Func<int, int, bool> roadOwned = (x, y) => x == block.xMin || x == block.xMax - 1 || y == block.yMin || y == block.yMax - 1
+            || Contains(band, x, y) || (new Vector2(x + .5f, y + .5f) - new Vector2(centre.x, centre.y)).sqrMagnitude < radius * radius;
+        var tiles = 0; var solids = 0;
+        for (var y = block.yMin; y < block.yMax; y++) for (var x = block.xMin; x < block.xMax; x++)
+        {
+            var i = g.Index(x, y);
+            if (g.Solid[i] != 0) { solids++; if (!dryRun) g.Solid[i] = 0; }
+            if (roadOwned(x, y)) continue;
+            var k = g.Kind[i];
+            if (k == (byte)TileClass.Ground || k == (byte)TileClass.River) continue;
+            tiles++; if (!dryRun) g.Kind[i] = (byte)TileClass.Ground;
+        }
+        var c = g.City;
+        var props = 0; for (var i = c.props.Count - 1; i >= 0; i--) if (ov(c.props[i].rect)) { props++; if (!dryRun) c.props.RemoveAt(i); }
+        var squares = 0; for (var i = c.squares.Count - 1; i >= 0; i--) if (ov(c.squares[i].rect)) { squares++; if (!dryRun) c.squares.RemoveAt(i); }
+        var areas = 0; for (var i = c.serviceAreas.Count - 1; i >= 0; i--) if (ov(c.serviceAreas[i])) { areas++; if (!dryRun) c.serviceAreas.RemoveAt(i); }
+        Func<List<WorldGeometryAsset.Poly>, int> clip = list =>
+        {
+            var touched = 0; var add = new List<WorldGeometryAsset.Poly>();
+            for (var i = list.Count - 1; i >= 0; i--)
+            {
+                var pts = list[i].points; if (pts == null || pts.Count == 0) continue;
+                var walkTiles = new List<Vector2Int> { pts[0] };
+                for (var j = 1; j < pts.Count; j++)
+                {
+                    var a = pts[j - 1]; var b = pts[j]; var n = Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
+                    for (var st = 1; st <= n; st++) walkTiles.Add(new Vector2Int(a.x + Math.Sign(b.x - a.x) * Mathf.Min(st, Mathf.Abs(b.x - a.x)), a.y + Math.Sign(b.y - a.y) * Mathf.Min(st, Mathf.Abs(b.y - a.y))));
+                }
+                if (!walkTiles.Any(inV)) continue;
+                touched++;
+                if (dryRun) continue;
+                var runs = new List<List<Vector2Int>>(); List<Vector2Int> run = null;
+                foreach (var t in walkTiles) { if (inV(t)) { run = null; continue; } if (run == null) { run = new List<Vector2Int>(); runs.Add(run); } run.Add(t); }
+                list.RemoveAt(i);
+                foreach (var r in runs)
+                {
+                    if (r.Count < 2) continue;
+                    var poly = new WorldGeometryAsset.Poly(); poly.points.Add(r[0]);
+                    for (var j = 1; j < r.Count - 1; j++) if (r[j] - r[j - 1] != r[j + 1] - r[j]) poly.points.Add(r[j]);
+                    poly.points.Add(r[r.Count - 1]); add.Add(poly);
+                }
+            }
+            list.AddRange(add);
+            return touched;
+        };
+        var paths = clip(c.paths); var drives = clip(c.drives);
+        var total = tiles + solids + props + squares + areas + paths + drives;
+        var detail = "block " + RS(block) + ": decor tiles " + tiles + ", solids " + solids + ", props " + props + ", paths " + paths + ", drives " + drives + ", squares " + squares + ", service areas " + areas + " (roads, nodes, tram, court untouched)";
+        if (!dryRun && total > 0) { EditorUtility.SetDirty(g); AssetDatabase.SaveAssets(); }
+        return (total == 0 ? "clear, nothing to remove; " : dryRun ? "dirty, still present; " : "cleared and saved; ") + detail;
     }
 
     /// <summary>Tiles between the house's front wall and the road edge (D39).</summary>
