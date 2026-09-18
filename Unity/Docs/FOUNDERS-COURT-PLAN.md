@@ -182,9 +182,9 @@ Every object whose rectangle or path touches the block rectangle, from the fresh
 | Perimeter home 12 [court-perimeter-12] | court-perimeter-12 | Buildings (house) | delete | M10 perimeter home |
 | debris [court-brush] | court-brush | Props (debris) | keep in place | D27 debris stays |
 | tree [court-west-home:garden-tree] | court-west-home:garden-tree | Props (tree) | keep in place | M10 trees stay |
-| tree [court-east-cottage:garden-tree] | court-east-cottage:garden-tree | Props (tree) | keep in place | M10 trees stay |
+| tree [court-east-cottage:garden-tree] | court-east-cottage:garden-tree | Props (tree) | delete | go message answer 1 (under a side fence / the yard) |
 | tree [neighbourhood:court-tree-a] | neighbourhood:court-tree-a | Props (tree) | keep in place | M10 trees stay |
-| tree [neighbourhood:court-tree-b] | neighbourhood:court-tree-b | Props (tree) | keep in place | M10 trees stay |
+| tree [neighbourhood:court-tree-b] | neighbourhood:court-tree-b | Props (tree) | delete | go message answer 1 (under a side fence / the yard) |
 | fence [neighbourhood:court-west-garden-edge] | neighbourhood:court-west-garden-edge | Props (fence) | delete | M10 fence removed |
 | fence [neighbourhood:court-west-garden-edge-2] | neighbourhood:court-west-garden-edge-2 | Props (fence) | delete | M10 fence removed |
 | Perimeter fence 1 [court-perimeter-fence-1] | court-perimeter-fence-1 | Props (fence) | delete | M10 fence removed |
@@ -249,8 +249,8 @@ Every object whose rectangle or path touches the block rectangle, from the fresh
 | Path perimeter 12 | — | Roads and paths (Path) | delete | M10 perimeter stub |
 | Player Spawn | — | Transform (PLAYER SPAWN) | keep in place | D25 spawn stays |
 
-Delete count: 73
-Keep count: 22 (20 keep in place, 2 keep and move)
+Delete count: 75
+Keep count: 20 (18 keep in place, 2 keep and move)
 
 ## 8. Picture
 

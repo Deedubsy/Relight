@@ -1,0 +1,563 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Newtonsoft.Json.Linq;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using Relight.Sim;
+using Relight.World;
+
+/// <summary>
+/// Founders Court compound generator and verifier (FOUNDERS-COURT-DECISIONS D34–D44, D43 generator).
+/// Reads a plan file (Unity/Docs/FOUNDERS-COURT-PLAN.json by default): block rectangle, road polyline, fence line,
+/// sidewalk strips, lots, houses, side fences, Works Yard and the fate of every existing object in the block.
+/// Every generated object carries a bracket key beginning "fc-" and the generator deletes every "fc-" object before
+/// creating, so it can be run again. Tile coordinates: x east, y south, pivot NW corner, Unity pos = (x, -y).
+/// </summary>
+public static class FoundersCourtCompound
+{
+    const string WorldRootName = "Editable World";
+    const string RefreshMenu = "Relight/World/Refresh Editable World";
+    const string FcMarker = "[fc-";
+
+    static string DefaultPlanPath => Path.GetFullPath(Path.Combine(Application.dataPath, "../../Docs/FOUNDERS-COURT-PLAN.json"));
+    static string TempDir => Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp"));
+
+    // ------------------------------------------------------------------ menu items
+
+    [MenuItem("Relight/Founders Court/Generate Compound")]
+    public static void GenerateCompound() => Generate(DefaultPlanPath);
+
+    [MenuItem("Relight/Founders Court/Verify")]
+    public static void VerifyMenu() => Verify(DefaultPlanPath);
+
+    [MenuItem("Relight/Founders Court/Generate From File")]
+    public static void GenerateFromFile()
+    {
+        var path = EditorUtility.OpenFilePanel("Founders Court plan", Path.GetDirectoryName(DefaultPlanPath), "json");
+        if (string.IsNullOrEmpty(path)) { Debug.Log("Generate From File: cancelled"); return; }
+        Generate(path);
+    }
+
+    // ------------------------------------------------------------------ shared helpers
+
+    static StringBuilder log;
+    static void L(string s) { log.Append(s).Append('\n'); }
+
+    static void Flush(string file)
+    {
+        Directory.CreateDirectory(TempDir);
+        File.WriteAllText(Path.Combine(TempDir, file), log.ToString());
+        foreach (var line in log.ToString().Split('\n')) if (line.Length > 0) Debug.Log(line);
+    }
+
+    static RectInt R(JToken t) => new RectInt((int)t[0], (int)t[1], (int)t[2], (int)t[3]);
+    static Vector2Int V(JToken t) => new Vector2Int((int)t[0], (int)t[1]);
+    static string RS(RectInt r) => "(" + r.x + "," + r.y + ") " + r.width + "x" + r.height;
+    static bool Contains(RectInt r, int x, int y) => x >= r.xMin && x < r.xMax && y >= r.yMin && y < r.yMax;
+    static bool Overlaps(RectInt a, RectInt b) => a.xMin < b.xMax && b.xMin < a.xMax && a.yMin < b.yMax && b.yMin < a.yMax;
+    static bool Inside(RectInt inner, RectInt outer) => inner.xMin >= outer.xMin && inner.xMax <= outer.xMax && inner.yMin >= outer.yMin && inner.yMax <= outer.yMax;
+    static IEnumerable<Vector2Int> Tiles(RectInt r)
+    {
+        for (var y = r.yMin; y < r.yMax; y++) for (var x = r.xMin; x < r.xMax; x++) yield return new Vector2Int(x, y);
+    }
+    static string Key(string name)
+    {
+        var i = name.LastIndexOf('['); var j = name.LastIndexOf(']');
+        return i >= 0 && j > i ? name.Substring(i + 1, j - i - 1) : "";
+    }
+    static string BaseName(string name)
+    {
+        var i = name.LastIndexOf('[');
+        return (i > 0 ? name.Substring(0, i) : name).Trim();
+    }
+
+    static Transform Root()
+    {
+        var go = GameObject.Find(WorldRootName);
+        if (go == null) throw new Exception("World root '" + WorldRootName + "' not found");
+        return go.transform;
+    }
+
+    static JObject LoadPlan(string path)
+    {
+        if (!File.Exists(path)) throw new Exception("Plan file not found: " + path);
+        return JObject.Parse(File.ReadAllText(path));
+    }
+
+    // ------------------------------------------------------------------ generate
+
+    public static void Generate(string planPath)
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogError("Generate: not in Play Mode"); return; }
+        log = new StringBuilder();
+        try
+        {
+            var plan = LoadPlan(planPath);
+            var root = Root();
+            var buildings = root.Find("Buildings"); var props = root.Find("Props"); var sitesT = root.Find("Sites and resources");
+            var paths = root.Find("Roads and paths"); var areas = root.Find("Paved areas");
+            var block = R(plan["block"]["rect"]);
+            var poly = plan["road"]["polyline"].Select(V).ToList();
+            L("Generate: plan " + planPath);
+            L("Generate: block " + RS(block) + ", road polyline " + string.Join(" -> ", poly.Select(p => "(" + p.x + "," + p.y + ")")));
+            Undo.IncrementCurrentGroup(); Undo.SetCurrentGroupName("Founders Court compound");
+
+            // 1. Delete every existing fc- object (rerunnable).
+            var fcOld = root.GetComponentsInChildren<Transform>(true).Where(t => t != root && t.name.Contains(FcMarker)).ToList();
+            var removedFc = 0;
+            foreach (var t in fcOld) if (t != null) { L("deleted fc " + t.name + " [" + Key(t.name) + "] " + Pos(t)); Undo.DestroyObjectImmediate(t.gameObject); removedFc++; }
+            L("Generate: removed " + removedFc + " earlier fc- objects");
+
+            // 2. Fates: delete. Located by category group + name, then by exact name anywhere under the root.
+            var deleted = 0; var missing = 0;
+            foreach (var f in plan["fates"])
+            {
+                if ((string)f["fate"] != "delete") continue;
+                var name = (string)f["name"]; var cat = (string)f["category"]; var key = (string)f["key"];
+                var t = FindObject(root, cat, name);
+                if (t == null) { L("MISSING delete " + name + " [" + key + "] (" + cat + ")"); missing++; continue; }
+                L("deleted " + name + " [" + key + "] " + Pos(t) + " (" + cat + ")");
+                Undo.DestroyObjectImmediate(t.gameObject); deleted++;
+            }
+            L("Generate: deleted " + deleted + " objects, " + missing + " missing");
+
+            // 3. Sidewalks (SceneArea strips, decor only).
+            foreach (var s in plan["sidewalk"]["strips"])
+            {
+                var key = (string)s["key"]; var r = R(s["rect"]);
+                var go = New("Sidewalk " + (string)s["side"] + " [" + key + "]", areas, r.x, r.y);
+                var a = go.AddComponent<SceneArea>(); a.areaName = "Founders Court sidewalk"; a.serviceArea = false; a.size = new Vector2Int(r.width, r.height);
+                L("generated SceneArea " + go.name + " [" + key + "] " + RS(r));
+            }
+
+            // 4. Compound fence segments.
+            foreach (var s in plan["fenceLine"]["segments"])
+            {
+                var key = (string)s["key"]; var r = R(s["rect"]);
+                Fence("Compound fence " + (string)s["side"] + " [" + key + "]", props, key, r);
+            }
+
+            // 5. Side fences.
+            foreach (var s in plan["sideFences"])
+            {
+                var key = (string)s["key"]; var r = R(s["rect"]);
+                Fence("Side fence " + string.Join("-", s["lots"].Select(x => (string)x)) + " [" + key + "]", props, key, r);
+            }
+
+            // 6. Houses and stubs.
+            foreach (var h in plan["houses"])
+            {
+                var fate = (string)h["fate"]; var lot = (string)h["lot"]; var key = (string)h["key"]; var r = R(h["rect"]);
+                var doors = h["doorsLocal"].Select(R).ToList();
+                if (fate == "new copy")
+                {
+                    var src = (string)h["source"];
+                    var go = New(BaseName(src) + " [" + key + "]", buildings, r.x, r.y);
+                    var b = go.AddComponent<SceneBuilding>();
+                    b.id = key; b.buildingName = BaseName(src); b.kind = (string)h["kind"]; b.size = new Vector2Int(r.width, r.height);
+                    b.enterable = (bool)h["enterable"]; b.doors = doors; b.variant = (int)h["variant"]; b.roofKey = (string)h["roof"];
+                    b.campaignBuilding = (bool)h["campaign"];
+                    L("generated SceneBuilding " + go.name + " [" + key + "] " + RS(r) + " roof=" + b.roofKey + " door=" + string.Join(";", doors.Select(RS)) + " (copy of " + src + ")");
+                }
+                else if (fate == "keep and move" || fate == "keep in place")
+                {
+                    var src = (string)h["source"];
+                    var t = FindObject(root, "Buildings", src);
+                    if (t == null) { L("MISSING house " + src + " for lot " + lot); continue; }
+                    var b = t.GetComponent<SceneBuilding>();
+                    var old = SceneWorld.Rect(t, b.size); var oldDoors = string.Join(";", b.doors.Select(RS)); var oldRoof = b.roofKey;
+                    Undo.RecordObject(t, "Move house"); Undo.RecordObject(b, "Move house");
+                    if (fate == "keep and move") t.position = new Vector3(r.x, -r.y, t.position.z);
+                    b.size = new Vector2Int(r.width, r.height); b.doors = doors; b.roofKey = (string)h["roof"];
+                    EditorUtility.SetDirty(b);
+                    L((fate == "keep and move" ? "moved " : "kept ") + t.name + " [" + b.id + "] old " + RS(old) + " new " + RS(SceneWorld.Rect(t, b.size)) +
+                      " doors old " + oldDoors + " new " + string.Join(";", doors.Select(RS)) + " roof old " + oldRoof + " new " + b.roofKey + " (lot " + lot + ")");
+                }
+                var stub = h["stub"]; var sk = (string)stub["key"]; var p0 = V(stub["points"][0]); var p1 = V(stub["points"][1]);
+                var pg = New("Stub " + lot + " [" + sk + "]", paths, p0.x, p0.y);
+                var sp = pg.AddComponent<ScenePath>(); sp.kind = ScenePathKind.Path; sp.points = new List<Vector2Int> { Vector2Int.zero, p1 - p0 };
+                L("generated ScenePath " + pg.name + " [" + sk + "] (" + p0.x + "," + p0.y + ")->(" + p1.x + "," + p1.y + ")");
+            }
+
+            // 7. Works Yard, nodes and substation.
+            var yard = plan["yard"];
+            MoveSite(root, (string)yard["siteName"], R(yard["rect"]));
+            foreach (var n in yard["nodes"]) MoveSite(root, (string)n["name"], R(n["rect"]));
+            MoveSite(root, (string)yard["substation"]["name"], R(yard["substation"]["rect"]));
+
+            EditorSceneManager.MarkSceneDirty(root.gameObject.scene);
+            L("Generate: done");
+        }
+        catch (Exception e) { L("Generate: FAILED " + e.Message + "\n" + e.StackTrace); }
+        Flush("fc_generate_log.txt");
+        if (!log.ToString().Contains("Generate: FAILED"))
+        {
+            EditorApplication.ExecuteMenuItem(RefreshMenu);
+            EditorSceneManager.SaveOpenScenes();
+            Debug.Log("Generate: refreshed and saved");
+        }
+    }
+
+    static string Pos(Transform t) => "at (" + Mathf.RoundToInt(t.position.x) + "," + Mathf.RoundToInt(-t.position.y) + ")";
+
+    static Transform FindObject(Transform root, string category, string name)
+    {
+        var group = root.Find(category);
+        if (group != null) { var t = group.Find(name); if (t != null) return t; }
+        foreach (var t in root.GetComponentsInChildren<Transform>(true)) if (t.name == name && t != root) return t;
+        return null;
+    }
+
+    static GameObject New(string name, Transform parent, int x, int y)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = new Vector3(x, -y, 0);
+        Undo.RegisterCreatedObjectUndo(go, "Founders Court compound");
+        return go;
+    }
+
+    static void Fence(string name, Transform props, string key, RectInt r)
+    {
+        var go = New(name, props, r.x, r.y);
+        var f = go.AddComponent<SceneProp>();
+        f.id = key; f.kind = "fence"; f.size = new Vector2Int(r.width, r.height); f.blocksMovement = true; f.clearable = false;
+        L("generated SceneProp fence " + go.name + " [" + key + "] " + RS(r) + " blocksMovement=1");
+    }
+
+    static void MoveSite(Transform root, string name, RectInt r)
+    {
+        var t = FindObject(root, "Sites and resources", name);
+        if (t == null) { L("MISSING site " + name); return; }
+        var s = t.GetComponent<SceneSite>();
+        var old = SceneWorld.Rect(t, s.size);
+        if (old.Equals(r)) { L("kept site " + name + " [" + s.id + "] " + RS(old)); return; }
+        Undo.RecordObject(t, "Move site"); Undo.RecordObject(s, "Move site");
+        t.position = new Vector3(r.x, -r.y, t.position.z); s.size = new Vector2Int(r.width, r.height);
+        EditorUtility.SetDirty(s);
+        L("moved site " + name + " [" + s.id + "] old " + RS(old) + " new " + RS(r));
+    }
+
+    // ------------------------------------------------------------------ verify
+
+    sealed class Item { public string name, key; public RectInt rect; public string kind; public Component c; }
+
+    public static void Verify(string planPath)
+    {
+        log = new StringBuilder();
+        var passed = 0; var failed = 0;
+        Action<string, bool, string> check = (id, ok, detail) => { if (ok) passed++; else failed++; L((ok ? "PASS " : "FAIL ") + id + ": " + detail); };
+        WorldGeometryAsset g = null;
+        try
+        {
+            var plan = LoadPlan(planPath);
+            var root = Root(); var world = root.GetComponent<SceneWorld>();
+            WorldSites sites; g = world.Compile(out sites);
+            var block = R(plan["block"]["rect"]);
+            var interiorX = plan["interior"]["x"]; var interiorY = plan["interior"]["y"];
+            var interior = new RectInt((int)interiorX[0], (int)interiorY[0], (int)interiorX[1] - (int)interiorX[0] + 1, (int)interiorY[1] - (int)interiorY[0] + 1);
+            var band = R(plan["road"]["bandRect"]);
+            var mouthY = (int)plan["road"]["mouth"]["y"]; var mouthX0 = (int)plan["road"]["mouth"]["x"][0]; var mouthX1 = (int)plan["road"]["mouth"]["x"][1];
+            var circle = new HashSet<Vector2Int>(plan["road"]["circle"]["tiles"].Select(V));
+            var setback = (int)plan["constants"]["setback"];
+
+            var bld = root.GetComponentsInChildren<SceneBuilding>().Select(b => new Item { name = b.name, key = b.id, rect = SceneWorld.Rect(b.transform, b.size), kind = b.kind, c = b }).ToList();
+            var prp = root.GetComponentsInChildren<SceneProp>().Select(p => new Item { name = p.name, key = p.id, rect = SceneWorld.Rect(p.transform, p.size), kind = p.kind, c = p }).ToList();
+            var sts = root.GetComponentsInChildren<SceneSite>().Select(s => new Item { name = s.name, key = s.id, rect = SceneWorld.Rect(s.transform, s.size), kind = s.kind.ToString(), c = s }).ToList();
+            var pth = root.GetComponentsInChildren<ScenePath>().ToList();
+            var ars = root.GetComponentsInChildren<SceneArea>().Select(a => new Item { name = a.name, key = Key(a.name), rect = SceneWorld.Rect(a.transform, a.size), kind = a.serviceArea ? "service" : "square", c = a }).ToList();
+            var fences = prp.Where(p => p.kind == "fence" && ((SceneProp)p.c).blocksMovement).ToList();
+            var blocking = prp.Where(p => ((SceneProp)p.c).blocksMovement).ToList();
+            var substations = sts.Where(s => s.kind == "Substation").ToList();
+            Func<int, int, bool> walk = (x, y) => x >= 0 && y >= 0 && x < g.Width && y < g.Height && !g.SolidAt(x, y);
+
+            // C1 compound closed (D42): mouth temporarily solid, flood from a ring road tile.
+            {
+                // The mouth is the road band's crossing of the fence line and the sidewalk outside it: blocking the block-edge
+                // row alone leaks, because the sidewalk rows between the fence and the edge are open and join the ring road.
+                var fenceY1 = (int)plan["fenceLine"]["y"][1];
+                var blocked = new HashSet<Vector2Int>();
+                for (var y = Mathf.Min(fenceY1, mouthY); y <= Mathf.Max(fenceY1, mouthY); y++) for (var x = mouthX0; x <= mouthX1; x++) blocked.Add(new Vector2Int(x, y));
+                var start = new Vector2Int((mouthX0 + mouthX1) / 2, mouthY + 8);
+                var lim = new RectInt(block.xMin - 15, block.yMin - 15, block.width + 30, block.height + 30);
+                var seen = new HashSet<Vector2Int> { start }; var q = new Queue<Vector2Int>(); q.Enqueue(start);
+                while (q.Count > 0)
+                {
+                    var t = q.Dequeue();
+                    foreach (var d in new[] { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down })
+                    {
+                        var n = t + d;
+                        if (seen.Contains(n) || blocked.Contains(n) || !Contains(lim, n.x, n.y) || !walk(n.x, n.y)) continue;
+                        seen.Add(n); q.Enqueue(n);
+                    }
+                }
+                var reached = seen.Where(t => Contains(interior, t.x, t.y)).OrderBy(t => t.y).ThenBy(t => t.x).ToList();
+                var sample = string.Join(" ", reached.Take(20).Select(t => t.x + "," + t.y));
+                check("C1 compound closed", reached.Count == 0, "interior tiles reached with mouth solid = " + reached.Count + " (mouth x " + mouthX0 + ".." + mouthX1 + ", y " + Mathf.Min(fenceY1, mouthY) + ".." + Mathf.Max(fenceY1, mouthY) + " blocked; start " + start.x + "," + start.y + ", start walkable " + walk(start.x, start.y) + ")" + (reached.Count > 0 ? "; first: " + sample : ""));
+            }
+
+            // C2 fence solid.
+            {
+                var bad = new List<string>(); var total = 0;
+                foreach (var s in plan["fenceLine"]["segments"])
+                    foreach (var t in Tiles(R(s["rect"]))) { total++; if (!g.SolidAt(t.x, t.y)) bad.Add(t.x + "," + t.y); }
+                check("C2 fence solid", bad.Count == 0, total + " compound fence tiles, " + bad.Count + " not solid" + (bad.Count > 0 ? ": " + string.Join(" ", bad.Take(20)) : ""));
+            }
+
+            // C3 no baseline solids.
+            {
+                var cover = new HashSet<Vector2Int>();
+                foreach (var b in bld) foreach (var t in Tiles(b.rect)) cover.Add(t);
+                foreach (var f in fences) foreach (var t in Tiles(f.rect)) cover.Add(t);
+                foreach (var s in substations) foreach (var t in Tiles(s.rect)) cover.Add(t);
+                var bad = new List<string>(); var solid = 0;
+                foreach (var t in Tiles(block)) if (g.SolidAt(t.x, t.y)) { solid++; if (!cover.Contains(t)) bad.Add(t.x + "," + t.y); }
+                check("C3 no baseline solids", bad.Count == 0, solid + " solid tiles in block, " + bad.Count + " outside any building/fence/substation" + (bad.Count > 0 ? ": " + string.Join(" ", bad.Take(20)) : ""));
+            }
+
+            // House lookup: plan house -> scene building.
+            var lots = plan["lots"].ToDictionary(l => (string)l["name"], l => l);
+            var houses = new List<(JToken plan, Item item)>();
+            foreach (var h in plan["houses"])
+            {
+                var key = (string)h["key"]; var src = (string)h["source"]; var fate = (string)h["fate"];
+                var item = fate == "new copy" ? bld.FirstOrDefault(b => b.key == key) : bld.FirstOrDefault(b => b.name == src);
+                houses.Add((h, item));
+            }
+
+            // C4 houses inside lots, overlapping nothing.
+            {
+                var bad = new List<string>();
+                foreach (var (h, it) in houses)
+                {
+                    var lot = (string)h["lot"];
+                    if (it == null) { bad.Add(lot + ": house missing"); continue; }
+                    var lotRects = lots[lot]["rects"].Select(R).ToList();
+                    var outside = Tiles(it.rect).Count(t => !lotRects.Any(lr => Contains(lr, t.x, t.y)));
+                    if (outside > 0) bad.Add(lot + ": " + outside + " tiles outside lot");
+                    foreach (var o in bld.Where(o => o != it && Overlaps(o.rect, it.rect))) bad.Add(lot + ": overlaps building " + o.name);
+                    foreach (var o in prp.Where(o => Overlaps(o.rect, it.rect))) bad.Add(lot + ": overlaps prop " + o.name);
+                    foreach (var o in sts.Where(o => o.kind != "Core" && Overlaps(o.rect, it.rect))) bad.Add(lot + ": overlaps site " + o.name);
+                    if (Overlaps(band, it.rect)) bad.Add(lot + ": overlaps road band");
+                }
+                check("C4 houses in lots", bad.Count == 0, houses.Count + " houses; " + (bad.Count == 0 ? "all inside their lot, no overlaps" : string.Join("; ", bad)));
+            }
+
+            // C5 setback (workshop reported as an exception, go message answer 2).
+            {
+                var bad = new List<string>(); var report = new List<string>();
+                foreach (var (h, it) in houses)
+                {
+                    if (it == null) continue;
+                    var lot = (string)h["lot"]; var side = (string)lots[lot]["side"]; var edge = (int)lots[lot]["road_edge"];
+                    var sb = Setback(side, edge, it.rect);
+                    var exception = (string)h["sourceKey"] == "home-workshop";
+                    report.Add(lot + "=" + sb + (exception ? " (workshop exception, D25)" : ""));
+                    if (!exception && sb != setback) bad.Add(lot + " setback " + sb);
+                }
+                check("C5 setback " + setback, bad.Count == 0, string.Join(", ", report) + (bad.Count > 0 ? "; wrong: " + string.Join(", ", bad) : ""));
+            }
+
+            // C6 door on front wall, exactly one stub from the door to the band/circle.
+            {
+                var bad = new List<string>();
+                var fcStubs = pth.Where(p => p.name.Contains(FcMarker) && p.kind == ScenePathKind.Path).Select(p => new { p, pts = p.Record().points }).ToList();
+                foreach (var (h, it) in houses)
+                {
+                    if (it == null) continue;
+                    var lot = (string)h["lot"]; var side = (string)lots[lot]["side"]; var b = (SceneBuilding)it.c;
+                    var doorTiles = new List<Vector2Int>();
+                    foreach (var d in b.doors)
+                    {
+                        var w = new RectInt(it.rect.x + d.x, it.rect.y + d.y, d.width, d.height);
+                        foreach (var t in Tiles(w))
+                        {
+                            doorTiles.Add(t);
+                            var onFront = side == "W" ? t.x == it.rect.xMax - 1 : side == "E" ? t.x == it.rect.xMin : side == "N" ? t.y == it.rect.yMax - 1 : t.y == it.rect.yMin;
+                            if (!onFront) bad.Add(lot + ": door tile " + t.x + "," + t.y + " not on front wall");
+                        }
+                    }
+                    if (doorTiles.Count == 0) bad.Add(lot + ": no door");
+                    var touching = 0;
+                    foreach (var s in fcStubs)
+                    {
+                        var first = s.pts.First(); var last = s.pts.Last();
+                        var adj = doorTiles.Any(t => Mathf.Abs(t.x - first.x) + Mathf.Abs(t.y - first.y) == 1);
+                        if (!adj) continue;
+                        touching++;
+                        if (!(Contains(band, last.x, last.y) || circle.Contains(last))) bad.Add(lot + ": stub " + s.p.name + " ends off the road at " + last.x + "," + last.y);
+                    }
+                    if (touching != 1) bad.Add(lot + ": " + touching + " stubs touch the door");
+                }
+                check("C6 doors and stubs", bad.Count == 0, bad.Count == 0 ? houses.Count + " houses, each door on the front wall with one stub to the road" : string.Join("; ", bad));
+            }
+
+            // C7 roof variety between neighbours (pairs from the plan's side fences).
+            {
+                var bad = new List<string>(); var pairs = 0;
+                var byLot = houses.Where(x => x.item != null).ToDictionary(x => (string)x.plan["lot"], x => (SceneBuilding)x.item.c);
+                foreach (var s in plan["sideFences"])
+                {
+                    var a = (string)s["lots"][0]; var bl = (string)s["lots"][1];
+                    if (!byLot.ContainsKey(a) || !byLot.ContainsKey(bl)) continue;
+                    pairs++;
+                    if (byLot[a].roofKey == byLot[bl].roofKey) bad.Add(a + "/" + bl + " both " + byLot[a].roofKey);
+                }
+                check("C7 roof variety", bad.Count == 0, pairs + " neighbour pairs" + (bad.Count == 0 ? ", all roof keys differ" : "; same: " + string.Join(", ", bad)));
+            }
+
+            // C8 edge clear: nothing on the sidewalks or the block edge.
+            {
+                var zone = new HashSet<Vector2Int>();
+                foreach (var s in plan["sidewalk"]["strips"]) foreach (var t in Tiles(R(s["rect"]))) zone.Add(t);
+                for (var x = block.xMin; x < block.xMax; x++) { zone.Add(new Vector2Int(x, block.yMin)); zone.Add(new Vector2Int(x, block.yMax - 1)); }
+                for (var y = block.yMin; y < block.yMax; y++) { zone.Add(new Vector2Int(block.xMin, y)); zone.Add(new Vector2Int(block.xMax - 1, y)); }
+                var bad = new List<string>();
+                foreach (var o in bld.Concat(prp).Concat(sts)) if (Tiles(o.rect).Any(zone.Contains)) bad.Add(o.name);
+                check("C8 edge clear", bad.Count == 0, zone.Count + " sidewalk/edge tiles" + (bad.Count == 0 ? ", no building, prop or site on them" : "; on them: " + string.Join(", ", bad)));
+            }
+
+            // C9 yard.
+            {
+                var yard = plan["yard"]; var want = R(yard["rect"]); var bad = new List<string>();
+                var ys = sts.FirstOrDefault(s => s.name == (string)yard["siteName"]);
+                if (ys == null) bad.Add("yard site missing"); else if (!ys.rect.Equals(want)) bad.Add("yard rect " + RS(ys.rect) + " != " + RS(want));
+                var nodes = new List<Item>();
+                foreach (var n in yard["nodes"])
+                {
+                    var it = sts.FirstOrDefault(s => s.name == (string)n["name"]);
+                    if (it == null) { bad.Add("node missing " + (string)n["name"]); continue; }
+                    nodes.Add(it);
+                    if (!Inside(it.rect, want)) bad.Add(it.name + " outside yard");
+                }
+                var sub = sts.FirstOrDefault(s => s.name == (string)yard["substation"]["name"]);
+                if (sub == null) bad.Add("substation missing");
+                else
+                {
+                    if (!Inside(sub.rect, want)) bad.Add("substation outside yard");
+                    var copper = nodes.FirstOrDefault(n => n.key.Contains("copper"));
+                    if (copper == null || Gap(sub.rect, copper.rect) != 0) bad.Add("substation does not touch copper");
+                }
+                var core = sts.FirstOrDefault(s => s.kind == "Core");
+                var doorTiles = new List<RectInt>();
+                if (core != null)
+                {
+                    var wb = bld.FirstOrDefault(b => b.rect.Equals(core.rect));
+                    if (wb != null) foreach (var d in ((SceneBuilding)wb.c).doors) doorTiles.Add(new RectInt(wb.rect.x + d.x, wb.rect.y + d.y, d.width, d.height));
+                }
+                foreach (var n in nodes)
+                {
+                    var gd = doorTiles.Count == 0 ? -1 : doorTiles.Min(d => Gap(n.rect, d));
+                    if (gd < 8) bad.Add(n.name + " gap to workshop door " + gd + " < 8");
+                }
+                for (var i = 0; i < nodes.Count; i++) for (var j = i + 1; j < nodes.Count; j++)
+                    if (Gap(nodes[i].rect, nodes[j].rect) < 4) bad.Add(nodes[i].name + "/" + nodes[j].name + " gap " + Gap(nodes[i].rect, nodes[j].rect) + " < 4");
+                check("C9 yard", bad.Count == 0, "yard " + (ys == null ? "missing" : RS(ys.rect)) + ", " + nodes.Count + " nodes, substation " + (sub == null ? "missing" : RS(sub.rect)) + (bad.Count == 0 ? "; all inside, D9 gaps ok, substation touches copper" : "; " + string.Join("; ", bad)));
+            }
+
+            // C10 raid line.
+            {
+                var want = R(plan["fixed"]["raidLine"]["rect"]);
+                var lines = sites.OfKind(SiteKind.RaidLine).ToList();
+                var ry = lines.Count == 0 ? int.MinValue : lines.Max(s => s.Y);
+                var ok = lines.Count == 1 && lines[0].X == want.x && lines[0].Y == want.y && lines[0].W == want.width && lines[0].H == want.height && ry == want.y;
+                var ctx = new SimContext(CatalogueData.Build(), new ArrayGeometry(1, 1, new byte[1], new bool[1], new Vec2(0, 0)), null, null, sites);
+                var rulesY = DirectorRules.RaidLineY(ctx);
+                ok &= rulesY == want.y;
+                check("C10 raid line", ok, lines.Count + " raid line site(s): " + string.Join(" ", lines.Select(s => "(" + s.X + "," + s.Y + ") " + s.W + "x" + s.H)) + "; DirectorRules.RaidLineY = " + rulesY + " (want y " + want.y + " x " + want.xMin + ".." + (want.xMax - 1) + ")");
+            }
+
+            // C11 spawn.
+            {
+                var want = plan["fixed"]["playerSpawn"]; var wx = (float)want[0]; var wy = (float)want[1];
+                var p = world.playerSpawn == null ? Vector3.zero : world.playerSpawn.position;
+                var ok = world.playerSpawn != null && Mathf.Approximately(p.x, wx) && Mathf.Approximately(-p.y, wy) && g.Spawn == V(plan["fixed"]["spawnTile"]);
+                check("C11 spawn", ok, "playerSpawn " + (world.playerSpawn == null ? "null" : "(" + p.x + "," + (-p.y) + ")") + ", compiled spawn tile (" + g.Spawn.x + "," + g.Spawn.y + "), want (" + wx + "," + wy + ")");
+            }
+
+            // C12 plan match.
+            {
+                var expected = new Dictionary<string, RectInt>();
+                foreach (var s in plan["fenceLine"]["segments"]) expected[(string)s["key"]] = R(s["rect"]);
+                foreach (var s in plan["sideFences"]) expected[(string)s["key"]] = R(s["rect"]);
+                foreach (var s in plan["sidewalk"]["strips"]) expected[(string)s["key"]] = R(s["rect"]);
+                var stubRects = new Dictionary<string, (Vector2Int a, Vector2Int b)>();
+                foreach (var h in plan["houses"])
+                {
+                    if ((string)h["fate"] == "new copy") expected[(string)h["key"]] = R(h["rect"]);
+                    stubRects[(string)h["stub"]["key"]] = (V(h["stub"]["points"][0]), V(h["stub"]["points"][1]));
+                }
+                var actual = new Dictionary<string, RectInt>();
+                foreach (var o in bld.Concat(prp).Concat(ars)) if (o.name.Contains(FcMarker)) actual[Key(o.name)] = o.rect;
+                var actualStubs = new Dictionary<string, (Vector2Int a, Vector2Int b)>();
+                foreach (var p in pth) if (p.name.Contains(FcMarker)) { var pts = p.Record().points; actualStubs[Key(p.name)] = (pts.First(), pts.Last()); }
+                var bad = new List<string>();
+                foreach (var kv in expected) { RectInt r; if (!actual.TryGetValue(kv.Key, out r)) bad.Add("missing " + kv.Key); else if (!r.Equals(kv.Value)) bad.Add(kv.Key + " " + RS(r) + " != " + RS(kv.Value)); }
+                foreach (var k in actual.Keys) if (!expected.ContainsKey(k)) bad.Add("unplanned " + k);
+                foreach (var kv in stubRects) { (Vector2Int a, Vector2Int b) s; if (!actualStubs.TryGetValue(kv.Key, out s)) bad.Add("missing " + kv.Key); else if (s.a != kv.Value.a || s.b != kv.Value.b) bad.Add(kv.Key + " points differ"); }
+                foreach (var k in actualStubs.Keys) if (!stubRects.ContainsKey(k)) bad.Add("unplanned " + k);
+                foreach (var (h, it) in houses)
+                    if ((string)h["fate"] != "new copy") { if (it == null) bad.Add("missing kept house " + (string)h["source"]); else if (!it.rect.Equals(R(h["rect"]))) bad.Add((string)h["lot"] + " kept house rect " + RS(it.rect) + " != " + RS(R(h["rect"]))); }
+                var fcTotal = actual.Count + actualStubs.Count;
+                check("C12 plan match", bad.Count == 0, fcTotal + " fc objects in scene, " + (expected.Count + stubRects.Count) + " planned" + (bad.Count == 0 ? ", all rects match; kept houses at plan rects" : "; " + string.Join("; ", bad)));
+            }
+
+            // C13 walk steps core -> mouth, + 10 <= cap.
+            {
+                var core = sites.OfKind(SiteKind.Core).FirstOrDefault();
+                var steps = -1;
+                if (core != null)
+                {
+                    var cr = new RectInt(core.X, core.Y, core.W, core.H);
+                    var dist = new Dictionary<Vector2Int, int>(); var q = new Queue<Vector2Int>();
+                    for (var y = cr.yMin - 1; y <= cr.yMax; y++) for (var x = cr.xMin - 1; x <= cr.xMax; x++)
+                        if (!Contains(cr, x, y) && walk(x, y)) { var t = new Vector2Int(x, y); dist[t] = 0; q.Enqueue(t); }
+                    var lim = new RectInt(block.xMin - 15, block.yMin - 15, block.width + 30, block.height + 30);
+                    while (q.Count > 0)
+                    {
+                        var t = q.Dequeue();
+                        foreach (var d in new[] { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down })
+                        {
+                            var n = t + d;
+                            if (dist.ContainsKey(n) || !Contains(lim, n.x, n.y) || !walk(n.x, n.y)) continue;
+                            dist[n] = dist[t] + 1; q.Enqueue(n);
+                        }
+                    }
+                    var best = int.MaxValue;
+                    for (var x = mouthX0; x <= mouthX1; x++) { int v; if (dist.TryGetValue(new Vector2Int(x, mouthY), out v) && v < best) best = v; }
+                    steps = best == int.MaxValue ? -1 : best;
+                }
+                var cap = DirectorRules.EntryFarSteps;
+                check("C13 walk steps", steps >= 0 && steps + 10 <= cap, "core -> mouth row " + steps + " steps, + 10 = " + (steps + 10) + ", cap EntryFarSteps = " + cap);
+            }
+        }
+        catch (Exception e) { failed++; L("FAIL Verify: exception " + e.Message + "\n" + e.StackTrace); }
+        finally { if (g != null) UnityEngine.Object.DestroyImmediate(g); }
+        L("Verify: " + passed + " passed, " + failed + " failed");
+        Flush("fc_verify_log.txt");
+    }
+
+    /// <summary>Tiles between the house's front wall and the road edge (D39).</summary>
+    static int Setback(string side, int roadEdge, RectInt r)
+    {
+        switch (side)
+        {
+            case "W": return roadEdge - r.xMax;
+            case "E": return r.xMin - roadEdge - 1;
+            case "N": return roadEdge - r.yMax;
+            default: return r.yMin - roadEdge - 1;
+        }
+    }
+
+    /// <summary>Belt-tile gap between two rects: the larger of the x and y gaps, 0 when they touch or overlap on both axes.</summary>
+    static int Gap(RectInt a, RectInt b)
+    {
+        var gx = Mathf.Max(0, Mathf.Max(a.xMin - b.xMax, b.xMin - a.xMax));
+        var gy = Mathf.Max(0, Mathf.Max(a.yMin - b.yMax, b.yMin - a.yMax));
+        return Mathf.Max(gx, gy);
+    }
+}

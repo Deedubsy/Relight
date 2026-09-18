@@ -30,3 +30,16 @@
 | D26 | Gap check method | Band projection per edge on the compiled `Solid` grid. Gap threshold 1 tile. | Yes |
 | D27 | Debris | Keep `debris [court-brush]`. Clearing debris is taught. Its `blocksMovement` stays 0 under D17. Its baseline solid tiles are removed under D18. | Yes |
 | D28 | Objects to remove | `Court garden walk`, `Drive 1`. Keep the street lights and the label. | Yes |
+| D34 | Compound fence | One continuous fence around the block, inset from the block edge by the sidewalk width, open only across the road band at the mouth. Fence props with `blocksMovement` 1. | Yes |
+| D35 | Sidewalk width | 2 tiles. A paved strip along the block edge outside the fence. | Yes |
+| D36 | Lots | The interior is divided into lots. Along the straight part: rectangular lots of equal frontage on each side, from the mouth to the circle. Around the circle: the workshop lot centred on the road centre, and lots either side of it. | Yes |
+| D37 | Lot frontage | 16 tiles along the road. Lot depth: from the road edge to the compound fence. | Yes |
+| D38 | Side fences | A fence between every pair of neighbouring lots, from the compound fence to the front yard line. Front yards are open to the road. | Yes |
+| D39 | Front setback | 4 tiles from the road edge to the house's front wall. House centred on the lot's frontage. Door on the road-facing wall. One stub from the door to the road. | Yes |
+| D40 | Works Yard lots | Two adjacent lots in one corner, merged. Nodes and substation inside. No house. | Yes |
+| D41 | Houses | One per lot, drawn from the existing non-enterable buildings, no two neighbours with the same roof key. The Foreman workshop keeps its lot. | Yes |
+| D42 | Gap test | Temporarily mark the mouth solid, flood fill from a ring road tile, report every interior tile reached. Zero means closed. | Yes |
+| D43 | Build as a generator | An editor command that takes a block rectangle and a road polyline, so it can be run on other blocks later. Founders Court is the first run. | Yes |
+| D44 | Houses on the circle | Three lots touch the circle: the workshop lot north of the circle, one lot west of it, one lot east of it. Each house is axis aligned with its door on the wall facing the circle. No other lot touches the circle. | Yes |
+
+D3, D4 and D26 are superseded by D34, D36, D38 and D42. D16 is amended by D34.
