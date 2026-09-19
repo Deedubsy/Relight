@@ -2,6 +2,8 @@
 
 **Unity migration (2026-09-11):** this TypeScript/Phaser project is paused as the runnable reference for a Unity port. Read `Unity/README.md` first; `Unity/Docs/TASKS.md` alone owns migration task status and `Unity/Docs/DECISIONS.md` holds migration decisions and open questions. Do not resume gameplay work here, do not alter reference saves or evidence, and do not create a second Unity project: the one Unity project is `Unity/Relight/` (`E:\Factorio2\Unity\Relight`, created under Phase B on 2026-09-12; U-M-32). All rules below still govern any edit to the reference project.
 
+**Unity port lighting (2026-09-19, U-D-58):** the Unity port is always dark, with no day and night cycle; `Unity/Docs/ALWAYS_DARK_SPEC.md` owns darkness, light and light avoidance. The reference's day and night cycle and the "readable opening daylight" note below describe the reference only.
+
 **Active implementation:** D-GP-START authorises GP-01–14. Follow the current block in `docs/EXPLORATION_DEFENCE_PLAN.md` and `docs/PROGRESS.md`. Earlier planning-only review blocks below are superseded for this scope; GP-15–25 remain held for checkpoint review.
 
 ## Gameplay plan review handoff — 2026-09-10

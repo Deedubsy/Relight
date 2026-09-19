@@ -189,6 +189,8 @@ A 26 × 26 tile ring (`frame + 2`, `opening.ts:8`) around `homeOrigin`, with a 4
 
 ### 2.8 Lighting and daylight
 
+**Unity port (U-D-58, 2026-09-19):** the world is always dark. There is no daylight curve; the darkness overlay's strength is a presentation value and the lit mask is the sim's. [ALWAYS_DARK_SPEC.md](ALWAYS_DARK_SPEC.md) owns the rules. Since the full-map import the loaded map carries all **18** streetlights, six of them in Founders Court, each fed by its nearest substation (court D55); the count of 7 below describes the earlier Home-window import.
+
 - **Authoritative:** the sim owns `lightMask` / `litAt` in `packages/sim/src/light.ts`. Light affects gameplay.
 - **Presentation only:** `packages/game/src/riverfrontLighting.ts` computes a `daylight(t)` smoothstep for the renderer tint. It must never feed gameplay.
 - Day length constants live in `packages/sim/src/rules.ts:7` (`CAMPAIGN_RULES = {daySeconds: 1200, daylightSeconds: 900, …}`). The **rule** is Worker A's (`GAME_DESIGN.md`); it is cited here only because §7's export must carry the light positions and `lightKw` field.

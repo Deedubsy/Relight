@@ -62,7 +62,7 @@ The reference's model for lights, without the core demand. The tutorial step bec
 ### 4.2 What the player gets
 
 - Two Poles (1 Steel + 1 Copper each) bridge the 19-tile gap between the core's east edge (x 74) and the substation (x 93). The step stays cheap and still teaches pole chaining, which its text already claims to do.
-- At night the darkness overlay is 0.86 (`LightingPresenter.nightDarkness`), so six lit discs of radius 7 around the core, the road and the yard are a clear change. In daylight the effect is nil; the opening's readable daylight already accepts that.
+- **Superseded by U-D-58 (always dark, ALWAYS_DARK_SPEC.md): the court lights pay off the moment the substation connects, at any time.** As written before that decision: At night the darkness overlay is 0.86 (`LightingPresenter.nightDarkness`), so six lit discs of radius 7 around the core, the road and the yard are a clear change. In daylight the effect is nil; the opening's readable daylight already accepts that.
 - Lights are visual only today: nothing in `Sim/Combat` reads `LightQueries.LitAt`, so this adds no defence effect. Any enemy hesitation in light is a separate decision.
 - The other eight authored substations pick up the same rule for free, so district lights across the city come on as poles reach their substation.
 

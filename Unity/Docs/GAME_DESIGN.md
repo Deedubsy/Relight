@@ -398,6 +398,8 @@ So one Assembler is ~3.3× the hand rate and Mk2 ~6.7×, while the Assembler als
 - **Outage semantics** (D-GP-POWER-FIX addendum): `BaseCore.poweredAt` is stamped on first supply (`campaignDefence.ts` `tickBasePower`), and an outage alert can only fire *after* supply has actually existed. A new campaign must never show "power outage" before the player has built a generator.
 - **Turrets draw `TURRET_KW = 20` and hold fire without power.** The rationale recorded at the checkpoint: Home core 100 + one Assembler 100 + three turrets 60 = 260 kW of a single 300 kW Generator, so the opening is affordable on one generator but not free. **Provisional** (U-P-06).
 
+**Unity port (U-D-58, 2026-09-19): the world is always dark and [ALWAYS_DARK_SPEC.md](ALWAYS_DARK_SPEC.md) owns darkness, light and light avoidance. What follows describes the reference.**
+
 **Lighting** is a real mechanic, not decoration: Lamp (5 kW, radius 4), Arc lamp (12 kW, radius 6), Floodlight (40 kW, 12 tiles in a 60° cone), plus authored streetlights on block substations. Lit tiles matter to combat (§8.3) and to the Shade archetype (§9.1).
 
 ---
@@ -466,6 +468,8 @@ The **Cannon** (Arsenal unlock) is the second defensive weapon: 12-tile range, 5
 
 The Home core *is* the Home workshop building: aiming at it and pressing the interact key shows core HP and the sim-priced repair (D-GP-HOME-REPAIR). While Home is disabled, hand mining still works, so a player who loses their base is never soft-locked.
 
+**Unity port: light avoidance is specified in [ALWAYS_DARK_SPEC.md](ALWAYS_DARK_SPEC.md) §5 and is not implemented (task L-02). The "Implemented and retained" status above is true of the reference only: nothing in the port's `Sim/Combat` reads the lit mask, and the hesitation field never triggers. The Shade creature is retired; it is not the reason light matters.**
+
 **Light is defensive.** Lit tiles suppress the Shade archetype entirely (`enemies.ts`: untargetable on unlit tiles, disabled for `SHADE_DISABLE_SECONDS = 30` in light), and first-region attackers hesitate `GP_COMBAT.hesitate = 0.65` s before crossing a lit tile (`gameplayCombat.ts:96`). Design draft §11 records light avoidance as approved direction for the wider roster.
 
 ---
@@ -524,6 +528,7 @@ Design guarantees that the port must preserve:
 - **No accumulated debt.** If an assault cannot start (cleanup, recovery, no reachable approach, a live minor raid), it is *cancelled and re-warned* as a fresh future opportunity — it is never queued up to fire late or twice. `future(...)` records the reason for the player.
 - **The first target is always Home.** Later targets are nominated among Home and commissioned plants.
 - **Warnings are earned.** A powered Radio gives assault warnings; the precision upgrade (15 Steel + 10 Copper) adds approach direction and composition (`campaignThreat.ts:269`). An unpowered radio shows "last received warning (radio offline)". This is owner decision (13)'s "readable network demand/supply and day/time" in its threat half; the HUD half is UI_AND_ONBOARDING.md's.
+- **Day/time (Unity port, U-D-58):** the day and night cycle is retired. `daylightSeconds` becomes 0, meaning no sun, and the HUD shows elapsed play time. The reference values follow.
 - **Day/time.** `CAMPAIGN_RULES = { daySeconds: 1200, daylightSeconds: 900 }` with `campaignClock` returning day, night flag and elapsed (`rules.ts:11-21`). `firstAssaultNight: 3` is **stale**: the director schedules the first major on elapsed active time, not on night 3. See §16 of the catalogue.
 
 #### 9.3.1 What the owner's decisions fix about the director
