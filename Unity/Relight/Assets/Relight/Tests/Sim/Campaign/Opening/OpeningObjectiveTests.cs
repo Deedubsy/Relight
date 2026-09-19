@@ -434,6 +434,9 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(open.Detail, Does.Contain("2 streetlights"));
             Assert.That(open.Detail, Does.Not.Contain("draws"), "the core has no power demand in the port");
             Assert.That(open.Detail, Does.Not.Contain("no power"));
+            Assert.That(open.Detail, Does.Not.Contain("at night"), "U-D-58: the world is always dark");
+            Assert.That(open.Detail, Does.Contain("and the court lights up."),
+                "the sentence ends at 'lights up.'; Explain may append a what-to-get-next sentence after it");
             Assert.That(open.Location.X, Is.EqualTo(110.5).Within(1e-9));
 
             // One Pole short: (95,80) links to the fixture pole but is 14 tiles from the lot.

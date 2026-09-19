@@ -311,7 +311,7 @@ namespace Relight.Sim
                     + " from the block substation in the Works Yard, marked here. Poles link within "
                     + Num(PowerGrid.SiteReach(d)) + " tiles of another Pole, a Generator or the substation footprint; a "
                     + "cable appears once linked and the placement preview shows purple lines to everything in reach. "
-                    + "Chain Poles from your network to it and the court lights up at night.",
+                    + "Chain Poles from your network to it and the court lights up.",
                     true, sub.Centre, Packed(ctx, st, "pole"));
             }
 
