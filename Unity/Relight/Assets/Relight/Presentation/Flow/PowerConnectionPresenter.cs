@@ -114,8 +114,8 @@ namespace Relight.Presentation
         private Cable Take(int i)
         {
             if(i==_cables.Count)
-            {var c=new Cable{Wire=Line("Power cable",9,9,.045f)};
-             for(var j=0;j<2;j++)c.Pulses[j]=Line("Live current",5,10,.07f);_cables.Add(c);}
+            {var c=new Cable{Wire=Line("Power cable",9,DrawOrder.Cable,.045f)};
+             for(var j=0;j<2;j++)c.Pulses[j]=Line("Live current",5,DrawOrder.CablePulse,.07f);_cables.Add(c);}
             _cables[i].Wire.enabled=true;return _cables[i];
         }
         private void HideFrom(int n)

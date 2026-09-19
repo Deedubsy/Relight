@@ -151,7 +151,7 @@ namespace Relight.Presentation
                 go.transform.SetParent(transform, false);
                 var created = go.AddComponent<LineRenderer>();
                 created.useWorldSpace = true;
-                created.sortingOrder = 20;
+                created.sortingOrder = DrawOrder.PlacementPreview;
                 created.widthMultiplier = width;
                 created.numCapVertices = 1;
                 created.textureMode = LineTextureMode.Stretch;

@@ -63,9 +63,19 @@ namespace Relight.Presentation
         [Tooltip("Glob diameter in tiles.")]
         [SerializeField] private float globTiles = 0.3f;
 
+        [Tooltip("The darkness overlay. Found in the scene if left empty.")]
+        [SerializeField] private LightingPresenter lighting;
+
+        [Tooltip("U-D-58: an alien on unlit ground is a flat dark shape with a pale rim, drawn above the darkness.")]
+        [SerializeField] private Color silhouetteColour = new Color(0.02f, 0.03f, 0.06f, 1f);
+        [SerializeField] private Color rimColour = new Color(0.78f, 0.84f, 0.95f, 0.38f);
+        [SerializeField, Range(1f, 1.6f)] private float rimScale = 1.22f;
+
         private readonly List<SpriteRenderer> _bodies = new List<SpriteRenderer>();
         private readonly List<SpriteRenderer> _globs = new List<SpriteRenderer>();
         private readonly List<LineRenderer> _tells = new List<LineRenderer>();
+        private readonly List<SpriteRenderer> _shades = new List<SpriteRenderer>();
+        private readonly List<SpriteRenderer> _rims = new List<SpriteRenderer>();
         private readonly Dictionary<int, Vec2> _previous = new Dictionary<int, Vec2>();
         private readonly Dictionary<int, Vec2> _current = new Dictionary<int, Vec2>();
         private Sprite _square;
@@ -79,9 +89,13 @@ namespace Relight.Presentation
         /// <summary>Globs drawn on the last frame. For tests.</summary>
         public int Globs { get; private set; }
 
+        /// <summary>Silhouettes drawn on the last frame. For tests.</summary>
+        public int Silhouettes { get; private set; }
+
         private void Awake()
         {
             if (host == null) host = FindAnyObjectByType<SimHost>();
+            if (lighting == null) lighting = FindAnyObjectByType<LightingPresenter>();
             _lineMaterial = new Material(Shader.Find("Sprites/Default"));
             var tex = new Texture2D(1, 1, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
             tex.SetPixel(0, 0, Color.white);
@@ -100,8 +114,11 @@ namespace Relight.Presentation
             for (var i = 0; i < _bodies.Count; i++) if (_bodies[i] != null) _bodies[i].enabled = false;
             for (var i = 0; i < _globs.Count; i++) if (_globs[i] != null) _globs[i].enabled = false;
             for (var i = 0; i < _tells.Count; i++) if (_tells[i] != null) _tells[i].enabled = false;
+            for (var i = 0; i < _shades.Count; i++) if (_shades[i] != null) _shades[i].enabled = false;
+            for (var i = 0; i < _rims.Count; i++) if (_rims[i] != null) _rims[i].enabled = false;
             Bodies = 0;
             Globs = 0;
+            Silhouettes = 0;
         }
 
         /// <summary>
@@ -134,6 +151,7 @@ namespace Relight.Presentation
             var alpha = interpolate ? host.Alpha : 1f;
             var all = EnemyQueries.All(st);
             var tells = 0;
+            var silhouettes = 0;
 
             for (var i = 0; i < all.Count; i++)
             {
@@ -150,6 +168,28 @@ namespace Relight.Presentation
                 var c = Colour(e.Kind);
                 sprite.color = winding ? Color.Lerp(c, windupTint, 0.5f) : c;
 
+                // U-D-58: on unlit ground the coloured body is under the darkness; a silhouette above it keeps the
+                // alien readable at any overlay strength. Lit ground and the flashlight beam show the real body.
+                var unlit = lighting != null && lighting.Dark &&
+                            !LightQueries.LitAt(st, (int)System.Math.Floor(at.X), (int)System.Math.Floor(at.Y));
+                var hidden = unlit ? 1f - lighting.Reveal(at) : 0f;
+                var shade = Slot(_shades, i, "Silhouette", body);
+                var rim = Slot(_rims, i, "Silhouette Rim", body);
+                shade.enabled = rim.enabled = hidden > 0.01f;
+                if (shade.enabled)
+                {
+                    shade.sortingOrder = DrawOrder.Silhouette;
+                    rim.sortingOrder = DrawOrder.SilhouetteRim;
+                    shade.transform.position = rim.transform.position = WorldSpace.World(at, z);
+                    shade.transform.localScale = Scale(body, bodyTiles);
+                    var rs = Scale(body, bodyTiles) * rimScale; rs.z = 1f; rim.transform.localScale = rs;
+                    // A wind-up must read in the dark too: the silhouette itself flashes toward the wind-up tint.
+                    var sc = winding ? Color.Lerp(silhouetteColour, windupTint, 0.6f) : silhouetteColour;
+                    shade.color = new Color(sc.r, sc.g, sc.b, hidden);
+                    rim.color = new Color(rimColour.r, rimColour.g, rimColour.b, rimColour.a * hidden);
+                    silhouettes++;
+                }
+
                 if (!drawTell || !winding) continue;
                 var line = Tell(tells++);
                 line.enabled = true;
@@ -160,6 +200,9 @@ namespace Relight.Presentation
             }
             for (var i = all.Count; i < _bodies.Count; i++) if (_bodies[i] != null) _bodies[i].enabled = false;
             for (var i = tells; i < _tells.Count; i++) if (_tells[i] != null) _tells[i].enabled = false;
+            for (var i = all.Count; i < _shades.Count; i++) if (_shades[i] != null) _shades[i].enabled = false;
+            for (var i = all.Count; i < _rims.Count; i++) if (_rims[i] != null) _rims[i].enabled = false;
+            Silhouettes = silhouettes;
             Bodies = all.Count;
 
             // Globs are extrapolated, not interpolated: one is only alive for a couple of seconds and its velocity
@@ -185,8 +228,11 @@ namespace Relight.Presentation
             for (var i = 0; i < _bodies.Count; i++) if (_bodies[i] != null) _bodies[i].enabled = false;
             for (var i = 0; i < _globs.Count; i++) if (_globs[i] != null) _globs[i].enabled = false;
             for (var i = 0; i < _tells.Count; i++) if (_tells[i] != null) _tells[i].enabled = false;
+            for (var i = 0; i < _shades.Count; i++) if (_shades[i] != null) _shades[i].enabled = false;
+            for (var i = 0; i < _rims.Count; i++) if (_rims[i] != null) _rims[i].enabled = false;
             Bodies = 0;
             Globs = 0;
+            Silhouettes = 0;
         }
 
         private Color Colour(string kind) =>
@@ -223,6 +269,7 @@ namespace Relight.Presentation
                 lr.positionCount = 2;
                 lr.widthMultiplier = 0.06f;
                 lr.material = _lineMaterial;
+                lr.sortingOrder = DrawOrder.AttackTell;
                 _tells.Add(lr);
             }
             return _tells[i];

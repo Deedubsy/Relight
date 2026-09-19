@@ -104,7 +104,7 @@ namespace Relight.Presentation
                 var at=new Vector2((float)p.X-centre.x,centre.y-(float)p.Y);
                 // Splitters buffer centrally, so their deck slats instead traverse the output direction.
                 if(FlowRules.IsSplitter(m.Kind))at=new Vector2(Dirs.DX[(int)m.Dir],-Dirs.DY[(int)m.Dir])*(t-.5f);
-                Segment(at-side,at+side,State==MachineOperatingState.OutputFull?new Color(.52f,.40f,.22f,1):Metal,.035f,11);
+                Segment(at-side,at+side,State==MachineOperatingState.OutputFull?new Color(.52f,.40f,.22f,1):Metal,.035f,DrawOrder.MachineCue);
             }
             if(State==MachineOperatingState.OutputFull || State==MachineOperatingState.NoInput)
             {
@@ -113,7 +113,7 @@ namespace Relight.Presentation
                 Segment(new Vector2(-.24f,-.35f),new Vector2(-.24f,-.19f),c,.055f);
             }
         }
-        private LineRenderer Stroke(int points,float width,Color colour,int order=11)
+        private LineRenderer Stroke(int points,float width,Color colour,int order=DrawOrder.MachineCue)
         {
             if(_used==_strokes.Count)
             {
@@ -125,7 +125,7 @@ namespace Relight.Presentation
             stroke.startColor=stroke.endColor=colour;stroke.sortingOrder=order;return stroke;
         }
         private static void Point(LineRenderer line,int i,Vector2 p)=>line.SetPosition(i,new Vector3(p.x,p.y,-.7f));
-        private void Segment(Vector2 a,Vector2 b,Color c,float width,int order=11)
+        private void Segment(Vector2 a,Vector2 b,Color c,float width,int order=DrawOrder.MachineCue)
         { var line=Stroke(2,width,c,order);Point(line,0,a);Point(line,1,b); }
         private void Circle(Vector2 at,float radius,Color c,float width)
         { var line=Stroke(17,width,c);for(var i=0;i<=16;i++){var a=i*Mathf.PI/8;Point(line,i,at+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*radius);} }

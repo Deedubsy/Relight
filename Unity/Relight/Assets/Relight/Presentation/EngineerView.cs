@@ -47,6 +47,7 @@ namespace Relight.Presentation
         private void Awake()
         {
             _sprite = GetComponentInChildren<SpriteRenderer>();
+            if (_sprite != null) _sprite.sortingOrder = DrawOrder.Engineer;
             if (host == null) host = FindAnyObjectByType<SimHost>();
         }
 

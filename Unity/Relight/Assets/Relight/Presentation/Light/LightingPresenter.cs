@@ -61,7 +61,7 @@ namespace Relight.Presentation
         [SerializeField] private float z = -6f;
 
         [Tooltip("Sorting order of the overlay sprite within its layer.")]
-        [SerializeField] private int sortingOrder = 500;
+        [SerializeField] private int sortingOrder = DrawOrder.Darkness;
 
         /// <summary>PlayerPrefs key of the brightness setting. The settings screen writes it (Preferences.Brightness).</summary>
         public const string BrightnessKey = "relight.video.brightness";
@@ -98,6 +98,12 @@ namespace Relight.Presentation
 
         /// <summary>The daylight fraction last drawn, 0 dark to 1 full day. Read-only readback.</summary>
         public float Daylight { get; private set; } = 1f;
+
+        /// <summary>True while the darkness overlay is being drawn at all (false under forced daylight).</summary>
+        public bool Dark => _sr != null && _sr.enabled;
+
+        /// <summary>How much the flashlight reveals a sim position, 0 to 1. Picture only (D-UI-11).</summary>
+        public float Reveal(Vec2 simPos) => _beam ? Beam(simPos.X, simPos.Y) : 0f;
 
         /// <summary>
         /// Point the visibility beam (D-UI-11). Presentation only: it subtracts darkness and touches nothing else.
