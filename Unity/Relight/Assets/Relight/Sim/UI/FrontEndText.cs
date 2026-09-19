@@ -202,6 +202,9 @@ namespace Relight.Sim.UI
 
         // ---- Audio (§3.8.1, and the brief's bus names) ------------------------------------------------------
 
+        public const string DisplayHeading = "Display";
+        public const string Brightness = "Brightness in the dark";
+
         public const string MasterVolume = "Master volume";
         public const string MuteAll = "Mute all";
         public const string UiVolume = "Interface";

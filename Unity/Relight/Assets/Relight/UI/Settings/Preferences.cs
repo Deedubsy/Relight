@@ -35,6 +35,7 @@ namespace Relight.UI.Settings
         public const string KeyBindings = Prefix + "input.overrides";
         public const string KeyBindingKeys = Prefix + "input.keys";
         public const string KeyOpeningHint = Prefix + "hint.opening";
+        public const string KeyBrightness = Prefix + "video.brightness";
 
         // Defaults. The audio figures are §3.8.1's; the saving figures are §2.7.2's.
         public const int DefaultScale = 100;
@@ -109,6 +110,9 @@ namespace Relight.UI.Settings
 
         /// <summary>False once the player has dismissed the opening hint; Restore turns it back on (§3.8).</summary>
         public static bool OpeningHint { get => GetInt(KeyOpeningHint, 1) != 0; set => SetInt(KeyOpeningHint, value ? 1 : 0); }
+
+        /// <summary>0 darkest to 1 brightest; 0.5 leaves the authored twilight alone. Picture only (U-D-58).</summary>
+        public static float Brightness { get => GetVolume(KeyBrightness, 0.5f); set => SetVolume(KeyBrightness, value); }
 
         /// <summary>Push everything to disk. Returns false when the store refused, and remembers that it did.</summary>
         public static bool Save()

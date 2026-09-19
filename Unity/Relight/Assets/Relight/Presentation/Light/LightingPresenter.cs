@@ -11,10 +11,11 @@ namespace Relight.Presentation
     /// layer by the game; lit tiles are full colour, unlit ones darkened") and
     /// <c>packages/game/src/riverfrontLighting.ts</c> owns the presentation-only daylight smoothstep. Both halves are
     /// kept here in the same split: the shape of the light comes from <see cref="LightQueries.Mask(SimState)"/> and
-    /// never from anything this class computes, and the day/night strength comes from
-    /// <see cref="LightQueries.Daylight(SimContext,SimState)"/>, a sim fact, put through a presentation smoothstep so
-    /// dusk does not step. WORLD_AND_ASSETS §2.8: the tint "must never feed gameplay" — nothing here is ever read
-    /// back into the simulation.
+    /// never from anything this class computes. The world is always dark now (U-D-58): <see cref="Daylight"/> is 0
+    /// unless the admin "force daylight" override is on, and the strength on unlit ground is
+    /// <see cref="Relight.Sim.UI.DarknessLook.Strength"/>, a picture-only rule held inside safe limits and moved by
+    /// the player's brightness setting. WORLD_AND_ASSETS §2.8: the tint "must never feed gameplay" — nothing here is
+    /// ever read back into the simulation.
     ///
     /// How it draws: one <see cref="SpriteRenderer"/> over the visible tile rectangle, with a
     /// <see cref="Texture2D"/> of <see cref="supersample"/> texels per tile, black (or the night tint) with a
@@ -46,8 +47,9 @@ namespace Relight.Presentation
         [Tooltip("Texels per tile. 1 is the reference's own resolution; 2-3 soften the edge of a lamp's disc.")]
         [SerializeField, Range(1, 4)] private int supersample = 2;
 
-        [Tooltip("How dark an unlit tile gets at the darkest point of the night, 0 clear to 1 opaque.")]
-        [SerializeField, Range(0f, 1f)] private float nightDarkness = 0.86f;
+        [Tooltip("How dark unlit ground is drawn, 0 clear to 1 opaque. U-D-58: a readable twilight, not black. " +
+                 "DarknessLook holds it inside 0.35-0.70 and the player's brightness setting moves it.")]
+        [SerializeField, Range(0f, 1f)] private float unlitDarkness = (float)Relight.Sim.UI.DarknessLook.DefaultUnlit;
 
         [Tooltip("How dark an unlit tile gets in full daylight. The reference darkens nothing by day.")]
         [SerializeField, Range(0f, 1f)] private float dayDarkness = 0f;
@@ -60,6 +62,18 @@ namespace Relight.Presentation
 
         [Tooltip("Sorting order of the overlay sprite within its layer.")]
         [SerializeField] private int sortingOrder = 500;
+
+        /// <summary>PlayerPrefs key of the brightness setting. The settings screen writes it (Preferences.Brightness).</summary>
+        public const string BrightnessKey = "relight.video.brightness";
+
+        private float _brightness = (float)Relight.Sim.UI.DarknessLook.DefaultBrightness;
+
+        /// <summary>The overlay strength on unlit tiles after limits and brightness. Read-only readback.</summary>
+        public float UnlitStrength =>
+            (float)Relight.Sim.UI.DarknessLook.Strength(unlitDarkness, _brightness);
+
+        /// <summary>Live change from the settings screen. Picture only.</summary>
+        public void SetBrightness(float value) => _brightness = Mathf.Clamp01(value);
 
         private SpriteRenderer _sr;
         private Texture2D _tex;
@@ -118,6 +132,8 @@ namespace Relight.Presentation
             _sr.sortingOrder = sortingOrder;
             _sr.sharedMaterial = new Material(Shader.Find("Sprites/Default"));
             _sr.enabled = false;
+
+            _brightness = PlayerPrefs.GetFloat(BrightnessKey, (float)Relight.Sim.UI.DarknessLook.DefaultBrightness);
         }
 
         private void OnDisable()
@@ -140,7 +156,7 @@ namespace Relight.Presentation
             var day = (float)LightQueries.Daylight(ctx, st).Daylight;
             day = Mathf.Clamp01(day);
             Daylight = day * day * (3f - 2f * day);
-            var darkness = Mathf.Lerp(nightDarkness, dayDarkness, Daylight);
+            var darkness = Mathf.Lerp(UnlitStrength, dayDarkness, Daylight);
 
             // Nothing to draw in broad daylight: the reference darkens nothing by day, and skipping the upload is
             // the cheapest thing this class can do for the opening scene, which starts in daylight.

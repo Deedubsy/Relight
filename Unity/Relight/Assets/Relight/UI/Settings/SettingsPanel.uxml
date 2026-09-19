@@ -43,6 +43,17 @@
                 <ui:Label name="interface-note" text="" class="settings-note" />
             </ui:VisualElement>
 
+            <!-- Display -->
+            <ui:VisualElement name="section-display" class="settings-section">
+                <ui:Label name="heading-display" text="Display" class="settings-heading" />
+
+                <ui:VisualElement class="settings-row">
+                    <ui:Label name="brightness-label" text="Brightness in the dark" class="settings-label" />
+                    <ui:Slider name="brightness-slider" low-value="0" high-value="1" class="settings-control" />
+                    <ui:Label name="brightness-value" text="" class="settings-value" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
             <!-- Audio -->
             <ui:VisualElement name="section-audio" class="settings-section">
                 <ui:Label name="heading-audio" text="Audio" class="settings-heading" />

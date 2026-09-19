@@ -74,6 +74,8 @@ namespace Relight.UI.Settings
         private DropdownField _scale, _motion, _interval, _kept, _action;
         private Slider _master, _ui, _world, _alerts;
         private Label _masterValue, _uiValue, _worldValue, _alertsValue;
+        private Slider _brightness;
+        private Label _brightnessValue;
         private Toggle _mute;
         private Label _interfaceNote, _autosaveNote, _autosaveConsequence, _bindingsNote,
                       _bindingCurrent, _bindingProblem, _bindingGood, _status;
@@ -120,6 +122,9 @@ namespace Relight.UI.Settings
             _alerts = _root.Q<Slider>("alerts-slider");
             _alertsValue = _root.Q<Label>("alerts-value");
 
+            _brightness = _root.Q<Slider>("brightness-slider");
+            _brightnessValue = _root.Q<Label>("brightness-value");
+
             _interval = _root.Q<DropdownField>("autosave-interval");
             _kept = _root.Q<DropdownField>("autosave-kept");
             _autosaveNote = _root.Q<Label>("autosave-note");
@@ -142,6 +147,8 @@ namespace Relight.UI.Settings
 
             Label(_root, "scale-label", FrontEndText.InterfaceScale);
             Label(_root, "motion-label", FrontEndText.InterfaceMotion);
+            Label(_root, "heading-display", FrontEndText.DisplayHeading);
+            Label(_root, "brightness-label", FrontEndText.Brightness);
             Label(_root, "master-label", FrontEndText.MasterVolume);
             Label(_root, "mute-label", FrontEndText.MuteAll);
             Label(_root, "ui-label", FrontEndText.UiVolume);
@@ -253,6 +260,7 @@ namespace Relight.UI.Settings
                 SetSlider(_ui, _uiValue, Preferences.UiVolume);
                 SetSlider(_world, _worldValue, Preferences.WorldVolume);
                 SetSlider(_alerts, _alertsValue, Preferences.AlertsVolume);
+                SetSlider(_brightness, _brightnessValue, Preferences.Brightness);
                 if (_mute != null) _mute.value = Preferences.Mute;
 
                 if (_interval != null) _interval.index = IndexOf(AutosaveChoices.Intervals, Preferences.AutosaveMinutes);
@@ -275,6 +283,7 @@ namespace Relight.UI.Settings
             if (_world != null) _world.RegisterValueChangedCallback(e => OnVolume(WorldParam, _worldValue, e.newValue));
             if (_alerts != null) _alerts.RegisterValueChangedCallback(e => OnVolume(AlertsParam, _alertsValue, e.newValue));
             if (_mute != null) _mute.RegisterValueChangedCallback(e => OnMute(e.newValue));
+            if (_brightness != null) _brightness.RegisterValueChangedCallback(e => OnBrightness(e.newValue));
 
             if (_interval != null) _interval.RegisterValueChangedCallback(_ => OnInterval());
             if (_kept != null) _kept.RegisterValueChangedCallback(_ => OnKept());
@@ -367,6 +376,18 @@ namespace Relight.UI.Settings
 
             ApplyAudio();
             Persist();
+        }
+
+        private void OnBrightness(float v)
+        {
+            if (_brightnessValue != null) _brightnessValue.text = FrontEndText.Percent(v);
+            if (_quiet) return;
+            Preferences.Brightness = v;
+            // Live in a session; on the title screen there is no presenter and the saved value is read at Awake.
+            var lighting = FindAnyObjectByType<Relight.Presentation.LightingPresenter>();
+            if (lighting != null) lighting.SetBrightness(v);
+            Preferences.Save();
+            ShowStatus();
         }
 
         private void OnMute(bool muted)
