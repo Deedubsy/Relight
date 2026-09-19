@@ -32,7 +32,8 @@
         <ui:VisualElement name="status-strip" class="hud-block" picking-mode="Ignore">
             <ui:VisualElement name="status-content" picking-mode="Ignore">
                 <ui:VisualElement name="clock-block" class="strip-block">
-                    <ui:Label name="clock" text="Day 1 · 00:00" class="strip-value" />
+                    <ui:Label name="clock" text="0:00:00" class="strip-value" />
+                    <ui:Label name="light-state" text="" class="strip-value" />
                 </ui:VisualElement>
                 <ui:VisualElement name="strip-rule-1" class="strip-rule" picking-mode="Ignore" />
                 <ui:VisualElement name="power-block" class="strip-block">

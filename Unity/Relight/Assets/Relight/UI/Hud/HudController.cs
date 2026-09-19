@@ -50,7 +50,7 @@ namespace Relight.UI
 
         private HudViewModel _model = new HudViewModel();
         private VisualElement _root, _threat, _mining, _handLock, _pip, _reloadMeter;
-        private Label _clock, _power, _core, _engineer, _weapon, _ammo, _backpack;
+        private Label _clock, _light, _power, _core, _engineer, _weapon, _ammo, _backpack;
         private Label _threatText, _alert, _miningTitle, _miningDetail, _handLockText;
         private Button _openInventory, _openBuild;
         private GameplayDock _dock;
@@ -96,6 +96,7 @@ namespace Relight.UI
             _root = root.Q<VisualElement>("hud-root") ?? root;
 
             _clock = _root.Q<Label>("clock");
+            _light = _root.Q<Label>("light-state");
             _power = _root.Q<Label>("power");
             _core = _root.Q<Label>("core");
             _coreMeter = _root.Q<ProgressBar>("core-meter");
@@ -263,6 +264,9 @@ namespace Relight.UI
             if (!_model.Refresh(ctx, st, now, paused, menuOpen, force)) return;
 
             Set(_clock, _model.Clock);
+            Set(_light, _model.LightText);
+            Toggle(_light, "is-danger", _model.InDark);
+            Show(_light, _model.LightText.Length > 0);
             Set(_power, _model.PowerText);
             var powerSummary=_model.Power.Summary;
             Set(_power, powerSummary.SupplyKw>0 ? "Power "+PackLayout.Num(powerSummary.SupplyKw)+" kW · Need "+PackLayout.Num(powerSummary.DemandKw) : powerSummary.RatedGenerators>0 ? "Power · no fuel" : "Power · disconnected");

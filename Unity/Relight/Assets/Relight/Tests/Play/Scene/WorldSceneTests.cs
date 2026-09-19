@@ -114,7 +114,7 @@ namespace Relight.Tests.Play
             yield return new WaitForSecondsRealtime(0.5f);
 
             // Reads: the view-model formatted real state through the selectors.
-            Assert.That(status.Model.Clock, Does.StartWith("Day 1"), "clock: " + status.Model.Clock);
+            Assert.That(status.Model.Clock, Does.StartWith("0:0"), "clock: " + status.Model.Clock);
             Assert.That(status.Model.Health, Does.Contain("HP"), "health: " + status.Model.Health);
             Assert.That(status.Model.Position, Is.Not.Empty);
             Assert.That(status.Model.Refreshes, Is.GreaterThan(1));

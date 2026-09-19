@@ -61,10 +61,31 @@ namespace Relight.Sim.Tests.UI
         [Test]
         public void TheClockCountsDaysAndPrintsPausedOnlyWhenPaused()
         {
-            Assert.That(HudViewModel.FormatClock(0, 1200, false), Is.EqualTo("Day 1 · 00:00"));
-            Assert.That(HudViewModel.FormatClock(600, 1200, false), Is.EqualTo("Day 1 · 12:00"));
-            Assert.That(HudViewModel.FormatClock(1200, 1200, false), Is.EqualTo("Day 2 · 00:00"));
-            Assert.That(HudViewModel.FormatClock(600, 1200, true), Is.EqualTo("Day 1 · 12:00 · Paused"));
+            Assert.That(HudViewModel.FormatClock(0, false), Is.EqualTo("0:00:00"));
+            Assert.That(HudViewModel.FormatClock(600, false), Is.EqualTo("0:10:00"));
+            Assert.That(HudViewModel.FormatClock(5050.9, false), Is.EqualTo("1:24:10"));
+            Assert.That(HudViewModel.FormatClock(600, true), Is.EqualTo("0:10:00 · Paused"));
+            Assert.That(HudViewModel.FormatClock(-4, false), Is.EqualTo("0:00:00"));
+        }
+
+        [Test]
+        public void TheStripSaysWhetherTheEngineerStandsInLight()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            HomeCore.Ensure(ctx, st);
+            LightPhase.Ensure(ctx, st);
+            var vm = new HudViewModel();
+
+            st.Engineer.Pos = new Vec2(RaidFixture.CoreX + 0.5, RaidFixture.CoreY + 0.5);   // on the always-lit core lot
+            vm.Refresh(ctx, st, 0, paused: false, menuOpen: false, force: true);
+            Assert.That(vm.InDark, Is.False);
+            Assert.That(vm.LightText, Is.EqualTo("In light"));
+
+            st.Engineer.Pos = new Vec2(10.5, 10.5);                                         // far from any light
+            vm.Refresh(ctx, st, 1, paused: false, menuOpen: false, force: true);
+            Assert.That(vm.InDark, Is.True);
+            Assert.That(vm.LightText, Is.EqualTo("In the dark"));
         }
 
         // ---- the throttle -----------------------------------------------------------------------------------
@@ -264,7 +285,7 @@ namespace Relight.Sim.Tests.UI
             var vm = new HudViewModel();
             Assert.That(vm.Refresh(ctx, st, 0, paused: true, menuOpen: false), Is.True);
 
-            Assert.That(vm.Clock, Is.EqualTo("Day 1 · 00:00 · Paused"));
+            Assert.That(vm.Clock, Is.EqualTo("0:00:00 · Paused"));
             Assert.That(vm.PowerText, Is.EqualTo(PowerAlertSource.DisconnectedText));
             Assert.That(vm.Core, Does.StartWith("Home core · "));
             Assert.That(vm.CoreFraction, Is.EqualTo(1).Within(1e-9));

@@ -12,8 +12,9 @@ namespace Relight.UI
     /// selectors, formats, and exposes plain strings. It is not a MonoBehaviour, holds no VisualElement, and knows
     /// nothing about UXML — which is what lets the panel's layout be rearranged in UI Builder without touching C#.
     ///
-    /// Content and formatting are the reference HUD's clock and status strip (hud.ts:47-56): "Day N · HH:MM",
-    /// " · Paused" appended while the clock is stopped, and the engineer's condition beside it. The refresh throttle
+    /// Content and formatting are the reference HUD's clock and status strip (hud.ts:47-56): elapsed play time as
+    /// "H:MM:SS" (U-D-58: there is no sun, so there are no days to count), " · Paused" appended while the clock is
+    /// stopped, and the engineer's condition beside it. The refresh throttle
     /// is the reference's too — <c>if (now - last &lt; 150) return</c>, hud.ts:47 — so the panel updates at most
     /// about seven times a second no matter the frame rate.
     /// </summary>
@@ -26,8 +27,8 @@ namespace Relight.UI
         private readonly StringBuilder _sb = new StringBuilder(64);
         private double _lastRefresh = double.NegativeInfinity;
 
-        /// <summary>"Day 1 · 06:00", with " · Paused" while the host is paused (reference hud.ts:56).</summary>
-        public string Clock { get; private set; } = "Day 1 · 00:00";
+        /// <summary>Elapsed play time, "H:MM:SS", with " · Paused" while the host is paused (reference hud.ts:56).</summary>
+        public string Clock { get; private set; } = "0:00:00";
 
         /// <summary>"48 / 50 HP".</summary>
         public string Health { get; private set; } = "";
@@ -71,7 +72,7 @@ namespace Relight.UI
             var st = sim.State;
             var e = WorldQueries.Engineer(ctx, st);
 
-            Clock = FormatClock(st.T, ctx.Data.Time.DaySeconds, host.Paused);
+            Clock = FormatClock(st.T, host.Paused);
             Health = string.Format(CultureInfo.InvariantCulture, "{0:0} / {1:0} HP", e.Hp, e.MaxHp);
             Position = string.Format(CultureInfo.InvariantCulture, "{0:0.0}, {1:0.0}", e.Pos.X, e.Pos.Y);
 
@@ -100,8 +101,8 @@ namespace Relight.UI
             return true;
         }
 
-        /// <summary>Reference hud.ts:56, with the campaign clock's day length taken from the data record.</summary>
-        public static string FormatClock(double t, double daySeconds, bool paused) =>
-            Relight.Sim.UI.HudViewModel.FormatClock(t, daySeconds, paused);   // C-07: one clock, not two that can drift
+        /// <summary>Reference hud.ts:56 — elapsed play time, "H:MM:SS" (U-D-58).</summary>
+        public static string FormatClock(double t, bool paused) =>
+            Relight.Sim.UI.HudViewModel.FormatClock(t, paused);   // C-07: one clock, not two that can drift
     }
 }

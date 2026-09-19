@@ -61,8 +61,12 @@ namespace Relight.Sim.UI
 
         // ---- status strip (top centre, content width) --------------------------------------------------------
 
-        /// <summary>"Day 1 · 06:00", with " · Paused" while the clock is stopped (hud.ts:56).</summary>
-        public string Clock { get; private set; } = "Day 1 · 00:00";
+        /// <summary>Elapsed play time, "H:MM:SS" (U-D-58: there is no sun, so there are no days to count).</summary>
+        public string Clock { get; private set; } = "0:00:00";
+
+        /// <summary>"In light" or "In the dark", from the sim's lit mask at the engineer's tile (ALWAYS_DARK_SPEC.md §3).</summary>
+        public string LightText { get; private set; } = "";
+        public bool InDark { get; private set; }
 
         /// <summary>"Home: 40 / 300 kW", or one of the two GP-POWER-FIX sentences (hud.ts:58-60).</summary>
         public string PowerText { get; private set; } = PowerAlertSource.NoSourceText;
@@ -153,6 +157,7 @@ namespace Relight.Sim.UI
                 Clock = "No session";
                 PowerText = PowerAlertSource.NoSourceText;
                 Core = Engineer = Weapon = Ammo = Backpack = HandLock = Threat = Alert = "";
+                LightText = ""; InDark = false;
                 MiningVisible = false;
                 _problems.Clear();
                 Notices.Reap(now);
@@ -162,7 +167,10 @@ namespace Relight.Sim.UI
             var d = ctx.Data;
 
             // --- status strip ---------------------------------------------------------------------------------
-            Clock = FormatClock(st.T, d.Time != null ? d.Time.DaySeconds : 0, paused);
+            Clock = FormatClock(st.T, paused);
+            var at = WorldQueries.Engineer(ctx, st).Pos;
+            InDark = !LightQueries.LitAt(st, (int)Math.Floor(at.X), (int)Math.Floor(at.Y));
+            LightText = InDark ? "In the dark" : "In light";
 
             Power.Refresh(ctx, st);
             PowerText = Power.StripText;
@@ -313,18 +321,17 @@ namespace Relight.Sim.UI
         // ------------------------------------------------------------------------------------------------------
 
         /// <summary>
-        /// Reference hud.ts:56 — the campaign clock. The canonical implementation: <c>Relight.UI</c>'s
-        /// <c>StatusPanelViewModel.FormatClock</c> is a character-for-character copy that predates this file, and
-        /// the wave-3 W-B report carries the one-line patch that makes it delegate here so the two can never drift.
+        /// U-D-58: there is no sun, so the clock counts elapsed play time instead of days, "H:MM:SS". The
+        /// canonical implementation: <c>Relight.UI</c>'s <c>StatusPanelViewModel.FormatClock</c> is a
+        /// character-for-character copy that predates this file, and the wave-3 W-B report carries the one-line
+        /// patch that makes it delegate here so the two can never drift.
         /// </summary>
-        public static string FormatClock(double t, double daySeconds, bool paused)
+        public static string FormatClock(double t, bool paused)
         {
-            if (daySeconds <= 0) daySeconds = 1;
-            var day = (int)Math.Floor(t / daySeconds) + 1;
-            var elapsed = t - (day - 1) * daySeconds;
-            var minutes = (int)Math.Floor(elapsed / daySeconds * 1440.0);
-            return string.Format(CultureInfo.InvariantCulture, "Day {0} · {1:00}:{2:00}{3}",
-                day, minutes / 60, minutes % 60, paused ? " · Paused" : "");
+            if (double.IsNaN(t) || t < 0) t = 0;
+            var s = (long)Math.Floor(t);
+            return string.Format(CultureInfo.InvariantCulture, "{0}:{1:00}:{2:00}{3}",
+                s / 3600, s / 60 % 60, s % 60, paused ? " · Paused" : "");
         }
 
         /// <summary>
