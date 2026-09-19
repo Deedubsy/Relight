@@ -69,7 +69,7 @@ namespace Relight.Sim
         /// <summary>How many times the mask has been stamped since the state was created (a test and profiling hook).</summary>
         public static int Builds(SimState st) => st?.Light?.Builds ?? 0;
 
-        /// <summary>Day/night now, from <c>GameData.Time</c> (daySeconds 1200, daylightSeconds 900).</summary>
+        /// <summary>Day/night now, from GameData.Time. The port's data has daylightSeconds 0 (U-D-58), so this is dark unless the admin override forces otherwise.</summary>
         public static DaylightView Daylight(SimContext ctx, SimState st)
         {
             var natural=Daylight(st?.T ?? 0, ctx?.Data?.Time?.DaySeconds ?? 0, ctx?.Data?.Time?.DaylightSeconds ?? 0);
@@ -91,6 +91,11 @@ namespace Relight.Sim
             var day = (int)Math.Floor(t / daySeconds) + 1;
             var tod = t - (day - 1) * daySeconds;
             if (tod < 0) tod = 0;
+
+            // U-D-58: no daylight seconds means no sun. Without this case the formula below would spread one long
+            // dusk-and-dawn V across the whole day.
+            if (daylightSeconds <= 0) return new DaylightView(tod, day, false, 0);
+
             var isDay = tod < daylightSeconds;
 
             double light;

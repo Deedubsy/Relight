@@ -215,13 +215,10 @@ namespace Relight.Sim.Tests.Campaign
         // ---- daylight ---------------------------------------------------------------------------------------
 
         [Test]
-        public void DaylightBoundariesFollowTheDataRecord()
+        public void TheDaylightCurveStillAnswersForARecordWithASun()
         {
-            var ctx = Ctx();
-            var day = ctx.Data.Time.DaySeconds;
-            var light = ctx.Data.Time.DaylightSeconds;
-            Assert.That(day, Is.EqualTo(1200));
-            Assert.That(light, Is.EqualTo(900));
+            // The pure function is kept for the admin override and for any data set that has a sun.
+            const double day = 1200, light = 900;
 
             Assert.That(LightQueries.Daylight(0, day, light).IsDay, Is.True);
             Assert.That(LightQueries.Daylight(899.9, day, light).IsDay, Is.True);
@@ -234,8 +231,28 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(LightQueries.Daylight(1200, day, light).TimeOfDay, Is.EqualTo(0).Within(1e-9));
 
             Assert.That(LightQueries.Daylight(600, day, light).Daylight, Is.EqualTo(1).Within(1e-9));
-            Assert.That(LightQueries.Daylight(1050, day, light).Daylight, Is.EqualTo(0).Within(1e-9),
-                "midnight is the darkest point, halfway through the night");
+            Assert.That(LightQueries.Daylight(1050, day, light).Daylight, Is.EqualTo(0).Within(1e-9));
+        }
+
+        [Test]
+        public void TheWorldIsAlwaysDark()
+        {
+            // U-D-58: the port's data has no sun, and zero daylight seconds means dark at every moment —
+            // not the V-shaped curve the old formula would have made of a zero.
+            var ctx = Ctx();
+            var st = Fresh(ctx);
+            Assert.That(ctx.Data.Time.DaylightSeconds, Is.Zero);
+
+            foreach (var t in new[] { 0.0, 1.0, 600.0, 900.0, 1050.0, 1199.9, 1200.0, 5000.0 })
+            {
+                st.T = t;
+                var v = LightQueries.Daylight(ctx, st);
+                Assert.That(v.IsDay, Is.False, "t=" + t);
+                Assert.That(v.Daylight, Is.Zero, "t=" + t);
+            }
+
+            st.Admin.Lighting = 1;
+            Assert.That(LightQueries.Daylight(ctx, st).IsDay, Is.True, "the admin override still forces daylight");
         }
 
         [Test]

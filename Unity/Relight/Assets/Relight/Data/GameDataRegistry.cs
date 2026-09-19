@@ -82,7 +82,7 @@ namespace Relight.Data
         }
 
         /// <summary>Converts the whole registry into the simulation's data record. Call this once, at boot.</summary>
-        public GameData Build() => CombatBalance.Apply(OpeningBalance.Apply(BuildOriginal()));
+        public GameData Build() => DarkWorld.Apply(CombatBalance.Apply(OpeningBalance.Apply(BuildOriginal())));
 
         public GameData BuildOriginal()
         {
