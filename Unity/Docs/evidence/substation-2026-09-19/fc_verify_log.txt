@@ -1,0 +1,22 @@
+PASS C1 compound closed: enclosure tiles reached with mouth solid = 0 (court 0, verge 0, yard 0; enclosure = interior (26,332) 93x93 + yard (80,332) 39x63 + verge (77,369) 2x26; mouth x 67..76, y 425..427 blocked; start 71,435, start walkable True)
+PASS C2 fence solid: 362 compound fence tiles, 0 not solid
+PASS C3 no baseline solids: 1270 solid tiles in block, 0 outside any building/fence/substation
+PASS C4 houses in lots: 7 houses; all inside their lot, no overlaps
+PASS C5 setback 4: W1=4, W2=4, W3=4, E1=4, E2=4, CW=4, WS=8 (workshop exception, D25)
+PASS C6 doors and stubs: 7 houses, each door on its planned wall with one stub (first point at the door, last point on the road, any point count)
+PASS C7 roof variety: 5 neighbour pairs, all roof keys differ
+PASS C8 edge clear: 766 sidewalk/edge tiles, no building, prop or site on them
+PASS C9 yard: yard (80,332) 39x63, 3 nodes, substation (93,350) 3x3; all inside, D9 gaps ok, substation touches copper
+PASS C10 raid line: 1 raid line site(s): (69,432) 6x1; DirectorRules.RaidLineY = 432 (want y 432 x 69..74)
+PASS C11 spawn: playerSpawn (70.5,360.5), compiled spawn tile (70,360), want (70.5,360.5)
+PASS C12 plan match: 36 fc objects in scene, 36 planned, all rects match; kept houses at plan rects
+PASS C13 walk steps: core -> mouth row 66 steps, + 10 = 76, cap EntryFarSteps = 76
+PASS C14 baseline clear: clear, nothing to remove; block (23,329) 99x99: decor tiles 0, solids 0, props 0, paths 0, drives 0, squares 0, service areas 0 (roads, nodes, tram, court untouched)
+PASS C15 yard boundary: 205 edge tiles: 197 fence, 4 gate, 4 gap, nothing else
+PASS C16 gap open: flood from circle centre 72,374 (walkable True) reached 15208 tiles, 2364 in the yard rect (80,332) 39x63; first 80,332; gap tiles 79,372 open 79,373 open 79,374 open 79,375 open
+PASS C17 gap only: flood from circle centre with gap tiles 79,372 79,373 79,374 79,375 solid reached 12840 tiles, 0 in the yard rect
+PASS C18 gate solid: 4 of 4 gate tiles solid: 119,361 solid 119,362 solid 119,363 solid 119,364 solid
+PASS C19 office: Works Yard office [fc-yard-office] (106,353) 12x7 inside yard rect (80,332) 39x63, door tiles 106,355 106,356 106,357 on west wall x=106, enterable=False, roof rf-garage-roof-2, no overlap with nodes, substation or gate
+PASS C20 first attack origin: raid line row 432 is 72 rows below the core's last row (field reach 88); origin (67,432) 71 steps, heading S, staging (67,432)
+PASS C21 substation lights: 6 streetlights in the block (light:0@64,363 light:1@78,363 light:2@89,360 light:3@108,360 light:4@89,375 light:5@108,375) all owned by substation:0; network pole (75,347) + Poles (80,340) (88,343) put the site on its circuit
+Verify: 21 passed, 0 failed of twenty-one checks

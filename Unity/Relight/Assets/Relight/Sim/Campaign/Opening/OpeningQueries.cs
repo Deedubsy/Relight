@@ -298,16 +298,22 @@ namespace Relight.Sim
                 if(!PowerQueries.Supplied(ctx,st,foundry.Id))return At("opening-power","Power your Foundry","Connect the Foundry to your Generator","An Excavator and Foundry draw 140 kW together. Inspect the Foundry for its network connection.",Centre(foundry));
             }
 
-            // 8 — GP-POWER-FIX: the authored block substation must be brought onto the network.
+            // 8 — GP-POWER-FIX, made real by court D55: the authored block substation must be brought onto a supplied
+            // circuit, and it then feeds the streetlights it owns.
             var sub = NearestSubstation(ctx, hx + hw / 2.0, hy + hh / 2.0);
             if (sub != null && !SubstationLive(ctx, st, sub))
+            {
+                var lights = SubstationLights(ctx, sub);
                 return new ObjectiveView("opening-power", "Connect Founders Court’s substation",
                     "Chain Poles from your network to the Founders Court substation",
-                    "The Home core draws " + Num(d.Power.CoreKw) + " kW and the streetlights run from the block "
-                    + "substation, marked here. Poles link within 8 tiles of another Pole, a Generator or the substation "
-                    + "footprint; a cable appears once linked and the placement preview shows purple lines to everything "
-                    + "in reach. Until it is connected the base has no power.",
+                    (lights == 0 ? "Founders Court’s streetlights run" : lights == 1 ? "Founders Court’s streetlight runs"
+                        : "Founders Court’s " + Num(lights) + " streetlights run")
+                    + " from the block substation in the Works Yard, marked here. Poles link within "
+                    + Num(PowerGrid.SiteReach(d)) + " tiles of another Pole, a Generator or the substation footprint; a "
+                    + "cable appears once linked and the placement preview shows purple lines to everything in reach. "
+                    + "Chain Poles from your network to it and the court lights up at night.",
                     true, sub.Centre, Packed(ctx, st, "pole"));
+            }
 
             // 9 — the Rifle. Re-arms by itself when a craft was cancelled: nothing is owned, so the row returns.
             if (st.Weapons.Owned.Count == 0)
@@ -811,22 +817,23 @@ namespace Relight.Sim
         }
 
         /// <summary>
-        /// PORT SUBSTITUTE for the reference's <c>campaignGrid(st).blocks[home].supply &gt; 0</c>: the port has no block
-        /// grid and the authored substation is a SITE, not a machine. The site counts as connected once some placed
-        /// reach node (a pole, big pole or substation) covers its footprint from a circuit that has supply.
+        /// The reference's <c>campaignGrid(st).blocks[home].supply &gt; 0</c> (goal.ts:113), asked of the port's grid:
+        /// court D55 makes the authored substation a reach node, so this is its own circuit having supply.
         /// </summary>
         private static bool SubstationLive(SimContext ctx, SimState st, SiteRecord site)
         {
-            var c = site.Centre;
-            for (var i = 0; i < st.Machines.Count; i++)
-            {
-                var m = st.Machines[i];
-                if (!ctx.Data.TryMachine(m.Kind, out var spec) || spec.ReachTiles <= 0) continue;
-                var (w, h) = m.Dimensions;
-                if (OpeningRules.Dist(m.X + w / 2.0, m.Y + h / 2.0, c.X, c.Y) > spec.ReachTiles + Math.Max(site.W, site.H) / 2.0) continue;
-                if (PowerQueries.Circuit(ctx, st, m.Id).Supply > 0) return true;
-            }
-            return false;
+            var c = PowerGrid.Of(ctx, st).OfSite(site.Id);
+            return c != null && c.Supply > 0;
+        }
+
+        /// <summary>How many authored streetlights the substation owns (their nearest substation site is this one).</summary>
+        private static int SubstationLights(SimContext ctx, SiteRecord site)
+        {
+            var lights = StreetLights.Sites(ctx);
+            var n = 0;
+            for (var i = 0; i < lights.Count; i++)
+                if (ReferenceEquals(PowerGrid.SubstationOf(ctx, lights[i]), site)) n++;
+            return n;
         }
 
         // ------------------------------------------------------------------ R5: where do I get this?

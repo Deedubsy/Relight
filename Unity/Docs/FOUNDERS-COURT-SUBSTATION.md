@@ -1,6 +1,6 @@
 # Founders Court substation — assessment and accepted proposal
 
-Date: 2026-09-19. Status: **design accepted by the owner, not implemented.** The owner asked *"What does the Substation do in the starting area? It's a part of the tutorial but does nothing"*, then proposed *"Maybe it could power some light poles in the cul de sac?"* and accepted the worked proposal below (*"Yeah thats perfect"*). Court decision D55 records the acceptance; implementation is a later task. Nothing in the sim, the scene or the opening text has changed with this record.
+Date: 2026-09-19. Status: **design accepted by the owner and implemented the same day (engineering; owner acceptance and the Play Mode check pending, §7).** The owner asked *"What does the Substation do in the starting area? It's a part of the tutorial but does nothing"*, then proposed *"Maybe it could power some light poles in the cul de sac?"* and accepted the worked proposal below (*"Yeah thats perfect"*). Court decision D55 records the acceptance. §1–§6 are the assessment as written before the code changed; §7 records what was built.
 
 ## 1. What the substation does today
 
@@ -92,3 +92,38 @@ The owner chose the streetlight proposal in §4.
 ## 6. Sources read
 
 `Sim/Campaign/Opening/OpeningQueries.cs` (:260-264, :301-310, :797-830), `Sim/Power/PowerNetwork.cs` (:53-58, :68-80, :140-215, :245-259), `Sim/Campaign/Light/StreetLights.cs`, `LightSources.cs`, `LightRules.cs` (:61, :64), `LightPhase.cs`, `Sim/World/WorldSites.cs` (`SiteRecord`), `Sim/Data/Generated/CatalogueData.g.cs:110-121`, `Sim/UI/Build/BuildCatalogue.cs`, `Presentation/City/CityPresenter.cs:414-418`, `Presentation/Light/LightingPresenter.cs`; reference `packages/sim/src/campaignPower.ts:16-83`, `goal.ts:108-113`, `flow.ts:620`; docs `FOUNDERS-COURT-PLAN.md` (circle, lots), `FOUNDERS-COURT-CHANGES.md` §6, `FOUNDERS-COURT-DECISIONS.md` D17/D48–D53, `GAME_DESIGN.md:393`, `UI_AND_ONBOARDING.md:313,330`, `CONTENT_CATALOGUE.md` §17.2/§18. Visual version of this record: the "Founders Court Substation" artifact published from the 2026-09-19 session.
+
+## 7. Implementation (2026-09-19)
+
+The owner asked to *"Implement the substation plan"*. Built as §4.1, with these specifics:
+
+| Piece | Where | What it does |
+|---|---|---|
+| Substation sites are nodes | `Sim/Power/PowerNetwork.cs` `PowerGrid.Build` | Every `SiteKind.Substation` site is added after the placed nodes, with reach `PowerTuning.SubstationReachTiles` (8). It links to poles, big poles and generators by `NodesLinked` and bridges pole networks through it. |
+| Site on a circuit | same, `PowerNetwork.OfSite` | A site is attached only once a placed node is in its group, so a lot no pole has reached creates no circuit and adds no demand. |
+| Lights owned by substations | same, `PowerGrid.SubstationOf` | Each streetlight is billed 2 kW to its nearest substation site (centre distance, ties to export order), and is unattached and dark while that site is on no circuit. A region with no substation sites keeps the old nearest-pole rule. |
+| Step 8 is real | `Sim/Campaign/Opening/OpeningQueries.cs` `SubstationLive` | `OfSite(site).Supply > 0` replaces the "pole within 9.5 tiles" substitute. The detail text drops the core and "no power" sentences, counts the site's own lights ("Founders Court's 6 streetlights run from the block substation in the Works Yard") and ends "Chain Poles from your network to it and the court lights up at night." |
+| Preview and cables | `Sim/Power/PowerLinks.cs`, `Presentation/Flow/PowerConnectionPresenter.cs` | A ghost pole or generator shows its purple link to a substation lot in reach (`PowerLink.SiteId`); a placed one draws a persistent cable to the lot, live when its circuit has supply. |
+| Verify C21 | `Assets/Editor/FoundersCourtCompound.cs` | Every streetlight inside the block resolves to `substation:0`, and a network pole at the core's east edge plus two Poles on non-solid tiles put the site on that pole's circuit in the real grid. Verify now reports "of twenty-one checks". |
+
+**One rule differs from the reference and from a literal reading of §4.1.1:** a substation site cables, but never
+*owns* a consuming machine. In the reference a substation is a full node, so a machine nearest to it joins it. In the
+court the copper node's excavator footprint is 1.6 tiles from the substation centre. Under the reference rule, a
+player powering it from a pole to the south (in reach of the excavator but not of the lot) would find it captured
+by the lot's dead circuit. Consumers therefore join placed nodes only (pinned by
+`ASubstationSiteNeverOwnsAConsumingMachine`).
+
+**Test note:** §4.4 asked for an objective test with "a supplied pole 9 tiles from the site that does not link to
+it". With a Pole's reach of 8 and a 3×3 lot, the old substitute's radius (reach + 1.5 from the lot centre) equals the
+link radius on the axes and is inside it on the diagonals, so no such position exists. The test instead shows step 8
+staying open with a supplied Pole 14 tiles away and completing when the second Pole links.
+
+**Still open:**
+- §4.3's first point is not done. There are still no lights on the cul-de-sac circle. Adding two or three Light
+  sites there is an Editor scene edit, and no editor was available.
+- The buildable Substation machine is unchanged (§4.3).
+- Existing saves need no upgrade. A light that was lit from a nearby pole goes dark until its district's substation
+  is reached (§4.3).
+- Checked in the 6000.6.0f1 editor through the Unity CLI: it compiles with no errors, the `Relight.Sim.Tests`
+  EditMode run had 650 passed and 0 failed, and Founders Court Verify had 21 of 21 passed, including C21. Not run:
+  the Play Mode night check. Evidence: `evidence/substation-2026-09-19/checks.md`.

@@ -408,5 +408,45 @@ namespace Relight.Sim.Tests.Campaign
 
             return seen;
         }
+            // ------------------------------------------------------------------ row 8: the block substation (court D55)
+
+        /// <summary>
+        /// Row 8 completes on the substation site's own circuit having supply (goal.ts:113), not on a pole merely
+        /// being nearby, and its text no longer claims a core draw or a base without power.
+        /// </summary>
+        [Test]
+        public void TheSubstationRowCompletesOnlyWhenTheSitesOwnCircuitHasSupply()
+        {
+            var sites = new WorldSites(new List<SiteRecord>
+            {
+                new SiteRecord("home", "Home Court", SiteKind.Core, RaidFixture.CoreX, RaidFixture.CoreY,
+                    RaidFixture.CoreSize, RaidFixture.CoreSize, "", 0),
+                new SiteRecord("substation:0", "Substation 0", SiteKind.Substation, 109, 79, 3, 3),
+                new SiteRecord(StreetLights.IdPrefix + "0", "Street light", SiteKind.Light, 112, 84, 1, 1),
+                new SiteRecord(StreetLights.IdPrefix + "1", "Street light", SiteKind.Light, 104, 84, 1, 1),
+            });
+            var ctx = new SimContext(ReferenceData.Create(), RaidFixture.Map(), null, null, sites);
+            var st = OpeningFixture.State(ctx);
+            OpeningFixture.ToRifle(ctx, st);               // generator and pole at (86..88, 76), all rows 1-7 done
+
+            var open = OpeningQueries.Objective(ctx, st);
+            Assert.That(open.Title, Is.EqualTo("Connect Founders Court’s substation"));
+            Assert.That(open.Detail, Does.Contain("2 streetlights"));
+            Assert.That(open.Detail, Does.Not.Contain("draws"), "the core has no power demand in the port");
+            Assert.That(open.Detail, Does.Not.Contain("no power"));
+            Assert.That(open.Location.X, Is.EqualTo(110.5).Within(1e-9));
+
+            // One Pole short: (95,80) links to the fixture pole but is 14 tiles from the lot.
+            RaidFixture.Add(ctx, st, "pole", 95, 80);
+            OpeningFixture.Run(ctx, st, 1);
+            Assert.That(OpeningQueries.Objective(ctx, st).Title, Is.EqualTo("Connect Founders Court’s substation"));
+
+            // The second Pole (102,80) is 6.5 tiles from the lot: the site joins the supplied circuit.
+            RaidFixture.Add(ctx, st, "pole", 102, 80);
+            OpeningFixture.Run(ctx, st, 1);
+            Assert.That(OpeningQueries.Objective(ctx, st).Id, Is.EqualTo("opening-equip"), "row 8 is satisfied");
+            Assert.That(PowerQueries.Network(ctx, st).DemandKw, Is.GreaterThanOrEqualTo(2 * LightRules.StreetLightKw),
+                "and its two streetlights now draw from it");
+        }
     }
 }

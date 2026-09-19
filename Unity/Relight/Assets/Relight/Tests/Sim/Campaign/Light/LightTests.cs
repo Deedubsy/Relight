@@ -292,6 +292,46 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(LightQueries.LitAt(st, 30 + r + 1, 30), Is.False);
         }
 
+        /// <summary>
+        /// Court D55: with substation sites on the map a light is billed to its NEAREST SUBSTATION's circuit, not to a
+        /// pole that happens to be beside it, and stays dark and unbilled until that substation is reached.
+        /// </summary>
+        [Test]
+        public void AStreetLightRunsFromItsNearestSubstationNotTheNearestPole()
+        {
+            var geometry = RaidFixture.Map();
+            var sites = new WorldSites(new List<SiteRecord>
+            {
+                new SiteRecord("home", "Home Court", SiteKind.Core, RaidFixture.CoreX, RaidFixture.CoreY,
+                    RaidFixture.CoreSize, RaidFixture.CoreSize, "", 0),
+                new SiteRecord(StreetLights.IdPrefix + "0", "Street light", SiteKind.Light, 30, 30, 1, 1),
+                new SiteRecord("substation:0", "Substation 0", SiteKind.Substation, 60, 28, 3, 3),
+                new SiteRecord("substation:1", "Substation 1", SiteKind.Substation, 140, 140, 3, 3),
+            });
+            var ctx = new SimContext(ReferenceData.Create(), geometry, null, null, sites);
+            var st = Fresh(ctx);
+            var light = StreetLights.Sites(ctx)[0];
+            Assert.That(PowerGrid.SubstationOf(ctx, light).Id, Is.EqualTo("substation:0"), "nearest by centre distance");
+
+            RaidFixture.Power(ctx, st, 32, 30);        // a pole two tiles from the light, with a fuelled generator
+            RaidFixture.Run(ctx, st, 1, Phases());
+            Assert.That(PowerGrid.Of(ctx, st).OfSite(light.Id), Is.Null, "the pole beside it does not own the light");
+            Assert.That(PowerQueries.Network(ctx, st).DemandKw, Is.Zero, "an unattached light draws nothing");
+            Assert.That(LightQueries.LitAt(st, 30, 30), Is.False);
+
+            // Chain Poles east to the substation lot at (60,28): each is 7.5 tiles from the last, the last 3.5 from the lot.
+            RaidFixture.Add(ctx, st, "pole", 40, 30);
+            RaidFixture.Add(ctx, st, "pole", 48, 30);
+            RaidFixture.Add(ctx, st, "pole", 56, 30);
+            RaidFixture.Run(ctx, st, 1, Phases());
+
+            var grid = PowerGrid.Of(ctx, st);
+            Assert.That(grid.OfSite(light.Id), Is.SameAs(grid.OfSite("substation:0")));
+            Assert.That(PowerQueries.Network(ctx, st).DemandKw, Is.EqualTo(LightRules.StreetLightKw).Within(1e-9),
+                "the light is billed to its substation's circuit once that is live");
+            Assert.That(LightQueries.LitAt(st, 30, 30), Is.True);
+        }
+
         // ---- state ------------------------------------------------------------------------------------------
 
         [Test]

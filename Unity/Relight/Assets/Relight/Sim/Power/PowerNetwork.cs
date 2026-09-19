@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Relight.Sim
 {
@@ -51,9 +52,10 @@ namespace Relight.Sim
         public double Share(int generatorId) => _share.TryGetValue(generatorId, out var kw) ? kw : 0;
 
         /// <summary>
-        /// The circuit an authored non-machine draw joined, or null when nothing in reach connects it. Today that is
-        /// C-11's streetlights (reference campaignPower.ts:51 bills the block's substation for them); the port bills
-        /// the same circuit every consuming machine on that pole bills.
+        /// The circuit an authored site is on, or null when it is on none. Two kinds of site answer here (court D55):
+        /// a <see cref="SiteKind.Substation"/> lot, once a placed node links to it, and a streetlight, which is billed
+        /// to its nearest substation's circuit (reference campaignPower.ts:51 bills the block's substation for its
+        /// lights). A region with no substation sites falls back to the light joining the nearest pole in reach.
         /// </summary>
         public PowerCircuit OfSite(string siteId) => siteId != null && _ofSite.TryGetValue(siteId, out var c) ? c : null;
     }
@@ -67,12 +69,16 @@ namespace Relight.Sim
     ///
     /// Deliberate differences, all recorded in the wave-1 W-B report:
     /// <list type="bullet">
-    /// <item>No authored per-district substations (campaignPower.ts:28): the block/district economy is retired
-    ///       (U-D-32), so every reach node is a placed machine.</item>
+    /// <item>Authored substations (campaignPower.ts:28) are reach nodes again under court D55, but without the
+    ///       block economy (U-D-32): a <see cref="SiteKind.Substation"/> site is a node with the substation reach, no
+    ///       supply and no draw of its own. Placed nodes cable to it and through it, and every authored streetlight is
+    ///       billed to its nearest substation's circuit. Unlike the reference, a site never owns a consuming machine:
+    ///       consumers join placed nodes only, so a machine standing beside an unconnected substation is not
+    ///       captured by a dead circuit when a pole in reach would have powered it.</item>
     /// <item>No turbine hall or plant supply (:49-50) and no core/radio/encounter demand (:52-55): those are
     ///       campaign state that arrives with C-05/C-09. A circuit's load is therefore shared among its generators
     ///       alone, which is the reference's formula with the turbine and plant terms zero. The streetlight demand
-    ///       of :51 IS carried (C-11), billed to the circuit that reaches each light instead of to its block.</item>
+    ///       of :51 IS carried (C-11), billed to the circuit of each light's nearest substation site.</item>
     /// <item>No defence damage or disabled blocks (:22, :46): <c>Machine.Hp</c> is C-04's.</item>
     /// <item>Node kinds come from the data, not a kind list: anything with <c>MachineSpec.ReachTiles &gt; 0</c> is a
     ///       reach node and anything with <c>PowerKw &lt; 0</c> is a source (the reference's pole/bigpole/substation
@@ -83,7 +89,7 @@ namespace Relight.Sim
     {
         private struct Node
         {
-            public int Machine;      // index into st.Machines
+            public int Machine;      // index into st.Machines; -1 for an authored substation site
             public double Cx, Cy;    // footprint centre
             public int X, Y, W, H;
             public double Reach;
@@ -131,6 +137,53 @@ namespace Relight.Sim
         /// <summary>Network reach in tiles (reference campaignPower.ts:20 <c>nodeReach</c>), from the machine data.</summary>
         public static double ReachOf(GameData d, Machine m) => d.TryMachine(m.Kind, out var s) ? s.ReachTiles : 0;
 
+        /// <summary>
+        /// The region's authored substation lots in export order, cached per <see cref="WorldSites"/> instance (the
+        /// sites are immutable). Empty on the synthetic map and in any fixture without them.
+        /// </summary>
+        public static IReadOnlyList<SiteRecord> SubstationSites(SimContext ctx)
+        {
+            var sites = ctx == null ? null : ctx.Sites;
+            if (sites == null || sites.Count == 0) return NoSites;
+            if (SubstationCache.TryGetValue(sites, out var cached)) return cached;
+            var list = new List<SiteRecord>(sites.OfKind(SiteKind.Substation));
+            var arr = list.Count == 0 ? NoSites : list.ToArray();
+            SubstationCache.Add(sites, arr);
+            return arr;
+        }
+
+        private static readonly SiteRecord[] NoSites = new SiteRecord[0];
+        private static readonly ConditionalWeakTable<WorldSites, SiteRecord[]> SubstationCache =
+            new ConditionalWeakTable<WorldSites, SiteRecord[]>();
+
+        /// <summary>An authored substation's reach (reference <c>nodeReach('substation')</c> = POLE_REACH, 8).</summary>
+        public static double SiteReach(GameData d) =>
+            d?.Power != null && d.Power.SubstationReachTiles > 0 ? d.Power.SubstationReachTiles : 8;
+
+        /// <summary>
+        /// The substation site an authored streetlight belongs to: the nearest by centre distance, ties to the
+        /// earlier site in export order. Null when the region has no substation sites.
+        /// </summary>
+        public static SiteRecord SubstationOf(SimContext ctx, SiteRecord light)
+        {
+            var subs = SubstationSites(ctx);
+            if (light == null || subs.Count == 0) return null;
+            var lc = light.Centre;
+            SiteRecord best = null;
+            var score = double.PositiveInfinity;
+            for (var i = 0; i < subs.Count; i++)
+            {
+                var c = subs[i].Centre;
+                var dx = c.X - lc.X;
+                var dy = c.Y - lc.Y;
+                var dd = dx * dx + dy * dy;
+                if (dd >= score) continue;
+                score = dd;
+                best = subs[i];
+            }
+            return best;
+        }
+
         /// <summary>Reference campaignPower.ts:16 <c>nodesLinked</c> (GP-POWER-FIX): either node's centre within its own reach of the other's footprint.</summary>
         private static bool Linked(in Node a, in Node b) =>
             NodesLinked(a.X, a.Y, a.W, a.H, a.Reach, b.X, b.Y, b.W, b.H, b.Reach);
@@ -173,6 +226,23 @@ namespace Relight.Sim
                 });
             }
 
+            // Court D55 — the authored substation lots, after the placed nodes so a circuit's root (its Id) is still
+            // a placed machine wherever one exists.
+            var subs = SubstationSites(ctx);
+            var firstSite = nodes.Count;
+            var siteReach = SiteReach(d);
+            for (var i = 0; i < subs.Count; i++)
+            {
+                var s = subs[i];
+                nodes.Add(new Node
+                {
+                    Machine = -1,
+                    X = s.X, Y = s.Y, W = s.W, H = s.H,
+                    Cx = s.X + s.W / 2.0, Cy = s.Y + s.H / 2.0,
+                    Reach = siteReach,
+                });
+            }
+
             // campaignPower.ts:30-34 — union-find over the nodes, in the same nested order, so the roots match.
             var parent = new int[nodes.Count];
             for (var i = 0; i < parent.Length; i++) parent[i] = i;
@@ -196,12 +266,13 @@ namespace Relight.Sim
             }
 
             // campaignPower.ts:41-44 — the NEAREST reach node whose reach covers a footprint owns that consumer.
-            // Extracted so the authored streetlights below join the very same way (no second ledger).
+            // Placed nodes only: a substation site cables but never owns a machine (see the class remarks). Also the
+            // streetlights' rule on a region with no substation sites, so there is no second ledger.
             PowerCircuit Join(int rx, int ry, int rw, int rh)
             {
                 var nearest = -1;
                 var best = double.PositiveInfinity;
-                for (var k = 0; k < nodes.Count; k++)
+                for (var k = 0; k < firstSite; k++)
                 {
                     var p = nodes[k];
                     if (p.Reach <= 0) continue;
@@ -242,10 +313,25 @@ namespace Relight.Sim
                 else c.Demand += DemandKw(d, m);          // campaignPower.ts:47
             }
 
+            // Court D55 — a substation site is on a circuit once a placed node is in its group. A lot no pole has
+            // reached stays off the grid entirely: no circuit, no phantom demand for its lights.
+            if (subs.Count > 0)
+            {
+                var placedRoot = new HashSet<int>();
+                for (var k = 0; k < firstSite; k++) placedRoot.Add(Root(k));
+                for (var i = 0; i < subs.Count; i++)
+                {
+                    var root = Root(firstSite + i);
+                    if (placedRoot.Contains(root)) grid.AttachSite(subs[i].Id, Circuit(root));
+                }
+            }
+
             // campaignPower.ts:51 — the authored streetlights draw before the load is worked out, and they draw
             // whether or not they happen to be lit, exactly as the reference bills `lights.length * lightKw` to the
-            // block. C-11 reads the resulting throttle back as "the streetlights on this circuit are on"
-            // (flow.ts:620 `subPowered`), so there is no circular dependency and no second demand ledger.
+            // block's substation. Court D55: each light is billed to its nearest substation site's circuit, and is
+            // unattached (and dark) while that substation is on none. C-11 reads the resulting throttle back as "the
+            // streetlights on this circuit are on" (flow.ts:620 `subPowered`), so there is no circular dependency
+            // and no second demand ledger.
             var lights = StreetLights.Sites(ctx);
             if (lights.Count > 0)
             {
@@ -253,7 +339,7 @@ namespace Relight.Sim
                 for (var i = 0; i < lights.Count; i++)
                 {
                     var s = lights[i];
-                    var c = Join(s.X, s.Y, s.W, s.H);
+                    var c = subs.Count > 0 ? grid.OfSite(SubstationOf(ctx, s)?.Id) : Join(s.X, s.Y, s.W, s.H);
                     if (c == null) continue;
                     c.Demand += lightKw;
                     grid.AttachSite(s.Id, c);

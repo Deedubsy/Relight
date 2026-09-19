@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using NUnit.Framework;
+using Relight.Sim.Tests.Combat;
 using Relight.Sim.Tests.Production;
 
 namespace Relight.Sim.Tests.Power
@@ -280,6 +282,93 @@ namespace Relight.Sim.Tests.Power
             TurretRules.TurretRepairHook(ctx, st, relay.Id, max);
             Assert.That(TurretRules.Wrecked(ctx.Data, st, relay), Is.False);
             Assert.That(PowerQueries.Supplied(ctx, st, far.Id), Is.True);
+        }
+            // ---------------------------------------------------------------- authored substations (court D55)
+
+        private const int SubX = 40, SubY = 40;
+        private const string SubId = "substation:0";
+
+        /// <summary>The 160×160 raid map with the Home core and one authored 3×3 substation lot at (40,40).</summary>
+        private static SimContext SubstationContext() =>
+            new SimContext(ReferenceData.Create(), RaidFixture.Map(), null, null, new WorldSites(new List<SiteRecord>
+            {
+                new SiteRecord("home", "Home Court", SiteKind.Core, RaidFixture.CoreX, RaidFixture.CoreY,
+                    RaidFixture.CoreSize, RaidFixture.CoreSize, "", 0),
+                new SiteRecord(SubId, "Substation 0", SiteKind.Substation, SubX, SubY, 3, 3),
+            }));
+
+        /// <summary>
+        /// Court D55: the site is a reach-8 node. A Pole at (26,41) has its centre 13.5 tiles from the lot's west edge
+        /// and its generator at (28,41) is 11.5 tiles from the lot's centre, so neither links; one more Pole at
+        /// (33,43) is 6.5 tiles from the lot and 6.7 from the first Pole, which puts the site on the generator's
+        /// circuit.
+        /// </summary>
+        [Test]
+        public void APoleWithinReachOfASubstationSiteLinksItToTheCircuit()
+        {
+            var ctx = SubstationContext();
+            var st = RaidFixture.State(ctx);
+            RaidFixture.Power(ctx, st, 26, 41);        // pole (26,41), fuelled generator (28,41)
+
+            Assert.That(PowerGrid.Of(ctx, st).OfSite(SubId), Is.Null, "out of reach: the site is on no circuit");
+
+            var pole = RaidFixture.Add(ctx, st, "pole", 33, 43);
+            var grid = PowerGrid.Of(ctx, st);
+            var c = grid.OfSite(SubId);
+            Assert.That(c, Is.Not.Null, "a pole within 8 tiles of the footprint links to the site");
+            Assert.That(c, Is.SameAs(grid.Of(pole.Id)));
+            Assert.That(c.Supply, Is.GreaterThan(0));
+            Assert.That(c.Demand, Is.Zero, "the site itself neither supplies nor draws");
+        }
+
+        /// <summary>A lot no placed node reaches is on no circuit and adds no circuit to the HUD count.</summary>
+        [Test]
+        public void AnUnreachedSubstationSiteHasNoCircuit()
+        {
+            var ctx = SubstationContext();
+            var st = RaidFixture.State(ctx);
+            RaidFixture.Power(ctx, st, 100, 100);
+
+            Assert.That(PowerGrid.Of(ctx, st).OfSite(SubId), Is.Null);
+            Assert.That(PowerQueries.Network(ctx, st).Circuits, Is.EqualTo(1), "only the placed pole's circuit");
+        }
+
+        /// <summary>
+        /// The one deliberate difference from the reference's substation: a site cables, but never owns a consuming
+        /// machine. A Foundry beside an unconnected lot stays disconnected, and one with a Pole in reach is powered
+        /// by that Pole even though the lot is nearer.
+        /// </summary>
+        [Test]
+        public void ASubstationSiteNeverOwnsAConsumingMachine()
+        {
+            var ctx = SubstationContext();
+            var st = RaidFixture.State(ctx);
+            var beside = RaidFixture.Add(ctx, st, "foundry", SubX + 3, SubY);
+            Assert.That(PowerQueries.Connected(ctx, st, beside.Id), Is.False, "the lot alone connects nothing");
+
+            // A pole east of the Foundry (6.5 tiles from it, 9.5 from the lot, 10.5 from the lot's centre) with a
+            // generator of its own.
+            RaidFixture.Power(ctx, st, SubX + 12, SubY + 1);
+            Assert.That(PowerGrid.Of(ctx, st).OfSite(SubId), Is.Null, "the lot is not linked to that pole");
+            Assert.That(PowerQueries.Supplied(ctx, st, beside.Id), Is.True, "the pole in reach powers the Foundry");
+        }
+
+        /// <summary>
+        /// Reference campaignPower.ts:28-34: a substation is a node like a Pole, so two pole networks that each reach
+        /// the lot but not each other are one circuit through it.
+        /// </summary>
+        [Test]
+        public void ASubstationSiteBridgesTwoPoleNetworks()
+        {
+            var ctx = SubstationContext();
+            var st = RaidFixture.State(ctx);
+            RaidFixture.Power(ctx, st, 34, 41);                         // west: pole 5.5 tiles from the lot, generator
+            RaidFixture.Add(ctx, st, "pole", 50, 41);                   // east: pole 7.5 tiles from the lot
+            var foundry = RaidFixture.Add(ctx, st, "foundry", 52, 41);
+
+            Assert.That(PowerQueries.Supplied(ctx, st, foundry.Id), Is.True,
+                "the east Foundry is supplied by the west generator through the substation");
+            Assert.That(PowerQueries.Network(ctx, st).Circuits, Is.EqualTo(1));
         }
     }
 }

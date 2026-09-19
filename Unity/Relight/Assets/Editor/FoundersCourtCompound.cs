@@ -738,10 +738,61 @@ public static class FoundersCourtCompound
                     }
                 }
             }
+
+            // C21 substation lights (D55, 2026-09-19): every streetlight inside the block is owned by substation:0 under the
+            // sim's nearest-substation rule, and a pole beside the core's east edge plus two more Poles on non-solid tiles
+            // put the site on that pole's circuit in the real power grid.
+            {
+                var sub = sites.Find("substation:0");
+                var core = sites.OfKind(SiteKind.Core).FirstOrDefault();
+                if (sub == null || core == null) check("C21 substation lights", false, (sub == null ? "no substation:0 site" : "") + (core == null ? " no Core site" : ""));
+                else
+                {
+                    var ctx = new SimContext(ReferenceData.Create(), ImportedGeometry.Build(g), sites: sites, mapId: g.MapId);
+                    var court = StreetLights.Sites(ctx).Where(l => Contains(block, l.X, l.Y)).ToList();
+                    var strays = court.Where(l => PowerGrid.SubstationOf(ctx, l) != sub).Select(l => l.Id + " -> " + (PowerGrid.SubstationOf(ctx, l)?.Id ?? "none")).ToList();
+                    var poleReach = ctx.Data.TryMachine("pole", out var poleSpec) ? poleSpec.ReachTiles : 8;
+                    var siteReach = PowerGrid.SiteReach(ctx.Data);
+                    Func<int, int, int, int, bool> link = (ax, ay, bx2, by2) => PowerGrid.NodesLinked(ax, ay, 1, 1, poleReach, bx2, by2, 1, 1, poleReach);
+                    Vector2Int? p0 = null, p1 = null, p2 = null;
+                    var ex = core.X + core.W;
+                    for (var y0 = core.Y; y0 < core.Y + core.H && p2 == null; y0++)
+                    {
+                        if (!walk(ex, y0)) continue;
+                        for (var y1 = y0 - 8; y1 <= y0 + 8 && p2 == null; y1++)
+                            for (var x1 = ex + 1; x1 <= ex + 8 && p2 == null; x1++)
+                            {
+                                if (!walk(x1, y1) || !link(ex, y0, x1, y1)) continue;
+                                for (var y2 = y1 - 8; y2 <= y1 + 8 && p2 == null; y2++)
+                                    for (var x2 = x1 + 1; x2 <= x1 + 8 && p2 == null; x2++)
+                                        if (walk(x2, y2) && link(x1, y1, x2, y2) &&
+                                            PowerGrid.NodesLinked(x2, y2, 1, 1, poleReach, sub.X, sub.Y, sub.W, sub.H, siteReach))
+                                        { p0 = new Vector2Int(ex, y0); p1 = new Vector2Int(x1, y1); p2 = new Vector2Int(x2, y2); }
+                            }
+                    }
+                    var chain = "no two-Pole chain from x=" + ex + " found";
+                    var onCircuit = false;
+                    if (p2 != null)
+                    {
+                        var st = Simulation.NewGame(ctx, 1).State;
+                        var ids = new List<int>();
+                        foreach (var p in new[] { p0.Value, p1.Value, p2.Value })
+                        {
+                            var m = new Machine { Id = st.NextId++, Kind = "pole", X = p.x, Y = p.y, Dir = Dir.N, Size = 1 };
+                            st.Machines.Add(m); st.Rev++; ids.Add(m.Id);
+                        }
+                        var grid = PowerGrid.Of(ctx, st);
+                        onCircuit = grid.OfSite(sub.Id) != null && ReferenceEquals(grid.OfSite(sub.Id), grid.Of(ids[0]));
+                        chain = "network pole (" + p0.Value.x + "," + p0.Value.y + ") + Poles (" + p1.Value.x + "," + p1.Value.y + ") (" + p2.Value.x + "," + p2.Value.y + ") " + (onCircuit ? "put the site on its circuit" : "did NOT put the site on its circuit in the grid");
+                    }
+                    check("C21 substation lights", court.Count > 0 && strays.Count == 0 && onCircuit,
+                        court.Count + " streetlights in the block (" + string.Join(" ", court.Select(l => l.Id + "@" + l.X + "," + l.Y)) + ") " + (strays.Count == 0 ? "all owned by " + sub.Id : "not owned by " + sub.Id + ": " + string.Join("; ", strays)) + "; " + chain);
+                }
+            }
         }
         catch (Exception e) { failed++; L("FAIL Verify: exception " + e.Message + "\n" + e.StackTrace); }
         finally { if (g != null) UnityEngine.Object.DestroyImmediate(g); }
-        L("Verify: " + passed + " passed, " + failed + " failed of twenty checks");
+        L("Verify: " + passed + " passed, " + failed + " failed of twenty-one checks");
         Flush("fc_verify_log.txt");
     }
 

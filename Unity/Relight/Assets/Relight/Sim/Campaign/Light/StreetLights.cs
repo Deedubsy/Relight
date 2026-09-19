@@ -8,16 +8,16 @@ namespace Relight.Sim
     ///
     /// The reference keeps a light list per city block and bills the block's substation for
     /// <c>lights.length * RIVERFRONT.lightKw</c> (campaignPower.ts:51). The port retired the block economy (U-D-32),
-    /// so a streetlight is an authored 1×1 <see cref="SiteRecord"/> and joins the power network through exactly the
-    /// same "nearest reach node that covers me" path every consuming machine uses (campaignPower.ts:41-44). It is
-    /// lit when that circuit is throttled above zero — the port's reading of <c>subPowered</c> (flow.ts:620).
+    /// so a streetlight is an authored 1×1 <see cref="SiteRecord"/>. Court D55 restores the reference's ownership
+    /// without the blocks: each light is billed to the circuit of its nearest authored substation site
+    /// (<see cref="PowerGrid.SubstationOf"/>) and is unattached while that substation is on no circuit. A region with
+    /// no substation sites (the synthetic map, most fixtures) keeps the earlier rule: the light joins the nearest
+    /// placed reach node that covers it (campaignPower.ts:41-44). Either way it is lit when its circuit is throttled
+    /// above zero — the port's reading of <c>subPowered</c> (flow.ts:620).
     ///
-    /// The region importer does not export the light positions yet: <c>Editor/World/CityFile.cs</c>'s <c>JSites</c>
-    /// has no <c>lights</c> member and <c>HomeRegionImporter.SiteRecords</c> never reads one, so
-    /// <see cref="SimContext.Sites"/> carries none today and every query here answers "no streetlights". The
-    /// wave-3 W-B report carries the exact importer patch. This file already accepts what that patch will emit —
-    /// an id of the form <c>light:0</c>, or the <see cref="SiteKindLight"/> enum value — so nothing here changes
-    /// when it lands.
+    /// <c>Editor/World/RegionImporter.cs</c> emits the lights as <c>light:N</c> sites of kind
+    /// <see cref="SiteKind.Light"/>; this file accepts either the id convention or the <see cref="SiteKindLight"/>
+    /// enum value.
     /// </summary>
     public static class StreetLights
     {

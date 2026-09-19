@@ -14,6 +14,8 @@ namespace Relight.Presentation
             public readonly LineRenderer[] Pulses=new LineRenderer[2];
             public readonly Vector3[] Points=new Vector3[9];
             public int From,To;
+            /// <summary>Court D55: the authored substation site at the far end; To is -1 then.</summary>
+            public string Site;
             public bool Reverse;
         }
         private SimHost _host;
@@ -44,10 +46,10 @@ namespace Relight.Presentation
             for(var i=0;i<Drawn;i++)
             {
                 var cable=_cables[i];var c=grid.Of(cable.From);
-                var from=sim.State.MachineById(cable.From);var to=sim.State.MachineById(cable.To);
-                var live=c!=null&&c.Supply>0&&from!=null&&to!=null;
+                var from=sim.State.MachineById(cable.From);var to=cable.Site==null?sim.State.MachineById(cable.To):null;
+                var live=c!=null&&c.Supply>0&&from!=null&&(to!=null||cable.Site!=null);
                 if(live && ((PowerGrid.IsSource(sim.Context.Data,from)&&PowerGrid.FuelUnits(from)<=0) ||
-                            (PowerGrid.IsSource(sim.Context.Data,to)&&PowerGrid.FuelUnits(to)<=0)))live=false;
+                            (to!=null&&PowerGrid.IsSource(sim.Context.Data,to)&&PowerGrid.FuelUnits(to)<=0)))live=false;
                 if(live)Energized++;
                 cable.Wire.startColor=cable.Wire.endColor=live?new Color(.76f,.54f,.24f,.95f):new Color(.37f,.40f,.37f,.85f);
                 for(var j=0;j<2;j++)
@@ -74,22 +76,34 @@ namespace Relight.Presentation
                 PowerLinks.At(sim.Context,st,m.Kind,m.X,m.Y,m.Dir,m.Size,_links);
                 foreach(var link in _links)
                 {
+                    if(link.SiteId!=null)
+                    {
+                        // Court D55: a cable from this node to an authored substation lot. Sites never iterate, so
+                        // each (machine, site) pair arrives once.
+                        var sc=Take(count++);sc.From=m.Id;sc.To=-1;sc.Site=link.SiteId;sc.Reverse=false;
+                        Shape(sc,link);
+                        continue;
+                    }
                     var target=st.MachineById(link.MachineId);
                     if(target==null||target.Id==m.Id)continue;
                     if(PowerGrid.ReachOf(d,m)>0&&PowerGrid.ReachOf(d,target)<=0&&!PowerGrid.IsSource(d,target))continue;
                     var key=((long)System.Math.Min(m.Id,target.Id)<<32)|(uint)System.Math.Max(m.Id,target.Id);
                     if(!_seen.Add(key))continue;
-                    var cable=Take(count++);cable.From=m.Id;cable.To=target.Id;
+                    var cable=Take(count++);cable.From=m.Id;cable.To=target.Id;cable.Site=null;
                     cable.Reverse=PowerGrid.IsSource(d,target)||(!PowerGrid.IsSource(d,m)&&PowerGrid.ReachOf(d,m)<=0);
-                    for(var j=0;j<9;j++)
-                    {
-                        var t=j/8.0;var x=link.FromX+(link.ToX-link.FromX)*t;
-                        var y=link.FromY+(link.ToY-link.FromY)*t+System.Math.Sin(t*System.Math.PI)*.18;
-                        cable.Points[j]=WorldSpace.World(new Vec2(x,y),-1.8f);cable.Wire.SetPosition(j,cable.Points[j]);
-                    }
+                    Shape(cable,link);
                 }
             }
             HideFrom(count);
+        }
+        private static void Shape(Cable cable,PowerLink link)
+        {
+            for(var j=0;j<9;j++)
+            {
+                var t=j/8.0;var x=link.FromX+(link.ToX-link.FromX)*t;
+                var y=link.FromY+(link.ToY-link.FromY)*t+System.Math.Sin(t*System.Math.PI)*.18;
+                cable.Points[j]=WorldSpace.World(new Vec2(x,y),-1.8f);cable.Wire.SetPosition(j,cable.Points[j]);
+            }
         }
         private LineRenderer Line(string name,int points,int order,float width)
         {
