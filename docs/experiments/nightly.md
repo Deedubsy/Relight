@@ -1,7 +1,7 @@
-<!-- source_commit: 8ee887c4d912d2066289e48645b2ffaf1a198e8a; config_hash: b95922d2; config: {"kind":"experiments"} -->
-# Nightly 2026-09-18
+<!-- source_commit: d68dfd13b48d41752921763c12c54ee669a15ddc; config_hash: b95922d2; config: {"kind":"experiments"} -->
+# Nightly 2026-09-19
 
-1000 seeds × 4 policies × 5 h; E8/E9 at ten seeds; 835 s.
+1000 seeds × 4 policies × 5 h; E8/E9 at ten seeds; 585 s.
 
 | policy | total mags mean | p5 | p50 | p95 | lost mean | p95 | interior never |
 |---|---|---|---|---|---|---|---|
