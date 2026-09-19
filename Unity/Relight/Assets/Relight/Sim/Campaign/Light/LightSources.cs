@@ -17,6 +17,8 @@ namespace Relight.Sim
     ///       <see cref="StreetLights"/>), which is the same question asked of the port's grid.</item>
     /// <item>A Lamp's <c>lit</c> is the reference's <c>running(st, m)</c>. A lamp is not a processor in the port, so
     ///       "running" is exactly "its circuit is delivering": <see cref="PowerQueries.Supplied"/>.</item>
+    /// <item>A powered light's radius is scaled by LightRules.BrownoutScale of its circuit's throttle (U-D-58); the
+    ///       reference lights at full radius whenever the throttle is above zero.</item>
     /// </list>
     /// Radii and cone angles come from <see cref="MachineSpec"/> (<c>LightRadiusTiles</c>, <c>ConeRangeTiles</c>,
     /// <c>ConeHalfAngleRad</c>), so the reference's hard-coded LAMP_RADIUS 4 / ARC_LAMP_RADIUS 6 / FLOODLIGHT_RANGE 12
@@ -48,8 +50,9 @@ namespace Relight.Sim
                 {
                     var s = sites[i];
                     var c = grid.OfSite(s.Id);
-                    var on = c != null && c.Throttle > 0;      // flow.ts:620 subPowered
-                    into.Add(new Light(s.X, s.Y, r, LightKind.StreetLight, on));
+                    var throttle = c != null ? c.Throttle : 0;
+                    var on = throttle > 0;                     // flow.ts:620 subPowered
+                    into.Add(new Light(s.X, s.Y, r * LightRules.BrownoutScale(throttle), LightKind.StreetLight, on));
                 }
             }
 
@@ -57,18 +60,23 @@ namespace Relight.Sim
             {
                 var m = st.Machines[i];
                 if (!d.TryMachine(m.Kind, out var spec)) continue;
-                if (spec.LightRadiusTiles > 0)
+                if (spec.LightRadiusTiles > 0 || spec.ConeRangeTiles > 0)
                 {
-                    // flow.ts:1812 — a Lamp or Arc lamp sits on its tile index and lights a disc while it is running.
-                    into.Add(new Light(m.X, m.Y, spec.LightRadiusTiles, LightKind.Lamp,
-                        PowerQueries.Supplied(ctx, st, m.Id), m.Dir, 0, m.Id));
-                }
-                else if (spec.ConeRangeTiles > 0)
-                {
-                    // flow.ts:1814 — a Floodlight throws its cone from the footprint centre along its facing.
-                    var (w, h) = m.Dimensions;
-                    into.Add(new Light(m.X + w / 2.0, m.Y + h / 2.0, spec.ConeRangeTiles, LightKind.Floodlight,
-                        PowerQueries.Supplied(ctx, st, m.Id), m.Dir, spec.ConeHalfAngleRad, m.Id));
+                    var throttle = PowerQueries.Throttle(ctx, st, m.Id);
+                    var scale = LightRules.BrownoutScale(throttle);
+                    if (spec.LightRadiusTiles > 0)
+                    {
+                        // flow.ts:1812 — a Lamp or Arc lamp sits on its tile index and lights a disc while it is running.
+                        into.Add(new Light(m.X, m.Y, spec.LightRadiusTiles * scale, LightKind.Lamp,
+                            throttle > 0, m.Dir, 0, m.Id));
+                    }
+                    else if (spec.ConeRangeTiles > 0)
+                    {
+                        // flow.ts:1814 — a Floodlight throws its cone from the footprint centre along its facing.
+                        var (w, h) = m.Dimensions;
+                        into.Add(new Light(m.X + w / 2.0, m.Y + h / 2.0, spec.ConeRangeTiles * scale, LightKind.Floodlight,
+                            throttle > 0, m.Dir, spec.ConeHalfAngleRad, m.Id));
+                    }
                 }
             }
         }

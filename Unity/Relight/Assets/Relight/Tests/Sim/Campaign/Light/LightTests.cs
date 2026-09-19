@@ -349,6 +349,38 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(LightQueries.LitAt(st, 30, 30), Is.True);
         }
 
+        [TestCase(1.0, 1.0)]
+        [TestCase(0.5, 0.75)]
+        [TestCase(0.0, 0.5)]
+        [TestCase(1.7, 1.0)]
+        [TestCase(-3.0, 0.5)]
+        public void BrownoutScaleIsHalfPlusHalfTheThrottle(double throttle, double expected)
+        {
+            Assert.That(LightRules.BrownoutScale(throttle), Is.EqualTo(expected).Within(1e-9));
+        }
+
+        [Test]
+        public void ALampShrinksWhenItsCircuitIsOverloaded()
+        {
+            var ctx = Ctx();
+            var st = Fresh(ctx);
+            var lamp = RaidFixture.Add(ctx, st, "lamp", 30, 30);   // radius 4, 5 kW
+            RaidFixture.Power(ctx, st, 32, 30);                // pole (32,30), 300 kW generator (34,30)
+            RaidFixture.Run(ctx, st, 1, Phases());
+            Assert.That(LightQueries.LitAt(st, 34, 30), Is.True, "full power: 4 tiles out is lit");
+
+            // Six 100 kW assemblers inside the pole's reach: demand 605 kW on 300 kW, throttle ~0.496,
+            // scale ~0.748, radius ~2.99.
+            foreach (var (x, y) in new[] { (28, 33), (32, 33), (36, 33), (28, 37), (32, 37), (36, 37) })
+                RaidFixture.Add(ctx, st, "assembler", x, y);
+            RaidFixture.Run(ctx, st, 1, Phases());
+
+            var throttle = PowerQueries.Throttle(ctx, st, lamp.Id);
+            Assert.That(throttle, Is.GreaterThan(0).And.LessThan(0.6), "the fixture must actually brown out");
+            Assert.That(LightQueries.LitAt(st, 34, 30), Is.False, "4 tiles out went dark");
+            Assert.That(LightQueries.LitAt(st, 32, 30), Is.True, "2 tiles out is still lit");
+        }
+
         // ---- state ------------------------------------------------------------------------------------------
 
         [Test]

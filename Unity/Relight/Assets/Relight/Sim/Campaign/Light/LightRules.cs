@@ -67,6 +67,17 @@ namespace Relight.Sim
         public const double ConeOriginGlowD2 = 2;
 
         /// <summary>
+        /// U-D-58, ALWAYS_DARK_SPEC.md §3: a powered light's reach follows the power it actually gets — full at
+        /// full throttle, half at the edge of failure. Off is a separate fact (<see cref="Light.Lit"/>).
+        /// </summary>
+        public static double BrownoutScale(double throttle)
+        {
+            if (double.IsNaN(throttle)) return 0.5;
+            var t = throttle < 0 ? 0 : throttle > 1 ? 1 : throttle;
+            return 0.5 + 0.5 * t;
+        }
+
+        /// <summary>
         /// Does a light reach a tile? Reference flow.ts <c>lightCovers</c>, line for line: the radius test first, then
         /// the Floodlight's cone test outside the origin glow.
         /// </summary>
