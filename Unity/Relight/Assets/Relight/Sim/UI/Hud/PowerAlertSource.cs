@@ -41,6 +41,21 @@ namespace Relight.Sim.UI
         /// <summary>"" when there is no outage; else "No power · {place}".</summary>
         public string AlertText { get; private set; } = "";
 
+        /// <summary>The inbox key of the brownout notice (L-02, ALWAYS_DARK_SPEC §5.7).</summary>
+        public const string BrownoutKey = "power.brownout";
+
+        /// <summary>
+        /// §5.7 "a brownout now costs twice": the notice names both consequences — the lights shrink, and the
+        /// turrets slow and lose the reach those lights gave them.
+        /// </summary>
+        public const string BrownoutLine = "Low power · lights are shrinking, and turrets fire slower and see less far";
+
+        /// <summary>
+        /// "" unless a light or a powered turret stands on a circuit that is supplied but short. A brownout that
+        /// only slows a Foundry is the machine's own "running slowly" line and raises nothing here.
+        /// </summary>
+        public string BrownoutText { get; private set; } = "";
+
         /// <summary>The summary the last <see cref="Refresh"/> read, so the caller need not ask the grid twice.</summary>
         public PowerSummary Summary { get; private set; }
 
@@ -51,10 +66,12 @@ namespace Relight.Sim.UI
             {
                 StripText = NoSourceText;
                 AlertText = "";
+                BrownoutText = "";
                 return false;
             }
 
             var n = PowerQueries.Network(ctx, st);
+            BrownoutText = n.SupplyKw > 0 && n.DemandKw > n.SupplyKw && DefenceBrownedOut(ctx, st) ? BrownoutLine : "";
             Summary = n;
             StripText = Strip(PlaceName, n);
 
@@ -64,6 +81,21 @@ namespace Relight.Sim.UI
             var outage = n.DemandKw > 0 && n.SupplyKw <= 0;
             AlertText = outage && EverHadPower(ctx, st) ? TitlePrefix + " · " + PlaceName : "";
             return AlertText.Length > 0;
+        }
+
+        /// <summary>True when a light or a powered turret is on a circuit throttled below 1 but above 0.</summary>
+        public static bool DefenceBrownedOut(SimContext ctx, SimState st)
+        {
+            var d = ctx.Data;
+            for (var i = 0; i < st.Machines.Count; i++)
+            {
+                var m = st.Machines[i];
+                var defence = LightSources.IsLightMachine(d, m) || (d.TryTurret(m.Kind, out var t) && t.PowerKw > 0);
+                if (!defence) continue;
+                var throttle = PowerQueries.Throttle(ctx, st, m.Id);
+                if (throttle > 0 && throttle < 1) return true;
+            }
+            return false;
         }
 
         /// <summary>Reference hud.ts:58-60 exactly, as a pure function so a test can drive all three branches.</summary>

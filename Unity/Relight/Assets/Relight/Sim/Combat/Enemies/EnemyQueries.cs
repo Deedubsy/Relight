@@ -73,6 +73,32 @@ namespace Relight.Sim
             return best;
         }
 
+        /// <summary>
+        /// <see cref="Nearest"/> for a turret (U-D-59, ALWAYS_DARK_SPEC.md §5.7): each body is held to the reach the
+        /// turret has onto the tile that body stands on (<see cref="TurretRules.Reach"/>), so a nearer body in the
+        /// dark beyond dark sight is passed over for a further one under a lamp. Same scan order, same tie-break.
+        /// </summary>
+        public static int NearestInSight(SimContext ctx, SimState st, double x, double y, TurretDef def)
+        {
+            if (def == null) return 0;
+            var best = 0;
+            var bd = def.RangeTiles * def.RangeTiles;
+            for (var i = 0; i < st.Enemies.Actors.Count; i++)
+            {
+                var e = st.Enemies.Actors[i];
+                var dx = e.Pos.X - x;
+                var dy = e.Pos.Y - y;
+                var d2 = dx * dx + dy * dy;
+                if (d2 > bd) continue;
+                var reach = TurretRules.Reach(st, def, e.Pos.X, e.Pos.Y);
+                if (d2 > reach * reach) continue;
+                if (!Sightline.Clear(ctx, st, x, y, e.Pos.X, e.Pos.Y)) continue;
+                bd = d2;
+                best = e.Id;
+            }
+            return best;
+        }
+
         public static EnemyView View(SimContext ctx, SimState st, int id)
         {
             var e = st.Enemies.Find(id);

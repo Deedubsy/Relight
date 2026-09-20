@@ -17,5 +17,21 @@ namespace Relight.Authoring.Tests
             Assert.That(registry.Build().Time.DaylightSeconds, Is.Zero, "new games");
             Assert.That(registry.BuildLegacy().Time.DaylightSeconds, Is.Zero, "saves from before the opening resource layout");
         }
+
+        [Test] public void EveryDataPathTheGameLoadsGivesTheGunTurretItsDarkSight()
+        {
+            // U-D-59: the turret asset carries no dark sight (0 = "take DarkWorld's"), so a data path that skipped
+            // DarkWorld would hand the game a turret that sees 9 tiles into the dark and the rule would be off.
+            var registry = AssetDatabase.LoadAssetAtPath<GameDataRegistry>(RegistryPath);
+            Assert.That(registry, Is.Not.Null);
+            foreach (var data in new[] { registry.Build(), registry.BuildLegacy() })
+            {
+                Assert.That(data.TryTurret("turret", out var gun), Is.True);
+                Assert.That(gun.RangeTiles, Is.EqualTo(9));
+                Assert.That(gun.DarkSightTiles, Is.EqualTo(6));
+                Assert.That(data.Raids.LitStepCost, Is.EqualTo(4));
+                Assert.That(data.Raids.LitNoticeMul, Is.EqualTo(0.6).Within(1e-9));
+            }
+        }
     }
 }

@@ -99,7 +99,9 @@ namespace Relight.Sim.Tests.Combat
 
             // West is open, east is not, and the gun behaves the same way.
             var t = RaidFixture.Turret(ctx, st, Tx, Ty);
-            RaidFixture.Guard(st, "biter", Tx - 6, Ty);
+            // Four tiles out, not six: this ground is unlit, and since U-D-59 a Gun turret reaches an alien on an
+            // unlit tile only to its dark sight (6). The test is about the wall, so the body stands inside that.
+            RaidFixture.Guard(st, "biter", Tx - 4, Ty);
             RaidFixture.Run(ctx, st, 100);
             Assert.That(RaidFixture.Count<TurretShotEvent>(st), Is.GreaterThan(0), "the open bearing still fires");
             Assert.That(t.Rounds, Is.LessThan(50));

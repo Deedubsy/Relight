@@ -73,7 +73,23 @@ namespace Relight.Presentation
                 var at=new Vector2(w*.5f-.28f,h*.5f-.28f);
                 Circle(at,.19f,Dark,.13f);
                 var c=colour;c.a=running?1:pulse;
-                if(State==MachineOperatingState.Unpowered)
+                // L-02 (ALWAYS_DARK_SPEC §5.7): a turret being hit by something it cannot see into the dark. An eye
+                // with a slash, in the sim's own words (TurretQueries.Blind); unpowered reads first, as it must.
+                if(TurretHopper.IsTurret(data,m) && TurretQueries.Blind(ctx,st,m.Id))
+                {
+                    var eye=Red;eye.a=pulse;
+                    var lid=Stroke(9,.04f,eye);
+                    for(var i=0;i<9;i++)
+                    {
+                        // Upper lid left to right, then the lower lid back again: one closed almond.
+                        var t=i<5?i/4f:(8-i)/4f;var x=-.14f+t*.28f;var y=Mathf.Sin(t*Mathf.PI)*.085f*(i<5?1:-1);
+                        Point(lid,i,at+new Vector2(x,y));
+                    }
+                    Circle(at,.03f,eye,.045f);
+                    Segment(at+new Vector2(-.13f,-.13f),at+new Vector2(.13f,.13f),Dark,.075f);
+                    Segment(at+new Vector2(-.13f,-.13f),at+new Vector2(.13f,.13f),eye,.04f);
+                }
+                else if(State==MachineOperatingState.Unpowered)
                 {
                     var line=Stroke(4,.048f,c);Point(line,0,at+new Vector2(.055f,.14f));Point(line,1,at+new Vector2(-.06f,.015f));
                     Point(line,2,at+new Vector2(.065f,-.015f));Point(line,3,at+new Vector2(-.055f,-.14f));

@@ -107,6 +107,44 @@ namespace Relight.Sim
                 u != null && u.Flash > 0, def.MuzzleTiles, def.TurnSpeedRadPerS, true);
         }
 
+        /// <summary>How long after a hit a turret still counts as "being damaged" for <see cref="Blind"/>.</summary>
+        public const double BlindSeconds = 3;
+
+        /// <summary>
+        /// L-02, ALWAYS_DARK_SPEC §5.7: this turret is being damaged by something it cannot target BECAUSE OF THE
+        /// DARK. All of: it is a working weapon; it was hit in the last <see cref="BlindSeconds"/>; it has no target;
+        /// and an alien stands within its full range on an unlit tile beyond its dark sight — so a lamp on that
+        /// ground is the answer. A turret blinded by a wall, out of range of its attacker or simply out of ammunition
+        /// is not this, and the eye-with-a-slash badge must not claim otherwise.
+        /// </summary>
+        public static bool Blind(SimContext ctx, SimState st, int id)
+        {
+            if (ctx == null || st == null) return false;
+            var m = st.MachineById(id);
+            if (m == null || !ctx.Data.TryTurret(m.Kind, out var def)) return false;
+            var u = st.Turrets.Find(id);
+            if (u == null || u.Target != 0 || st.T - u.HitAt > BlindSeconds) return false;
+            if (TurretRules.Hp(ctx.Data, st, m) <= 0) return false;
+            if (def.PowerKw > 0 && !PowerQueries.Supplied(ctx, st, m.Id)) return false;   // unpowered reads first
+            if (m.Rounds < 1) return false;                                                // a lamp would not make it fire
+            var dark = TurretRules.DarkSight(def);
+            if (dark >= def.RangeTiles) return false;
+            var cx = m.X + m.Size / 2.0;
+            var cy = m.Y + m.Size / 2.0;
+            var actors = st.Enemies.Actors;
+            for (var i = 0; i < actors.Count; i++)
+            {
+                var p = actors[i].Pos;
+                var dx = p.X - cx;
+                var dy = p.Y - cy;
+                var d2 = dx * dx + dy * dy;
+                if (d2 > def.RangeTiles * def.RangeTiles || d2 <= dark * dark) continue;
+                if (LightQueries.LitAt(st, (int)System.Math.Floor(p.X), (int)System.Math.Floor(p.Y))) continue;
+                if (Sightline.Clear(ctx, st, cx, cy, p.X, p.Y)) return true;
+            }
+            return false;
+        }
+
         /// <summary>Every turret on the map, in placement order, for the presenter's index.</summary>
         public static System.Collections.Generic.List<int> All(SimContext ctx, SimState st)
         {

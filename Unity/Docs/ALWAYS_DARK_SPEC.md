@@ -1,6 +1,6 @@
 # Always dark — night and light spec
 
-Date: 2026-09-19. Status: **approved by the owner on 2026-09-19 (*"Go with your recommendations for all of them except I think buildings should block light"*).** Stage 1 (L-01) is implemented as of 2026-09-20 (engineering only; owner acceptance pending), see evidence/always-dark-stage-1/checks.md; stages 2 and 3 (L-02, L-03) are not implemented. This document owns the darkness, light and light-avoidance rules for the Unity port, and the documents listed in §9 point here. Decision: **U-D-58**. Amended on 2026-09-20 by **U-D-59** (light in a fight: §5.7 turret sight, §5.8 Breakers and the power line, §5.9 gunfire; not implemented) and touched by **U-D-60** (the ending, §10 item 5; owned by `GAME_DESIGN.md` §11). Tasks: L-01, L-02, L-03 and L-ACC in `TASKS.md`.
+Date: 2026-09-19. Status: **approved by the owner on 2026-09-19 (*"Go with your recommendations for all of them except I think buildings should block light"*).** Stage 1 (L-01) is implemented as of 2026-09-20 (engineering only; owner acceptance pending), see evidence/always-dark-stage-1/checks.md. Stage 2 (L-02) is implemented as of 2026-09-21 (engineering only: sim tests and an offline compile; not run in Unity, not seen on screen, owner acceptance pending), see §7.1. Stage 3 (L-03) is not implemented. This document owns the darkness, light and light-avoidance rules for the Unity port, and the documents listed in §9 point here. Decision: **U-D-58**. Amended on 2026-09-20 by **U-D-59** (light in a fight: §5.7 turret sight, built with L-02; §5.8 Breakers and the power line, not implemented; §5.9 gunfire, nothing to build) and touched by **U-D-60** (the ending, §10 item 5; owned by `GAME_DESIGN.md` §11). Tasks: L-01, L-02, L-03 and L-ACC in `TASKS.md`.
 
 ## 1. How we got here
 
@@ -139,7 +139,29 @@ This stage belongs with the roster work (tasks E-13 and E-14), because roaming a
 | **2. Make light matter** | §5: hesitation, approach preference, solid things block light, light-coverage placement preview, relief events, perception, teaching the rule, turret sight with its two-ring preview and blind-turret badge (§5.7, U-D-59) | Medium | Sim tests: an uncommitted alien pauses 0.65 s at a lit edge and a committed one does not; with every approach lit, the director still returns an entry tile and a route; a lamp behind a solid building or a player-built Wall does not light the far side; the route field refreshes when the mask is rebuilt; a mask rebuild on the full map stays inside the tick budget; `DistrictLitEvent` fires once per connection. Turret sight (§5.7): a Gun turret acquires an alien on a lit tile at 9 tiles; it refuses one on an unlit tile at 7 and takes it at 6; a target that steps from lit to unlit ground beyond 6 is dropped; a brownout that shrinks a lamp makes the turret lose a target at the old edge; the flashlight beam changes none of this. Founders Court Verify: C20 (first attack origin) still passes. |
 | **3. Populate the dark** | §6, and with the Breaker (E-13) §5.8 | Large; with E-13 and E-14 | Sim tests: a raid Breaker detours to a Pole within 6 tiles of its path and ignores one at 7; a raid against a base whose every structure is lit still reaches the core; population never exceeds the district number; no spawn on a lit or visible tile; a lit district empties and stays empty; save and load keeps the roamers. |
 
-- **Saves.** Stage 1 and stage 2 change no save format: `LightState` saves nothing and the hesitation field is already saved. Stage 3 adds roaming state to the save and needs a version step.
+### 7.1 Stage 2 as built (L-02, 2026-09-21)
+
+What the code does where the sections above left a choice. Engineering record only; none of it has been run in Unity or seen on screen.
+
+| Rule | As built |
+|---|---|
+| Who hesitates (§5.1) | Minor-raid bodies and camp (Site) patrols. "Committed" is a Major assault body, or any body already engaged with the engineer. `LightHesitationEvent` is raised once per pause. |
+| Approach cost (§5.2) | `RaidTuning.LitStepCost` = 4 in a weighted route field; the field's cache key is `st.Rev` plus the mask's build count, so it refreshes on every mask rebuild. With every approach lit a route is still returned (tested). |
+| Blocking (§5.3) | The end-tile exemption covers authored solid tiles as well as Walls, so a streetlight on a kerb against a building still lights its own side. |
+| Rebuild cost (§5.3) | Measured offline on the full 864 × 576 map with the authored streetlights and blocking: **18.28 ms** per full rebuild (.NET 8; Unity's Mono will be slower and has not been measured). A rebuild happens only when `st.Rev` or a light's radius changes, not per tick, so the per-light stamp cache was **not** built. Measure in the editor before deciding it is needed. |
+| Relief events (§5.4) | The first tick after a new game or a load only records what is already lit, so nothing replays on load. `EnteredLightEvent` at most once per 10 s. |
+| A save never changes the light | The lit mask and the relief memory are cleared only when a save is **read**. Writing a save and hashing the state walk the live state too; clearing there left every tile unlit for the tick after each autosave, because turrets and aliens read the mask before the light phase rebuilds it (found in L-02's review, fixed, two tests). On a load the mask is built before the loaded state is attached, for the same reason. |
+| Perception (§5.5) | `RaidTuning.LitNoticeMul` = 0.6, applied to the alien's own tile. It lives on the raid tuning row, not on `EnemyDef`. |
+| The Lamp step (§5.6) | Opening step "opening-light", after the substation step, asked only while the player owns no weapon yet, so a returning save is not sent back to it. |
+| Guide lines (§5.6, §5.7) | Once per session, not saved: the HUD view model is engine-free and has no store. A camp patrol baulking at a lamp never triggers the raid line. |
+| Dark sight (§5.7) | `TurretDef.DarkSightTiles`; 0 on an asset means "take the `DarkWorld` value" (Gun turret 6; Cannon 8, the implementer's provisional value, U-P-11). Both range tests go through `TurretRules.Reach`. |
+| A blind turret (§5.7) | Hit in the last 3 s, supplied, not a wreck, no target, and an alien on an unlit tile beyond dark sight but inside full range with a clear sightline. A turret blinded by a wall, outranged or out of ammunition is not "blind". `TurretBlindEvent` once per spell. |
+| Brownout notice (§5.7) | *"Low power · lights are shrinking, and turrets fire slower and see less far"*. Posted once when a light or a powered turret is on a short circuit, cleared when it ends (U-D-55: never re-posted per refresh). A brownout that only slows a factory raises nothing. |
+| Previews (§3, §5.7) | `LightPreview.ForGhost` stamps the ghost light with the mask's own rule; `LightPreview.LitWithin` is the turret tint. The placement preview draws the outline, the two rings and the tint. |
+| District sweep (§5.4) | `CityPresenter` staggers the lamp heads of the district by distance from its substation (30 tiles/s) with a short bloom. Picture only: a lamp the sim says is dark is never drawn lit. |
+| Audio (§5.4) | Cue keys `light.district-on` and `light.entered`. No clips exist yet, so both are silent. |
+
+- **Saves.** Stage 1 and stage 2 change no save format: `LightState` saves nothing and the hesitation field is already saved. L-02's new turret fields (last hit time, blind flag) and relief fields are transient on purpose and are worked out again after a load. Stage 3 adds roaming state to the save and needs a version step.
 - **The clock.** `st.T` and every raid timer are unchanged. The HUD's "Day N" counter loses its meaning without a sun; see §10.
 
 ## 8. Task rows

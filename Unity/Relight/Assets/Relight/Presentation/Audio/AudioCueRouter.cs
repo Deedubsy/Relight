@@ -211,6 +211,15 @@ namespace Relight.Presentation
                 case CoreDisabledEvent _:
                     Cast("core.disabled", null);
                     break;
+
+                // L-02, ALWAYS_DARK_SPEC §5.4: the two relief moments that replace dawn. The sim already limits
+                // them (once per connection; at most once in ten seconds), so neither needs a budget here.
+                case DistrictLitEvent lit:
+                    Cast("light.district-on", new Vector2((float)lit.X, (float)lit.Y));
+                    break;
+                case EnteredLightEvent _:
+                    Cast("light.entered", null);
+                    break;
             }
         }
 

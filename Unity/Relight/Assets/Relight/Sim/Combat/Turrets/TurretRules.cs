@@ -30,6 +30,30 @@ namespace Relight.Sim
         public static bool IsDefence(GameData d, Machine m) => MaxHp(d, m) > 0;
 
         /// <summary>
+        /// U-D-59, ALWAYS_DARK_SPEC.md §5.7. How far a turret reaches into UNLIT ground: its
+        /// <see cref="TurretDef.DarkSightTiles"/>, never more than its range, and its whole range when the row
+        /// carries no dark sight (0), which switches the rule off for that turret.
+        /// </summary>
+        public static double DarkSight(TurretDef def)
+        {
+            if (def == null) return 0;
+            return def.DarkSightTiles > 0 ? Math.Min(def.DarkSightTiles, def.RangeTiles) : def.RangeTiles;
+        }
+
+        /// <summary>
+        /// How far a turret reaches a body standing at (x, y). The tile the BODY stands on decides, not the tile
+        /// the turret stands on: a turret in the dark shoots an alien under a lamp at full range, and a turret
+        /// under a lamp is still short-sighted into the dark beyond it. Lit is <see cref="LightQueries.LitAt(SimState,int,int)"/>,
+        /// the sim's mask; the flashlight never counts (D-UI-11).
+        /// </summary>
+        public static double Reach(SimState st, TurretDef def, double x, double y)
+        {
+            if (def == null) return 0;
+            if (def.DarkSightTiles <= 0 || def.DarkSightTiles >= def.RangeTiles) return def.RangeTiles;
+            return LightQueries.LitAt(st, (int)Math.Floor(x), (int)Math.Floor(y)) ? def.RangeTiles : def.DarkSightTiles;
+        }
+
+        /// <summary>
         /// GP-W5: the machine is a FORTIFICATION — a wall, a barricade, a gun turret or a cannon.
         ///
         /// This is the NARROW question <see cref="IsDefence"/> used to answer by accident, and the two callers that
@@ -76,6 +100,7 @@ namespace Relight.Sim
             var was = Math.Max(0, max - u.Damage);
             if (was <= 0) return false;
             u.Damage = Math.Min(max, u.Damage + amount);
+            u.HitAt = st.T;
             var now = Math.Max(0, max - u.Damage);
             st.Events.Add(new StructureDamagedEvent(st.T, m.Id, now, max));
             if (now > 0) return false;

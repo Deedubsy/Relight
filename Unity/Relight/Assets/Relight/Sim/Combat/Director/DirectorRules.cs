@@ -101,6 +101,21 @@ namespace Relight.Sim
         }
 
         /// <summary>
+        /// L-02, ALWAYS_DARK_SPEC §5.2: what light adds to an entry tile's score, in the score's own unit (100 per
+        /// step off the ideal distance). It is the part of the cheapest route's cost that light put there
+        /// (<see cref="RaidField.LightPenalty"/>), plus the same charge for standing on a lit entry tile. It only
+        /// ever ranks tiles INSIDE a tier: the tiers are written in plain steps and do not look at light, so light
+        /// can move where a wave enters but can never leave it without an entry.
+        /// </summary>
+        private static double LightScore(SimContext ctx, SimState st, RaidField fld, int x, int y)
+        {
+            if (!fld.Weighted) return 0;
+            var extra = fld.LightPenalty(x, y);
+            if (LightQueries.LitAt(st, x, y)) extra += Math.Max(0, ctx.Data.Raids.LitStepCost - 1);
+            return extra * 100.0;
+        }
+
+        /// <summary>
         /// How good an entry tile this is for a single wave: 0 is the reference's own 20–60 step window, and 1 and 2
         /// are the map saying it has nothing that good. <see cref="int.MaxValue"/> means "not an entry tile".
         ///
@@ -160,7 +175,7 @@ namespace Relight.Sim
                 {
                     var tier = OriginTier(ctx, st, fld, line, x, y);
                     if (tier == int.MaxValue || tier > bestTier) continue;
-                    var s = Math.Abs(fld.At(x, y) - 24) * 100 + Distance(x, y, bx, by);
+                    var s = Math.Abs(fld.At(x, y) - 24) * 100 + LightScore(ctx, st, fld, x, y) + Distance(x, y, bx, by);
                     if (tier == bestTier && s >= score) continue;
                     bestTier = tier;
                     score = s;
@@ -205,7 +220,7 @@ namespace Relight.Sim
                 if (authored && t == 0) t = -1;              // an authored camp on a fair approach IS the approach
                 var sector = Sector(x - cx, y - cy);
                 if (t > tier[sector]) return;
-                var s = Math.Abs(fld.At(x, y) - 42) * 100 + Distance(x + .5, y + .5, cx, cy);
+                var s = Math.Abs(fld.At(x, y) - 42) * 100 + LightScore(ctx, st, fld, x, y) + Distance(x + .5, y + .5, cx, cy);
                 if (t == tier[sector] && s >= score[sector]) return;
                 tier[sector] = t;
                 score[sector] = s;

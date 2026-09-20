@@ -93,6 +93,7 @@ namespace Relight.Sim.Tests.Campaign
             RaidFixture.Add(ctx, st, "belt", x + 6, y, Dir.E);
             RaidFixture.Add(ctx, st, "belt", x + 7, y, Dir.E);
             RaidFixture.Add(ctx, st, "chest", x + 8, y);
+            RaidFixture.Add(ctx, st, "lamp", x + 2, y + 2);           // row 8b (L-02): one Lamp, in the pole's reach
             Run(ctx, st, 1);
             Dig(ctx, st, dig);
             Assert.That(PowerQueries.Supplied(ctx, st, dig.Id), Is.True, "the fixture excavator must be powered");

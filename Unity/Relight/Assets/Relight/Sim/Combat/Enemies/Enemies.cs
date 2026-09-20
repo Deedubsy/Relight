@@ -143,6 +143,10 @@ namespace Relight.Sim
         /// Reference hostileAwareness.ts <c>observePlayer</c>: refresh only from actual sight within the perception
         /// range (a wider one once already aware), otherwise investigate the remembered point until it is reached
         /// or the memory expires.
+        ///
+        /// L-02, ALWAYS_DARK_SPEC §5.5: an uncommitted body standing on a lit tile notices the engineer from a
+        /// shorter distance (<c>RaidTuning.LitNoticeMul</c>, 0.6). Only the first notice shrinks: a body that is
+        /// already aware keeps the full escape range, so stepping into light never makes a chase let go.
         /// </summary>
         public static void ObservePlayer(SimContext ctx, SimState st, Enemy e, double notice, double escape)
         {
@@ -150,6 +154,8 @@ namespace Relight.Sim
             if (p.IsDown) { e.LastKnownUntil = 0; e.OnPlayer = false; return; }
             var distance = DirectorRules.Distance(p.Pos.X, p.Pos.Y, e.Pos.X, e.Pos.Y);
             var aware = e.LastKnownUntil > st.T;
+            if (!aware && !Committed(st, e) && LightQueries.LitAt(st, (int)Math.Floor(e.Pos.X), (int)Math.Floor(e.Pos.Y)))
+                notice *= ctx.Data.Raids.LitNoticeMul;
             if (distance <= (aware ? escape : notice) && ctx.Geometry.Sight(e.Pos.X, e.Pos.Y, p.Pos.X, p.Pos.Y))
             {
                 e.LastKnown = p.Pos;
@@ -160,6 +166,38 @@ namespace Relight.Sim
                 e.LastKnownUntil = 0;
             }
             e.OnPlayer = e.LastKnownUntil > st.T;
+        }
+
+        /// <summary>
+        /// ALWAYS_DARK_SPEC §5.1/§5.5: a body is committed when it belongs to a committed raid group — a major
+        /// assault that has started (<see cref="MajorRaid.Committed"/>). A minor wave on the march and a camp
+        /// resident on patrol are not; being engaged with the engineer is a separate fact the callers know.
+        /// </summary>
+        public static bool Committed(SimState st, Enemy e) =>
+            e != null && e.Layer == EnemyLayer.Major && st.Director.Major != null && st.Director.Major.Committed;
+
+        /// <summary>
+        /// ALWAYS_DARK_SPEC §5.1 — the pause at the edge of the light. Called by a body about to step from the tile
+        /// it stands on to (<paramref name="nx"/>,<paramref name="ny"/>). Returns true while it must wait: its own
+        /// tile is unlit, the next is lit, and it has not yet stood there for <c>RaidTuning.LightHesitateS</c>.
+        /// The timer clears on any other step, so every new lit edge costs the pause again. Raises
+        /// <see cref="LightHesitationEvent"/> as the pause begins, which is what the guide line listens for (§5.6).
+        /// </summary>
+        public static bool HesitatesAtLight(SimContext ctx, SimState st, Enemy e, int nx, int ny, double dt)
+        {
+            var need = ctx.Data.Raids.LightHesitateS;
+            var cx = (int)Math.Floor(e.Pos.X);
+            var cy = (int)Math.Floor(e.Pos.Y);
+            if (need <= 0 || Committed(st, e) || (nx == cx && ny == cy)
+                || LightQueries.LitAt(st, cx, cy) || !LightQueries.LitAt(st, nx, ny))
+            {
+                e.Hesitate = 0;
+                return false;
+            }
+            if (e.Hesitate >= need) return false;
+            if (e.Hesitate <= 0) st.Events.Add(new LightHesitationEvent(st.T, e.Id, e.Layer, e.Group, nx, ny));
+            e.Hesitate += dt;
+            return true;
         }
 
         /// <summary>

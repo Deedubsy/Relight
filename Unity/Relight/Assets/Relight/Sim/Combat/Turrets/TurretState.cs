@@ -37,6 +37,13 @@ namespace Relight.Sim
         /// <summary>Where the last round was aimed and when (reference <c>m.turret.shot</c>), for the presenter.</summary>
         public Vec2 Shot;
         public double ShotT;
+        /// <summary>
+        /// When it was last damaged, and whether <see cref="TurretBlindEvent"/> has been raised for the present
+        /// spell (L-02, §5.7). Neither is saved: both describe the last few seconds of a fight, and a loaded game
+        /// works them out again from the next hit.
+        /// </summary>
+        public double HitAt = double.NegativeInfinity;
+        public bool Blind;
 
         public void Visit(IStateVisitor v)
         {

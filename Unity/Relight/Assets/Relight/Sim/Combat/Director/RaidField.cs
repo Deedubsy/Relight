@@ -20,6 +20,14 @@ namespace Relight.Sim
     /// may enter, <see cref="DirectorRules.EntryFarSteps"/>, plus the 12 steps <see cref="DirectorRules.Staging"/>
     /// may search outward from an entry tile. Every distance the reference reported is still reported; distances
     /// in the extra ring are new, and everything outside the box is -1 in both.
+    ///
+    /// L-02, ALWAYS_DARK_SPEC §5.2 (approach preference): the field now carries a second number per tile,
+    /// <see cref="Cost"/>, over exactly the same open tiles. Stepping onto an unlit tile costs 1 and onto a lit
+    /// tile <c>RaidTuning.LitStepCost</c> (4), so a body that walks down <see cref="Cost"/> takes the dark way
+    /// round when there is one. The extra cost is finite and the open set is unchanged, so <see cref="Cost"/> is
+    /// reachable wherever <see cref="At"/> is: a fully lit base is slower to approach, never unreachable.
+    /// <see cref="At"/> still counts plain steps, because the entry bands, staging and the opening origin are all
+    /// written in steps. With nothing lit inside the box the two are the same array.
     /// </summary>
     public sealed class RaidField
     {
@@ -34,12 +42,13 @@ namespace Relight.Sim
         /// <summary>Box origin in tiles (already clipped to the map).</summary>
         public readonly int X0, Y0, BW, BH;
         private readonly int[] _dist;
+        private readonly int[] _cost;
         /// <summary>Global tile indices of the seed ring (distance 0), in scan order.</summary>
         public readonly int[] Targets;
 
-        internal RaidField(int x0, int y0, int bw, int bh, int[] dist, int[] targets)
+        internal RaidField(int x0, int y0, int bw, int bh, int[] dist, int[] cost, int[] targets)
         {
-            X0 = x0; Y0 = y0; BW = bw; BH = bh; _dist = dist; Targets = targets;
+            X0 = x0; Y0 = y0; BW = bw; BH = bh; _dist = dist; _cost = cost ?? dist; Targets = targets;
         }
 
         /// <summary>Steps to the seed rectangle from (x, y), or -1 when it cannot be reached inside the box.</summary>
@@ -51,6 +60,28 @@ namespace Relight.Sim
             return _dist[by * BW + bx];
         }
 
+        /// <summary>
+        /// The light-weighted cost to the seed rectangle from (x, y): 1 per unlit tile entered, LitStepCost per lit
+        /// one. -1 exactly where <see cref="At"/> is -1. This is what a marching body descends (§5.2).
+        /// </summary>
+        public int Cost(int x, int y)
+        {
+            var bx = x - X0;
+            var by = y - Y0;
+            if (bx < 0 || by < 0 || bx >= BW || by >= BH) return -1;
+            return _cost[by * BW + bx];
+        }
+
+        /// <summary>How much of the cheapest route's cost is light: 0 on a route that never touches a lit tile.</summary>
+        public int LightPenalty(int x, int y)
+        {
+            var c = Cost(x, y);
+            return c < 0 ? 0 : c - At(x, y);
+        }
+
+        /// <summary>True when light shaped this field at all (a test and profiling hook).</summary>
+        public bool Weighted => !ReferenceEquals(_cost, _dist);
+
         /// <summary>The same, addressed by global tile index.</summary>
         public int AtTile(int tile, int worldWidth) => tile < 0 ? -1 : At(tile % worldWidth, tile / worldWidth);
     }
@@ -59,6 +90,11 @@ namespace Relight.Sim
     /// The field cache. Keyed on <see cref="SimState.Rev"/> exactly as the reference keys its <c>WeakMap</c> on
     /// <c>flow.rev</c>, and cleared when it passes 32 entries — the reference's own bound, kept so a long game
     /// cannot accumulate fields. Held on <see cref="DirectorState"/> (never visited), not in a static field.
+    ///
+    /// L-02 (§5.2): it is also keyed on <see cref="LightState.Builds"/>, the count of real mask rebuilds. A lamp
+    /// switching on, a brownout shrinking a radius and a generator running dry all change the lit picture without
+    /// moving Rev, and a route field that still believed in the old light would walk a wave down a lane the player
+    /// has just lit.
     /// </summary>
     public sealed class RaidFieldCache
     {
@@ -74,11 +110,13 @@ namespace Relight.Sim
 
         private readonly Dictionary<Key, RaidField> _map = new Dictionary<Key, RaidField>();
         private int _rev = int.MinValue;
+        private int _light = int.MinValue;
 
         /// <summary>Reference campaignThreat.ts:97 <c>field(st, x, y, size, breach, clearance)</c>.</summary>
         public RaidField Field(SimContext ctx, SimState st, int x, int y, int size, bool breach, int clearance = 0)
         {
-            if (_rev != st.Rev) { _map.Clear(); _rev = st.Rev; }
+            var light = st.Light.Builds;
+            if (_rev != st.Rev || _light != light) { _map.Clear(); _rev = st.Rev; _light = light; }
             var key = new Key(x, y, size, breach, clearance);
             if (_map.TryGetValue(key, out var hit)) return hit;
             var built = Build(ctx, st, x, y, size, breach, clearance);
@@ -158,7 +196,100 @@ namespace Relight.Sim
                 }
             }
 
-            return new RaidField(x0, y0, bw, bh, dist, targets.ToArray());
+            return new RaidField(x0, y0, bw, bh, dist, Weigh(ctx, st, x0, y0, bw, bh, dist, targets, w), targets.ToArray());
+        }
+
+        /// <summary>
+        /// The light-weighted cost over the tiles the BFS already proved open (dist ≥ 0), by Dijkstra from the same
+        /// seed ring. Returns null — "use the step field" — when no open tile in the box is lit, which is every
+        /// field in a test that has no light and most fields far from the player's base.
+        /// </summary>
+        private static int[] Weigh(SimContext ctx, SimState st, int x0, int y0, int bw, int bh, int[] dist, List<int> targets, int worldWidth)
+        {
+            var lit = Math.Max(1, ctx.Data.Raids.LitStepCost);
+            if (lit <= 1 || !st.Light.HasMask) return null;
+            var weight = new byte[dist.Length];
+            var any = false;
+            for (var by = 0; by < bh; by++)
+                for (var bx = 0; bx < bw; bx++)
+                {
+                    var b = by * bw + bx;
+                    if (dist[b] < 0) continue;
+                    if (LightQueries.LitAt(st, bx + x0, by + y0)) { weight[b] = 1; any = true; }
+                }
+            if (!any) return null;
+
+            var cost = new int[dist.Length];
+            for (var i = 0; i < cost.Length; i++) cost[i] = -1;
+            // A binary heap of (cost << 32 | box index). Stale entries are skipped when popped.
+            var heap = new List<long>(targets.Count * 4 + 16);
+            void Push(int c, int b)
+            {
+                heap.Add(((long)c << 32) | (uint)b);
+                var i = heap.Count - 1;
+                while (i > 0)
+                {
+                    var up = (i - 1) >> 1;
+                    if (heap[up] <= heap[i]) break;
+                    var t = heap[up]; heap[up] = heap[i]; heap[i] = t;
+                    i = up;
+                }
+            }
+            long Pop()
+            {
+                var top = heap[0];
+                var last = heap.Count - 1;
+                heap[0] = heap[last];
+                heap.RemoveAt(last);
+                var i = 0;
+                while (true)
+                {
+                    var l = i * 2 + 1;
+                    if (l >= heap.Count) break;
+                    var r = l + 1;
+                    var m = r < heap.Count && heap[r] < heap[l] ? r : l;
+                    if (heap[i] <= heap[m]) break;
+                    var t = heap[m]; heap[m] = heap[i]; heap[i] = t;
+                    i = m;
+                }
+                return top;
+            }
+
+            for (var i = 0; i < targets.Count; i++)
+            {
+                var tx = targets[i] % worldWidth - x0;
+                var ty = targets[i] / worldWidth - y0;
+                var b = ty * bw + tx;
+                if (b < 0 || b >= cost.Length || cost[b] == 0) continue;
+                cost[b] = 0;
+                Push(0, b);
+            }
+            var done = new bool[dist.Length];
+            while (heap.Count > 0)
+            {
+                var top = Pop();
+                var t = (int)(top & 0xffffffff);
+                if (done[t]) continue;
+                done[t] = true;
+                var c = (int)(top >> 32);
+                var tx = t % bw;
+                var ty = t / bw;
+                // The field points TOWARD the seed, so a body standing on q pays for entering t, the tile it steps
+                // onto: cost[q] = cost[t] + weight of t.
+                var step = c + (weight[t] != 0 ? lit : 1);
+                for (var k = 0; k < 4; k++)
+                {
+                    var bx = tx + Dirs.DX[k];
+                    var by = ty + Dirs.DY[k];
+                    if (bx < 0 || by < 0 || bx >= bw || by >= bh) continue;
+                    var q = by * bw + bx;
+                    if (dist[q] < 0 || done[q]) continue;
+                    if (cost[q] >= 0 && cost[q] <= step) continue;
+                    cost[q] = step;
+                    Push(step, q);
+                }
+            }
+            return cost;
         }
     }
 }

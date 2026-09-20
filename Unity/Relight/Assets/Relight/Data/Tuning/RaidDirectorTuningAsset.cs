@@ -51,6 +51,10 @@ namespace Relight.Data
         [SerializeField] private double escapeTiles = 18;
         [SerializeField] private double alertRadiusTiles = 6;
         [SerializeField] private double lightHesitateS = 0.65;
+        [Tooltip("L-02 §5.5: an uncommitted alien on a lit tile notices the engineer at this fraction of the distance.")]
+        [SerializeField] private double litNoticeMul = 0.6;
+        [Tooltip("L-02 §5.2: what one lit tile costs on an approach route, in steps. 1 switches the preference off.")]
+        [SerializeField] private int litStepCost = 4;
 
         [Header("Projectiles and radio")]
         [SerializeField] private double projectileSpeedTilesPerS = 8;
@@ -65,7 +69,7 @@ namespace Relight.Data
             structureDps, breakerStructureMul, speedTilesPerS, minorAfterMajorS, guardLeashTiles, guardNoticeTiles,
             chaseEscapeTiles, patrolRadiusTiles, radioUpgradeSteel, radioUpgradeCopper, projectileSpeedTilesPerS,
             projectileLifeS, noticeTiles, escapeTiles, alertRadiusTiles, lightHesitateS, assaultHistory,
-            KindText, Source, Provisional);
+            KindText, Source, Provisional, litNoticeMul, litStepCost);
 
         public void Fill(RaidTuning r)
         {
@@ -83,6 +87,7 @@ namespace Relight.Data
             radioUpgradeCopper = r.RadioUpgradeCopper; projectileSpeedTilesPerS = r.ProjectileSpeedTilesPerS;
             projectileLifeS = r.ProjectileLifeS; noticeTiles = r.NoticeTiles; escapeTiles = r.EscapeTiles;
             alertRadiusTiles = r.AlertRadiusTiles; lightHesitateS = r.LightHesitateS; assaultHistory = r.AssaultHistory;
+            litNoticeMul = r.LitNoticeMul; litStepCost = r.LitStepCost;
         }
 
         public override string Problem()

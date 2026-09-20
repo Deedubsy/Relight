@@ -44,7 +44,9 @@ namespace Relight.Sim
 
     /// <summary>
     /// The light geometry, ported from reference flow.ts <c>lightCovers</c> and light.ts <c>stampLight</c>.
-    /// Pure: no state, no context, so the shade test and the light texture can never disagree (light.ts header).
+    /// <see cref="Covers"/> is pure: no state, no context, so the shade test and the light texture can never
+    /// disagree (light.ts header). Since L-02 the mask also asks what stands between a light and a tile
+    /// (<see cref="Stamp(byte[],int,int,in Light,SimContext,SimState)"/>); that is the port's rule, not the reference's.
     ///
     /// Two constants have no row in <see cref="GameData"/> yet and are held here with their reference source, exactly
     /// as the wave-3 W-B report records: the streetlight radius (reference constants.ts:58 <c>STREETLIGHT_RADIUS</c>)
@@ -110,6 +112,97 @@ namespace Relight.Sim
             for (var ty = y0; ty <= y1; ty++)
                 for (var tx = x0; tx <= x1; tx++)
                     if (Covers(in l, tx, ty)) mask[ty * tw + tx] = 1;
+        }
+
+        /// <summary>
+        /// L-02, ALWAYS_DARK_SPEC §5.3 — "what stops a bullet stops light". As <see cref="Stamp(byte[],int,int,in Light)"/>,
+        /// but a tile is lit only when the line from the light to it is clear of what <see cref="Sightline"/> calls
+        /// opaque: authored solid building tiles, and the player's own Walls and Barricades. No other machine blocks.
+        ///
+        /// The tiles at both ends are exempt, for the authored mask as well as for walls, so a lamp against a wall
+        /// lights its own side, the wall's near face is lit and the ground behind it is not, and a building's facade
+        /// catches the light while its far side stays dark.
+        ///
+        /// Most lights stand in the open, so the line tests are skipped when the bounding box holds no occluder:
+        /// that keeps a whole-map rebuild close to the cost it had before blocking.
+        /// </summary>
+        public static void Stamp(byte[] mask, int tw, int th, in Light l, SimContext ctx, SimState st)
+        {
+            if (ctx == null || st == null) { Stamp(mask, tw, th, in l); return; }
+            StampWindow(mask, 0, 0, tw, tw, th, in l, ctx, st);
+        }
+
+        /// <summary>
+        /// The blocked stamp, written into a window of the map rather than the whole of it: tile (tx, ty) lands at
+        /// <c>mask[(ty - oy) * stride + (tx - ox)]</c>. The mask rebuild passes the whole map (origin 0, 0);
+        /// <see cref="LightPreview"/> passes a box around one ghost, so a placement preview is THIS rule and cannot
+        /// promise light the mask would not deliver. The caller guarantees the light's bounding box, clipped to the
+        /// <paramref name="tw"/> × <paramref name="th"/> map, fits inside the window.
+        /// </summary>
+        internal static void StampWindow(byte[] mask, int ox, int oy, int stride, int tw, int th, in Light l,
+            SimContext ctx, SimState st)
+        {
+            if (mask == null || tw <= 0 || th <= 0) return;
+            var x0 = Math.Max(0, (int)Math.Floor(l.Tx - l.R));
+            var x1 = Math.Min(tw - 1, (int)Math.Ceiling(l.Tx + l.R));
+            var y0 = Math.Max(0, (int)Math.Floor(l.Ty - l.R));
+            var y1 = Math.Min(th - 1, (int)Math.Ceiling(l.Ty + l.R));
+
+            // The occluders inside the box, read once into a local grid: the line tests below then cost an array
+            // read per sample instead of an interface call and a wall-mask lookup.
+            var bw = x1 - x0 + 1;
+            var bh = y1 - y0 + 1;
+            if (bw <= 0 || bh <= 0) return;
+            Span<bool> occ = bw * bh <= 1024 ? stackalloc bool[bw * bh] : new bool[bw * bh];
+            var any = false;
+            for (var ty = y0; ty <= y1; ty++)
+                for (var tx = x0; tx <= x1; tx++)
+                {
+                    var o = Opaque(ctx, st, tx, ty);
+                    occ[(ty - y0) * bw + (tx - x0)] = o;
+                    any |= o;
+                }
+
+            // A Lamp and a streetlight sit on a tile index, so the light leaves that tile's centre; a Floodlight's
+            // Tx/Ty is already its footprint centre (flow.ts blockLights).
+            var sx = l.Kind == LightKind.Floodlight ? l.Tx : l.Tx + 0.5;
+            var sy = l.Kind == LightKind.Floodlight ? l.Ty : l.Ty + 0.5;
+            var fx = (int)Math.Floor(sx);
+            var fy = (int)Math.Floor(sy);
+
+            for (var ty = y0; ty <= y1; ty++)
+                for (var tx = x0; tx <= x1; tx++)
+                {
+                    if (!Covers(in l, tx, ty)) continue;
+                    if (any && !LineClear(occ, x0, y0, bw, bh, sx, sy, fx, fy, tx, ty)) continue;
+                    mask[(ty - oy) * stride + (tx - ox)] = 1;
+                }
+        }
+
+        /// <summary>Does this tile stop light? The same set <see cref="Sightline.Clear"/> stops a shot with.</summary>
+        public static bool Opaque(SimContext ctx, SimState st, int tx, int ty) =>
+            ctx.Geometry.Solid(tx, ty) || st.Walls.At(ctx, st, tx, ty);
+
+        /// <summary>
+        /// The reference's segment walk (four samples per tile, <see cref="Segments"/>) from the light to the centre
+        /// of the tile, skipping both end tiles. A sample outside the box is off the map's edge and blocks nothing.
+        /// </summary>
+        private static bool LineClear(Span<bool> occ, int x0, int y0, int bw, int bh,
+            double sx, double sy, int fx, int fy, int tx, int ty)
+        {
+            var ex = tx + 0.5;
+            var ey = ty + 0.5;
+            var n = Segments.SampleCount(sx, sy, ex, ey);
+            for (var i = 1; i < n; i++)
+            {
+                var p = Segments.Sample(sx, sy, ex, ey, i, n);
+                if ((p.X == fx && p.Y == fy) || (p.X == tx && p.Y == ty)) continue;
+                var bx = p.X - x0;
+                var by = p.Y - y0;
+                if (bx < 0 || by < 0 || bx >= bw || by >= bh) continue;
+                if (occ[by * bw + bx]) return false;
+            }
+            return true;
         }
 
         /// <summary>Fill a rect of the mask (the Home lot's built-in area lighting, light.ts <c>lightMask</c>'s last line).</summary>

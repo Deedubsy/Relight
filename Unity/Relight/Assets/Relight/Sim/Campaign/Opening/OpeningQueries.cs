@@ -315,6 +315,28 @@ namespace Relight.Sim
                     true, sub.Centre, Packed(ctx, st, "pole"));
             }
 
+            // 8b — L-02 (ALWAYS_DARK_SPEC §5.6): one Lamp, lit, before the Rifle. It is the one moment the opening
+            // has to teach that light is something the player places and that aliens and turrets both answer to it.
+            // Asked only while no weapon is owned, so a save already past the Rifle is never sent back for a Lamp.
+            if (st.Weapons.Owned.Count == 0)
+            {
+                var lamp = FirstOfKind(st, "lamp");
+                var teach = "Aliens avoid lit ground: they pause at its edge and look for a darker way in. Your turrets "
+                    + "see an alien on lit ground at full range and one in the dark only up close. Your flashlight "
+                    + "lights the way for you alone — it does not count for either.";
+                if (lamp == null)
+                    return new ObjectiveView("opening-light", "Light the ground you will defend",
+                        "Place 1 Lamp within reach of a Pole",
+                        "A Lamp lights " + Num(d.Power.LampRadiusTiles) + " tiles around it while it has power ("
+                        + Num(d.Power.LampKw) + " kW). " + teach,
+                        true, home, LampRows(ctx, st));
+                if (!PowerQueries.Supplied(ctx, st, lamp.Id))
+                    return new ObjectiveView("opening-light", "Light the ground you will defend",
+                        "Connect your Lamp to power",
+                        "A Lamp is dark until it stands within reach of a connected Pole. " + teach,
+                        true, Centre(lamp), Packed(ctx, st, "pole"));
+            }
+
             // 9 — the Rifle. Re-arms by itself when a craft was cancelled: nothing is owned, so the row returns.
             if (st.Weapons.Owned.Count == 0)
             {
@@ -1050,6 +1072,10 @@ namespace Relight.Sim
         // ------------------------------------------------------------------ materials
 
         /// <summary>Reference goal.ts:91 <c>buildStep</c>: cost, shortage text and the shared "Opening order" reminder.</summary>
+        /// <summary>The Lamp's material row: the packed Lamp when one is carried, otherwise what it costs.</summary>
+        private static IReadOnlyList<ObjectiveMaterial> LampRows(SimContext ctx, SimState st) =>
+            st.Engineer.Inv[new ItemKey("lamp")] >= 1 ? One(ctx, st, "lamp", 1) : Packed(ctx, st, "lamp");
+
         private static ObjectiveView Build(SimContext ctx, SimState st, string kind, string title, string instruction, Vec2 where)
         {
             var d = ctx.Data;

@@ -28,6 +28,14 @@ namespace Relight.Sim
         internal int BuiltRev;
         internal int BuiltFold;
 
+        // The relief events' memory (LightPhase.Relief). Transient for the same reason the mask is: it is a
+        // comparison with the previous tick, and the first tick after a load only takes the baseline.
+        internal bool ReliefKnown;
+        internal bool EngineerLit;
+        internal double EnteredAt = double.NegativeInfinity;
+        internal readonly System.Collections.Generic.HashSet<string> LiveDistricts =
+            new System.Collections.Generic.HashSet<string>();
+
         /// <summary>How many times the mask has actually been stamped. A test hook; the reference has no counter.</summary>
         public int Builds { get; internal set; }
 
@@ -36,11 +44,20 @@ namespace Relight.Sim
 
         public void Visit(IStateVisitor v)
         {
-            // Nothing persistent. A load hands us a different world, so whatever we had cached is meaningless.
+            // Nothing persistent. A load hands us a different world, so whatever we had cached is meaningless —
+            // but ONLY a load. A save and a state hash walk this too, on the live state, and the combat slot reads
+            // the mask before LightPhase can rebuild it: clearing it there left every tile unlit for the tick after
+            // each autosave (turrets dropped lit targets, raiders stopped avoiding light), and forgetting the
+            // relief memory made that tick a silent baseline that could swallow a district's connection.
+            if (!v.IsReading) return;
             Built = false;
             Mask = null;
             W = 0;
             H = 0;
+            ReliefKnown = false;
+            EngineerLit = false;
+            EnteredAt = double.NegativeInfinity;
+            LiveDistricts.Clear();
         }
     }
 

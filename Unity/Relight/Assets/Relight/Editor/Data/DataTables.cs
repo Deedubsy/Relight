@@ -94,11 +94,11 @@ namespace Relight.Editor
                     }, written);
 
                 Write(folder, "turrets", "Turrets (CONTENT_CATALOGUE.md §6.2, Unity column)",
-                    "| Key | Name | Range | Rounds /s | Damage | Hopper | Upgrade × | kW | HP | Turn rad/s | Muzzle | Flash | Ammo | Kind | Source |",
+                    "| Key | Name | Range | Dark sight | Rounds /s | Damage | Hopper | Upgrade × | kW | HP | Turn rad/s | Muzzle | Flash | Ammo | Kind | Source |",
                     registry.Turrets, d =>
                     {
                         var r = d.ToRecord();
-                        return $"| `{r.Key}` | {r.DisplayName} | {Num(r.RangeTiles)} | {Num(r.RoundsPerS)} | {Num(r.DamagePerRound)} | " +
+                        return $"| `{r.Key}` | {r.DisplayName} | {Num(r.RangeTiles)} | {DarkSight(r)} | {Num(r.RoundsPerS)} | {Num(r.DamagePerRound)} | " +
                                $"{r.Hopper} | {Num(r.HopperUpgradeMul)} | {Num(r.PowerKw)} | {Num(r.Hp)} | {Num(r.TurnSpeedRadPerS)} | " +
                                $"{Num(r.MuzzleTiles)} | {Num(r.ShotFlashS)} | `{Items.Key(r.Ammo)}` | {r.Kind} | {Src(r.Source)} |";
                     }, written);
@@ -153,6 +153,7 @@ namespace Relight.Editor
                     P("Projectile speed tiles/s", Num(raids.ProjectileSpeedTilesPerS)), P("Projectile life (s)", Num(raids.ProjectileLifeS)),
                     P("Notice tiles", Num(raids.NoticeTiles)), P("Escape tiles", Num(raids.EscapeTiles)),
                     P("Alert radius tiles", Num(raids.AlertRadiusTiles)), P("Light hesitate (s)", Num(raids.LightHesitateS)),
+                    P("Lit notice ×", Num(raids.LitNoticeMul)), P("Lit step cost", Count(raids.LitStepCost)),
                     P("Assault history", Count(raids.AssaultHistory)),
                 }, written);
 
@@ -273,6 +274,13 @@ namespace Relight.Editor
         private static KeyValuePair<string, string> P(string k, string v) => new KeyValuePair<string, string>(k, v);
         private static string Num(double v) => v.ToString("R", CultureInfo.InvariantCulture);
         private static string Count(int v) => v.ToString(CultureInfo.InvariantCulture);
+        /// <summary>The asset's own dark sight, or the value DarkWorld gives a row that carries none (U-D-59).</summary>
+        private static string DarkSight(TurretDef r)
+        {
+            if (r.DarkSightTiles > 0) return Num(r.DarkSightTiles);
+            var overlay = DarkWorld.DarkSight(r.Key);
+            return overlay > 0 ? Num(System.Math.Min(overlay, r.RangeTiles)) + " (DarkWorld)" : "—";
+        }
         private static string Dash(string s) => string.IsNullOrEmpty(s) ? "—" : s;
         private static string Src(string s) => string.IsNullOrEmpty(s) ? "—" : "`" + s.Replace("; ", "`, `") + "`";
 

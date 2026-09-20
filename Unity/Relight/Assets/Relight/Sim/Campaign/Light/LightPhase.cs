@@ -22,6 +22,9 @@ namespace Relight.Sim
     ///       The lot is derived as the core footprint inflated by <c>World.MarginTiles</c> on every side — the
     ///       tiles.ts sense of a lot (building plus margin), since no authored lot rectangle survives the import
     ///       (the same gap <c>HandCraft.cs</c> records: "Phase B has no authored HQ lot in the sim").</item>
+    /// <item>Solid things block light (L-02, ALWAYS_DARK_SPEC §5.3): the reference stamps whole discs. A Wall going
+    ///       up, coming down, being wrecked or being repaired all move <see cref="SimState.Rev"/>
+    ///       (the damage and repair hooks in <c>TurretRules</c>), so the mask is already rebuilt whenever an occluder changes.</item>
     /// <item>No night gate. The reference's <c>lightMask</c> and <c>litAt</c> are time-independent; daylight is the
     ///       renderer's tint and is answered separately by <see cref="LightQueries.Daylight"/>.</item>
     /// </list>
@@ -31,7 +34,58 @@ namespace Relight.Sim
         // Scratch, reused across ticks: the source list is rebuilt every tick but never escapes.
         private readonly List<Light> _sources = new List<Light>();
 
-        public void Tick(SimContext ctx, SimState st, double dt) => Ensure(ctx, st, _sources);
+        public void Tick(SimContext ctx, SimState st, double dt)
+        {
+            Ensure(ctx, st, _sources);
+            Relief(ctx, st);
+        }
+
+        /// <summary>How long the engineer must wait before stepping into light is worth a second cue (§5.4).</summary>
+        public const double EnteredLightEveryS = 10;
+
+        /// <summary>
+        /// L-02, ALWAYS_DARK_SPEC §5.4 — the two moments that replace dawn. Both compare this tick with the last,
+        /// and the memory is transient: the first tick after a new game or a load only takes the baseline, so a save
+        /// made inside a lit district does not replay its sweep on load.
+        /// </summary>
+        private static void Relief(SimContext ctx, SimState st)
+        {
+            if (ctx == null || st == null) return;
+            var s = st.Light;
+            var first = !s.ReliefKnown;
+            s.ReliefKnown = true;
+
+            // DistrictLitEvent: a substation site's circuit starts delivering, so the streetlights it owns come on.
+            // Once per connection — it is raised on the change, and nothing is raised while the district stays lit.
+            var subs = PowerGrid.SubstationSites(ctx);
+            if (subs.Count > 0)
+            {
+                var grid = PowerGrid.Of(ctx, st);
+                for (var i = 0; i < subs.Count; i++)
+                {
+                    var site = subs[i];
+                    var c = grid.OfSite(site.Id);
+                    var live = c != null && c.Throttle > 0;
+                    var was = s.LiveDistricts.Contains(site.Id);
+                    if (live == was) continue;
+                    if (!live) { s.LiveDistricts.Remove(site.Id); continue; }
+                    s.LiveDistricts.Add(site.Id);
+                    if (first) continue;
+                    var lights = StreetLights.OwnedBy(ctx, site);
+                    if (lights > 0) st.Events.Add(new DistrictLitEvent(st.T, site.Id, site.Name, lights, site.Centre.X, site.Centre.Y));
+                }
+            }
+
+            // EnteredLightEvent: the engineer's own tile goes from unlit to lit, at most once per ten seconds.
+            var p = st.Engineer;
+            var lit = !p.IsDown && LightQueries.LitAt(st, (int)System.Math.Floor(p.Pos.X), (int)System.Math.Floor(p.Pos.Y));
+            if (!first && lit && !s.EngineerLit && st.T - s.EnteredAt >= EnteredLightEveryS)
+            {
+                s.EnteredAt = st.T;
+                st.Events.Add(new EnteredLightEvent(st.T, p.Pos.X, p.Pos.Y));
+            }
+            s.EngineerLit = lit;
+        }
 
         /// <summary>
         /// Make sure <see cref="LightState.Mask"/> is current for this tick, stamping it again only if the lit
@@ -60,7 +114,7 @@ namespace Relight.Sim
             for (var i = 0; i < scratch.Count; i++)
             {
                 var l = scratch[i];
-                if (l.Lit) LightRules.Stamp(s.Mask, tw, th, in l);   // light.ts:24
+                if (l.Lit) LightRules.Stamp(s.Mask, tw, th, in l, ctx, st);   // light.ts:24, plus §5.3 blocking
             }
 
             var (lx, ly, lw, lh) = HomeLot(ctx, st);
@@ -86,6 +140,15 @@ namespace Relight.Sim
             return (x - m, y - m, w + 2 * m, h + 2 * m);
         }
     }
+
+    /// <summary>
+    /// ALWAYS_DARK_SPEC §5.4: a substation site gained supply and the <paramref name="Lights"/> streetlights it owns
+    /// came on. Presentation answers with a sweep of light across the district and a cue. (X, Y) is the site centre.
+    /// </summary>
+    public sealed record DistrictLitEvent(double T, string SiteId, string Name, int Lights, double X, double Y) : SimEvent(T);
+
+    /// <summary>ALWAYS_DARK_SPEC §5.4: the engineer stepped from unlit ground onto lit ground. At most one per 10 s.</summary>
+    public sealed record EnteredLightEvent(double T, double X, double Y) : SimEvent(T);
 
     /// <summary>Places the core-derived mask before the first tick so a fresh game is never momentarily dark.</summary>
     public sealed class LightInitializer : IStateInitializer

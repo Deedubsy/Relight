@@ -127,7 +127,19 @@ namespace Relight.Presentation
             public SiteRecord Site;
             public SpriteRenderer Head, Glow;
             public bool Lit;
+            /// <summary>L-02: true while this lamp is part of a district's switch-on sweep (picture only).</summary>
+            public bool Sweeping;
+            /// <summary><see cref="Time.time"/> at which the sweep reaches this lamp.</summary>
+            public float SweepAt;
         }
+
+        /// <summary>L-02 (§5.4): how fast a connected district's streetlights come on, outward from its substation.</summary>
+        private const float SweepTilesPerSecond = 30f;
+        /// <summary>How long each lamp's glow blooms as the sweep reaches it, and how large it starts.</summary>
+        private const float SweepBloomSeconds = 0.7f;
+        private const float SweepBloomScale = 2.4f;
+        /// <summary>The resting glow disc, in tiles, around the lamp's tile centre (as built in BuildSites).</summary>
+        private const float GlowTiles = 1.8f;
         private readonly List<StreetLamp> _lamps = new List<StreetLamp>();
         private SimState _lampState;
         private int _lampTick = -1;
@@ -507,6 +519,7 @@ namespace Relight.Presentation
         {
             RefreshResources();
             RefreshStreetLights();
+            SweepDistricts();
             if (_roofs.Count == 0) return;
             var sim = host == null ? null : host.Simulation;
             if (sim == null) return;
@@ -548,6 +561,70 @@ namespace Relight.Presentation
                 lamp.Head.color = lit ? CityPalette.LampLit : CityPalette.LampDead;
                 if (lamp.Glow != null) lamp.Glow.enabled = lit;
             }
+        }
+
+        /// <summary>
+        /// L-02, ALWAYS_DARK_SPEC §5.4: "a sweep of light" when a substation site gains supply. The sim has already
+        /// lit the district (the mask, and <see cref="StreetLights.Lit"/>); this only staggers the PICTURE of the
+        /// lamp heads outward from the substation and blooms each glow as it comes on. It lights no tile and is
+        /// over in a second or two; a lamp the sim says is dark is never drawn lit.
+        /// </summary>
+        private void SweepDistricts()
+        {
+            if (_lamps.Count == 0) return;
+            var sim = host != null ? host.Simulation : null;
+            if (sim == null) return;
+
+            var events = host.LastFrameEvents;
+            if (events != null)
+                for (var i = 0; i < events.Count; i++)
+                {
+                    if (!(events[i] is DistrictLitEvent e)) continue;
+                    for (var k = 0; k < _lamps.Count; k++)
+                    {
+                        var lamp = _lamps[k];
+                        var owner = PowerGrid.SubstationOf(sim.Context, lamp.Site);
+                        if (owner == null || owner.Id != e.SiteId) continue;
+                        var dx = lamp.Site.X + 0.5f - (float)e.X;
+                        var dy = lamp.Site.Y + 0.5f - (float)e.Y;
+                        lamp.Sweeping = true;
+                        lamp.SweepAt = Time.time + Mathf.Sqrt(dx * dx + dy * dy) / SweepTilesPerSecond;
+                    }
+                }
+
+            for (var i = 0; i < _lamps.Count; i++)
+            {
+                var lamp = _lamps[i];
+                if (!lamp.Sweeping || lamp.Head == null) continue;
+                var t = (Time.time - lamp.SweepAt) / SweepBloomSeconds;
+                if (!lamp.Lit || t >= 1f)
+                {
+                    lamp.Sweeping = false;
+                    lamp.Head.color = lamp.Lit ? CityPalette.LampLit : CityPalette.LampDead;
+                    if (lamp.Glow != null) { lamp.Glow.enabled = lamp.Lit; PlaceGlow(lamp, GlowTiles); }
+                    continue;
+                }
+                var reached = t >= 0f;
+                lamp.Head.color = reached ? CityPalette.LampLit : CityPalette.LampDead;
+                if (lamp.Glow == null) continue;
+                lamp.Glow.enabled = reached;
+                if (reached) PlaceGlow(lamp, GlowTiles * Mathf.Lerp(SweepBloomScale, 1f, t));
+            }
+        }
+
+        /// <summary>Size the glow disc to <paramref name="tiles"/> across, centred on the lamp's tile (Area's maths).</summary>
+        private static void PlaceGlow(StreetLamp lamp, float tiles)
+        {
+            var glow = lamp.Glow;
+            if (glow == null || glow.sprite == null) return;
+            var b = glow.sprite.bounds;
+            var k = b.size.x > 0f ? tiles / b.size.x : tiles;
+            var ky = b.size.y > 0f ? tiles / b.size.y : tiles;
+            var x = lamp.Site.X + 0.5f - tiles / 2f;
+            var y = lamp.Site.Y + 0.5f - tiles / 2f;
+            var z = glow.transform.localPosition.z;
+            glow.transform.localScale = new Vector3(k, ky, 1f);
+            glow.transform.localPosition = new Vector3(x - b.min.x * k, -(y + tiles) - b.min.y * ky, z);
         }
 
         /// <summary>Read actual remaining amounts, including loaded saves. Does not write gameplay state.</summary>

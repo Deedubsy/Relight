@@ -20,5 +20,11 @@ namespace Relight.Sim
     public sealed record StructureDestroyedEvent(double T, int MachineId, string Kind) : SimEvent(T);
 
     /// <summary>A spitter glob was launched; the presenter tracks it through <see cref="EnemyQueries.Projectiles"/>.</summary>
+    /// <summary>
+    /// L-02, ALWAYS_DARK_SPEC §5.1/§5.6: an uncommitted body has stopped at the edge of lit ground. Raised once as
+    /// the pause begins; (X, Y) is the lit tile it is looking at. The guide shows its light line on the first one.
+    /// </summary>
+    public sealed record LightHesitationEvent(double T, int EnemyId, int Layer, int Group, int X, int Y) : SimEvent(T);
+
     public sealed record EnemySpitEvent(double T, int EnemyId, double X, double Y, double AimX, double AimY) : SimEvent(T);
 }

@@ -55,6 +55,17 @@ namespace Relight.Sim
             return arr;
         }
 
+        /// <summary>How many authored streetlights a substation site owns (their nearest substation is this one).</summary>
+        public static int OwnedBy(SimContext ctx, SiteRecord substation)
+        {
+            if (substation == null) return 0;
+            var lights = Sites(ctx);
+            var n = 0;
+            for (var i = 0; i < lights.Count; i++)
+                if (ReferenceEquals(PowerGrid.SubstationOf(ctx, lights[i]), substation)) n++;
+            return n;
+        }
+
         /// <summary>
         /// True while this streetlight is on: its circuit is throttled above zero, the same test
         /// <see cref="LightSources.Collect"/> lights it by. The picture asks this to draw the lamp head lit or dead.

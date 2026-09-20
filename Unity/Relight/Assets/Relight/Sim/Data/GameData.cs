@@ -196,7 +196,10 @@ namespace Relight.Sim
     public sealed record TurretDef(string Key, string DisplayName,
         double RangeTiles, double RoundsPerS, double DamagePerRound, int Hopper, double HopperUpgradeMul,
         double PowerKw, double Hp, double TurnSpeedRadPerS, double MuzzleTiles, double ShotFlashS, ItemId Ammo,
-        string Kind = "provisional", string Source = "", bool Provisional = true);
+        string Kind = "provisional", string Source = "", bool Provisional = true,
+        // U-D-59 (ALWAYS_DARK_SPEC.md §5.7): how far the turret reaches an alien standing on an UNLIT tile.
+        // 0 means "no dark-sight rule": the turret reaches its full range everywhere. Set by DarkWorld.
+        double DarkSightTiles = 0);
 
     /// <summary>Power constants (CONTENT_CATALOGUE.md §12). SUBSTATION_KW is excluded by §17.2.</summary>
     public sealed record PowerTuning(
@@ -232,7 +235,10 @@ namespace Relight.Sim
         int RadioUpgradeSteel, int RadioUpgradeCopper,
         double ProjectileSpeedTilesPerS, double ProjectileLifeS, double NoticeTiles, double EscapeTiles,
         double AlertRadiusTiles, double LightHesitateS, int AssaultHistory,
-        string Kind = "current", string Source = "", bool Provisional = false);
+        string Kind = "current", string Source = "", bool Provisional = false,
+        // L-02 (ALWAYS_DARK_SPEC.md §5.2, §5.5), both provisional. They trail the provenance columns so the
+        // generated reference row, which has no such values, keeps compiling and takes the defaults.
+        double LitNoticeMul = 0.6, int LitStepCost = 4);
 
     /// <summary>The introductory encounter (CONTENT_CATALOGUE.md §8.4; reference openingEncounter.ts).</summary>
     public sealed record OpeningEncounterTuning(

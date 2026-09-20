@@ -165,6 +165,53 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(OpeningQueries.Objective(ctx, st).Title, Is.EqualTo("Prepare your expedition Rifle"));
         }
 
+        /// <summary>
+        /// L-02, ALWAYS_DARK_SPEC §5.6: after the substation and before the Rifle the opening asks for one Lamp, then
+        /// for power to it, and says in so many words that the flashlight does not count.
+        /// </summary>
+        [Test]
+        public void TheOpeningAsksForOneLitLampBeforeTheRifle()
+        {
+            var ctx = OpeningFixture.Context();
+            var st = OpeningFixture.State(ctx);
+            OpeningFixture.ToRifle(ctx, st);
+            st.Weapons.Owned.Clear();
+            Machine lamp = null;
+            foreach (var m in st.Machines) if (m.Kind == "lamp") lamp = m;
+            Assert.That(lamp, Is.Not.Null);
+            st.Machines.Remove(lamp);
+            st.Rev++;
+            OpeningFixture.Run(ctx, st, 1);
+
+            var ask = OpeningQueries.Objective(ctx, st);
+            Assert.That(ask.Id, Is.EqualTo("opening-light"));
+            Assert.That(ask.Text, Is.EqualTo("Place 1 Lamp within reach of a Pole"));
+            Assert.That(ask.Detail, Does.Contain("Aliens avoid lit ground"));
+            Assert.That(ask.Detail, Does.Contain("flashlight").And.Contain("does not count"));
+
+            var far = RaidFixture.Add(ctx, st, "lamp", 20, 20);        // out of every pole's reach
+            OpeningFixture.Run(ctx, st, 1);
+            Assert.That(OpeningQueries.Objective(ctx, st).Text, Is.EqualTo("Connect your Lamp to power"));
+
+            st.Machines.Remove(far);
+            RaidFixture.Add(ctx, st, "lamp", lamp.X, lamp.Y);
+            OpeningFixture.Run(ctx, st, 1);
+            Assert.That(OpeningQueries.Objective(ctx, st).Id, Is.EqualTo("opening-rifle"));
+        }
+
+        [Test]
+        public void ASavePastTheRifleIsNeverSentBackForALamp()
+        {
+            var ctx = OpeningFixture.Context();
+            var st = OpeningFixture.State(ctx);
+            OpeningFixture.ToRifle(ctx, st);
+            for (var i = st.Machines.Count - 1; i >= 0; i--) if (st.Machines[i].Kind == "lamp") st.Machines.RemoveAt(i);
+            st.Rev++;
+            OpeningFixture.Run(ctx, st, 1);
+
+            Assert.That(OpeningQueries.Objective(ctx, st).Id, Is.EqualTo("opening-equip"));
+        }
+
         // ------------------------------------------------------------------ the deferred card
 
         [Test]

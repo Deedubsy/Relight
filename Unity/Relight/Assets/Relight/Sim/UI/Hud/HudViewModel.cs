@@ -52,6 +52,9 @@ namespace Relight.Sim.UI
         private readonly StringBuilder _sb = new StringBuilder(96);
         private readonly List<HudProblem> _problems = new List<HudProblem>();
         private double _lastRefresh = double.NegativeInfinity;
+        private bool _brownout;
+        private bool _taughtHesitation;
+        private bool _taughtBlindTurret;
 
         /// <summary>The single power-alert producer (defect U-3). Nothing else may raise one.</summary>
         public readonly PowerAlertSource Power = new PowerAlertSource();
@@ -181,6 +184,13 @@ namespace Relight.Sim.UI
             // saying a second time what the strip above it already said.
             Alert = Power.AlertText;
             Notices.Clear(PowerAlertSource.AlertKey);
+            // L-02 (§5.7): a brownout is posted ONCE, when it starts, and cleared when it ends — never re-posted per
+            // refresh, which is the repeat-count churn U-D-55 removed for the outage.
+            var brownout = Power.BrownoutText.Length > 0;
+            if (brownout && !_brownout)
+                Notices.Post(PowerAlertSource.BrownoutKey, Power.BrownoutText, HudNoticeKind.Warning, now, GuideSeconds);
+            if (!brownout && _brownout) Notices.Clear(PowerAlertSource.BrownoutKey);
+            _brownout = brownout;
 
             var maxCore = d.Defence != null ? d.Defence.CoreHp : 0;
             var hp = HomeQueries.CoreHp(st);
@@ -269,6 +279,19 @@ namespace Relight.Sim.UI
         /// <summary>Real seconds an accepted note stays on screen — shorter: nothing has to be acted on.</summary>
         public const double NoteSeconds = 3;
 
+        /// <summary>Real seconds a once-only guide line stays on screen — long enough to read a whole sentence.</summary>
+        public const double GuideSeconds = 10;
+
+        /// <summary>ALWAYS_DARK_SPEC §5.6: shown the first time a group of attackers hesitates at a lit edge.</summary>
+        public const string HesitationLine = "Aliens avoid light. They pause at its edge and look for a dark way in.";
+
+        /// <summary>ALWAYS_DARK_SPEC §5.7, verbatim: shown the first time a turret is hit by something it cannot see.</summary>
+        public const string BlindTurretLine = "This turret can't see into the dark. Light the ground it guards.";
+
+        public const string HesitationKey = "guide:light-hesitation";
+        public const string BlindTurretKey = "guide:blind-turret";
+        public const string DistrictLitKey = "light:district";
+
         /// <summary>
         /// C-13. Turn this frame's events into notices, so what the SIM decided about a queued command reaches the
         /// player. The reference toasts every dispatch result (worldScene.ts
@@ -303,6 +326,26 @@ namespace Relight.Sim.UI
                         // Releasing mining is shown by the target card; keep real refusal notices intact.
                         if (string.IsNullOrEmpty(m.Reason)) break;
                         Notices.Post(MiningNoticeKey, m.Reason, HudNoticeKind.Warning, now, RefusalSeconds);
+                        break;
+                    // L-02 (§5.6): one line, the first time attackers baulk at a lit edge. A camp resident turning
+                    // back on its beat is not "a group of attackers", so it does not spend the line.
+                    case LightHesitationEvent h:
+                        if (_taughtHesitation || h.Layer == EnemyLayer.Site) break;
+                        _taughtHesitation = true;
+                        Notices.Post(HesitationKey, HesitationLine, HudNoticeKind.Info, now, GuideSeconds);
+                        break;
+                    // L-02 (§5.7): one line, the first time a turret is hit from the dark. The badge repeats it.
+                    case TurretBlindEvent _:
+                        if (_taughtBlindTurret) break;
+                        _taughtBlindTurret = true;
+                        Notices.Post(BlindTurretKey, BlindTurretLine, HudNoticeKind.Warning, now, GuideSeconds);
+                        break;
+                    // L-02 (§5.4): the moment that replaces dawn gets a line as well as its sweep and cue.
+                    case DistrictLitEvent lit:
+                        Notices.Post(DistrictLitKey,
+                            lit.Name + " connected · " + lit.Lights.ToString(CultureInfo.InvariantCulture)
+                            + (lit.Lights == 1 ? " streetlight on" : " streetlights on"),
+                            HudNoticeKind.Info, now, GuideSeconds);
                         break;
                     // U-D-44: the workshop finishes batches while the player is anywhere else, so the HUD is the
                     // only place that can say so. One row, updated in place, naming where the goods are waiting.

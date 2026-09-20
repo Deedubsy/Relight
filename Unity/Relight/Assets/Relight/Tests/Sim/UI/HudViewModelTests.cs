@@ -366,6 +366,121 @@ namespace Relight.Sim.Tests.UI
             Assert.That(vm.Notices.Rows[0].Kind, Is.EqualTo(HudNoticeKind.Warning));
         }
 
+        // ---- L-02: the light's guide lines and the brownout notice (ALWAYS_DARK_SPEC §5.4, §5.6, §5.7) -----------
+
+        private static int RowsWith(HudViewModel vm, string key)
+        {
+            var n = 0;
+            for (var i = 0; i < vm.Notices.Rows.Count; i++) if (vm.Notices.Rows[i].Key == key) n++;
+            return n;
+        }
+
+        private static HudNotice Row(HudViewModel vm, string key)
+        {
+            for (var i = 0; i < vm.Notices.Rows.Count; i++) if (vm.Notices.Rows[i].Key == key) return vm.Notices.Rows[i];
+            return null;
+        }
+
+        [Test]
+        public void TheFirstAttackersToBaulkAtLightTeachTheRuleOnceAndACampPatrolNever()
+        {
+            var vm = new HudViewModel();
+            vm.Intake(new SimEvent[] { new LightHesitationEvent(1, 7, EnemyLayer.Site, 0, 30, 30) }, 1);
+            vm.Notices.Reap(1);
+            Assert.That(RowsWith(vm, HudViewModel.HesitationKey), Is.Zero, "a camp resident on its beat is not an attack");
+
+            vm.Intake(new SimEvent[] { new LightHesitationEvent(2, 8, EnemyLayer.Minor, 1, 50, 50) }, 2);
+            vm.Notices.Reap(2);
+            Assert.That(Row(vm, HudViewModel.HesitationKey).Text, Is.EqualTo(HudViewModel.HesitationLine));
+            Assert.That(Row(vm, HudViewModel.HesitationKey).Kind, Is.EqualTo(HudNoticeKind.Info));
+
+            vm.Notices.Reap(2 + HudViewModel.GuideSeconds + 1);
+            Assert.That(RowsWith(vm, HudViewModel.HesitationKey), Is.Zero, "it expires");
+            vm.Intake(new SimEvent[] { new LightHesitationEvent(40, 9, EnemyLayer.Minor, 2, 50, 50) }, 40);
+            vm.Notices.Reap(40);
+            Assert.That(RowsWith(vm, HudViewModel.HesitationKey), Is.Zero, "and is said once, not once per raid");
+        }
+
+        [Test]
+        public void TheFirstBlindTurretSaysTheSpecsLineOnce()
+        {
+            var vm = new HudViewModel();
+            vm.Intake(new SimEvent[] { new TurretBlindEvent(1, 5, 41, 41) }, 1);
+            vm.Notices.Reap(1);
+            Assert.That(Row(vm, HudViewModel.BlindTurretKey).Text,
+                Is.EqualTo("This turret can't see into the dark. Light the ground it guards."));
+            Assert.That(Row(vm, HudViewModel.BlindTurretKey).Kind, Is.EqualTo(HudNoticeKind.Warning));
+
+            vm.Notices.Reap(1 + HudViewModel.GuideSeconds + 1);
+            vm.Intake(new SimEvent[] { new TurretBlindEvent(30, 6, 60, 41) }, 30);
+            vm.Notices.Reap(30);
+            Assert.That(RowsWith(vm, HudViewModel.BlindTurretKey), Is.Zero, "the badge carries it from then on");
+        }
+
+        [Test]
+        public void ADistrictComingOnIsNamedWithItsStreetlights()
+        {
+            var vm = new HudViewModel();
+            vm.Intake(new SimEvent[] { new DistrictLitEvent(1, "sub:2", "Foundry Row substation", 2, 61, 29) }, 1);
+            vm.Notices.Reap(1);
+            Assert.That(Row(vm, HudViewModel.DistrictLitKey).Text,
+                Is.EqualTo("Foundry Row substation connected · 2 streetlights on"));
+
+            vm.Intake(new SimEvent[] { new EnteredLightEvent(2, 10, 10) }, 2);
+            vm.Notices.Reap(2);
+            Assert.That(vm.Notices.Rows.Count, Is.EqualTo(1), "stepping into light is a sound, never a HUD line");
+        }
+
+        [Test]
+        public void ABrownoutOnALampOrATurretIsPostedOnceAndClearedWhenItEnds()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            var phases = new System.Collections.Generic.List<ITickPhase> { new PowerPhase() };
+            RaidFixture.Add(ctx, st, "lamp", 30, 40);
+            RaidFixture.Power(ctx, st, 32, 40);
+            var vm = new HudViewModel();
+            RaidFixture.Run(ctx, st, 5, phases);
+            vm.Refresh(ctx, st, 0, false, false, force: true);
+            Assert.That(RowsWith(vm, PowerAlertSource.BrownoutKey), Is.Zero, "a healthy circuit says nothing");
+
+            var load = new System.Collections.Generic.List<Machine>();
+            foreach (var (x, y) in new[] { (28, 43), (32, 43), (36, 43), (28, 47), (32, 47), (36, 47) })
+                load.Add(RaidFixture.Add(ctx, st, "assembler", x, y));
+            RaidFixture.Run(ctx, st, 5, phases);
+            for (var i = 1; i <= 20; i++) vm.Refresh(ctx, st, i * 0.15, false, false, force: true);
+            vm.Notices.Reap(3);
+
+            var row = Row(vm, PowerAlertSource.BrownoutKey);
+            Assert.That(row, Is.Not.Null);
+            Assert.That(row.Text, Does.Contain("lights").And.Contain("turrets"), "§5.7: the notice names both consequences");
+            Assert.That(row.Kind, Is.EqualTo(HudNoticeKind.Warning));
+            Assert.That(row.Repeats, Is.EqualTo(1), "U-D-55: a standing state is posted on its edge, never per refresh");
+            Assert.That(vm.Alert, Is.EqualTo(""), "a brownout is not an outage");
+
+            foreach (var m in load) st.Machines.Remove(m);
+            st.Rev++;
+            RaidFixture.Run(ctx, st, 5, phases);
+            vm.Refresh(ctx, st, 4, false, false, force: true);
+            vm.Notices.Reap(4);
+            Assert.That(RowsWith(vm, PowerAlertSource.BrownoutKey), Is.Zero, "and it goes when the power is back");
+        }
+
+        [Test]
+        public void ABrownoutThatOnlySlowsAFactoryIsNotTheDefenceNotice()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            RaidFixture.Power(ctx, st, 32, 40);
+            foreach (var (x, y) in new[] { (28, 43), (32, 43), (36, 43), (28, 47) })
+                RaidFixture.Add(ctx, st, "assembler", x, y);
+            RaidFixture.Run(ctx, st, 5, new System.Collections.Generic.List<ITickPhase> { new PowerPhase() });
+
+            var src = new PowerAlertSource();
+            src.Refresh(ctx, st);
+            Assert.That(src.BrownoutText, Is.EqualTo(""), "the machines' own 'running slowly' line owns that case");
+        }
+
         [Test]
         public void IntakeToleratesNoEventsAtAll()
         {

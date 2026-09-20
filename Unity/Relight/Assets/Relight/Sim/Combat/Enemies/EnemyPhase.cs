@@ -84,7 +84,7 @@ namespace Relight.Sim
                 e.OnPlayer = false;
                 var w = ctx.Geometry.Width;
                 var fld = Enemies.Route(ctx, st, e, e.Origin % w, e.Origin / w, 0);
-                if (WalkField(ctx, st, e, def, fld, dt)) Leave(st, e);
+                if (WalkField(ctx, st, e, def, fld, dt, false)) Leave(st, e);   // a body going home does not dither
                 return;
             }
 
@@ -115,7 +115,7 @@ namespace Relight.Sim
 
             if (!DirectorRules.Target(ctx, st, out var bx, out var by, out var size)) { e.Stuck += dt; return; }
             var route = Enemies.Route(ctx, st, e, bx, by, size);
-            if (WalkField(ctx, st, e, def, route, dt)) EnemyCoreHook.Damage(ctx, st, Enemies.StructureDps(d, def) * dt);
+            if (WalkField(ctx, st, e, def, route, dt, true)) EnemyCoreHook.Damage(ctx, st, Enemies.StructureDps(d, def) * dt);
         }
 
         private static void Leave(SimState st, Enemy e)
@@ -345,7 +345,11 @@ namespace Relight.Sim
 
         // ------------------------------------------------------------------ field walking
 
-        /// <summary>Reference campaignThreat.ts:388 <c>fieldStep</c>: the neighbour strictly closer to the target.</summary>
+        /// <summary>
+        /// Reference campaignThreat.ts:388 <c>fieldStep</c>: the neighbour strictly closer to the target.
+        /// L-02 (§5.2): "closer" is <see cref="RaidField.Cost"/>, which charges more for a lit tile, so the march
+        /// bends round light where a darker way exists. Where nothing is lit it is the reference's step count.
+        /// </summary>
         private static int FieldStep(SimContext ctx, SimState st, Enemy e, RaidField fld, bool ignoreWaypoint)
         {
             var w = ctx.Geometry.Width;
@@ -353,14 +357,14 @@ namespace Relight.Sim
             var cy = (int)Math.Floor(e.Pos.Y);
             var next = ignoreWaypoint ? -1 : e.Waypoint;
             if (next >= 0) return next;
-            var here = fld.At(cx, cy);
+            var here = fld.Cost(cx, cy);
             var best = int.MaxValue;
             for (var k = 0; k < 4; k++)
             {
                 var xx = cx + Dirs.DX[k];
                 var yy = cy + Dirs.DY[k];
                 if (!Ground.InBounds(ctx, xx, yy)) continue;
-                var d = fld.At(xx, yy);
+                var d = fld.Cost(xx, yy);
                 if (d < 0) continue;
                 if (here >= 0 && d >= here) continue;
                 if (d >= best) continue;
@@ -375,7 +379,9 @@ namespace Relight.Sim
         /// defence stands in the way and giving ground to a body already standing on the next tile. Returns true
         /// when the body has arrived at the target rect.
         /// </summary>
-        private static bool WalkField(SimContext ctx, SimState st, Enemy e, EnemyDef def, RaidField fld, double dt)
+        /// <param name="wary">True on the approach march: an uncommitted body pauses before it steps from unlit
+        /// ground onto lit ground (ALWAYS_DARK_SPEC §5.1, <see cref="Enemies.HesitatesAtLight"/>).</param>
+        private static bool WalkField(SimContext ctx, SimState st, Enemy e, EnemyDef def, RaidField fld, double dt, bool wary)
         {
             var w = ctx.Geometry.Width;
             var cx = (int)Math.Floor(e.Pos.X);
@@ -402,6 +408,9 @@ namespace Relight.Sim
                 e.Waypoint = -1;
                 return false;
             }
+            // The pause at the edge of the light comes after everything that can stop the step anyway, so a body
+            // chewing through a wall or queueing behind another never spends its hesitation on a step it cannot take.
+            if (wary && Enemies.HesitatesAtLight(ctx, st, e, x, y, dt)) { e.Waypoint = -1; return false; }
             e.Waypoint = next;
             // The APPROACH march, which is deliberately slower than a chase so a wave stays readable from a
             // distance: raids.SpeedTilesPerS scaled by this type's own speed (Enemies.MarchSpeed). A skitter still
@@ -429,9 +438,12 @@ namespace Relight.Sim
         /// <summary>
         /// Reference move.ts <c>stepToward</c>: a greedy 8-connected step that never cuts a corner, used for the
         /// short chase and the site patrol. The reference's optional soft cost (the light avoidance a patrolling
-        /// body applies to lit ground) is not carried; see the class remarks.
+        /// body applies to lit ground) is not carried; see the class remarks. Its pause is: with
+        /// <paramref name="wary"/> set, the body waits <c>LightHesitateS</c> before a step from unlit ground onto
+        /// lit ground (ALWAYS_DARK_SPEC §5.1). A chase never passes it — an engaged body does not hesitate.
         /// </summary>
-        private static bool StepToward(SimContext ctx, SimState st, Enemy e, double gx, double gy, double step)
+        private static bool StepToward(SimContext ctx, SimState st, Enemy e, double gx, double gy, double step,
+            bool wary = false, double dt = 0)
         {
             var cx = (int)Math.Floor(e.Pos.X);
             var cy = (int)Math.Floor(e.Pos.Y);
@@ -449,6 +461,7 @@ namespace Relight.Sim
                 if (d < bd) { bd = d; best = k; }
             }
             if (best < 0) return false;
+            if (wary && Enemies.HesitatesAtLight(ctx, st, e, cx + NX[best], cy + NY[best], dt)) return true;
             MoveTo(e, cx + NX[best] + 0.5, cy + NY[best] + 0.5, step);
             return true;
         }
@@ -560,16 +573,16 @@ namespace Relight.Sim
                 return;
             }
 
-            // A short visible pause at illuminated ground, then a bounded soft-cost route (the reference's rule).
-            // Lit ground is C-06's lamp coverage; until a lit query exists the pause never triggers and the patrol
-            // simply walks — recorded as a difference, and the hesitation field is saved so it can be switched on.
+            // A short visible pause at illuminated ground (the reference's rule, gameplayCombat.ts:96; L-02,
+            // ALWAYS_DARK_SPEC §5.1). The reference then takes a bounded soft-cost route round the light; the port's
+            // patrol is a two-tile loop round its birthplace and does not, which is a recorded difference.
             var angle = (e.Id * 7 + e.Patrol) * Math.PI / 2;
             var gx = e.Home.X + Math.Cos(angle) * 2;
             var gy = e.Home.Y + Math.Sin(angle) * 2;
             if (DirectorRules.Distance(e.Pos.X, e.Pos.Y, gx, gy) < .6 || e.Stuck > 2) { e.Patrol++; e.Stuck = 0; }
             var bx = e.Pos.X;
             var by = e.Pos.Y;
-            StepToward(ctx, st, e, gx, gy, def.SpeedTilesPerS * .35 * dt);
+            StepToward(ctx, st, e, gx, gy, def.SpeedTilesPerS * .35 * dt, true, dt);
             e.Stuck = DirectorRules.Distance(e.Pos.X, e.Pos.Y, bx, by) < 1e-8 ? e.Stuck + dt : 0;
         }
     }
