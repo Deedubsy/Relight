@@ -1154,7 +1154,7 @@ Build the interface in **UXML + USS via UI Builder** (Unity UI Toolkit), not uGU
 
 Q5 (blinking pip), Q6 (font), Q7 (icon extraction) and Q8 (starting stake) are unchanged and still stand on their coordinator dispositions.
 
-**Still open and not settled by these decisions:** the ending (U-Q-02) — this document must not present commissioning the third plant, or any other current step, as victory; §7's chain ends on the truthful terminal message "Keep your workshop producing" and nothing further.
+**Still open and not settled by these decisions:** the ending (U-Q-02) — this document must not present commissioning the third plant, or any other current step, as victory; §7's chain ends on the truthful terminal message "Keep your workshop producing" and nothing further. **Superseded 2026-09-20:** the owner decided the ending (U-D-60; GAME_DESIGN.md §11.1, approved, not implemented). Three plants still never complete the campaign. The terminal message stays until F-05a–c are built; the light board is D-07 and the completion screen is F-05c, and neither is specified in this document yet.
 
 ---
 

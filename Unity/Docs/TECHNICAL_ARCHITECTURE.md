@@ -1276,7 +1276,7 @@ Before writing production code:
 8. Audio — **answered 2026-09-11 (Q09): in scope**, reversing the earlier "silence with a hook point" default (U-M-24). Architecture in §15; the remaining owner input is asset taste and sourcing, not scope.
 9. Controls — **answered 2026-09-11 (Q19):** desktop keyboard and mouse; gamepad out of initial scope, with "extensible" bounded exactly as §8.4.1 defines it.
 
-**Still genuinely open after 2026-09-11:** item 7 (Coplay/MCP), plus the two owner questions this document does not own — the ending (U-Q-02) and the tileset licence and art package (U-Q-04, awaiting external information). *(Correction 2026-09-11: this line also listed the per-feature go-ahead at Phase E and the two browser retest verdicts. Both are resolved — U-Q-06 by U-D-31, which puts the full approved gameplay scope in the port with no per-feature go-ahead, and U-Q-20 by U-D-43, which carries the intended fixes into Unity as C-12 checks and records the browser retests as superseded rather than passed.)*
+**Still genuinely open after 2026-09-11:** item 7 (Coplay/MCP), plus the two owner questions this document does not own — the ending (U-Q-02; **resolved 2026-09-20 by U-D-60**, GAME_DESIGN.md §11.1) and the tileset licence and art package (U-Q-04, awaiting external information). *(Correction 2026-09-11: this line also listed the per-feature go-ahead at Phase E and the two browser retest verdicts. Both are resolved — U-Q-06 by U-D-31, which puts the full approved gameplay scope in the port with no per-feature go-ahead, and U-Q-20 by U-D-43, which carries the intended fixes into Unity as C-12 checks and records the browser retests as superseded rather than passed.)*
 
 ---
 

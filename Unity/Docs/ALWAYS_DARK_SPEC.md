@@ -1,6 +1,6 @@
 # Always dark — night and light spec
 
-Date: 2026-09-19. Status: **approved by the owner on 2026-09-19 (*"Go with your recommendations for all of them except I think buildings should block light"*).** Stage 1 (L-01) is implemented as of 2026-09-20 (engineering only; owner acceptance pending), see evidence/always-dark-stage-1/checks.md; stages 2 and 3 (L-02, L-03) are not implemented. This document owns the darkness, light and light-avoidance rules for the Unity port, and the documents listed in §9 point here. Decision: **U-D-58**. Tasks: L-01, L-02, L-03 and L-ACC in `TASKS.md`.
+Date: 2026-09-19. Status: **approved by the owner on 2026-09-19 (*"Go with your recommendations for all of them except I think buildings should block light"*).** Stage 1 (L-01) is implemented as of 2026-09-20 (engineering only; owner acceptance pending), see evidence/always-dark-stage-1/checks.md; stages 2 and 3 (L-02, L-03) are not implemented. This document owns the darkness, light and light-avoidance rules for the Unity port, and the documents listed in §9 point here. Decision: **U-D-58**. Amended on 2026-09-20 by **U-D-59** (light in a fight: §5.7 turret sight, §5.8 Breakers and the power line, §5.9 gunfire; not implemented) and touched by **U-D-60** (the ending, §10 item 5; owned by `GAME_DESIGN.md` §11). Tasks: L-01, L-02, L-03 and L-ACC in `TASKS.md`.
 
 ## 1. How we got here
 
@@ -42,11 +42,11 @@ The owner accepted three conditions with the decision. Each is a requirement of 
   - On unlit ground an alien is drawn as a flat dark shape with a faint pale rim, above the darkness overlay, so it reads against the twilight at any overlay strength or brightness setting. Its outline shows its size and type. Its colour and detail do not show.
   - On lit ground, or inside the flashlight beam, the same alien is drawn in full colour.
   - Attack tells (the wind-up tint and the aim line) are always drawn at full strength, in the dark as well, so that an attack can always be read and answered.
-  - Silhouettes show anywhere on screen, not only near the engineer. This is a picture rule only. It changes no sim rule: what an alien notices (§5.5) and what a turret can target are unaffected.
+  - Silhouettes show anywhere on screen, not only near the engineer. This is a picture rule only. It changes no sim rule: what an alien notices (§5.5) and what a turret can target are unaffected. A turret's reach follows the lit mask (§5.7), never what is drawn, so a silhouette the player can see may still be beyond a turret's dark sight.
 - **Feedback about the player's own actions always draws at full strength.** Today the darkness overlay (sorting order 500) sits above the placement ghost and the power-link preview (20), belt items (12), machine direction arrows (10) and cables (9–10), so all of them would be dimmed on unlit ground. The rule: the placement ghost, the power-link and light-coverage previews, cables, machine status cues, alien attack tells and the engineer are drawn above the overlay. The ground, buildings, machines' bodies and belt items stay under it.
 - **Placing a light shows what it will light.** The placement preview for a Lamp, Arc lamp or Floodlight outlines the tiles it would light, with blocking applied (§5.3), from the same sim rule that stamps the mask. The player sees coverage and gaps before paying.
 - **The HUD says whether the engineer is in light or in the dark.** Safety depends on position and the lit edge is soft on screen, so a small indicator reads `LightQueries.LitAt` for the engineer's tile.
-- **The map, when it is built, shows lit and dark districts.** The port has no map screen yet. This is a requirement on that later task, not part of L-01.
+- **The map, when it is built, shows lit and dark districts.** The port has no map screen yet. This is a requirement on that later task, not part of L-01. Since U-D-60 (2026-09-20) that task is D-07 and the requirement is the light board: each district drawn dark, connected, browned-out or live (`GAME_DESIGN.md` §11.1).
 - **Solid things block light in the picture and in the rule together** (§5.3). The mask is the single source for both, as it is today.
 
 **Brownouts shrink lights.** Today a light is fully on while its circuit delivers any power at all (`Throttle > 0`), so an overloaded generator costs the player nothing in light. The rule becomes: a light's radius (a Floodlight's range) is its full value multiplied by `0.5 + 0.5 × throttle`, so it is full size at full power, half size at the edge of failure, and off with no supply. The mask, the picture and the alien rules all follow the shrunken radius, and the player sees the pools of light contract. This applies to streetlights, Lamps, Arc lamps and Floodlights. The Home core lot is not a powered light and does not shrink.
@@ -63,7 +63,7 @@ How the code expresses "always dark": `TimeTuning.DaylightSeconds = 0` means the
 
 ## 5. Light and the attackers
 
-These rules follow the design draft §11 (`docs/Design/RELIGHT_PROGRESSION_AND_WEAPONS_DRAFT.md`, "Light avoidance"), which is approved direction. Hit points, speed and damage never change with light, so turret and ammunition balance is untouched.
+These rules follow the design draft §11 (`docs/Design/RELIGHT_PROGRESSION_AND_WEAPONS_DRAFT.md`, "Light avoidance"), which is approved direction. An alien's hit points, speed and damage never change with light. Since U-D-59 (2026-09-20) light does change one thing on the defender's side: how far a turret can reach (§5.7). Ammunition values are untouched; where turrets are worth placing is not.
 
 ### 5.1 Hesitation
 
@@ -99,6 +99,25 @@ An uncommitted alien standing on a lit tile notices the player from a shorter di
 - The first time a group of attackers hesitates at a lit edge, the guide shows one line that says aliens avoid light and will look for a dark way in.
 - The opening gains one step after the substation step: place one Lamp. It teaches that light is something the player builds, and what it costs in power.
 
+### 5.7 Turret sight (U-D-59)
+
+The owner chose light's job in a fight on 2026-09-20: *"Fence and scope"*. The fence is §5.1 and §5.2. This is the scope.
+
+- **A turret reaches an alien standing on a lit tile at its full range, and an alien standing on an unlit tile only out to its dark sight.** For the Gun turret that is 9 tiles and 6 tiles. What decides the range is the tile the alien stands on, not the tile the turret stands on: a turret in the dark shoots an alien under a lamp at full range, and a turret under a lamp is still short-sighted into the dark beyond it.
+- **Lit means the sim's lit mask only** (`LightQueries.LitAt`). The flashlight never counts: the owner chose *"No, keep it picture-only"* (D-UI-11 stands). One guide line says so.
+- **Dark sight is one tuning value per turret type.** The design rule is that the Gun turret's dark sight sits **just under the Spitter's range** (7 tiles), so an unlit turret can be shelled by a Spitter it cannot answer. The owner chose this: *"Yes, slightly"*. The answer is a lamp; the planned counter is Spitters shooting out lamps (§11); and it gives the engineer a job during a raid, hunting Spitters in the dark. 6 is provisional (U-P-11). Setting a turret's dark sight equal to its range switches the rule off for that turret.
+- **Where it lives.** The two range tests in `Sim/Combat/Turrets/TurretPhase.cs`: acquiring a target (`EnemyQueries.Nearest` with `def.RangeTiles`) and keeping one (the distance check before `Sightline.Clear`). An alien that steps from lit ground onto unlit ground beyond dark sight is dropped as a target. The wall sightline rule is unchanged, and the engineer's own weapons are not affected.
+- **A brownout now costs twice.** Lights on the circuit shrink (§3), so tiles at the edge go unlit and the turrets lose reach there, while powered turrets also slow (`PowerQueries.Throttle`). The brownout notice names both consequences.
+- **Making it readable.** The turret range preview draws two rings, full range and dark sight, and tints the lit tiles inside the outer ring, alongside the light-coverage preview. A turret that is being damaged by something it cannot target shows its own badge (an eye with a slash), and the first time this happens the guide shows one line: *"This turret can't see into the dark. Light the ground it guards."*
+
+### 5.8 Breakers and the power line (U-D-59)
+
+The owner chose *"Opportunist"*. A Breaker in a raid keeps to the raid's route and its one announced target. If a generator, Pole, substation link or lamp stands within the detour distance of its path (provisional: 6 tiles, U-P-12), it goes and breaks that first, and prefers whichever one feeds the most lit tiles. It never goes further than that for one. Roamers still ignore structures (§6), so a long power line through the dark is threatened only during a raid. This arrives with the Breaker (E-13).
+
+### 5.9 Gunfire (U-D-59)
+
+Muzzle sparks and tracers are picture only. Nothing a weapon does brightens the ground, changes the mask or draws a reaction from an alien.
+
 ## 6. The roaming population
 
 This stage belongs with the roster work (tasks E-13 and E-14), because roaming aliens barely exist in the port today. The rules are fixed now so that the earlier stages do not contradict them.
@@ -117,8 +136,8 @@ This stage belongs with the roster work (tasks E-13 and E-14), because roaming a
 | Stage | Contents | Size | Checks |
 |---|---|---|---|
 | **1. Make it dark** | §3 and §4: always-dark rule in `LightQueries.Daylight`, overlay strength 0.55 and brightness setting, alien silhouettes, the draw-order rule, brownouts shrink lights, the in-light HUD cue, elapsed-time HUD clock, flashlight always on, step 8 text, doc corrections (§9) | Small to medium | Sim tests: `Daylight` is constant with `DaylightSeconds = 0`; admin override still works; a light at half throttle covers three-quarters of its radius and one with no supply covers nothing. Play Mode: the opening is comfortable to play from spawn to the first Excavator; an alien on unlit ground reads clearly as a silhouette at the darkest brightness setting and turns full colour in the beam and under a streetlight; connecting the court substation visibly lights the court. |
-| **2. Make light matter** | §5: hesitation, approach preference, solid things block light, light-coverage placement preview, relief events, perception, teaching the rule | Medium | Sim tests: an uncommitted alien pauses 0.65 s at a lit edge and a committed one does not; with every approach lit, the director still returns an entry tile and a route; a lamp behind a solid building or a player-built Wall does not light the far side; the route field refreshes when the mask is rebuilt; a mask rebuild on the full map stays inside the tick budget; `DistrictLitEvent` fires once per connection. Founders Court Verify: C20 (first attack origin) still passes. |
-| **3. Populate the dark** | §6 | Large; with E-13 and E-14 | Sim tests: population never exceeds the district number; no spawn on a lit or visible tile; a lit district empties and stays empty; save and load keeps the roamers. |
+| **2. Make light matter** | §5: hesitation, approach preference, solid things block light, light-coverage placement preview, relief events, perception, teaching the rule, turret sight with its two-ring preview and blind-turret badge (§5.7, U-D-59) | Medium | Sim tests: an uncommitted alien pauses 0.65 s at a lit edge and a committed one does not; with every approach lit, the director still returns an entry tile and a route; a lamp behind a solid building or a player-built Wall does not light the far side; the route field refreshes when the mask is rebuilt; a mask rebuild on the full map stays inside the tick budget; `DistrictLitEvent` fires once per connection. Turret sight (§5.7): a Gun turret acquires an alien on a lit tile at 9 tiles; it refuses one on an unlit tile at 7 and takes it at 6; a target that steps from lit to unlit ground beyond 6 is dropped; a brownout that shrinks a lamp makes the turret lose a target at the old edge; the flashlight beam changes none of this. Founders Court Verify: C20 (first attack origin) still passes. |
+| **3. Populate the dark** | §6, and with the Breaker (E-13) §5.8 | Large; with E-13 and E-14 | Sim tests: a raid Breaker detours to a Pole within 6 tiles of its path and ignores one at 7; a raid against a base whose every structure is lit still reaches the core; population never exceeds the district number; no spawn on a lit or visible tile; a lit district empties and stays empty; save and load keeps the roamers. |
 
 - **Saves.** Stage 1 and stage 2 change no save format: `LightState` saves nothing and the hesitation field is already saved. Stage 3 adds roaming state to the save and needs a version step.
 - **The clock.** `st.T` and every raid timer are unchanged. The HUD's "Day N" counter loses its meaning without a sun; see §10.
@@ -128,8 +147,9 @@ This stage belongs with the roster work (tasks E-13 and E-14), because roaming a
 | ID | Task | Depends on |
 |---|---|---|
 | L-01 | Stage 1: always dark, twilight overlay, brightness setting, silhouettes, draw order, brownouts shrink lights, in-light HUD cue, elapsed-time clock, flashlight always on, opening text | D55 (done) |
-| L-02 | Stage 2: hesitation, approach preference, solid things block light, coverage preview, relief events, perception, teaching the rule | L-01 |
+| L-02 | Stage 2: hesitation, approach preference, solid things block light, coverage preview, relief events, perception, teaching the rule, turret sight (§5.7) | L-01 |
 | L-03 | Stage 3: district roaming population | L-02, E-13 |
+| E-13 (roster task, listed for the pointer) | Carries the Breaker's power-line preference (§5.8) | see `TASKS.md` |
 | L-ACC | Owner check: the opening played in the dark; a raid against a partly lit base | L-02 |
 
 ## 9. Documents corrected at approval (2026-09-19)
@@ -160,14 +180,23 @@ Decided by the owner on 2026-09-19, each on the recommendation given:
 | What blocks light | Everything that stops a bullet: authored buildings and the player's Walls and Barricades (§5.3). This is the owner's own decision, against the recommendation to wait. |
 | The Home core lot when the core is disabled | Stays lit. Losing Home must not make recovery harder. |
 
+Decided by the owner on 2026-09-20 (U-D-59), each on the recommendation given, with the whole design approved by *"Looks good!"*:
+
+| Question | Decision |
+|---|---|
+| What light does for the defender in a raid | *"Fence and scope"*: aliens avoid it (§5.1, §5.2) and turrets see further in it (§5.7) |
+| Can a Spitter in the dark outrange an unlit turret | *"Yes, slightly"*: Gun turret dark sight 6, Spitter range 7 (§5.7) |
+| How hard Breakers go for the power line | *"Opportunist"*: a short detour from the raid route, never a separate target (§5.8) |
+| Does the flashlight let turrets see | *"No, keep it picture-only"* (§5.7; D-UI-11 stands) |
+
 Still open:
 
 1. **Overlay strength.** 0.55 is the starting value. The owner sets the final value by eye during L-01.
 2. **Where the substation step sits in the tutorial.** It stays after the Foundry for L-01. The owner decides whether to move it earlier after playing the opening in the dark.
 3. **Tram stops.** A powered stop should light its platform as a safe island. Agreed in principle; specified with the tram work.
 4. **The lit court's dark centre, and hard-edged streetlight pools (found 2026-09-20).** Powered, the six Founders Court streetlights leave a diamond-shaped unlit gap in the middle of the court, and their pools have tile-stepped edges beside the soft Home lot and flashlight. Once raids prefer dark approaches (§5.2) the gap is a way in. Decide in L-02: keep it as a deliberate weak spot, or close it (a seventh light or a larger radius), and whether to soften the edges.
-5. **The ending.** "Bring the sun back" is a natural campaign goal for this fiction. It is recorded here as a hook and is not designed.
+5. **The ending. Closed 2026-09-20 (U-D-60).** The owner chose *"Switch the city on"*: every lighting district (§6) live through the Master Switch, and the sun stays gone. "Bring the sun back" is retired as a hook. `GAME_DESIGN.md` §11 owns the ending; this spec owns only what lit means. One consequence lands here: a live district is fully lit in the mask on every street tile, and the guaranteed route in §5.2 must still hold with all nine live.
 
 ## 11. Out of scope
 
-Flashlight batteries or fuel; damage or fear from darkness; lamps that burn out; any change to alien hit points, speed or damage by light; Spitters targeting lamps and Breakers forcing lit approaches (both arrive with the roster, E-13 and E-14); night-only or time-of-day raid schedules; per-district skies.
+Flashlight batteries or fuel; damage or fear from darkness; lamps that burn out; any change to alien hit points, speed or damage by light; any change to the engineer's own weapons by light; gunfire or the flashlight counting as light (§5.7, §5.9); Spitters targeting lamps and Breakers forcing lit approaches (both arrive with the roster, E-13 and E-14; the Breaker's power-line detour in §5.8 is specified here and built there); night-only or time-of-day raid schedules; per-district skies.
