@@ -254,7 +254,10 @@ namespace Relight.Sim
         int BarricadeHp, int WallHp, int TurretHp, int CannonHp, int CoreHp,
         int RepairHp, double RepairSeconds, int RepairSteel, int RepairCopper,
         int CoreSteel, int CoreCopper, double CoreRepairSeconds,
-        string Kind = "provisional", string Source = "", bool Provisional = true)
+        string Kind = "provisional", string Source = "", bool Provisional = true,
+        // E-17 (U-D-61, U-P-14): a turret is "low" under this share of its hopper. Trailing and defaulted, so
+        // the generated catalogue row and every older fixture keep compiling.
+        double LowAmmoFraction = 0.25)
     {
         /// <summary>
         /// The same numbers <c>CatalogueData.Defence()</c> carries, so a <see cref="GameData"/> assembled without a

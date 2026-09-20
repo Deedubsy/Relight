@@ -31,7 +31,8 @@ namespace Relight.Presentation
         {
             if (_sprite == null || !_sprite.isVisible) return;
             var m=sim.State.MachineById(MachineId);
-            if(m==null || !MachineActivityVisual.Supports(sim.Context.Data,m))return;
+            // E-17: a wreck of any kind is supported while it is one, and put away once it is repaired.
+            if(m==null || !MachineActivityVisual.Supports(sim.Context.Data,sim.State,m)){_activity?.Hide();return;}
             if(_activity==null)_activity=new MachineActivityVisual(transform,material);
             _activity.Draw(sim,m,dt);
             if(_direction!=null && FlowRules.IsConveyor(m.Kind))

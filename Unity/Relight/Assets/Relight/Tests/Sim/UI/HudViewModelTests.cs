@@ -467,6 +467,44 @@ namespace Relight.Sim.Tests.UI
         }
 
         [Test]
+        public void ADryTurretIsOneStandingRowThatTurnsToDangerInARaidAndClearsOnAReload()
+        {
+            // E-17 (U-D-61). The row is a standing state: posted when what it says changes, never per refresh.
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            var phases = new System.Collections.Generic.List<ITickPhase> { new PowerPhase() };
+            var a = RaidFixture.Turret(ctx, st, 40, 40, 0);
+            var b = RaidFixture.Turret(ctx, st, 50, 40, 0);
+            st.Turrets.Of(a.Id).ShotT = 1;                           // both have fired: they ran dry, they were not
+            st.Turrets.Of(b.Id).ShotT = 1;                           // simply never loaded
+            RaidFixture.Run(ctx, st, 2, phases);
+
+            var vm = new HudViewModel();
+            for (var i = 0; i <= 20; i++) vm.Refresh(ctx, st, i * 0.15, false, false, force: true);
+            var key = DefenceAlertSource.KeyPrefix + "Home";
+            var row = Row(vm, key);
+            Assert.That(row, Is.Not.Null);
+            Assert.That(row.Text, Is.EqualTo("Home: 2 turrets dry"), "one row for the place, never one per gun");
+            Assert.That(row.Kind, Is.EqualTo(HudNoticeKind.Warning), "no raid: a chore, and the player may dismiss it");
+            Assert.That(row.Repeats, Is.EqualTo(1), "U-D-55: never re-posted per refresh");
+            Assert.That(RowsWith(vm, key), Is.EqualTo(1));
+
+            st.Director.Minor = new MinorRaid { StartsAt = st.T + 30 };
+            vm.Refresh(ctx, st, 4, false, false, force: true);
+            Assert.That(Row(vm, key).Kind, Is.EqualTo(HudNoticeKind.Danger), "dry with a raid warned is danger");
+            Assert.That(vm.Notices.Dismiss(key, 4), Is.False, "and a live danger cannot be dismissed");
+
+            a.Rounds = 50;
+            vm.Refresh(ctx, st, 5, false, false, force: true);
+            Assert.That(Row(vm, key).Text, Is.EqualTo("Home: 1 turret dry"), "the same row, updated in place");
+
+            b.Rounds = 50;
+            vm.Refresh(ctx, st, 6, false, false, force: true);
+            vm.Notices.Reap(6);
+            Assert.That(RowsWith(vm, key), Is.Zero, "reloaded: the row clears itself");
+        }
+
+        [Test]
         public void ABrownoutThatOnlySlowsAFactoryIsNotTheDefenceNotice()
         {
             var ctx = RaidFixture.Context();

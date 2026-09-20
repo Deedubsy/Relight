@@ -30,9 +30,13 @@ namespace Relight.Data
         [SerializeField] private int coreCopper = 5;
         [SerializeField] private double coreRepairSeconds = 12;
 
+        [Header("Turret ammunition alert (E-17, U-P-14)")]
+        [Tooltip("A turret is low on ammunition under this share of its hopper. A quarter is the owner's starting value.")]
+        [SerializeField] private double lowAmmoFraction = 0.25;
+
         public DefenceTuning ToRecord() => new DefenceTuning(barricadeHp, wallHp, turretHp, cannonHp, coreHp,
             repairHp, repairSeconds, repairSteel, repairCopper, coreSteel, coreCopper, coreRepairSeconds,
-            KindText, Source, Provisional);
+            KindText, Source, Provisional, lowAmmoFraction);
 
         public void Fill(DefenceTuning d)
         {
@@ -41,6 +45,7 @@ namespace Relight.Data
             coreHp = d.CoreHp; repairHp = d.RepairHp; repairSeconds = d.RepairSeconds;
             repairSteel = d.RepairSteel; repairCopper = d.RepairCopper;
             coreSteel = d.CoreSteel; coreCopper = d.CoreCopper; coreRepairSeconds = d.CoreRepairSeconds;
+            lowAmmoFraction = d.LowAmmoFraction;
         }
 
         public override string Problem()
@@ -50,6 +55,7 @@ namespace Relight.Data
             if (coreHp <= 0) return "the core needs hit points";
             if (repairHp <= 0 || repairSeconds <= 0) return "a repair must restore something and take time";
             if (repairSteel < 0 || repairCopper < 0 || coreSteel < 0 || coreCopper < 0) return "a repair cannot cost less than nothing";
+            if (lowAmmoFraction <= 0 || lowAmmoFraction >= 1) return "the low-ammunition share must be between nothing and a full hopper";
             if (coreRepairSeconds < repairSeconds) return "a recommission cannot be quicker than a patch";
             if (coreSteel < repairSteel || coreCopper < repairCopper) return "a recommission cannot be cheaper than a patch";
             return null;

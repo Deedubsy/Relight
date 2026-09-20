@@ -59,6 +59,13 @@ namespace Relight.Sim.UI
         /// <summary>The single power-alert producer (defect U-3). Nothing else may raise one.</summary>
         public readonly PowerAlertSource Power = new PowerAlertSource();
 
+        /// <summary>The single dry-turret and wreck producer (E-17, U-D-61), on the same one-producer rule.</summary>
+        public readonly DefenceAlertSource Defence = new DefenceAlertSource();
+
+        // What each defence row last said, so a standing row is posted on a change and never per refresh (U-D-55).
+        private readonly Dictionary<string, string> _defencePosted = new Dictionary<string, string>(StringComparer.Ordinal);
+        private readonly List<string> _defenceGone = new List<string>();
+
         /// <summary>The keyed alert inbox: one urgent strip plus at most three transient rows (§8).</summary>
         public readonly HudNotices Notices = new HudNotices();
 
@@ -192,6 +199,11 @@ namespace Relight.Sim.UI
             if (!brownout && _brownout) Notices.Clear(PowerAlertSource.BrownoutKey);
             _brownout = brownout;
 
+            // E-17 (U-D-61): one standing row per place for dry turrets and wrecks, from the one producer.
+            Defence.FallbackPlace = Power.PlaceName;
+            Defence.Refresh(ctx, st);
+            PostDefence(now);
+
             var maxCore = d.Defence != null ? d.Defence.CoreHp : 0;
             var hp = HomeQueries.CoreHp(st);
             if (st.Home != null && st.Home.Placed)
@@ -291,6 +303,39 @@ namespace Relight.Sim.UI
         public const string HesitationKey = "guide:light-hesitation";
         public const string BlindTurretKey = "guide:blind-turret";
         public const string DistrictLitKey = "light:district";
+
+        /// <summary>
+        /// Put the defence rows into the inbox. A row is a STANDING state (U-D-55), so it is posted only when what
+        /// it says changes — its sentence, or whether it is danger — and cleared the refresh its place clears.
+        /// Danger while a raid is warned or under way and a turret there is dry: §8's "dismissal never clears a
+        /// live danger". Otherwise a warning, which the player may dismiss and which stays dismissed.
+        /// </summary>
+        private void PostDefence(double now)
+        {
+            var rows = Defence.Rows;
+            _defenceGone.Clear();
+            foreach (var key in _defencePosted.Keys)
+            {
+                var stands = false;
+                for (var i = 0; i < rows.Count && !stands; i++) stands = string.Equals(rows[i].Key, key, StringComparison.Ordinal);
+                if (!stands) _defenceGone.Add(key);
+            }
+            for (var i = 0; i < _defenceGone.Count; i++)
+            {
+                Notices.Clear(_defenceGone[i]);
+                _defencePosted.Remove(_defenceGone[i]);
+            }
+
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var r = rows[i];
+                var danger = r.Urgent && r.Dry > 0;
+                var says = danger ? "!" + r.Text : r.Text;
+                if (_defencePosted.TryGetValue(r.Key, out var was) && string.Equals(was, says, StringComparison.Ordinal)) continue;
+                Notices.Post(r.Key, r.Text, danger ? HudNoticeKind.Danger : HudNoticeKind.Warning, now, double.PositiveInfinity);
+                _defencePosted[r.Key] = says;
+            }
+        }
 
         /// <summary>
         /// C-13. Turn this frame's events into notices, so what the SIM decided about a queued command reaches the

@@ -182,6 +182,7 @@ namespace Relight.Editor
                     P("Repair (s)", Num(defence.RepairSeconds)), P("Repair steel", Count(defence.RepairSteel)),
                     P("Repair copper", Count(defence.RepairCopper)), P("Recommission steel", Count(defence.CoreSteel)),
                     P("Recommission copper", Count(defence.CoreCopper)), P("Recommission (s)", Num(defence.CoreRepairSeconds)),
+                    P("Turret low on ammunition (share of hopper)", Num(defence.LowAmmoFraction)),
                 }, written);
 
                 var engineer = registry.Engineer.ToRecord();

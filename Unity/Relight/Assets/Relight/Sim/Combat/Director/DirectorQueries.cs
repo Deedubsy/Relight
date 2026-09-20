@@ -77,6 +77,17 @@ namespace Relight.Sim
             return new RaidWarning("", Math.Max(0, d.NextStart - st.T), "·", d.Notice, new Vec2(0, 0));
         }
 
+        /// <summary>
+        /// E-17 (U-D-61): is a raid warned or under way? True from the moment a raid is announced until it turns to
+        /// withdraw — the window in which a turret that is merely low on ammunition is worth a notice.
+        /// </summary>
+        public static bool RaidExpected(SimState st)
+        {
+            var d = st?.Director;
+            if (d == null) return false;
+            return (d.Minor != null && !d.Minor.Retreat) || (d.Major != null && !d.Major.Retreat);
+        }
+
         /// <summary>Compass word for the heading from the core to a point (reference <c>openingDirection</c>).</summary>
         public static string Direction(Vec2 at, double cx, double cy) =>
             DirectorRules.HeadingWord(DirectorRules.Heading(at.X - cx, at.Y - cy));

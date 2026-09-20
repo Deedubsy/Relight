@@ -24,6 +24,19 @@ namespace Relight.Presentation
         public static bool Supports(GameData d,Machine m) => FlowRules.IsConveyor(m.Kind) || FlowRules.IsInserter(m.Kind) ||
             PowerGrid.IsSource(d,m) || ProductionRules.IsProcessor(d,m) || ProductionRules.IsMiner(d,m) || TurretHopper.IsTurret(d,m);
 
+        /// <summary>
+        /// E-17 (U-D-61): anything at 0 hit points shows the wreck badge, so a wrecked Wall or chest is supported
+        /// for as long as it is a wreck even though it has no activity to draw.
+        /// </summary>
+        public static bool Supports(GameData d,SimState st,Machine m) => Supports(d,m) || TurretRules.Wrecked(d,st,m);
+
+        /// <summary>Put every stroke away: the machine stopped being supported (a wrecked Wall was repaired).</summary>
+        public void Hide()
+        {
+            for(var i=0;i<_strokes.Count;i++)_strokes[i].enabled=false;
+            _used=0;State=MachineOperatingState.Idle;
+        }
+
         public void Draw(Simulation sim,Machine m,float dt)
         {
             _used=0;_clock+=dt;
@@ -38,13 +51,20 @@ namespace Relight.Presentation
                     flow==FlowStatus.Starved ? MachineOperatingState.NoInput : belt||flow==FlowStatus.Running ? MachineOperatingState.Running : MachineOperatingState.Idle;
             }
             if(arm&&State==MachineOperatingState.Running&&throttle<1)State=MachineOperatingState.Throttled;
+            // A wreck is a wreck whatever it was: a belt or an arm at 0 hit points must not read as running.
+            var wreck=TurretRules.Wrecked(data,st,m);
+            if(wreck)State=MachineOperatingState.Disabled;
             var running=State==MachineOperatingState.Running||State==MachineOperatingState.Throttled;
             if(running)_motion+=dt*(belt?(float)FlowRules.Speed(data,m):source?1f:(float)throttle);
             var colour=running ? State==MachineOperatingState.Throttled?Amber:Mint :
                 State==MachineOperatingState.Unpowered||State==MachineOperatingState.OutOfFuel||State==MachineOperatingState.Disabled ? Red : Amber;
             var pulse=.68f+.32f*(.5f+.5f*Mathf.Sin(_clock*3.4f));
             var (w,h)=m.Dimensions;
-            if(belt) DrawBelt(st,m,colour);
+            if(belt)
+            {
+                DrawBelt(st,m,colour);
+                if(wreck){var on=new Vector2(w*.5f-.28f,h*.5f-.28f);Circle(on,.19f,Dark,.13f);WreckBadge(on);}
+            }
             else
             {
                 if(source || ProductionRules.IsMiner(data,m) || ProductionRules.IsProcessor(data,m))
@@ -73,9 +93,16 @@ namespace Relight.Presentation
                 var at=new Vector2(w*.5f-.28f,h*.5f-.28f);
                 Circle(at,.19f,Dark,.13f);
                 var c=colour;c.a=running?1:pulse;
+                // E-17 (U-D-61): the order is what the player must fix first. A wreck, then no power, then no
+                // ammunition (red, pulsing), then blind, then low ammunition (amber), then the ordinary reasons.
+                var turret=TurretHopper.IsTurret(data,m);
+                var ammo=turret ? TurretAmmo.State(data,m) : TurretAmmoState.Ok;
+                if(wreck) WreckBadge(at);
+                else if(turret && ammo==TurretAmmoState.Dry && State!=MachineOperatingState.Unpowered)
+                { var dry=Red;dry.a=pulse;AmmoBadge(at,dry,false); }
                 // L-02 (ALWAYS_DARK_SPEC §5.7): a turret being hit by something it cannot see into the dark. An eye
-                // with a slash, in the sim's own words (TurretQueries.Blind); unpowered reads first, as it must.
-                if(TurretHopper.IsTurret(data,m) && TurretQueries.Blind(ctx,st,m.Id))
+                // with a slash, in the sim's own words (TurretQueries.Blind, which is never true without power).
+                else if(turret && TurretQueries.Blind(ctx,st,m.Id))
                 {
                     var eye=Red;eye.a=pulse;
                     var lid=Stroke(9,.04f,eye);
@@ -95,6 +122,7 @@ namespace Relight.Presentation
                     Point(line,2,at+new Vector2(.065f,-.015f));Point(line,3,at+new Vector2(-.055f,-.14f));
                     Segment(at+new Vector2(-.13f,-.12f),at+new Vector2(.13f,.12f),Dark,.055f);
                 }
+                else if(turret && ammo==TurretAmmoState.Low)AmmoBadge(at,Amber,true);
                 else if(State==MachineOperatingState.OutputFull)
                 {
                     Segment(at+new Vector2(-.065f,-.12f),at+new Vector2(-.065f,.12f),c,.06f);
@@ -108,6 +136,26 @@ namespace Relight.Presentation
             }
             for(var i=_used;i<_strokes.Count;i++)_strokes[i].enabled=false;
         }
+        /// <summary>A wreck: a steady red cross, a shape no running reason uses. It does not pulse; nothing is changing.</summary>
+        private void WreckBadge(Vector2 at)
+        {
+            Segment(at+new Vector2(-.105f,-.105f),at+new Vector2(.105f,.105f),Red,.06f);
+            Segment(at+new Vector2(-.105f,.105f),at+new Vector2(.105f,-.105f),Red,.06f);
+        }
+
+        /// <summary>
+        /// Ammunition: one round, stood on its base. An outline alone is an empty hopper; the lower part filled in
+        /// is a hopper running low. Shape as well as colour, like every other badge here.
+        /// </summary>
+        private void AmmoBadge(Vector2 at,Color c,bool some)
+        {
+            var round=Stroke(6,.04f,c);
+            Point(round,0,at+new Vector2(-.06f,-.12f));Point(round,1,at+new Vector2(-.06f,.04f));
+            Point(round,2,at+new Vector2(0,.135f));Point(round,3,at+new Vector2(.06f,.04f));
+            Point(round,4,at+new Vector2(.06f,-.12f));Point(round,5,at+new Vector2(-.06f,-.12f));
+            if(some)Segment(at+new Vector2(-.03f,-.085f),at+new Vector2(.03f,-.085f),c,.07f);
+        }
+
         private void DrawBelt(SimState st,Machine m,Color colour)
         {
             var (w,h)=m.Dimensions;var centre=new Vector2(m.X+w/2f,m.Y+h/2f);

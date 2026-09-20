@@ -92,8 +92,10 @@ namespace Relight.Sim
             }
 
             // C-04: a turret is not a processor, but it has the same three answers a player needs — knocked out,
-            // no power, or standing ready. Ammunition is shown separately (the hopper gauge), so an empty but
-            // powered turret still reads as "running": it is working, it simply has nothing to fire.
+            // no power, or standing ready. Ammunition is not an operating state: an empty but powered turret
+            // still answers "running" here, because it is working and simply has nothing to fire. What the player
+            // SEES no longer follows that (E-17, U-D-61): the world badge and the hover read <see cref="TurretAmmo"/>
+            // on top of this answer, so an empty turret shows dry, not a green "running".
             //
             // GP-W5 narrowed the gate from IsDefence to IsTurret. IsDefence is now true of every buildable
             // machine, so this branch would have swallowed every assembler and miner and answered "idle"; a wall,
@@ -166,6 +168,12 @@ namespace Relight.Sim
                         if (m.Inv[(ItemId)i] >= 1) { output = $"{m.Inv[(ItemId)i]:0} {ctx.Data.Item((ItemId)i).DisplayName} / 1"; break; }
                     text += "\nOutput: " + output + " · adjacent conveyor pulls away; arrow marks direct output";
                 }
+                // E-17 (U-D-61): the hover says what the world badge says. It says it even where the badge cannot:
+                // an unpowered turret's one badge is the bolt, and the hover still adds that it is empty.
+                var ammo = TurretAmmo.State(ctx.Data, m);
+                if (ammo == TurretAmmoState.Dry) text += "\nOut of ammunition";
+                else if (ammo == TurretAmmoState.Low)
+                    text += $"\nLow on ammunition · {m.Rounds} / {TurretHopper.Capacity(ctx.Data, m)} rounds";
             }
             // GP-W5: a damaged or destroyed machine says so here, with its price, for EVERY kind — a wrecked
             // conveyor is as repairable as a wrecked turret and the two read the same. The state word above is
