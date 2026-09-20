@@ -59,7 +59,7 @@ namespace Relight.Sim.Tests.UI
         // ---- the clock --------------------------------------------------------------------------------------
 
         [Test]
-        public void TheClockCountsDaysAndPrintsPausedOnlyWhenPaused()
+        public void TheClockCountsElapsedTimeAndPrintsPausedOnlyWhenPaused()
         {
             Assert.That(HudViewModel.FormatClock(0, false), Is.EqualTo("0:00:00"));
             Assert.That(HudViewModel.FormatClock(600, false), Is.EqualTo("0:10:00"));

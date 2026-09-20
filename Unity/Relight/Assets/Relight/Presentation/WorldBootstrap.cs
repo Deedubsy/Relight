@@ -152,7 +152,7 @@ namespace Relight.Presentation
                 if(city==null)city=FindFirstObjectByType<CityPresenter>(FindObjectsInactive.Include);
                 if(city!=null)city.Build(active,siteList);
             }
-            return new SimContext(version>0 ? registry.Build() : registry.BuildOriginal(),map??SyntheticMap.Create(),threat:new EnemyThreatLayer(),sites:siteList,mapId:active!=null?active.MapId:null);
+            return new SimContext(version>0 ? registry.Build() : registry.BuildLegacy(),map??SyntheticMap.Create(),threat:new EnemyThreatLayer(),sites:siteList,mapId:active!=null?active.MapId:null);
 
         }
     }

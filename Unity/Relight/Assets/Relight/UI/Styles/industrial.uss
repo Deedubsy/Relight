@@ -53,7 +53,10 @@ Button:focus { border-width: 1px; border-color: #e3b96f; }
 #status-content { padding: 7px 10px; height: 54px; max-width: 700px; }
 .strip-block { padding: 2px 14px; justify-content: center; min-height: 0; height: auto; }
 .strip-value { font-size: 15px; }
-#clock-block { width: 160px; }
+#clock-block { width: 160px; padding-top: 0; padding-bottom: 0; }
+/* Two lines in a strip sized for one: the clock and the in-light cue lose the label padding, and the cue is smaller. */
+#clock-block .strip-value { padding: 0; margin: 0; }
+#light-state { font-size: 12px; }
 #power-block { max-width: 290px; }
 #core-block { width: 210px; }
 .strip-rule { background-color: #777158; margin: 7px 0; }

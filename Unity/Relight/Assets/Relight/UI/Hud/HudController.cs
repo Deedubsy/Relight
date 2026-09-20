@@ -177,7 +177,7 @@ namespace Relight.UI
         private TooltipContent ClockTooltip() => new TooltipContent
         {
             Title = _model.Clock,
-            Body = "Day and time of day. Raids come at night, and lamps only help where there is power."
+            Body = "Time played. Below it, whether you are standing in light or in the dark. Lamps only help where there is power."
         };
 
         /// <summary>Generation, demand and what is actually delivered — <see cref="PowerSummary"/>, unrounded by me.</summary>
