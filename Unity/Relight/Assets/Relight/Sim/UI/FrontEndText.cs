@@ -58,18 +58,17 @@ namespace Relight.Sim.UI
                     : "Your current session has unsaved progress since " + lastSaveTime + ".",
                 "Save and load", "Load without saving", "Cancel");
 
-        public static Confirmation Overwrite(string slotLabel, int day, string savedTime)
+        /// <summary><paramref name="played"/> is <see cref="SaveRowFormatter.Played"/>: the port has no days (U-D-58).</summary>
+        public static Confirmation Overwrite(string slotLabel, string played, string savedTime)
             => new Confirmation(
                 "Overwrite this save?",
-                slotLabel + " holds Day " + day.ToString(CultureInfo.InvariantCulture)
-                    + ", saved " + savedTime + ". It will be replaced.",
+                slotLabel + " (" + played + ", saved " + savedTime + ") will be replaced.",
                 "Overwrite", "Cancel");
 
-        public static Confirmation Delete(string slotLabel, int day, string savedTime)
+        public static Confirmation Delete(string slotLabel, string played, string savedTime)
             => new Confirmation(
                 "Delete this save?",
-                slotLabel + " · Day " + day.ToString(CultureInfo.InvariantCulture)
-                    + " · saved " + savedTime + ". This cannot be undone.",
+                slotLabel + " · " + played + " · saved " + savedTime + ". This cannot be undone.",
                 "Delete", "Cancel");
 
         public static Confirmation QuitGame(string lastSaveTime)
@@ -99,9 +98,9 @@ namespace Relight.Sim.UI
         public const string AutosaveStopped =
             "Autosaving is not working. Save manually to protect your progress.";
 
-        /// <summary>§2.7.1 — the transient notice after a successful autosave, e.g. "Autosaved · Day 4, 1:12:30."</summary>
-        public static string Autosaved(int day, string playtime)
-            => "Autosaved · Day " + day.ToString(CultureInfo.InvariantCulture) + ", " + playtime + ".";
+        /// <summary>§2.7.1 — the transient notice after a successful autosave, e.g. "Autosaved · 1:12:30 played."</summary>
+        public static string Autosaved(string playtime)
+            => "Autosaved · " + playtime + " played.";
 
         // ---- Settings (§3.8, settingsPanel.ts) -------------------------------------------------------------
 

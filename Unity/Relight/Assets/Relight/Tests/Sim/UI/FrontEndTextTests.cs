@@ -40,16 +40,16 @@ namespace Relight.Sim.Tests
         }
 
         [Test]
-        public void OverwriteAndDeleteBothNameTheSlotTheDayAndTheTime()
+        public void OverwriteAndDeleteBothNameTheSlotThePlaytimeAndTheTime()
         {
-            var o = FrontEndText.Overwrite("Slot 1", 4, "11 Sep 2026, 20:14");
+            var o = FrontEndText.Overwrite("Slot 1", "1:12:30 played", "11 Sep 2026, 20:14");
             Assert.AreEqual("Overwrite this save?", o.Title);
-            Assert.AreEqual("Slot 1 holds Day 4, saved 11 Sep 2026, 20:14. It will be replaced.", o.Body);
+            Assert.AreEqual("Slot 1 (1:12:30 played, saved 11 Sep 2026, 20:14) will be replaced.", o.Body);
             CollectionAssert.AreEqual(new[] { "Overwrite", "Cancel" }, o.Buttons);
 
-            var d = FrontEndText.Delete("Slot 1", 4, "11 Sep 2026, 20:14");
+            var d = FrontEndText.Delete("Slot 1", "1:12:30 played", "11 Sep 2026, 20:14");
             Assert.AreEqual("Delete this save?", d.Title);
-            Assert.AreEqual("Slot 1 · Day 4 · saved 11 Sep 2026, 20:14. This cannot be undone.", d.Body);
+            Assert.AreEqual("Slot 1 · 1:12:30 played · saved 11 Sep 2026, 20:14. This cannot be undone.", d.Body);
             CollectionAssert.AreEqual(new[] { "Delete", "Cancel" }, d.Buttons);
         }
 
@@ -69,9 +69,9 @@ namespace Relight.Sim.Tests
         }
 
         [Test]
-        public void TheAutosaveNoticeNamesTheDayAndThePlaytime()
+        public void TheAutosaveNoticeNamesThePlaytimeAndNoDay()
         {
-            Assert.AreEqual("Autosaved · Day 4, 1:12:30.", FrontEndText.Autosaved(4, "1:12:30"));
+            Assert.AreEqual("Autosaved · 1:12:30 played.", FrontEndText.Autosaved("1:12:30"));
         }
 
         [Test]

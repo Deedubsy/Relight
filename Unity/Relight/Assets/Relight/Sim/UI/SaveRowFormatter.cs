@@ -7,13 +7,13 @@ namespace Relight.Sim.UI
     /// <summary>
     /// C-10. Turns a <see cref="SaveRow"/> into the exact line UI_AND_ONBOARDING.md §2.6.2 and §2.7.1 specify:
     ///
-    /// <code>Slot 1 · Day 4 · 1:12:30 · saved 11 Sep 2026, 20:14</code>
-    /// <code>Autosave 3 · Day 4 · 1:12:30 · saved 11 Sep 2026, 20:14</code>
+    /// <code>Slot 1 · 1:12:30 played · saved 11 Sep 2026, 20:14</code>
+    /// <code>Autosave 3 · 1:12:30 played · saved 11 Sep 2026, 20:14</code>
     ///
     /// Rules carried over verbatim:
     /// <list type="bullet">
-    /// <item>Day is <c>floor(t / daySeconds) + 1</c> with the catalogue's 1200 s day, the same arithmetic the HUD
-    ///       clock uses (<c>StatusPanelViewModel.FormatClock</c>).</item>
+    /// <item>The specification's row also states a Day. The port has no days (U-D-58), so the row says how long
+    ///       the save has been played instead, as the HUD clock does.</item>
     /// <item>Playtime comes from the save's <c>playSeconds</c>; a save without one shows its sim elapsed time and
     ///       says so — "1:12:30 sim time" — rather than quietly presenting a different measurement as the same one.</item>
     /// <item>The map id is shown only when it differs from the running game's.</item>
@@ -36,20 +36,22 @@ namespace Relight.Sim.UI
         /// <summary>§2.6.1 — Continue when there is nothing to continue.</summary>
         public const string NoSaveText = "No saved game yet";
 
-        /// <summary>The day number a save is in (§2.6.2).</summary>
-        public static int Day(double t, double daySeconds)
-        {
-            if (daySeconds <= 0) daySeconds = 1;
-            if (t < 0) t = 0;
-            return (int)Math.Floor(t / daySeconds) + 1;
-        }
-
         /// <summary>"1:12:30", or "1:12:30 sim time" when the save carries no play accumulator.</summary>
         public static string Playtime(SaveRow row)
         {
             if (row == null) return "";
             if (row.PlaySeconds > 0) return PlayClock.Clock(row.PlaySeconds);
             return PlayClock.Clock(row.T) + " sim time";
+        }
+
+        /// <summary>
+        /// How long a save has been played, as a row says it: "1:12:30 played", or "1:12:30 sim time" when the
+        /// save carries no play accumulator. U-D-58: the port has no days, so a row no longer states a Day.
+        /// </summary>
+        public static string Played(SaveRow row)
+        {
+            if (row == null) return "";
+            return row.PlaySeconds > 0 ? Playtime(row) + " played" : Playtime(row);
         }
 
         /// <summary>
@@ -67,18 +69,17 @@ namespace Relight.Sim.UI
         }
 
         /// <summary>The whole row line. <paramref name="latest"/> appends the newest-autosave tag.</summary>
-        public static string Line(SaveRow row, double daySeconds, bool latest = false)
+        public static string Line(SaveRow row, bool latest = false)
         {
             if (row == null) return "";
             var text = row.Label;
             if (row.Problem.Length != 0 || row.SavedAt.Length == 0)
             {
-                // No readable header: there is no Day and no playtime to state. Say only what is true.
+                // No readable header: there is no playtime to state. Say only what is true.
                 if (latest) text += " · " + LatestTag;
                 return text;
             }
-            text += " · Day " + Day(row.T, daySeconds).ToString(CultureInfo.InvariantCulture);
-            text += " · " + Playtime(row);
+            text += " · " + Played(row);
             var saved = SavedAtText(row.SavedAt);
             if (saved.Length != 0) text += " · saved " + saved;
             if (latest) text += " · " + LatestTag;

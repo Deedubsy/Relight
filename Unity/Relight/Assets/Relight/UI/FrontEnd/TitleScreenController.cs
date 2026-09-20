@@ -61,9 +61,6 @@ namespace Relight.UI.FrontEnd
                  "refuses, in the same words.")]
         [SerializeField] private string currentMapId = "";
 
-        [Tooltip("Seconds in a campaign day, for the Day number on a row. Catalogue §13 value.")]
-        [SerializeField] private double daySeconds = 1200;
-
         private VisualElement _root;
         private VisualElement _screenMenu, _screenNew, _screenLoad, _screenSettings, _settingsHost;
         private Button _continue, _new, _load, _settingsButton, _quit;
@@ -276,9 +273,9 @@ namespace Relight.UI.FrontEnd
             var autos = _saves.Autosaves();
             var latest = SaveCatalogue.LatestAutosave(autos, currentMapId);
 
-            SaveListView.Paint(saveRow, _manualList, manual, currentMapId, daySeconds, null,
+            SaveListView.Paint(saveRow, _manualList, manual, currentMapId, null,
                 FrontEndText.LoadRowAction, StartLoad, Delete);
-            SaveListView.Paint(saveRow, _autosaveList, autos, currentMapId, daySeconds, latest,
+            SaveListView.Paint(saveRow, _autosaveList, autos, currentMapId, latest,
                 FrontEndText.LoadRowAction, StartLoad, Delete);
 
             var empty = manual.Count == 0 && autos.Count == 0;
@@ -291,9 +288,8 @@ namespace Relight.UI.FrontEnd
         private void Delete(SaveRow row)
         {
             if (row == null || _modal == null) return;
-            var day = SaveRowFormatter.Day(row.T, daySeconds);
             var when = SaveRowFormatter.SavedAtText(row.SavedAt);
-            _modal.Show(FrontEndText.Delete(row.Label, day, when), index =>
+            _modal.Show(FrontEndText.Delete(row.Label, SaveRowFormatter.Played(row), when), index =>
             {
                 if (index != 0) return;                       // 0 = Delete, 1 = Cancel
                 var problem = _saves.Delete(row);

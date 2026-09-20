@@ -41,7 +41,6 @@ namespace Relight.UI.FrontEnd
             VisualElement container,
             IReadOnlyList<SaveRow> rows,
             string currentMapId,
-            double daySeconds,
             SaveRow latest,
             string primaryText,
             Action<SaveRow> onPrimary,
@@ -64,7 +63,7 @@ namespace Relight.UI.FrontEnd
                 var element = tree.Q<VisualElement>("save-row") ?? tree;
 
                 var line = tree.Q<Label>("row-line");
-                if (line != null) line.text = SaveRowFormatter.Line(row, daySeconds, ReferenceEquals(row, latest));
+                if (line != null) line.text = SaveRowFormatter.Line(row, ReferenceEquals(row, latest));
 
                 var reason = SaveRowFormatter.DisabledReason(row, currentMapId);
                 var detail = tree.Q<Label>("row-detail");

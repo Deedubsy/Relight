@@ -5,7 +5,8 @@ namespace Relight.Sim.Tests
 {
     /// <summary>
     /// C-10. The Load screen's rows, UI_AND_ONBOARDING.md §2.6.2 and §2.7.1. The example row in the spec is
-    /// <c>Slot 1 · Day 4 · 1:12:30 · saved 11 Sep 2026, 20:14</c>, and that is what these assert.
+    /// <c>Slot 1 · Day 4 · 1:12:30 · saved 11 Sep 2026, 20:14</c>; the port has no days (U-D-58), so these assert
+    /// <c>Slot 1 · 1:12:30 played · saved 11 Sep 2026, 20:14</c>.
     /// </summary>
     public sealed class SaveRowFormatterTests
     {
@@ -16,19 +17,11 @@ namespace Relight.Sim.Tests
             => new SaveRow { Name = label, Label = label, T = t, PlaySeconds = play, MapId = map, SavedAt = savedAt };
 
         [Test]
-        public void DayCountsFromOne()
+        public void ARowNamesTheSlotThePlaytimeAndTheSaveTimeAndNoDay()
         {
-            Assert.AreEqual(1, SaveRowFormatter.Day(0, Day));
-            Assert.AreEqual(1, SaveRowFormatter.Day(Day - 0.001, Day));
-            Assert.AreEqual(2, SaveRowFormatter.Day(Day, Day));
-            Assert.AreEqual(4, SaveRowFormatter.Day(3 * Day + 10, Day));
-        }
-
-        [Test]
-        public void ARowNamesTheSlotTheDayThePlaytimeAndTheSaveTime()
-        {
-            var line = SaveRowFormatter.Line(Row(), Day);
-            StringAssert.StartsWith("Slot 1 · Day 4 · 1:12:30 · saved ", line);
+            var line = SaveRowFormatter.Line(Row());
+            StringAssert.StartsWith("Slot 1 · 1:12:30 played · saved ", line);
+            StringAssert.DoesNotContain("Day", line);
         }
 
         [Test]
@@ -36,6 +29,7 @@ namespace Relight.Sim.Tests
         {
             var row = Row(play: 0, t: 4350);
             Assert.AreEqual("1:12:30 sim time", SaveRowFormatter.Playtime(row));
+            Assert.AreEqual("1:12:30 sim time", SaveRowFormatter.Played(row), "sim time is not called played");
             Assert.AreEqual("1:12:30", SaveRowFormatter.Playtime(Row(play: 4350)));
         }
 
@@ -43,8 +37,8 @@ namespace Relight.Sim.Tests
         public void TheNewestAutosaveCarriesTheLatestTag()
         {
             var row = Row("Autosave 3");
-            StringAssert.EndsWith(" · Latest", SaveRowFormatter.Line(row, Day, latest: true));
-            Assert.IsFalse(SaveRowFormatter.Line(row, Day).EndsWith(" · Latest"));
+            StringAssert.EndsWith(" · Latest", SaveRowFormatter.Line(row, latest: true));
+            Assert.IsFalse(SaveRowFormatter.Line(row).EndsWith(" · Latest"));
         }
 
         [Test]
@@ -78,7 +72,7 @@ namespace Relight.Sim.Tests
             var row = new SaveRow { Name = "slot-2", Label = "Slot 2", Problem = "this save is damaged (its contents do not match its checksum)" };
             Assert.AreEqual("this save is damaged (its contents do not match its checksum)",
                 SaveRowFormatter.DisabledReason(row, "riverfront-arc-v4"));
-            Assert.AreEqual("Slot 2", SaveRowFormatter.Line(row, Day), "no Day and no playtime are invented for a header that was never read");
+            Assert.AreEqual("Slot 2", SaveRowFormatter.Line(row), "no playtime is invented for a header that was never read");
         }
 
         [Test]

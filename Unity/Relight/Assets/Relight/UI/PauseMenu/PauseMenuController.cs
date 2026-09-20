@@ -58,9 +58,6 @@ namespace Relight.UI.PauseMenu
         [Tooltip("The scene the front end lives in.")]
         [SerializeField] private string titleSceneName = "MainMenu";
 
-        [Tooltip("Seconds of sim time in one day, for the Day numbers on save rows. Must match the sim's.")]
-        [SerializeField] private double daySeconds = 1200;
-
         [Tooltip("This build's map id, so a save from another map is shown disabled with the store's reason.")]
         [SerializeField] private string currentMapId = "";
 
@@ -312,7 +309,7 @@ namespace Relight.UI.PauseMenu
             if (_saves == null) return;
             var rows = _saves.Manual();
             var painted = SaveListView.Paint(
-                saveRow, _saveList, rows, currentMapId, daySeconds, null,
+                saveRow, _saveList, rows, currentMapId, null,
                 FrontEndText.SaveIntoSlot, OnOverwrite, null,
                 // A save made on another map can be overwritten; only loading it is refused. The default rule
                 // would disable it here, so the Save screen supplies its own: nothing blocks an overwrite.
@@ -327,9 +324,8 @@ namespace Relight.UI.PauseMenu
         private void OnOverwrite(SaveRow row)
         {
             if (row == null || _modal == null) return;
-            var day = SaveRowFormatter.Day(row.T, daySeconds);
             var when = SaveRowFormatter.SavedAtText(row.SavedAt);
-            _modal.Show(FrontEndText.Overwrite(row.Label, day, when), index =>
+            _modal.Show(FrontEndText.Overwrite(row.Label, SaveRowFormatter.Played(row), when), index =>
             {
                 if (index == 0) DoSave(row.Name);
             });
@@ -347,9 +343,8 @@ namespace Relight.UI.PauseMenu
                 var existing = Find(_saves.Manual(), name);
                 if (existing != null && _modal != null)
                 {
-                    var day = SaveRowFormatter.Day(existing.T, daySeconds);
                     var when = SaveRowFormatter.SavedAtText(existing.SavedAt);
-                    _modal.Show(FrontEndText.Overwrite(existing.Label, day, when), index =>
+                    _modal.Show(FrontEndText.Overwrite(existing.Label, SaveRowFormatter.Played(existing), when), index =>
                     {
                         if (index == 0) DoSave(name);
                     });
@@ -412,9 +407,9 @@ namespace Relight.UI.PauseMenu
             all.AddRange(autos);
             var latest = SaveCatalogue.LatestAutosave(all, currentMapId);
 
-            var m = SaveListView.Paint(saveRow, _manualList, manual, currentMapId, daySeconds, latest,
+            var m = SaveListView.Paint(saveRow, _manualList, manual, currentMapId, latest,
                 FrontEndText.LoadRowAction, AskLoad, AskDelete, DeleteBlocked);
-            var a = SaveListView.Paint(saveRow, _autosaveList, autos, currentMapId, daySeconds, latest,
+            var a = SaveListView.Paint(saveRow, _autosaveList, autos, currentMapId, latest,
                 FrontEndText.LoadRowAction, AskLoad, AskDelete, DeleteBlocked);
 
             _manualHeading?.EnableInClassList("hidden", m == 0);
@@ -471,9 +466,8 @@ namespace Relight.UI.PauseMenu
             var blocked = DeleteBlocked(row);
             if (blocked.Length > 0) { Say(_loadNotice, blocked, true); return; }
 
-            var day = SaveRowFormatter.Day(row.T, daySeconds);
             var when = SaveRowFormatter.SavedAtText(row.SavedAt);
-            _modal.Show(FrontEndText.Delete(row.Label, day, when), index =>
+            _modal.Show(FrontEndText.Delete(row.Label, SaveRowFormatter.Played(row), when), index =>
             {
                 if (index != 0) return;
                 var problem = _saves?.Delete(row) ?? "";
@@ -546,9 +540,8 @@ namespace Relight.UI.PauseMenu
 
             var state = host?.Simulation?.State;
             if (state == null) return;
-            var day = SaveRowFormatter.Day(state.T, daySeconds);
             var playtime = PlayClock.Clock(PlayClock.SecondsFor(state.Tick));
-            Notice(FrontEndText.Autosaved(day, playtime), false, true);
+            Notice(FrontEndText.Autosaved(playtime), false, true);
         }
 
         private void Notice(string text, bool bad, bool transient)
