@@ -134,8 +134,15 @@ namespace Relight.UI
                 return interact + " interacts · " + Key("World/Move", "WASD") +
                        " moves · Build opens with " + build + ". Find all controls in Help.";
             return interact + " interacts · " + Key("World/Move", "W/A/S/D") +
-                   " moves · " + build + " opens Build. Hold left-click to mine.";
+                   " moves · " + build + " opens Build. Hold left-click to mine. " + DarkLine;
         }
+
+        /// <summary>
+        /// U-D-58: the port is always dark, and nothing else in the opening says so. One sentence on the first
+        /// card names the flashlight and the HUD cue under the clock (ALWAYS_DARK_SPEC.md §3).
+        /// </summary>
+        private const string DarkLine =
+            "It is always dark: your flashlight points at the mouse, and the clock shows whether you stand in light.";
 
         /// <summary>Both movement and mining have been shown to work (PLAYER_EXPERIENCE_CORRECTIONS scope F).</summary>
         private bool Demonstrated()
