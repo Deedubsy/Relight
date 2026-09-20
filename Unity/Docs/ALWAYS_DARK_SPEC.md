@@ -165,7 +165,8 @@ Still open:
 1. **Overlay strength.** 0.55 is the starting value. The owner sets the final value by eye during L-01.
 2. **Where the substation step sits in the tutorial.** It stays after the Foundry for L-01. The owner decides whether to move it earlier after playing the opening in the dark.
 3. **Tram stops.** A powered stop should light its platform as a safe island. Agreed in principle; specified with the tram work.
-4. **The ending.** "Bring the sun back" is a natural campaign goal for this fiction. It is recorded here as a hook and is not designed.
+4. **The lit court's dark centre, and hard-edged streetlight pools (found 2026-09-20).** Powered, the six Founders Court streetlights leave a diamond-shaped unlit gap in the middle of the court, and their pools have tile-stepped edges beside the soft Home lot and flashlight. Once raids prefer dark approaches (§5.2) the gap is a way in. Decide in L-02: keep it as a deliberate weak spot, or close it (a seventh light or a larger radius), and whether to soften the edges.
+5. **The ending.** "Bring the sun back" is a natural campaign goal for this fiction. It is recorded here as a hook and is not designed.
 
 ## 11. Out of scope
 

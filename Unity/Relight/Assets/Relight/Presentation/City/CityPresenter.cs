@@ -118,6 +118,20 @@ namespace Relight.Presentation
         /// <summary>Enterable buildings whose roof fades while the engineer is inside (22 on the full city).</summary>
         public int FadingRoofs => _roofs.Count;
 
+        /// <summary>How many streetlight lamp heads are drawn, and how many of them are drawn lit.</summary>
+        public int StreetLamps => _lamps.Count;
+        public int LitStreetLamps { get { var n = 0; for (var i = 0; i < _lamps.Count; i++) if (_lamps[i].Lit) n++; return n; } }
+
+        private sealed class StreetLamp
+        {
+            public SiteRecord Site;
+            public SpriteRenderer Head, Glow;
+            public bool Lit;
+        }
+        private readonly List<StreetLamp> _lamps = new List<StreetLamp>();
+        private SimState _lampState;
+        private int _lampTick = -1;
+
         private sealed class RoofFade
         {
             public SpriteRenderer Renderer;
@@ -194,6 +208,7 @@ namespace Relight.Presentation
         public void ClearCity()
         {
             _roofs.Clear();
+            _lamps.Clear(); _lampState = null; _lampTick = -1;
             _resources.Clear();_resourceState=null;_resourceInitial=null;_resourceTick=-1;
             _count = _buildings = _props = _segments = _areas = _labels = 0;
             _built = null;
@@ -417,6 +432,26 @@ namespace Relight.Presentation
             foreach (var s in sites.OfKind(SiteKind.Substation))
                 Area(parent, "Substation " + s.Id, s.X, s.Y, s.W, s.H, _sprites.Substation, Color.white, ZProp);
 
+            // The authored streetlights. The post sits in the world under the darkness; the lamp head and its glow
+            // are drawn over it, so a dead lamp can be found in the dark and a lit one reads as the light's source.
+            // Which it is comes from the sim (StreetLights.Lit), once a tick, in RefreshStreetLights.
+            var all = sites.All;
+            for (var i = 0; i < all.Count; i++)
+            {
+                var s = all[i];
+                if (!StreetLights.IsStreetLight(s)) continue;
+                Area(parent, "Street light post " + s.Id, s.X + 0.36f, s.Y + 0.36f, 0.28f, 0.28f, _sprites.Quad,
+                    CityPalette.LampPost, ZProp);
+                var glow = Area(parent, "Street light glow " + s.Id, s.X - 0.4f, s.Y - 0.4f, 1.8f, 1.8f, _sprites.Disc,
+                    CityPalette.LampGlow, ZProp);
+                glow.sortingOrder = DrawOrder.StreetLampGlow;
+                glow.enabled = false;
+                var head = Area(parent, "Street light head " + s.Id, s.X + 0.2f, s.Y + 0.2f, 0.6f, 0.6f, _sprites.Disc,
+                    CityPalette.LampDead, ZProp);
+                head.sortingOrder = DrawOrder.StreetLamp;
+                _lamps.Add(new StreetLamp { Site = s, Head = head, Glow = glow });
+            }
+
             foreach (var s in sites.OfKind(SiteKind.TramStop))
             {
                 Area(parent, "Stop " + s.Id, s.X - 1f, s.Y - 1f, 4f, 1f, _sprites.Quad,
@@ -471,6 +506,7 @@ namespace Relight.Presentation
         private void LateUpdate()
         {
             RefreshResources();
+            RefreshStreetLights();
             if (_roofs.Count == 0) return;
             var sim = host == null ? null : host.Simulation;
             if (sim == null) return;
@@ -491,6 +527,26 @@ namespace Relight.Presentation
                 var c = roof.Colour;
                 c.a = roof.Alpha;
                 roof.Renderer.color = c;
+            }
+        }
+
+        /// <summary>Lamp heads follow the sim's answer, once a tick. Picture only: nothing here lights a tile.</summary>
+        private void RefreshStreetLights()
+        {
+            if (_lamps.Count == 0) return;
+            var sim = host != null ? host.Simulation : null;
+            if (sim == null) return;
+            if (ReferenceEquals(_lampState, sim.State) && _lampTick == sim.State.Tick) return;
+            _lampState = sim.State; _lampTick = sim.State.Tick;
+            for (var i = 0; i < _lamps.Count; i++)
+            {
+                var lamp = _lamps[i];
+                if (lamp.Head == null) continue;
+                var lit = StreetLights.Lit(sim.Context, sim.State, lamp.Site);
+                if (lit == lamp.Lit) continue;
+                lamp.Lit = lit;
+                lamp.Head.color = lit ? CityPalette.LampLit : CityPalette.LampDead;
+                if (lamp.Glow != null) lamp.Glow.enabled = lit;
             }
         }
 

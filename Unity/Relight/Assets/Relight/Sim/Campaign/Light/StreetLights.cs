@@ -56,6 +56,20 @@ namespace Relight.Sim
         }
 
         /// <summary>
+        /// True while this streetlight is on: its circuit is throttled above zero, the same test
+        /// <see cref="LightSources.Collect"/> lights it by. The picture asks this to draw the lamp head lit or dead.
+        /// </summary>
+        public static bool Lit(SimContext ctx, SimState st, SiteRecord s) =>
+            ctx != null && st != null && Throttle(PowerGrid.Of(ctx, st), s) > 0;
+
+        /// <summary>The throttle of the circuit this streetlight is billed to, or 0 when it is on none.</summary>
+        public static double Throttle(PowerNetwork grid, SiteRecord s)
+        {
+            var c = grid == null || s == null ? null : grid.OfSite(s.Id);
+            return c != null ? c.Throttle : 0;
+        }
+
+        /// <summary>
         /// One streetlight's draw in kW. <see cref="PowerTuning"/> has no streetlight row yet (the report carries the
         /// patch that adds <c>StreetLightKw</c>), so this is <see cref="LightRules.StreetLightKw"/> — the imported
         /// region's own <c>scalars.lightKw</c> = 2.

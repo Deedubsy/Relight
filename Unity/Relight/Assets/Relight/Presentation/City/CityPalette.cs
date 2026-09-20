@@ -63,6 +63,10 @@ namespace Relight.Presentation
         public static readonly Color SubstationRib = Rgb(0x9da890);
         public static readonly Color StopPlatform = Rgb(0xb9b39a);
         public static readonly Color StopMarker = Rgb(0xe3bb69);
+        public static readonly Color LampPost = Rgb(0x30352f);
+        public static readonly Color LampDead = Rgb(0x71808a);
+        public static readonly Color LampLit = Rgb(0xffe6a8);
+        public static readonly Color LampGlow = new Color(1f, 0.87f, 0.55f, 0.28f);
 
         // ---------------------------------------------------------------- resources (riverfrontDraw.ts:62)
         public static Color Resource(string item)

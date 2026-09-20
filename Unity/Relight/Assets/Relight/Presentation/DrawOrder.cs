@@ -8,6 +8,9 @@ namespace Relight.Presentation
     public static class DrawOrder
     {
         public const int Darkness = 500;
+        /// <summary>A streetlight's glow and lamp head: over the darkness, so a dead lamp can be found in the dark.</summary>
+        public const int StreetLampGlow = 504;
+        public const int StreetLamp = 505;
         public const int Cable = 510;
         public const int CablePulse = 511;
         public const int MachineCue = 512;

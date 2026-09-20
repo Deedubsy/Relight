@@ -49,8 +49,7 @@ namespace Relight.Sim
                 for (var i = 0; i < sites.Count; i++)
                 {
                     var s = sites[i];
-                    var c = grid.OfSite(s.Id);
-                    var throttle = c != null ? c.Throttle : 0;
+                    var throttle = StreetLights.Throttle(grid, s);
                     var on = throttle > 0;                     // flow.ts:620 subPowered
                     into.Add(new Light(s.X, s.Y, r * LightRules.BrownoutScale(throttle), LightKind.StreetLight, on));
                 }

@@ -296,9 +296,11 @@ namespace Relight.Sim.Tests.Campaign
 
             RaidFixture.Run(ctx, st, 1, Phases());
             Assert.That(LightQueries.LitAt(st, 30, 30), Is.False, "unreachable, so unlit");
+            Assert.That(StreetLights.Lit(ctx, st, StreetLights.Sites(ctx)[0]), Is.False, "and its lamp head is drawn dead");
 
             RaidFixture.Power(ctx, st, 32, 30);
             RaidFixture.Run(ctx, st, 1, Phases());
+            Assert.That(StreetLights.Lit(ctx, st, StreetLights.Sites(ctx)[0]), Is.True, "the lamp head follows the same circuit");
 
             var n = PowerQueries.Network(ctx, st);
             Assert.That(n.DemandKw, Is.EqualTo(LightRules.StreetLightKw).Within(1e-9),
