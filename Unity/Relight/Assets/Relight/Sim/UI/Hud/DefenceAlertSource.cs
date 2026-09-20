@@ -34,7 +34,8 @@ namespace Relight.Sim.UI
     /// </list>
     /// A place is a lighting district: the authored substation site nearest the machine (ALWAYS_DARK_SPEC §6, the
     /// rule <see cref="PowerGrid.SubstationOf"/> assigns streetlights by), or <see cref="FallbackPlace"/> on a map
-    /// with no substation sites.
+    /// with no substation sites. It is shown under the name of the label nearest that substation
+    /// (<see cref="PlaceOf"/>).
     ///
     /// "Raised" is remembered here, not in the save. After a load a dry turret raises its row again at once; a
     /// place left with wrecks only comes back silent, and its wrecks still carry their world badges.
@@ -121,11 +122,18 @@ namespace Relight.Sim.UI
         private static bool Supplied(SimContext ctx, SimState st, Machine m) =>
             !ctx.Data.TryTurret(m.Kind, out var def) || def.PowerKw <= 0 || PowerQueries.Supplied(ctx, st, m.Id);
 
-        /// <summary>The name of the substation site nearest the machine's centre, or <see cref="FallbackPlace"/>.</summary>
+        /// <summary>
+        /// The name of the machine's place, or <see cref="FallbackPlace"/>. The place is the substation site nearest
+        /// the machine's centre. What the player reads is the named label nearest that substation, because the real
+        /// city calls its substation sites "Substation 0" to "Substation 8" and gives each one named label beside it
+        /// (Founders Court, Ironworks, ...). A map with no labels keeps the substation's own name. This is naming
+        /// only: two substations that share a label share a row, and no sim decision reads it.
+        /// </summary>
         public string PlaceOf(SimContext ctx, Machine m)
         {
             var subs = PowerGrid.SubstationSites(ctx);
             string best = null;
+            SiteRecord bestSub = null;
             var score = double.PositiveInfinity;
             var (w, h) = m.Dimensions;
             var cx = m.X + w / 2.0;
@@ -137,8 +145,29 @@ namespace Relight.Sim.UI
                 if (dd >= score || string.IsNullOrEmpty(subs[i].Name)) continue;
                 score = dd;
                 best = subs[i].Name;
+                bestSub = subs[i];
             }
+            if (bestSub != null) best = LabelNear(ctx, bestSub) ?? best;
             return best ?? (string.IsNullOrEmpty(FallbackPlace) ? "Home" : FallbackPlace);
+        }
+
+        /// <summary>The named label site nearest a substation's centre, or null on a map with no labels.</summary>
+        private static string LabelNear(SimContext ctx, SiteRecord sub)
+        {
+            if (ctx.Sites == null) return null;
+            string best = null;
+            var score = double.PositiveInfinity;
+            var at = sub.Centre;
+            foreach (var l in ctx.Sites.OfKind(SiteKind.Label))
+            {
+                if (string.IsNullOrEmpty(l.Name)) continue;
+                var c = l.Centre;
+                var dd = (c.X - at.X) * (c.X - at.X) + (c.Y - at.Y) * (c.Y - at.Y);
+                if (dd >= score) continue;
+                score = dd;
+                best = l.Name;
+            }
+            return best;
         }
 
         /// <summary>"Ironworks: 3 turrets dry, 1 low, 5 wrecks" — only the parts that are not zero.</summary>

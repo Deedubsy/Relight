@@ -141,7 +141,7 @@ This stage belongs with the roster work (tasks E-13 and E-14), because roaming a
 
 ### 7.1 Stage 2 as built (L-02, 2026-09-21)
 
-What the code does where the sections above left a choice. Engineering record only; none of it has been run in Unity or seen on screen.
+What the code does where the sections above left a choice. Engineering record only. Its tests pass in the Unity editor (EditMode, 2026-09-21) and Founders Court Verify C20 still passes; none of its presentation has been seen on screen.
 
 | Rule | As built |
 |---|---|

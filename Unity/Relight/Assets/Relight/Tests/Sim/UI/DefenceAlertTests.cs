@@ -171,6 +171,32 @@ namespace Relight.Sim.Tests.UI
         }
 
         [Test]
+        public void APlaceTakesTheNameOfTheLabelNearestItsSubstation()
+        {
+            // The real city's substation sites are called "Substation 0" to "Substation 8", and each has one named
+            // label beside it. The player is told the label. The district is still the nearest substation's: the
+            // second turret stands closer to the first label than to its own, and keeps its own district's name.
+            var sites = new WorldSites(new List<SiteRecord>
+            {
+                new SiteRecord("home", "Home Court", SiteKind.Core, RaidFixture.CoreX, RaidFixture.CoreY, 8, 8, "", 0),
+                new SiteRecord("substation:0", "Substation 0", SiteKind.Substation, 20, 20, 2, 2, "", 0),
+                new SiteRecord("substation:1", "Substation 1", SiteKind.Substation, 130, 130, 2, 2, "", 0),
+                new SiteRecord("label:0", "Founders Court", SiteKind.Label, 60, 60, 1, 1, "", 0),
+                new SiteRecord("label:1", "Ironworks", SiteKind.Label, 150, 150, 1, 1, "", 0),
+            });
+            var ctx = new SimContext(ReferenceData.Create(), RaidFixture.Map(), null, null, sites);
+            var st = RaidFixture.State(ctx);
+            Gun(ctx, st, 30, 30, 0);
+            Gun(ctx, st, 84, 84, 0);
+            Settle(ctx, st);
+            var source = new DefenceAlertSource();
+            Assert.That(source.Refresh(ctx, st), Is.True);
+            Assert.That(source.Rows.Count, Is.EqualTo(2));
+            Assert.That(source.Rows[0].Text, Is.EqualTo("Founders Court: 1 turret dry"));
+            Assert.That(source.Rows[1].Text, Is.EqualTo("Ironworks: 1 turret dry"));
+        }
+
+        [Test]
         public void TheWreckCountIsTheNumberOfMachinesAtNoHitPoints()
         {
             var ctx = RaidFixture.Context();
