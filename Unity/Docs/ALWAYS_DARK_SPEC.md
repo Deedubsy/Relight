@@ -1,6 +1,6 @@
 # Always dark — night and light spec
 
-Date: 2026-09-19. Status: **approved by the owner on 2026-09-19 (*"Go with your recommendations for all of them except I think buildings should block light"*). Nothing is implemented.** Stage 1 (L-01) implemented 2026-09-20; see evidence/always-dark-stage-1/checks.md. This document owns the darkness, light and light-avoidance rules for the Unity port, and the documents listed in §9 point here. Decision: **U-D-58**. Tasks: L-01, L-02, L-03 and L-ACC in `TASKS.md`.
+Date: 2026-09-19. Status: **approved by the owner on 2026-09-19 (*"Go with your recommendations for all of them except I think buildings should block light"*).** Stage 1 (L-01) is implemented as of 2026-09-20 (engineering only; owner acceptance pending), see evidence/always-dark-stage-1/checks.md; stages 2 and 3 (L-02, L-03) are not implemented. This document owns the darkness, light and light-avoidance rules for the Unity port, and the documents listed in §9 point here. Decision: **U-D-58**. Tasks: L-01, L-02, L-03 and L-ACC in `TASKS.md`.
 
 ## 1. How we got here
 
