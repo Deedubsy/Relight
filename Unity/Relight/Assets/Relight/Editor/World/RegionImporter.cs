@@ -20,6 +20,10 @@ namespace Relight.Editor
         public int width, height, originX, originY;
         public int buildings, props, land, accessible, tiles, sites;
         public string geometryPath = "", sitesPath = "";
+        /// <summary>Every rule the city broke (<see cref="CityValidator"/>), in full; <see cref="message"/> shows the first few.</summary>
+        public string[] problems = new string[0];
+        /// <summary>Set by <see cref="RegionImporter.Check"/>: a failure is returned, not logged or shown in a dialog.</summary>
+        internal bool silent;
 
         public override string ToString() => (ok ? "OK " : "FAILED ") + regionId + ": " + message;
     }
@@ -50,7 +54,9 @@ namespace Relight.Editor
     ///     (<see cref="HomeSites.Resolve"/>).
     /// Therefore importing twice produces identical serialized YAML.
     ///
-    /// The import is also a CHECK: the solid mask is re-derived here from the ported reference rule
+    /// The import is also a CHECK (D-02b): the city must pass <see cref="CityValidator"/>, the reference's structural
+    /// rules ported (roads and pavements, swept rail clearance, entrances, factory reservations and the rest; the list
+    /// is CityValidatorRules.md). Before that, the solid mask is re-derived here from the ported reference rule
     /// (ground.ts:628-630) and compared tile-by-tile with the exported <c>terrain.solid.bin</c>, and the region
     /// validation counts are re-derived from the arrays. Any mismatch aborts the import with the offending tile or
     /// count, so a drifting port cannot land silently.
@@ -91,12 +97,20 @@ namespace Relight.Editor
         /// Import one region. Menu-free on purpose: the coordinator calls <c>RegionImporter.Import("full")</c> from an
         /// eval. Returns what happened; failures are also logged and (outside batch mode) shown in a dialog.
         /// </summary>
-        public static ImportResult Import(string regionId)
+        public static ImportResult Import(string regionId) => Run(regionId, ImportFolder(regionId ?? ""), true);
+
+        /// <summary>
+        /// Everything <see cref="Import(string)"/> checks, against any export folder, and nothing else: no asset is
+        /// written, nothing is logged and no dialog opens. <c>ok</c> means that folder WOULD import. The Editor tests
+        /// feed this a deliberately broken export (D-02b, REL-31).
+        /// </summary>
+        public static ImportResult Check(string regionId, string folder) => Run(regionId, folder, false);
+
+        private static ImportResult Run(string regionId, string folder, bool write)
         {
-            var result = new ImportResult {regionId = regionId ?? ""};
+            var result = new ImportResult {regionId = regionId ?? "", silent = !write};
             if (string.IsNullOrEmpty(regionId)) return Fail(result, "No region id given.");
 
-            var folder = ImportFolder(regionId);
             if (!Directory.Exists(folder))
                 return Fail(result, $"No import folder at\n{folder}\n\nRun this in the reference repo first:\n" +
                                     $"  npm run map:export-unity -- --region {regionId}");
@@ -145,8 +159,17 @@ namespace Relight.Editor
 
             if (!CheckCounts(city, geometry, n, result)) return result;
 
+            // D-02b: the reference's structural rules, ported. Nothing has been written yet, so a city that breaks
+            // one leaves the generated assets exactly as they were.
+            var report = CityValidator.Validate(city, kind, solid);
+            if (!report.Ok)
+            {
+                result.problems = report.Errors.ToArray();
+                return Fail(result, CityValidator.Describe(report));
+            }
+
             var siteList = SiteRecords(city);
-            WriteAssets(regionId, city, w, h, origin, spawn, kind, variant, patch, solid, siteList);
+            if (write) WriteAssets(regionId, city, w, h, origin, spawn, kind, variant, patch, solid, siteList);
 
             result.ok = true;
             result.width = w; result.height = h; result.originX = origin.x; result.originY = origin.y;
@@ -159,11 +182,11 @@ namespace Relight.Editor
             result.geometryPath = GeometryAssetPath(regionId);
             result.sitesPath = SitesAssetPath(regionId);
             result.message =
-                $"imported region '{city.region.id}' ({w}x{h} at {origin.x},{origin.y}) from {folder} — " +
+                $"{(write ? "imported" : "checked")} region '{city.region.id}' ({w}x{h} at {origin.x},{origin.y}) from {folder} — " +
                 $"{city.validation.buildings} buildings, {city.validation.props} props, " +
                 $"{city.validation.accessible}/{city.validation.land} accessible land tiles, {siteList.Count} sites, " +
                 $"map {city.mapId}, source {Short(city.sourceSha256)} -> {result.geometryPath}";
-            Debug.Log("Relight: " + result.message);
+            if (write) Debug.Log("Relight: " + result.message);
             return result;
         }
 
@@ -563,6 +586,7 @@ namespace Relight.Editor
         {
             result.ok = false;
             result.message = message;
+            if (result.silent) return result;
             Debug.LogError("Relight import: " + message);
             if (!Application.isBatchMode) EditorUtility.DisplayDialog("Relight: region import failed", message, "OK");
             return result;
