@@ -76,7 +76,11 @@ namespace Relight.Sim.Tests.Combat
             HomeCore.Damage(st, 1000);
             Assert.That(HomeQueries.CoreOperational(st), Is.False);
 
+            // E-18: a raid body far across the map no longer blocks the repair; one near the core does.
             RaidFixture.Body(st, "skitter", 40.5, 40.5);
+            Assert.That(Home.AttackersNearby(ctx, st), Is.False, "35 tiles away is not 'nearby'");
+            var (cx, cy, _, _) = HomeQueries.CoreRect(st);
+            RaidFixture.Body(st, "skitter", cx - 5.5, cy + 0.5);
             Assert.That(Home.AttackersNearby(ctx, st), Is.True);
             Assert.That(Apply(ctx, st, new RepairCommand(RepairKinds.Core, 0)).Problem,
                 Is.EqualTo("wait for the attackers to leave"));

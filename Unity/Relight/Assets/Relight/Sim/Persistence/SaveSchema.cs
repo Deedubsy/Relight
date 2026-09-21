@@ -54,6 +54,12 @@ namespace Relight.Sim
     /// save has none — the rule did not exist — so the generic fill's empty <c>drops</c> is the truth about it,
     /// and no stamping is needed: a fresh state carries a real <c>drops</c> object to copy the default from.
     ///
+    /// Version 10 (2026-09-22, E-18) adds <c>outcome</c> to each record of <c>director.history</c>: how a finished
+    /// assault ended — cleared, lost, or broken off (<see cref="RaidOutcome"/>). Before E-18 an assault had exactly
+    /// one ending, so there was nothing to record. A fresh director's history is empty, so the generic fill has no
+    /// template record and the step stamps 0 (cleared) on every record the file already holds — which is the truth
+    /// about a build that only ever recorded an assault once its last body was gone.
+    ///
     /// The document is one JSON object:
     /// <code>
     /// {
@@ -82,7 +88,7 @@ namespace Relight.Sim
     public static class SaveSchema
     {
         /// <summary>Schema version this build writes. Files from <see cref="OldestReadable"/> up to it are read.</summary>
-        public const int Version = 9;
+        public const int Version = 10;
 
         /// <summary>
         /// The oldest schema version this build still reads (through <see cref="SaveUpgrade"/>). Never 0: there

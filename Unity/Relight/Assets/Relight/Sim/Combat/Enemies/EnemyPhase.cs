@@ -144,7 +144,9 @@ namespace Relight.Sim
             // The body leaves when its wave is gone, when the director has called the retreat, or when there is
             // nothing left to attack (reference campaignThreat.ts: no target rect means the raid is over).
             bool retreat;
-            if (e.Layer == EnemyLayer.Major) retreat = st.Director.Major == null || st.Director.Major.Retreat;
+            // E-18: a survivor of an EARLIER large raid keeps leaving; it never joins the next one.
+            if (e.Layer == EnemyLayer.Major)
+                retreat = st.Director.Major == null || st.Director.Major.Retreat || st.Director.Major.Id != e.Group;
             else retreat = st.Director.Minor == null || st.Director.Minor.Retreat;
             if (!retreat && !DirectorRules.Target(ctx, st, out _, out _, out _)) retreat = true;
             exit = retreat;

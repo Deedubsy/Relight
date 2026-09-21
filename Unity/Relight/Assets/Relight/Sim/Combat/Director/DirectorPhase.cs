@@ -31,17 +31,9 @@ namespace Relight.Sim
             if (d.Minor != null && d.Minor.Spawned && d.Minor.Owed <= 0 && EnemyQueries.GroupAlive(st, d.Minor.Id) == 0)
                 d.Minor = null;
 
-            if (d.Major != null && d.Major.Committed && d.Major.Remaining == 0
-                && EnemyQueries.GroupAlive(st, d.Major.Id) == 0)
-            {
-                var a = d.Major;
-                d.History.Add(new RaidRecord { Id = a.Id, Started = a.StartsAt, Ended = st.T, Defeated = a.Retreat, Spawned = d.MajorSpawned });
-                if (d.History.Count > 32) d.History.RemoveAt(0);
-                d.LastMajorEnd = st.T;
-                d.RecoveryUntil = Math.Max(d.RecoveryUntil, st.T + r.RecoveryS);
-                d.Major = null;
-                d.MajorSpawned = 0;
-            }
+            CoreFell(ctx, st);
+            EndMajor(ctx, st);
+            PurgeStragglers(st);
 
             // An unresolved previous assault never becomes a second simultaneous target or accumulated debt.
             if (d.Major != null && d.Major.Committed && st.T >= d.NextStart)
@@ -54,6 +46,111 @@ namespace Relight.Sim
             Warn(ctx, st);
             MinorArrive(ctx, st);
             MinorAnnounce(ctx, st);
+        }
+
+        // ------------------------------------------------------------------ the failure path (E-18)
+
+        /// <summary>
+        /// A raid that has beaten its target is over (E-18, U-D-64 d). The retreat is made STICKY here: bodies
+        /// already walk off when there is no target, but the raid itself must not come back to life if the core is
+        /// repaired while they are still leaving, and a large raid must stop owing the map more bodies.
+        /// </summary>
+        private static void CoreFell(SimContext ctx, SimState st)
+        {
+            var d = st.Director;
+            if (!EnemyCoreHook.Down(ctx, st)) return;
+            if (d.Minor != null && d.Minor.Spawned && !d.Minor.Retreat) { d.Minor.Retreat = true; d.Minor.Owed = 0; }
+            if (d.Major != null && d.Major.Committed && !d.Major.Retreat)
+            {
+                d.Major.Retreat = true;
+                d.Major.Cancelled += d.Major.Remaining;
+                d.Major.Remaining = 0;
+            }
+        }
+
+        /// <summary>
+        /// The three ways a large raid ends. Before E-18 there was one — every body dead — so a raid that WON never
+        /// ended: its survivors stood on the wreck, the core could not be repaired, and every later opportunity
+        /// was skipped with "Previous assault cleanup is still unresolved." (ENM-01).
+        ///
+        /// <list type="bullet">
+        /// <item>CLEARED — it owes nothing and its last body is gone. Unchanged.</item>
+        /// <item>CALLED OFF — the retreat has been called (the core fell, the target was lost, C-09 withdrew it).
+        ///       It ends at once; the survivors keep walking off on their own.</item>
+        /// <item>OVERRAN — it is <see cref="DirectorRules.MajorOverrunS"/> past its planned end with bodies still
+        ///       alive. It is called off. A hand-built test raid has no planned end (0) and never overruns.</item>
+        /// </list>
+        /// An ending that is not CLEARED also makes the next raid wait a full interval from now (U-D-64 d).
+        /// </summary>
+        private static void EndMajor(SimContext ctx, SimState st)
+        {
+            var d = st.Director;
+            var r = ctx.Data.Raids;
+            var a = d.Major;
+            if (a == null || !a.Committed) return;
+
+            var alive = EnemyQueries.GroupAlive(st, a.Id);
+            RaidOutcome outcome;
+            if (a.Retreat) outcome = EnemyCoreHook.Down(ctx, st) ? RaidOutcome.Lost : RaidOutcome.BrokeOff;
+            else if (a.Remaining == 0 && alive == 0) outcome = RaidOutcome.Cleared;
+            else if (a.EndsAt > 0 && st.T >= a.EndsAt + DirectorRules.MajorOverrunS) outcome = RaidOutcome.BrokeOff;
+            else return;
+
+            d.History.Add(new RaidRecord
+            {
+                Id = a.Id, Started = a.StartsAt, Ended = st.T, Defeated = a.Retreat,
+                Spawned = d.MajorSpawned, Outcome = (int)outcome,
+            });
+            if (d.History.Count > 32) d.History.RemoveAt(0);
+            d.LastMajorEnd = st.T;
+            d.RecoveryUntil = Math.Max(d.RecoveryUntil, st.T + r.RecoveryS);
+            d.Major = null;
+            d.MajorSpawned = 0;
+
+            if (outcome == RaidOutcome.Cleared) return;
+            d.Serial++;
+            d.NextStart = Math.Max(d.NextStart,
+                st.T + r.IntervalMinS + DirectorRules.RaidChoice(st.Seed, d.Serial, (int)r.IntervalRangeS));
+            if (alive > 0)
+                Director.Say(ctx, st, outcome == RaidOutcome.Lost
+                    ? "The core has fallen. The assault is withdrawing."
+                    : "The assault has broken off.");
+        }
+
+        /// <summary>
+        /// A survivor of a finished large raid that has still not left the map <see cref="DirectorRules.WithdrawPurgeS"/>
+        /// after it ended is removed without a kill — the C-09 purge, for the same reason: a body that cannot find
+        /// its way out must not block the core's repair, or join the next raid, for ever.
+        /// </summary>
+        private static void PurgeStragglers(SimState st)
+        {
+            var d = st.Director;
+            if (d.History.Count == 0) return;
+            var list = st.Enemies.Actors;
+            for (var i = list.Count - 1; i >= 0; i--)
+            {
+                var e = list[i];
+                if (e.Layer != EnemyLayer.Major) continue;
+                if (d.Major != null && d.Major.Id == e.Group) continue;
+                for (var h = d.History.Count - 1; h >= 0; h--)
+                {
+                    if (d.History[h].Id != e.Group) continue;
+                    if (st.T > d.History[h].Ended + DirectorRules.WithdrawPurgeS) list.RemoveAt(i);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Large raids the player actually saw off. Growth (U-D-47: "assaults survived") counts these and only
+        /// these. INTERIM, owned by F1-30: a lost or broken-off raid earns no credit until the owner says what it is.
+        /// </summary>
+        public static int Survived(SimState st)
+        {
+            var n = 0;
+            var h = st.Director.History;
+            for (var i = 0; i < h.Count; i++) if (h[i].Outcome == (int)RaidOutcome.Cleared) n++;
+            return n;
         }
 
         // ------------------------------------------------------------------ clock
@@ -130,7 +227,7 @@ namespace Relight.Sim
             // GP-W4: the whole encounter is planned here, once, and saved — head count, composition, wave times,
             // approaches and length. Spawning afterwards only reads the plan, so what the player is warned about
             // is what arrives, and a save taken inside the assault resumes the same assault.
-            SiegePlan.Build(ctx, st, a, d.History.Count);
+            SiegePlan.Build(ctx, st, a, Survived(st));
             d.Major = a;
         }
 

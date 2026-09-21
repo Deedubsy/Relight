@@ -26,14 +26,26 @@ namespace Relight.Sim
     /// <summary>
     /// Reference <c>repairCheck</c>/<c>tickRepair</c>: a knocked-out core cannot be recommissioned while the raid
     /// that took it down is still on the map (<c>d.major?.block===core.block || d.minor?.block===core.block</c>).
-    /// Phase C has one Home block, so "a live raid body of either layer" is the whole test.
+    /// Phase C has one Home block, so before E-18 "a live raid body of either layer" was the whole test — and a
+    /// single survivor parked anywhere on the map blocked the repair for ever (ENM-03). E-18 (U-D-64 d): only a raid
+    /// body within <see cref="DirectorRules.CoreThreatTiles"/> of the core's edge blocks it. Site guards never did.
     /// </summary>
     public static partial class Home
     {
         static partial void AttackersNearbyHook(SimContext ctx, SimState st, ref bool near)
         {
-            DirectorQueries.Live(st, out var major, out var minor, out _);
-            near = major > 0 || minor > 0;
+            var h = st.Home;
+            if (h == null || !h.Placed) return;
+            var reach = DirectorRules.CoreThreatTiles;
+            for (var i = 0; i < st.Enemies.Actors.Count; i++)
+            {
+                var e = st.Enemies.Actors[i];
+                if (e.Layer != EnemyLayer.Major && e.Layer != EnemyLayer.Minor) continue;
+                // Distance from the body to the nearest point of the core rect.
+                var dx = System.Math.Max(System.Math.Max(h.X - e.Pos.X, 0), e.Pos.X - (h.X + h.W));
+                var dy = System.Math.Max(System.Math.Max(h.Y - e.Pos.Y, 0), e.Pos.Y - (h.Y + h.H));
+                if (dx * dx + dy * dy <= reach * reach) { near = true; return; }
+            }
         }
     }
 }

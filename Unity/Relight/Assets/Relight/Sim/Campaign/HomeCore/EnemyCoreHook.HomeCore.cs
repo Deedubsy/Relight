@@ -16,9 +16,9 @@ namespace Relight.Sim
         /// The live core footprint. <paramref name="size"/> is the declaring side's single dimension, so it takes the
         /// larger of the rect's two (the authored Home workshop is 10×14, the synthetic fall-back 3×3) — exactly what
         /// <c>EnemyCoreHook.Rect</c>'s own <c>ctx.Sites.Core</c> fall-back does.
-        /// A destroyed core reports <paramref name="found"/> = false: it is no longer a thing to attack, and the
-        /// declaring side then answers from <c>ctx.Sites.Core</c> so raids on an imported region still have a place
-        /// to walk to.
+        /// A destroyed core reports <paramref name="found"/> = false: it is no longer a thing to attack. Since E-18
+        /// the declaring side does NOT then answer from <c>ctx.Sites.Core</c> either — <c>CoreDownImpl</c> below
+        /// tells it the core fell, so the raid has no target and its bodies walk off.
         /// </summary>
         static partial void CoreRectImpl(SimContext ctx, SimState st, ref int x, ref int y, ref int size, ref bool found)
         {
@@ -28,6 +28,13 @@ namespace Relight.Sim
             y = h.Y;
             size = h.W > h.H ? h.W : h.H;
             found = size > 0;
+        }
+
+        /// <summary>E-18: the core was placed and is at 0 hit points.</summary>
+        static partial void CoreDownImpl(SimContext ctx, SimState st, ref bool down)
+        {
+            var h = st?.Home;
+            down = h != null && h.Placed && h.Hp <= 0;
         }
     }
 }

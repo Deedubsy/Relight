@@ -67,6 +67,8 @@ namespace Relight.Sim
         public const string WaveStart = "waveStart";
         public const string WaveApproaches = "waveApproaches";
         public const string WaveOffset = "waveOffset";
+        public const string History = "history";
+        public const string Outcome = "outcome";
 
         /// <summary>
         /// The one city every pre-C6 imported save was made on (WORLD_AND_ASSETS.md §2.3). A save that names this
@@ -174,6 +176,13 @@ namespace Relight.Sim
                         + " no Breakers added to an assault already under way and no cargo left on the ground";
                 v = 9;
             }
+            if (v == 9)
+            {
+                var problem = NineToTen(state, out damaged);
+                if (problem.Length != 0) return problem;
+                what += (what.Length == 0 ? " with" : " and") + " every earlier assault recorded as cleared";
+                v = 10;
+            }
             // Every version between OldestReadable and Version has a step above; a gap here is a programming error.
             if (v != SaveSchema.Version)
                 return "unsupported save version " + fromVersion.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -256,6 +265,30 @@ namespace Relight.Sim
                 var counts = major.Member(WaveCount);
                 major.TryAddMember(WaveBreakers, Zeros(counts != null && counts.IsArray ? counts.Count : 0));
             }
+            FillMissing(state, FreshDocument());
+            return "";
+        }
+
+        /// <summary>
+        /// v9 → v10: how a finished assault ended (E-18).
+        ///
+        /// <see cref="RaidRecord.Outcome"/> is a member of the ITEMS of <c>director.history</c>, and a fresh
+        /// director's history is an empty list — so <see cref="FillMissing"/> has no template record to default it
+        /// from, the same trap versions 7, 8 and 9 each fell into, and every record the file already holds has to
+        /// be stamped here. The honest stamp is 0, <see cref="RaidOutcome.Cleared"/>: the build that wrote the file
+        /// only ever recorded an assault once its last body was gone, which is exactly what Cleared means. An
+        /// assault still under way needs nothing; the new ending rules simply apply to it from the next tick.
+        /// </summary>
+        static string NineToTen(JsonValue state, out bool damaged)
+        {
+            damaged = false;
+            var history = state.Member(Director)?.Member(History);
+            if (history != null && history.IsArray)
+                for (var i = 0; i < history.Count; i++)
+                {
+                    var record = history.At(i);
+                    if (record != null && record.IsObject) record.TryAddMember(Outcome, JsonValue.NumberValue(0));
+                }
             FillMissing(state, FreshDocument());
             return "";
         }

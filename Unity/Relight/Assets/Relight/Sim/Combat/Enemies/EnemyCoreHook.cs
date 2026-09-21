@@ -39,6 +39,20 @@ namespace Relight.Sim
         /// </summary>
         static partial void CoreRectImpl(SimContext ctx, SimState st, ref int x, ref int y, ref int size, ref bool found);
 
+        /// <summary>
+        /// E-18. True when the region HAS a core of its own and that core is at 0 hit points. C-05 answers; with no
+        /// implementation it stays false, which is right for a map whose core was never placed.
+        /// </summary>
+        static partial void CoreDownImpl(SimContext ctx, SimState st, ref bool down);
+
+        /// <summary>The placed core has fallen. A fallen core is not a raid target (E-18, U-D-64 d).</summary>
+        public static bool Down(SimContext ctx, SimState st)
+        {
+            var down = false;
+            CoreDownImpl(ctx, st, ref down);
+            return down;
+        }
+
         /// <summary>Apply <paramref name="amount"/> hit points of damage to the Home core; a no-op until C-05 lands.</summary>
         public static void Damage(SimContext ctx, SimState st, double amount)
         {
@@ -53,6 +67,10 @@ namespace Relight.Sim
             var found = false;
             CoreRectImpl(ctx, st, ref x, ref y, ref size, ref found);
             if (found) return true;
+            // E-18: the authored-site fall-back is for a region whose core was never placed. A core that was placed
+            // and has fallen is not a target at all — answering with the site here is what kept a beaten raid
+            // standing on the wreck for ever (ENM-02).
+            if (Down(ctx, st)) return false;
             var site = ctx.Sites?.Core;
             if (site == null) return false;
             x = site.X; y = site.Y; size = site.W > site.H ? site.W : site.H;

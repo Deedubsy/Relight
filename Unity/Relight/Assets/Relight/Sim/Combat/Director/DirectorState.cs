@@ -127,6 +127,22 @@ namespace Relight.Sim
         }
     }
 
+    /// <summary>
+    /// How a large raid ended (E-18). The numbers are saved, so they never change.
+    ///
+    /// <see cref="BrokeOff"/> is deliberately NEUTRAL: what it should count as is the owner's open question F1-30,
+    /// so until that is answered nothing treats it as a win — it earns no growth credit and no "repelled".
+    /// </summary>
+    public enum RaidOutcome
+    {
+        /// <summary>Every body was killed or the wave ran its course and the last body is gone.</summary>
+        Cleared = 0,
+        /// <summary>The raid beat its target: the Home core fell.</summary>
+        Lost = 1,
+        /// <summary>The raid was called off with bodies still alive: it lost its target another way, or overran.</summary>
+        BrokeOff = 2,
+    }
+
     /// <summary>One finished assault (reference <c>d.history</c>, capped at 32 entries).</summary>
     public sealed class RaidRecord : IVisitable
     {
@@ -135,6 +151,8 @@ namespace Relight.Sim
         public double Ended;
         public bool Defeated;
         public int Spawned;
+        /// <summary>A <see cref="RaidOutcome"/>, as its number. Save v10; an older record reads as Cleared.</summary>
+        public int Outcome;
 
         public void Visit(IStateVisitor v)
         {
@@ -143,6 +161,7 @@ namespace Relight.Sim
             v.Field("ended", ref Ended);
             v.Field("defeated", ref Defeated);
             v.Field("spawned", ref Spawned);
+            v.Field("outcome", ref Outcome);
         }
     }
 

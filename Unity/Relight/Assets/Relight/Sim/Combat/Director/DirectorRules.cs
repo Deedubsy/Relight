@@ -52,6 +52,23 @@ namespace Relight.Sim
             return string.IsNullOrEmpty(ctx.MapId);
         }
 
+        // ---------------------------------------------------------------- the failure path (E-18)
+
+        /// <summary>
+        /// How close to the Home core a raid body must be to block the core's repair, in tiles from the core's
+        /// edge (U-P-19). Before E-18 any raid body anywhere on the map blocked it.
+        /// </summary>
+        public const double CoreThreatTiles = 12;
+
+        /// <summary>
+        /// Seconds past a large raid's planned end after which it is called off whatever is still alive (U-P-20).
+        /// Plan 400 s + this + recovery 300 s stays under the 1080 s minimum interval, so the schedule holds.
+        /// </summary>
+        public const double MajorOverrunS = 300;
+
+        /// <summary>Seconds after a large raid ends before any survivor still on the map is removed (U-P-21).</summary>
+        public const double WithdrawPurgeS = 120;
+
         /// <summary>The raid's destination rect: the Home core when the region has one.</summary>
         public static bool Target(SimContext ctx, SimState st, out int x, out int y, out int size) =>
             EnemyCoreHook.Rect(ctx, st, out x, out y, out size);
