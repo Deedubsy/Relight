@@ -138,6 +138,170 @@ namespace Relight.Sim.Tests.UI
             Assert.That(acc.Text, Is.Empty);
         }
 
+        // ------------------------------------------------------------------ INT-04a, through the real director
+        //
+        // The tests above hand the source a raid record. These three do not: the DIRECTOR announces, stages, commits
+        // and ends the raids, one tick at a time, and the source is refreshed after every tick as the HUD does it.
+
+        private static System.Collections.Generic.List<ITickPhase> Director() =>
+            new System.Collections.Generic.List<ITickPhase> { new DirectorPhase() };
+
+        /// <summary>Tick the director alone, refreshing the account after every tick.</summary>
+        private static void Drive(SimContext ctx, SimState st, RaidAccountSource acc, double seconds)
+        {
+            var ticks = (int)System.Math.Ceiling(seconds / RaidFixture.Dt);
+            for (var i = 0; i < ticks; i++)
+            {
+                RaidFixture.Run(ctx, st, 1, Director());
+                acc.Refresh(ctx, st);
+            }
+        }
+
+        /// <summary>A fresh bench at the director's first small-raid opportunity, with the raid announced.</summary>
+        private static (SimContext Ctx, SimState St, MinorRaid Raid) Announced()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            HomeCore.Ensure(ctx, st);
+            st.T = st.Director.NextMinor;
+            RaidFixture.Run(ctx, st, 1, Director());
+            var m = st.Director.Minor;
+            Assert.That(m, Is.Not.Null, "the director took the small-raid opportunity");
+            Assert.That(m.Spawned, Is.False, "and it is a warning, with no bodies yet");
+            return (ctx, st, m);
+        }
+
+        private const int Filler = 9000;
+
+        /// <summary>
+        /// INT-04a (1). The director holds a small raid back while the map is at its living-enemy budget and keeps
+        /// trying for <c>MinorStageRetryS</c>, WITHOUT moving <c>StartsAt</c>. A raid that lands five seconds late
+        /// used to read as "joined part-way" and got no account. This session watched it wait, so it gets one.
+        /// </summary>
+        [Test]
+        public void ARaidTheDirectorStagesFiveSecondsLateStillGetsItsAccount()
+        {
+            var (ctx, st, m) = Announced();
+            var acc = new RaidAccountSource();
+            acc.Refresh(ctx, st);
+
+            // Camp residents far from the core, up to the budget: the director can birth nothing.
+            for (var i = 0; i < ctx.Data.Raids.LivingBudget; i++)
+                RaidFixture.Body(st, "drone", 4 + i % 40, 4, EnemyLayer.Site, Filler);
+
+            Drive(ctx, st, acc, m.StartsAt - st.T + 5);
+            Assert.That(st.Director.Minor, Is.SameAs(m), "the director is still trying, inside its retry window");
+            Assert.That(m.Spawned, Is.False, "held back for five seconds by the budget");
+            Assert.That(acc.Watching, Is.False, "a raid with no bodies is not under way");
+
+            st.Enemies.Actors.RemoveAll(e => e.Group == Filler);
+            Drive(ctx, st, acc, 2 * RaidFixture.Dt);
+            Assert.That(m.Spawned, Is.True, "room opened and the raid arrived");
+            Assert.That(st.T - m.StartsAt, Is.GreaterThan(RaidAccountSource.ArrivalGraceS), "well past the old grace");
+            Assert.That(acc.Watching, Is.True, "the late raid is tallied: this session saw it waiting");
+
+            for (var i = 0; i < 4; i++) acc.Intake(new EnemyKilledEvent(st.T, i, "drone", 0, 0, true));
+            st.Enemies.Actors.Clear();
+            Drive(ctx, st, acc, 2 * RaidFixture.Dt);
+            Assert.That(st.Director.Minor, Is.Null, "the director ended it");
+            Assert.That(acc.Serial, Is.EqualTo(1));
+            Assert.That(acc.Text, Does.StartWith("Raid repelled · 4 aliens killed"));
+        }
+
+        /// <summary>
+        /// INT-04a (2). The same raid, saved ten seconds into the fight and loaded. The loaded session has a new
+        /// HUD and so a new source, which never saw this raid wait or arrive: no account, as before.
+        /// </summary>
+        [Test]
+        public void ASaveLoadedPartWayThroughARaidStillGetsNoAccount()
+        {
+            var (ctx, st, m) = Announced();
+            var before = new RaidAccountSource();
+            before.Refresh(ctx, st);
+            Drive(ctx, st, before, m.StartsAt - st.T + 10);
+            Assert.That(m.Spawned, Is.True);
+            Assert.That(before.Watching, Is.True, "the session that saw it arrive is tallying it");
+
+            var result = SaveSerializer.ReadText(SaveSerializer.WriteText(st, ctx.Data), ctx.Data);
+            Assert.That(result.Ok, Is.True, result.Reason);
+            var loaded = result.State;
+            new EnemyInitializer().Init(ctx, loaded);
+
+            var acc = new RaidAccountSource();                          // HudController makes a new model per session
+            Drive(ctx, loaded, acc, 1);
+            Assert.That(loaded.Director.Minor, Is.Not.Null, "the raid is still on in the loaded game");
+            Assert.That(acc.Watching, Is.False, "met part-way: half a tally would be a false one");
+
+            acc.Intake(new EnemyKilledEvent(loaded.T, 1, "drone", 0, 0, true));
+            loaded.Enemies.Actors.Clear();
+            Drive(ctx, loaded, acc, 2 * RaidFixture.Dt);
+            Assert.That(loaded.Director.Minor, Is.Null);
+            Assert.That(acc.Serial, Is.Zero);
+            Assert.That(acc.Text, Is.Empty);
+        }
+
+        /// <summary>
+        /// INT-04a (3). A large raid commits while a small one is on the ground. The director turns the small raid
+        /// back itself (<c>DirectorPhase.Commit</c>), so the defence did not repel it: it closes with no account,
+        /// and the tally that opens is the large raid's. The large raid's warning is cut to one second here by
+        /// moving <c>NextStart</c>; everything after that is the director's own.
+        /// </summary>
+        [Test]
+        public void ALargeRaidOverALiveSmallRaidLeavesTheSmallOneWithNoAccount()
+        {
+            var (ctx, st, m) = Announced();
+            var acc = new RaidAccountSource();
+            acc.Refresh(ctx, st);
+            Drive(ctx, st, acc, m.StartsAt - st.T + 1);
+            Assert.That(m.Spawned, Is.True);
+            Assert.That(acc.Watching, Is.True, "the small raid is being tallied");
+            acc.Intake(new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true));
+
+            st.Director.NextStart = st.T + 1;
+            Drive(ctx, st, acc, 1 + 2 * RaidFixture.Dt);
+            var major = st.Director.Major;
+            Assert.That(major, Is.Not.Null);
+            Assert.That(major.Committed, Is.True, "the large raid went ahead");
+            Assert.That(st.Director.Minor, Is.SameAs(m), "the small raid's bodies are still on the map");
+            Assert.That(m.Retreat, Is.True, "and the director, not the defence, turned it back");
+
+            Assert.That(acc.Serial, Is.Zero, "no account for the replaced raid");
+            Assert.That(acc.Text, Is.Empty);
+            Assert.That(acc.Watching, Is.True, "the tally now open is the large raid's");
+
+            // The small raid's last bodies leave while the large raid is still on. Still nothing is said for it.
+            st.Enemies.Actors.RemoveAll(e => e.Group == m.Id);
+            Drive(ctx, st, acc, 2 * RaidFixture.Dt);
+            Assert.That(st.Director.Minor, Is.Null);
+            Assert.That(acc.Serial, Is.Zero);
+        }
+
+        /// <summary>
+        /// The other half of (3), on hand-built records because a real large raid runs for minutes: when the large
+        /// raid ends FIRST, the replaced small raid is on its own again. It must not get a second tally.
+        /// </summary>
+        [Test]
+        public void AReplacedSmallRaidIsNotTalliedAgainWhenTheLargeRaidEndsFirst()
+        {
+            var (ctx, st, acc) = Bench();
+            Arrive(st);
+            acc.Refresh(ctx, st);
+            st.Director.Major = new MajorRaid { Id = 2, StartsAt = st.T, Committed = true, Remaining = 10 };
+            acc.Refresh(ctx, st);
+            Assert.That(acc.Serial, Is.Zero, "the small raid was dropped without a word");
+
+            st.T += 60;
+            st.Director.Major = null;                                   // the large raid ends; the small one lingers
+            acc.Refresh(ctx, st);
+            Assert.That(acc.Serial, Is.EqualTo(1), "the large raid is reported");
+            Assert.That(acc.Text, Does.StartWith("Major assault"));
+            Assert.That(acc.Watching, Is.False, "and the leftover small raid does not open a new tally");
+
+            st.Director.Minor = null;
+            acc.Refresh(ctx, st);
+            Assert.That(acc.Serial, Is.EqualTo(1));
+        }
+
         [Test]
         public void TheScriptedOpeningIsLeftToTheGoalCard()
         {

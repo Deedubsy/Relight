@@ -18,14 +18,20 @@ namespace Relight.Sim.UI
     /// Three consequences of that rule:
     /// <list type="bullet">
     /// <item>A raid this session did not see ARRIVE — the game was loaded part-way through it — gets no account at
-    ///       all. Half a tally would be a false one.</item>
+    ///       all. Half a tally would be a false one. "Seen arriving" means one of two things (INT-04a): this session
+    ///       watched the raid WAIT (its warning, or a small raid still looking for open ground) and then saw it
+    ///       start, however late the director managed to stage it; or it first met the raid within
+    ///       <see cref="ArrivalGraceS"/> of its start time.</item>
+    /// <item>A small raid that a major assault replaces closes with no account (INT-04a). The director turns it
+    ///       back the moment the assault commits, so "repelled" would credit the defence with a retreat it did not
+    ///       cause, and the assault's own account is the one the player needs.</item>
     /// <item>The scripted opening encounter is skipped. The goal card already owns its "Attack repelled" text
     ///       (U-D-54), and two accounts of one fight is the duplication this pass removes elsewhere.</item>
     /// <item>The headline says "repelled" only when nothing was lost. Otherwise it says "over", which claims
     ///       nothing.</item>
     /// </list>
     ///
-    /// Per session and never saved, like <c>DefenceAlertSource._raised</c>: the save schema stays at version 9.
+    /// Per session and never saved, like <c>DefenceAlertSource._raised</c>: nothing here adds to the save.
     /// Engine-free, so <c>Tests/Sim/UI/RaidAccountTests.cs</c> can drive it without an editor.
     /// </summary>
     public sealed class RaidAccountSource
@@ -36,7 +42,11 @@ namespace Relight.Sim.UI
         /// <summary>Real seconds the account stays up: two lines take longer to read than a guide line.</summary>
         public const double Seconds = 20;
 
-        /// <summary>A raid counts as "seen arriving" if this session first met it within this many sim seconds of its start.</summary>
+        /// <summary>
+        /// A raid this session never saw waiting still counts as "seen arriving" if it is first met within this many
+        /// sim seconds of its start time. A raid it DID see waiting needs no grace: the director retries a small
+        /// raid's staging for up to <c>SiegeTuning.MinorStageRetryS</c> without moving its start time.
+        /// </summary>
         public const double ArrivalGraceS = 2;
 
         /// <summary>The finished account, "" until a watched raid has ended.</summary>
@@ -53,7 +63,8 @@ namespace Relight.Sim.UI
 
         private bool _open;
         private int _raidId;
-        private int _skipId = -1;
+        private readonly HashSet<int> _seenWaiting = new HashSet<int>();
+        private readonly HashSet<int> _done = new HashSet<int>();
         private bool _major;
         private double _fired0;
         private double _coreHp;
@@ -71,21 +82,42 @@ namespace Relight.Sim.UI
         public void Refresh(SimContext ctx, SimState st)
         {
             if (ctx == null || st == null || st.Director == null) return;
+            NoteWaiting(st);
             var live = UnderWay(st, out var id, out var major, out var startedAt);
 
             if (_open && (!live || id != _raidId))
             {
-                // The raid we were watching is gone — or another one has taken its place, which also ends it.
-                Close(st);
+                // The raid we were watching is gone, or another has taken its place. A small raid whose record is
+                // still there was not beaten: a major assault committed over it and the director turned it back.
+                // That one closes with no account. Anything else ended, and is reported.
+                var replaced = live && !_major && st.Director.Minor != null && st.Director.Minor.Id == _raidId;
+                _done.Add(_raidId);
+                if (replaced) _open = false;
+                else Close(st);
             }
 
-            if (live && !_open && id != _skipId)
+            if (live && !_open && !_done.Contains(id))
             {
-                if (st.T - startedAt > ArrivalGraceS) { _skipId = id; return; }   // joined part-way: no account
+                if (!_seenWaiting.Contains(id) && st.T - startedAt > ArrivalGraceS)
+                {
+                    _done.Add(id);                                     // joined part-way: no account
+                    return;
+                }
                 Open(ctx, st, id, major);
             }
 
             if (_open) WatchTurrets(ctx, st, _wentDry, _dryAtStart);
+        }
+
+        /// <summary>
+        /// Remember a raid seen BEFORE it is on the ground: a major inside its warning, or a small raid that is
+        /// announced and has no bodies yet. Only such a raid may open its tally late.
+        /// </summary>
+        private void NoteWaiting(SimState st)
+        {
+            var d = st.Director;
+            if (d.Major != null && st.T < d.Major.StartsAt) _seenWaiting.Add(d.Major.Id);
+            if (d.Minor != null && !d.Minor.Spawned && !d.Minor.Scripted) _seenWaiting.Add(d.Minor.Id);
         }
 
         /// <summary>Tally one of this frame's events. Ignored unless a raid is being watched.</summary>
