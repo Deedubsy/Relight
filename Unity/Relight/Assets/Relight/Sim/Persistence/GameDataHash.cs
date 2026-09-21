@@ -93,6 +93,11 @@ namespace Relight.Sim
             Record(sb, "raids", data.Raids);
             Record(sb, "opening", data.Opening);
             Record(sb, "stake", data.Stake);
+            // REL-43 (ENM-09, 2026-09-22): the defence and siege rows were left out, so a change to a hit-point or
+            // raid-shape number never raised the "different balance data" warning on load. Appended last, after the
+            // rows above, so every older text is a prefix of the new one and the hash moved exactly once.
+            Record(sb, "defence", data.Defence);
+            Record(sb, "siege", data.Siege);
             sb.Append('}');
             return sb.ToString();
         }

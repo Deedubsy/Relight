@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24735aecde0a1f34ab0415765be44d26, type: 3}
+  m_Name: Tuning - Siege
+  m_EditorClassIdentifier: Relight.Data::Relight.Data.SiegeTuningAsset
+  key: siege
+  displayName: Siege
+  kind: 2
+  source: Unity/Docs/TASKS.md GP-W3/GP-W4/GP-W5; owner brief 2026-09-15
+  provisional: 1
+  generatedFingerprint: ef240b6b0d9efca13b7b1e3bc9266886b03eccde
+  minorWarningSeconds: 30
+  minorWarningRangeSeconds: 15
+  minorStageRetrySeconds: 30
+  noticeHoldSeconds: 45
+  majorWaves: 4
+  majorWaveGapSeconds: 110
+  majorWaveSpreadSeconds: 40
+  majorWaveTailSeconds: 30
+  majorWaveGrowth: 0.5
+  majorFirstApproaches: 1
+  majorApproachStep: 1
+  majorSpitterWave: 1
+  majorGrowthPerAssault: 0.15
+  majorGrowthCap: 2
+  majorBreakerAssault: 1
+  majorBreakerWave: 2
+  majorBreakerShare: 0.05
+  guardPursuitTiles: 36
+  guardReengageTiles: 22

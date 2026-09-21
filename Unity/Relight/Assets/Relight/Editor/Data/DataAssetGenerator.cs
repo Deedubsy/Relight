@@ -136,7 +136,7 @@ namespace Relight.Editor
                     Debug.LogWarning($"B05-GENERATE: {_conflicts.Count} CONFLICT(s) — hand-edited AND changed in the reference export; the hand edit was kept in each case, so the new reference values are NOT in the project: " + string.Join("; ", _conflicts));
                 Debug.Log($"B05-GENERATE: items={items.Length} machines={machines.Length} recipes={recipes.Length} " +
                           $"weapons={weapons.Length} enemies={enemies.Length} ammunition={ammunition.Length} " +
-                          $"turrets={turrets.Length} tuning=7 mode={(keepHandEdits ? "keep" : "reset")} " +
+                          $"turrets={turrets.Length} tuning=9 mode={(keepHandEdits ? "keep" : "reset")} " +
                           $"kept={_kept.Count} conflicts={_conflicts.Count} registry={RegistryPath}");
                 Debug.Log("B05-GENERATE: OK");
             }
