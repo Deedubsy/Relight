@@ -120,7 +120,9 @@ Muzzle sparks and tracers are picture only. Nothing a weapon does brightens the 
 
 ## 6. The roaming population
 
-This stage belongs with the roster work (tasks E-13 and E-14), because roaming aliens barely exist in the port today. The rules are fixed now so that the earlier stages do not contradict them.
+This stage belongs with the roster work (tasks E-13 and E-14), because roaming aliens barely exist in the port today. The rules are fixed now so that the earlier stages do not contradict them. **Order question open (2026-09-21):** U-D-66 later fixed the build order with roamer behaviour *before* alien roles, which is the reverse of this sentence and of task row L-03's dependency on E-13. Neither is changed until the owner confirms which holds (Linear REL-71, F1-33); roamers can be built with the alien types that already exist.
+
+**Owner direction, 2026-09-21 (DECISIONS.md U-D-64 and U-D-66 (4), values U-P-15).** The population is counted by street area, not per district: about 1 per 2,500 street tiles, in packs of 2 to 4. This replaces the "3 to 6 per district" figure in the second rule below; the refill rate, the 240 cap and every other rule here stand. Roamer packs also keep a home point, lurk at the edge of lit ground, walk toward gunfire within about 30 tiles, and never appear behind the engineer. Noise is not light, so §5.9 is unchanged. None of this is built.
 
 - **A district is the set of tiles whose nearest substation site is the same one.** This is the rule court D55 already uses to assign streetlights, so "lighting a district" and "the district's lights" mean the same thing.
 - **Each dark district holds a fixed roaming population** (provisional: 3–6 per district, from the design draft's "ordinary dark street" row). Killed roamers refill slowly (provisional: one per 120 s) up to that number. They never accumulate beyond it, and the world cap of 240 living aliens still applies.

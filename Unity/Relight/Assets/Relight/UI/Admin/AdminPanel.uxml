@@ -51,6 +51,10 @@
                 <ui:Label text="Lighting test" class="admin-section" />
                 <ui:VisualElement class="admin-row"><ui:Button name="admin-day" text="Daylight" /><ui:Button name="admin-night" text="Night" /><ui:Button name="admin-natural" text="Follow clock" /></ui:VisualElement>
                 <ui:Label text="Changes daylight and night behaviour without skipping production or moving raid timers." class="admin-help" />
+                <ui:Label text="Districts" class="admin-section" />
+                <ui:Toggle name="admin-districts" label="Show district borders and sizes" />
+                <ui:Button name="admin-roamer-preview" text="Roamer preview: off" />
+                <ui:Label text="Drawing only. The preview dots are markers for judging density, not enemies: nothing is spawned or saved." class="admin-help" />
                 <ui:Button name="admin-reset" text="Reset temporary overrides" />
                 <ui:Label text="Turns off invulnerability and enemy freeze, and restores natural lighting. Granted items, repairs and spawns remain." class="admin-help" />
             </ui:VisualElement>

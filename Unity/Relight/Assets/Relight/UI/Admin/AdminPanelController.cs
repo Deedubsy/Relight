@@ -39,6 +39,9 @@ namespace Relight.UI
             Button("admin-day",()=>new AdminCommand("lighting",Amount:1));Button("admin-night",()=>new AdminCommand("lighting",Amount:0));Button("admin-natural",()=>new AdminCommand("lighting",Amount:-1));
             Q<Toggle>("admin-god").RegisterValueChangedCallback(e=>Run(new AdminCommand("invulnerable",Amount:e.newValue?1:0)));
             Q<Toggle>("admin-freeze").RegisterValueChangedCallback(e=>Run(new AdminCommand("freeze",Amount:e.newValue?1:0)));
+            // Developer drawing only: no command, nothing saved (DistrictOverlay).
+            Q<Toggle>("admin-districts").RegisterValueChangedCallback(e=>{DistrictOverlay.Show(_host,e.newValue);Say(e.newValue?"District borders shown. Walk to a border or a district name to see them.":"District borders hidden.",false);Paint();});
+            Q<Button>("admin-roamer-preview").clicked+=()=>{if(!DistrictOverlay.Shown)DistrictOverlay.Show(_host,true);var p=DistrictOverlay.CyclePreview();Say(p==DistrictMap.Preview.Off?"Roamer preview off.":"Roamer preview: "+DistrictMap.PreviewName(p)+". Markers only, nothing is spawned.",false);Paint();};
             Q<Button>("admin-pause").clicked+=()=>{if(_host?.Simulation==null)return;_host.Paused=!_host.Paused;Say(_host.Paused?"Simulation paused. Admin actions remain available.":"Simulation running at normal speed.",false);Paint();};
             Page("supplies");_bound=true;
         }
@@ -108,6 +111,8 @@ namespace Relight.UI
             Q<Label>("admin-indicator").text=string.Join(" · ",flags);
             var p=sim.State.Engineer.Pos;var power=PowerQueries.Network(sim.Context,sim.State);
             Q<Label>("admin-readout").text=$"{(_host.Paused?"Paused":"Running")} · {sim.State.Enemies.Actors.Count} enemies · {power.SupplyKw:0}/{power.DemandKw:0} kW supply / demand\nPosition {p.X:0.0}, {p.Y:0.0} · Admin actions: {a.Actions}";
+            Q<Toggle>("admin-districts").SetValueWithoutNotify(DistrictOverlay.Shown);Q<Button>("admin-roamer-preview").text="Roamer preview: "+DistrictMap.PreviewName(DistrictOverlay.Preview);
+            var district=DistrictOverlay.Describe(p);if(district.Length>0)Q<Label>("admin-readout").text+="\n"+district;
         }
     }
 }
