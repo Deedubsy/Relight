@@ -88,7 +88,7 @@ namespace Relight.Sim
     public static class SaveSchema
     {
         /// <summary>Schema version this build writes. Files from <see cref="OldestReadable"/> up to it are read.</summary>
-        public const int Version = 10;
+        public const int Version = 11;
 
         /// <summary>
         /// The oldest schema version this build still reads (through <see cref="SaveUpgrade"/>). Never 0: there

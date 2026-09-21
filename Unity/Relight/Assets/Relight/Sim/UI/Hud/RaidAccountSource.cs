@@ -34,9 +34,16 @@ namespace Relight.Sim.UI
     ///       cause, and the assault's own account is the one the player needs.</item>
     /// <item>The scripted opening encounter is skipped. The goal card already owns its "Attack repelled" text
     ///       (U-D-54), and two accounts of one fight is the duplication this pass removes elsewhere.</item>
-    /// <item>The headline says "repelled" only when nothing was lost. Otherwise it says "over", which claims
-    ///       nothing.</item>
+    /// <item>The headline says "repelled" only when it is true (INT-04c): the raid was CLEARED, the core is working
+    ///       as the raid closes, and nothing was lost. A raid that was called off with bodies still alive says
+    ///       "broke off", the director's own word, which credits nobody (F1-30 is open). Everything else says
+    ///       "over", which claims nothing.</item>
     /// </list>
+    ///
+    /// <b>Where the outcome comes from (INT-04c).</b> A large raid's is read off its saved
+    /// <see cref="RaidRecord"/>. A small raid has no saved record, so its outcome is worked out here by the same
+    /// rule (<see cref="DirectorRules.CalledOff"/>) from what this class watched: whether its retreat was called,
+    /// and whether the core was down at any look during it.
     ///
     /// Per session and never saved, like <c>DefenceAlertSource._raised</c>: nothing here adds to the save.
     /// Engine-free, so <c>Tests/Sim/UI/RaidAccountTests.cs</c> can drive it without an editor.
@@ -65,6 +72,12 @@ namespace Relight.Sim.UI
         /// <summary>Goes up by one each time an account is finished, so the view model posts each exactly once.</summary>
         public int Serial { get; private set; }
 
+        /// <summary>
+        /// How the last finished account's raid ended, as a <see cref="RaidOutcome"/> number; -1 before any account,
+        /// and for a large raid that left no record.
+        /// </summary>
+        public int Outcome { get; private set; } = -1;
+
         /// <summary>True while a raid is being tallied.</summary>
         public bool Watching => _open;
 
@@ -77,7 +90,9 @@ namespace Relight.Sim.UI
         private int _rounds;
         private SimContext _ctx;
         private SimState _st;
-        private double _coreHp;
+        private bool _retreat;
+        private bool _coreDownAtOpen;
+        private bool _coreDownSeen;
         private int _kills;
         private double _coreLost;
         private bool _coreDisabled;
@@ -118,7 +133,13 @@ namespace Relight.Sim.UI
                 Open(ctx, st, id, major);
             }
 
-            if (_open) WatchTurrets(ctx, st, _place, _wentDry, _dryAtStart);
+            if (_open)
+            {
+                WatchTurrets(ctx, st, _place, _wentDry, _dryAtStart);
+                if (!_major && st.Director.Minor != null && st.Director.Minor.Id == _raidId)
+                    _retreat = st.Director.Minor.Retreat;
+                if (EnemyCoreHook.Down(ctx, st)) _coreDownSeen = true;
+            }
         }
 
         /// <summary>
@@ -157,8 +178,7 @@ namespace Relight.Sim.UI
                     if (_st != null && PlaceAt(_ctx, _st.Engineer.Pos.X, _st.Engineer.Pos.Y) == _place) _rounds++;
                     break;
                 case CoreDamagedEvent c:
-                    if (c.Hp < _coreHp) _coreLost += _coreHp - c.Hp;
-                    _coreHp = c.Hp;
+                    _coreLost += c.Lost;                               // the hit itself: a repair cannot hide it
                     break;
                 case CoreDisabledEvent _: _coreDisabled = true; break;
             }
@@ -218,7 +238,9 @@ namespace Relight.Sim.UI
             _major = major;
             _place = TargetPlace(ctx, st);
             _rounds = 0;
-            _coreHp = HomeQueries.CoreHp(st);
+            _retreat = false;
+            _coreDownAtOpen = EnemyCoreHook.Down(ctx, st);
+            _coreDownSeen = _coreDownAtOpen;
             _kills = 0;
             _coreLost = 0;
             _coreDisabled = false;
@@ -249,11 +271,17 @@ namespace Relight.Sim.UI
         private void Close(SimState st)
         {
             _open = false;
+            var coreDown = EnemyCoreHook.Down(_ctx, st);
+            if (coreDown) _coreDownSeen = true;
+            Outcome = Ended(st);
             Losses = _wentDry.Count > 0 || _blind.Count > 0 || _outage || _wrecked.Count > 0
-                     || _coreLost > 0 || _coreDisabled;
+                     || _coreLost > 0 || _coreDisabled || _coreDownAtOpen || coreDown;
 
+            var head = Outcome == (int)RaidOutcome.BrokeOff ? "broke off"
+                : Outcome == (int)RaidOutcome.Cleared && !Losses ? "repelled"
+                : "over";
             _sb.Clear();
-            _sb.Append(_major ? "Major assault " : "Raid ").Append(Losses ? "over" : "repelled");
+            _sb.Append(_major ? "Major assault " : "Raid ").Append(head);
             _sb.Append(" · ").Append(Count(_kills, "alien", "aliens")).Append(" killed");
             _sb.Append(" · ").Append(Count(_rounds, "round", "rounds")).Append(" fired");
             if (!Losses) _sb.Append(" · nothing lost");
@@ -266,11 +294,31 @@ namespace Relight.Sim.UI
                 if (_outage) Clause(ref first, "power failed");
                 if (_wrecked.Count > 0) Clause(ref first, Count(_wrecked.Count, "structure", "structures") + " wrecked");
                 if (_coreDisabled) Clause(ref first, "the core was disabled");
+                else if (_coreDownAtOpen) Clause(ref first, "the core was already down");
+                else if (coreDown) Clause(ref first, "the core is down");
                 else if (_coreLost > 0)
                     Clause(ref first, "core lost " + Math.Ceiling(_coreLost).ToString("0", CultureInfo.InvariantCulture) + " HP");
             }
             Text = _sb.ToString();
             Serial++;
+        }
+
+        /// <summary>
+        /// How the watched raid ended. A large raid: its saved record, or -1 if the director dropped it without
+        /// one. A small raid keeps no record, so: cleared unless its retreat was called, and then the director's
+        /// own called-off rule, with "the core is down" widened to "was down at any look", because a core put
+        /// back while the raiders were still walking off does not turn a lost raid into one that broke off.
+        /// </summary>
+        private int Ended(SimState st)
+        {
+            if (_major)
+            {
+                var h = st.Director.History;
+                for (var i = h.Count - 1; i >= 0; i--) if (h[i].Id == _raidId) return h[i].Outcome;
+                return -1;
+            }
+            if (!_retreat) return (int)RaidOutcome.Cleared;
+            return (int)(_coreDownSeen ? RaidOutcome.Lost : DirectorRules.CalledOff(_ctx, st));
         }
 
         private void Clause(ref bool first, string text)

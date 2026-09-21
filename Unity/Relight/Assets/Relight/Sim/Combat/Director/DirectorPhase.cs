@@ -91,14 +91,14 @@ namespace Relight.Sim
 
             var alive = EnemyQueries.GroupAlive(st, a.Id);
             RaidOutcome outcome;
-            if (a.Retreat) outcome = EnemyCoreHook.Down(ctx, st) ? RaidOutcome.Lost : RaidOutcome.BrokeOff;
+            if (a.Retreat) outcome = DirectorRules.CalledOff(ctx, st);
             else if (a.Remaining == 0 && alive == 0) outcome = RaidOutcome.Cleared;
             else if (a.EndsAt > 0 && st.T >= a.EndsAt + DirectorRules.MajorOverrunS) outcome = RaidOutcome.BrokeOff;
             else return;
 
             d.History.Add(new RaidRecord
             {
-                Id = a.Id, Started = a.StartsAt, Ended = st.T, Defeated = a.Retreat,
+                Id = a.Id, Started = a.StartsAt, Ended = st.T,
                 Spawned = d.MajorSpawned, Outcome = (int)outcome,
             });
             if (d.History.Count > 32) d.History.RemoveAt(0);

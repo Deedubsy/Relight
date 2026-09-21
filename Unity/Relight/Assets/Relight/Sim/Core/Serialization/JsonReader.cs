@@ -102,6 +102,22 @@ namespace Relight.Sim
             return true;
         }
 
+        /// <summary>
+        /// Take a member off an object — how <see cref="SaveUpgrade"/> drops a field a newer schema no longer has,
+        /// on the parsed document and never on the file. Returns false and changes nothing when this is not an
+        /// object or has no such member.
+        /// </summary>
+        internal bool TryRemoveMember(string name)
+        {
+            if (Kind != JsonKind.Object || _keys == null || string.IsNullOrEmpty(name)) return false;
+            var at = _keys.IndexOf(name);
+            if (at < 0) return false;
+            _keys.RemoveAt(at);
+            _values.RemoveAt(at);
+            _index = null;                                             // rebuilt on the next lookup
+            return true;
+        }
+
         /// <summary>A boolean, for <see cref="TryAddMember"/>.</summary>
         internal static JsonValue BoolValue(bool b)
         {

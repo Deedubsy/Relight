@@ -69,6 +69,7 @@ namespace Relight.Sim
         public const string WaveOffset = "waveOffset";
         public const string History = "history";
         public const string Outcome = "outcome";
+        public const string Defeated = "defeated";
 
         /// <summary>
         /// The one city every pre-C6 imported save was made on (WORLD_AND_ASSETS.md §2.3). A save that names this
@@ -183,6 +184,13 @@ namespace Relight.Sim
                 what += (what.Length == 0 ? " with" : " and") + " every earlier assault recorded as cleared";
                 v = 10;
             }
+            if (v == 10)
+            {
+                var problem = TenToEleven(state, out damaged);
+                if (problem.Length != 0) return problem;
+                what += (what.Length == 0 ? " with" : " and") + " each earlier assault kept with the one account of how it ended";
+                v = 11;
+            }
             // Every version between OldestReadable and Version has a step above; a gap here is a programming error.
             if (v != SaveSchema.Version)
                 return "unsupported save version " + fromVersion.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -288,6 +296,29 @@ namespace Relight.Sim
                 {
                     var record = history.At(i);
                     if (record != null && record.IsObject) record.TryAddMember(Outcome, JsonValue.NumberValue(0));
+                }
+            FillMissing(state, FreshDocument());
+            return "";
+        }
+
+        /// <summary>
+        /// v10 → v11: the assault record loses its dead <c>defeated</c> flag (INT-04c, ENM-05).
+        ///
+        /// The flag copied the raid's retreat flag, nothing read it, and its name said the opposite of what it
+        /// held; <see cref="RaidRecord.Outcome"/> is the one account of how an assault ended. Nothing is decided
+        /// here: the outcome each record already carries is kept exactly as the file has it. The member has to be
+        /// taken off the parsed document rather than merely ignored, because the reader re-hashes the state it
+        /// built and a member it never visited would make every file with a finished assault read as damaged.
+        /// </summary>
+        static string TenToEleven(JsonValue state, out bool damaged)
+        {
+            damaged = false;
+            var history = state.Member(Director)?.Member(History);
+            if (history != null && history.IsArray)
+                for (var i = 0; i < history.Count; i++)
+                {
+                    var record = history.At(i);
+                    if (record != null && record.IsObject) record.TryRemoveMember(Defeated);
                 }
             FillMissing(state, FreshDocument());
             return "";

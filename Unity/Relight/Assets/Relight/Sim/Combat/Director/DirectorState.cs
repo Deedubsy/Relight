@@ -149,9 +149,13 @@ namespace Relight.Sim
         public int Id;
         public double Started;
         public double Ended;
-        public bool Defeated;
         public int Spawned;
-        /// <summary>A <see cref="RaidOutcome"/>, as its number. Save v10; an older record reads as Cleared.</summary>
+        /// <summary>
+        /// A <see cref="RaidOutcome"/>, as its number: the one account of how the assault ended. Save v10; an older
+        /// record reads as Cleared. Until INT-04c a <c>defeated</c> flag sat beside it. It copied the retreat flag,
+        /// nothing read it, and its name said the opposite of what it held, so it is gone (save v11, which takes
+        /// the member off an older file's records as it is read: <c>SaveUpgrade.TenToEleven</c>).
+        /// </summary>
         public int Outcome;
 
         public void Visit(IStateVisitor v)
@@ -159,7 +163,6 @@ namespace Relight.Sim
             v.Field("id", ref Id);
             v.Field("started", ref Started);
             v.Field("ended", ref Ended);
-            v.Field("defeated", ref Defeated);
             v.Field("spawned", ref Spawned);
             v.Field("outcome", ref Outcome);
         }

@@ -87,8 +87,12 @@ namespace Relight.Sim
         partial void VisitHomeCore(IStateVisitor v) => v.Object("home", ref Home, () => new HomeState());
     }
 
-    /// <summary>The core lost HP (reference <c>damageCore</c>); <c>Hp</c> is what is left.</summary>
-    public sealed record CoreDamagedEvent(double T, double Hp) : SimEvent(T);
+    /// <summary>
+    /// The core lost HP (reference <c>damageCore</c>); <c>Hp</c> is what is left and <c>Lost</c> is what this hit
+    /// took. <c>Lost</c> is carried (INT-04c) so that a listener adding up a fight's damage does not have to know
+    /// what the core stood at before the hit: a repair in between would make that sum come out short.
+    /// </summary>
+    public sealed record CoreDamagedEvent(double T, double Hp, double Lost) : SimEvent(T);
 
     /// <summary>The core reached 0 HP and stopped counting as commissioned (reference <c>damageCore</c>'s hp === 0 branch).</summary>
     public sealed record CoreDisabledEvent(double T) : SimEvent(T);

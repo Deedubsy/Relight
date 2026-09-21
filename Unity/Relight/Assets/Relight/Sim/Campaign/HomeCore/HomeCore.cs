@@ -59,8 +59,9 @@ namespace Relight.Sim
         {
             var h = st.Home;
             if (h == null || !h.Placed || h.Hp <= 0 || amount <= 0) return;
+            var before = h.Hp;
             h.Hp = Math.Max(0, h.Hp - amount);
-            st.Events.Add(new CoreDamagedEvent(st.T, h.Hp));
+            st.Events.Add(new CoreDamagedEvent(st.T, h.Hp, before - h.Hp));
             if (h.Hp > 0) return;
             h.DisabledAt = st.T;
             st.Rev++;   // reference bumps f.rev so presentation and routing see the disabled core

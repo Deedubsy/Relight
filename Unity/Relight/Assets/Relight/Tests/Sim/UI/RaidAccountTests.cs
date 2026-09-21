@@ -61,7 +61,7 @@ namespace Relight.Sim.Tests.UI
             acc.Intake(new PowerOutageEvent(st.T, dry.Id));
             acc.Intake(new StructureDamagedEvent(st.T, wall.Id, 40, 100));   // damaged, not wrecked
             acc.Intake(new StructureDamagedEvent(st.T, wall.Id, 0, 100));
-            acc.Intake(new CoreDamagedEvent(st.T, HomeQueries.CoreHp(st) - 35));
+            acc.Intake(new CoreDamagedEvent(st.T, HomeQueries.CoreHp(st) - 35, 35));
             acc.Refresh(ctx, st);
             Leave(st);
             acc.Refresh(ctx, st);
@@ -96,7 +96,7 @@ namespace Relight.Sim.Tests.UI
             var (ctx, st, acc) = Bench();
             Arrive(st);
             acc.Refresh(ctx, st);
-            acc.Intake(new CoreDamagedEvent(st.T, 0));
+            acc.Intake(new CoreDamagedEvent(st.T, 0, HomeQueries.CoreHp(st)));
             acc.Intake(new CoreDisabledEvent(st.T));
             Leave(st);
             acc.Refresh(ctx, st);
@@ -117,6 +117,7 @@ namespace Relight.Sim.Tests.UI
             st.T += 60.5;
             acc.Refresh(ctx, st);
             Assert.That(acc.Watching, Is.True);
+            st.Director.History.Add(new RaidRecord { Id = 3, Outcome = (int)RaidOutcome.Cleared });   // as EndMajor leaves it
             Leave(st);
             acc.Refresh(ctx, st);
 
@@ -408,6 +409,181 @@ namespace Relight.Sim.Tests.UI
                 "the camp resident is still not this raid's kill; the rounds spent on it here are");
             Assert.That(lines[1], Does.Contain("power failed"));
             Assert.That(lines[1], Does.Contain("1 structure wrecked"));
+        }
+
+        // ---------------------------------------------------------------- INT-04c: "repelled" only when true
+        //
+        // Director-driven, like the INT-04a tests. A large raid's outcome is read off its saved record, and the
+        // account must agree with it. A small raid keeps no saved record, so its tests read the account's own.
+
+        /// <summary>A bench whose large raid has been warned, committed and started under the account's eyes.</summary>
+        private static (SimContext Ctx, SimState St, RaidAccountSource Acc, MajorRaid Raid) AnAssaultUnderWay()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            new HomeCoreInitializer().Init(ctx, st);
+            st.Director.NextMinor = 1e9;                                // no small raid is due in these
+            var acc = new RaidAccountSource();
+            st.T = st.Director.NextStart - ctx.Data.Raids.WarningS;
+            Drive(ctx, st, acc, RaidFixture.Dt);
+            Assert.That(st.Director.Major, Is.Not.Null, "the fixture map must be able to stage an assault");
+            st.T = st.Director.Major.StartsAt;
+            Drive(ctx, st, acc, 2);
+            var a = st.Director.Major;
+            Assert.That(a.Committed, Is.True);
+            Assert.That(acc.Watching, Is.True);
+            return (ctx, st, acc, a);
+        }
+
+        /// <summary>Hit the core between ticks and hand the account the events, as the next frame would.</summary>
+        private static void HitTheCore(SimState st, RaidAccountSource acc, double amount)
+        {
+            var seen = st.Events.Count;
+            HomeCore.Damage(st, amount);
+            for (var e = seen; e < st.Events.Count; e++) acc.Intake(st.Events[e]);
+        }
+
+        /// <summary>Every body of the assault is dead and it owes no more: the director's CLEARED ending.</summary>
+        private static void KillThemAll(SimState st, MajorRaid a)
+        {
+            a.Cancelled += a.Remaining;
+            a.Remaining = 0;
+            st.Enemies.Actors.Clear();
+        }
+
+        private static RaidRecord RecordOf(SimState st, int id)
+        {
+            var h = st.Director.History;
+            for (var i = h.Count - 1; i >= 0; i--) if (h[i].Id == id) return h[i];
+            return null;
+        }
+
+        [Test]
+        public void ACleanWinIsRecordedAsClearedAndReadsRepelled()
+        {
+            var (ctx, st, acc, a) = AnAssaultUnderWay();
+            KillThemAll(st, a);
+            Drive(ctx, st, acc, RaidFixture.Dt);
+
+            Assert.That(RecordOf(st, a.Id).Outcome, Is.EqualTo((int)RaidOutcome.Cleared));
+            Assert.That(acc.Outcome, Is.EqualTo((int)RaidOutcome.Cleared));
+            Assert.That(acc.Losses, Is.False);
+            Assert.That(acc.Text, Does.StartWith("Major assault repelled"));
+            Assert.That(acc.Text, Does.EndWith("nothing lost"));
+        }
+
+        [Test]
+        public void ALostRaidIsRecordedAsLostAndNeverReadsRepelled()
+        {
+            var (ctx, st, acc, a) = AnAssaultUnderWay();
+            HitTheCore(st, acc, 1e9);
+            Drive(ctx, st, acc, RaidFixture.Dt);
+
+            Assert.That(st.Director.Major, Is.Null, "a raid that beat its target is over at once (E-18)");
+            Assert.That(RecordOf(st, a.Id).Outcome, Is.EqualTo((int)RaidOutcome.Lost));
+            Assert.That(acc.Outcome, Is.EqualTo((int)RaidOutcome.Lost));
+            Assert.That(acc.Losses, Is.True);
+            Assert.That(acc.Text, Does.StartWith("Major assault over"));
+            Assert.That(acc.Text, Does.Not.Contain("repelled"));
+            Assert.That(acc.Text, Does.EndWith("the core was disabled"));
+        }
+
+        [Test]
+        public void ARaidThatBrokeOffIsRecordedAsThatAndCreditsNobody()
+        {
+            var (ctx, st, acc, a) = AnAssaultUnderWay();
+            a.EndsAt = st.T - DirectorRules.MajorOverrunS - 1;          // long past its planned end, bodies alive
+            Drive(ctx, st, acc, RaidFixture.Dt);
+
+            Assert.That(st.Director.Major, Is.Null);
+            Assert.That(RecordOf(st, a.Id).Outcome, Is.EqualTo((int)RaidOutcome.BrokeOff));
+            Assert.That(acc.Outcome, Is.EqualTo((int)RaidOutcome.BrokeOff));
+            Assert.That(acc.Text, Does.StartWith("Major assault broke off"));
+            Assert.That(acc.Text, Does.Not.Contain("repelled"), "what a broken-off raid counts as is F1-30, still open");
+        }
+
+        [Test]
+        public void ARepairInTheMiddleOfARaidDoesNotHideTheDamageBeforeIt()
+        {
+            var (ctx, st, acc, a) = AnAssaultUnderWay();
+            var max = (double)ctx.Data.Defence.CoreHp;
+            HitTheCore(st, acc, max * 0.4);
+            st.Home.Hp = max;                                           // what HomeCorePhase does when a repair lands
+            HitTheCore(st, acc, max * 0.25);
+            KillThemAll(st, a);
+            Drive(ctx, st, acc, RaidFixture.Dt);
+
+            Assert.That(RecordOf(st, a.Id).Outcome, Is.EqualTo((int)RaidOutcome.Cleared));
+            var lost = System.Math.Ceiling(max * 0.4 + max * 0.25).ToString("0", System.Globalization.CultureInfo.InvariantCulture);
+            Assert.That(acc.Text, Does.EndWith("core lost " + lost + " HP"), "both hits, not only the first");
+            Assert.That(acc.Text, Does.StartWith("Major assault over"), "cleared, and the core stands, but it was hurt");
+        }
+
+        [Test]
+        public void ACoreAlreadyDownBeforeALargeRaidMeansNoRaid_NoRecordAndNoAccount()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            new HomeCoreInitializer().Init(ctx, st);
+            st.Director.NextMinor = 1e9;
+            var acc = new RaidAccountSource();
+            st.T = st.Director.NextStart - ctx.Data.Raids.WarningS;
+            Drive(ctx, st, acc, RaidFixture.Dt);
+            var a = st.Director.Major;
+            Assert.That(a, Is.Not.Null);
+
+            HomeCore.Damage(st, 1e9);                                   // it falls during the warning
+            st.T = a.StartsAt;
+            Drive(ctx, st, acc, 2);
+
+            Assert.That(st.Director.Major, Is.Null, "the director drops an assault that has no core to go for");
+            Assert.That(RecordOf(st, a.Id), Is.Null);
+            Assert.That(acc.Serial, Is.Zero);
+        }
+
+        [Test]
+        public void ACoreAlreadyDownBeforeASmallRaidNeverReadsRepelledNothingLost()
+        {
+            var (ctx, st, m) = Announced();
+            var acc = new RaidAccountSource();
+            acc.Refresh(ctx, st);
+            HomeCore.Damage(st, 1e9);                                   // down before a single raider is on the map
+            st.T = m.StartsAt;
+            Drive(ctx, st, acc, 1);
+            Assert.That(m.Spawned, Is.True, "the announced raid still arrives");
+            Assert.That(acc.Watching, Is.True);
+            Assert.That(m.Retreat, Is.True, "and is called off at once: there is nothing to beat (E-18)");
+
+            st.Enemies.Actors.Clear();                                  // they have walked off
+            Drive(ctx, st, acc, RaidFixture.Dt);
+
+            Assert.That(acc.Serial, Is.EqualTo(1));
+            Assert.That(acc.Outcome, Is.EqualTo((int)RaidOutcome.Lost));
+            Assert.That(acc.Losses, Is.True);
+            Assert.That(acc.Text, Does.StartWith("Raid over"));
+            Assert.That(acc.Text, Does.Not.Contain("repelled"));
+            Assert.That(acc.Text, Does.Not.Contain("nothing lost"));
+            Assert.That(acc.Text, Does.EndWith("the core was already down"));
+        }
+
+        [Test]
+        public void ASmallRaidCalledOffWithTheCoreStandingBrokeOff()
+        {
+            var (ctx, st, m) = Announced();
+            var acc = new RaidAccountSource();
+            acc.Refresh(ctx, st);
+            st.T = m.StartsAt;
+            Drive(ctx, st, acc, 1);
+            Assert.That(acc.Watching, Is.True);
+
+            m.Retreat = true;                                           // as C-09's withdrawal leaves it
+            m.Owed = 0;
+            Drive(ctx, st, acc, RaidFixture.Dt);
+            st.Enemies.Actors.Clear();
+            Drive(ctx, st, acc, RaidFixture.Dt);
+
+            Assert.That(acc.Outcome, Is.EqualTo((int)RaidOutcome.BrokeOff));
+            Assert.That(acc.Text, Does.StartWith("Raid broke off"));
         }
 
         [Test]

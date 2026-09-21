@@ -292,5 +292,36 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(old.State.Director.History[0].Outcome, Is.EqualTo((int)RaidOutcome.Cleared));
             Assert.That(old.State.Director.History[1].Ended, Is.EqualTo(990));
         }
+
+        /// <summary>
+        /// INT-04c removed the record's dead <c>defeated</c> flag (save v11). A version-10 file still carries the
+        /// member on every finished assault. It must load, with each record's outcome exactly as the file has it:
+        /// the reader re-hashes what it built, so a member merely ignored would read as a damaged file.
+        /// </summary>
+        [Test]
+        public void AVersionTenFileThatStillCarriesTheOldDefeatedFlagLoads_WithItsOutcomesUntouched()
+        {
+            var ctx = RaidFixture.Context();
+            var st = State(ctx);
+            st.Director.History.Add(new RaidRecord { Id = 4, Started = 10, Ended = 90, Spawned = 12, Outcome = (int)RaidOutcome.Lost });
+
+            var state = PersistenceFixture.Canonical(st);
+            Assert.That(state, Does.Not.Contain("\"defeated\""), "this build no longer writes it");
+            var older = state.Replace("\"ended\":90", "\"defeated\":true,\"ended\":90");
+            Assert.That(older, Does.Contain("\"defeated\":true"));
+            older = PersistenceFixture.Retarget(older, "version", "10");
+            var doc = SaveSerializer.WriteText(st, ctx.Data);
+            doc = PersistenceFixture.Retarget(doc, "state", older);
+            doc = PersistenceFixture.Retarget(doc, "version", "10");
+            doc = PersistenceFixture.Retarget(doc, "hash", CanonicalJsonWriter.QuoteString(StateHash.Of(older)));
+
+            var load = SaveSerializer.ReadText(doc, ctx.Data);
+            Assert.That(load.Ok, Is.True, load.Reason);
+            Assert.That(load.Header.Version, Is.EqualTo(10));
+            Assert.That(load.Upgraded, Does.Contain("version 10"));
+            Assert.That(load.State.Director.History, Has.Count.EqualTo(1));
+            Assert.That(load.State.Director.History[0].Outcome, Is.EqualTo((int)RaidOutcome.Lost));
+            Assert.That(load.State.Director.History[0].Ended, Is.EqualTo(90));
+        }
     }
 }

@@ -80,6 +80,13 @@ namespace Relight.Sim
             EnemyCoreHook.Rect(ctx, st, out x, out y, out size);
 
         /// <summary>
+        /// How a raid whose retreat has been called ended (E-18): it beat its target if the core is down, and
+        /// otherwise it broke off. One rule, for the saved record of a large raid and the account of a small one.
+        /// </summary>
+        public static RaidOutcome CalledOff(SimContext ctx, SimState st) =>
+            EnemyCoreHook.Down(ctx, st) ? RaidOutcome.Lost : RaidOutcome.BrokeOff;
+
+        /// <summary>
         /// The <see cref="SiteKind.RaidLine"/> gate row: Home raid entry tiles must be at or below it (reference
         /// campaignThreat.ts:132 <c>y &lt; RIVERFRONT.homeRaidY</c>). <see cref="int.MinValue"/> when the region has
         /// no raid line, which disables the filter rather than rejecting every tile.
