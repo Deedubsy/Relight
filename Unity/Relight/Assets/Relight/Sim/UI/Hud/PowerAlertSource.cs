@@ -26,13 +26,34 @@ namespace Relight.Sim.UI
         /// <summary>Reference campaignAlerts.ts:17 title, with the port's single site name.</summary>
         public const string TitlePrefix = "No power";
 
-        /// <summary>Reference hud.ts:58-60 (GP-POWER-FIX): the strip's text when no generator is on any circuit.</summary>
-        public const string NoSourceText = "Power: 0 / 0 kW · no Generator linked";
+        // GP-W6. The strip's wording below is the wording the PLAYER has been reading since 2026-09-18, when
+        // HudController began overwriting this class's text with a formula of its own ("Power 300 kW · Need 40").
+        // Two formulas for one figure is the defect this class exists to prevent, and the tests here were pinning
+        // sentences nobody could see. The on-screen wording moved in, the HUD's copy is gone, and this is again the
+        // only place the strip's text is made.
 
-        /// <summary>Reference hud.ts:58-60: the strip's text when nothing is on a circuit at all.</summary>
-        public const string DisconnectedText = "Power: disconnected";
+        /// <summary>The strip's text when no generator is on any circuit.</summary>
+        public const string NoSourceText = "Power · no Generator linked";
 
-        /// <summary>The place name the alert and the strip use. Set once from the loaded region; defaults to "Home".</summary>
+        /// <summary>The strip's text when nothing is on a circuit at all.</summary>
+        public const string DisconnectedText = "Power · disconnected";
+
+        /// <summary>The strip's text when generators are linked and every one of them is empty.</summary>
+        public const string NoFuelText = "Power · no fuel";
+
+        /// <summary>What the strip adds while demand is above generation: the standing mark of a shortage.</summary>
+        public const string ShortSuffix = " · short";
+
+        /// <summary>The inbox key of the low-fuel warning.</summary>
+        public const string LowFuelKey = "power.fuel-low";
+
+        /// <summary>
+        /// Warn when the connected fuel will not last this long at the present load. Two minutes is long enough to
+        /// walk to a Generator with Coal and short enough that the row is not standing all evening.
+        /// </summary>
+        public const double LowFuelSeconds = 120;
+
+        /// <summary>The place name the outage alert uses. Set once from the loaded region; defaults to "Home".</summary>
         public string PlaceName = "Home";
 
         /// <summary>The strip's live text and the standing alert's text, both from one <see cref="PowerSummary"/>.</summary>
@@ -59,6 +80,25 @@ namespace Relight.Sim.UI
         /// <summary>The summary the last <see cref="Refresh"/> read, so the caller need not ask the grid twice.</summary>
         public PowerSummary Summary { get; private set; }
 
+        /// <summary>True while generation is above zero and below demand: machines are being slowed.</summary>
+        public bool Short { get; private set; }
+
+        /// <summary>True while no power is being generated at all. The strip's meter and colour read this.</summary>
+        public bool Off { get; private set; } = true;
+
+        /// <summary>0..1 of demand that is actually delivered, for the strip's meter; 1 when nothing is asked for.</summary>
+        public double Delivered { get; private set; }
+
+        /// <summary>"about 4 min", or "" when nothing is burning. Always shown beside the word "estimate".</summary>
+        public string FuelText { get; private set; } = "";
+
+        /// <summary>
+        /// "" unless fuel is burning and will run out within <see cref="LowFuelSeconds"/>. The sentence is the same
+        /// for as long as it stands — it does not count down — so it is posted once and never churns (U-D-55).
+        /// It ends on the reserve worth keeping: what one full slot is worth, from the same formula.
+        /// </summary>
+        public string LowFuelText { get; private set; } = "";
+
         /// <summary>Recompute both strings. Returns true while an outage stands.</summary>
         public bool Refresh(SimContext ctx, SimState st)
         {
@@ -67,13 +107,25 @@ namespace Relight.Sim.UI
                 StripText = NoSourceText;
                 AlertText = "";
                 BrownoutText = "";
+                FuelText = "";
+                LowFuelText = "";
+                Short = false;
+                Off = true;
+                Delivered = 0;
                 return false;
             }
 
             var n = PowerQueries.Network(ctx, st);
             BrownoutText = n.SupplyKw > 0 && n.DemandKw > n.SupplyKw && DefenceBrownedOut(ctx, st) ? BrownoutLine : "";
             Summary = n;
-            StripText = Strip(PlaceName, n);
+            StripText = Strip(n);
+            Off = n.SupplyKw <= 0;
+            Short = IsShort(n);
+            Delivered = Off ? 0 : n.DemandKw > 0 ? System.Math.Min(1, n.LoadKw / n.DemandKw) : 1;
+
+            var burning = n.Generators > 0 && !double.IsPositiveInfinity(n.FuelSeconds);
+            FuelText = burning ? PowerQueries.FuelTimeText(n.FuelSeconds) : "";
+            LowFuelText = burning && n.FuelSeconds < LowFuelSeconds ? LowFuelLine(ctx.Data) : "";
 
             // An outage is "a circuit that wants power and is not getting it". Demand with no supply is the whole of
             // it: a circuit with supply below demand is a brownout, which the machine's own "running slowly — not
@@ -98,14 +150,26 @@ namespace Relight.Sim.UI
             return false;
         }
 
-        /// <summary>Reference hud.ts:58-60 exactly, as a pure function so a test can drive all three branches.</summary>
-        public static string Strip(string place, PowerSummary n)
+        /// <summary>Generation above zero and below demand.</summary>
+        public static bool IsShort(PowerSummary n) => n.SupplyKw > 0 && n.DemandKw > n.SupplyKw;
+
+        /// <summary>The strip's text, as a pure function so a test can drive every branch.</summary>
+        public static string Strip(PowerSummary n)
         {
             if (n.Circuits <= 0) return DisconnectedText;
             if (n.RatedGenerators <= 0) return NoSourceText;
-            return string.Format(CultureInfo.InvariantCulture, "{0}: {1:0} / {2:0} kW",
-                string.IsNullOrEmpty(place) ? "Power" : place, n.DemandKw, n.SupplyKw);
+            if (n.SupplyKw <= 0) return NoFuelText;
+            return string.Format(CultureInfo.InvariantCulture, "Power {0:0} kW · Need {1:0}{2}",
+                n.SupplyKw, n.DemandKw, IsShort(n) ? ShortSuffix : "");
         }
+
+        /// <summary>The low-fuel sentence. Both times in it come from <see cref="PowerQueries.FuelTimeText"/>.</summary>
+        public static string LowFuelLine(GameData d) =>
+            "Fuel low · under " + PowerQueries.FuelTimeText(LowFuelSeconds).Replace("about ", "")
+            + " left at this load (estimate). A full slot of "
+            + MachineInventory.GeneratorFuelCap(d).ToString("0", CultureInfo.InvariantCulture)
+            + " runs a Generator " + PowerQueries.FuelTimeText(PowerQueries.FullSlotSeconds(d))
+            + " flat out — keep it fed by belt.";
 
         /// <summary>
         /// "Has the player ever had power?" — the fact the brief asks be FOUND, not added.

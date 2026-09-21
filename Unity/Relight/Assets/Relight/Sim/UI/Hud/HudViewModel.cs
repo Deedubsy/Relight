@@ -8,14 +8,17 @@ namespace Relight.Sim.UI
     /// <summary>One actionable machine problem the HUD can show, already worded.</summary>
     public readonly struct HudProblem
     {
+        /// <summary>The first machine the row speaks for.</summary>
         public readonly int MachineId;
         public readonly MachineOperatingState State;
-        /// <summary>"Generator: out of fuel — put coal in the generator".</summary>
+        /// <summary>"Generator: out of fuel — put coal in the generator", or "3 × Assembler: …" for several.</summary>
         public readonly string Text;
+        /// <summary>How many machines the row speaks for (GP-W6: one row per kind and state, not one per machine).</summary>
+        public readonly int Count;
 
-        public HudProblem(int machineId, MachineOperatingState state, string text)
+        public HudProblem(int machineId, MachineOperatingState state, string text, int count = 1)
         {
-            MachineId = machineId; State = state; Text = text;
+            MachineId = machineId; State = state; Text = text; Count = count;
         }
     }
 
@@ -53,6 +56,11 @@ namespace Relight.Sim.UI
         private readonly List<HudProblem> _problems = new List<HudProblem>();
         private double _lastRefresh = double.NegativeInfinity;
         private bool _brownout;
+        private bool _lowFuel;
+        private int _accountPosted;
+        private GameData _data;
+        private readonly Dictionary<ItemId, (int n, double at)> _mined = new Dictionary<ItemId, (int n, double at)>();
+        private readonly List<ProblemGroup> _groups = new List<ProblemGroup>();
         private bool _taughtHesitation;
         private bool _taughtBlindTurret;
 
@@ -66,6 +74,9 @@ namespace Relight.Sim.UI
         private readonly Dictionary<string, string> _defencePosted = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly List<string> _defenceGone = new List<string>();
 
+        /// <summary>The single post-attack account producer (GP-W6).</summary>
+        public readonly RaidAccountSource Account = new RaidAccountSource();
+
         /// <summary>The keyed alert inbox: one urgent strip plus at most three transient rows (§8).</summary>
         public readonly HudNotices Notices = new HudNotices();
 
@@ -78,8 +89,24 @@ namespace Relight.Sim.UI
         public string LightText { get; private set; } = "";
         public bool InDark { get; private set; }
 
-        /// <summary>"Home: 40 / 300 kW", or one of the two GP-POWER-FIX sentences (hud.ts:58-60).</summary>
+        /// <summary>"Power 300 kW · Need 40", with " · short" while demand is above generation, or one of
+        /// <see cref="PowerAlertSource"/>'s three sentences. The HUD prints this and makes no text of its own.</summary>
         public string PowerText { get; private set; } = PowerAlertSource.NoSourceText;
+
+        /// <summary>True while machines are being slowed by a shortage: the strip's standing amber state.</summary>
+        public bool PowerShort { get; private set; }
+
+        /// <summary>True while nothing is being generated: the strip's standing red state.</summary>
+        public bool PowerOff { get; private set; } = true;
+
+        /// <summary>0..1 of demand actually delivered, for the strip's meter.</summary>
+        public double PowerFraction { get; private set; }
+
+        /// <summary>"Fuel · about 4 min at this load (estimate)", or "" when nothing is burning.</summary>
+        public string FuelText { get; private set; } = "";
+
+        /// <summary>True while <see cref="FuelText"/> is under the low-fuel line.</summary>
+        public bool FuelLow { get; private set; }
 
         /// <summary>"Home core · 500/500 HP", "" before the core is placed.</summary>
         public string Core { get; private set; } = "";
@@ -166,6 +193,7 @@ namespace Relight.Sim.UI
             {
                 Clock = "No session";
                 PowerText = PowerAlertSource.NoSourceText;
+                PowerShort = false; PowerOff = true; PowerFraction = 0; FuelText = ""; FuelLow = false;
                 Core = Engineer = Weapon = Ammo = Backpack = HandLock = Threat = Alert = "";
                 LightText = ""; InDark = false;
                 MiningVisible = false;
@@ -175,6 +203,7 @@ namespace Relight.Sim.UI
             }
 
             var d = ctx.Data;
+            _data = d;
 
             // --- status strip ---------------------------------------------------------------------------------
             Clock = FormatClock(st.T, paused);
@@ -184,6 +213,11 @@ namespace Relight.Sim.UI
 
             Power.Refresh(ctx, st);
             PowerText = Power.StripText;
+            PowerShort = Power.Short;
+            PowerOff = Power.Off;
+            PowerFraction = Power.Delivered;
+            FuelText = Power.FuelText.Length > 0 ? "Fuel · " + Power.FuelText + " at this load (estimate)" : "";
+            FuelLow = Power.LowFuelText.Length > 0;
             // U-D-55. An outage is a STANDING state, not an event, so it lives in the urgent strip and NOWHERE
             // else. It used to be posted into the notice inbox as well, with an infinite lifetime, on every
             // 150 ms refresh — and <see cref="HudNotices.Post"/> counts a repeat whenever the row it replaces is
@@ -198,11 +232,26 @@ namespace Relight.Sim.UI
                 Notices.Post(PowerAlertSource.BrownoutKey, Power.BrownoutText, HudNoticeKind.Warning, now, GuideSeconds);
             if (!brownout && _brownout) Notices.Clear(PowerAlertSource.BrownoutKey);
             _brownout = brownout;
+            // GP-W6: low fuel is a standing state on the same edge rule. The sentence does not count down, so it
+            // is posted once; a player who dismisses it has been told, and the strip's fuel line keeps the time.
+            if (FuelLow && !_lowFuel)
+                Notices.Post(PowerAlertSource.LowFuelKey, Power.LowFuelText, HudNoticeKind.Warning, now, double.PositiveInfinity);
+            if (!FuelLow && _lowFuel) Notices.Clear(PowerAlertSource.LowFuelKey);
+            _lowFuel = FuelLow;
 
             // E-17 (U-D-61): one standing row per place for dry turrets and wrecks, from the one producer.
             Defence.FallbackPlace = Power.PlaceName;
             Defence.Refresh(ctx, st);
             PostDefence(now);
+
+            // GP-W6: the post-attack account, posted once when the raid it watched is over.
+            Account.Refresh(ctx, st);
+            if (Account.Serial != _accountPosted)
+            {
+                _accountPosted = Account.Serial;
+                Notices.Post(RaidAccountSource.Key, Account.Text,
+                    Account.Losses ? HudNoticeKind.Warning : HudNoticeKind.Info, now, RaidAccountSource.Seconds);
+            }
 
             var maxCore = d.Defence != null ? d.Defence.CoreHp : 0;
             var hp = HomeQueries.CoreHp(st);
@@ -354,6 +403,7 @@ namespace Relight.Sim.UI
             if (events == null) return;
             for (var i = 0; i < events.Count; i++)
             {
+                Account.Intake(events[i]);
                 switch (events[i])
                 {
                     case CommandResultEvent c:
@@ -364,8 +414,16 @@ namespace Relight.Sim.UI
                         break;
                     // A dig the sim called off — a full Backpack, the tile ran out — is otherwise silent: mining
                     // is a held intent, so the stop never returns a result to anyone.
+                    // GP-W6. This row used to print the item's KEY ("+1 iron-ore to Backpack") and, posted once per
+                    // unit with the same text, let the inbox count repeats onto it ("… × 14"). It now names the item
+                    // as every other surface does and keeps its own running total for as long as the dig goes on.
                     case MinedEvent gained when gained.MachineId < 0:
-                        Notices.Post("mined:"+Items.Key(gained.Item), "+1 "+Items.Key(gained.Item)+" to Backpack", HudNoticeKind.Info, now, NoteSeconds);
+                        _mined.TryGetValue(gained.Item, out var run);
+                        var total = run.n > 0 && now - run.at <= NoteSeconds ? run.n + 1 : 1;
+                        _mined[gained.Item] = (total, now);
+                        Notices.Post("mined:" + Items.Key(gained.Item),
+                            "+" + total.ToString(CultureInfo.InvariantCulture) + " " + ItemTitle(_data, gained.Item) + " to Backpack",
+                            HudNoticeKind.Info, now, NoteSeconds);
                         break;
                     case MiningStoppedEvent m:
                         // Releasing mining is shown by the target card; keep real refusal notices intact.
@@ -457,24 +515,102 @@ namespace Relight.Sim.UI
             return string.IsNullOrEmpty(wv.Notice) ? "Base under attack" : wv.Notice;
         }
 
+        /// <summary>One row's worth of machines: the same kind in the same state, or one of the two circuit-wide rows.</summary>
+        private struct ProblemGroup
+        {
+            public string Kind;
+            public MachineOperatingState State;
+            public bool Unsupplied;
+            public int Count;
+            public int FirstId;
+            public int Rank;
+        }
+
+        /// <summary>The remedy for machines that ARE on a circuit which is generating nothing: a pole is not the answer.</summary>
+        public const string UnsuppliedRemedy = "link and fuel a Generator";
+
+        /// <summary>The remedy for a shortage. There are only two ways out of one.</summary>
+        public const string ThrottledRemedy = "add a Generator or remove load";
+
         /// <summary>
         /// Machine problems worth acting on, worst first. The reason word is
         /// <see cref="ProductionQueries.StateText"/> verbatim — the brief forbids a second vocabulary — and the
         /// remedy clause after the dash is §8's actionable half.
+        ///
+        /// GP-W6 made the two promises in that first sentence true. The list used to be the first three machines in
+        /// placement order, one row each, so three unpowered belts-worth of Assemblers hid the wreck behind them.
+        /// Now machines of one kind in one state share a row ("3 × Assembler: …"), rows are ranked by
+        /// <see cref="Rank"/>, and the two CIRCUIT-wide conditions get one row each however many machines they
+        /// touch: connected machines whose circuit generates nothing, and machines slowed by a shortage — the
+        /// brief's "power shortages visibly affecting the machines they constrain".
         /// </summary>
         private void CollectProblems(SimContext ctx, SimState st)
         {
             _problems.Clear();
+            _groups.Clear();
             var d = ctx.Data;
-            for (var i = 0; i < st.Machines.Count && _problems.Count < MaxProblems; i++)
+            for (var i = 0; i < st.Machines.Count; i++)
             {
                 var m = st.Machines[i];
                 var s = ProductionQueries.OperatingState(ctx, st, m.Id);
-                var remedy = Remedy(s);
-                if (remedy == null) continue;
-                var name = d.TryMachine(m.Kind, out var spec) ? spec.DisplayName : m.Kind;
-                _problems.Add(new HudProblem(m.Id, s,
-                    name + ": " + ProductionQueries.StateText(s) + " — " + remedy));
+                var throttled = s == MachineOperatingState.Throttled;
+                if (!throttled && Remedy(s) == null) continue;
+                var unsupplied = s == MachineOperatingState.Unpowered && PowerQueries.Connected(ctx, st, m.Id);
+                var kind = throttled || unsupplied ? "" : m.Kind;
+
+                var at = -1;
+                for (var g = 0; g < _groups.Count && at < 0; g++)
+                    if (_groups[g].State == s && _groups[g].Unsupplied == unsupplied
+                        && string.Equals(_groups[g].Kind, kind, StringComparison.Ordinal)) at = g;
+                if (at < 0)
+                {
+                    _groups.Add(new ProblemGroup { Kind = kind, State = s, Unsupplied = unsupplied, Count = 1, FirstId = m.Id, Rank = Rank(s) });
+                    continue;
+                }
+                var grp = _groups[at];
+                grp.Count++;
+                _groups[at] = grp;
+            }
+
+            // Worst first; within a rank the larger group, then the older machine, so the order never flickers.
+            _groups.Sort((a, b) => a.Rank != b.Rank ? a.Rank.CompareTo(b.Rank)
+                : a.Count != b.Count ? b.Count.CompareTo(a.Count) : a.FirstId.CompareTo(b.FirstId));
+
+            for (var i = 0; i < _groups.Count && _problems.Count < MaxProblems; i++)
+            {
+                var g = _groups[i];
+                var many = g.Count.ToString(CultureInfo.InvariantCulture) + (g.Count == 1 ? " machine" : " machines");
+                string text;
+                if (g.State == MachineOperatingState.Throttled)
+                    text = "Low power: " + many + " " + ProductionQueries.StateText(g.State) + " — " + ThrottledRemedy;
+                else if (g.Unsupplied)
+                    text = "No supply: " + many + " connected, " + ProductionQueries.StateText(g.State) + " — " + UnsuppliedRemedy;
+                else
+                {
+                    var name = d.TryMachine(g.Kind, out var spec) && !string.IsNullOrEmpty(spec.DisplayName)
+                        ? spec.DisplayName : Title(g.Kind);
+                    text = (g.Count > 1 ? g.Count.ToString(CultureInfo.InvariantCulture) + " × " : "") + name + ": "
+                           + ProductionQueries.StateText(g.State) + " — " + Remedy(g.State);
+                }
+                _problems.Add(new HudProblem(g.FirstId, g.State, text, g.Count));
+            }
+        }
+
+        /// <summary>
+        /// Worst first. A wreck does nothing until someone walks to it; an empty Generator stops everything behind
+        /// it; then the machines with no power, the ones being slowed, and last the two routine stalls.
+        /// </summary>
+        public static int Rank(MachineOperatingState s)
+        {
+            switch (s)
+            {
+                case MachineOperatingState.Disabled: return 0;
+                case MachineOperatingState.OutOfFuel: return 1;
+                case MachineOperatingState.Unpowered: return 2;
+                case MachineOperatingState.Throttled: return 3;
+                case MachineOperatingState.NoInput: return 4;
+                case MachineOperatingState.OutputFull: return 5;
+                default: return 9;
             }
         }
 
@@ -491,18 +627,35 @@ namespace Relight.Sim.UI
                 // reach of its own footprint — and the Home workshop card is the CORE's, which is not a machine
                 // and never appears in this list. The old text sent the player to the one place that cannot fix it.
                 case MachineOperatingState.Disabled: return "walk to it and repair it";
-                default: return null;   // running, throttled and idle are not problems the strip raises
+                // Running and idle are not problems. Throttled is one, but it is a circuit's problem rather than a
+                // machine's, so CollectProblems gives it a single row of its own (ThrottledRemedy) instead of a remedy here.
+                default: return null;
             }
         }
 
         private static double Clamp01(double v) => v < 0 ? 0 : v > 1 ? 1 : v;
+
+        /// <summary>The item's display name. A key never reaches the player: with no data it is at least made to read as words.</summary>
+        private static string ItemTitle(GameData d, ItemId id)
+        {
+            var def = d?.Item(id);
+            return def != null && !string.IsNullOrEmpty(def.DisplayName) ? def.DisplayName : Title(Items.Key(id));
+        }
+
+        /// <summary>"assembler-mk2" → "Assembler mk2": the last resort when data has no display name for a key.</summary>
+        public static string Title(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return "";
+            var words = key.Replace('-', ' ').Replace('_', ' ');
+            return char.ToUpperInvariant(words[0]) + words.Substring(1);
+        }
 
         private static string ItemName(GameData d, ItemId id)
         {
             var def = d?.Item(id);
             return def != null && !string.IsNullOrEmpty(def.DisplayName)
                 ? def.DisplayName.ToLowerInvariant()
-                : Items.Key(id);
+                : Title(Items.Key(id)).ToLowerInvariant();
         }
     }
 }

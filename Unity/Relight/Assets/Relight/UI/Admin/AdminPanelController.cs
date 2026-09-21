@@ -77,6 +77,8 @@ namespace Relight.UI
             Q<Button>("admin-give").SetEnabled(labels.Count>0);
         }
         private static bool Match(string key,string name,string search)=>key.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0 || name.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0;
+        /// <summary>True in the editor and in a development build: the only places the Admin panel can be opened.</summary>
+        public static bool Available=>Application.isEditor||Debug.isDebugBuild;
         private void Update()
         {
             if(!_bound){if(_host==null)_host=FindAnyObjectByType<SimHost>();if(_shell==null)_shell=GetComponent<UiShell>();Bind();if(!_bound)return;}
@@ -88,6 +90,9 @@ namespace Relight.UI
                 var enemies=new List<string>();_enemyKeys.Clear();foreach(var e in sim.Context.Data.Enemies){enemies.Add(e.DisplayName);_enemyKeys.Add(e.Key);}Q<DropdownField>("admin-enemy").choices=enemies;Q<DropdownField>("admin-enemy").index=enemies.Count>0?0:-1;}
                 Say("Choose a tool. F8 or Escape closes this menu.",false);
             }
+            // GP-W6: a developer tool. It is offered in the editor and in development builds, and nowhere else.
+            Q<Button>("admin-launcher").style.display=Available?DisplayStyle.Flex:DisplayStyle.None;
+            if(!Available)return;
             Q<Button>("admin-launcher").SetEnabled(sim!=null);
             if(Keyboard.current?.f8Key.wasPressedThisFrame==true)Toggle();
             if(Time.unscaledTime>=_paintAt){Paint();_paintAt=Time.unscaledTime+.15f;}

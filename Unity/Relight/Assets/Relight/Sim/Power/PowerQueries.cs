@@ -45,8 +45,14 @@ namespace Relight.Sim
             if (!source && !node && PowerGrid.DemandKw(ctx.Data, m) <= 0) return "No power required";
             var c = Circuit(ctx, st, id);
             if (c == null) return "Power: disconnected — place a pole nearby";
-            if (source) return FuelUnits(st, id) <= 0 ? "Generator: out of fuel" :
-                $"Generator: {GeneratorShareKw(ctx, st, id):0.#} kW supplied · {c.Supply:0} kW available";
+            if (source)
+            {
+                if (FuelUnits(st, id) <= 0) return "Generator: out of fuel";
+                var line = $"Generator: {GeneratorShareKw(ctx, st, id):0.#} kW supplied · {c.Supply:0} kW available";
+                var left = GeneratorFuelSeconds(ctx, st, id);
+                return double.IsPositiveInfinity(left) ? line + " · nothing is drawing on its fuel"
+                    : line + " · fuel for " + FuelTimeText(left) + " at this load (estimate)";
+            }
             if (c.Supply <= 0) return "Power: connected · no supply — fuel a connected generator";
             if (c.Throttle < 1) return $"Power: connected · low supply ({c.Throttle:P0})";
             return node ? $"Power: connected · {c.Supply:0} kW available" : "Power: powered (100%)";
@@ -59,10 +65,43 @@ namespace Relight.Sim
             var gens = 0;
             var rated = 0;
             for (var i = 0; i < g.Circuits.Count; i++) { gens += g.Circuits[i].Generators.Count; rated += g.Circuits[i].RatedGenerators; }
-            var coalMj = ctx.Data.Power != null && ctx.Data.Power.CoalMj > 0 ? ctx.Data.Power.CoalMj : 4;
-            // Inverse of the burn formula: load kW draws load/(CoalMj*1000) fuel units a second.
-            var seconds = g.Load > 0 ? g.FuelUnits * (coalMj * 1000) / g.Load : double.PositiveInfinity;
-            return new PowerSummary(g.Demand, g.Supply, g.Load, gens, rated, g.Circuits.Count, seconds);
+            return new PowerSummary(g.Demand, g.Supply, g.Load, gens, rated, g.Circuits.Count,
+                FuelSecondsAt(ctx.Data, g.FuelUnits, g.Load));
+        }
+
+        /// <summary>
+        /// GP-W6. The ONE fuel-time formula: the inverse of <see cref="PowerPhase"/>'s burn, where a load of
+        /// <paramref name="kw"/> draws <c>kw / (CoalMj × 1000)</c> units a second. <see cref="double.PositiveInfinity"/>
+        /// when nothing is drawing. It is an ESTIMATE by nature — the load moves — and every caller says so.
+        /// </summary>
+        public static double FuelSecondsAt(GameData d, double units, double kw)
+        {
+            var coalMj = d?.Power != null && d.Power.CoalMj > 0 ? d.Power.CoalMj : 4;
+            return kw > 0 ? Math.Max(0, units) * (coalMj * 1000) / kw : double.PositiveInfinity;
+        }
+
+        /// <summary>One generator's fuel at its present share of its circuit's load.</summary>
+        public static double GeneratorFuelSeconds(SimContext ctx, SimState st, int machineId) =>
+            FuelSecondsAt(ctx.Data, FuelUnits(st, machineId), GeneratorShareKw(ctx, st, machineId));
+
+        /// <summary>How long one full fuel slot runs one generator flat out — the practical reserve the warning teaches.</summary>
+        public static double FullSlotSeconds(GameData d)
+        {
+            var kw = d != null && d.TryMachine("generator", out var s) && s.PowerKw < 0 ? -s.PowerKw
+                : d?.Power != null && d.Power.GeneratorKw > 0 ? d.Power.GeneratorKw : 300;
+            return FuelSecondsAt(d, MachineInventory.GeneratorFuelCap(d), kw);
+        }
+
+        /// <summary>
+        /// A fuel time as the player reads it, deliberately coarse because it is an estimate: "under 10 s",
+        /// "about 40 s", "about 4 min", "over an hour". The one wording every surface uses.
+        /// </summary>
+        public static string FuelTimeText(double seconds)
+        {
+            if (double.IsNaN(seconds) || seconds < 10) return "under 10 s";
+            if (seconds < 90) return "about " + (Math.Round(seconds / 10) * 10).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " s";
+            if (seconds < 3600) return "about " + Math.Round(seconds / 60).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " min";
+            return "over an hour";
         }
 
         /// <summary>The machine's circuit, or null when nothing in reach connects it.</summary>

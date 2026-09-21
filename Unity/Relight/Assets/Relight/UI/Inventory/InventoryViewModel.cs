@@ -224,7 +224,8 @@ namespace Relight.UI
                 var cap=MachineInventory.GeneratorFuelCap(d);
                 Reserved(ItemId.Coal,"Fuel",cap,true);Reserved(ItemId.Fuel,"Fuel",cap,true);
                 StoreCapacity=$"{Count(ItemId.Coal)+Count(ItemId.Fuel):0.#} / {cap:0} fuel · shared capacity";
-                StoreHint="Drop coal or refined fuel into its slot. Both use the same fuel capacity.";
+                // GP-W6: the practical reserve, from the same formula as the HUD's fuel estimate.
+                StoreHint="Drop coal or refined fuel into its slot. Both use the same fuel capacity. A full slot runs it "+PowerQueries.FuelTimeText(PowerQueries.FullSlotSeconds(d))+" flat out (estimate).";
             }
             else if(TurretHopper.IsTurret(d,m))
             {

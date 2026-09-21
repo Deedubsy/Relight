@@ -24,36 +24,75 @@ namespace Relight.Sim.Tests.UI
             Assert.That(vm.Notices.Rows[0].Text,Does.Contain("to Backpack"));
         }
 
+        /// <summary>
+        /// GP-W6. The row printed the item's key ("+1 iron-ore to Backpack") and, posted once a unit, had the inbox
+        /// count repeats onto it ("… × 14"). It names the item and keeps the total itself.
+        /// </summary>
+        [Test]
+        public void TheMinedRowNamesTheItemAndAddsUpInsteadOfRepeating()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            HomeCore.Ensure(ctx, st);
+            var vm = new HudViewModel();
+            vm.Refresh(ctx, st, 0, false, false, force: true);
+
+            for (var i = 0; i < 3; i++)
+                vm.Intake(new SimEvent[] { new MinedEvent(0, 10, 15, ItemId.IronOre, false) }, 0.5 * i);
+            vm.Notices.Reap(1);
+
+            var name = ctx.Data.Item(ItemId.IronOre).DisplayName;
+            Assert.That(vm.Notices.Rows.Count, Is.EqualTo(1));
+            Assert.That(vm.Notices.Rows[0].Text, Is.EqualTo("+3 " + name + " to Backpack"));
+            Assert.That(vm.Notices.Rows[0].Text, Does.Not.Contain(Items.Key(ItemId.IronOre)), "the key is not player text");
+            Assert.That(vm.Notices.Rows[0].Repeats, Is.LessThanOrEqualTo(1), "the total is in the words, not in a × N");
+
+            // A fresh dig after the row has lapsed starts again at one.
+            vm.Intake(new SimEvent[] { new MinedEvent(0, 10, 15, ItemId.IronOre, false) }, 60);
+            vm.Notices.Reap(60);
+            Assert.That(vm.Notices.Rows[0].Text, Is.EqualTo("+1 " + name + " to Backpack"));
+        }
+
         private static PowerSummary Summary(double demand, double supply, int rated, int circuits) =>
             new PowerSummary(demand, supply, System.Math.Min(demand, supply), rated, rated, circuits, 0);
 
         // ---- the status strip -------------------------------------------------------------------------------
 
+        // GP-W6: these four used to pin "Founders Court: 40 / 300 kW" and two sentences like it — text that had
+        // not been on screen since 2026-09-18, when the HUD began printing a formula of its own over the top.
+        // The wording below is the one the player reads, and PowerAlertSource is again the only place it is made.
+
         [Test]
-        public void TheStripPrintsTheNameAndTheTwoNumbersWhenThereIsACircuitWithAGenerator()
+        public void TheStripPrintsGenerationThenNeed()
         {
-            Assert.That(PowerAlertSource.Strip("Founders Court", Summary(40, 300, 1, 1)),
-                Is.EqualTo("Founders Court: 40 / 300 kW"));
+            Assert.That(PowerAlertSource.Strip(Summary(40, 300, 1, 1)), Is.EqualTo("Power 300 kW · Need 40"));
+        }
+
+        [Test]
+        public void TheStripMarksAShortageForAsLongAsDemandIsAboveGeneration()
+        {
+            Assert.That(PowerAlertSource.Strip(Summary(400, 300, 1, 1)), Is.EqualTo("Power 300 kW · Need 400 · short"));
+            Assert.That(PowerAlertSource.IsShort(Summary(400, 300, 1, 1)), Is.True);
+            Assert.That(PowerAlertSource.IsShort(Summary(300, 300, 1, 1)), Is.False, "meeting demand exactly is not a shortage");
+            Assert.That(PowerAlertSource.IsShort(Summary(400, 0, 1, 1)), Is.False, "no generation at all is an outage, not a shortage");
         }
 
         [Test]
         public void TheStripSaysNoGeneratorLinkedWhenACircuitHasNoSource()
         {
-            Assert.That(PowerAlertSource.Strip("Founders Court", Summary(5, 0, 0, 1)),
-                Is.EqualTo("Power: 0 / 0 kW · no Generator linked"));
+            Assert.That(PowerAlertSource.Strip(Summary(5, 0, 0, 1)), Is.EqualTo(PowerAlertSource.NoSourceText));
+        }
+
+        [Test]
+        public void TheStripSaysNoFuelWhenEveryLinkedGeneratorIsEmpty()
+        {
+            Assert.That(PowerAlertSource.Strip(Summary(5, 0, 1, 1)), Is.EqualTo(PowerAlertSource.NoFuelText));
         }
 
         [Test]
         public void TheStripSaysDisconnectedWhenNothingIsOnACircuitAtAll()
         {
-            Assert.That(PowerAlertSource.Strip("Founders Court", Summary(0, 0, 0, 0)),
-                Is.EqualTo("Power: disconnected"));
-        }
-
-        [Test]
-        public void TheStripFallsBackToThePlainWordWhenThereIsNoPlaceName()
-        {
-            Assert.That(PowerAlertSource.Strip("", Summary(1, 2, 1, 1)), Is.EqualTo("Power: 1 / 2 kW"));
+            Assert.That(PowerAlertSource.Strip(Summary(0, 0, 0, 0)), Is.EqualTo(PowerAlertSource.DisconnectedText));
         }
 
         // ---- the clock --------------------------------------------------------------------------------------
@@ -266,7 +305,10 @@ namespace Relight.Sim.Tests.UI
             var ctx = RaidFixture.Context();
             var st = RaidFixture.State(ctx);
             HomeCore.Ensure(ctx, st);
-            for (var i = 0; i < 8; i++) RaidFixture.Add(ctx, st, "assembler", 20 + i * 4, 20);
+            // Four kinds, all unpowered: four rows' worth since GP-W6 put machines of one kind on one row.
+            var kinds = new[] { "assembler", "foundry", "refinery", "turret" };
+            for (var k = 0; k < kinds.Length; k++)
+                for (var i = 0; i < 2; i++) RaidFixture.Add(ctx, st, kinds[k], 20 + i * 4, 20 + k * 4);
 
             var vm = new HudViewModel();
             vm.Refresh(ctx, st, 0, false, false, force: true);

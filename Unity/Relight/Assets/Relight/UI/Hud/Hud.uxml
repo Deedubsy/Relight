@@ -48,22 +48,26 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement name="threat" class="hud-block is-hidden" picking-mode="Ignore">
-            <ui:VisualElement name="threat-pip" picking-mode="Ignore" />
-            <ui:Label name="threat-text" text="" class="hud-line" />
-        </ui:VisualElement>
+        <!-- GP-W6: the raid line, the alerts and the machine problems are one column that flows. They were three
+             blocks pinned at fixed heights, and the raid line sat on the first alert row whenever both showed. -->
+        <ui:VisualElement name="right-stack" picking-mode="Ignore">
+            <ui:VisualElement name="threat" class="hud-block is-hidden" picking-mode="Ignore">
+                <ui:VisualElement name="threat-pip" picking-mode="Ignore" />
+                <ui:Label name="threat-text" text="" class="hud-line" />
+            </ui:VisualElement>
 
-        <ui:VisualElement name="alerts" class="hud-block" picking-mode="Ignore">
-            <ui:Label name="alert" text="" class="alert-strip is-hidden" />
-            <ui:Label name="notice-0" text="" class="notice-row is-hidden" />
-            <ui:Label name="notice-1" text="" class="notice-row is-hidden" />
-            <ui:Label name="notice-2" text="" class="notice-row is-hidden" />
-        </ui:VisualElement>
+            <ui:VisualElement name="alerts" class="hud-block" picking-mode="Ignore">
+                <ui:Label name="alert" text="" class="alert-strip is-hidden" />
+                <ui:Label name="notice-0" text="" class="notice-row is-hidden" />
+                <ui:Label name="notice-1" text="" class="notice-row is-hidden" />
+                <ui:Label name="notice-2" text="" class="notice-row is-hidden" />
+            </ui:VisualElement>
 
-        <ui:VisualElement name="problems" class="hud-block" picking-mode="Ignore">
-            <ui:Label name="problem-0" text="" class="problem-row is-hidden" />
-            <ui:Label name="problem-1" text="" class="problem-row is-hidden" />
-            <ui:Label name="problem-2" text="" class="problem-row is-hidden" />
+            <ui:VisualElement name="problems" class="hud-block" picking-mode="Ignore">
+                <ui:Label name="problem-0" text="" class="problem-row is-hidden" />
+                <ui:Label name="problem-1" text="" class="problem-row is-hidden" />
+                <ui:Label name="problem-2" text="" class="problem-row is-hidden" />
+            </ui:VisualElement>
         </ui:VisualElement>
 
         <ui:VisualElement name="mining" class="hud-block is-hidden" picking-mode="Ignore">

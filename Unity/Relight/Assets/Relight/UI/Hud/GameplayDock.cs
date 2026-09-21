@@ -141,7 +141,7 @@ namespace Relight.UI
                 blocked=!Interaction.InReach(ctx,st,machine);
                 verb=blocked?"Walk closer to interact":"["+Key("World/Equip","E")+"] Open / configure";
                 info=ProductionQueries.Description(ctx,st,machine.Id);
-                if(machine.Kind=="turret")info+=" · "+machine.Rounds+" bullets";
+                if(TurretHopper.IsTurret(ctx.Data,machine))info+=" · "+machine.Rounds+" rounds";
             }
             else if(WorldTargetQueries.Resource(ctx,st,x,y,out var item,out var units))
             {

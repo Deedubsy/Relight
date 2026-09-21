@@ -193,14 +193,14 @@ namespace Relight.UI
                 ("Circuits", n.Circuits.ToString(), n.Circuits > 0)
             };
             if (n.Generators > 0 && !double.IsPositiveInfinity(n.FuelSeconds))
-                rows.Add(("Fuel left", PackLayout.Num(System.Math.Floor(n.FuelSeconds)) + " s", n.FuelSeconds > 60));
+                rows.Add(("Fuel left (estimate)", _model.Power.FuelText + " at this load", !_model.FuelLow));
 
             return new TooltipContent
             {
                 Title = "Power",
                 Body = _model.PowerText,
                 Rows = rows,
-                Footer = n.DemandKw > n.SupplyKw ? "Demand exceeds generation: machines throttle." : ""
+                Footer = _model.PowerShort ? "Demand is above generation, so every machine on the circuit runs slowly. Add a Generator or remove load." : ""
             };
         }
 
@@ -267,12 +267,14 @@ namespace Relight.UI
             Set(_light, _model.LightText);
             Toggle(_light, "is-danger", _model.InDark);
             Show(_light, _model.LightText.Length > 0);
+            // GP-W6: the text, the meter and the two colours all come from PowerAlertSource through the model.
+            // This block used to build a second sentence of its own over the top of the model's.
             Set(_power, _model.PowerText);
-            var powerSummary=_model.Power.Summary;
-            Set(_power, powerSummary.SupplyKw>0 ? "Power "+PackLayout.Num(powerSummary.SupplyKw)+" kW · Need "+PackLayout.Num(powerSummary.DemandKw) : powerSummary.RatedGenerators>0 ? "Power · no fuel" : "Power · disconnected");
-            var powerMeter=_root.Q<ProgressBar>("power-meter");
-            if(powerMeter!=null) powerMeter.value=powerSummary.SupplyKw>0 ? (float)(powerSummary.DemandKw>0 ? System.Math.Min(1,powerSummary.LoadKw/powerSummary.DemandKw) : 1) : 0;
-            _root.Q("power-block")?.EnableInClassList("power-off", powerSummary.SupplyKw<=0);
+            var powerMeter = _root.Q<ProgressBar>("power-meter");
+            if (powerMeter != null) powerMeter.value = (float)_model.PowerFraction;
+            var powerBlock = _root.Q("power-block");
+            powerBlock?.EnableInClassList("power-off", _model.PowerOff);
+            powerBlock?.EnableInClassList("power-short", _model.PowerShort);
 
 
             Set(_core, _model.Core);

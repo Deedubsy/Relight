@@ -176,7 +176,16 @@ Button:focus { border-width: 1px; border-color: #e3b96f; }
 #tooltip-title { font-size: 16px; }
 #tooltip-body, #tooltip-footer, .tooltip-row Label { font-size: 13px; }
 #build-panel { top: 72px; bottom: 128px; width: 760px; }
-#alerts { top: 75px; right: 16px; width: 310px; padding: 0; }
+/* GP-W6. The raid line, the alerts and the machine problems flow down one column (#right-stack in Hud.uxml). Each
+   used to be pinned at its own height (62, 75 and 230 px), so the raid line covered the first alert row whenever a
+   raid was warned, which is exactly when the defence row (E-17) turns red. Nothing in the column has a `top` now;
+   a hidden block takes no room and the rest move up. */
+#right-stack { position: absolute; top: 62px; right: 16px; width: 310px; flex-direction: column; align-items: flex-end; }
+#right-stack > .hud-block { position: relative; top: auto; right: auto; bottom: auto; left: auto; }
+#right-stack > #threat { margin-bottom: 6px; width: 310px; max-width: 310px; }
+/* The raid line wraps inside the column instead of running off the right-hand edge. */
+#right-stack #threat-text { white-space: normal; flex-grow: 1; flex-shrink: 1; }
+#alerts { width: 310px; padding: 0; }
 .notice-row, .alert-strip, .problem-row { background-color: #202920; border-color: #837452; border-radius: 2px; font-size: 14px; }
 /* U-D-55. The line above repainted the urgent strip's GROUND and left Hud.uss's `color: var(--ui-bg)` (#151d1e)
    on it, so “No power · Home” was #151d1e text on #202920 — about 1.2:1, which is not dim, it is invisible.
@@ -185,8 +194,10 @@ Button:focus { border-width: 1px; border-color: #e3b96f; }
    salmon, with light text on it (~11:1) and bold, because it is the only HUD row that means act now.
    Grouping it with .notice-row was the mistake: a standing outage is not a notice. */
 .alert-strip { background-color: #4a1d18; border-color: #ff8a80; color: #ffd9d3; -unity-font-style: bold; }
-#threat { top: 62px; right: 18px; max-width: 280px; }
-#problems { top: 230px; right: 16px; bottom: auto; }
+#problems { width: 310px; margin-top: 6px; }
+/* Compact: the engineer block sits at the top right (70 px down), so the column starts under it. */
+.compact-ui #right-stack { top: 140px; width: 270px; }
+.compact-ui #alerts, .compact-ui #problems, .compact-ui #right-stack > #threat { width: 270px; max-width: 270px; }
 .compact-ui #goal-card { top: 68px; width: 275px; padding: 12px; }
 .compact-ui #goal-title { font-size: 16px; }
 .compact-ui #goal-details-scroll { max-height: 105px; }
@@ -240,6 +251,9 @@ Button:focus { border-width: 1px; border-color: #e3b96f; }
 .equipment-slot.active { border-width: 0; }
 #power-meter { margin-top: 4px; }
 #power-block.power-off #power-meter .unity-progress-bar__progress { background-color: #ff8a80; }
+/* GP-W6: a shortage stands in amber for as long as it lasts, on the meter and on the words beside it. */
+#power-block.power-short #power-meter .unity-progress-bar__progress { background-color: #ffb74d; }
+#power-block.power-short #power { color: #ffb74d; }
 
 /* Vertical inventory scrolling only; spare two pixels absorb scaled flex rounding. */
 #inventory-pair { margin-right: 2px; }
