@@ -143,8 +143,11 @@ Button:focus { border-width: 1px; border-color: #e3b96f; }
    host's own 8px bottom gutter ≈ 147px, rounded up. A rarer three-line note grows its own row rather than
    leaving the card next to it short, and `.compact-ui` trades 4px of padding for a taller title, so it
    needs no figure of its own. Tune this one number if a recipe turns out to run longer than that.
+   REL-114, measured in Play Mode on 2026-09-21 once the test could find the cards: 152px was too low. The
+   tallest host is 172px, so the floor is 176px (here and in WorkshopPanel.uss). The sum above is the record of
+   how the first figure was reached, not the current one.
    The card's bottom margin goes with it: the host's padding is the only gutter now, 8px each way. */
-.recipe-host { flex-basis: 50%; min-width: 180px; min-height: 152px; flex-shrink: 0; margin: 0; padding: 0 8px 8px 0; }
+.recipe-host { flex-basis: 50%; min-width: 180px; min-height: 176px; flex-shrink: 0; margin: 0; padding: 0 8px 8px 0; }
 .recipe-card { width: auto; min-width: 0; margin: 0; padding: 8px; border-width: 1px; border-color: #5f6350; border-radius: 2px; background-color: #1b2520; }
 .recipe-card.core-card { border-color: #756c4d; }
 .card-title { font-size: 14px; margin: 0 0 4px 0; -unity-font-style: bold; color: #e5d5b5; }

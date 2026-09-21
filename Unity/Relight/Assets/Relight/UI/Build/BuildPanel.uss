@@ -75,13 +75,17 @@
  * TheBuildCardsAreAllTheSameHeight fails with the height to raise it to rather than letting the grid go ragged.
  * The 200px floor is itself load-bearing: at 180px the text column drops to 154px and the same cost line takes a
  * FOURTH line, which is the defect this rule exists to remove.
+ *
+ * REL-114, measured in Play Mode on 2026-09-21 once the test could find the cards: the 144px above was too low.
+ * The tallest host (card-mixer) is 164px, so the floor is 168px. The sum above is kept as the record of how the
+ * first figure was reached, not as the current one.
  */
 .build-host {
     flex-grow: 0;
     flex-shrink: 0;
     flex-basis: 50%;
     min-width: 200px;
-    min-height: 144px;
+    min-height: 168px;
     padding-right: var(--ui-space-2);
     padding-bottom: var(--ui-space-2);
 }
