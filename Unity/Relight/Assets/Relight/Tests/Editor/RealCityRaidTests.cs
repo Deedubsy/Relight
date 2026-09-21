@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using Relight.Data;
 using Relight.Sim;
 using Relight.World;
-using UnityEditor;
 using Object = UnityEngine.Object;
 
 namespace Relight.Authoring.Tests
@@ -15,10 +13,7 @@ namespace Relight.Authoring.Tests
     /// the map the game is played on, with its walls, streets and authored approaches, and with EVERY phase of the
     /// sim running — so this is the first real-city raid fixture (REL-85 widens it).
     ///
-    /// The context is built exactly as <c>WorldBootstrap.ContextForLayout(version, useScene: false)</c> builds it
-    /// for a new game: the same four assets World.unity points at, the same opening resource layout, the same
-    /// balance tables. It needs the asset database, so it lives in the Editor test assembly and the offline dotnet
-    /// suite cannot run it.
+    /// The context is <see cref="RealCityFixture"/>'s: the city exactly as a new game builds it.
     ///
     /// The one liberty taken is the CLOCK: the first large raid is ~25 minutes into a new game, so each cycle pulls
     /// <c>NextStart</c> in to one warning from now. Nothing else about the raid is touched — the warning, the
@@ -26,10 +21,6 @@ namespace Relight.Authoring.Tests
     /// </summary>
     public sealed class RealCityRaidTests
     {
-        private const string Geometry = "Assets/Relight/World/Generated/Full/FullGeometry.asset";
-        private const string Sites = "Assets/Relight/World/Generated/Full/FullSites.asset";
-        private const string Overrides = "Assets/Relight/World/Manual/HomeSitesOverrides.asset";
-        private const string Registry = "Assets/Relight/Data/GameDataRegistry.asset";
         private const string Unresolved = "Previous assault cleanup is still unresolved";
 
         private WorldGeometryAsset _opening;
@@ -43,22 +34,7 @@ namespace Relight.Authoring.Tests
 
         private Simulation NewGameOnTheRealCity(int seed)
         {
-            var geometry = AssetDatabase.LoadAssetAtPath<WorldGeometryAsset>(Geometry);
-            var sites = AssetDatabase.LoadAssetAtPath<HomeSitesAsset>(Sites);
-            var overrides = AssetDatabase.LoadAssetAtPath<HomeSitesOverrides>(Overrides);
-            var registry = AssetDatabase.LoadAssetAtPath<GameDataRegistry>(Registry);
-            Assert.That(geometry, Is.Not.Null, Geometry);
-            Assert.That(sites, Is.Not.Null, Sites);
-            Assert.That(overrides, Is.Not.Null, Overrides);
-            Assert.That(registry, Is.Not.Null, Registry);
-
-            var siteList = SiteBridge.ToSim(HomeSites.Resolve(sites, overrides), geometry.RegionId, geometry.OriginX, geometry.OriginY);
-            _opening = OpeningResourceLayout.Build(geometry, siteList, out siteList);
-            var map = ImportedGeometry.Build(_opening);
-            Assert.That(map, Is.Not.Null, "the full-city geometry asset did not build");
-            Assert.That((map.Width, map.Height), Is.EqualTo((864, 576)), "this must be the real city, not a crop");
-
-            var ctx = new SimContext(registry.Build(), map, threat: new EnemyThreatLayer(), sites: siteList, mapId: _opening.MapId);
+            var ctx = RealCityFixture.Context(out _opening);
             var sim = Simulation.NewGame(ctx, seed);
             sim.State.OpeningResourceVersion = OpeningResourceLayout.Version;
             return sim;

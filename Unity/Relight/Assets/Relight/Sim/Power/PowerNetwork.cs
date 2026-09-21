@@ -161,27 +161,15 @@ namespace Relight.Sim
             d?.Power != null && d.Power.SubstationReachTiles > 0 ? d.Power.SubstationReachTiles : 8;
 
         /// <summary>
-        /// The substation site an authored streetlight belongs to: the nearest by centre distance, ties to the
-        /// earlier site in export order. Null when the region has no substation sites.
+        /// The substation site an authored streetlight belongs to: the substation of the district the light's
+        /// centre is in (<see cref="Districts"/> owns the rule: nearest by centre distance, ties to the earlier
+        /// site in export order). Null when the region has no substation sites.
         /// </summary>
         public static SiteRecord SubstationOf(SimContext ctx, SiteRecord light)
         {
-            var subs = SubstationSites(ctx);
-            if (light == null || subs.Count == 0) return null;
+            if (ctx == null || light == null) return null;
             var lc = light.Centre;
-            SiteRecord best = null;
-            var score = double.PositiveInfinity;
-            for (var i = 0; i < subs.Count; i++)
-            {
-                var c = subs[i].Centre;
-                var dx = c.X - lc.X;
-                var dy = c.Y - lc.Y;
-                var dd = dx * dx + dy * dy;
-                if (dd >= score) continue;
-                score = dd;
-                best = subs[i];
-            }
-            return best;
+            return Districts.SubstationAt(ctx, lc.X, lc.Y);
         }
 
         /// <summary>Reference campaignPower.ts:16 <c>nodesLinked</c> (GP-POWER-FIX): either node's centre within its own reach of the other's footprint.</summary>

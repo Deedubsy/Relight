@@ -831,21 +831,9 @@ namespace Relight.Sim
             return null;
         }
 
-        private static SiteRecord NearestSubstation(SimContext ctx, double cx, double cy)
-        {
-            if (ctx.Sites == null) return null;
-            SiteRecord best = null;
-            var score = double.PositiveInfinity;
-            foreach (var s in ctx.Sites.OfKind(SiteKind.Substation))
-            {
-                var c = s.Centre;
-                var dd = OpeningRules.Dist(c.X, c.Y, cx, cy);
-                if (dd >= score) continue;
-                score = dd;
-                best = s;
-            }
-            return best;
-        }
+        /// <summary>The substation of the district a position is in (<see cref="Districts"/> owns the rule).</summary>
+        private static SiteRecord NearestSubstation(SimContext ctx, double cx, double cy) =>
+            Districts.SubstationAt(ctx, cx, cy);
 
         /// <summary>
         /// The reference's <c>campaignGrid(st).blocks[home].supply &gt; 0</c> (goal.ts:113), asked of the port's grid:

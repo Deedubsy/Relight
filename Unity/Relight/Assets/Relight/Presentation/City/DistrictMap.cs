@@ -10,11 +10,11 @@ namespace Relight.Presentation
     /// A developer's picture of the nine districts, shared by the Scene-view gizmo (<c>Assets/Editor/DistrictGizmo.cs</c>)
     /// and the in-game debug overlay (<see cref="DistrictOverlay"/>), so both draw the same answer.
     ///
-    /// A district is every tile whose nearest substation site is the same one (ALWAYS_DARK_SPEC.md §6). The rule is
-    /// <see cref="PowerGrid.SubstationOf"/>'s own: squared centre distance, ties to the earlier site in export
-    /// order. A tile is measured from its centre.
+    /// It computes no district of its own (INT-09a, REL-81): the borders, the names, the substations and the tile
+    /// counts are the sim's one query, <see cref="Relight.Sim.Districts"/>. What is added here is only the picture:
+    /// a colour for each, the border edges, the meshes and the roamer preview.
     ///
-    /// Read-only. It reads the geometry and the sites and owns nothing the sim reads; nothing here is saved.
+    /// Read-only. It owns nothing the sim reads; nothing here is saved.
     /// </summary>
     public sealed class DistrictMap
     {
@@ -29,11 +29,11 @@ namespace Relight.Presentation
             public string Name;
             public SiteRecord Substation;
             public int Tiles, Walkable, Street;
-            /// <summary>Where the stats go: the authored name label inside the cell, else the substation.</summary>
+            /// <summary>Where the stats go: the label that named the district, else the substation.</summary>
             public Vector2 LabelTile;
             public Color Colour;
             /// <summary>Street tiles in scan order, y * W + x: what a roamer preview picks from.</summary>
-            public readonly List<int> StreetTiles = new List<int>();
+            public IReadOnlyList<int> StreetTiles = Array.Empty<int>();
 
             /// <summary>The side of a square with this much walkable ground, in tiles.</summary>
             public float Across => Mathf.Sqrt(Walkable);
@@ -57,49 +57,15 @@ namespace Relight.Presentation
 
         public static DistrictMap Build(SimContext ctx)
         {
-            var g = ctx.Geometry;
-            var subs = PowerGrid.SubstationSites(ctx);
-            var map = new DistrictMap { W = g.Width, H = g.Height };
-            map.Owner = new byte[map.W * map.H];
-            var n = Mathf.Min(subs.Count, 255);
-            if (n == 0) { for (var i = 0; i < map.Owner.Length; i++) map.Owner[i] = 255; return map; }
-
-            var cx = new double[n];
-            var cy = new double[n];
-            for (var i = 0; i < n; i++)
-            {
-                var c = subs[i].Centre;
-                cx[i] = c.X; cy[i] = c.Y;
+            var sim = Relight.Sim.Districts.Of(ctx);
+            var map = new DistrictMap { W = sim.Width, H = sim.Height, Owner = sim.Owner };
+            foreach (var s in sim.All)
                 map.Districts.Add(new District
                 {
-                    Index = i, Substation = subs[i], Colour = Palette[i % Palette.Length],
-                    Name = string.IsNullOrEmpty(subs[i].Name) ? subs[i].Id : subs[i].Name,
-                    LabelTile = new Vector2((float)c.X, (float)c.Y),
+                    Index = s.Index, Substation = s.Substation, Name = s.Name, Colour = Palette[s.Index % Palette.Length],
+                    LabelTile = new Vector2((float)s.Label.X, (float)s.Label.Y),
+                    Tiles = s.Tiles, Walkable = s.Walkable, Street = s.Street, StreetTiles = s.StreetTiles,
                 });
-            }
-
-            for (var y = 0; y < map.H; y++)
-            for (var x = 0; x < map.W; x++)
-            {
-                var best = Nearest(cx, cy, n, x + 0.5, y + 0.5);
-                map.Owner[y * map.W + x] = (byte)best;
-                var d = map.Districts[best];
-                d.Tiles++;
-                if (!Ground.Walkable(ctx, x, y)) continue;   // the sim's own rule: not solid, not river
-                d.Walkable++;
-                if (g.TileAt(x, y) != TileClass.Street) continue;
-                d.Street++;
-                d.StreetTiles.Add(y * map.W + x);
-            }
-
-            // The city's own name for the cell: the authored label that falls inside it.
-            foreach (var label in ctx.Sites.OfKind(SiteKind.Label))
-            {
-                var c = label.Centre;
-                var d = map.Districts[Nearest(cx, cy, n, c.X, c.Y)];
-                if (!string.IsNullOrEmpty(label.Name)) d.Name = label.Name;
-                d.LabelTile = new Vector2((float)c.X, (float)c.Y);
-            }
 
             for (var y = 0; y < map.H; y++)
             for (var x = 0; x < map.W; x++)
@@ -109,22 +75,6 @@ namespace Relight.Presentation
                 if (y > 0 && map.Owner[(y - 1) * map.W + x] != o) map.Edges.Add(new Vector3Int(x, y, 0));
             }
             return map;
-        }
-
-        private static int Nearest(double[] cx, double[] cy, int n, double px, double py)
-        {
-            var best = 0;
-            var score = double.PositiveInfinity;
-            for (var i = 0; i < n; i++)
-            {
-                var dx = cx[i] - px;
-                var dy = cy[i] - py;
-                var dd = dx * dx + dy * dy;
-                if (dd >= score) continue;   // strict, so the earlier site keeps a tie, as SubstationOf does
-                score = dd;
-                best = i;
-            }
-            return best;
         }
 
         /// <summary>The district a tile position is in, or null off the map.</summary>
