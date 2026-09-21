@@ -36,6 +36,10 @@ namespace Relight.Sim
             LastHit = st.T;
             if (Hp > 0) return;
             Hp = 0;
+            // REL-16: going down always ends a running repair, through the Cancel path and BEFORE the death
+            // handling below, so the refunded steel and copper share whatever happens to the Backpack. Left set,
+            // the repair re-locked the engineer on respawn, out of reach of a target it could never finish.
+            Home.EndRepair(ctx, st);
             Down = st.T + ctx.Data.Engineer.RespawnS;
             Downs++;
             HasAim = false;

@@ -63,23 +63,7 @@ namespace Relight.Sim
 
         private static CommandResult Cancel(SimContext ctx, SimState st)
         {
-            var h = st.Home;
-            if (h == null || h.RepairKind == RepairKinds.None) return CommandResult.Refuse("no repair is in progress");
-
-            // Refund exactly what was charged, and unwind the sink by however much actually fitted back in the
-            // pockets — anything that does not fit stays spent, so the ledger still balances (U-D-05).
-            var back = Pockets.Take(ctx.Data, st.Engineer, ItemKey.Of(ItemId.Steel), h.PaidSteel);
-            st.Stats.SpentSteel -= back;
-            back = Pockets.Take(ctx.Data, st.Engineer, ItemKey.Of(ItemId.Copper), h.PaidCopper);
-            st.Stats.SpentCopper -= back;
-
-            h.RepairKind = RepairKinds.None;
-            h.RepairId = -1;
-            h.RepairRemaining = 0;
-            h.RepairRecommission = false;
-            h.PaidSteel = 0;
-            h.PaidCopper = 0;
-            return CommandResult.Ok();
+            return Home.EndRepair(ctx, st) ? CommandResult.Ok() : CommandResult.Refuse("no repair is in progress");
         }
     }
 }

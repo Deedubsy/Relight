@@ -189,6 +189,68 @@ namespace Relight.Sim
         public static bool RepairLocked(SimState st) => st.Home != null && st.Home.RepairKind != RepairKinds.None && !st.Engineer.IsDown;
 
         /// <summary>
+        /// End the running repair and refund it; false when none is running. The ONE way a repair is abandoned:
+        /// <c>CancelRepairCommand</c>, the engineer going down (<c>Engineer.TakeDamage</c>) and the out-of-reach
+        /// lock found in a loaded save (<see cref="HealOnLoad"/>) all come here, so none of them can leave the hand
+        /// lock behind (REL-16: a death mid-repair used to root the respawned engineer for good, and the lock was
+        /// written into every autosave).
+        ///
+        /// Refunds exactly what was charged, and unwinds the sink by however much actually fitted back in the
+        /// pockets — anything that does not fit stays spent, so the ledger still balances (U-D-05).
+        /// </summary>
+        public static bool EndRepair(SimContext ctx, SimState st)
+        {
+            var h = st.Home;
+            if (h == null || h.RepairKind == RepairKinds.None) return false;
+
+            var back = Pockets.Take(ctx.Data, st.Engineer, ItemKey.Of(ItemId.Steel), h.PaidSteel);
+            st.Stats.SpentSteel -= back;
+            back = Pockets.Take(ctx.Data, st.Engineer, ItemKey.Of(ItemId.Copper), h.PaidCopper);
+            st.Stats.SpentCopper -= back;
+
+            h.RepairKind = RepairKinds.None;
+            h.RepairId = -1;
+            h.RepairRemaining = 0;
+            h.RepairRecommission = false;
+            h.PaidSteel = 0;
+            h.PaidCopper = 0;
+            return true;
+        }
+
+        /// <summary>
+        /// REL-16, the load half. A repair pins the engineer beside its target, so a save holding a STANDING
+        /// engineer with a repair running out of reach of that target was written
+        /// while the old death-mid-repair lock was in force: the body respawned across the map with the repair
+        /// still set, and an autosave caught it. It could never finish and the lock never lift, so it is ended
+        /// through the Cancel path, refund and all. True when it did so.
+        ///
+        /// The same goes for a save caught in the ten seconds the engineer was DOWN with the repair still set:
+        /// this build ends a repair as the engineer goes down, so that state is the old build's too, and it would
+        /// become the lock at the respawn.
+        ///
+        /// Nothing else is touched: a standing engineer's repair in reach loads exactly as written. It needs the
+        /// map for the reach test's line of sight, so <c>SaveSerializer</c> calls it only when it is given the
+        /// running game.
+        /// </summary>
+        public static bool HealOnLoad(SimContext ctx, SimState st)
+        {
+            var h = st.Home;
+            if (ctx == null || h == null || h.RepairKind == RepairKinds.None) return false;
+            if (st.Engineer.IsDown) return EndRepair(ctx, st);
+            if (h.RepairKind == RepairKinds.Core)
+            {
+                if (!h.Placed || Interaction.InReach(ctx, st, h.X, h.Y, h.W, h.H)) return false;
+            }
+            else
+            {
+                var m = HomeCorePhase.MachineById(st, h.RepairId);
+                // A machine that is gone is the phase's own case: it drops the repair on the next tick.
+                if (m == null || Interaction.InReach(ctx, st, m)) return false;
+            }
+            return EndRepair(ctx, st);
+        }
+
+        /// <summary>
         /// Reference <c>repairCheck</c>/<c>tickRepair</c> refuse and pause a disabled core's recommission while the
         /// block is under attack (<c>d.major?.block===core.block || d.minor?.block===core.block</c>). Enemies are
         /// W-B's C-08, which this folder must not reference, so this classic partial method is the seam: unimplemented

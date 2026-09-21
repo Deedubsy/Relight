@@ -252,6 +252,15 @@ namespace Relight.Sim
                 upgraded = string.IsNullOrEmpty(upgraded) ? moved : upgraded + "; " + moved;
             }
 
+            // REL-16: a repair that can never finish (the old death-mid-repair lock, caught by an autosave) is
+            // ended and refunded here, like the move above: after the checksum, with the
+            // file itself untouched. Every other save loads exactly as written.
+            if (onto != null && Home.HealOnLoad(onto, state))
+            {
+                var healed = "a repair that could never finish (the engineer went down during it) was ended and its materials returned";
+                upgraded = string.IsNullOrEmpty(upgraded) ? healed : upgraded + "; " + healed;
+            }
+
             // Balance data is a warning, never a refusal: a changed recipe is a difference, not damage.
             string warning = null;
             var current = GameDataHash.Compute(data);
