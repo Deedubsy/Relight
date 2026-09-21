@@ -917,9 +917,9 @@ Exit: a person finishes the game. F-ACC.
 | F1-25 | What may aliens do to the tram and the truck? | REL-35 |
 | F1-26 | Should raids come from the side of a living stronghold? | REL-40, REL-38 |
 | F1-27 | Does the 240 cap count sleeping roamers and garrisons? | REL-42, REL-98 |
-| F1-28 | What happens when the first small raid reaches the Home core's floor? | part of REL-75, REL-72 |
+| F1-28 | What happens when the first small raid reaches the Home core's floor? **Decided 2026-09-22 (U-D-68 b):** the raid breaks off and the HUD says the core held | part of REL-75, REL-72 |
 | F1-29 | When does a stronghold fight begin and end, and may it hold back a large-raid warning without limit? | part of REL-75, REL-93, REL-96 |
-| F1-30 | What counts as a raid that cannot finish, and what outcome is recorded? | part of REL-44, REL-80 |
+| F1-30 | What counts as a raid that cannot finish, and what outcome is recorded? **Answered in part 2026-09-22 (U-D-68 a):** nothing the player places may wall a raid off; raiders attack it (E-24). The recorded outcome for any other stuck raid is still open; the neutral interim stands | part of REL-44, REL-80 |
 | F1-31 | Must a Unity save made today keep loading as systems are added? | REL-44, 42, 35, 38, 76, 43, 63 |
 | F1-32 | Home coal: numbers, or coal reaches Home sooner? (after the REL-88 measurement) | REL-27 |
 | F1-33 | Roamers before alien roles (U-D-66), or after the roster (L-03's dependency)? | REL-42 |
