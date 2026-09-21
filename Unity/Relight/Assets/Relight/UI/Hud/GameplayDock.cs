@@ -143,6 +143,14 @@ namespace Relight.UI
                 info=ProductionQueries.Description(ctx,st,machine.Id);
                 if(TurretHopper.IsTurret(ctx.Data,machine))info+=" · "+machine.Rounds+" rounds";
             }
+            else if(DeathCache.OnTile(st,x,y) is DropCache pile)
+            {
+                // INT-01: the cargo dropped at a death. The marker draws over the darkness, so the card does too.
+                name="Dropped cargo";
+                blocked=!DeathCache.InReach(ctx,st,pile);
+                verb=blocked?"Walk closer to collect":"["+Key("World/Equip","E")+"] Collect";
+                info=DeathCache.Summary(ctx.Data,pile)+"\nWhat fits returns to Backpack. The rest stays here.";
+            }
             else if(WorldTargetQueries.Resource(ctx,st,x,y,out var item,out var units))
             {
                 name=ctx.Data.Item(item).DisplayName+" salvage";

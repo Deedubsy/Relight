@@ -178,6 +178,52 @@ namespace Relight.Sim
             return null;
         }
 
+        /// <summary>The pile with something in it on this tile, or null. What the pointer and the marker ask (INT-01).</summary>
+        public static DropCache OnTile(SimState st, int x, int y)
+        {
+            var drops = st?.Drops;
+            if (drops == null) return null;
+            for (var i = 0; i < drops.Caches.Count; i++)
+            {
+                var c = drops.Caches[i];
+                if (c.X == x && c.Y == y && !c.Items.IsEmpty) return c;
+            }
+            return null;
+        }
+
+        /// <summary>How many piles still hold something, and the one dropped last (null when there is none).</summary>
+        public static int Live(SimState st, out DropCache newest)
+        {
+            newest = null;
+            var drops = st?.Drops;
+            if (drops == null) return 0;
+            var n = 0;
+            for (var i = 0; i < drops.Caches.Count; i++)
+            {
+                var c = drops.Caches[i];
+                if (c.Items.IsEmpty) continue;
+                n++;
+                if (newest == null || c.T > newest.T || (c.T == newest.T && c.Id > newest.Id)) newest = c;
+            }
+            return n;
+        }
+
+        /// <summary>What a pile holds, in key order: "Iron plate × 12 · Coal × 4", and "+ N more" past <paramref name="max"/> kinds.</summary>
+        public static string Summary(GameData d, DropCache c, int max = 4)
+        {
+            if (c == null || c.Items.IsEmpty) return "";
+            var keys = new List<ItemKey>();
+            c.Items.Keys(keys);
+            var text = new System.Text.StringBuilder();
+            for (var i = 0; i < keys.Count && i < max; i++)
+            {
+                if (i > 0) text.Append(" · ");
+                text.Append(HandCraft.NameOf(d, keys[i])).Append(" × ").Append(PackLayout.Num(c.Items[keys[i]]));
+            }
+            if (keys.Count > max) text.Append(" · + ").Append(keys.Count - max).Append(" more");
+            return text.ToString();
+        }
+
         /// <summary>Reach of a pile is reach of its tile — the same rule as reaching a machine.</summary>
         public static bool InReach(SimContext ctx, SimState st, DropCache c) =>
             c != null && Interaction.InReach(ctx, st, c.X, c.Y, 1, 1);

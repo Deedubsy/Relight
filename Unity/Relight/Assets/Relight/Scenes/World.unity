@@ -41430,7 +41430,7 @@ MonoBehaviour:
   host: {fileID: 1892430403}
   worldCamera: {fileID: 519420031}
   supersample: 2
-  nightDarkness: 0.86
+  unlitDarkness: 0.55
   dayDarkness: 0
   nightTint: {r: 0.03, g: 0.04, b: 0.1, a: 1}
   z: -6
@@ -87393,6 +87393,7 @@ GameObject:
   - component: {fileID: 1892430414}
   - component: {fileID: 1892430413}
   - component: {fileID: 1892430415}
+  - component: {fileID: 1892430416}
   m_Layer: 0
   m_Name: Sim
   m_TagString: Untagged
@@ -87583,6 +87584,10 @@ MonoBehaviour:
   tellColour: {r: 1, g: 0.55, b: 0.4, a: 0.5}
   bodyTiles: 0.7
   globTiles: 0.3
+  lighting: {fileID: 0}
+  silhouetteColour: {r: 0.02, g: 0.03, b: 0.06, a: 1}
+  rimColour: {r: 0.78, g: 0.84, b: 0.95, a: 0.38}
+  rimScale: 1.22
 --- !u!114 &1892430412
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -87643,6 +87648,9 @@ MonoBehaviour:
   rangeColour: {r: 1, g: 0.55, b: 0.45, a: 0.5}
   coverColour: {r: 1, g: 0.62, b: 0.4, a: 0.9}
   blindColour: {r: 1, g: 0.35, b: 0.3, a: 0.95}
+  darkSightColour: {r: 0.55, g: 0.7, b: 1, a: 0.75}
+  litTintColour: {r: 1, g: 0.86, b: 0.45, a: 0.22}
+  lightCoverColour: {r: 1, g: 0.9, b: 0.55, a: 0.9}
 --- !u!114 &1892430415
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -87655,6 +87663,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b36ea3f7f9775d488b865d1b90cae29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Relight.Presentation::Relight.Presentation.PowerConnectionPresenter
+--- !u!114 &1892430416
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1892430401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7fe4ee20f49e7b143bf2aa1132815a94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.Presentation::Relight.Presentation.DropCachePresenter
+  host: {fileID: 0}
+  size: 0.5
+  z: -1.5
+  colour: {r: 1, g: 0.78, b: 0.25, a: 1}
+  rimColour: {r: 0.08, g: 0.07, b: 0.05, a: 0.95}
 --- !u!1 &1892987529
 GameObject:
   m_ObjectHideFlags: 0

@@ -131,13 +131,17 @@ namespace Relight.Sim.UI
         /// </summary>
         public string PlaceOf(SimContext ctx, Machine m)
         {
+            var (w, h) = m.Dimensions;
+            return PlaceAt(ctx, m.X + w / 2.0, m.Y + h / 2.0);
+        }
+
+        /// <summary>The same place name for a bare position (INT-01 names where the dropped cargo lies with it).</summary>
+        public string PlaceAt(SimContext ctx, double cx, double cy)
+        {
             var subs = PowerGrid.SubstationSites(ctx);
             string best = null;
             SiteRecord bestSub = null;
             var score = double.PositiveInfinity;
-            var (w, h) = m.Dimensions;
-            var cx = m.X + w / 2.0;
-            var cy = m.Y + h / 2.0;
             for (var i = 0; i < subs.Count; i++)
             {
                 var c = subs[i].Centre;

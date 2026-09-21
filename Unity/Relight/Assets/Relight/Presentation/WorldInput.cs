@@ -448,9 +448,31 @@ namespace Relight.Presentation
                     OpenMachine?.Invoke(target.Id);
                     return;
                 }
+                // INT-01: cargo dropped at a death. Pointing at the pile is the explicit way to pick one.
+                var pointed = DeathCache.OnTile(sim.State, x, y);
+                if (pointed != null)
+                {
+                    if (!DeathCache.InReach(sim.Context, sim.State, pointed)) InteractionNotice?.Invoke(DeathCache.ReachText);
+                    else Collect(pointed);
+                    return;
+                }
             }
+            // The workshop comes before a pile that merely lies nearby: a pile the Backpack has no room for stays
+            // where it is, and it must never stand between the player and the Home workshop.
             if (HandCraft.NearDepot(sim.Context, sim.State)) { OpenMachine?.Invoke(-1); return; }
+            var near = DeathCache.NearestInReach(sim.Context, sim.State);
+            if (near != null) { Collect(near); return; }
             InteractionNotice?.Invoke("Point at a nearby machine and press E to open it.");
+        }
+
+        /// <summary>
+        /// Issue the sim's own collect command, queued like every other gameplay input. Its result comes back as a
+        /// <see cref="CommandResultEvent"/>, so "Recovered 40 from the dropped cargo." and "Backpack is full." both
+        /// reach the HUD with no text of this class's own. What fits returns; the rest stays in the pile.
+        /// </summary>
+        private void Collect(DropCache pile)
+        {
+            host.Submit(new CollectCacheCommand(pile.Id));
         }
 
         /// <summary>

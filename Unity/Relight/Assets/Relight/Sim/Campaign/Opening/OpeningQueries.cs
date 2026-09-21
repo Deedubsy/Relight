@@ -198,7 +198,7 @@ namespace Relight.Sim
             if (e.IsDown)
                 return At("recovery", "Recover at Home",
                     "Back on your feet in " + Secs(e.Down - st.T) + " s",
-                    "Movement and interaction resume after recovery.", home);
+                    RecoveryDetail(st), home);
 
             // 0b — a disabled Home outranks everything except recovery (reference goal.ts:84).
             if (st.Home != null && st.Home.Placed && !HomeQueries.CoreOperational(st))
@@ -614,6 +614,15 @@ namespace Relight.Sim
         private const int ScoutBullets = 8;
 
         private static readonly ObjectiveMaterial[] NoMaterials = Array.Empty<ObjectiveMaterial>();
+
+        /// <summary>INT-01: the recovery row says the Backpack is lying where the engineer fell, when it is.</summary>
+        private static string RecoveryDetail(SimState st)
+        {
+            const string resume = "Movement and interaction resume after recovery.";
+            return DeathCache.Live(st, out _) == 0
+                ? resume
+                : resume + " Your Backpack's cargo is lying where you fell: walk back and press E beside it to collect.";
+        }
 
         private static ObjectiveView At(string id, string title, string text, string detail, Vec2 where) =>
             new ObjectiveView(id, title, text, detail, true, where, NoMaterials);

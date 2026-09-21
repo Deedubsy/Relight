@@ -14,6 +14,9 @@ namespace Relight.Presentation
         public const int Cable = 510;
         public const int CablePulse = 511;
         public const int MachineCue = 512;
+        /// <summary>Cargo dropped at a death (INT-01): over the darkness, so it can be found again where the engineer fell.</summary>
+        public const int DroppedCargoRim = 513;
+        public const int DroppedCargo = 514;
         public const int PlacementPreview = 520;
         public const int SilhouetteRim = 529;
         public const int Silhouette = 530;

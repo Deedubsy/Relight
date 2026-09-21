@@ -52,11 +52,15 @@ namespace Relight.Sim.UI
         /// <summary>The notice key a finished workshop batch updates, so ten batches are one row, not ten.</summary>
         public const string WorkshopNoticeKey = "workshop:done";
 
+        /// <summary>The one standing row for cargo dropped at a death (INT-01).</summary>
+        public const string DroppedCargoKey = "cargo:dropped";
+
         private readonly StringBuilder _sb = new StringBuilder(96);
         private readonly List<HudProblem> _problems = new List<HudProblem>();
         private double _lastRefresh = double.NegativeInfinity;
         private bool _brownout;
         private bool _lowFuel;
+        private string _cargoPosted = "";
         private int _accountPosted;
         private GameData _data;
         private readonly Dictionary<ItemId, (int n, double at)> _mined = new Dictionary<ItemId, (int n, double at)>();
@@ -243,6 +247,7 @@ namespace Relight.Sim.UI
             Defence.FallbackPlace = Power.PlaceName;
             Defence.Refresh(ctx, st);
             PostDefence(now);
+            PostDroppedCargo(ctx, st, now);
 
             // GP-W6: the post-attack account, posted once when the raid it watched is over.
             Account.Refresh(ctx, st);
@@ -330,6 +335,28 @@ namespace Relight.Sim.UI
 
         /// <summary>Notice key prefix for a queued command's result; the suffix is the command's type name.</summary>
         public const string CommandNoticeKey = "cmd:";
+
+        /// <summary>
+        /// INT-01. A standing row while cargo dropped at a death lies uncollected, naming the place. It is read from
+        /// STATE, not from <see cref="CargoDroppedEvent"/>: the pile is saved and the event is not, so a loaded game
+        /// must still say where the cargo is. Posted when what it says changes and never per refresh (U-D-55); a
+        /// player who dismisses it has been told, and the marker in the world still shows the pile.
+        /// </summary>
+        private void PostDroppedCargo(SimContext ctx, SimState st, double now)
+        {
+            var n = DeathCache.Live(st, out var newest);
+            var text = n == 0 ? "" : DroppedCargoText(n, Defence.PlaceAt(ctx, newest.X + 0.5, newest.Y + 0.5));
+            if (text == _cargoPosted) return;
+            if (text.Length == 0) Notices.Clear(DroppedCargoKey);
+            else Notices.Post(DroppedCargoKey, text, HudNoticeKind.Warning, now, double.PositiveInfinity);
+            _cargoPosted = text;
+        }
+
+        /// <summary>The row's sentence. One pile names its place; several say how many and name the newest.</summary>
+        public static string DroppedCargoText(int piles, string place) =>
+            piles <= 1
+                ? "Dropped cargo at " + place + " · walk back and press E beside it to collect"
+                : piles + " piles of dropped cargo · the newest at " + place + " · press E beside one to collect";
 
         /// <summary>Notice key for a dig that stopped with a reason.</summary>
         public const string MiningNoticeKey = "mining";
