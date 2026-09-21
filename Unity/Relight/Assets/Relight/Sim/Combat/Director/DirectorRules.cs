@@ -69,6 +69,12 @@ namespace Relight.Sim
         /// <summary>Seconds after a large raid ends before any survivor still on the map is removed (U-P-21).</summary>
         public const double WithdrawPurgeS = 120;
 
+        /// <summary>
+        /// E-19, developer tool only: how far ahead the Admin panel's "skip the wait" puts the next large raid.
+        /// Long enough to close the panel and look at the street; it is not a gameplay number.
+        /// </summary>
+        public const double AdminSkipLeadS = 10;
+
         /// <summary>The raid's destination rect: the Home core when the region has one.</summary>
         public static bool Target(SimContext ctx, SimState st, out int x, out int y, out int size) =>
             EnemyCoreHook.Rect(ctx, st, out x, out y, out size);

@@ -153,6 +153,13 @@ namespace Relight.Sim
             return n;
         }
 
+        /// <summary>
+        /// The number the next large raid is sized by: <see cref="Survived"/>, unless a developer has pinned it from
+        /// the Admin panel (E-19). The pin is an Admin override like the others — never saved, reset on load — and
+        /// it only matters at the moment a raid is BOOKED, because the plan is decided once and saved with the raid.
+        /// </summary>
+        public static int GrowthStep(SimState st) => st.Admin.RaidNumber >= 0 ? st.Admin.RaidNumber : Survived(st);
+
         // ------------------------------------------------------------------ clock
 
         /// <summary>
@@ -227,7 +234,7 @@ namespace Relight.Sim
             // GP-W4: the whole encounter is planned here, once, and saved — head count, composition, wave times,
             // approaches and length. Spawning afterwards only reads the plan, so what the player is warned about
             // is what arrives, and a save taken inside the assault resumes the same assault.
-            SiegePlan.Build(ctx, st, a, Survived(st));
+            SiegePlan.Build(ctx, st, a, GrowthStep(st));
             d.Major = a;
         }
 

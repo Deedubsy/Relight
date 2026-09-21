@@ -4,8 +4,8 @@
 .admin-header, .admin-tabs, .admin-row { flex-direction: row; flex-shrink: 0; }
 .admin-header .panel-title { flex-grow: 1; }
 .admin-header Button { width: 90px; margin-left: 8px; }
-.admin-tabs { margin-top: 6px; margin-bottom: 8px; }
-.admin-tabs Button { flex-grow: 1; flex-basis: 0; padding-left: 4px; padding-right: 4px; }
+.admin-tabs { margin-top: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.admin-tabs Button { flex-grow: 1; flex-basis: 0; min-width: 84px; padding-left: 4px; padding-right: 4px; }
 .admin-tabs .selected { -unity-background-image-tint-color: #d9b568; color: #fff4d6; }
 #admin-body { flex-grow: 1; min-height: 0; }
 .admin-page { flex-shrink: 0; padding: 4px; }
@@ -18,6 +18,7 @@
 .admin-page .unity-base-field__label { min-width: 92px; color: #eee5d1; }
 .admin-page .unity-base-field__input { background-color: #202823; color: #f4ecdc; border-color: #72755b; border-width: 1px; padding: 4px 8px; min-height: 30px; }
 .admin-page .unity-base-popup-field__text { color: #f4ecdc; }
+.admin-director-state { font-size: 13px; color: #e8e0c8; white-space: normal; background-color: #202823; border-color: #72755b; border-width: 1px; padding: 8px; margin-bottom: 6px; flex-shrink: 0; }
 #admin-status { white-space: normal; color: #b7e5c4; font-size: 13px; min-height: 36px; flex-shrink: 0; margin-top: 8px; }
 #admin-status.admin-error { color: #ffb3a1; }
 #admin-readout { font-size: 13px; color: #d1d5bf; white-space: normal; flex-shrink: 0; }

@@ -26,6 +26,15 @@ namespace Relight.Sim
     /// </summary>
     public static class SiegePlan
     {
+        /// <summary>Head count of a large raid booked after <paramref name="assaultsCompleted"/> finished ones.</summary>
+        public static int TotalFor(SimContext ctx, int assaultsCompleted)
+        {
+            var s = ctx.Data.Siege;
+            var growth = Math.Min(Math.Max(1.0, s.MajorGrowthCap),
+                1.0 + Math.Max(0.0, s.MajorGrowthPerAssault) * Math.Max(0, assaultsCompleted));
+            return Math.Max(Math.Max(1, s.MajorWaves), (int)Math.Round(ctx.Data.Raids.Total * growth));
+        }
+
         /// <summary>
         /// Plans <paramref name="a"/>'s waves. <paramref name="a"/> must already carry its id, its start second and
         /// the approaches <c>Stageable</c> validated; everything else is filled in here.
@@ -38,9 +47,7 @@ namespace Relight.Sim
             var waves = Math.Max(1, s.MajorWaves);
             var sides = a.Origins == null || a.Origins.Length == 0 ? 1 : a.Origins.Length;
 
-            var growth = Math.Min(Math.Max(1.0, s.MajorGrowthCap),
-                1.0 + Math.Max(0.0, s.MajorGrowthPerAssault) * Math.Max(0, assaultsCompleted));
-            var total = Math.Max(waves, (int)Math.Round(r.Total * growth));
+            var total = TotalFor(ctx, assaultsCompleted);
 
             var count = new int[waves];
             var spitters = new int[waves];

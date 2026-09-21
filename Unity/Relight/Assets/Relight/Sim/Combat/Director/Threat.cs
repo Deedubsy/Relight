@@ -123,6 +123,33 @@ namespace Relight.Sim
             st.Events.Add(new RaidNoticeEvent(st.T, RaidNoticeKind.Deferred, d.Notice, d.Major?.Id ?? -1));
         }
 
+        /// <summary>
+        /// DEVELOPER TOOL (E-19; the Admin panel is its only caller). Pull the next large raid IN to
+        /// <paramref name="startsAt"/> — the opposite of <see cref="Defer"/>, which gameplay may call and which only
+        /// ever moves it out. It moves the CLOCK and nothing else: the raid is still booked by <c>Schedule</c>,
+        /// announced by <c>Warn</c>, committed by <c>Commit</c> and spawned wave by wave, so what a developer
+        /// watches is the path a player gets. A raid already warned keeps its plan and slides along the clock; a
+        /// recovery spell that would refuse the new start is cut short, because a recovery spell IS the clock.
+        /// It does not override the rules the director tests for: a reserved approach, a fallen core and a raid
+        /// already under way are refused, with the reason. Returns "" when the clock was moved.
+        /// </summary>
+        public static string PullIn(SimContext ctx, SimState st, double startsAt)
+        {
+            var d = st.Director;
+            if (d.Major != null && d.Major.Committed) return "A large raid is already under way.";
+            if (d.Reserved) return d.ReserveReason.Length > 0 ? d.ReserveReason : "The approach is reserved.";
+            if (!DirectorRules.Target(ctx, st, out _, out _, out _)) return "There is no standing core to assault. Repair Home first.";
+            if (startsAt < st.T) startsAt = st.T;
+            if (d.RecoveryUntil > startsAt) d.RecoveryUntil = startsAt;
+            d.NextStart = startsAt;
+            if (d.Major != null)
+            {
+                SiegePlan.Shift(ctx, d.Major, startsAt);
+                d.WarnedId = 0;                         // announce it again, with the corrected time (as Defer does)
+            }
+            return "";
+        }
+
         /// <summary>Push the recovery window and the next minor opportunity out by <paramref name="seconds"/>.</summary>
         public static void Recover(SimState st, double seconds)
         {

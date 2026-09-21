@@ -8,6 +8,8 @@ namespace Relight.Sim
     {
         public bool Invulnerable, FreezeEnemies;
         public int Lighting = -1;
+        /// <summary>E-19: large raids survived, as the next booked raid is to be sized by; -1 follows the history.</summary>
+        public int RaidNumber = -1;
         public string LastAction = "";
         public int Actions;
     }
@@ -57,6 +59,19 @@ namespace Relight.Sim
                     var allowed=st.Director.DebugAllowed;st.Director.DebugAllowed=true;
                     try { new DebugRaidHandler().TryApply(ctx,st,new DebugRaidCommand(c.Amount,false,c.Direction),out var raid);return raid; }
                     finally { st.Director.DebugAllowed=allowed; }
+                // E-19: the director page. These move the director's CLOCK; the raid itself is the game's own.
+                case "major-now":
+                    if(st.Director.Major!=null)return CommandResult.Refuse("A large raid is already warned or under way. Use Skip the wait, or clear it first.");
+                    // A microsecond short of a full warning: (T + W) - W can round to just above T, and the booking would slip a tick.
+                    var warned=Director.PullIn(ctx,st,st.T+d.Raids.WarningS-1e-6);
+                    return warned.Length>0 ? CommandResult.Refuse(warned) : CommandResult.Ok($"Admin: a large raid will be warned on the next tick and starts in {d.Raids.WarningS:0} s.");
+                case "skip-clock":
+                    var pulled=Director.PullIn(ctx,st,st.T+DirectorRules.AdminSkipLeadS);
+                    return pulled.Length>0 ? CommandResult.Refuse(pulled) : CommandResult.Ok($"Admin: the next large raid starts in {DirectorRules.AdminSkipLeadS:0} s. Its plan is unchanged.");
+                case "raid-number":
+                    if(c.Amount < -1 || c.Amount > 50)return CommandResult.Refuse("Choose 0–50 raids survived, or -1 to follow the history.");
+                    st.Admin.RaidNumber=c.Amount;
+                    return CommandResult.Ok(c.Amount<0?"Admin: raid size follows the history again.":$"Admin: the next large raid booked is sized as if {c.Amount} had been survived ({SiegePlan.TotalFor(ctx,c.Amount)} bodies). A raid already warned keeps its plan.");
                 case "clear-enemies":
                     var count=st.Enemies.Actors.Count;st.Enemies.Actors.Clear();st.Enemies.Projectiles.Clear();
                     // Clearing a scheduled assault must also cancel its unspawned remainder.
@@ -72,7 +87,7 @@ namespace Relight.Sim
                 case "lighting":
                     if(c.Amount < -1 || c.Amount > 1)return CommandResult.Refuse("Invalid lighting mode.");
                     st.Admin.Lighting=c.Amount;return CommandResult.Ok("Admin: lighting "+(c.Amount<0?"follows the clock":c.Amount==1?"forced to daylight":"forced to night")+". Raid timers unchanged.");
-                case "reset-overrides":st.Admin.Invulnerable=false;st.Admin.FreezeEnemies=false;st.Admin.Lighting=-1;return CommandResult.Ok("Admin: temporary overrides reset. Granted items and spawned enemies remain.");
+                case "reset-overrides":st.Admin.Invulnerable=false;st.Admin.FreezeEnemies=false;st.Admin.Lighting=-1;st.Admin.RaidNumber=-1;return CommandResult.Ok("Admin: temporary overrides reset. Granted items and spawned enemies remain.");
                 case "repair":
                     if(st.Home.Placed){st.Home.Hp=d.Defence.CoreHp;st.Home.DisabledAt=-1;}
                     foreach(var m in st.Machines)TurretRules.TurretRepairHook(ctx,st,m.Id,1000000);

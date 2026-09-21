@@ -6,7 +6,7 @@
         <ui:VisualElement class="admin-header"><ui:Label text="ADMIN TOOLS" class="panel-title" /><ui:Button name="admin-close" text="Close · F8" /></ui:VisualElement>
         <ui:Label text="Testing tools. Item grants, spawns and repairs affect your current save. Temporary toggles reset on load." class="admin-help" />
         <ui:VisualElement class="admin-tabs">
-            <ui:Button name="admin-tab-supplies" text="Supplies" /><ui:Button name="admin-tab-enemies" text="Enemies" />
+            <ui:Button name="admin-tab-supplies" text="Supplies" /><ui:Button name="admin-tab-enemies" text="Enemies" /><ui:Button name="admin-tab-raids" text="Raids" />
             <ui:Button name="admin-tab-player" text="Player / Base" /><ui:Button name="admin-tab-world" text="World" />
         </ui:VisualElement>
         <ui:ScrollView name="admin-body" mode="Vertical" horizontal-scroller-visibility="Hidden">
@@ -33,6 +33,17 @@
                 <ui:Toggle name="admin-freeze" label="Freeze enemy movement and attacks" />
                 <ui:Button name="admin-clear" text="Clear enemies &amp; cancel active raids" class="ui-button-danger" />
                 <ui:Label text="Removes living enemies and hostile projectiles without kill rewards. Automatic raids can occur again later." class="admin-help" />
+            </ui:VisualElement>
+            <ui:VisualElement name="admin-page-raids" class="admin-page admin-hidden">
+                <ui:Label text="Raid director" class="admin-section" />
+                <ui:Label name="admin-director-state" text="" class="admin-director-state" />
+                <ui:Label text="Large raid" class="admin-section" />
+                <ui:VisualElement class="admin-row"><ui:Button name="admin-major-now" text="Warn a large raid now" /><ui:Button name="admin-skip-clock" text="Skip the wait (10 s)" /></ui:VisualElement>
+                <ui:Label text="Both only move the director's clock. The raid is the game's own: the warning, the waves, the walk in and the ending. Warn now gives the full warning. Skip the wait slides a warned raid, or the next one, to 10 seconds from now and keeps its plan. Refused while the opening holds the approach, while the core is down, and while a large raid is under way." class="admin-help" />
+                <ui:Label text="Raid size" class="admin-section" />
+                <ui:IntegerField name="admin-raid-number" label="Raids survived" value="0" />
+                <ui:VisualElement class="admin-row"><ui:Button name="admin-raid-number-set" text="Pin for the next raid" /><ui:Button name="admin-raid-number-clear" text="Follow the history" /></ui:VisualElement>
+                <ui:Label text="Sizes the next large raid booked as if that many had been survived (0 to 50). A temporary override: never saved, and a raid already warned keeps its plan. “Trigger raid at Home” on the Enemies page is different: it stages one ordinary group at once, with no warning and no waves." class="admin-help" />
             </ui:VisualElement>
             <ui:VisualElement name="admin-page-player" class="admin-page admin-hidden">
                 <ui:Label text="Engineer" class="admin-section" />

@@ -26,7 +26,7 @@ namespace Relight.UI
             if(_panel==null)return;
             Q<Button>("admin-launcher").clicked+=Toggle;
             Q<Button>("admin-close").clicked+=()=>_shell.CloseActive();
-            foreach(var tab in new[]{"supplies","enemies","player","world"}){var page=tab;Q<Button>("admin-tab-"+tab).clicked+=()=>Page(page);}
+            foreach(var tab in new[]{"supplies","enemies","raids","player","world"}){var page=tab;Q<Button>("admin-tab-"+tab).clicked+=()=>Page(page);}
             Q<TextField>("admin-search").RegisterValueChangedCallback(_=>FilterItems());
             Q<DropdownField>("admin-direction").choices=new List<string>{"North","East","South","West"};Q<DropdownField>("admin-direction").index=0;
             Button("admin-give",()=>new AdminCommand("grant",Selected(_itemKeys,"admin-item"),Q<IntegerField>("admin-amount").value));
@@ -34,6 +34,10 @@ namespace Relight.UI
             Button("admin-give-weapon",()=>new AdminCommand("weapon",Selected(_weaponKeys,"admin-weapon")));
             Button("admin-spawn",()=>new AdminCommand("spawn",Selected(_enemyKeys,"admin-enemy"),Q<IntegerField>("admin-enemy-count").value,Q<DropdownField>("admin-direction").index,Q<IntegerField>("admin-distance").value));
             Button("admin-raid",()=>new AdminCommand("raid",Amount:Q<IntegerField>("admin-enemy-count").value,Direction:Q<DropdownField>("admin-direction").index));
+            // E-19: the director page. The commands only move the director's clock (Director.PullIn).
+            Button("admin-major-now",()=>new AdminCommand("major-now"));Button("admin-skip-clock",()=>new AdminCommand("skip-clock"));
+            Button("admin-raid-number-set",()=>new AdminCommand("raid-number",Amount:Q<IntegerField>("admin-raid-number").value));
+            Button("admin-raid-number-clear",()=>new AdminCommand("raid-number",Amount:-1));
             foreach(var entry in new[]{("clear","clear-enemies"),("heal","heal"),("home","home"),("repair","repair"),("fuel","fuel"),("ammo","ammo"),("reset","reset-overrides")})
             {var action=entry.Item2;Button("admin-"+entry.Item1,()=>new AdminCommand(action));}
             Button("admin-day",()=>new AdminCommand("lighting",Amount:1));Button("admin-night",()=>new AdminCommand("lighting",Amount:0));Button("admin-natural",()=>new AdminCommand("lighting",Amount:-1));
@@ -58,7 +62,7 @@ namespace Relight.UI
         {
             if(_host?.Simulation==null)return;
             var result=_host.Simulation.Apply(command);
-            if(result.Accepted && command.Action!="invulnerable" && command.Action!="freeze" && command.Action!="lighting" && command.Action!="reset-overrides")
+            if(result.Accepted && command.Action!="invulnerable" && command.Action!="freeze" && command.Action!="lighting" && command.Action!="raid-number" && command.Action!="reset-overrides")
                 FindAnyObjectByType<FrontEnd.FrontEndBootstrap>()?.Dirty.MarkChanged();
             Say(result.Problem,!result.Accepted);Paint();
             GetComponent<InventoryPanelController>()?.Paint(true);
@@ -66,7 +70,7 @@ namespace Relight.UI
         private void Say(string text,bool error){Q<Label>("admin-status").text=text;Q<Label>("admin-status").EnableInClassList("admin-error",error);}
         private void Page(string page)
         {
-            foreach(var tab in new[]{"supplies","enemies","player","world"}){Q<VisualElement>("admin-page-"+tab).EnableInClassList("admin-hidden",tab!=page);Q<Button>("admin-tab-"+tab).EnableInClassList("selected",tab==page);}
+            foreach(var tab in new[]{"supplies","enemies","raids","player","world"}){Q<VisualElement>("admin-page-"+tab).EnableInClassList("admin-hidden",tab!=page);Q<Button>("admin-tab-"+tab).EnableInClassList("selected",tab==page);}
             Q<ScrollView>("admin-body").scrollOffset=Vector2.zero;
         }
         private void FilterItems()
@@ -107,10 +111,11 @@ namespace Relight.UI
             var a=sim.State.Admin;
             Q<Toggle>("admin-god").SetValueWithoutNotify(a.Invulnerable);Q<Toggle>("admin-freeze").SetValueWithoutNotify(a.FreezeEnemies);
             Q<Button>("admin-pause").text=_host.Paused?"Resume simulation":"Pause simulation";
-            var flags=new List<string>();if(a.Invulnerable)flags.Add("INVULNERABLE");if(a.FreezeEnemies)flags.Add("ENEMIES FROZEN");if(a.Lighting>=0)flags.Add(a.Lighting==1?"DAYLIGHT":"NIGHT");
+            var flags=new List<string>();if(a.Invulnerable)flags.Add("INVULNERABLE");if(a.FreezeEnemies)flags.Add("ENEMIES FROZEN");if(a.Lighting>=0)flags.Add(a.Lighting==1?"DAYLIGHT":"NIGHT");if(a.RaidNumber>=0)flags.Add("RAID SIZE PINNED");
             Q<Label>("admin-indicator").text=string.Join(" · ",flags);
             var p=sim.State.Engineer.Pos;var power=PowerQueries.Network(sim.Context,sim.State);
             Q<Label>("admin-readout").text=$"{(_host.Paused?"Paused":"Running")} · {sim.State.Enemies.Actors.Count} enemies · {power.SupplyKw:0}/{power.DemandKw:0} kW supply / demand\nPosition {p.X:0.0}, {p.Y:0.0} · Admin actions: {a.Actions}";
+            Q<Label>("admin-director-state").text=DirectorQueries.Describe(DirectorQueries.Readout(sim.Context,sim.State));
             Q<Toggle>("admin-districts").SetValueWithoutNotify(DistrictOverlay.Shown);Q<Button>("admin-roamer-preview").text="Roamer preview: "+DistrictMap.PreviewName(DistrictOverlay.Preview);
             var district=DistrictOverlay.Describe(p);if(district.Length>0)Q<Label>("admin-readout").text+="\n"+district;
         }

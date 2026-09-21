@@ -42,8 +42,75 @@ namespace Relight.Sim
     /// advances the clock. Port of campaignThreat.ts <c>knownCampaignThreat</c> / <c>campaignWarning</c> /
     /// <c>openingDirection</c>, reduced to the single Home target the port keeps.
     /// </summary>
+    /// <summary>
+    /// E-19: the director's state as the Admin page shows it. Data, not a sentence, so a test can hold it against
+    /// the sim; <see cref="DirectorQueries.Describe"/> is the one place it becomes text.
+    /// </summary>
+    /// <param name="Phase">waiting · held · recovery · warned · assault · withdrawing.</param>
+    /// <param name="PhaseSeconds">Seconds left in that phase (to the start when warned, to the planned end in an assault); 0 when it has no clock.</param>
+    /// <param name="NextStartIn">Seconds to <see cref="DirectorState.NextStart"/>, the clock's next large-raid second.</param>
+    /// <param name="Survived">The number the next booked raid is sized by (<see cref="DirectorPhase.GrowthStep"/>).</param>
+    /// <param name="Pinned">True when that number is an Admin pin rather than the history.</param>
+    /// <param name="LastOutcome">A <see cref="RaidOutcome"/>, or -1 when no large raid has ended.</param>
+    public sealed record DirectorReadout(string Phase, double PhaseSeconds, double NextStartIn, string Hold,
+        bool HasTarget, int TargetX, int TargetY, double CoreHp, double CoreMaxHp,
+        int Survived, bool Pinned, int NextBodies,
+        int Wave, int Waves, int Remaining, int Cancelled,
+        string Minor, int MajorAlive, int MinorAlive, int Living, int ActiveBudget, int LivingBudget,
+        int LastId, int LastOutcome);
+
     public static class DirectorQueries
     {
+        /// <summary>E-19: everything the Admin director page shows, read straight from the sim.</summary>
+        public static DirectorReadout Readout(SimContext ctx, SimState st)
+        {
+            var d = st.Director;
+            var r = ctx.Data.Raids;
+            var a = d.Major;
+            var has = DirectorRules.Target(ctx, st, out var bx, out var by, out _);
+            Live(st, out var major, out var minor, out var total);
+
+            string phase; double left = 0;
+            if (a != null && a.Committed && a.Retreat) phase = "withdrawing";
+            else if (a != null && a.Committed) { phase = "assault"; left = Math.Max(0, a.EndsAt - st.T); }
+            else if (a != null) { phase = "warned"; left = Math.Max(0, a.StartsAt - st.T); }
+            else if (st.T < d.RecoveryUntil) { phase = "recovery"; left = d.RecoveryUntil - st.T; }
+            else if (d.Reserved) phase = "held";
+            else phase = "waiting";
+
+            var m = d.Minor;
+            var small = m == null ? "none" : !m.Spawned ? "warned" : m.Retreat ? "withdrawing" : "on the map";
+            var last = d.History.Count > 0 ? d.History[d.History.Count - 1] : null;
+            var step = DirectorPhase.GrowthStep(st);
+            return new DirectorReadout(phase, left, Math.Max(0, d.NextStart - st.T), d.Reserved ? d.ReserveReason : "",
+                has, bx, by, st.Home.Placed ? st.Home.Hp : 0, st.Home.Placed ? ctx.Data.Defence.CoreHp : 0,
+                step, st.Admin.RaidNumber >= 0, SiegePlan.TotalFor(ctx, step),
+                a == null ? 0 : a.Wave + 1, a == null ? 0 : a.Waves, a == null ? 0 : a.Remaining, a == null ? 0 : a.Cancelled,
+                small, major, minor, total, r.ActiveRaidBudget, r.LivingBudget,
+                last == null ? 0 : last.Id, last == null ? -1 : last.Outcome);
+        }
+
+        /// <summary>The readout as the Admin page prints it. Developer text; nothing a player sees.</summary>
+        public static string Describe(DirectorReadout v)
+        {
+            var phase = v.Phase == "assault" ? $"assault · wave {Math.Min(v.Wave, v.Waves)} of {v.Waves} · {v.Remaining} still to arrive · planned end in {v.PhaseSeconds:0} s"
+                : v.Phase == "warned" ? $"warned · starts in {v.PhaseSeconds:0} s · {v.Waves} waves, {v.Remaining} bodies"
+                : v.Phase == "recovery" ? $"recovery · {v.PhaseSeconds:0} s left"
+                : v.Phase == "held" ? "held · " + (v.Hold.Length > 0 ? v.Hold : "the approach is reserved")
+                : v.Phase;
+            var target = v.HasTarget ? $"Home core at {v.TargetX}, {v.TargetY}" + (v.CoreMaxHp > 0 ? $" · {v.CoreHp:0}/{v.CoreMaxHp:0} hp" : " · authored site, no core placed")
+                : "none · the core is down";
+            var last = v.LastOutcome < 0 ? "none yet"
+                : $"raid {v.LastId} · " + (v.LastOutcome == (int)RaidOutcome.Cleared ? "cleared" : v.LastOutcome == (int)RaidOutcome.Lost ? "lost (the core fell)" : "broke off");
+            return "Phase: " + phase
+                + $"\nNext large raid on the clock: {v.NextStartIn:0} s"
+                + "\nTarget: " + target
+                + $"\nRaids survived: {v.Survived}" + (v.Pinned ? " (pinned by Admin)" : "") + $" · the next one booked brings {v.NextBodies}"
+                + "\nSmall raid: " + v.Minor
+                + $"\nLarge-raid bodies alive: {v.MajorAlive} of {v.ActiveBudget} · small-raid: {v.MinorAlive} · all enemies: {v.Living} of {v.LivingBudget}"
+                + "\nLast large raid: " + last;
+        }
+
         /// <summary>Reference <c>knownCampaignThreat</c> + <c>campaignWarning</c>, as data rather than a sentence.</summary>
         public static RaidWarning Warning(SimContext ctx, SimState st)
         {
