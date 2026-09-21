@@ -435,8 +435,8 @@ namespace Relight.Tests.Play.Ui
             var needed = 0f;
             for (var i = 0; i < hosts.Count; i++)
             {
-                var c = hosts[i].Q<VisualElement>("recipe-card");
-                Assert.That(c, Is.Not.Null, "recipe host " + i + " holds no #recipe-card.");
+                var c = hosts[i].Q<VisualElement>(className: "recipe-card");   // named card-<key> at run time
+                Assert.That(c, Is.Not.Null, "recipe host " + i + " holds no .recipe-card.");
                 var want = c.worldBound.height + hosts[i].resolvedStyle.paddingTop
                     + hosts[i].resolvedStyle.paddingBottom;
                 if (want > needed) needed = want;
@@ -446,7 +446,7 @@ namespace Relight.Tests.Play.Ui
             for (var i = 0; i < hosts.Count; i++)
             {
                 var host = hosts[i];
-                var card = host.Q<VisualElement>("recipe-card");
+                var card = host.Q<VisualElement>(className: "recipe-card");
 
                 // The card fills its host: what is left is the host's own bottom gutter, nothing more.
                 var gutter = host.resolvedStyle.paddingBottom + host.resolvedStyle.paddingTop;

@@ -166,9 +166,9 @@ namespace Relight.Tests.Play.Ui
             var needed = 0f;
             for (var i = 0; i < hosts.Count; i++)
             {
-                var c = hosts[i].Q<Button>("build-card");
+                var c = hosts[i].Q<Button>(className: "build-card");   // named card-<kind> at run time
                 Assert.That(c, Is.Not.Null,
-                    "a shown .build-host holds no visible #build-card. A host claims its `min-height` whether or "
+                    "a shown .build-host holds no visible .build-card. A host claims its `min-height` whether or "
                     + "not the card inside it is on the open tab, so hiding the card alone leaves the grid pocked "
                     + "with blank squares - the host is what a tab switch must hide (U-D-55).");
                 var want = c.worldBound.height + hosts[i].resolvedStyle.paddingTop
@@ -180,7 +180,7 @@ namespace Relight.Tests.Play.Ui
             for (var i = 0; i < hosts.Count; i++)
             {
                 var host = hosts[i];
-                var card = host.Q<Button>("build-card");
+                var card = host.Q<Button>(className: "build-card");
 
                 // The card fills its host: what is left over is the host's own gutter, nothing more.
                 var gutter = host.resolvedStyle.paddingTop + host.resolvedStyle.paddingBottom;

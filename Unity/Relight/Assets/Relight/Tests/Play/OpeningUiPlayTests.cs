@@ -4,7 +4,10 @@ using NUnit.Framework;
 using Relight.Presentation;
 using Relight.Sim;
 using Relight.UI;
+using Relight.World;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.TestTools;
 using UnityEngine.UIElements;
 
@@ -288,9 +291,25 @@ namespace Relight.Tests.Play
             var price = HomeCore.Price(sim.Context.Data, st, RepairKinds.Core, -1);
             Pockets.Take(sim.Context.Data, st.Engineer, ItemKey.Of(ItemId.Steel), price.Steel);
             Pockets.Take(sim.Context.Data, st.Engineer, ItemKey.Of(ItemId.Copper), price.Copper);
-            host.Paused = true;
 
-            Assert.That(shell.Open(drawer), Is.True, "the Home drawer did not open for a damaged core.");
+            // The real path (U-D-55): the workshop is a place, so only interacting with it puts its cards on
+            // screen. Opening the panel id directly shows the Backpack alone and leaves the core card hidden,
+            // which is what made this check pass or fail by the luck of the 150 ms repaint.
+            shell.CloseActive();
+            yield return null;
+            var keyboard = VirtualKeyboard();
+            // E opens what the pointer rests on before it looks for the core, so rest the pointer on the core too.
+            var mouse = InputSystem.GetDevice<Mouse>() ?? InputSystem.AddDevice<Mouse>();
+            if (!mouse.enabled) InputSystem.EnableDevice(mouse);
+            var centre = CoreCentre(st);
+            var at = Camera.main.WorldToScreenPoint(WorldSpace.TileCentre((int)centre.X, (int)centre.Y));
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = new Vector2(at.x, at.y) });
+            yield return null;
+            yield return null;
+            yield return PressE(keyboard);
+            yield return Until(() => shell.Active == drawer);
+            Assert.That(shell.Active, Is.EqualTo(drawer), "E at the damaged core did not open the Home drawer.");
+            host.Paused = true;
             for (var i = 0; i < 3; i++) yield return null;
             Assert.That(shell.Active, Is.EqualTo(drawer), "something else took the screen — that is an extra step.");
 
@@ -303,6 +322,10 @@ namespace Relight.Tests.Play
             var ordered = card.parent is TemplateContainer ? card.parent : card;
             Assert.That(ordered.parent.IndexOf(ordered), Is.EqualTo(0),
                 "the core card is not the first card in the drawer; the repair is buried (U-6).");
+            Assert.That(card.resolvedStyle.display, Is.Not.EqualTo(DisplayStyle.None), "the core card is in the tree but hidden.");
+            for (var v = card.parent; v != null; v = v.parent)
+                Assert.That(v.resolvedStyle.display, Is.Not.EqualTo(DisplayStyle.None),
+                    "the core card sits inside a hidden section (\"" + v.name + "\"); the player sees the Backpack alone.");
             var button = card.Q<Button>();
             Assert.That(button, Is.Not.Null, "the core card has no repair button — the repair is not actionable.");
             Assert.That(button.enabledInHierarchy, Is.True, "the repair button is disabled on a damaged core.");
@@ -311,7 +334,10 @@ namespace Relight.Tests.Play
             shell.CloseActive();
             for (var i = 0; i < 3; i++) yield return null;
             st.Home.Hp = sim.Context.Data.Defence.CoreHp;
-            Assert.That(shell.Open(drawer), Is.True, "the Home drawer did not open for an undamaged core.");
+            host.Paused = false;
+            yield return PressE(keyboard);
+            yield return Until(() => shell.Active == drawer);
+            Assert.That(shell.Active, Is.EqualTo(drawer), "E at the undamaged core did not open the Home drawer.");
             for (var i = 0; i < 3; i++) yield return null;
             Assert.That(document.rootVisualElement.Q<VisualElement>(CoreCardName), Is.Not.Null,
                 "an undamaged core opens an empty drawer; §9.1 requires the card to still be there.");
@@ -374,6 +400,30 @@ namespace Relight.Tests.Play
             foreach (var label in slot.Query<Label>().ToList())
                 if (!string.IsNullOrEmpty(label.text) && label.text.Contains(key)) return true;
             return false;
+        }
+
+        private static Keyboard VirtualKeyboard()
+        {
+            var keyboard = InputSystem.GetDevice<Keyboard>() ?? InputSystem.AddDevice<Keyboard>();
+            if (!keyboard.enabled) InputSystem.EnableDevice(keyboard);
+            return keyboard;
+        }
+
+        /// <summary>One press and release of E, two frames each — the same cadence ControlsCorrectionTests uses.</summary>
+        private static IEnumerator PressE(Keyboard keyboard)
+        {
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.E));
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            yield return null;
+            yield return null;
+        }
+
+        private static IEnumerator Until(System.Func<bool> condition, float seconds = 2f)
+        {
+            var deadline = Time.realtimeSinceStartup + seconds;
+            while (!condition() && Time.realtimeSinceStartup < deadline) yield return null;
         }
 
         private static Vec2 CoreCentre(SimState st)

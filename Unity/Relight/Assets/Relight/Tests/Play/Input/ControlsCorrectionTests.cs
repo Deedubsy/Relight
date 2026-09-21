@@ -344,7 +344,22 @@ namespace Relight.Tests.Play
             var path = System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath,
                 "../../Docs/evidence/phase-c/integrated-run/slot-phasec-int.json"));
             var bytes = System.IO.File.ReadAllBytes(path);
-            var oldEvidence = SaveSerializer.Read(bytes, sim.Context);
+            // Today's rule first: the evidence save names the map it was made on, the scene has since been given a
+            // new map id, and a save from a different map is refused before anything else is looked at. Whether
+            // that is the right thing for a save to be bound to is the owner's open question F1-18, not this test's.
+            var asRecorded = SaveSerializer.Read(bytes, sim.Context);
+            Assert.That(asRecorded.Ok, Is.False);
+            Assert.That(asRecorded.Reason, Does.Contain("different map"));
+            // The check this test was written for — the old debug run's turret inside Home's walls — is rebuilt on
+            // THIS map from the recorded placement (engineer 30.5, 264.5; a 2x2 turret at 30, 266, Home-crop tiles).
+            // The evidence file itself is read-only and stays bound to its own map id.
+            var oldRun = new SimState();
+            oldRun.Engineer.Pos = new Vec2(30.5, 264.5);
+            oldRun.Machines.Add(new Machine { Id = 9, Kind = "turret", X = 30, Y = 266, Size = 2 });
+            oldRun.NextId = 10;
+            oldRun.Rev++;
+            var oldRunBytes = SaveSerializer.Write(oldRun, sim.Context.Data, null, sim.Context.MapId, SaveUpgrade.HomeCrop, out _);
+            var oldEvidence = SaveSerializer.Read(oldRunBytes, sim.Context);
             Assert.That(oldEvidence.Ok, Is.False, "The old debug run placed a turret inside Home's walls.");
             Assert.That(oldEvidence.Reason, Does.Contain("inside a building"));
             var validHome = new SimState();
@@ -532,11 +547,17 @@ namespace Relight.Tests.Play
             var before = sim.State.Engineer.Pos;
 
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));   // held down, not tapped
-            yield return null;
-            yield return null;
+            // ClosedByMovement is true only on the frame of the close (the shell clears it every Update), so it is
+            // read frame by frame; waiting a fixed two frames read it one frame too late.
+            var byMovement = false;
+            for (var frame = 0; frame < 10 && shell.Active != null; frame++)
+            {
+                yield return null;
+                byMovement |= shell.ClosedByMovement;
+            }
 
             Assert.That(shell.Active, Is.Null, "W did not close the drawer: the movement key was swallowed again.");
-            Assert.That(shell.ClosedByMovement, Is.True, "the drawer closed, but not because of the movement key.");
+            Assert.That(byMovement, Is.True, "the drawer closed, but not because of the movement key.");
 
             // The World map comes back reading the key that is still down, so the walk starts on this same press.
             var target = host.TotalTicks + 30;
