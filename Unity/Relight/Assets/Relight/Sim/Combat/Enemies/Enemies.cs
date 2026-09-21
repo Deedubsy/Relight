@@ -112,7 +112,7 @@ namespace Relight.Sim
             e.Hp -= amount;
             if (e.Hp > 0) return false;
             st.Enemies.Actors.RemoveAt(index);
-            st.Events.Add(new EnemyKilledEvent(st.T, e.Id, e.Kind, e.Pos.X, e.Pos.Y, byTurret));
+            st.Events.Add(new EnemyKilledEvent(st.T, e.Id, e.Kind, e.Pos.X, e.Pos.Y, byTurret, e.Layer, e.Group));
             return true;
         }
 

@@ -33,8 +33,9 @@ namespace Relight.Sim.Tests.UI
             acc.Refresh(ctx, st);
             Assert.That(acc.Watching, Is.True);
 
-            for (var i = 0; i < 3; i++) acc.Intake(new EnemyKilledEvent(st.T, i, "drone", 0, 0, true));
-            st.Stats.Fired += 12;
+            for (var i = 0; i < 3; i++) acc.Intake(new EnemyKilledEvent(st.T, i, "drone", 0, 0, true, EnemyLayer.Minor, 1));
+            var gun = RaidFixture.Turret(ctx, st, 20, 20);
+            for (var i = 0; i < 12; i++) acc.Intake(new TurretShotEvent(st.T, gun.Id, 0, 0, 0, true));
             Leave(st);
             acc.Refresh(ctx, st);
 
@@ -48,17 +49,18 @@ namespace Relight.Sim.Tests.UI
         {
             var (ctx, st, acc) = Bench();
             var dry = RaidFixture.Turret(ctx, st, 20, 20, rounds: 5);
+            var wall = RaidFixture.Add(ctx, st, "wall", 30, 30);
             Arrive(st);
             acc.Refresh(ctx, st);
 
             dry.Rounds = 0;                                             // it fired its last round during the fight
             st.Turrets.Of(dry.Id).ShotT = st.T;
-            acc.Intake(new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true));
+            acc.Intake(new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true, EnemyLayer.Minor, 1));
             acc.Intake(new TurretBlindEvent(st.T, dry.Id, 0, 0));
             acc.Intake(new TurretBlindEvent(st.T, dry.Id, 0, 0));       // the same turret, hit twice
-            acc.Intake(new PowerOutageEvent(st.T, 4));
-            acc.Intake(new StructureDamagedEvent(st.T, 9, 40, 100));    // damaged, not wrecked
-            acc.Intake(new StructureDamagedEvent(st.T, 9, 0, 100));
+            acc.Intake(new PowerOutageEvent(st.T, dry.Id));
+            acc.Intake(new StructureDamagedEvent(st.T, wall.Id, 40, 100));   // damaged, not wrecked
+            acc.Intake(new StructureDamagedEvent(st.T, wall.Id, 0, 100));
             acc.Intake(new CoreDamagedEvent(st.T, HomeQueries.CoreHp(st) - 35));
             acc.Refresh(ctx, st);
             Leave(st);
@@ -111,7 +113,7 @@ namespace Relight.Sim.Tests.UI
             acc.Refresh(ctx, st);
             Assert.That(acc.Watching, Is.False, "a warned raid is a countdown, not an attack (GP-W3)");
 
-            acc.Intake(new EnemyKilledEvent(st.T, 1, "drone", 0, 0, false));   // a stray kill before it lands
+            acc.Intake(new EnemyKilledEvent(st.T, 1, "drone", 0, 0, false, EnemyLayer.Minor, 1));   // a stray kill before it lands
             st.T += 60.5;
             acc.Refresh(ctx, st);
             Assert.That(acc.Watching, Is.True);
@@ -130,7 +132,7 @@ namespace Relight.Sim.Tests.UI
             st.T += 45;                                                 // the save was loaded mid-fight
             acc.Refresh(ctx, st);
             Assert.That(acc.Watching, Is.False);
-            acc.Intake(new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true));
+            acc.Intake(new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true, EnemyLayer.Minor, 1));
             Leave(st);
             acc.Refresh(ctx, st);
 
@@ -146,21 +148,27 @@ namespace Relight.Sim.Tests.UI
         private static System.Collections.Generic.List<ITickPhase> Director() =>
             new System.Collections.Generic.List<ITickPhase> { new DirectorPhase() };
 
-        /// <summary>Tick the director alone, refreshing the account after every tick.</summary>
-        private static void Drive(SimContext ctx, SimState st, RaidAccountSource acc, double seconds)
+        /// <summary>
+        /// Tick the director (alone, unless told otherwise), then refresh the account and hand it that tick's
+        /// events, in the order <c>HudViewModel</c> does it.
+        /// </summary>
+        private static void Drive(SimContext ctx, SimState st, RaidAccountSource acc, double seconds,
+            System.Collections.Generic.List<ITickPhase> phases = null)
         {
             var ticks = (int)System.Math.Ceiling(seconds / RaidFixture.Dt);
             for (var i = 0; i < ticks; i++)
             {
-                RaidFixture.Run(ctx, st, 1, Director());
+                var seen = st.Events.Count;
+                RaidFixture.Run(ctx, st, 1, phases ?? Director());
                 acc.Refresh(ctx, st);
+                for (var e = seen; e < st.Events.Count; e++) acc.Intake(st.Events[e]);
             }
         }
 
         /// <summary>A fresh bench at the director's first small-raid opportunity, with the raid announced.</summary>
-        private static (SimContext Ctx, SimState St, MinorRaid Raid) Announced()
+        private static (SimContext Ctx, SimState St, MinorRaid Raid) Announced(SimContext on = null)
         {
-            var ctx = RaidFixture.Context();
+            var ctx = on ?? RaidFixture.Context();
             var st = RaidFixture.State(ctx);
             HomeCore.Ensure(ctx, st);
             st.T = st.Director.NextMinor;
@@ -200,7 +208,7 @@ namespace Relight.Sim.Tests.UI
             Assert.That(st.T - m.StartsAt, Is.GreaterThan(RaidAccountSource.ArrivalGraceS), "well past the old grace");
             Assert.That(acc.Watching, Is.True, "the late raid is tallied: this session saw it waiting");
 
-            for (var i = 0; i < 4; i++) acc.Intake(new EnemyKilledEvent(st.T, i, "drone", 0, 0, true));
+            for (var i = 0; i < 4; i++) acc.Intake(new EnemyKilledEvent(st.T, i, "drone", 0, 0, true, EnemyLayer.Minor, m.Id));
             st.Enemies.Actors.Clear();
             Drive(ctx, st, acc, 2 * RaidFixture.Dt);
             Assert.That(st.Director.Minor, Is.Null, "the director ended it");
@@ -232,7 +240,7 @@ namespace Relight.Sim.Tests.UI
             Assert.That(loaded.Director.Minor, Is.Not.Null, "the raid is still on in the loaded game");
             Assert.That(acc.Watching, Is.False, "met part-way: half a tally would be a false one");
 
-            acc.Intake(new EnemyKilledEvent(loaded.T, 1, "drone", 0, 0, true));
+            acc.Intake(new EnemyKilledEvent(loaded.T, 1, "drone", 0, 0, true, EnemyLayer.Minor, 1));
             loaded.Enemies.Actors.Clear();
             Drive(ctx, loaded, acc, 2 * RaidFixture.Dt);
             Assert.That(loaded.Director.Minor, Is.Null);
@@ -255,7 +263,7 @@ namespace Relight.Sim.Tests.UI
             Drive(ctx, st, acc, m.StartsAt - st.T + 1);
             Assert.That(m.Spawned, Is.True);
             Assert.That(acc.Watching, Is.True, "the small raid is being tallied");
-            acc.Intake(new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true));
+            acc.Intake(new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true, EnemyLayer.Minor, 1));
 
             st.Director.NextStart = st.T + 1;
             Drive(ctx, st, acc, 1 + 2 * RaidFixture.Dt);
@@ -302,6 +310,106 @@ namespace Relight.Sim.Tests.UI
             Assert.That(acc.Serial, Is.EqualTo(1));
         }
 
+        // ------------------------------------------------------------------ INT-04b: this raid, this place
+        //
+        // A map with two districts. The Home core (76,76) stands in the first; the second is the far corner. The
+        // raid is the director's own. The fight beside it is real too: a turret shoots a camp resident dead
+        // (TurretPhase), a wall is wrecked through TurretRules.Damage, and a pole is pulled so PowerPhase reports
+        // the cut. The only thing the two tests change is WHERE that fight happens.
+
+        private const int HomeX = 60, HomeY = 60, FarX = 10, FarY = 10;
+
+        private static SimContext TwoPlaces() =>
+            new SimContext(ReferenceData.Create(), RaidFixture.Map(), null, null, new WorldSites(
+                new System.Collections.Generic.List<SiteRecord>
+                {
+                    new SiteRecord("home", "Home Court", SiteKind.Core, RaidFixture.CoreX, RaidFixture.CoreY,
+                        RaidFixture.CoreSize, RaidFixture.CoreSize, "", 0),
+                    new SiteRecord("substation:0", "Home", SiteKind.Substation, 78, 70, 2, 2, "", 0),
+                    new SiteRecord("substation:1", "Far Yard", SiteKind.Substation, 4, 4, 2, 2, "", 0),
+                }));
+
+        private static System.Collections.Generic.List<ITickPhase> Fight() =>
+            new System.Collections.Generic.List<ITickPhase> { new PowerPhase(), new TurretPhase(), new DirectorPhase() };
+
+        /// <summary>
+        /// A live raid being tallied, and beside it (at x,y) one turret shooting one camp resident dead, one wall
+        /// wrecked and one power cut. Returns with the raid ended and the account written.
+        /// </summary>
+        private static (SimState St, RaidAccountSource Acc, int Shots) ARaidWithAFightAt(int x, int y)
+        {
+            var ctx = TwoPlaces();
+            Assert.That(Districts.Of(ctx).IndexAt(RaidFixture.CoreX + 4, RaidFixture.CoreY + 4), Is.EqualTo(0));
+            Assert.That(Districts.Of(ctx).IndexAt(HomeX, HomeY), Is.EqualTo(0), "the near fight is in the core's district");
+            Assert.That(Districts.Of(ctx).IndexAt(FarX, FarY), Is.EqualTo(1), "the far fight is not");
+
+            var (_, st, m) = Announced(ctx);
+            var gun = RaidFixture.Turret(ctx, st, x, y);
+            var wall = RaidFixture.Add(ctx, st, "wall", x, y + 8);
+            var acc = new RaidAccountSource();
+            acc.Refresh(ctx, st);
+            Drive(ctx, st, acc, m.StartsAt - st.T + 1, Fight());
+            Assert.That(m.Spawned, Is.True);
+            Assert.That(acc.Watching, Is.True);
+
+            // A camp resident four tiles from the gun. It is not this raid's body, wherever it stands.
+            RaidFixture.Body(st, "drone", x + 5.5, y + 0.5, EnemyLayer.Site, Filler);
+            Drive(ctx, st, acc, 6, Fight());
+            var shots = RaidFixture.Count<TurretShotEvent>(st);
+            Assert.That(shots, Is.GreaterThan(0), "the turret really fired");
+            Assert.That(RaidFixture.Count<EnemyKilledEvent>(st), Is.EqualTo(1), "and really killed the camp resident");
+
+            var seen = st.Events.Count;
+            TurretRules.Damage(ctx, st, wall, 1e9);
+            st.Machines.RemoveAll(k => k.Kind == "pole");
+            st.Rev++;
+            for (var e = seen; e < st.Events.Count; e++) acc.Intake(st.Events[e]);
+            Drive(ctx, st, acc, 1, Fight());
+            Assert.That(RaidFixture.Count<PowerOutageEvent>(st), Is.GreaterThan(0), "the cut was really reported");
+            Assert.That(TurretRules.Wrecked(ctx.Data, st, wall), Is.True, "the wall was really wrecked");
+
+            // One of the raid's own bodies dies, far from everything. It is this raid's kill wherever it falls.
+            var body = st.Enemies.Actors.Find(e => e.Group == m.Id);
+            Assert.That(body, Is.Not.Null);
+            seen = st.Events.Count;
+            Enemies.Damage(ctx, st, body.Id, 1e9);
+            for (var e = seen; e < st.Events.Count; e++) acc.Intake(st.Events[e]);
+
+            st.Enemies.Actors.RemoveAll(e => e.Group == m.Id);
+            Drive(ctx, st, acc, 2 * RaidFixture.Dt, Fight());
+            Assert.That(st.Director.Minor, Is.Null, "the director ended the raid");
+            Assert.That(acc.Serial, Is.EqualTo(1));
+            return (st, acc, shots);
+        }
+
+        /// <summary>
+        /// INT-04b's acceptance: a kill, a power cut and a wreck far from the target are all left out. So are the
+        /// far turret's rounds. The raid's own dead body is the one thing counted.
+        ///
+        /// Save note: the raid id a kill is matched on is <see cref="Enemy.Group"/>, which every save already
+        /// carries (the issue expected new saved state; none was needed), so a raid in flight at load counts its
+        /// kills in full. It still gets no account, for INT-04a's reason: the session did not see it arrive.
+        /// </summary>
+        [Test]
+        public void AFightFarFromTheRaidsTargetIsLeftOutOfItsAccount()
+        {
+            var (_, acc, _) = ARaidWithAFightAt(FarX, FarY);
+            Assert.That(acc.Losses, Is.False);
+            Assert.That(acc.Text, Is.EqualTo("Raid repelled · 1 alien killed · 0 rounds fired · nothing lost"));
+        }
+
+        /// <summary>The control: the same fight in the target's own district is counted, all but the camp kill.</summary>
+        [Test]
+        public void TheSameFightAtTheRaidsTargetIsCounted()
+        {
+            var (_, acc, shots) = ARaidWithAFightAt(HomeX, HomeY);
+            var lines = acc.Text.Split('\n');
+            Assert.That(lines[0], Is.EqualTo("Raid over · 1 alien killed · " + shots + " rounds fired"),
+                "the camp resident is still not this raid's kill; the rounds spent on it here are");
+            Assert.That(lines[1], Does.Contain("power failed"));
+            Assert.That(lines[1], Does.Contain("1 structure wrecked"));
+        }
+
         [Test]
         public void TheScriptedOpeningIsLeftToTheGoalCard()
         {
@@ -323,7 +431,7 @@ namespace Relight.Sim.Tests.UI
 
             Arrive(st);
             vm.Refresh(ctx, st, 1, false, false, force: true);
-            vm.Intake(new SimEvent[] { new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true) }, 1);
+            vm.Intake(new SimEvent[] { new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true, EnemyLayer.Minor, 1) }, 1);
             Assert.That(Row(vm), Is.Null, "nothing is said while the fight is on");
 
             Leave(st);

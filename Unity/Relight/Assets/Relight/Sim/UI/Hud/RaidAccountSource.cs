@@ -15,6 +15,13 @@ namespace Relight.Sim.UI
     /// So every clause below is a count of something this class itself saw happen between the raid's arrival and
     /// its end, and a clause whose count is zero is not written. Nothing here guesses at a reason.
     ///
+    /// <b>Whose events (INT-04b).</b> The tally belongs to ONE raid at ONE place. A kill counts when the dead body
+    /// was this raid's (<see cref="EnemyKilledEvent.Group"/>); a camp resident shot across town during the raid is
+    /// not the raid's doing. A power cut, a wreck, a blinded or dry turret and a round fired count when they are in
+    /// the raid's target place: the district (<see cref="Districts"/>, INT-09a) its target stands in. On a map with
+    /// no districts there is one place and everything is in it. Rounds are counted from the shot events for that
+    /// reason: <c>Stats.Fired</c> is a whole-map figure.
+    ///
     /// Three consequences of that rule:
     /// <list type="bullet">
     /// <item>A raid this session did not see ARRIVE — the game was loaded part-way through it — gets no account at
@@ -66,7 +73,10 @@ namespace Relight.Sim.UI
         private readonly HashSet<int> _seenWaiting = new HashSet<int>();
         private readonly HashSet<int> _done = new HashSet<int>();
         private bool _major;
-        private double _fired0;
+        private int _place;
+        private int _rounds;
+        private SimContext _ctx;
+        private SimState _st;
         private double _coreHp;
         private int _kills;
         private double _coreLost;
@@ -82,6 +92,8 @@ namespace Relight.Sim.UI
         public void Refresh(SimContext ctx, SimState st)
         {
             if (ctx == null || st == null || st.Director == null) return;
+            _ctx = ctx;                                                 // Intake is handed bare events; these say where
+            _st = st;
             NoteWaiting(st);
             var live = UnderWay(st, out var id, out var major, out var startedAt);
 
@@ -106,7 +118,7 @@ namespace Relight.Sim.UI
                 Open(ctx, st, id, major);
             }
 
-            if (_open) WatchTurrets(ctx, st, _wentDry, _dryAtStart);
+            if (_open) WatchTurrets(ctx, st, _place, _wentDry, _dryAtStart);
         }
 
         /// <summary>
@@ -126,10 +138,24 @@ namespace Relight.Sim.UI
             if (!_open) return;
             switch (e)
             {
-                case EnemyKilledEvent _: _kills++; break;
-                case StructureDamagedEvent s when s.Hp <= 0: _wrecked.Add(s.MachineId); break;
-                case TurretBlindEvent b: _blind.Add(b.MachineId); break;
-                case PowerOutageEvent _: _outage = true; break;
+                case EnemyKilledEvent k:
+                    if (k.Layer != EnemyLayer.Site && k.Group == _raidId) _kills++;
+                    break;
+                case StructureDamagedEvent s when s.Hp <= 0:
+                    if (Here(s.MachineId)) _wrecked.Add(s.MachineId);
+                    break;
+                case TurretBlindEvent b:
+                    if (Here(b.MachineId)) _blind.Add(b.MachineId);
+                    break;
+                case PowerOutageEvent p:
+                    if (Here(p.MachineId)) _outage = true;
+                    break;
+                case TurretShotEvent t:
+                    if (Here(t.MachineId)) _rounds++;
+                    break;
+                case WeaponFiredEvent _:
+                    if (_st != null && PlaceAt(_ctx, _st.Engineer.Pos.X, _st.Engineer.Pos.Y) == _place) _rounds++;
+                    break;
                 case CoreDamagedEvent c:
                     if (c.Hp < _coreHp) _coreLost += _coreHp - c.Hp;
                     _coreHp = c.Hp;
@@ -159,12 +185,39 @@ namespace Relight.Sim.UI
             return false;
         }
 
+        /// <summary>
+        /// The place a position is in: its district's index, or -1 on a map with no districts, where everything
+        /// is one place.
+        /// </summary>
+        private static int PlaceAt(SimContext ctx, double x, double y) => Districts.Of(ctx).IndexAt(x, y);
+
+        private static int PlaceOf(SimContext ctx, Machine m)
+        {
+            var (w, h) = m.Dimensions;
+            return PlaceAt(ctx, m.X + w / 2.0, m.Y + h / 2.0);
+        }
+
+        /// <summary>The place this raid is aimed at: where its target stands. With no target left, the whole map.</summary>
+        private static int TargetPlace(SimContext ctx, SimState st) =>
+            DirectorRules.Target(ctx, st, out var x, out var y, out var size)
+                ? PlaceAt(ctx, x + size / 2.0, y + size / 2.0)
+                : -1;
+
+        /// <summary>Is this machine in the raid's place? A machine that is no longer on the map is not counted.</summary>
+        private bool Here(int machineId)
+        {
+            if (_st == null) return false;
+            var m = _st.MachineById(machineId);
+            return m != null && (_place < 0 || PlaceOf(_ctx, m) == _place);
+        }
+
         private void Open(SimContext ctx, SimState st, int id, bool major)
         {
             _open = true;
             _raidId = id;
             _major = major;
-            _fired0 = Fired(st);
+            _place = TargetPlace(ctx, st);
+            _rounds = 0;
             _coreHp = HomeQueries.CoreHp(st);
             _kills = 0;
             _coreLost = 0;
@@ -176,35 +229,33 @@ namespace Relight.Sim.UI
             _blind.Clear();
             // A turret that was already empty when they arrived did not "run dry" in this fight; the defence row
             // (E-17) had been saying so for as long as it stood.
-            WatchTurrets(ctx, st, _dryAtStart, null);
+            WatchTurrets(ctx, st, _place, _dryAtStart, null);
         }
 
-        private static void WatchTurrets(SimContext ctx, SimState st, HashSet<int> into, HashSet<int> except)
+        private static void WatchTurrets(SimContext ctx, SimState st, int place, HashSet<int> into, HashSet<int> except)
         {
             var d = ctx.Data;
             for (var i = 0; i < st.Machines.Count; i++)
             {
                 var m = st.Machines[i];
                 if (!TurretHopper.IsTurret(d, m)) continue;
+                if (place >= 0 && PlaceOf(ctx, m) != place) continue;
                 if (except != null && except.Contains(m.Id)) continue;
                 if (TurretAmmo.State(d, m) != TurretAmmoState.Dry || !TurretAmmo.EverLoaded(st, m)) continue;
                 into.Add(m.Id);
             }
         }
 
-        private static double Fired(SimState st) => st.Stats == null ? 0 : st.Stats.Fired + st.Stats.EngineerFired;
-
         private void Close(SimState st)
         {
             _open = false;
-            var rounds = Math.Max(0, Fired(st) - _fired0);
             Losses = _wentDry.Count > 0 || _blind.Count > 0 || _outage || _wrecked.Count > 0
                      || _coreLost > 0 || _coreDisabled;
 
             _sb.Clear();
             _sb.Append(_major ? "Major assault " : "Raid ").Append(Losses ? "over" : "repelled");
             _sb.Append(" · ").Append(Count(_kills, "alien", "aliens")).Append(" killed");
-            _sb.Append(" · ").Append(Count((int)Math.Round(rounds), "round", "rounds")).Append(" fired");
+            _sb.Append(" · ").Append(Count(_rounds, "round", "rounds")).Append(" fired");
             if (!Losses) _sb.Append(" · nothing lost");
             else
             {

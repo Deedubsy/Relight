@@ -3,8 +3,14 @@ namespace Relight.Sim
     /// <summary>A body was born at (X, Y) (reference <c>T.stats.spawned++</c> in campaignThreat.ts <c>birth</c>).</summary>
     public sealed record EnemySpawnedEvent(double T, int EnemyId, string Kind, double X, double Y, int Group) : SimEvent(T);
 
-    /// <summary>A body reached 0 hp and left the list. <paramref name="ByTurret"/> separates turret kills from the engineer's.</summary>
-    public sealed record EnemyKilledEvent(double T, int EnemyId, string Kind, double X, double Y, bool ByTurret) : SimEvent(T);
+    /// <summary>
+    /// A body reached 0 hp and left the list. <paramref name="ByTurret"/> separates turret kills from the engineer's.
+    /// <paramref name="Layer"/> and <paramref name="Group"/> are the dead body's own (<see cref="Enemy.Layer"/>,
+    /// <see cref="Enemy.Group"/>): a raid body's group is its raid's id, so the raid account can count the kills of
+    /// ITS raid and no other (INT-04b). Both were already saved with the body; the event only repeats them.
+    /// </summary>
+    public sealed record EnemyKilledEvent(double T, int EnemyId, string Kind, double X, double Y, bool ByTurret,
+        int Layer, int Group) : SimEvent(T);
 
     /// <summary>
     /// A structure with an HP row lost hit points (turret, cannon, wall, barricade). <c>Hp</c> is what is LEFT,
