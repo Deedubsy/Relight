@@ -925,6 +925,8 @@ Exit: a person finishes the game. F-ACC.
 | F1-33 | Roamers before alien roles (U-D-66), or after the roster (L-03's dependency)? | REL-42 |
 | F1-34 | Add a standalone Windows build row (F-10 suggested) and try a first build early? | REL-107 |
 | F1-35 | The ending's words: what "fully lit on every street tile" means with lamp light, and why a dark route is kept after raids end | REL-50 |
+| F1-36 | Two salvage patches are relabelled to ore at boot (iron ore at Riverside, copper ore at Ironworks). U-D-65 says iron ore only near Ironworks and copper ore only at the Quarry. Do they stay ore? (added 2026-09-22 from the FEAS-01 paper) | REL-30, REL-35 |
+| F1-37 | Every rubble tile becomes iron ore at 300 units. Is iron meant to be scarce? Measure the rubble-tile count first (added 2026-09-22 from the FEAS-01 paper) | REL-30 |
 
 ### F2. Human playtests owed
 
