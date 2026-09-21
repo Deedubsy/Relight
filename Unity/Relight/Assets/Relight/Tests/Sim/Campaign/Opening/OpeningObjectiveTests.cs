@@ -38,8 +38,8 @@ namespace Relight.Sim.Tests.Campaign
 
             var next = OpeningQueries.Objective(ctx, st);
             Assert.That(next.Id, Is.EqualTo("home-recovery"));
-            Assert.That(next.Title, Is.EqualTo("Restore Home power"));
-            Assert.That(next.Text, Is.EqualTo("Aim at the Home core and press E to repair"));
+            Assert.That(next.Title, Is.EqualTo("Repair the Home core"));
+            Assert.That(next.Text, Is.EqualTo("Press E at the Home core, then Recommission core in the workshop"));
         }
 
         [Test]

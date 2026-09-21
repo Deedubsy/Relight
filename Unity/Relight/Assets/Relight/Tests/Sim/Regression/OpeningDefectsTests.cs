@@ -560,6 +560,10 @@ namespace Relight.Sim.Tests.Regression
         /// while the thing that powers it is dead."
         ///
         /// Row 0b of the objective chain: only the engineer's own recovery outranks it.
+        ///
+        /// OPN-07 (REL-72) keeps the rule and corrects the title. In Unity the core powers nothing, so "Restore
+        /// Home power" told the player about an outage that had not happened; the card is now titled
+        /// `Repair the Home core`. What U-9 asked for — the core repair ahead of every build step — is unchanged.
         /// </summary>
         [Test]
         public void U9_ADisabledCoreMakesTheObjectiveNameTheCoreRepairAheadOfEveryBuildStep()
@@ -570,13 +574,13 @@ namespace Relight.Sim.Tests.Regression
 
             // Before: a healthy core, so the chain is on its first BUILD step.
             var healthy = OpeningQueries.Objective(ctx, st);
-            Assert.That(healthy.Title, Is.Not.EqualTo("Restore Home power"), "an undamaged core is not an objective");
+            Assert.That(healthy.Title, Is.Not.EqualTo("Repair the Home core"), "an undamaged core is not an objective");
 
             HomeCore.Damage(st, HomeQueries.CoreHp(st));
             Assert.That(HomeQueries.CoreOperational(st), Is.False, "the core is disabled");
 
             var objective = OpeningQueries.Objective(ctx, st);
-            Assert.That(objective.Title, Is.EqualTo("Restore Home power"));
+            Assert.That(objective.Title, Is.EqualTo("Repair the Home core"));
             Assert.That(objective.Id, Is.EqualTo("home-recovery"));
             Assert.That(objective.HasLocation, Is.True, "and it points at the core");
             Assert.That(objective.Text, Is.Not.Empty, "with something to do, not just a title");

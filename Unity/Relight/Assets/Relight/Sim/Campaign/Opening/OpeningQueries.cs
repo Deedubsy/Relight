@@ -201,18 +201,33 @@ namespace Relight.Sim
                     RecoveryDetail(st), home);
 
             // 0b — a disabled Home outranks everything except recovery (reference goal.ts:84).
+            //
+            // OPN-07 (REL-72): every sentence here is checked against the sim. The old card was titled "Restore
+            // Home power" and promised that the repair "restarts every machine that was running", but nothing in
+            // Unity reads the core except this card and the opening's "repelled" verdict: power, production,
+            // turrets, the Depot and respawn all carry on. What a core at 0 HP really does is E-18's failure path:
+            // the raid is called off (DirectorPhase.CoreFell), no raid targets a downed core
+            // (EnemyCoreHook.Rect), and a large assault that took it pushes the next one out a full interval
+            // (DirectorPhase.EndMajor). The repair is started from the Home workshop's core card, which E on the
+            // core opens; it is never a hold. It is refused, and pauses, while raiders are within
+            // DirectorRules.CoreThreatTiles (HomeCore.RepairProblem, HomeCorePhase).
             if (st.Home != null && st.Home.Placed && !HomeQueries.CoreOperational(st))
             {
                 var card = HomeQueries.RepairCard(st, d);
                 var text = card.InProgress
                     ? "Repairing the Home core · " + Secs(card.RemainingS) + " s left"
-                    : "Aim at the Home core and press E to repair";
+                    : Home.AttackersNearby(ctx, st)
+                        ? "Raiders are still near the core — the repair waits until they leave"
+                        : "Press E at the Home core, then " + RecommissionButton + " in the workshop";
                 // The repair CHARGES these, so the row carries them as material rows rather than prose: the chips
                 // show what is carried against what is needed, and Explain routes an empty Backpack to the ore.
-                return new ObjectiveView("home-recovery", "Restore Home power", text,
-                    "Home is disabled. Carry the repair materials to the core and hold E; the repair restarts every "
-                    + "machine that was running. Attackers must leave first — the repair is refused while they are here. "
-                    + "Hand mining still works while the core is down, and so does the Home workshop.",
+                return new ObjectiveView("home-recovery", "Repair the Home core", text,
+                    "The Home core is down. The raid that beat it has been called off, and no raid attacks a core "
+                    + "that is down. Your power, machines and turrets keep running. Hand mining still works, and so "
+                    + "does the Home workshop. To bring the core back, carry the steel and copper to it, press E to open "
+                    + "the Home workshop and choose " + RecommissionButton + ". The repair waits while raiders are "
+                    + "close to the core, and it restores the core to full. After a large assault takes the core, the "
+                    + "next one waits a full interval.",
                     true, home,
                     new[] { Row(d, st, ItemId.Steel, d.Defence.CoreSteel), Row(d, st, ItemId.Copper, d.Defence.CoreCopper) });
             }
@@ -616,6 +631,12 @@ namespace Relight.Sim
         private static readonly ObjectiveMaterial[] NoMaterials = Array.Empty<ObjectiveMaterial>();
 
         /// <summary>INT-01: the recovery row says the Backpack is lying where the engineer fell, when it is.</summary>
+        /// <summary>
+        /// The name of the workshop button that brings a downed core back, as the core-down card quotes it. It is
+        /// the head of <see cref="UI.WorkshopText.CoreButton"/>'s recommission label; a test holds the two together.
+        /// </summary>
+        public const string RecommissionButton = "Recommission core";
+
         private static string RecoveryDetail(SimState st)
         {
             const string resume = "Movement and interaction resume after recovery.";

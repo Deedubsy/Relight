@@ -902,7 +902,7 @@ Everything else is delivered through the **single goal card**, driven by `campai
 | Order | `title` | `text` | Note |
 |---|---|---|---|
 | 0a | `Recover at Home` | `Back on your feet in N s` | Engineer down; pre-empts everything. |
-| 0b | `Restore Home power` | `Aim at the Home core and press E to repair` (or the `repairCheck` reason) | Disabled Home takes priority. |
+| 0b | `Repair the Home core` (was `Restore Home power` until OPN-07/REL-72: in Unity the core powers nothing) | `Press E at the Home core, then Recommission core in the workshop`; while raiders are near, `Raiders are still near the core — the repair waits until they leave` | Disabled Home takes priority. |
 | 0c | *(tracked project passthrough)* | `Deliver N <item>` or the project status | When the player has tracked a project. |
 | 0d | `Riding the tram` | `E to disembark safely` | |
 | 1 | `1 · Build a Generator` | `Place 1 Generator in Founders Court` | |
