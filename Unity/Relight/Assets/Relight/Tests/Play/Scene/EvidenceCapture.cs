@@ -22,7 +22,9 @@ namespace Relight.Tests.Play
     [Explicit]
     public sealed class EvidenceCapture
     {
-        private const string Folder = "E:/Factorio2/Unity/Docs/evidence/phase-b";
+        // The recorded B-13 images in Unity/Docs/evidence/phase-b are frozen; a run writes beside the project instead.
+        private static string Folder =>
+            System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath, "../Temp/test-evidence")).Replace('\\', '/');
         private const int Width = 1280;
         private const int Height = 720;
 

@@ -7,14 +7,19 @@ using UnityEngine;
 namespace Relight.Prototypes
 {
     /// <summary>
-    /// B-14. Writes one measurement file per prototype run into <c>Unity/Docs/evidence/phase-b/</c>, so every figure
-    /// in the report has a file behind it that the run actually produced. Plain key/value JSON written by hand
-    /// (no Newtonsoft, no System.Text.Json) with <see cref="CultureInfo.InvariantCulture"/> everywhere.
+    /// B-14. Writes one measurement file per prototype run, so every figure in the report has a file behind it that
+    /// the run actually produced. Plain key/value JSON written by hand (no Newtonsoft, no System.Text.Json) with
+    /// <see cref="CultureInfo.InvariantCulture"/> everywhere.
+    ///
+    /// The B-14 files recorded in <c>Unity/Docs/evidence/phase-b/</c> are frozen evidence. Since PER-01 a run writes
+    /// to <see cref="Folder"/> under the project's <c>Temp/</c> instead, so an ordinary PlayMode run no longer
+    /// rewrites them; recording new evidence is a deliberate copy by hand.
     /// </summary>
     public static class EvidenceWriter
     {
-        /// <summary>Absolute, because the evidence tree is outside the Unity project (Unity/Docs, not Unity/Relight).</summary>
-        public const string Folder = "E:/Factorio2/Unity/Docs/evidence/phase-b";
+        /// <summary>Where a run writes: <c>{project}/Temp/prototype-evidence</c>, never the recorded evidence tree.</summary>
+        public static string Folder =>
+            Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/prototype-evidence")).Replace('\\', '/');
 
         public static string Write(string fileName, IEnumerable<KeyValuePair<string, object>> values)
         {

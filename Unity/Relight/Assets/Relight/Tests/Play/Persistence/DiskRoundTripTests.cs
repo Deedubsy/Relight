@@ -31,7 +31,9 @@ namespace Relight.Tests.Play
     public sealed class DiskRoundTrip
     {
         public const string Slot = "roundtrip-check";
-        private const string Evidence = "E:/Factorio2/Unity/Docs/evidence/phase-b";
+        // The recorded B-11 files in Unity/Docs/evidence/phase-b are frozen; a run writes beside the project instead.
+        private static string Evidence =>
+            Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/test-evidence")).Replace('\\', '/');
         private const int SteelMoved = 7;
 
         [Serializable]
@@ -63,7 +65,7 @@ namespace Relight.Tests.Play
             public string verdict;
         }
 
-        private static string ExpectedPath => Path.Combine(Application.persistentDataPath, Slot + ".expected.json");
+        private static string ExpectedPath => Path.Combine(SaveRoot.Path, Slot + ".expected.json");
 
         [UnityTest, Timeout(120000)]
         public IEnumerator Phase1_ChangeStateAndSaveToDisk()
@@ -104,12 +106,12 @@ namespace Relight.Tests.Play
             Assert.That(result.Ok, Is.True, "the save was refused: " + result.Reason);
             Assert.That(File.Exists(result.Path), Is.True, "the store reported a path that does not exist: " + result.Path);
             Assert.That(result.Path.Replace('\\', '/'),
-                Does.StartWith(Application.persistentDataPath.Replace('\\', '/')), "the save is not under persistentDataPath");
+                Does.StartWith(SaveRoot.Path.Replace('\\', '/')), "the save is not under the save root");
 
             var record = new Record
             {
                 when = DateTime.UtcNow.ToString("o"),
-                persistentDataPath = Application.persistentDataPath,
+                persistentDataPath = SaveRoot.Path,
                 savePath = result.Path,
                 saveBytes = new FileInfo(result.Path).Length,
                 hash = host.Simulation.Hash(),

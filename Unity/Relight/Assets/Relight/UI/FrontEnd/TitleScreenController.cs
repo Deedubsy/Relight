@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using Relight.Presentation;
 using Relight.Sim;
 using Relight.Sim.UI;
 using Relight.UI.Settings;
@@ -75,13 +76,16 @@ namespace Relight.UI.FrontEnd
         private bool _bound;
         private bool _settingsBound;
 
+        /// <summary>The folder this screen lists saves from, for a test or a debug readout.</summary>
+        public string SaveDirectory => _saves?.Store.Directory;
+
         /// <summary>The screen on show, for a test or a debug readout.</summary>
         public string Screen { get; private set; } = "menu";
 
         private void Awake()
         {
             if (document == null) document = GetComponent<UIDocument>();
-            _saves = new SaveGateway(new SystemFileSystem(), Application.persistentDataPath);
+            _saves = new SaveGateway(new SystemFileSystem(), SaveRoot.Path);
         }
 
         private void OnEnable()

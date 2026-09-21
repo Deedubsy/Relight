@@ -7,7 +7,7 @@ namespace Relight.Presentation
 {
     /// <summary>
     /// B-11's Unity side, and deliberately the thinnest part of it: it supplies the three things the engine-free
-    /// save layer cannot get for itself — the writable folder (<see cref="Application.persistentDataPath"/>), the
+    /// save layer cannot get for itself — the writable folder (<see cref="SaveRoot.Path"/>), the
     /// real disk (<see cref="SystemFileSystem"/>), and the tick boundary to save on
     /// (<see cref="SimHost.TickBoundary"/>, TECHNICAL_ARCHITECTURE.md §9.4.3) — and then gets out of the way. Every
     /// decision, every path, every refusal and every recovery lives in <c>Relight.Sim</c>, where it is testable
@@ -53,7 +53,7 @@ namespace Relight.Presentation
         private bool _subscribed;
         private int _session = -1;      // the SimHost.Session the scheduler was last reset for
 
-        /// <summary>Where saves live: <c>{persistentDataPath}/saves/{profile}/…</c> (§9.4.1).</summary>
+        /// <summary>Where saves live: <c>{SaveRoot.Path}/saves/{profile}/…</c> (§9.4.1).</summary>
         public SaveStore Store => _store;
 
         /// <summary>The ring's scheduler, for a settings screen to read and re-<see cref="AutosaveScheduler.Apply"/>.</summary>
@@ -71,7 +71,7 @@ namespace Relight.Presentation
         private void Awake()
         {
             if (host == null) host = GetComponent<SimHost>();
-            _store = new SaveStore(new SystemFileSystem(), Application.persistentDataPath);
+            _store = new SaveStore(new SystemFileSystem(), SaveRoot.Path);
             _scheduler = new AutosaveScheduler(_store, Settings());
         }
 
