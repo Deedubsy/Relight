@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Relight.Presentation;
+using Relight.Sim;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -81,7 +82,7 @@ namespace Relight.UI
         {
             Rebuild();
             // The chain ignores a second install, so this is safe whatever enabled first (see EscapeChain).
-            if (escape != null) escape.InstallDefaults(CloseActive, TogglePause);
+            if (escape != null) escape.InstallDefaults(CloseActive, TogglePause, CancelRepair);
             // Hand the world the "is this point on a widget?" test. Presentation cannot reference UI, so the
             // dependency is inverted through a delegate the shell owns for as long as it is enabled.
             WorldInput.UiPointerProbe = PointerOverUi;
@@ -145,6 +146,9 @@ namespace Relight.UI
             if (host != null && host.Paused) return;
             if (UiDrag.Dragging) return;
             if (TextInputFocused()) return;
+            // INT-13 (REL-17): a repair roots the engineer, so the key cannot walk them anywhere; closing the drawer
+            // would only hide the Cancel button the lock text points at.
+            if (host != null && host.Simulation != null && Home.RepairLocked(host.Simulation.State)) return;
             if (!_movement.PressedThisFrame(router.Move)) return;
             ClosedByMovement = CloseActive();
         }
@@ -271,6 +275,20 @@ namespace Relight.UI
                 if (bounds.Contains(point)) hit = true;
             });
             return hit;
+        }
+
+        /// <summary>
+        /// INT-13 (REL-17): the escape link above "close drawer". While a repair roots the engineer, Escape sends
+        /// the same <see cref="CancelRepairCommand"/> the two Cancel buttons send, so the refund is the sim's own.
+        /// With no repair running it declines and the press falls down the ladder unchanged.
+        /// </summary>
+        private bool CancelRepair()
+        {
+            var sim = host != null ? host.Simulation : null;
+            if (sim == null || !Home.RepairLocked(sim.State)) return false;
+            var result = sim.Apply(new CancelRepairCommand());
+            if (result.Accepted) FindAnyObjectByType<FrontEnd.FrontEndBootstrap>()?.Dirty.MarkChanged();
+            return result.Accepted;
         }
 
         /// <summary>The last link of the escape chain: pause, or unpause. Always consumes Escape.</summary>

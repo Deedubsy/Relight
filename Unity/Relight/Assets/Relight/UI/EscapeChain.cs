@@ -73,10 +73,10 @@ namespace Relight.UI
         }
 
         /// <summary>
-        /// Fill the chain with the reference's eight links. Called by <see cref="UiShell"/> at startup; the two
-        /// live links are its own.
+        /// Fill the chain with the reference's eight links, plus the port's own "cancel the running repair" link
+        /// (INT-13). Called by <see cref="UiShell"/> at startup; the live links are its own.
         /// </summary>
-        public void InstallDefaults(System.Func<bool> closeDrawer, System.Func<bool> pause)
+        public void InstallDefaults(System.Func<bool> closeDrawer, System.Func<bool> pause, System.Func<bool> cancelRepair = null)
         {
             // Correction pass: PauseMenuController registers its three rungs from its own OnEnable, and component
             // order put it before UiShell on the GameUI object. The shell used to install the defaults only when
@@ -94,6 +94,8 @@ namespace Relight.UI
             Register(new Placeholder(EscapeOrder.CloseModalChild, "C-10 pause child screen"));
             // TODO(C-10): unpause from the pause modal. B-13 has no pause modal, only SimHost.Paused.
             Register(new Placeholder(EscapeOrder.Unpause, "C-10 pause modal"));
+            // INT-13 (REL-17): "Escape cancels" a running repair, before the press may close the drawer.
+            Register(new Link(EscapeOrder.CancelRepair, cancelRepair));
             Register(new Link(EscapeOrder.CloseDrawer, closeDrawer));
             // C-02 link 400: put away whatever is in the hand — a machine ghost or a weapon. It sits AFTER the
             // drawer link, so Escape with the Backpack open closes the Backpack and leaves the hand alone, and

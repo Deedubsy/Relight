@@ -404,6 +404,8 @@ Preferences are explicitly **outside SimState and replay hashes** (`RI-02B_UI_SP
 7. `hooks.cancelSelection()` — cancel an active placement/selection.
 8. `pause()`.
 
+**Unity port addition (INT-13, REL-17, 2026-09-22):** the port has a ninth link between steps 5 and 6, `EscapeOrder.CancelRepair` (550). While a repair roots the engineer (`Home.RepairLocked`), Escape sends `CancelRepairCommand` — the same command, and so the same refund, as the two Cancel buttons — and closes nothing; the next press carries on down the ladder. With no repair running the link declines and the eight steps above are unchanged. The reference has no such link: its lock text promises "Escape cancels" too, and this is the port making the sentence true. While rooted, a movement key also no longer closes the drawer (`UiShell.CloseOnMovement`), because the key cannot walk the engineer and the drawer holds the Cancel button.
+
 Tab is special: **Inventory owns Tab while the Backpack or a paired storage window is open** and closes it, even from a quantity field; holding Tab does not repeat-toggle; Shift+Tab still navigates focus backwards; inside the modal Tab cycles a focus trap (`RI-02B_UI_SPEC.md:126`; `uiShell.ts`).
 
 ### 3.6 Input ownership

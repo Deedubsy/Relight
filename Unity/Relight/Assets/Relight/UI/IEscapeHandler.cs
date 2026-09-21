@@ -27,6 +27,12 @@ namespace Relight.UI
         public const int CloseNavMenu = 300;          // uiShell.ts:118 details[open]
         public const int CloseModalChild = 400;       // uiShell.ts:119 if (childId) closeChild()
         public const int Unpause = 500;               // uiShell.ts:119 else if (!modal.hidden) unpause()
+        /// <summary>
+        /// The port's own link (INT-13, REL-17); the reference ladder has none. A running repair roots the engineer
+        /// and both panels print "Escape cancels", so the press must cancel the repair BEFORE it closes the drawer
+        /// that holds the only Cancel button. Below Unpause, so a paused game unpauses first as it always did.
+        /// </summary>
+        public const int CancelRepair = 550;
         public const int CloseDrawer = 600;           // uiShell.ts:119 else if (active) closeDrawer()
         public const int CancelWorldSelection = 700;  // uiShell.ts:119 else if (!hooks.cancelSelection())
         public const int Pause = 800;                 // uiShell.ts:119 else pause()
