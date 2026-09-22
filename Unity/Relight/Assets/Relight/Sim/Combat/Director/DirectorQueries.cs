@@ -33,12 +33,21 @@ namespace Relight.Sim
         public readonly string Label;
         /// <summary>The raid this describes (REL-74), so the HUD can find its bodies; 0 when there is none.</summary>
         public readonly int RaidId;
+        /// <summary>
+        /// REL-12 (ENM-06): the LARGE raid this line is NOT describing, because a small one is in front of the
+        /// player — "warning" while it counts down, "assault" once it is on the ground, "" when there is none or
+        /// when the large raid is the line. A small raid is read first, so an announced large one used to vanish
+        /// from the strip for as long as the small one lasted.
+        /// </summary>
+        public readonly string AlsoKind;
+        /// <summary>Seconds until that large raid starts; 0 once it has. Meaningless when <see cref="AlsoKind"/> is "".</summary>
+        public readonly double AlsoSecondsLeft;
 
         public RaidWarning(string kind, double secondsLeft, string direction, string notice, Vec2 at, string label = "",
-            int raidId = 0)
+            int raidId = 0, string alsoKind = "", double alsoSecondsLeft = 0)
         {
             Kind = kind; SecondsLeft = secondsLeft; Direction = direction; Notice = notice; At = at; Label = label;
-            RaidId = raidId;
+            RaidId = raidId; AlsoKind = alsoKind; AlsoSecondsLeft = alsoSecondsLeft;
         }
     }
 
@@ -142,10 +151,17 @@ namespace Relight.Sim
                 // GP-W3: a warned raid is a countdown, not a wave. It reports the time its bodies are actually due
                 // and the heading it was announced on, so the strip cannot claim an attack that has not arrived.
                 var label = m.Scripted ? "Small enemy group" : "Raid";
+                // REL-12 (ENM-06): the small raid still holds the line — it is the fight in front of the player —
+                // but an announced large one rides along beside it instead of disappearing until the small one is
+                // over. A large raid that is only walking away is not news and is not carried.
+                var big = d.Major != null && !d.Major.Retreat ? d.Major : null;
+                var alsoKind = big == null ? "" : st.T >= big.StartsAt ? "assault" : "warning";
+                var alsoLeft = big == null ? 0 : Math.Max(0, big.StartsAt - st.T);
                 if (!m.Spawned)
-                    return new RaidWarning("warning", Math.Max(0, m.StartsAt - st.T), Direction(at, cx, cy), d.Notice, at, label, m.Id);
+                    return new RaidWarning("warning", Math.Max(0, m.StartsAt - st.T), Direction(at, cx, cy), d.Notice,
+                        at, label, m.Id, alsoKind, alsoLeft);
                 return new RaidWarning(m.Retreat ? "withdrawal" : "minor raid", 0,
-                    Direction(at, cx, cy), d.Notice, at, label, m.Id);
+                    Direction(at, cx, cy), d.Notice, at, label, m.Id, alsoKind, alsoLeft);
             }
             var a = d.Major;
             if (a != null)

@@ -757,6 +757,12 @@ namespace Relight.Sim.UI
         /// the opening encounter owns the scripted first arrival (<see cref="OpeningQueries.Encounter"/>) and takes
         /// precedence while it is pending, because §12.6's truthfulness rule allows exactly one announced attack.
         /// Wording: §7.4, "Small enemy group approaching from the {dir} · Arrives in N s".
+        ///
+        /// REL-12 — one rule decides every line: the strip describes the STATE the sim is in, and is red only while
+        /// something is attacking. The director's last sentence is printed in exactly one place, the recovery line,
+        /// where there is no fight to describe and that sentence is the account of the one just finished. Every
+        /// other kind has its own wording, pinned by <c>RaidFeedbackTests</c>, so none of them can fall through to
+        /// "Base under attack" again.
         /// </summary>
         public static string ThreatLine(SimContext ctx, SimState st, out bool urgent)
         {
@@ -778,12 +784,14 @@ namespace Relight.Sim.UI
 
             var wv = DirectorQueries.Warning(ctx, st);
             if (string.IsNullOrEmpty(wv.Kind)) return "";
+            var beside = LargeRaidBeside(wv);
             if (wv.SecondsLeft > 0)
                 return string.Format(CultureInfo.InvariantCulture,
                     "{0} approaching from the {1} · Arrives in {2:0} s",
                     string.IsNullOrEmpty(wv.Label) ? "Small enemy group" : wv.Label,
-                    string.IsNullOrEmpty(wv.Direction) ? "·" : wv.Direction, Math.Ceiling(wv.SecondsLeft));
+                    string.IsNullOrEmpty(wv.Direction) ? "·" : wv.Direction, Math.Ceiling(wv.SecondsLeft)) + beside;
             urgent = true;
+            var from = string.IsNullOrEmpty(wv.Direction) || wv.Direction == "·" ? "" : " · from the " + wv.Direction;
             // REL-74: a raid on the ground is described from state. The director's notice is the last thing it
             // SAID, and for an assault's first wave, or a small raid, that is still the countdown ("inbound … in
             // 45 s"), which the line kept printing in red for as long as the fight lasted.
@@ -792,14 +800,18 @@ namespace Relight.Sim.UI
                 var a = st.Director.Major;
                 var w = Math.Max(1, Math.Min(a.WaveAnnounced, a.Waves));
                 var sides = DirectorRules.HeadingsOf(ctx, st, a.Waves > 0 ? SiegePlan.Sides(a, w - 1) : a.Origins);
-                var from = sides == "·" ? "" : " · from the " + sides;
+                var waveFrom = sides == "·" ? "" : " · from the " + sides;
                 return a.Waves > 1
-                    ? string.Format(CultureInfo.InvariantCulture, "Major assault · wave {0} of {1}{2}", w, a.Waves, from)
-                    : "Major assault under way" + from;
+                    ? string.Format(CultureInfo.InvariantCulture, "Major assault · wave {0} of {1}{2}", w, a.Waves, waveFrom)
+                    : "Major assault under way" + waveFrom;
             }
             if (wv.Kind == "minor raid")
-                return (string.IsNullOrEmpty(wv.Label) ? "Raid" : wv.Label) + " attacking"
-                       + (string.IsNullOrEmpty(wv.Direction) || wv.Direction == "·" ? "" : " · from the " + wv.Direction);
+                return (string.IsNullOrEmpty(wv.Label) ? "Raid" : wv.Label) + " attacking" + from + beside;
+            // REL-12: a raid whose second has come but whose bodies are not on the map yet — the tick between the
+            // countdown reaching zero and the spawn. It used to fall past every branch below to "Base under attack",
+            // a fight that was not happening; it is a raid landing, and says so.
+            if (wv.Kind == "warning")
+                return (string.IsNullOrEmpty(wv.Label) ? "Small enemy group" : wv.Label) + " arriving now" + from + beside;
             // REL-74: after a raid nothing is attacking. Once the director's last word had expired, the recovery
             // fell through to "Base under attack" in red for the rest of it; a withdrawal did the same.
             if (wv.Kind == "recovery")
@@ -807,13 +819,29 @@ namespace Relight.Sim.UI
                 urgent = false;
                 return wv.Notice ?? "";
             }
-            if (wv.Kind == "withdrawal" && string.IsNullOrEmpty(wv.Notice))
+            // REL-12: a withdrawal is described from state, whatever the director last said. Its notice is as often
+            // as not the countdown that brought the raid in ("Raid inbound from E in 30 s."), which printed in red
+            // over a raid that was walking away; what the director says at the END of a raid is said again through
+            // the recovery line moments later, so nothing a player needs is lost here.
+            if (wv.Kind == "withdrawal")
             {
                 urgent = false;
                 return (string.IsNullOrEmpty(wv.Label) ? "Raid" : wv.Label) + " withdrawing";
             }
-            return string.IsNullOrEmpty(wv.Notice) ? "Base under attack" : wv.Notice;
+            // Nothing above matched, so the kind is one this method does not know. Say the plain thing the strip is
+            // for, never the director's last sentence — printing that is the stale-notice defect this row names.
+            return "Base under attack";
         }
+
+        /// <summary>
+        /// REL-12 (ENM-06): the tail that keeps an announced large raid on the strip while a small one holds the
+        /// line. The small raid is the fight in front of the player and keeps the sentence; the large one rides
+        /// beside it rather than waiting, unannounced, until the small one is over.
+        /// </summary>
+        private static string LargeRaidBeside(RaidWarning wv) =>
+            wv.AlsoKind == "warning"
+                ? string.Format(CultureInfo.InvariantCulture, " · Major assault in {0:0} s", Math.Ceiling(wv.AlsoSecondsLeft))
+                : wv.AlsoKind == "assault" ? " · Major assault under way" : "";
 
         /// <summary>
         /// REL-74: the raid arrow. It is up while a raid is warned or on the ground, never while one only walks

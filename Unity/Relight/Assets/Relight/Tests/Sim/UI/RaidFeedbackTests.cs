@@ -210,6 +210,115 @@ namespace Relight.Sim.Tests.UI
             Assert.That(urgent, Is.False);
         }
 
+        /// <summary>
+        /// REL-12 (INT-08): every kind <see cref="DirectorQueries.Warning"/> can return has its own words, so none
+        /// of them falls through to "Base under attack" — the five red minutes after an attack this row is named
+        /// for — and the strip is red only while something is actually attacking. The one line that prints the
+        /// director's own sentence is the recovery line, where there is no fight to describe.
+        /// </summary>
+        [Test]
+        public void EveryWarningKindHasItsOwnWords()
+        {
+            var (ctx, st) = Bench();
+            var d = st.Director;
+            d.Major = null;
+            d.Minor = null;
+            d.RecoveryUntil = st.T;
+            d.Notice = "Raid inbound from E in 30 s.";   // a stale countdown, still inside its hold
+
+            // "" — nothing booked but the clock. No line at all, whatever the director last said.
+            Assert.That(DirectorQueries.Warning(ctx, st).Kind, Is.Empty);
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out var urgent), Is.Empty);
+            Assert.That(urgent, Is.False);
+
+            // "warning" — the countdown.
+            d.Minor = new MinorRaid { Id = 61, Origin = East(ctx), StartsAt = st.T + 30 };
+            Assert.That(DirectorQueries.Warning(ctx, st).Kind, Is.EqualTo("warning"));
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out urgent),
+                Is.EqualTo("Raid approaching from the E · Arrives in 30 s"));
+            Assert.That(urgent, Is.False, "a countdown is not an attack");
+
+            // "warning" at zero — the second has come and the bodies are not on the map yet. This is the tick that
+            // used to read "Base under attack" before anything had arrived.
+            d.Minor.StartsAt = st.T;
+            Assert.That(DirectorQueries.Warning(ctx, st).Kind, Is.EqualTo("warning"));
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out urgent), Is.EqualTo("Raid arriving now · from the E"));
+            Assert.That(urgent, Is.True);
+
+            // "minor raid" — on the ground.
+            d.Minor.Spawned = true;
+            Assert.That(DirectorQueries.Warning(ctx, st).Kind, Is.EqualTo("minor raid"));
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out urgent), Is.EqualTo("Raid attacking · from the E"));
+            Assert.That(urgent, Is.True);
+
+            // "withdrawal" — described from state even with the countdown still sitting in the notice, which is the
+            // sentence that used to print here, in red, over a raid that was walking away.
+            d.Minor.Retreat = true;
+            Assert.That(DirectorQueries.Warning(ctx, st).Kind, Is.EqualTo("withdrawal"));
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out urgent), Is.EqualTo("Raid withdrawing"));
+            Assert.That(urgent, Is.False);
+
+            // "recovery" — the one line that prints the director's own words, and never in red.
+            d.Minor = null;
+            d.RecoveryUntil = st.T + ctx.Data.Raids.RecoveryS;
+            Assert.That(DirectorQueries.Warning(ctx, st).Kind, Is.EqualTo("recovery"));
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out urgent), Is.EqualTo("Raid inbound from E in 30 s."));
+            Assert.That(urgent, Is.False, "the whole five minutes of it");
+
+            // "assault" — the large raid on the ground, from its own wave plan.
+            d.RecoveryUntil = st.T;
+            var a = Announce(ctx, st);
+            Named(st, a, 1);
+            Assert.That(DirectorQueries.Warning(ctx, st).Kind, Is.EqualTo("assault"));
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out urgent), Does.StartWith("Major assault · wave 1 of "));
+            Assert.That(urgent, Is.True);
+        }
+
+        /// <summary>
+        /// REL-12 (ENM-06): a small raid is read before a large one, so an announced large raid used to disappear
+        /// from the strip for as long as the small one lasted. The small raid still holds the line — it is the
+        /// fight in front of the player — and the large one now rides beside it, counting down and then saying it
+        /// has started.
+        /// </summary>
+        [Test]
+        public void AnAnnouncedLargeRaidIsNotHiddenByASmallOneOnTheGround()
+        {
+            var (ctx, st) = Bench();
+            var a = Announce(ctx, st);
+            var left = a.StartsAt - st.T;
+            Assert.That(left, Is.GreaterThan(0), "the large raid is announced and has not started");
+            st.Director.Minor = new MinorRaid { Id = 70, Origin = East(ctx), Spawned = true, StartsAt = st.T };
+
+            var wv = DirectorQueries.Warning(ctx, st);
+            Assert.That(wv.Kind, Is.EqualTo("minor raid"), "the fight in front of the player keeps the line");
+            Assert.That(wv.RaidId, Is.EqualTo(70));
+            Assert.That(wv.AlsoKind, Is.EqualTo("warning"), "and the large raid is still reported");
+            Assert.That(wv.AlsoSecondsLeft, Is.EqualTo(left).Within(1e-9));
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out var urgent),
+                Is.EqualTo("Raid attacking · from the E · Major assault in "
+                           + Math.Ceiling(left).ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " s"));
+            Assert.That(urgent, Is.True);
+
+            // Still counted down while the small raid is only warned.
+            st.Director.Minor.Spawned = false;
+            st.Director.Minor.StartsAt = st.T + 12;
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out _),
+                Does.StartWith("Raid approaching from the E · Arrives in 12 s · Major assault in "));
+
+            // The large raid's own second arrives: the tail stops counting and says so.
+            st.Director.Minor.Spawned = true;
+            st.T = a.StartsAt;
+            wv = DirectorQueries.Warning(ctx, st);
+            Assert.That(wv.AlsoKind, Is.EqualTo("assault"));
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out _),
+                Is.EqualTo("Raid attacking · from the E · Major assault under way"));
+
+            // A large raid that is only walking away is not news, and is not carried.
+            a.Retreat = true;
+            Assert.That(DirectorQueries.Warning(ctx, st).AlsoKind, Is.Empty);
+            Assert.That(HudViewModel.ThreatLine(ctx, st, out _), Is.EqualTo("Raid attacking · from the E"));
+        }
+
         // ---- the banners ----------------------------------------------------------------------------------
 
         [Test]
