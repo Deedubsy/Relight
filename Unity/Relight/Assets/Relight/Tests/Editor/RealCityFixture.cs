@@ -128,8 +128,19 @@ namespace Relight.Authoring.Tests
         private static Machine Place(SimContext ctx, SimState st, string kind, double x, double y, int searchTiles)
         {
             Assert.That(ctx.Data.TryMachine(kind, out var spec), Is.True, kind + " is not in the catalogue");
-            var ox = (int)Math.Round(x - spec.Size / 2.0);
-            var oy = (int)Math.Round(y - spec.Size / 2.0);
+            return PlaceNear(ctx, st, kind, (int)Math.Round(x - spec.Size / 2.0), (int)Math.Round(y - spec.Size / 2.0),
+                searchTiles);
+        }
+
+        /// <summary>
+        /// REL-88: the nearest footprint to the north-west corner (<paramref name="ox"/>, <paramref name="oy"/>) that
+        /// the game's placement rule accepts, keeps a tile clear of the core and passes <paramref name="accept"/>
+        /// (given the corner), or null. Placed free, as <see cref="Defend"/> places.
+        /// </summary>
+        public static Machine PlaceNear(SimContext ctx, SimState st, string kind, int ox, int oy, int searchTiles,
+            Func<int, int, bool> accept = null, Dir dir = Dir.N)
+        {
+            Assert.That(ctx.Data.TryMachine(kind, out var spec), Is.True, kind + " is not in the catalogue");
             int bx = 0, by = 0;
             var best = double.MaxValue;
             for (var dy = -searchTiles; dy <= searchTiles; dy++)
@@ -138,11 +149,12 @@ namespace Relight.Authoring.Tests
                     var dist = dx * dx + dy * dy;
                     if (dist >= best) continue;
                     if (TouchesCore(st, ox + dx, oy + dy, spec.Size)) continue;
-                    if (Placement.GeometryProblem(ctx, st, kind, ox + dx, oy + dy, Dir.N) != "") continue;
+                    if (Placement.GeometryProblem(ctx, st, kind, ox + dx, oy + dy, dir) != "") continue;
+                    if (accept != null && !accept(ox + dx, oy + dy)) continue;
                     best = dist; bx = ox + dx; by = oy + dy;
                 }
             if (best == double.MaxValue) return null;
-            var m = new Machine { Id = st.NextId++, Kind = kind, X = bx, Y = by, Dir = Dir.N, Size = spec.Size };
+            var m = new Machine { Id = st.NextId++, Kind = kind, X = bx, Y = by, Dir = dir, Size = spec.Size };
             st.Machines.Add(m);
             st.Rev++;
             return m;
@@ -152,7 +164,7 @@ namespace Relight.Authoring.Tests
         /// The placement rule checks machines and city walls, not the core's own rectangle, so the fixture keeps
         /// its machines a tile clear of it: stricter than the game, never looser.
         /// </summary>
-        private static bool TouchesCore(SimState st, int x, int y, int size)
+        public static bool TouchesCore(SimState st, int x, int y, int size)
         {
             var h = st.Home;
             return x < h.X + h.W + 1 && x + size > h.X - 1 && y < h.Y + h.H + 1 && y + size > h.Y - 1;
