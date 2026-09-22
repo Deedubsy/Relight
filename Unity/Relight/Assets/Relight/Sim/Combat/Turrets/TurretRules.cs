@@ -26,8 +26,32 @@ namespace Relight.Sim
         /// invulnerable wall no wave could pass or break. <see cref="CombatBalance"/> now derives an integrity row
         /// for every BUILDABLE machine, so this reads "a machine that can be broken", which is what each caller
         /// already meant. The reference's own name is kept.
+        ///
+        /// REL-115 (E-24) made that every machine the player places, belts and poles included (U-D-68 (d)), and
+        /// checked each reader so that a chest with hit points is not silently a "defence" anywhere it matters:
+        /// <list type="bullet">
+        /// <item><see cref="DirectorRules.HostileOpen"/>: a walk-through kind is open ground before this is asked;
+        ///       anything else that can be broken blocks until it is a wreck, on both maps. The synthetic map's
+        ///       "only a paid defence blocks" branch now covers only a machine with no hit points (the Depot).</item>
+        /// <item>The breach field, the breach step, the walk and a spitter's round that hits a blocked tile ask
+        ///       <see cref="BlocksRaiders"/>: a raider breaks a machine only when it is in the way (U-D-69 (h)).</item>
+        /// <item>What a raider goes for on purpose asks <see cref="TurretHopper.IsTurret"/>, and the director's
+        ///       staging asks <see cref="IsFortification"/>; neither reads this.</item>
+        /// <item>Repair (<c>HomeCore</c>'s machine repair), the wreck query (<see cref="TurretQueries.Disabled"/>)
+        ///       and the HUD's wreck count (<c>DefenceAlertSource</c>) mean "can be broken" and are right for every
+        ///       machine. The HUD row is still raised only by a dry or low turret.</item>
+        /// </list>
         /// </summary>
         public static bool IsDefence(GameData d, Machine m) => MaxHp(d, m) > 0;
+
+        /// <summary>
+        /// REL-115, U-D-69 (h): a machine a raider must break to get past — it can be broken and a body cannot walk
+        /// over it. A belt, a fast belt or a pole has hit points (U-D-68 (d)) but is never in anyone's way, so no
+        /// raid ever stops to chew one; that was GP-W5's reason for giving them none, now met here instead.
+        /// Hit points left are the caller's question: a wreck is walked over (<see cref="Wrecked"/>).
+        /// </summary>
+        public static bool BlocksRaiders(GameData d, Machine m) =>
+            m != null && !Ground.WalkThrough(m.Kind) && IsDefence(d, m);
 
         /// <summary>
         /// U-D-59, ALWAYS_DARK_SPEC.md §5.7. How far a turret reaches into UNLIT ground: its

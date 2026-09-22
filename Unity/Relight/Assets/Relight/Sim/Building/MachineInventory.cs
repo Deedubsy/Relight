@@ -70,9 +70,15 @@ namespace Relight.Sim
         public static bool Accepts(GameData d, Machine m, ItemId k) =>
             Accepts(d, m, k, ProductionRules.DefaultRecipe(d, m));
 
-        /// <summary>Reference flow.ts:769 `accepts`, using the recipe the machine is actually set to.</summary>
+        /// <summary>
+        /// Reference flow.ts:769 `accepts`, using the recipe the machine is actually set to.
+        /// REL-115 (U-D-69 (f), "A destroyed chest or machine keeps its items in the wreck; repairing it brings
+        /// them back"): a wreck takes nothing, from a belt, an arm or a machine next to it. The damage is keyed by
+        /// machine id, so a planning copy with the same id (<see cref="FlowPhase.RoomAtEnd"/>) answers the same.
+        /// </summary>
         public static bool Accepts(GameData d, SimState st, Machine m, ItemId k) =>
-            Accepts(d, m, k, ProductionRules.IsProcessor(d, m) ? ProductionRules.RecipeOf(d, st, m) : null);
+            !TurretRules.Wrecked(d, st, m)
+            && Accepts(d, m, k, ProductionRules.IsProcessor(d, m) ? ProductionRules.RecipeOf(d, st, m) : null);
 
         private static bool Accepts(GameData d, Machine m, ItemId k, Recipe recipe)
         {
@@ -105,7 +111,13 @@ namespace Relight.Sim
 
         private static string Label(GameData d, Machine m) => PlayerNames.Machine(d, m.Kind);
 
-        /// <summary>Reference `machineTransferPreview`: how much would move, or why nothing would.</summary>
+        /// <summary>REL-115: the hand's refusal at a wreck. Its contents are still there, and repair returns them.</summary>
+        public static string WreckedText(GameData d, Machine m) => $"Repair the {Label(d, m)} to reach what is inside";
+
+        /// <summary>
+        /// Reference `machineTransferPreview`: how much would move, or why nothing would.
+        /// REL-115: nothing goes in or out of a wreck by hand (U-D-69 (f)); the refusal names the fix.
+        /// </summary>
         public static (double moved, string reason) Preview(SimContext ctx, SimState st, int id, ItemId item, double n, bool put)
         {
             var d = ctx.Data;
@@ -114,6 +126,7 @@ namespace Relight.Sim
             if (m == null || !HasInventory(d, m)) return (0, "Machine inventory unavailable");
             if (n <= 0 || n != Math.Floor(n) || double.IsInfinity(n)) return (0, "Choose a whole positive quantity");
             if (!Interaction.InReach(ctx, st, m)) return (0, $"Walk closer to the {Label(d, m)}");
+            if (TurretRules.Wrecked(d, st, m)) return (0, WreckedText(d, m));
             var name = d.Item(item).DisplayName;
 
             if (put)

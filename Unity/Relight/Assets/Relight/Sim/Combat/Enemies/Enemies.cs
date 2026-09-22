@@ -89,11 +89,12 @@ namespace Relight.Sim
         }
 
         /// <summary>
-        /// GP-W5: does this type go out of its way to break structures? The Breaker's role is to put pressure on
-        /// defences and on the production connections behind them, so it bites what it walks past; the skitter and
-        /// the spitter want the engineer and the core, and bite a machine only when one is actually in the way.
-        /// Read from the approved role text rather than from a hard-coded key list, so a later roster addition with
-        /// the same role behaves the same way without another edit here.
+        /// GP-W5: is this type the roster's structure-breaker (CONTENT_CATALOGUE.md §7.4)? Read from the approved
+        /// role text rather than from a hard-coded key list.
+        ///
+        /// REL-115 took targeting away from it. GP-W5 let a Breaker bite any machine it walked past; U-D-69 (h)
+        /// says every raider aims for the core and the turrets and breaks a machine only when it blocks the path,
+        /// so no sim rule reads this now. It stays as the role's name, which the catalogue tests check.
         /// </summary>
         public static bool BreaksStructures(EnemyDef def) =>
             def != null && def.Role != null && def.Role.IndexOf("structure-breaker", StringComparison.Ordinal) >= 0;

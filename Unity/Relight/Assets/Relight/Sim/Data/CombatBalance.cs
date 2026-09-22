@@ -74,21 +74,22 @@ namespace Relight.Sim
         }
 
         /// <summary>
-        /// What a machine's integrity row should be. 0 leaves the row alone, which covers three cases:
+        /// What a machine's integrity row should be. 0 leaves the row alone, which covers two cases:
         ///
         /// * a kind that already has one (wall 120, barricade 240, turret 100, cannon 140 — the reference's own
         ///   numbers, which stay exactly as exported);
-        /// * a WALK-THROUGH kind (belt, fast belt, pole, track, tram). A body walks over these, so they can never
-        ///   block one, and giving them integrity would only invite a raid to stop and chew a 1-steel belt — the
-        ///   brief's "avoid targeting every low-value belt unnecessarily". A cut supply lane is still reachable
-        ///   through the inserters that feed it, which are ordinary buildable machines and do get a row;
         /// * a WORLD FIXTURE with no build cost (the Depot). It is scenery placed by the region, not something the
         ///   player put up, and it stays the solid landmark the map draws.
+        ///
+        /// REL-115 (U-D-68 (d), "All buildings the player places should have hit points") ended GP-W5's third
+        /// case: the WALK-THROUGH kinds (belt, fast belt, pole) now get a row by the same formula. GP-W5 left them
+        /// out so a raid could never stop to chew a one-steel belt, and that reason still holds, but it is now met
+        /// where it belongs: a raider breaks a machine only when it blocks the path (U-D-69 (h),
+        /// <see cref="TurretRules.BlocksRaiders"/>), and a body walks over these, so none of them is ever in the way.
         /// </summary>
         public static double Integrity(MachineSpec m)
         {
             if (m == null || m.Hp > 0) return 0;
-            if (Ground.WalkThrough(m.Key)) return 0;
             var items = 0.0;
             if (m.Cost != null) for (var i = 0; i < m.Cost.Count; i++) items += m.Cost[i].Count;
             if (items <= 0) return 0;

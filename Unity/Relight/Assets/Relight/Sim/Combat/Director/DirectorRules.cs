@@ -39,6 +39,11 @@ namespace Relight.Sim
         /// Either way a defence whose hit points have reached 0 no longer blocks, which is the reference's
         /// <c>solidMap</c> rule (walk.ts:37) that <see cref="GroundState.SolidMap"/> could not implement in Phase B
         /// because structure HP did not exist yet. C-04 owns that HP, so the rule is applied here.
+        ///
+        /// Since GP-W5 and REL-115 every machine the player places has hit points, so on both maps anything a body
+        /// cannot walk over blocks until it is a wreck, and the breach field routes through it
+        /// (<see cref="TurretRules.BlocksRaiders"/>). The synthetic map's "only a paid defence blocks" branch is
+        /// now reached only by a machine with no hit points at all: the Depot.
         /// </summary>
         public static bool HostileOpen(SimContext ctx, SimState st, int x, int y)
         {

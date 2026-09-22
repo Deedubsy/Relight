@@ -195,9 +195,12 @@ namespace Relight.Sim
         /// Reference flow.ts:769 <c>accepts</c>, whole. The conveyor kinds are answered here; every other kind is
         /// <see cref="MachineInventory.Accepts(GameData, SimState, Machine, ItemId)"/>, which is the same switch.
         /// The retired Depot and tram-stop branches (U-D-32, RI-05) are not ported.
+        /// REL-115: a wrecked belt, splitter or underground takes nothing either, so a line stops at the break
+        /// (U-D-69 (f)); the machine kinds get the same answer from MachineInventory.
         /// </summary>
         public static bool Accepts(SimContext ctx, SimState st, Machine m, ItemId k, double p = 0)
         {
+            if (TurretRules.Wrecked(ctx.Data, st, m)) return false;
             if (IsRouting(m.Kind)) return RoutingAccepts(st, m);
             if (IsBelt(m.Kind)) return BeltRoom(st.Flow.Find(m.Id), p);
             return MachineInventory.Accepts(ctx.Data, st, m, k);

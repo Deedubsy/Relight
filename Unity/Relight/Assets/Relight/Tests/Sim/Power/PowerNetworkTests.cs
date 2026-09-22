@@ -244,9 +244,11 @@ namespace Relight.Sim.Tests.Power
         /// points, and flattening the one that carries a circuit out to the far yard cuts the machines behind it
         /// off: they read as no-power, not as still-running, and they come back when the pole is repaired.
         ///
-        /// The control half matters as much. A plain pole is walk-through, so it has NO hit points at all and can
-        /// never be attacked. That is deliberate: a raid must never be able to stall itself chewing on the cheapest
+        /// The control half matters as much. A plain pole is walk-through, so it is never in a raid's way and is
+        /// never attacked. That is deliberate: a raid must never be able to stall itself chewing on the cheapest
         /// thing on the map, and a player must never lose a base because one 2-item pole was a chokepoint.
+        /// GP-W5 met that by giving it no hit points; REL-115 (U-D-68 (d)) gives every building hit points, and
+        /// U-D-69 (h) now meets it instead: a raider breaks a machine only when it blocks the path.
         /// </summary>
         [Test]
         public void AWreckedBigPoleSeversTheCircuitBehindItWhileAPlainPoleCannotBeAttackedAtAll()
@@ -265,8 +267,10 @@ namespace Relight.Sim.Tests.Power
             Assert.That(PowerQueries.Supplied(ctx, st, near.Id), Is.True);
             Assert.That(PowerQueries.Supplied(ctx, st, far.Id), Is.True, "the relay carries the circuit out to it");
 
-            Assert.That(TurretRules.MaxHp(ctx.Data, plain), Is.Zero,
-                "a walk-through pole has no hit points: a raid can never stall itself on one");
+            Assert.That(TurretRules.MaxHp(ctx.Data, plain), Is.GreaterThan(0), "every building has hit points (REL-115)");
+            Assert.That(TurretRules.BlocksRaiders(ctx.Data, plain), Is.False,
+                "a walk-through pole is never in the way: a raid can never stall itself on one");
+            Assert.That(TurretRules.BlocksRaiders(ctx.Data, relay), Is.True, "a big pole is solid, so it can be");
             var max = TurretRules.MaxHp(ctx.Data, relay);
             Assert.That(max, Is.GreaterThan(0), "a big pole is a building and can be broken");
             Assert.That(TurretRules.Damage(ctx, st, relay, max), Is.True);

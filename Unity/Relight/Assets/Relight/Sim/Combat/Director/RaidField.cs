@@ -176,12 +176,12 @@ namespace Relight.Sim
                         {
                             if (DirectorRules.HostileOpen(ctx, st, xx + dx, yy + dy)) continue;
                             var n = st.Enemies.Index.At(ctx, st, xx + dx, yy + dy);
-                            if (!breach || n == null || !TurretRules.IsDefence(ctx.Data, n) || !Ground.Walkable(ctx, xx + dx, yy + dy)) return false;
+                            if (!breach || !TurretRules.BlocksRaiders(ctx.Data, n) || !Ground.Walkable(ctx, xx + dx, yy + dy)) return false;
                         }
                 }
                 if (DirectorRules.HostileOpen(ctx, st, xx, yy)) return true;
                 var m = st.Enemies.Index.At(ctx, st, xx, yy);
-                return breach && m != null && TurretRules.IsDefence(ctx.Data, m);
+                return breach && TurretRules.BlocksRaiders(ctx.Data, m);
             }
 
             for (var yy = y - 1 - clearance; yy <= y + size + clearance; yy++)

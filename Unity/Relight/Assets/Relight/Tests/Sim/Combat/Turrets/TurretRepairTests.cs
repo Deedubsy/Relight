@@ -100,8 +100,10 @@ namespace Relight.Sim.Tests.Combat
         /// how many instalments a wreck actually takes. It also carries the sim's OWN refusal, so a greyed button
         /// can never drift away from what <see cref="RepairCommand"/> would say if it were pressed.
         ///
-        /// The last case is the boundary: a walk-through pole has no integrity row at all, so it has no card, no
-        /// sentence and nothing to repair — a machine that cannot be broken must not be advertised as mendable.
+        /// The last case is the boundary. GP-W5 gave a walk-through pole no integrity row at all; REL-115 (U-D-68
+        /// (d), "All buildings the player places should have hit points") gives it one, and U-D-69 (h) keeps a raid
+        /// off it because a body walks over it. So a whole pole is still sold nothing — no card, no sentence — and
+        /// it is still not something a raid stops to chew.
         /// </summary>
         [Test]
         public void AWreckedMachineOffersARepairCardPricedInInstalmentsAndCarryingTheSimsOwnRefusal()
@@ -173,10 +175,16 @@ namespace Relight.Sim.Tests.Combat
                 "Damaged 40/100 HP — repairable: 2 steel + 1 copper restores 40 HP (4s) · 2 repairs to full"));
             Assert.That(Ledger.Conservation(st, ctx.Data).Problems, Is.Empty);
 
-            // And the boundary: a walk-through pole has no integrity, so it is never offered a repair.
+            // And the boundary: a walk-through pole has hit points now (REL-115), but whole it is offered no repair,
+            // and a raid never stops for it because nothing can stand on its tile and be blocked.
             var pole = RaidFixture.Add(ctx, st, "pole", RaidFixture.CoreX + 6, RaidFixture.CoreY + 4);
             var none = HomeQueries.MachineRepairCard(ctx, st, pole.Id);
-            Assert.That(none.Max, Is.Zero, "a raid can never stall itself chewing on a 2-item pole");
+            Assert.That(ctx.Data.TryMachine("pole", out var poleSpec), Is.True);
+            Assert.That(none.Max, Is.EqualTo(CombatBalance.Integrity(poleSpec with { Hp = 0 })),
+                "every building the player places has hit points, by the one formula");
+            Assert.That(none.Max, Is.GreaterThan(0));
+            Assert.That(TurretRules.BlocksRaiders(ctx.Data, pole), Is.False,
+                "a raid can never stall itself chewing on a 2-item pole");
             Assert.That(none.Damaged, Is.False);
             Assert.That(HomeQueries.MachineRepairLine(ctx, st, pole.Id), Is.Empty);
         }

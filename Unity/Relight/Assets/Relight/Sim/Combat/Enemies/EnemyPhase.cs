@@ -161,7 +161,7 @@ namespace Relight.Sim
                 { tx = px; ty = py; what = EnemyTargetKind.You; return EnemyAction.Attack; }
                 if (known && !p.IsDown)
                 { tx = px; ty = py; what = EnemyTargetKind.You; return EnemyAction.Pursue; }
-                var near = NearbyStructure(ctx, st, e, def);
+                var near = NearbyStructure(ctx, st, e);
                 if (near != null)
                 { tx = near.X; ty = near.Y; what = EnemyTargetKind.Structure; structure = near; return EnemyAction.Attack; }
             }
@@ -181,7 +181,7 @@ namespace Relight.Sim
             if (next >= 0)
             {
                 var m = st.Enemies.Index.At(ctx, st, next % w, next / w);
-                if (m != null && TurretRules.IsDefence(ctx.Data, m) && TurretRules.Hp(ctx.Data, st, m) > 0)
+                if (TurretRules.BlocksRaiders(ctx.Data, m) && TurretRules.Hp(ctx.Data, st, m) > 0)
                 {
                     tx = m.X; ty = m.Y; what = EnemyTargetKind.Structure; structure = m;
                     return EnemyAction.Breach;
@@ -192,22 +192,22 @@ namespace Relight.Sim
         }
 
         /// <summary>
-        /// A standing structure the body has walked right up to; it bites that before the core.
+        /// A standing gun the body has walked right up to; it bites that before the core.
         ///
-        /// GP-W5 SPLITS THIS BY ROLE, which is the brief's "avoid targeting every low-value belt unnecessarily".
-        /// An ordinary raider still only stops for a WEAPON — the gun shooting at it — so it does not wander off to
-        /// chew an inserter on its way to the core. A Breaker stops for any machine within reach, because breaking
-        /// structures and the production connections behind them is its whole role (CONTENT_CATALOGUE.md §7.4);
-        /// belts and poles are excluded everywhere by <see cref="CombatBalance"/>, which gives them no integrity at
-        /// all, so even a Breaker cannot stall on a one-steel belt.
+        /// U-D-69 (h), REL-115: "Raiders aim for the core and your turrets, and only break a machine that blocks
+        /// their path." Every type, the Breaker included, stops here for a WEAPON only — a turret or a cannon, the
+        /// gun shooting at it. Any other machine is broken only when it stands on the body's next step (the Breach
+        /// action and <see cref="WalkField"/>, through <see cref="TurretRules.BlocksRaiders"/>). GP-W5 let a
+        /// Breaker stop for any machine within reach (CONTENT_CATALOGUE.md §7.4's "pressure on production
+        /// connections"); the owner's later rule ends that. The Breaker keeps its heavy bite on whatever is in its
+        /// way (<see cref="Enemies.StructureDamage"/>) and its place at the front of a wave.
         /// </summary>
-        private static Machine NearbyStructure(SimContext ctx, SimState st, Enemy e, EnemyDef def)
+        private static Machine NearbyStructure(SimContext ctx, SimState st, Enemy e)
         {
-            var anyStructure = Enemies.BreaksStructures(def);
             for (var i = 0; i < st.Machines.Count; i++)
             {
                 var m = st.Machines[i];
-                if (anyStructure ? !TurretRules.IsDefence(ctx.Data, m) : !TurretHopper.IsTurret(ctx.Data, m)) continue;
+                if (!TurretHopper.IsTurret(ctx.Data, m)) continue;
                 if (TurretRules.Hp(ctx.Data, st, m) <= 0) continue;
                 var cx = m.X + m.Size / 2.0;
                 var cy = m.Y + m.Size / 2.0;
@@ -316,7 +316,7 @@ namespace Relight.Sim
                     if (!ctx.Geometry.Sight(p.Pos.X, p.Pos.Y, x, y) || !Ground.Passable(ctx, st, tx, ty))
                     {
                         var m = st.Enemies.Index.At(ctx, st, tx, ty);
-                        if (m != null && TurretRules.IsDefence(ctx.Data, m)) TurretRules.Damage(ctx, st, m, structureDamage);
+                        if (TurretRules.BlocksRaiders(ctx.Data, m)) TurretRules.Damage(ctx, st, m, structureDamage);
                         else if (hasCore && tx >= bx && ty >= by && tx < bx + size && ty < by + size) EnemyCoreHook.Damage(ctx, st, structureDamage);
                         dead = true;
                         break;
@@ -394,7 +394,7 @@ namespace Relight.Sim
             var x = next % w;
             var y = next / w;
             var m = st.Enemies.Index.At(ctx, st, x, y);
-            if (m != null && TurretRules.IsDefence(ctx.Data, m) && TurretRules.Hp(ctx.Data, st, m) > 0)
+            if (TurretRules.BlocksRaiders(ctx.Data, m) && TurretRules.Hp(ctx.Data, st, m) > 0)
             {
                 TurretRules.Damage(ctx, st, m, Enemies.StructureDps(ctx.Data, def) * dt);
                 e.Waypoint = -1;

@@ -391,6 +391,7 @@ Required work is D1 to D10. Optional work is D11.
 - **Outcome:** an owner ruling; if it is an exploit, carry integrity with the packed item or refuse pick-up of a wreck.
 - **Canonical:** GP-W5, U-D-48. Newly identified.
 - **Authorised?:** Needs decision (F1-17).
+- **Confirmed in code 2026-09-23 (REL-115):** `Placement.Remove` has no wreck test and returns the machine and its contents; placing it again gives full hit points. Since REL-115 every machine can be a wreck and keeps its items (U-D-69 f), so a pick-up also gets round the wreck's lock on its contents. Nothing changed; still F1-17.
 
 ---
 
@@ -583,6 +584,7 @@ These are existing `TASKS.md` rows. They are listed so the execution plan in E i
 - **Priority:** P1 path. **Class:** Missing approved feature.
 - **Now:** the Breaker body ships and the siege plan spawns it, but spec §5.8 (go for the power line) has no code, and its role text "pushes through light" describes behaviour nothing implements. E-13 is plain `todo` although part of it shipped. Approach sounds (U-D-62) are absent. `[CODE]`
 - **Canonical:** E-13, E-14, U-D-48 (f), spec §5.8. **Authorised?:** Rows exist; blocked behind E-05 → D-03 → D-02b.
+- **Note 2026-09-23 (REL-115):** GP-W5's Breaker, which bit any machine it walked past, is gone under U-D-69 (h); every raider now goes for turrets and cannons only and breaks other machines only when they block its path. Poles now have hit points, which §5.8 would need. Whether §5.8's power-line detour is an exception to (h) is F1-38.
 
 #### AUD-CMB-03 — Strongholds (E-06, E-07, E-15)
 - **Priority:** P1 path. **Class:** Missing approved feature; content design is a proposal or unset.
@@ -904,7 +906,7 @@ Exit: a person finishes the game. F-ACC.
 | F1-14 | Spec §10: overlay strength, tram-stop lighting, the court's dark centre, hard-edged light pools | L-ACC |
 | F1-15 | C-R01 to C-R07: proposals from another session; accept, fold in or drop | Phase C |
 | F1-16 | Should alien sight be blocked by player walls? | AUD-CMB-08 |
-| F1-17 | Picking up a wreck and re-placing it repairs it for free: exploit or escape hatch? | AUD-INT-14 |
+| F1-17 | Picking up a wreck and re-placing it repairs it for free: exploit or escape hatch? **Wider since 2026-09-23 (REL-115):** every machine can now be a wreck and keeps its items (U-D-69 f), so a pick-up also gets round the wreck's lock on its contents | AUD-INT-14, REL-115 |
 | F1-18 | What is a save bound to? Today any scene edit orphans every save. **Decided 2026-09-22 (U-D-69 b), for development only:** the strict map check stays; a map change may stop old saves loading and the player starts a new game | AUD-PER-03, all Phase D authoring |
 | F1-19 | What should a dead Home core cost the player? Today: almost nothing. **Decided 2026-09-21 (U-D-64 d, U-D-66 part 6):** the raid ends, survivors walk off, the player repairs, the next raid waits a full interval | AUD-CMB-07, AUD-OPN-07, the ending's trip rule |
 | F1-20 | Which moments deserve an event autosave? **Already recorded (TECHNICAL_ARCHITECTURE.md §9.4.2; reconciled on REL-65 2026-09-21, not a new owner decision):** raid start, raid resolved, site restored or plant commissioned. The first two built 2026-09-23 (REL-65) | AUD-PER-05 |
@@ -922,7 +924,7 @@ Exit: a person finishes the game. F-ACC.
 | F1-27 | Does the 240 cap count sleeping roamers and garrisons? | REL-42, REL-98 |
 | F1-28 | What happens when the first small raid reaches the Home core's floor? **Decided 2026-09-22 (U-D-68 b):** the raid breaks off and the HUD says the core held | part of REL-75, REL-72 |
 | F1-29 | When does a stronghold fight begin and end, and may it hold back a large-raid warning without limit? **Decided 2026-09-22 (U-D-69 e):** no other limit; the fight ends about 30 s after the engineer leaves or goes down | part of REL-75, REL-93, REL-96 |
-| F1-30 | What counts as a raid that cannot finish, and what outcome is recorded? **Answered in part 2026-09-22 (U-D-68 a):** nothing the player places may wall a raid off; raiders attack it (E-24). The recorded outcome for any other stuck raid is still open; the neutral interim stands | part of REL-44, REL-80 |
+| F1-30 | What counts as a raid that cannot finish, and what outcome is recorded? **Answered in part 2026-09-22 (U-D-68 a):** nothing the player places may wall a raid off; raiders attack it (E-24, built 2026-09-23 in REL-115). The recorded outcome for any other stuck raid is still open; the neutral interim stands | part of REL-44, REL-80 |
 | F1-31 | Must a Unity save made today keep loading as systems are added? **Decided 2026-09-22 (U-D-69 b), for development only:** no; a clean break is allowed while the game is unreleased | REL-44, 42, 35, 38, 76, 43, 63 |
 | F1-32 | Home coal: numbers, or coal reaches Home sooner? (after the REL-88 measurement) **Decided 2026-09-22 (U-D-69 c):** numbers, a bigger pile or a slower burn | REL-27 |
 | F1-33 | Roamers before alien roles (U-D-66), or after the roster (L-03's dependency)? | REL-42 |
@@ -930,6 +932,7 @@ Exit: a person finishes the game. F-ACC.
 | F1-35 | The ending's words: what "fully lit on every street tile" means with lamp light, and why a dark route is kept after raids end | REL-50 |
 | F1-36 | Two salvage patches are relabelled to ore at boot (iron ore at Riverside, copper ore at Ironworks). U-D-65 says iron ore only near Ironworks and copper ore only at the Quarry. Do they stay ore? (added 2026-09-22 from the FEAS-01 paper) | REL-30, REL-35 |
 | F1-37 | Every rubble tile becomes iron ore at 300 units. Is iron meant to be scarce? Measure the rubble-tile count first (added 2026-09-22 from the FEAS-01 paper) | REL-30 |
+| F1-38 | Do Breakers still go for the power line? U-D-59 (spec §5.8, “Opportunist”) sends a raid's Breaker up to 6 tiles off its path to break a generator, pole or lamp. U-D-69 (h) says raiders break a machine only when it blocks their path. Is the power-line detour an exception to (h), or dropped? Nothing of §5.8 is built, so nothing changed (added 2026-09-23 from REL-115) | E-14, REL-71 |
 
 ### F2. Human playtests owed
 

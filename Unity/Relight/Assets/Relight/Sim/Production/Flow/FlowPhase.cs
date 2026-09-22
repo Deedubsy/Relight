@@ -46,6 +46,9 @@ namespace Relight.Sim
             var order = FlowRules.BeltOrder(st);
             for (var i = 0; i < order.Count; i++)
             {
+                // REL-115 (U-D-69 (f)): belts now have hit points, and a wrecked one holds what it carries until
+                // it is repaired — it neither moves them on nor loads from the machine behind it.
+                if (TurretRules.Wrecked(ctx.Data, st, order[i])) continue;
                 TickBelt(ctx, st, order[i], dt);
                 LoadConveyor(ctx, st, order[i], routes);
             }
@@ -179,7 +182,8 @@ namespace Relight.Sim
                 if (i == lane.Items.Count - 1 && np >= length)
                 {
                     var exit = st.Flow.Find(mate.Id);
-                    if (FlowRules.BeltRoom(exit, 0))
+                    // REL-115: the hand-over to the exit half skips Accepts, so its wreck gate is repeated here.
+                    if (!TurretRules.Wrecked(ctx.Data, st, mate) && FlowRules.BeltRoom(exit, 0))
                     {
                         FlowRules.BeltInsert(ctx.Data, mate, st.Flow.Of(mate.Id), it.Item, 0);
                         lane.Items.RemoveAt(lane.Items.Count - 1);
@@ -279,10 +283,12 @@ namespace Relight.Sim
         /// Reference directConveyor.ts:33 <c>sourceCount</c>: how many whole <paramref name="k"/> this machine has
         /// spare. The Depot and tram-stop branches are retired (U-D-32, RI-05). A miner exposes its
         /// one extracted item through the same inventory used by transfers and saves.
+        /// REL-115: a wreck has nothing spare; what is in it stays until it is repaired (U-D-69 (f)).
         /// </summary>
         public static double SourceCount(SimContext ctx, SimState st, Machine m, ItemId k)
         {
             var d = ctx.Data;
+            if (TurretRules.Wrecked(d, st, m)) return 0;
             if (TurretHopper.IsTurret(d, m)) return k == TurretHopper.Ammo(d, m) ? m.Rounds : 0;
             if (ProductionRules.IsMiner(d, m)) return Math.Floor(m.Inv[k]);
             if (ProductionRules.IsProcessor(d, m))
@@ -307,6 +313,8 @@ namespace Relight.Sim
         /// Reference flow.ts:887 <c>inserterPickup</c>: the exact next pick-up, without moving anything, so the
         /// status panel and the tick agree. A belt is read leader-first (the item about to leave), a splitter
         /// oldest-first.
+        /// REL-115: an arm does not reach into a wreck, and does not lift an item it could only hand to one, so it
+        /// never stands holding something it cannot put down (U-D-69 (f)).
         /// </summary>
         public static bool Pickup(SimContext ctx, SimState st, Machine m, out ItemId item, out int index)
         {
@@ -317,6 +325,7 @@ namespace Relight.Sim
             var src = ProductionRules.MachineAt(st, sx, sy);
             var dst = ProductionRules.MachineAt(st, dx, dy);
             if (src == null || dst == null) return false;
+            if (TurretRules.Wrecked(ctx.Data, st, src) || TurretRules.Wrecked(ctx.Data, st, dst)) return false;
             var lane = st.Flow.Find(m.Id);
             var filter = lane != null ? lane.Filter : -1;
 
