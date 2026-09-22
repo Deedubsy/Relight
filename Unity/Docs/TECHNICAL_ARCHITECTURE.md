@@ -933,6 +933,8 @@ Absent a trigger, the reference saves are read by the *reference project*, which
 | `autosaveOnEvents` | **on**: raid start, raid resolved, site restored/plant commissioned | on / off | These are the moments the player would most want to return to, and each is already a discrete sim-side state change. An event autosave consumes a ring slot like any other and resets the interval timer. |
 | Save-on-quit | **on**, to `auto-quit.json` | on / off | Kept from the earlier default; it is not part of the ring and is never rotated out. |
 
+*Built 2026-09-23 (REL-65):* `AutosaveScheduler.Observe` reads each frame's sim events. "Raid start" is read as the raid's warning opening (`RaidNoticeEvent` `Announced` or `MinorRaid`, once per raid; later wave lines are the same raid), matching "before a wave". "Raid resolved" is any `RaidEndedEvent`. A group staged at once, with no warning, saves only at its end. "Site restored or plant commissioned" has no sim event yet and is not wired. Guard: no event save while the engineer is down; the save waits and is written once they are up. Several moments in one frame are one save. Timed saves and save-on-quit are unchanged.
+
 Interval is measured in **unpaused sim time**, not wall clock: a game paused in a menu for an hour does not accumulate autosaves. Settings live with the other preferences (§4.4, §8.4) — **not in the save file**.
 
 Rotation is round-robin over `auto-1 … auto-N` recorded in `auto-index.json`: the writer always targets the **oldest** slot, so the most recent good autosave is never the file being overwritten. "Oldest" is decided from the reconciled slot metadata (saved-at, then tick, then previous sequence, then file name — U-M-37), never from the index alone.

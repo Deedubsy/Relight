@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Relight.Sim
 {
@@ -31,6 +32,8 @@ namespace Relight.Sim
         private readonly SaveStore _store;
         private double _since;          // unpaused sim seconds since the last ring autosave
         private int _attempt;           // fresh-temp-name counter for a retry after a lock (§9.4.5)
+        private string _pending;        // REL-65: an event save owed while the engineer is down
+        private readonly HashSet<int> _warned = new HashSet<int>();   // REL-65: raids whose start has been saved
 
         public AutosaveScheduler(SaveStore store, AutosaveSettings settings = null)
         {
@@ -96,9 +99,8 @@ namespace Relight.Sim
         }
 
         /// <summary>
-        /// The event-autosave hook of §9.4.2 — "before a wave, after a milestone". It is exposed and honours
-        /// <see cref="AutosaveSettings.OnEvents"/>, and <b>nothing calls it yet</b>: the moments that deserve one are
-        /// a gameplay decision that belongs to the rows that own those events, not to the persistence foundation.
+        /// The event-autosave hook of §9.4.2 — "before a wave, after a milestone". It honours
+        /// <see cref="AutosaveSettings.OnEvents"/>; <see cref="Observe"/> calls it for the moments REL-65 wired.
         /// Calling it resets the timed interval, so an event save and a timed save cannot land back to back.
         /// </summary>
         public SaveResult Trigger(string reason, Simulation sim)
@@ -107,6 +109,53 @@ namespace Relight.Sim
             if (Stopped || !Settings.OnEvents) return null;
             _since = 0;
             return Write(reason ?? "an event autosave", sim);
+        }
+
+        /// <summary>The event save owed but not yet written because the engineer is down; null when none is owed.</summary>
+        public string Pending => _pending;
+
+        /// <summary>
+        /// REL-65 (PER-05): read one frame's sim events for the moments that deserve an event save, and write at
+        /// most one. The moments wired are:
+        /// <list type="bullet">
+        /// <item><b>a raid starts</b> — its warning opens (<see cref="RaidNoticeKind.Announced"/> for a large raid,
+        ///       <see cref="RaidNoticeKind.MinorRaid"/> for a small one), once per raid: a large raid's later wave
+        ///       lines and a warning announced again are the same raid. A group staged at once (the opening's
+        ///       encounter, the Admin raid) has no warning, so only its end saves;</item>
+        /// <item><b>a raid is resolved</b> — any <see cref="RaidEndedEvent"/>.</item>
+        /// </list>
+        /// "Site restored or plant commissioned" has no sim event yet; wire it here when plants exist.
+        /// The guard: no event save while the engineer is down. The save is owed instead and written on the first
+        /// frame they are up, so no event save ever holds a downed engineer. Several moments in one frame are one
+        /// save. Timed saves and <c>auto-quit.json</c> are not guarded and behave as before.
+        /// </summary>
+        public SaveResult Observe(IReadOnlyList<SimEvent> events, Simulation sim)
+        {
+            if (sim == null) return null;
+            if (events != null)
+                for (var i = 0; i < events.Count; i++)
+                {
+                    var moment = MomentOf(events[i]);
+                    if (moment != null) _pending = moment;
+                }
+            if (_pending == null) return null;
+            if (Stopped || !Settings.OnEvents) { _pending = null; return null; }
+            if (sim.State.Engineer.IsDown) return null;
+            var reason = _pending;
+            _pending = null;
+            return Trigger(reason, sim);
+        }
+
+        private string MomentOf(SimEvent e)
+        {
+            if (e is RaidNoticeEvent n && (n.Kind == RaidNoticeKind.Announced || n.Kind == RaidNoticeKind.MinorRaid))
+                return _warned.Add(n.RaidId) ? "a raid's warning" : null;
+            if (e is RaidEndedEvent r)
+            {
+                _warned.Remove(r.RaidId);
+                return "the end of a raid";
+            }
+            return null;
         }
 
         /// <summary>
@@ -144,8 +193,12 @@ namespace Relight.Sim
             }
         }
 
-        /// <summary>Forget the accumulated interval — used when a new game starts or a save is loaded.</summary>
-        public void Reset()
+        /// <summary>
+        /// Forget the accumulated interval — used when a new game starts or a save is loaded. The event save owed
+        /// and the raids already warned belonged to the old session; a raid live in <paramref name="sim"/> (a save
+        /// loaded mid-raid) counts as warned already, so its next wave line does not read as a new raid.
+        /// </summary>
+        public void Reset(Simulation sim = null)
         {
             _since = 0;
             _attempt = 0;
@@ -153,6 +206,11 @@ namespace Relight.Sim
             Stopped = false;
             Notice = null;
             Last = null;
+            _pending = null;
+            _warned.Clear();
+            var d = sim?.State?.Director;
+            if (d?.Major != null) _warned.Add(d.Major.Id);
+            if (d?.Minor != null) _warned.Add(d.Minor.Id);
         }
 
         private SaveResult Write(string reason, Simulation sim)

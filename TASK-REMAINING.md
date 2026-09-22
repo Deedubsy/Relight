@@ -183,7 +183,7 @@ What the map shows:
 | Home core at 0 HP | Recommission for 10 Steel + 5 Copper, 12 s; refused while attackers are near. Hand craft, mining and power keep working. The goal card says "Restore Home power… the repair restarts every machine", which is false: nothing stopped | Barely matters, and the card lies (OPN-07); refusal could last if aliens linger, CMB-07 `[HYP]` |
 | Base left unattended | Raids keep coming to Home; alerts only show while the HUD is watching; nothing pulls the player back except the HUD rows | Cannot be judged until there is somewhere to go `[PLAY]` |
 | Transport interrupted | No transport exists | n/a |
-| Save and reload mid-progress | Objective chain is derived from live state, so it resumes correctly. Defence rows, guide-line "already taught" flags and an open raid tally are per session and are lost. Autosaves are timed only (every 5 min, 3 slots, plus one on quit); none before a raid or on death. **Any edit to the city scene makes every older save refuse to load** | See D8: PER-02, PER-03, PER-05 |
+| Save and reload mid-progress | Objective chain is derived from live state, so it resumes correctly. Defence rows, guide-line "already taught" flags and an open raid tally are per session and are lost. Autosaves are timed only (every 5 min, 3 slots, plus one on quit); none before a raid or on death. *Since 2026-09-23 (REL-65): also one when a raid's warning opens and one when it ends, never while the engineer is down.* **Any edit to the city scene makes every older save refuse to load** | See D8: PER-02, PER-03, PER-05 |
 | Resources run out | Everything is finite, enemies drop nothing. Home coal 700 is the practical limit | ECO-03 |
 
 ---
@@ -770,6 +770,7 @@ Verified from the decision row and `GAME_DESIGN.md` §11.1: the campaign is comp
 - **Files:** `Presentation/Persistence/AutosaveController.cs`, `Sim/Persistence/AutosaveScheduler.cs`.
 - **Accept when:** a test shows a save on the raid-warned edge and none during a down or locked state.
 - **Canonical:** U-D-35, C-10. **Authorised?:** Needs go-ahead; which events is the owner's call.
+- **Built 2026-09-23 (REL-65):** an event save when a raid's warning opens and when a raid ends, the moments TECHNICAL_ARCHITECTURE.md §9.4.2 already records. None while the engineer is down: the save waits until they are up. Each resets the five-minute timer. "Site restored or plant commissioned" has no sim event yet. The timed ring and `auto-quit.json` are unchanged. Sim tests only; no owner play.
 
 #### AUD-PER-06 — Load-time messages go to the log, not the player
 - **Priority:** P3. **Class:** Integration gap.
@@ -905,7 +906,7 @@ Exit: a person finishes the game. F-ACC.
 | F1-17 | Picking up a wreck and re-placing it repairs it for free: exploit or escape hatch? | AUD-INT-14 |
 | F1-18 | What is a save bound to? Today any scene edit orphans every save. **Decided 2026-09-22 (U-D-69 b), for development only:** the strict map check stays; a map change may stop old saves loading and the player starts a new game | AUD-PER-03, all Phase D authoring |
 | F1-19 | What should a dead Home core cost the player? Today: almost nothing. **Decided 2026-09-21 (U-D-64 d, U-D-66 part 6):** the raid ends, survivors walk off, the player repairs, the next raid waits a full interval | AUD-CMB-07, AUD-OPN-07, the ending's trip rule |
-| F1-20 | Which moments deserve an event autosave? | AUD-PER-05 |
+| F1-20 | Which moments deserve an event autosave? **Already recorded (TECHNICAL_ARCHITECTURE.md §9.4.2; reconciled on REL-65 2026-09-21, not a new owner decision):** raid start, raid resolved, site restored or plant commissioned. The first two built 2026-09-23 (REL-65) | AUD-PER-05 |
 
 **Added 2026-09-21, after this audit.** F1-21 to F1-26 came from `ENEMY-THREAT-AUDIT.md` and U-D-64 to U-D-67. F1-27 to F1-35 came from the backlog reconciliation. All are open. Linear REL-71 carries the full text, the evidence and a recommendation for each; none is approved.
 

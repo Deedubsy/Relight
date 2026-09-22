@@ -42,7 +42,7 @@ namespace Relight.Presentation
         [Tooltip("How many rotating autosave slots are kept (1-10). The oldest is the one overwritten.")]
         [SerializeField, Range(1, 10)] private int slots = AutosaveSettings.DefaultSlots;
 
-        [Tooltip("Allow gameplay to ask for an autosave at a notable moment. Nothing calls it yet.")]
+        [Tooltip("Autosave when a raid's warning opens and when a raid ends (never while the engineer is down).")]
         [SerializeField] private bool autosaveOnEvents = true;
 
         [Tooltip("Write auto-quit.json when the game closes. It is outside the ring and costs no slot.")]
@@ -109,7 +109,7 @@ namespace Relight.Presentation
         private void OnSessionChanged(Simulation sim)
         {
             _session = host.Session;
-            _scheduler?.Reset();
+            _scheduler?.Reset(sim);
             LastSave = null;
             LastLoad = null;
         }
@@ -118,15 +118,22 @@ namespace Relight.Presentation
         {
             if (host.Session != _session) OnSessionChanged(host.Simulation);
             if (ticks <= 0 || host.Simulation == null) return;
+            // REL-65: a raid's warning or its end is an event save (never of a downed engineer); it resets the
+            // timer before this frame's seconds are added, so a timed save cannot follow it straight away.
+            Report(_scheduler.Observe(host.LastFrameEvents, host.Simulation));
             // Ticks run is unpaused sim time by construction: a paused host runs none (§9.4.2).
-            var result = _scheduler.Advance(PlayClock.SecondsFor(ticks), host.Simulation);
+            Report(_scheduler.Advance(PlayClock.SecondsFor(ticks), host.Simulation));
+        }
+
+        private void Report(SaveResult result)
+        {
             if (result == null) return;
             LastSave = result;
             if (!result.Ok) Debug.LogWarning("Relight: autosave failed — " + result.Reason);
             else if (!string.IsNullOrEmpty(result.Notice)) Debug.LogWarning("Relight: " + result.Notice);
         }
 
-        /// <summary>An event autosave (§9.4.2). Exposed for gameplay to call; nothing calls it yet.</summary>
+        /// <summary>An event autosave (§9.4.2) for a moment the sim has no event for. The raid moments come through <see cref="AutosaveScheduler.Observe"/>.</summary>
         public SaveResult AutosaveNow(string reason)
         {
             if (host == null || host.Simulation == null) return null;

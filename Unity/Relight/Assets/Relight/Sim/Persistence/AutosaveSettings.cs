@@ -10,7 +10,7 @@ namespace Relight.Sim
     ///       window in the background is not play, and autosaving after it would overwrite a good ring slot with a
     ///       state the player never reached;</item>
     /// <item><b>3 ring slots</b>, rotating oldest-first;</item>
-    /// <item><b>autosave on events</b> on — the hook exists and is wired to nothing yet (§9.4.2);</item>
+    /// <item><b>autosave on events</b> on — a raid's warning and its end (§9.4.2, REL-65);</item>
     /// <item><b>save on quit</b> on, to <c>auto-quit.json</c>, which is outside the ring and never rotated.</item>
     /// </list>
     /// Ranges: interval 1–30 minutes or off (<see cref="IntervalMinutes"/> &lt;= 0), slots 1–10.
@@ -44,7 +44,7 @@ namespace Relight.Sim
         /// <summary>How many ring slots are kept. The oldest is the one overwritten.</summary>
         public int Slots { get; }
 
-        /// <summary>Whether a subsystem may ask for an autosave at a notable moment (§9.4.2; nothing calls it yet).</summary>
+        /// <summary>Whether notable moments autosave (§9.4.2): a raid's warning and its end, since REL-65.</summary>
         public bool OnEvents { get; }
 
         /// <summary>Whether quitting writes <c>auto-quit.json</c>.</summary>
