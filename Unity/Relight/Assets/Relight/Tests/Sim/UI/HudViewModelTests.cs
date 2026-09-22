@@ -199,20 +199,60 @@ namespace Relight.Sim.Tests.UI
             Assert.That(n.Rows[2].Key, Is.EqualTo("d"));
         }
 
+        /// <summary>
+        /// REL-86 (UI-02a) acceptance: "a sim or UI test raises five problems and sees three rows plus "+2 more". The
+        /// count drops as problems clear." The drawn line and the two window sizes are
+        /// <c>Tests/Play/Ui/HudOverflowPlayTests.cs</c>.
+        /// </summary>
         [Test]
-        public void DismissalNeverClearsALiveDanger()
+        public void FiveStandingAlertsShowThreeRowsAndPlusTwoMore_AndTheCountDropsAsTheyClear()
         {
             var n = new HudNotices();
-            n.Post("raid", "Base under attack", HudNoticeKind.Danger, 0);
-            Assert.That(n.Dismiss("raid", 1), Is.False, "§8: dismissal never clears a live danger");
-            n.Reap(1);
-            Assert.That(n.Rows.Count, Is.EqualTo(1));
+            var inf = double.PositiveInfinity;
+            n.Post("fuel", "Low fuel", HudNoticeKind.Warning, 0, inf);
+            n.Post("cargo", "Dropped cargo", HudNoticeKind.Warning, 1, inf);
+            n.Post("defence:a", "Founders Court: 1 turret dry", HudNoticeKind.Danger, 2, inf);
+            n.Post("brownout", "Low power", HudNoticeKind.Warning, 3, inf);
+            n.Post("defence:b", "Ironworks: 1 wreck", HudNoticeKind.Warning, 4, inf);
+            n.Reap(5);
 
-            // A warning on the same rules is dismissible.
-            n.Post("fuel", "Generator out of fuel", HudNoticeKind.Warning, 1);
-            Assert.That(n.Dismiss("fuel", 1), Is.True);
-            n.Reap(1);
-            Assert.That(n.Rows.Count, Is.EqualTo(1));
+            Assert.That(n.Rows.Count, Is.EqualTo(HudNotices.MaxRows));
+            Assert.That(n.Hidden, Is.EqualTo(2));
+            Assert.That(n.MoreText, Is.EqualTo("+2 more"));
+            Assert.That(n.Rows[0].Key, Is.EqualTo("defence:a"), "the existing severity order: danger first");
+            Assert.That(n.Rows[1].Key, Is.EqualTo("brownout"), "then the warnings, in the order they were posted");
+            Assert.That(n.Rows[2].Key, Is.EqualTo("defence:b"));
+
+            n.Clear("brownout");
+            Assert.That(n.MoreText, Is.EqualTo("+2 more"), "until the next reap two rows are shown and two are not");
+            n.Reap(6);
+            Assert.That(n.Rows.Count, Is.EqualTo(3));
+            Assert.That(n.MoreText, Is.EqualTo("+1 more"), "a hidden row takes the freed place and the count drops");
+            Assert.That(n.Rows[1].Key, Is.EqualTo("cargo"), "the newest hidden warning comes back first");
+
+            n.Clear("defence:a");
+            n.Reap(7);
+            Assert.That(n.Rows.Count, Is.EqualTo(3));
+            Assert.That(n.Hidden, Is.EqualTo(0));
+            Assert.That(n.MoreText, Is.EqualTo(""), "everything live is shown, so there is no overflow line");
+
+            n.Clear("fuel");
+            n.Reap(8);
+            Assert.That(n.Rows.Count, Is.EqualTo(2));
+            Assert.That(n.MoreText, Is.EqualTo(""));
+        }
+
+        [Test]
+        public void TransientRowsThatDidNotFitAreCountedUntilTheyExpire()
+        {
+            var n = new HudNotices();
+            for (var i = 0; i < 4; i++) n.Post("toast" + i, "Toast " + i, HudNoticeKind.Info, i * 0.5, 6);
+            n.Reap(2);
+            Assert.That(n.Rows.Count, Is.EqualTo(3));
+            Assert.That(n.MoreText, Is.EqualTo("+1 more"), "the oldest toast is out of sight but still live");
+            n.Reap(6.2);
+            Assert.That(n.Rows.Count, Is.EqualTo(3), "toast0 expired at 6 s; the other three are shown");
+            Assert.That(n.MoreText, Is.EqualTo(""), "an expired row is gone, not hidden");
         }
 
         [Test]
@@ -548,14 +588,13 @@ namespace Relight.Sim.Tests.UI
             var row = Row(vm, key);
             Assert.That(row, Is.Not.Null);
             Assert.That(row.Text, Is.EqualTo("Home: 2 turrets dry"), "one row for the place, never one per gun");
-            Assert.That(row.Kind, Is.EqualTo(HudNoticeKind.Warning), "no raid: a chore, and the player may dismiss it");
+            Assert.That(row.Kind, Is.EqualTo(HudNoticeKind.Warning), "no raid: a chore");
             Assert.That(row.Repeats, Is.EqualTo(1), "U-D-55: never re-posted per refresh");
             Assert.That(RowsWith(vm, key), Is.EqualTo(1));
 
             st.Director.Minor = new MinorRaid { StartsAt = st.T + 30 };
             vm.Refresh(ctx, st, 4, false, false, force: true);
             Assert.That(Row(vm, key).Kind, Is.EqualTo(HudNoticeKind.Danger), "dry with a raid warned is danger");
-            Assert.That(vm.Notices.Dismiss(key, 4), Is.False, "and a live danger cannot be dismissed");
 
             a.Rounds = 50;
             vm.Refresh(ctx, st, 5, false, false, force: true);

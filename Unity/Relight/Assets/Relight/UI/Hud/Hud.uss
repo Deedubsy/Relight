@@ -285,6 +285,16 @@
     color: var(--ui-accent);
 }
 
+/* REL-86 (UI-02a): the live notices the three rows above leave out are counted here ("+2 more"), so a fourth alert
+   is never lost without a trace. Plain text under the rows, not a fourth row: it is a count, not a notice. */
+.notice-more {
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-secondary);
+    -unity-text-align: middle-right;
+    padding-right: var(--ui-space-2);
+    margin-bottom: var(--ui-space-1);
+}
+
 .notice-danger {
     color: var(--ui-danger);
 }

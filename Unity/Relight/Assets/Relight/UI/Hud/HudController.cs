@@ -51,7 +51,7 @@ namespace Relight.UI
         private HudViewModel _model = new HudViewModel();
         private VisualElement _root, _threat, _mining, _handLock, _pip, _reloadMeter;
         private Label _clock, _light, _power, _core, _engineer, _weapon, _ammo, _backpack;
-        private Label _threatText, _alert, _miningTitle, _miningDetail, _handLockText;
+        private Label _threatText, _alert, _noticeMore, _miningTitle, _miningDetail, _handLockText;
         private Button _openInventory, _openBuild;
         private GameplayDock _dock;
         private ProgressBar _coreMeter, _engineerMeter, _reload, _miningMeter;
@@ -107,6 +107,7 @@ namespace Relight.UI
 
             _alert = _root.Q<Label>("alert");
             for (var i = 0; i < _notices.Length; i++) _notices[i] = _root.Q<Label>("notice-" + i);
+            _noticeMore = _root.Q<Label>("notice-more");
             for (var i = 0; i < _problems.Length; i++) _problems[i] = _root.Q<Label>("problem-" + i);
 
             _mining = _root.Q<VisualElement>("mining");
@@ -312,7 +313,8 @@ namespace Relight.UI
 
         /// <summary>
         /// The keyed inbox, three authored rows deep. A row that is not in <see cref="HudNotices.Rows"/> is
-        /// hidden rather than destroyed, so nothing here creates or removes an element.
+        /// hidden rather than destroyed, so nothing here creates or removes an element. Under the rows, the count of
+        /// live notices that did not fit (REL-86).
         /// </summary>
         private void PaintNotices()
         {
@@ -328,6 +330,9 @@ namespace Relight.UI
                 Toggle(l, "notice-danger", n.Kind == HudNoticeKind.Danger);
                 Show(l, true);
             }
+            var more = _model.Notices.MoreText;
+            Set(_noticeMore, more);
+            Show(_noticeMore, more.Length > 0);
         }
 
         private void PaintProblems()

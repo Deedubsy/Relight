@@ -8,7 +8,8 @@
   without touching C#.
 
   The three notice rows and the three problem rows are authored here rather than created at runtime for the same
-  reason. §8 caps both at three, so three is the whole set.
+  reason. §8 caps both at three, so three is the whole set; notice-more (REL-86) counts the live notices that did
+  not fit ("+2 more").
 -->
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
          xsi:noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
@@ -61,6 +62,7 @@
                 <ui:Label name="notice-0" text="" class="notice-row is-hidden" />
                 <ui:Label name="notice-1" text="" class="notice-row is-hidden" />
                 <ui:Label name="notice-2" text="" class="notice-row is-hidden" />
+                <ui:Label name="notice-more" text="" class="notice-more is-hidden" />
             </ui:VisualElement>
 
             <ui:VisualElement name="problems" class="hud-block" picking-mode="Ignore">

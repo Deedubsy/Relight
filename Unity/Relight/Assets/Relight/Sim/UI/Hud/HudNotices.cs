@@ -3,14 +3,14 @@ using System.Collections.Generic;
 
 namespace Relight.Sim.UI
 {
-    /// <summary>How loud a notice is. Used to pick the USS class and to decide what may be dismissed.</summary>
+    /// <summary>How loud a notice is. Used to pick the USS class and to rank the rows.</summary>
     public enum HudNoticeKind
     {
         /// <summary>Neutral information (an autosave, a transfer result).</summary>
         Info = 0,
         /// <summary>Something the player should fix, but nothing is being destroyed (no fuel, output full).</summary>
         Warning = 1,
-        /// <summary>Live danger. Never dismissible: UI_AND_ONBOARDING.md §8 — "dismissal never clears a live danger".</summary>
+        /// <summary>Live danger. Always ranked first, so it is the last kind a burst of rows can push out of sight.</summary>
         Danger = 2,
     }
 
@@ -27,17 +27,19 @@ namespace Relight.Sim.UI
         public double At;
         /// <summary>Real seconds the row lives for; <see cref="double.PositiveInfinity"/> for a standing condition.</summary>
         public double Seconds;
-        public bool Dismissed;
 
-        public bool Live(double now) => !Dismissed && now - At < Seconds;
+        public bool Live(double now) => now - At < Seconds;
     }
 
     /// <summary>
-    /// The HUD's keyed alert inbox (UI_AND_ONBOARDING.md §8): at most three transient rows beside the single urgent
-    /// strip, a repeat on the same key updating one row with a count rather than stacking, and a dismissal that can
-    /// never clear a live danger.
+    /// The HUD's keyed alert inbox (UI_AND_ONBOARDING.md §8): at most three rows beside the single urgent strip,
+    /// danger first, a repeat on the same key updating one row with a count rather than stacking, and a count of the
+    /// live rows that did not fit (REL-86), so a fourth alert is never lost without a trace.
     ///
-    /// Engine-free, so <c>Tests/Sim/UI/HudViewModelTests.cs</c> can hold it to those three rules without an editor.
+    /// There is no dismissal. REL-86 removed the unused <c>Dismiss</c>: nothing on screen ever called it, the rows
+    /// are click-through, and making them clickable is the click that UI-02b's click-to-locate proposal would take.
+    ///
+    /// Engine-free, so <c>Tests/Sim/UI/HudViewModelTests.cs</c> can hold it to those rules without an editor.
     /// It keeps real (unscaled) seconds, never sim time: a paused game must not freeze a toast on screen.
     /// </summary>
     public sealed class HudNotices
@@ -50,15 +52,25 @@ namespace Relight.Sim.UI
 
         private readonly List<HudNotice> _rows = new List<HudNotice>();
         private readonly List<HudNotice> _live = new List<HudNotice>();
+        private int _hidden;
 
         /// <summary>The rows to draw, newest last, at most <see cref="MaxRows"/>. Re-used between calls.</summary>
         public IReadOnlyList<HudNotice> Rows => _live;
 
         /// <summary>
+        /// REL-86 (UI-02a): live rows that <see cref="Rows"/> leaves out because <see cref="MaxRows"/> are already
+        /// shown. They are the lowest-ranked and, within a rank, the oldest; each comes back as a shown row clears.
+        /// </summary>
+        public int Hidden => _hidden;
+
+        /// <summary>The overflow line under the third row: "+2 more", or "" when everything live is shown.</summary>
+        public string MoreText => _hidden > 0 ? "+" + _hidden.ToString(System.Globalization.CultureInfo.InvariantCulture) + " more" : "";
+
+        /// <summary>
         /// Post a notice. An existing row with the same <paramref name="key"/> is updated, and its repeat count
         /// raised when the text and kind are both unchanged (a kind change alone keeps the count; new text starts
-        /// it again at 1); a new key takes a new row and the oldest row is dropped once there are more than
-        /// <see cref="MaxRows"/> live ones.
+        /// it again at 1). A new key takes a new row; beyond <see cref="MaxRows"/> live rows the lowest-ranked,
+        /// oldest ones are not shown and are counted in <see cref="Hidden"/> instead.
         /// </summary>
         public HudNotice Post(string key, string text, HudNoticeKind kind, double now, double seconds = DefaultSeconds)
         {
@@ -77,8 +89,6 @@ namespace Relight.Sim.UI
                 r.Kind = kind;
                 r.At = now;
                 r.Seconds = seconds;
-                // A repeat on a dismissed key brings it back only when it is danger; §8's dismissal rule.
-                if (r.Dismissed && kind == HudNoticeKind.Danger) r.Dismissed = false;
                 Reap(now);
                 return r;
             }
@@ -89,24 +99,6 @@ namespace Relight.Sim.UI
             return n;
         }
 
-        /// <summary>
-        /// Dismiss one row. A <see cref="HudNoticeKind.Danger"/> row that is still live refuses — §8: "dismissal
-        /// never clears a live danger". Returns whether the row was actually dismissed.
-        /// </summary>
-        public bool Dismiss(string key, double now)
-        {
-            for (var i = 0; i < _rows.Count; i++)
-            {
-                var r = _rows[i];
-                if (!string.Equals(r.Key, key, StringComparison.Ordinal)) continue;
-                if (r.Kind == HudNoticeKind.Danger && r.Live(now)) return false;
-                r.Dismissed = true;
-                Reap(now);
-                return true;
-            }
-            return false;
-        }
-
         /// <summary>Drop a standing row the moment its condition clears (an outage that was fixed).</summary>
         public void Clear(string key)
         {
@@ -114,6 +106,9 @@ namespace Relight.Sim.UI
                 if (string.Equals(_rows[i].Key, key, StringComparison.Ordinal)) _rows.RemoveAt(i);
             for (var i = _live.Count - 1; i >= 0; i--)
                 if (string.Equals(_live[i].Key, key, StringComparison.Ordinal)) _live.RemoveAt(i);
+            // Both lists lost the same row, so the count still matches what is drawn; the next Reap promotes a
+            // hidden row into the freed place.
+            _hidden = _rows.Count - _live.Count;
         }
 
         /// <summary>Expire what has timed out and refresh <see cref="Rows"/>. Call once per HUD refresh.</summary>
@@ -127,12 +122,15 @@ namespace Relight.Sim.UI
                     if((int)_rows[i].Kind==priority) _live.Add(_rows[i]);
             // Keep chronological ordering within each priority, including the existing all-info behavior.
             _live.Sort((a,b)=>a.Kind!=b.Kind?b.Kind.CompareTo(a.Kind):_rows.IndexOf(a).CompareTo(_rows.IndexOf(b)));
+            // Every row left in _rows is live after the loop above, so what is not shown is what did not fit.
+            _hidden = _rows.Count - _live.Count;
         }
 
         public void Reset()
         {
             _rows.Clear();
             _live.Clear();
+            _hidden = 0;
         }
     }
 }
