@@ -13,7 +13,10 @@ namespace Relight.Sim
     /// <param name="Count">Bodies to stage; clamped to 1..<c>RaidTuning.LivingBudget</c>.</param>
     /// <param name="Basic">True for the gentle introductory roster (skitters only), as C-09's encounter uses.</param>
     /// <param name="Sector">0..3 = N/E/S/W approach to prefer, or -1 for the director's own choice.</param>
-    public sealed record DebugRaidCommand(int Count, bool Basic, int Sector = -1) : Command;
+    /// <param name="Scripted">True (the default) keeps the group marked as staged, which the editor menu's "Clear
+    /// staged raid" relies on and the raid account skips. REL-119: the Admin panel passes false, so its raid is an
+    /// ordinary small raid to the account and the raid log.</param>
+    public sealed record DebugRaidCommand(int Count, bool Basic, int Sector = -1, bool Scripted = true) : Command;
 
     /// <summary>Handles <see cref="DebugRaidCommand"/> only.</summary>
     public sealed class DebugRaidHandler : ICommandHandler
@@ -62,7 +65,7 @@ namespace Relight.Sim
                 return true;
             }
 
-            var id = Director.ScheduleGroup(ctx, st, origin, count, cmd.Basic, 0);
+            var id = Director.ScheduleGroup(ctx, st, origin, count, cmd.Basic, 0, cmd.Scripted);
             result = id == 0
                 ? CommandResult.Refuse("no open ground at the approach (" + Label + ")")
                 : CommandResult.Ok("Debug raid staged: " + count + " bodies (" + Label + ")");

@@ -132,6 +132,9 @@ namespace Relight.Sim
     ///
     /// <see cref="BrokeOff"/> is deliberately NEUTRAL: what it should count as is the owner's open question F1-30,
     /// so until that is answered nothing treats it as a win — it earns no growth credit and no "repelled".
+    ///
+    /// <see cref="Cancelled"/> is never saved: Admin clear-enemies drops the raid without a record, so the value only
+    /// travels on the <see cref="RaidEndedEvent"/> that closes the raid log's line (REL-119).
     /// </summary>
     public enum RaidOutcome
     {
@@ -141,6 +144,8 @@ namespace Relight.Sim
         Lost = 1,
         /// <summary>The raid was called off with bodies still alive: it lost its target another way, or overran.</summary>
         BrokeOff = 2,
+        /// <summary>An Admin tool removed it (REL-119). Tooling only: never in the History, never a win.</summary>
+        Cancelled = 3,
     }
 
     /// <summary>One finished assault (reference <c>d.history</c>, capped at 32 entries).</summary>

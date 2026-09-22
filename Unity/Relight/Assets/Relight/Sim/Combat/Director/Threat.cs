@@ -169,7 +169,11 @@ namespace Relight.Sim
 
         public static double NextMajorAt(SimState st) => st.Director.NextStart;
 
-        public static int ScheduleGroup(SimContext ctx, SimState st, int origin, int count, bool basic, int targetId)
+        /// <param name="scripted">True (the default) for the opening's encounter, which the goal card reports and the
+        /// raid account skips. REL-119: the Admin panel's raid passes false, so the group it stages is an ordinary
+        /// small raid to the account and the raid log. Either way it never advances <see cref="DirectorState.RaidsStarted"/>.</param>
+        public static int ScheduleGroup(SimContext ctx, SimState st, int origin, int count, bool basic, int targetId,
+            bool scripted = true)
         {
             var d = st.Director;
             if (origin < 0 || count <= 0) return 0;
@@ -181,14 +185,14 @@ namespace Relight.Sim
             for (var n = 0; n < count; n++)
                 if (DirectorRules.Birth(ctx, st, from, (int)EnemyLayer.Minor, id, basic) != 0) born++;
             if (born == 0) { d.NextId--; return 0; }
-            // A scripted group is staged the instant it is asked for, so its warning is already over: it is born
+            // A staged group is staged the instant it is asked for, so its warning is already over: it is born
             // Spawned, owing nothing, and its heading is the one the bodies actually walked in on (GP-W3).
             d.Minor = new MinorRaid
             {
                 Id = id,
                 Origin = from,
                 Retreat = false,
-                Scripted = true,
+                Scripted = scripted,
                 StartsAt = st.T,
                 Owed = 0,
                 Spawned = true,

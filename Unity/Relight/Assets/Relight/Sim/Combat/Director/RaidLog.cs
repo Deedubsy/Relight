@@ -34,6 +34,7 @@ namespace Relight.Sim
         public string OutcomeWord => Outcome == (int)RaidOutcome.Cleared ? "cleared"
             : Outcome == (int)RaidOutcome.Lost ? "lost"
             : Outcome == (int)RaidOutcome.BrokeOff ? "broke off"
+            : Outcome == (int)RaidOutcome.Cancelled ? "cancelled by Admin"
             : "ended";
 
         /// <summary>The one line. Fixed clause order, invariant culture, no line breaks: made to be grepped.</summary>

@@ -12,6 +12,12 @@ namespace Relight.Sim
         public int RaidNumber = -1;
         public string LastAction = "";
         public int Actions;
+        /// <summary>
+        /// REL-119: raids that clear-enemies removed, so the raid account closes them silently instead of calling
+        /// them repelled. The account runs every frame and can look before the end event is drained, so it reads
+        /// this, not the event. Like everything here it is not saved.
+        /// </summary>
+        public readonly HashSet<int> Cancelled = new HashSet<int>();
     }
     public sealed partial class SimState { public readonly AdminState Admin = new AdminState(); }
     public sealed record AdminCommand(string Action, string Key = "", int Amount = 1, int Direction = 0, int Distance = 8) : Command;
@@ -57,7 +63,7 @@ namespace Relight.Sim
                 case "raid":
                     if(c.Amount<1 || c.Amount>100 || c.Direction<0 || c.Direction>3)return CommandResult.Refuse("Choose 1–100 enemies and a valid approach.");
                     var allowed=st.Director.DebugAllowed;st.Director.DebugAllowed=true;
-                    try { new DebugRaidHandler().TryApply(ctx,st,new DebugRaidCommand(c.Amount,false,c.Direction),out var raid);return raid; }
+                    try { new DebugRaidHandler().TryApply(ctx,st,new DebugRaidCommand(c.Amount,false,c.Direction,Scripted:false),out var raid);return raid; }
                     finally { st.Director.DebugAllowed=allowed; }
                 // E-19: the director page. These move the director's CLOCK; the raid itself is the game's own.
                 case "major-now":
@@ -74,6 +80,8 @@ namespace Relight.Sim
                     return CommandResult.Ok(c.Amount<0?"Admin: raid size follows the history again.":$"Admin: the next large raid booked is sized as if {c.Amount} had been survived ({SiegePlan.TotalFor(ctx,c.Amount)} bodies). A raid already warned keeps its plan.");
                 case "clear-enemies":
                     var count=st.Enemies.Actors.Count;st.Enemies.Actors.Clear();st.Enemies.Projectiles.Clear();
+                    // REL-119: a raid on the ground ends as cancelled, never as repelled, and its log line closes.
+                    Cancel(st,st.Director.Minor);Cancel(st,st.Director.Major);
                     // Clearing a scheduled assault must also cancel its unspawned remainder.
                     st.Director.Minor=null;st.Director.Major=null;st.Director.MajorSpawned=0;
                     st.Director.NextStart=st.T+d.Raids.RecoveryS+d.Raids.WarningS;
@@ -116,6 +124,22 @@ namespace Relight.Sim
                     return CommandResult.Refuse("No safe space near Home.");
                 default:return CommandResult.Refuse("Unknown admin action.");
             }
+        }
+        /// <summary>
+        /// REL-119: mark a raid Admin removed. One that was on the ground gets its end event, so the raid log closes
+        /// its line as cancelled; one still inside its warning never opened a line and needs none.
+        /// </summary>
+        private static void Cancel(SimState st,MinorRaid m)
+        {
+            if(m==null)return;
+            st.Admin.Cancelled.Add(m.Id);
+            if(m.Spawned)st.Events.Add(new RaidEndedEvent(st.T,m.Id,false,m.Scripted,(int)RaidOutcome.Cancelled,m.StartsAt));
+        }
+        private static void Cancel(SimState st,MajorRaid a)
+        {
+            if(a==null)return;
+            st.Admin.Cancelled.Add(a.Id);
+            if(st.T>=a.StartsAt)st.Events.Add(new RaidEndedEvent(st.T,a.Id,true,false,(int)RaidOutcome.Cancelled,a.StartsAt));
         }
         private static void Credit(SimState st,ItemId item,double count)
         {

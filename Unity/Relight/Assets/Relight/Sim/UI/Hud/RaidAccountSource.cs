@@ -34,6 +34,9 @@ namespace Relight.Sim.UI
     ///       cause, and the assault's own account is the one the player needs.</item>
     /// <item>The scripted opening encounter is skipped. The goal card already owns its "Attack repelled" text
     ///       (U-D-54), and two accounts of one fight is the duplication this pass removes elsewhere.</item>
+    /// <item>A raid that Admin clear-enemies removed closes with no account (REL-119). Nobody repelled it, and the
+    ///       Admin panel's own message already says what happened. The Admin panel's raid is NOT scripted: it
+    ///       gets an ordinary account.</item>
     /// <item>The headline says "repelled" only when it is true (INT-04c): the raid was CLEARED, the core is working
     ///       as the raid closes, and nothing was lost. A raid that was called off with bodies still alive says
     ///       "broke off", the director's own word, which credits nobody (F1-30 is open). Everything else says
@@ -118,8 +121,10 @@ namespace Relight.Sim.UI
                 // still there was not beaten: a major assault committed over it and the director turned it back.
                 // That one closes with no account. Anything else ended, and is reported.
                 var replaced = live && !_major && st.Director.Minor != null && st.Director.Minor.Id == _raidId;
+                // REL-119: a raid an Admin tool removed was not beaten either. The Admin message already says so.
+                var cancelled = st.Admin.Cancelled.Contains(_raidId);
                 _done.Add(_raidId);
-                if (replaced) _open = false;
+                if (replaced || cancelled) _open = false;
                 else Close(st);
             }
 
