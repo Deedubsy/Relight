@@ -93,7 +93,7 @@ namespace Relight.Sim
         /// </summary>
         public static void Ensure(SimContext ctx, SimState st) => Ensure(ctx, st, new List<Light>());
 
-        private static void Ensure(SimContext ctx, SimState st, List<Light> scratch)
+        internal static void Ensure(SimContext ctx, SimState st, List<Light> scratch)
         {
             if (ctx == null || st == null) return;
             var g = ctx.Geometry;
@@ -149,6 +149,23 @@ namespace Relight.Sim
 
     /// <summary>ALWAYS_DARK_SPEC §5.4: the engineer stepped from unlit ground onto lit ground. At most one per 10 s.</summary>
     public sealed record EnteredLightEvent(double T, double X, double Y) : SimEvent(T);
+
+    /// <summary>
+    /// REL-9 (INT-05): the mask is brought up to date at the start of the Combat slot, after Power, Machines and
+    /// Flow and before the first thing that reads it (turret sight, perception, hesitation, the raid route field).
+    /// Without this the combat slot read whatever mask was current when the tick began, which was last tick's
+    /// unless someone had rebuilt it in between; a presenter drawing a frame after a command did exactly that, so
+    /// a rendered game saw a newly fuelled lamp one tick before a headless replay. Now the mask the combat slot reads
+    /// is a function of the state after this tick's power step alone, whoever else has asked for it. The end-of-tick
+    /// <see cref="LightPhase"/> still rebuilds after anything combat changed, for the relief events and the next
+    /// frame; when nothing changed, the second call is a fold comparison.
+    /// </summary>
+    public sealed class LightMaskPhase : ITickPhase
+    {
+        private readonly List<Light> _sources = new List<Light>();
+
+        public void Tick(SimContext ctx, SimState st, double dt) => LightPhase.Ensure(ctx, st, _sources);
+    }
 
     /// <summary>Places the core-derived mask before the first tick so a fresh game is never momentarily dark.</summary>
     public sealed class LightInitializer : IStateInitializer

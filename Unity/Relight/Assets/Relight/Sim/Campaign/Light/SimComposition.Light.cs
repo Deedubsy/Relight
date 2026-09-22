@@ -10,6 +10,8 @@ namespace Relight.Sim
     public static partial class SimComposition
     {
         static partial void AddLightPhases(List<ITickPhase> list) => list.Add(new LightPhase());
+        /// <summary>REL-9: opens the Combat slot (<see cref="LightMaskPhase"/>).</summary>
+        static partial void AddLightMaskPhases(List<ITickPhase> list) => list.Add(new LightMaskPhase());
 
         static partial void AddLightInitializers(List<IStateInitializer> list) => list.Add(new LightInitializer());
     }

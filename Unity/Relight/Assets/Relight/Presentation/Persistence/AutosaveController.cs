@@ -217,9 +217,7 @@ namespace Relight.Presentation
                 useScene=true;
             }
             var ctx=bootstrap!=null ? bootstrap.ContextForLayout(r.State.OpeningResourceVersion,useScene) : host.Simulation.Context;
-            // The lit mask is never saved, and a loaded state runs no initialisers. Turrets and aliens read the mask
-            // before the light phase rebuilds it, so without this the first tick after a load would be unlit (L-02).
-            LightPhase.Ensure(ctx, r.State);
+            // The lit mask is never saved; Simulation.Wrap builds it (REL-9), so presentation never does.
             host.Attach(Simulation.Wrap(ctx, r.State));
             if (host.Session != _session) OnSessionChanged(host.Simulation);   // in case this component is disabled
             LastLoad = r;

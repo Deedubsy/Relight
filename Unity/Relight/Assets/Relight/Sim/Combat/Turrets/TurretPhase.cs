@@ -54,8 +54,9 @@ namespace Relight.Sim
             var turrets = st.Turrets;
             turrets.Prune(st);
 
-            // Turret sight reads the lit mask, which LightPhase keeps current from the first tick on. A fixture or a
-            // freshly loaded state that has never built one would read every tile as unlit, so build it once here.
+            // Turret sight reads the lit mask. In the game LightMaskPhase has already brought it up to date this tick
+            // (REL-9); a fixture that runs this phase without it, and has never built a mask, would read every tile as
+            // unlit, so build it once here. This is sim code at a fixed point in the tick, never presentation.
             if (!st.Light.HasMask) LightPhase.Ensure(ctx, st);
 
             for (var i = 0; i < st.Machines.Count; i++)

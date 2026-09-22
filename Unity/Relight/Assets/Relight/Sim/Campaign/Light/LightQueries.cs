@@ -25,11 +25,15 @@ namespace Relight.Sim
     ///
     /// <see cref="LitAt(SimState,int,int)"/> is a pure function of the state on purpose: C-06's enemy hesitation rule
     /// runs in the Combat slot, where only <c>st</c> is convenient, and the coordinator's wave-2 binding note asks
-    /// for exactly that signature. The Combat slot runs <b>before</b> the Campaign slot that owns
-    /// <see cref="LightPhase"/>, so an enemy sees a mask at most one tick (50 ms) old — the same staleness the
-    /// reference has by deriving the mask once per frame — and before the first <see cref="LightPhase"/> tick there
-    /// is no mask at all and every tile reads unlit, which is the safe default for a rule that makes enemies
-    /// hesitate in light.
+    /// for exactly that signature. Before the first build there is no mask at all and every tile reads unlit, which
+    /// is the safe default for a rule that makes enemies hesitate in light.
+    ///
+    /// REL-9 (INT-05): everything here READS. Only the sim builds the mask, at fixed points: a new game
+    /// (<see cref="LightInitializer"/>), a state attached to a simulation (<see cref="Simulation.Wrap"/>, which is
+    /// how every load arrives), the start of the Combat slot (<see cref="LightMaskPhase"/>) and the end of the tick
+    /// (<see cref="LightPhase"/>). There used to be a <c>Mask(ctx, st)</c> and a <c>LitAt(ctx, st, x, y)</c> that
+    /// rebuilt a stale mask "for presentation"; a frame drawn between a command and the next tick then gave the
+    /// combat slot light a headless run did not have yet. They are gone, so presentation can only read.
     /// </summary>
     public static class LightQueries
     {
@@ -42,25 +46,11 @@ namespace Relight.Sim
             return s.Mask[ty * s.W + tx] != 0;
         }
 
-        /// <summary>As <see cref="LitAt(SimState,int,int)"/>, but builds the mask first if it is stale. For presentation.</summary>
-        public static bool LitAt(SimContext ctx, SimState st, int tx, int ty)
-        {
-            LightPhase.Ensure(ctx, st);
-            return LitAt(st, tx, ty);
-        }
-
         /// <summary>
         /// The lit mask, one byte per tile at <c>ty * Width + tx</c>: 1 lit, 0 unlit. Null before the first build.
         /// The buffer belongs to the simulation and is overwritten in place — read it, never keep it.
         /// </summary>
         public static byte[] Mask(SimState st) => st?.Light != null && st.Light.Built ? st.Light.Mask : null;
-
-        /// <summary>As <see cref="Mask(SimState)"/>, but builds it first if it is stale.</summary>
-        public static byte[] Mask(SimContext ctx, SimState st)
-        {
-            LightPhase.Ensure(ctx, st);
-            return Mask(st);
-        }
 
         /// <summary>The mask's dimensions, or (0, 0) before the first build.</summary>
         public static (int Width, int Height) MaskSize(SimState st) =>

@@ -79,8 +79,16 @@ namespace Relight.Sim
             return new Simulation(ctx, st);
         }
 
-        /// <summary>Wraps an already-built state (loading, B-11; scenario builders in the tests).</summary>
-        public static Simulation Wrap(SimContext ctx, SimState state) => new Simulation(ctx, state);
+        /// <summary>
+        /// Wraps an already-built state (loading, B-11; scenario builders in the tests). The lit mask is never saved
+        /// and a loaded state runs no initialisers, so it is built here, once, for every caller alike (REL-9): a
+        /// loaded game is not dark until its first tick, and no loader outside the sim has to build it.
+        /// </summary>
+        public static Simulation Wrap(SimContext ctx, SimState state)
+        {
+            if (ctx != null && state != null) LightPhase.Ensure(ctx, state);
+            return new Simulation(ctx, state);
+        }
 
         /// <summary>
         /// REL-84 (CMB-09b, E-19): swap the balance data under a running game without a restart. The geometry,

@@ -14,6 +14,7 @@ namespace Relight.Sim
     {
         static partial void AddCombatPhases(List<ITickPhase> list)
         {
+            AddLightMaskPhases(list);   // REL-9: the lit mask is settled before anything in this slot reads it
             AddWeaponPhases(list);
             AddTurretPhases(list);
             AddEnemyPhases(list);
@@ -36,6 +37,7 @@ namespace Relight.Sim
             AddDirectorHandlers(list);
         }
 
+        static partial void AddLightMaskPhases(List<ITickPhase> list);
         static partial void AddWeaponPhases(List<ITickPhase> list);
         static partial void AddTurretPhases(List<ITickPhase> list);
         static partial void AddEnemyPhases(List<ITickPhase> list);

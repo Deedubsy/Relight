@@ -168,9 +168,10 @@ namespace Relight.Presentation
             // the cheapest thing this class can do for the opening scene, which starts in daylight.
             if (darkness <= 0.001f && !_beam) { _sr.enabled = false; Texels = 0; return; }
 
-            // The mask. Ask for it through the ctx overload so the phase rebuilds it if this frame landed between
-            // ticks; LightQueries.Builds tells us whether the picture actually changed.
-            var mask = LightQueries.Mask(ctx, st);
+            // The mask, read only (REL-9): the sim builds it at fixed points in the tick, and a frame that rebuilt it
+            // between a command and the next tick handed the combat slot light a headless replay did not have. So a
+            // light placed while paused shows on the next tick. LightQueries.Builds tells us whether it changed.
+            var mask = LightQueries.Mask(st);
             var (mw, mh) = LightQueries.MaskSize(st);
             if (mask == null || mw <= 0 || mh <= 0) { _sr.enabled = false; Texels = 0; return; }
 
