@@ -122,6 +122,42 @@ namespace Relight.Presentation
             return true;
         }
 
+        // REL-73 (E-19): the development-build half of the reload. A build has no Inspector and never runs OnValidate,
+        // so the Admin panel writes the combat assets to JSON files and reads a tester's edits back (TuningFiles).
+        // Only the loaded copies change; nothing is saved, and a restart runs the shipped values again.
+
+        /// <summary>Writes each offered tuning asset to its file under <see cref="TuningFiles.DefaultFolder"/>,
+        /// keeping any file already there. For the editor and development builds only, as the Admin panel is.</summary>
+        public (string Text, bool Problem) WriteTuningFiles()
+        {
+            if (!Application.isEditor && !Debug.isDebugBuild) return ("Tuning files are for development builds.", true);
+            if (registry == null) return ("No data registry is loaded.", true);
+            var offered = TuningFiles.Offered(registry);
+            var folder = TuningFiles.DefaultFolder;
+            var written = TuningFiles.Write(offered, folder);
+            var kept = offered.Count - written;
+            return ($"Wrote {written} tuning file{(written == 1 ? "" : "s")}" +
+                    (kept > 0 ? $" and kept {kept} already there" : "") + $" in {folder}.", false);
+        }
+
+        /// <summary>Reads the tuning files back onto the loaded assets and rebuilds the live game's data
+        /// (<see cref="ReloadData"/>). Refused in the editor, where the Inspector is the way to change an asset and a
+        /// read would change the project's own assets behind it, and outside development builds.</summary>
+        public (string Text, bool Problem) ReadTuningFiles()
+        {
+            if (Application.isEditor) return ("In the editor, change the asset in the Inspector: the game reloads it at once.", true);
+            if (!Debug.isDebugBuild) return ("Tuning files are for development builds.", true);
+            if (registry == null) return ("No data registry is loaded.", true);
+            var outcome = TuningFiles.Read(TuningFiles.Offered(registry), TuningFiles.DefaultFolder);
+            if (outcome.Files == 0) return ("No tuning files found. Press Write tuning files first.", true);
+            var refused = outcome.Refused.Count == 0 ? "" : " Refused, and left as they were: " + string.Join("; ", outcome.Refused) + ".";
+            if (outcome.Changed.Count == 0) return ("The files match the loaded values; nothing changed." + refused, outcome.Refused.Count > 0);
+            var changed = string.Join(", ", outcome.Changed);
+            return ReloadData()
+                ? ("Tuning reloaded: " + changed + "." + refused, outcome.Refused.Count > 0)
+                : ("Read, but the game's data did not change: " + changed + "." + refused, true);
+        }
+
         private void Start()
         {
             if (string.IsNullOrEmpty(uiSceneName)) return;

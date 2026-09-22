@@ -47,6 +47,9 @@ namespace Relight.UI
             Q<Toggle>("admin-districts").RegisterValueChangedCallback(e=>{DistrictOverlay.Show(_host,e.newValue);Say(e.newValue?"District borders shown. Walk to a border or a district name to see them.":"District borders hidden.",false);Paint();});
             Q<Button>("admin-roamer-preview").clicked+=()=>{if(!DistrictOverlay.Shown)DistrictOverlay.Show(_host,true);var p=DistrictOverlay.CyclePreview();Say(p==DistrictMap.Preview.Off?"Roamer preview off.":"Roamer preview: "+DistrictMap.PreviewName(p)+". Markers only, nothing is spawned.",false);Paint();};
             Q<Button>("admin-pause").clicked+=()=>{if(_host?.Simulation==null)return;_host.Paused=!_host.Paused;Say(_host.Paused?"Simulation paused. Admin actions remain available.":"Simulation running at normal speed.",false);Paint();};
+            // REL-73 (E-19): a build has no Inspector, so its tuning changes come from files (TuningFiles, WorldBootstrap).
+            Q<Button>("admin-tuning-write").clicked+=()=>{var b=FindAnyObjectByType<WorldBootstrap>();if(b==null){Say("No running game.",true);return;}var r=b.WriteTuningFiles();Say(r.Text,r.Problem);Paint();};
+            Q<Button>("admin-tuning-read").clicked+=()=>{var b=FindAnyObjectByType<WorldBootstrap>();if(b==null){Say("No running game.",true);return;}var r=b.ReadTuningFiles();Say(r.Text,r.Problem);Paint();};
             Page("supplies");_bound=true;
         }
         private void Button(string name,Func<AdminCommand> command)=>Q<Button>(name).clicked+=()=>Run(command());

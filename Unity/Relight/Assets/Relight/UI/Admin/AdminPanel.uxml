@@ -44,6 +44,9 @@
                 <ui:IntegerField name="admin-raid-number" label="Raids survived" value="0" />
                 <ui:VisualElement class="admin-row"><ui:Button name="admin-raid-number-set" text="Pin for the next raid" /><ui:Button name="admin-raid-number-clear" text="Follow the history" /></ui:VisualElement>
                 <ui:Label text="Sizes the next large raid booked as if that many had been survived (0 to 50). A temporary override: never saved, and a raid already warned keeps its plan. “Trigger raid at Home” on the Enemies page is different: it stages one ordinary group at once, with no warning and no waves." class="admin-help" />
+                <ui:Label text="Tuning files" class="admin-section" />
+                <ui:VisualElement class="admin-row"><ui:Button name="admin-tuning-write" text="Write tuning files" /><ui:Button name="admin-tuning-read" text="Read tuning files" /></ui:VisualElement>
+                <ui:Label text="For a development build, which has no Inspector. Write puts every threat asset in its own JSON file in the game's Tuning folder and keeps any file already there. Edit a number, then Read: the game takes it at once. Only this run changes; a restart uses the shipped values. In the editor, edit the asset in the Inspector instead." class="admin-help" />
             </ui:VisualElement>
             <ui:VisualElement name="admin-page-player" class="admin-page admin-hidden">
                 <ui:Label text="Engineer" class="admin-section" />

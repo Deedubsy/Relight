@@ -17,10 +17,17 @@ assets carried on that date, and the asset wins whenever the two disagree.
 - **What a reload does NOT do:** touch save state. Tuning values are data, so the state hash is unmoved; a save
   written afterwards records the new `dataVersion`, and loading it against the old data gives the existing
   mismatch warning only (F1-31 stays open on whether that warning should ever block).
-- **In a build:** nothing. `OnValidate` never runs in a build and a build cannot edit ScriptableObjects, so a
-  development build only ever runs the values it shipped with. The issue asked for builds too; that half is not
-  delivered and is recorded as such in `TASKS.md` E-19. `WorldBootstrap.ReloadData()` is public so an Admin control
-  could call it, but there is nothing for it to re-read in a build.
+- **In a development build (REL-73, 2026-09-22):** from files. `OnValidate` never runs in a build, so the Admin
+  panel's Raids page has **Write tuning files** and **Read tuning files** (`TuningFiles`, `WorldBootstrap`).
+  Write puts each tuning asset, enemy, turret, ammunition and weapon definition in its own JSON file under
+  `Application.persistentDataPath/Tuning/` (one file per asset, named as the asset) and keeps any file already
+  there, so pressing it twice never loses an edit. Edit a number in a file, then press Read: the files are read
+  onto the loaded assets and `ReloadData()` rebuilds the data record exactly as an Inspector edit does. A file that
+  does not parse, changes the asset's key or leaves it with a problem (`DataDefinition.Problem`) is refused and that
+  asset keeps its values. Only this run changes: a build cannot write its assets back and nothing is saved, so a
+  restart runs the shipped values until the files are read again. Read is refused in the editor (the Inspector is
+  the way there, and a read would change the project's own assets behind it). **Limit:** tested in EditMode on
+  copies of the assets; no development build has been built or run.
 - **Changing an asset moves the data hash** (`GameDataHash` covers every public property of every tuning record
   since REL-43). Adding a *field* to a record moves it once more, for every save; REL-84 did that.
 - **Adding a field to an asset type** used to leave the on-disk asset without it: the generator saw the asset's
