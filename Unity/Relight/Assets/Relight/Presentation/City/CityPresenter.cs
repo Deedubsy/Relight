@@ -133,8 +133,11 @@ namespace Relight.Presentation
             public float SweepAt;
         }
 
-        /// <summary>L-02 (§5.4): how fast a connected district's streetlights come on, outward from its substation.</summary>
-        private const float SweepTilesPerSecond = 30f;
+        /// <summary>
+        /// L-02 (§5.4): how fast a connected district's streetlights come on, outward from its substation.
+        /// REL-117: the ground under them is revealed by the same rule, so the speed is shared and not repeated.
+        /// </summary>
+        private const float SweepTilesPerSecond = (float)Relight.Sim.UI.LightSweep.TilesPerSecond;
         /// <summary>How long each lamp's glow blooms as the sweep reaches it, and how large it starts.</summary>
         private const float SweepBloomSeconds = 0.7f;
         private const float SweepBloomScale = 2.4f;

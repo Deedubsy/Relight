@@ -54,6 +54,29 @@ namespace Relight.Sim.Tests.Campaign
         }
 
         [Test]
+        public void TheSimLightsTheWholeDistrictOnTheTickTheEventFires()
+        {
+            // REL-117 draws the district's light arriving over a second or so. That is a picture, and this is the
+            // rule it must not touch: on the very tick DistrictLitEvent fires, every tile of the district is
+            // already lit in the sim's mask, so turret sight, alien hesitation and every other reader see the
+            // whole district at once, exactly as they did before the sweep was drawn.
+            var ctx = District();
+            var st = RaidFixture.State(ctx);
+            RaidFixture.Run(ctx, st, 5, Phases());
+            Connect(ctx, st);
+
+            var ticks = 0;
+            while (RaidFixture.Count<DistrictLitEvent>(st) == 0 && ticks++ < 200) RaidFixture.Run(ctx, st, 1, Phases());
+            Assert.That(RaidFixture.Count<DistrictLitEvent>(st), Is.EqualTo(1), "the fixture must light the district");
+
+            Assert.That(LightQueries.LitAt(st, 30, 30), Is.True, "the near lamp, on this tick");
+            Assert.That(LightQueries.LitAt(st, 44, 30), Is.True, "and the far one, on the same tick");
+            var ev = RaidFixture.Last<DistrictLitEvent>(st);
+            var far = System.Math.Sqrt((44.5 - ev.X) * (44.5 - ev.X) + (30.5 - ev.Y) * (30.5 - ev.Y));
+            Assert.That(far, Is.GreaterThan(10), "the far lamp is far enough for a sweep to be visible at all");
+        }
+
+        [Test]
         public void SavingOrHashingTheStateDoesNotForgetWhatWasLit()
         {
             // A save and a state hash both walk LightState.Visit. Only a LOAD may reset the relief memory: if a

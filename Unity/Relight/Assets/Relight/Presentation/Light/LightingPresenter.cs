@@ -25,7 +25,11 @@ namespace Relight.Presentation
     /// texels, so a per-frame refresh is cheap; even so the expensive half (the mask sampling) is cached and
     /// recomputed only when the lit picture, the daylight bucket or the visible rectangle actually changes
     /// (D-UI-11: "only the visible lighting surface recomposes as the pointer moves; static city lighting stays
-    /// cached").
+    /// cached"). A district switching on is the one moment that rebuilds it every frame, and only for the second
+    /// or two its sweep runs (REL-117, <see cref="Relight.Sim.UI.LightSweep"/>): the sim lights the district on one
+    /// tick, and this draws that light arriving outward from the substation at the speed
+    /// <see cref="CityPresenter"/> staggers the lamp heads, so ground and lamps come on together. Picture only —
+    /// nothing read from this class, the hold included, ever reaches the simulation.
     ///
     /// The flashlight is not lighting: <see cref="MouseFlashlightPresenter"/> calls <see cref="SetBeam"/> and the
     /// beam is subtracted from the darkness here so there is still exactly one overlay on screen. It is
@@ -88,6 +92,17 @@ namespace Relight.Presentation
         private int _builds = -1;             // LightQueries.Builds when _shade was filled
         private bool _dirty = true;
 
+        // REL-117: the district switch-on sweep, picture only. The sim lights the whole district on one tick and
+        // every rule reads that tick's mask; these hold the DRAWN light back so the ground arrives under the lamp
+        // heads CityPresenter is staggering outward at the same speed. _wasLit is last build's mask (the sim's own
+        // buffer is overwritten in place, so it has to be copied to be diffed) and _newLit marks the tiles this
+        // sweep lit — ground that was already lit is never held, so nothing on screen flickers.
+        private byte[] _wasLit, _newLit;
+        private int _maskW, _maskH;
+        private bool _sweeping;
+        private float _sweepStart;
+        private double _sweepX, _sweepY, _sweepSeconds;
+
         // The beam, in sim tile space, as the flashlight last set it.
         private bool _beam;
         private Vec2 _beamFrom;
@@ -95,6 +110,15 @@ namespace Relight.Presentation
 
         /// <summary>Texels written on the last frame. A profiling and test hook; not gameplay.</summary>
         public int Texels { get; private set; }
+
+        /// <summary>
+        /// Texels of the visible rectangle the switch-on sweep is still holding dark (REL-117). A test and
+        /// profiling hook; not gameplay. 0 whenever no sweep is running.
+        /// </summary>
+        public int Held { get; private set; }
+
+        /// <summary>True while a district's light is still arriving on screen. Picture only.</summary>
+        public bool Sweeping => _sweeping;
 
         /// <summary>The daylight fraction last drawn, 0 dark to 1 full day. Read-only readback.</summary>
         public float Daylight { get; private set; } = 1f;
@@ -146,6 +170,7 @@ namespace Relight.Presentation
         {
             if (_sr != null) _sr.enabled = false;
             Texels = 0;
+            Held = 0;
         }
 
         private void LateUpdate()
@@ -166,18 +191,19 @@ namespace Relight.Presentation
 
             // Nothing to draw in broad daylight: the reference darkens nothing by day, and skipping the upload is
             // the cheapest thing this class can do for the opening scene, which starts in daylight.
-            if (darkness <= 0.001f && !_beam) { _sr.enabled = false; Texels = 0; return; }
+            if (darkness <= 0.001f && !_beam) { _sr.enabled = false; Texels = 0; Held = 0; return; }
 
             // The mask, read only (REL-9): the sim builds it at fixed points in the tick, and a frame that rebuilt it
             // between a command and the next tick handed the combat slot light a headless replay did not have. So a
             // light placed while paused shows on the next tick. LightQueries.Builds tells us whether it changed.
             var mask = LightQueries.Mask(st);
             var (mw, mh) = LightQueries.MaskSize(st);
-            if (mask == null || mw <= 0 || mh <= 0) { _sr.enabled = false; Texels = 0; return; }
+            if (mask == null || mw <= 0 || mh <= 0) { _sr.enabled = false; Texels = 0; Held = 0; return; }
 
-            if (!Rect(cam, mw, mh)) { _sr.enabled = false; Texels = 0; return; }
+            if (!Rect(cam, mw, mh)) { _sr.enabled = false; Texels = 0; Held = 0; return; }
             var builds = LightQueries.Builds(st);
-            if (builds != _builds) { _builds = builds; _dirty = true; }
+            if (builds != _builds) { _builds = builds; _dirty = true; Rebuilt(mask, mw, mh); }
+            if (_sweeping) Advance();
             if (_dirty) Shade(mask, mw, mh);
 
             Paint(darkness);
@@ -237,9 +263,81 @@ namespace Relight.Presentation
             _sr.sprite = _sprite;
         }
 
+        /// <summary>
+        /// REL-117. The mask has just been stamped again: work out what this build newly lit and, if a district
+        /// switched on this frame, start the sweep that reveals it. Everything else — a lamp placed, a brownout
+        /// shrinking a disc — lights at once, exactly as before.
+        /// </summary>
+        private void Rebuilt(byte[] mask, int mw, int mh)
+        {
+            if (_wasLit == null || _maskW != mw || _maskH != mh)
+            {
+                // A new game or a load: take what is already lit as the baseline, so nothing replays on arrival.
+                _maskW = mw; _maskH = mh;
+                _wasLit = new byte[mw * mh];
+                _newLit = new byte[mw * mh];
+                _sweeping = false;
+                System.Array.Copy(mask, _wasLit, _wasLit.Length);
+                return;
+            }
+
+            var lit = Switched();
+            if (lit != null) Begin(lit, mask);
+            System.Array.Copy(mask, _wasLit, _wasLit.Length);
+        }
+
+        /// <summary>The district that switched on in this frame's events, or null. The same event the lamps read.</summary>
+        private DistrictLitEvent Switched()
+        {
+            var events = host == null ? null : host.LastFrameEvents;
+            if (events == null) return null;
+            for (var i = events.Count - 1; i >= 0; i--)
+                if (events[i] is DistrictLitEvent e) return e;
+            return null;
+        }
+
+        /// <summary>Mark every tile this build lit that was dark before, and time the front from the substation.</summary>
+        private void Begin(DistrictLitEvent e, byte[] mask)
+        {
+            var max = 0.0;
+            var count = 0;
+            for (var ty = 0; ty < _maskH; ty++)
+                for (var tx = 0; tx < _maskW; tx++)
+                {
+                    var i = ty * _maskW + tx;
+                    if (mask[i] == 0 || _wasLit[i] != 0) { _newLit[i] = 0; continue; }
+                    _newLit[i] = 1;
+                    count++;
+                    var dx = tx + 0.5 - e.X;
+                    var dy = ty + 0.5 - e.Y;
+                    var d = System.Math.Sqrt(dx * dx + dy * dy);
+                    if (d > max) max = d;
+                }
+
+            // REL-11's replayed event lights nothing new, so it sweeps nothing here either.
+            _sweepSeconds = count == 0 ? 0 : Relight.Sim.UI.LightSweep.Seconds(max);
+            _sweeping = _sweepSeconds > 0;
+            _sweepX = e.X; _sweepY = e.Y; _sweepStart = Time.time;
+        }
+
+        /// <summary>A sweep is running, so the drawn mask moves every frame until the front is past the district.</summary>
+        private void Advance()
+        {
+            if (Time.time - _sweepStart >= _sweepSeconds)
+            {
+                _sweeping = false;
+                System.Array.Clear(_newLit, 0, _newLit.Length);
+            }
+            _dirty = true;   // one more pass either way, so the last held tiles are drawn at full strength
+        }
+
         /// <summary>The cached half: sample the sim's mask once per texel. Rebuilt on a mask or rectangle change.</summary>
         private void Shade(byte[] mask, int mw, int mh)
         {
+            var sweeping = _sweeping;
+            var elapsed = sweeping ? Time.time - _sweepStart : 0f;
+            Held = 0;
+
             var inv = 1f / supersample;
             for (var j = 0; j < _th; j++)
             {
@@ -252,7 +350,19 @@ namespace Relight.Presentation
                 for (var i = 0; i < _tw; i++)
                 {
                     var tx = _rx + Mathf.FloorToInt((i + 0.5f) * inv);
-                    _shade[row + i] = lit && tx >= 0 && tx < mw && mask[ty * mw + tx] != 0 ? 0f : 1f;
+                    var on = lit && tx >= 0 && tx < mw && mask[ty * mw + tx] != 0;
+                    var a = on ? 0f : 1f;
+                    // REL-117: a tile this sweep lit stays dark until the front reaches it. Picture only — the
+                    // sim's mask, and so turret sight and every other rule, changed on the tick as it always did.
+                    if (on && sweeping && _newLit != null && _newLit[ty * mw + tx] != 0)
+                    {
+                        var dx = tx + 0.5 - _sweepX;
+                        var dy = ty + 0.5 - _sweepY;
+                        var hold = (float)Relight.Sim.UI.LightSweep.Hold(
+                            System.Math.Sqrt(dx * dx + dy * dy), elapsed);
+                        if (hold > 0f) { a = hold; Held++; }
+                    }
+                    _shade[row + i] = a;
                 }
             }
             _dirty = false;
