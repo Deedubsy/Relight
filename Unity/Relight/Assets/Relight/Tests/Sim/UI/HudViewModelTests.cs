@@ -489,18 +489,18 @@ namespace Relight.Sim.Tests.UI
         {
             var vm = new HudViewModel();
             vm.Intake(new SimEvent[] { new LightHesitationEvent(1, 7, EnemyLayer.Site, 0, 30, 30) }, 1);
-            vm.Notices.Reap(1);
+            vm.ReapNotices(1);
             Assert.That(RowsWith(vm, HudViewModel.HesitationKey), Is.Zero, "a camp resident on its beat is not an attack");
 
             vm.Intake(new SimEvent[] { new LightHesitationEvent(2, 8, EnemyLayer.Minor, 1, 50, 50) }, 2);
-            vm.Notices.Reap(2);
+            vm.ReapNotices(2);
             Assert.That(Row(vm, HudViewModel.HesitationKey).Text, Is.EqualTo(HudViewModel.HesitationLine));
             Assert.That(Row(vm, HudViewModel.HesitationKey).Kind, Is.EqualTo(HudNoticeKind.Info));
 
-            vm.Notices.Reap(2 + HudViewModel.GuideSeconds + 1);
-            Assert.That(RowsWith(vm, HudViewModel.HesitationKey), Is.Zero, "it expires");
+            vm.ReapNotices(2 + HudViewModel.GuideSeconds + 1);
+            Assert.That(RowsWith(vm, HudViewModel.HesitationKey), Is.Zero, "it goes once it has been read");
             vm.Intake(new SimEvent[] { new LightHesitationEvent(40, 9, EnemyLayer.Minor, 2, 50, 50) }, 40);
-            vm.Notices.Reap(40);
+            vm.ReapNotices(40);
             Assert.That(RowsWith(vm, HudViewModel.HesitationKey), Is.Zero, "and is said once, not once per raid");
         }
 
@@ -509,15 +509,79 @@ namespace Relight.Sim.Tests.UI
         {
             var vm = new HudViewModel();
             vm.Intake(new SimEvent[] { new TurretBlindEvent(1, 5, 41, 41) }, 1);
-            vm.Notices.Reap(1);
+            vm.ReapNotices(1);
             Assert.That(Row(vm, HudViewModel.BlindTurretKey).Text,
                 Is.EqualTo("This turret can't see into the dark. Light the ground it guards."));
             Assert.That(Row(vm, HudViewModel.BlindTurretKey).Kind, Is.EqualTo(HudNoticeKind.Warning));
 
-            vm.Notices.Reap(1 + HudViewModel.GuideSeconds + 1);
+            vm.ReapNotices(1 + HudViewModel.GuideSeconds + 1);
             vm.Intake(new SimEvent[] { new TurretBlindEvent(30, 6, 60, 41) }, 30);
-            vm.Notices.Reap(30);
+            vm.ReapNotices(30);
             Assert.That(RowsWith(vm, HudViewModel.BlindTurretKey), Is.Zero, "the badge carries it from then on");
+        }
+
+        // REL-118: a once-only line is not spent until the player has had it in front of them. Before this, a
+        // raid's own Danger rows pushed the lesson into "+1 more" within a second or two and it never came back.
+
+        private static void FillWithDanger(HudViewModel vm, double now)
+        {
+            for (var i = 0; i < HudNotices.MaxRows; i++)
+                vm.Notices.Post("raid:" + i, "raiders", HudNoticeKind.Danger, now, double.PositiveInfinity);
+        }
+
+        private static void RaidOver(HudViewModel vm)
+        {
+            for (var i = 0; i < HudNotices.MaxRows; i++) vm.Notices.Clear("raid:" + i);
+        }
+
+        [Test]
+        public void ARaidDelaysTheLightLessonInsteadOfSwallowingIt()
+        {
+            var vm = new HudViewModel();
+            vm.Intake(new SimEvent[] { new LightHesitationEvent(2, 8, EnemyLayer.Minor, 1, 50, 50) }, 2);
+            vm.ReapNotices(2);
+            Assert.That(Row(vm, HudViewModel.HesitationKey), Is.Not.Null, "it is said the moment they baulk");
+
+            FillWithDanger(vm, 3);
+            vm.ReapNotices(3);
+            Assert.That(Row(vm, HudViewModel.HesitationKey), Is.Null, "danger still outranks a lesson (U-D-55)");
+            Assert.That(vm.Notices.Hidden, Is.EqualTo(1), "it waits in the overflow");
+
+            var t = 3 + HudViewModel.GuideSeconds * 5;
+            vm.ReapNotices(t);
+            RaidOver(vm);
+            vm.ReapNotices(t);
+            Assert.That(Row(vm, HudViewModel.HesitationKey).Text, Is.EqualTo(HudViewModel.HesitationLine),
+                "the raid over, the lesson comes back");
+
+            vm.ReapNotices(t + HudViewModel.GuideSeconds - 1);
+            Assert.That(Row(vm, HudViewModel.HesitationKey), Is.Not.Null, "and stays for its whole time on screen");
+            vm.ReapNotices(t + HudViewModel.GuideSeconds + 1);
+            Assert.That(Row(vm, HudViewModel.HesitationKey), Is.Null, "then it is spent");
+
+            vm.Intake(new SimEvent[] { new LightHesitationEvent(200, 9, EnemyLayer.Minor, 2, 50, 50) }, 200);
+            vm.ReapNotices(200);
+            Assert.That(RowsWith(vm, HudViewModel.HesitationKey), Is.Zero, "and it is still said only once");
+        }
+
+        [Test]
+        public void TheBlindTurretLineWaitsForItsPlaceToo()
+        {
+            var vm = new HudViewModel();
+            FillWithDanger(vm, 1);
+            vm.Intake(new SimEvent[] { new TurretBlindEvent(1, 5, 41, 41) }, 1);
+            vm.ReapNotices(1);
+            Assert.That(Row(vm, HudViewModel.BlindTurretKey), Is.Null, "danger fills the column");
+
+            var t = 1 + HudViewModel.GuideSeconds * 3;
+            vm.ReapNotices(t);
+            RaidOver(vm);
+            vm.ReapNotices(t);
+            Assert.That(Row(vm, HudViewModel.BlindTurretKey).Text, Is.EqualTo(HudViewModel.BlindTurretLine),
+                "the line is read after the danger, not lost to it");
+
+            vm.ReapNotices(t + HudViewModel.GuideSeconds + 1);
+            Assert.That(RowsWith(vm, HudViewModel.BlindTurretKey), Is.Zero, "and is spent once it has been read");
         }
 
         [Test]

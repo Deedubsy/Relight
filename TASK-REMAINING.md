@@ -715,6 +715,7 @@ Verified from the decision row and `GAME_DESIGN.md` §11.1: the campaign is comp
 - **Priority:** P1 validation. **Class:** Validation gap.
 - **Now:** L-02 rings, tint, blind badge, sweep and guide lines; the enlarged UI size; a clean "repelled" account; GP-UX-7 to 9 ("Nothing in this row has been seen running"). The placement tint has no line-of-sight test, so lit ground behind a building tints as full range; the sweep staggers lamp heads while the ground lights at once. `[CODE]`
 - **Canonical:** L-02, L-ACC, GP-UX-7 to 9. **Authorised?:** Safe to check.
+- **Fixed 2026-09-23 (REL-118):** the two once-only guide lines (light hesitation, blind turret) are now retired by time **on screen**, not by the wall clock, so a raid's own Danger rows delay the lesson in the overflow instead of swallowing it. Sim code and two tests; the ranking is untouched. This row's other findings are separate issues: REL-119 (the raid account) is done; REL-116, REL-117 and REL-120 are next.
 
 #### AUD-UI-09 — Older open UI findings still open
 - **Priority:** P3. **Class:** Defect (recorded 2026-09-14, none closed).

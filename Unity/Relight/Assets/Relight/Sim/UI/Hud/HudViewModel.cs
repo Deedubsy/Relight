@@ -71,6 +71,9 @@ namespace Relight.Sim.UI
         private readonly List<ProblemGroup> _groups = new List<ProblemGroup>();
         private bool _taughtHesitation;
         private bool _taughtBlindTurret;
+        // REL-118: the once-only guide lines that are still owed their time on screen. See PumpGuides.
+        private readonly List<GuideLine> _guides = new List<GuideLine>();
+        private double _guideAt = double.NegativeInfinity;
         // REL-60: the sim time of the core's last hit, and what the core and engineer-down rows last said.
         private double _coreHitT = double.NegativeInfinity;
         private string _corePosted = "";
@@ -266,7 +269,7 @@ namespace Relight.Sim.UI
                 RaidPointerVisible = false; RaidPointerLabel = "";
                 BannerVisible = false; ReportVisible = false;
                 _problems.Clear();
-                Notices.Reap(now);
+                ReapNotices(now);
                 return true;
             }
 
@@ -416,7 +419,7 @@ namespace Relight.Sim.UI
             // --- machine problems -----------------------------------------------------------------------------
             CollectProblems(ctx, st);
 
-            Notices.Reap(now);
+            ReapNotices(now);
             return true;
         }
 
@@ -529,6 +532,66 @@ namespace Relight.Sim.UI
         /// <summary>ALWAYS_DARK_SPEC §5.7, verbatim: shown the first time a turret is hit by something it cannot see.</summary>
         public const string BlindTurretLine = "This turret can't see into the dark. Light the ground it guards.";
 
+        /// <summary>REL-118: one guide line still owed its <see cref="GuideSeconds"/> in front of the player.</summary>
+        private sealed class GuideLine
+        {
+            public string Key;
+            /// <summary>Real seconds it has actually been among the rows the HUD draws.</summary>
+            public double Shown;
+        }
+
+        /// <summary>
+        /// REL-118: say a once-only teaching line. It is posted as a STANDING row and retired by
+        /// <see cref="PumpGuides"/> once it has been ON SCREEN for <see cref="GuideSeconds"/>, not once that many
+        /// seconds have passed. A raid's own Danger and Warning rows outrank it, so before this it could be pushed
+        /// into the overflow ("+1 more") within a second or two of being posted and, being once-only, never read.
+        /// Now the crowd only delays the lesson: the line waits in the overflow and comes back as a place frees.
+        ///
+        /// The ranking is untouched (U-D-55): a lesson never outranks live danger.
+        /// </summary>
+        private void Teach(string key, string line, HudNoticeKind kind, double now)
+        {
+            Notices.Post(key, line, kind, now, double.PositiveInfinity);
+            for (var i = 0; i < _guides.Count; i++) if (string.Equals(_guides[i].Key, key, StringComparison.Ordinal)) return;
+            _guides.Add(new GuideLine { Key = key });
+        }
+
+        /// <summary>
+        /// Charge every pending guide line for the time it spent on screen, and clear it when it has had its full
+        /// <see cref="GuideSeconds"/>. Real (unscaled) seconds, like every other row; a clock that jumps backwards
+        /// (a load) charges nothing.
+        /// </summary>
+        private void PumpGuides(double now)
+        {
+            var dt = now - _guideAt;
+            _guideAt = now;
+            if (_guides.Count == 0) return;
+            if (!(dt > 0) || double.IsInfinity(dt)) dt = 0;
+            var rows = Notices.Rows;
+            for (var i = _guides.Count - 1; i >= 0; i--)
+            {
+                var g = _guides[i];
+                var shown = false;
+                for (var r = 0; r < rows.Count && !shown; r++) shown = string.Equals(rows[r].Key, g.Key, StringComparison.Ordinal);
+                if (!shown) continue;
+                g.Shown += dt;
+                if (g.Shown < GuideSeconds) continue;
+                Notices.Clear(g.Key);
+                _guides.RemoveAt(i);
+            }
+        }
+
+        /// <summary>
+        /// Expire what has timed out, refresh the drawn rows, then account for the guide lines (REL-118). Every
+        /// HUD refresh ends here, and a test that drives <see cref="Intake"/> by hand calls it in place of
+        /// <c>Notices.Reap</c>.
+        /// </summary>
+        public void ReapNotices(double now)
+        {
+            Notices.Reap(now);
+            PumpGuides(now);
+        }
+
         public const string HesitationKey = "guide:light-hesitation";
         public const string BlindTurretKey = "guide:blind-turret";
         public const string DistrictLitKey = "light:district";
@@ -621,13 +684,13 @@ namespace Relight.Sim.UI
                     case LightHesitationEvent h:
                         if (_taughtHesitation || h.Layer == EnemyLayer.Site) break;
                         _taughtHesitation = true;
-                        Notices.Post(HesitationKey, HesitationLine, HudNoticeKind.Info, now, GuideSeconds);
+                        Teach(HesitationKey, HesitationLine, HudNoticeKind.Info, now);
                         break;
                     // L-02 (§5.7): one line, the first time a turret is hit from the dark. The badge repeats it.
                     case TurretBlindEvent _:
                         if (_taughtBlindTurret) break;
                         _taughtBlindTurret = true;
-                        Notices.Post(BlindTurretKey, BlindTurretLine, HudNoticeKind.Warning, now, GuideSeconds);
+                        Teach(BlindTurretKey, BlindTurretLine, HudNoticeKind.Warning, now);
                         break;
                     // L-02 (§5.4): the moment that replaces dawn gets a line as well as its sweep and cue.
                     case DistrictLitEvent lit:
