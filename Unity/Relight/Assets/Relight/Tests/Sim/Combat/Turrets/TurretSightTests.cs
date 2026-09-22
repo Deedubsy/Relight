@@ -159,5 +159,79 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(RaidFixture.Count<TurretShotEvent>(st), Is.GreaterThan(0));
             Assert.That(t.Rounds, Is.LessThan(50));
         }
+
+        /// <summary>
+        /// A courtyard the gun actually FITS in: a ring of wall around a 2×2 hole, because a Gun turret's footprint
+        /// is 2×2 and <see cref="Placement"/> would refuse the 1×1 hole the older tests bypass with a direct Add.
+        /// </summary>
+        private static void Courtyard(SimContext ctx, SimState st)
+        {
+            for (var y = Ty - 2; y <= Ty + 3; y++)
+                for (var x = Tx - 2; x <= Tx + 3; x++)
+                    if (x < Tx || x > Tx + 1 || y < Ty || y > Ty + 1)
+                        RaidFixture.Add(ctx, st, "wall", x, y);
+        }
+
+        /// <summary>
+        /// REL-15 (INT-11): "a turret inside the workshop walls never fires", and the audit called it legal, silent
+        /// and fatal. Legal it stays — a gun covering one doorway is a real choice, and GP-W3 already decided to
+        /// warn rather than refuse. What it must not be is silent AFTER the build: the sentence the build cursor
+        /// showed has to still be there on the turret's own card, in the same words.
+        /// </summary>
+        [Test]
+        public void ATurretBoxedInSaysSoOnItsOwnCardAndIsStillAllowedToStandThere()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            Courtyard(ctx, st);
+
+            Assert.That(Placement.GeometryProblem(ctx, st, "turret", Tx, Ty, Dir.N), Is.Empty,
+                "the position is not refused — GP-W3 warns about a blind spot, it does not forbid one");
+
+            var advice = TurretSight.Coverage(ctx, st, "turret", Tx, Ty).Advice;
+            Assert.That(advice, Does.StartWith("Blind position"), "the build cursor's own sentence");
+
+            var t = RaidFixture.Add(ctx, st, "turret", Tx, Ty);
+            var card = ProductionQueries.Description(ctx, st, t.Id);
+
+            Assert.That(card, Does.Contain(advice),
+                "the built turret says exactly what the cursor said — one state, one vocabulary");
+        }
+
+        /// <summary>REL-15: no news is still good news. An ordinary turret's card gains nothing.</summary>
+        [Test]
+        public void ATurretWithAClearFieldOfFireAddsNothingToItsCard()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            var t = RaidFixture.Add(ctx, st, "turret", Tx, Ty);
+
+            var card = ProductionQueries.Description(ctx, st, t.Id);
+
+            Assert.That(card, Does.Not.Contain("Blind position"));
+            Assert.That(card, Does.Not.Contain("Restricted position"));
+        }
+
+        /// <summary>
+        /// REL-15: the card follows the world. The coverage sweep is far too heavy for a hover that asks every
+        /// frame, so it is cached on <see cref="SimState.Rev"/> — and this is the test that the cache cannot go
+        /// stale, because knocking the walls down is exactly the moment a player would look at the card again.
+        /// </summary>
+        [Test]
+        public void KnockingTheWallsDownTakesTheWarningOffTheCardAgain()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            Courtyard(ctx, st);
+            var t = RaidFixture.Add(ctx, st, "turret", Tx, Ty);
+
+            Assert.That(ProductionQueries.Description(ctx, st, t.Id), Does.Contain("Blind position"));
+
+            foreach (var m in st.Machines)
+                if (m.Kind == "wall") TurretRules.Damage(ctx, st, m, TurretRules.MaxHp(ctx.Data, m));
+
+            Assert.That(ProductionQueries.Description(ctx, st, t.Id), Does.Not.Contain("Blind position"),
+                "a wrecked wall stops nothing, and the card must not still be reading the old sweep");
+        }
     }
 }

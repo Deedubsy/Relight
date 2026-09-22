@@ -189,6 +189,11 @@ namespace Relight.Sim
                 if (ammo == TurretAmmoState.Dry) text += "\nOut of ammunition";
                 else if (ammo == TurretAmmoState.Low) text += "\nLow on ammunition · " + TurretHopper.RoundsText(ctx.Data, m);
                 else if (TurretHopper.IsTurret(ctx.Data, m)) text += "\nLoaded " + TurretHopper.RoundsText(ctx.Data, m);
+                // REL-15 (INT-11): a turret whose line of fire the buildings have taken away says so here, in the
+                // build cursor's own words (TurretSight.BuiltAdvice). A gun boxed into the workshop courtyard is
+                // legal, and stays legal — but it is no longer silent once it is standing there.
+                var sight = TurretSight.BuiltAdvice(ctx, st, m);
+                if (sight.Length != 0) text += "\n" + sight;
             }
             // GP-W5: a damaged or destroyed machine says so here, with its price, for EVERY kind — a wrecked
             // conveyor is as repairable as a wrecked turret and the two read the same. The state word above is

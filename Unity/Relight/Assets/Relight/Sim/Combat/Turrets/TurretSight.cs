@@ -121,5 +121,55 @@ namespace Relight.Sim
                 ? "Blind position: buildings block this turret's line of fire. It covers about " + pct + "% of its range." + where
                 : "Restricted position: it covers about " + pct + "% of its range." + where;
         }
+
+        /// <summary>
+        /// REL-15 (INT-11): the same sentence for a turret that is ALREADY STANDING THERE, for its hover and its
+        /// panel. The audit's case is a turret dropped inside the Home workshop's courtyard, where the buildings
+        /// take its line of fire away: placement warns about that position (the red coverage shape and
+        /// <see cref="TurretCoverage.Advice"/> under the build cursor, GP-W3), but once the gun was built nothing
+        /// said it again, so a player who did not read the cursor had a turret that never fired and no way left to
+        /// find out why. The wording is the placement sentence VERBATIM — the same state must not get a second
+        /// vocabulary — and it is empty above <see cref="ClearFraction"/>, so an ordinary turret says nothing.
+        ///
+        /// Placement still ALLOWS it. A gun covering one doorway is a real choice, and GP-W3 already decided to
+        /// warn rather than refuse; this only makes sure the warning is still there afterwards.
+        /// </summary>
+        public static string BuiltAdvice(SimContext ctx, SimState st, Machine m)
+        {
+            if (ctx == null || st == null || m == null) return "";
+            if (!ctx.Data.TryTurret(m.Kind, out var def) || def.RangeTiles <= 0) return "";
+            if (TurretRules.Wrecked(ctx.Data, st, m)) return "";   // a wreck has a louder problem; the repair line owns it
+            return st.TurretSightCache.Of(ctx, st, m).Advice;
+        }
+    }
+
+    /// <summary>
+    /// One built turret's coverage, remembered until the world changes. <see cref="TurretSight.Coverage"/> is about
+    /// 1,700 sight tests — fine once per placement, far too much for a hover card that asks every frame — so the
+    /// answer is kept per machine and thrown away whole on the next <see cref="SimState.Rev"/>, the tick anything
+    /// could have been built, wrecked or removed in the gun's way. Derived and keyed on <c>Rev</c> exactly like
+    /// <see cref="WallMask"/>: never visited, so a save carries nothing about it and a load rebuilds it on the
+    /// first question anyone asks.
+    /// </summary>
+    public sealed class TurretSightCache
+    {
+        private int _rev = int.MinValue;
+        private readonly System.Collections.Generic.Dictionary<int, TurretCoverage> _by =
+            new System.Collections.Generic.Dictionary<int, TurretCoverage>();
+
+        public TurretCoverage Of(SimContext ctx, SimState st, Machine m)
+        {
+            if (_rev != st.Rev) { _by.Clear(); _rev = st.Rev; }
+            if (_by.TryGetValue(m.Id, out var c)) return c;
+            c = TurretSight.Coverage(ctx, st, m.Kind, m.X, m.Y);
+            _by[m.Id] = c;
+            return c;
+        }
+    }
+
+    public sealed partial class SimState
+    {
+        /// <summary>Built turrets' coverage, keyed on <see cref="Rev"/> (see <see cref="TurretSightCache"/>).</summary>
+        public readonly TurretSightCache TurretSightCache = new TurretSightCache();
     }
 }

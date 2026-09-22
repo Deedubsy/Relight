@@ -355,6 +355,7 @@ Required work is D1 to D10. Optional work is D11.
 - **Accept when:** a test places a turret inside the rect and gets a refusal or a stated reason.
 - **Canonical:** fun-audit problem 9; TASKS log 2026-09-14.
 - **Authorised?:** Needs go-ahead.
+- **Fixed 2026-09-23 (REL-15):** the premise had half moved — GP-W3's `TurretSight` already warns under the build cursor, so what was open was that the warning vanished once the gun was built. `TurretSight.BuiltAdvice` now returns the placement sentence verbatim for a standing turret and `ProductionQueries.Description` appends it, so the world hover card and the machine panel both carry it; the sweep is cached on `SimState.Rev`. Placement stays permissive by GP-W3's decision, and a test asserts it still does not refuse the position. The balance half of fun-audit problem 9 (8 dps unseen damage) is untouched. Evidence: `Unity/Docs/evidence/rel-15/`.
 
 #### AUD-INT-12 — Dying during a machine repair roots the engineer for good
 - **Priority:** P0. The only hard softlock found, and it is written into the save.
