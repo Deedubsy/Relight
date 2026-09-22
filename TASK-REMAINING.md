@@ -761,6 +761,7 @@ Verified from the decision row and `GAME_DESIGN.md` §11.1: the campaign is comp
 - **Priority:** P2. **Class:** Validation gap.
 - **Now:** the only timing test asserts under 50 ms wall-clock for stamping, on .NET 8 offline (18.28 ms recorded). Mono is unmeasured. The per-light stamp cache in the spec was not built. `DefenceAlertSource.Refresh` and `CollectProblems` scan every machine every 150 ms, the latter O(n²). Fine at 50 machines. `[CODE]`
 - **Canonical:** spec §7.1, F-07, E-16. **Authorised?:** Measuring is safe.
+- **Measured 2026-09-22 (REL-64):** `Unity/Docs/evidence/rel-64/`. Mono (editor, Debug): 240 awake raiders mean 3.9 ms per tick; 360-light mask 38.7 ms mean, 49.8 worst; one cold route field 22–25 ms. Found: REL-121 (turret cost), REL-122 (HUD scan at 219 machines), REL-123 (route cache past 32 fields).
 
 #### AUD-PER-05 — Event autosaves are built and never called
 - **Priority:** P2. **Class:** Missing approved feature (`UI_AND_ONBOARDING.md` §2.7; architecture §9.4.2 "before a wave, after a milestone").

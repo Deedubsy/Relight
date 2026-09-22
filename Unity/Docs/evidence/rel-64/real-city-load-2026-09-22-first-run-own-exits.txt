@@ -1,0 +1,67 @@
+REL-64 (PER-04) real-city load measurement — written by MeasureTheTickWith240AliensAndTheMaskAndRouteCost_OnTheRealCity
+A measurement, not a check and not a balance verdict. Times are wall-clock milliseconds.
+runtime: Mono 6.13.0 (Visual Studio built mono) · CLR 4.0.30319.42000 · Unity 6000.6.0f1 · in the editor (EditMode) · editor code optimisation Debug
+machine: 11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz · 16 logical processors at 3600 MHz · 65361 MB RAM · Windows 11  (10.0.26200)
+build: git af3940b364 (refs/heads/main) (HEAD when run; this measurement file may be uncommitted)
+map riverfront-arc-v4-editor-ac16d9188c05 (864 × 576) · seed 1 · data 0be94136
+defence: 8 gun turrets, 8 poles, 2 generators around the Home core; 19 machines on the map; sim T 68.1 s when measuring began
+engineer at (70.5, 360.5); Home core at (65, 347) 10×14
+   [setup, with the opening's encounter played out: 1.3 s of wall time; 1.3 s since the run began]
+
+== no aliens
+  tick: mean 0.31 · median 0.25 · p95 0.55 · p99 0.94 · max 1.38 ms over 600 ticks (30 s of game)
+  ticks over 16.7 ms (a 60 fps frame): 0 · over 50 ms (the tick's own game time): 0 · gen-0 collections: 0
+  alive 0 → 0 · ticked bodies 0–0 · engineer down for 0 ticks
+  costliest phases, mean ms per tick: PowerPhase 0.136 (45%) · TurretPhase 0.104 (34%) · LightPhase 0.025 (8%) · LightMaskPhase 0.017 (6%) · MachinePhase 0.009 (3%) · OpeningPhase 0.005 (2%)
+
+   [no aliens: 0.2 s of wall time; 1.5 s since the run began]
+
+case B staged: 65 roamer stand-ins in 22 packs · 56 camp guards (3 camps: West passage camp 12/12, Old utility camp 22/22, Northwood approach camp 22/22) · 4 awake at the start (within 60 tiles of the engineer)
+== 65 roamers mostly asleep + full camp garrisons
+  tick: mean 0.40 · median 0.33 · p95 0.75 · p99 1.08 · max 1.49 ms over 1200 ticks (60 s of game)
+  ticks over 16.7 ms (a 60 fps frame): 0 · over 50 ms (the tick's own game time): 0 · gen-0 collections: 0
+  alive 121 → 121 · ticked bodies 4–4 · engineer down for 0 ticks
+  costliest phases, mean ms per tick: PowerPhase 0.138 (34%) · TurretPhase 0.121 (30%) · EnemyPhase 0.074 (18%) · LightPhase 0.027 (7%) · LightMaskPhase 0.017 (4%) · MachinePhase 0.010 (2%)
+
+   [case B: 0.5 s of wall time; 2.0 s since the run began]
+
+case A staged: 240 small-raid bodies (world cap 240), every one ticked; timed from the first tick, so the cold route fields are in it
+== 240 awake, converging on the defended Home
+  tick: mean 903.91 · median 6.47 · p95 4181.02 · p99 4667.01 · max 5214.19 ms over 666 ticks (33 s of game)
+  STOPPED AT THE WALL-CLOCK CAP: 666 of the 1200 ticks asked for, in 602.0 s
+  ticks over 16.7 ms (a 60 fps frame): 152 · over 50 ms (the tick's own game time): 150 · gen-0 collections: 38
+  alive 240 → 197 · ticked bodies 197–240 · engineer down for 0 ticks
+  costliest phases, mean ms per tick: EnemyPhase 903.481 (100%) · PowerPhase 0.176 (0%) · TurretPhase 0.141 (0%) · LightPhase 0.045 (0%) · LightMaskPhase 0.017 (0%) · MachinePhase 0.009 (0%)
+
+== HUD scans, every 150 ms in play (197 alive, 19 machines)
+  HudViewModel.Refresh (with CollectProblems): best 0.18 · mean 0.33 · worst 0.73 ms over 20 runs
+  DefenceAlertSource.Refresh: best 0.04 · mean 0.07 · worst 0.14 ms over 20 runs
+
+   [case A: 602.1 s of wall time; 604.1 s since the run began]
+
+the Home core was at 0 of 300 hp after case A; repaired before the mask and route readings
+== mask
+  real-city rebuild with the city's own lights, through LightMaskPhase: best 0.44 · mean 0.62 · worst 0.97 ms over 10 runs
+  360 lights (300 discs r7, 60 cones r12) stamped with blocking on the real map: best 25.16 · mean 33.08 · worst 45.06 ms over 5 runs
+  (the offline .NET 8 figure for the same 360 lights on a synthetic 864 × 864 map: 18.28 ms)
+
+== route (one cold field, the cache emptied first)
+  to the Home core, ordinary: best 27.57 · mean 34.36 · worst 54.00 ms over 5 runs
+  to the Home core, breach:   best 24.79 · mean 26.48 · worst 29.11 ms over 5 runs
+  to an approach tile (a withdrawing body's field): best 21.28 · mean 23.87 · worst 30.07 ms over 5 runs
+  A raid needs one ordinary field per target and a breach field only for a body the ordinary one cannot reach; they are cached until a placement or a mask rebuild.
+
+   [mask and route: 0.8 s of wall time; 604.8 s since the run began]
+
+== no aliens, 219 machines (200 unpowered, empty turrets added across the city)
+  tick: mean 25.72 · median 25.44 · p95 31.45 · p99 35.04 · max 43.12 ms over 400 ticks (20 s of game)
+  ticks over 16.7 ms (a 60 fps frame): 400 · over 50 ms (the tick's own game time): 0 · gen-0 collections: 0
+  alive 0 → 0 · ticked bodies 0–0 · engineer down for 0 ticks
+  costliest phases, mean ms per tick: TurretPhase 24.070 (94%) · PowerPhase 1.106 (4%) · LightPhase 0.196 (1%) · LightMaskPhase 0.123 (0%) · MachinePhase 0.111 (0%) · OpeningPhase 0.063 (0%)
+
+== HUD scans, every 150 ms in play (no aliens, 219 machines)
+  HudViewModel.Refresh (with CollectProblems): best 39.89 · mean 44.47 · worst 54.04 ms over 20 runs
+  DefenceAlertSource.Refresh: best 8.96 · mean 11.06 · worst 13.38 ms over 20 runs
+
+   [200 more machines: 12.6 s of wall time; 617.4 s since the run began]
+
