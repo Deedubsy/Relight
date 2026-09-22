@@ -30,7 +30,11 @@ Why the load has to be told apart from a fresh start: seeding on *any* first ref
 raise a row in a game being played, which is the half of U-D-61 that REL-14 deliberately kept
 (`AWreckedWallOrBeltAloneNeverRaisesARow`). The flag is the smallest honest way to separate the two.
 
-**The save schema is untouched — it stays at 9, as the issue requires.**
+**The save schema is untouched, as the issue requires.** (Correction, made while starting REL-66: this line and the
+REL-62 commit message both said the schema "stays at 9", repeating the issue's own number. `SaveSchema.Version` is
+**12** — the issue's 9 was written on 2026-09-21 and three steps have been added since. What REL-62 claims is true of
+the code either way: no persistence file is in its diff and `SimState.Resumed` is deliberately not in `Visit`, so the
+schema number is unchanged. Only the number quoted was stale.)
 
 ## Checks
 
@@ -76,8 +80,8 @@ the body; the row did not come back), so they bite on the defect they name.
 * **Two of the three things PER-02 lists are NOT fixed.** The guide lines' "already taught" flags
   (`HudViewModel._taughtHesitation`, `_taughtBlindTurret`) and the open raid tally are still per session, so a guide
   line can teach a second time after a load. They cannot be re-derived from the world — "has this player been told
-  this before" is not written anywhere in it — so fixing them means adding to the save, which this issue holds at
-  schema 9 by design. That is a separate decision and is not taken here. The issue's stated Outcome, "standing rows
+  this before" is not written anywhere in it — so fixing them means adding to the save, which this issue holds at its
+  current version by design. That is a separate decision and is not taken here. The issue's stated Outcome, "standing rows
   are re-derived on the first refresh after load. No schema change needed", is met for the rows.
 * **The seeding has a stated price.** A place whose wall was wrecked while its row had never been raised now speaks
   after a load, where before the save it was silent. That is the honest half of "re-derived from the world": the

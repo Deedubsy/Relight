@@ -57,6 +57,7 @@ namespace Relight.Sim.UI
 
         private readonly StringBuilder _sb = new StringBuilder(96);
         private readonly List<HudProblem> _problems = new List<HudProblem>();
+        private LoadResult _loadSaid;
         private double _lastRefresh = double.NegativeInfinity;
         private string _brownoutPosted = "";
         private string _lowFuelPosted = "";
@@ -595,6 +596,50 @@ namespace Relight.Sim.UI
         public const string HesitationKey = "guide:light-hesitation";
         public const string BlindTurretKey = "guide:blind-turret";
         public const string DistrictLitKey = "light:district";
+
+        /// <summary>REL-66: the save was read through an older schema, moved between regions, or healed on load.</summary>
+        public const string LoadUpgradedKey = "load:upgraded";
+        /// <summary>REL-66: the file asked for was unusable and its previous copy was loaded instead.</summary>
+        public const string LoadRecoveredKey = "load:recovered";
+        /// <summary>REL-66: the file loaded, but it was made against different balance data.</summary>
+        public const string LoadWarningKey = "load:warning";
+
+        /// <summary>
+        /// REL-66 (PER-06). The ONE place a finished load speaks to the player. <see cref="LoadResult"/> can carry
+        /// three sentences the store wrote about what it had to do to read the file — an upgrade, a balance-data
+        /// difference, and a recovery from the <c>.bak</c> — and each one says something the player's next decision
+        /// may depend on.
+        ///
+        /// Called every refresh with the load that is current; the <see cref="LoadResult"/> INSTANCE is what marks it
+        /// said, so the caller needs no timing of its own and the sentences survive a HUD that only wakes up after
+        /// the load has already happened. A refusal is not said here: it changes nothing and the Load screen already
+        /// shows it on the screen the player is looking at.
+        ///
+        /// Each sentence is its own row, because they are independent facts and an <c>else if</c> chain silently
+        /// drops the ones it does not reach — which is exactly what the two routes this replaced did. They are
+        /// posted through <see cref="Teach"/>, so a burst of raid rows can only DELAY a load sentence, never expire
+        /// it unread (REL-118): "once" means once seen, not once timed out.
+        /// </summary>
+        public void SayLoad(LoadResult r, double now)
+        {
+            if (r == null || !r.Ok || ReferenceEquals(r, _loadSaid)) return;
+            _loadSaid = r;
+            if (!string.IsNullOrEmpty(r.Recovered)) Teach(LoadRecoveredKey, LoadSentence(r.Recovered), HudNoticeKind.Warning, now);
+            if (!string.IsNullOrEmpty(r.Warning)) Teach(LoadWarningKey, LoadSentence(r.Warning), HudNoticeKind.Warning, now);
+            if (!string.IsNullOrEmpty(r.Upgraded)) Teach(LoadUpgradedKey, LoadSentence(r.Upgraded), HudNoticeKind.Info, now);
+        }
+
+        /// <summary>
+        /// The store's own words, verbatim, as a sentence: they are written as lower-case fragments for a log line
+        /// ("this save was made by an earlier build …"). Nothing is reworded — the save layer owns what is true
+        /// about the file, and a HUD that paraphrases it would be a second version of the same fact.
+        /// </summary>
+        public static string LoadSentence(string words)
+        {
+            if (string.IsNullOrEmpty(words)) return "";
+            var s = char.IsLower(words[0]) ? char.ToUpperInvariant(words[0]) + words.Substring(1) : words;
+            return s[s.Length - 1] == '.' || s[s.Length - 1] == '!' || s[s.Length - 1] == '?' ? s : s + ".";
+        }
 
         /// <summary>
         /// Put the defence rows into the inbox. A row is a STANDING state (U-D-55), so it is posted only when what

@@ -126,10 +126,10 @@ namespace Relight.UI.FrontEnd
             if (result == null) { Say("saving is not available in this scene"); return; }
             if (!result.Ok) { Say(result.Reason); return; }
 
-            // The store's own words about what it had to do to read the file are the player's business (§2.7.1).
-            if (!string.IsNullOrEmpty(result.Recovered)) Say(result.Recovered);
-            else if (!string.IsNullOrEmpty(result.Warning)) Say(result.Warning);
-            else if (!string.IsNullOrEmpty(result.Upgraded)) Say(result.Upgraded);
+            // The store's own words about what it had to do to read the file are still the player's business
+            // (§2.7.1), but they are no longer said here. REL-66: this chain showed at most ONE of the three
+            // sentences, and only if and when the player next opened the pause menu — a startup notice is not a
+            // notice about a load. The HUD says all of them, once, right after the load (HudViewModel.SayLoad).
 
             MarkLoaded(loadName, loadIsAutosave);
         }

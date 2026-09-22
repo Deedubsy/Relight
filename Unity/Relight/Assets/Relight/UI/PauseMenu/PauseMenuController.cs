@@ -455,7 +455,11 @@ namespace Relight.UI.PauseMenu
                 return;
             }
             session?.MarkLoaded(row.Name, row.IsAutosave);
-            Say(_loadNotice, string.IsNullOrEmpty(result.Recovered) ? "" : result.Recovered);
+            // REL-66: the recovery sentence used to be written here and then thrown away in the same call — the
+            // panel switches to "pause" on the next line and the overlay closes on the one after, so nothing was
+            // ever on screen long enough to read, and the upgrade and balance-data sentences were never shown at
+            // all. The HUD says all three, once, after the load (HudViewModel.SayLoad).
+            Say(_loadNotice, "");
             Show("pause");
             Resume();
         }

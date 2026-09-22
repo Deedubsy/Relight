@@ -49,6 +49,8 @@ namespace Relight.UI
         [SerializeField] private string placeName = "Home";
 
         private HudViewModel _model = new HudViewModel();
+        /// <summary>REL-66: found once, not wired in the scene — the HUD only reads the load that already happened.</summary>
+        private AutosaveController _autosave;
         private VisualElement _root, _threat, _mining, _handLock, _pip, _reloadMeter;
         private Label _clock, _light, _power, _core, _engineer, _weapon, _ammo, _backpack;
         private Label _threatText, _alert, _noticeMore, _miningTitle, _miningDetail, _handLockText;
@@ -296,6 +298,12 @@ namespace Relight.UI
             var menuOpen = shell != null && !string.IsNullOrEmpty(shell.Active);
 
             PulsePip(now, reduce);
+
+            // REL-66: what the store had to do to read the file is the player's business. The model says each
+            // sentence once per load and ignores a refusal, so this is a plain hand-over with no timing of its own —
+            // and it happens here, on the ordinary paint, so a HUD that wakes after the load still says it.
+            if (_autosave == null) _autosave = FindAnyObjectByType<AutosaveController>();
+            if (_autosave != null) _model.SayLoad(_autosave.LastLoad, now);
 
             _dock?.Paint();
             _arrow?.Paint(_model);   // REL-74: every frame, before the throttle, because the camera moves every frame
