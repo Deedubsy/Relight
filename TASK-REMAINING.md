@@ -503,6 +503,7 @@ Required work is D1 to D10. Optional work is D11.
 - **Accept when:** a recorded run shows coal lasting past the first point where the player can get more.
 - **Canonical:** GP-W8, U-D-ORE-01, F-02.
 - **Authorised?:** Measuring is safe. Changing the patch needs a decision.
+- **Update 2026-09-23 (REL-27, U-P-27):** U-D-69 (c) chose numbers, and the yard pile is now **2,100** Coal (was 700), in `OpeningResourceLayout` and the World scene. The REL-88 runner, rerun: power out at minute 233.3 at 600 kW (was 77.8) and 466.7 at 300 kW (was 155.6). The edge Excavator still reaches 3 of 9 tiles (702 Coal). Step (1) is met by that runner; step (2), the owner session, is still owed, so the accept line is not yet shown in play: today the only other coal is East Wharf on foot, and nothing hauls coal to Home until GP-W7.
 
 #### AUD-ECO-04 — Three machines still ship with a default recipe
 - **Priority:** P3. **Class:** Proposal requiring approval.
@@ -926,7 +927,7 @@ Exit: a person finishes the game. F-ACC.
 | F1-29 | When does a stronghold fight begin and end, and may it hold back a large-raid warning without limit? **Decided 2026-09-22 (U-D-69 e):** no other limit; the fight ends about 30 s after the engineer leaves or goes down | part of REL-75, REL-93, REL-96 |
 | F1-30 | What counts as a raid that cannot finish, and what outcome is recorded? **Answered in part 2026-09-22 (U-D-68 a):** nothing the player places may wall a raid off; raiders attack it (E-24, built 2026-09-23 in REL-115). The recorded outcome for any other stuck raid is still open; the neutral interim stands | part of REL-44, REL-80 |
 | F1-31 | Must a Unity save made today keep loading as systems are added? **Decided 2026-09-22 (U-D-69 b), for development only:** no; a clean break is allowed while the game is unreleased | REL-44, 42, 35, 38, 76, 43, 63 |
-| F1-32 | Home coal: numbers, or coal reaches Home sooner? (after the REL-88 measurement) **Decided 2026-09-22 (U-D-69 c):** numbers, a bigger pile or a slower burn | REL-27 |
+| F1-32 | Home coal: numbers, or coal reaches Home sooner? (after the REL-88 measurement) **Decided 2026-09-22 (U-D-69 c):** numbers, a bigger pile or a slower burn. **Built 2026-09-23:** a bigger pile, 2,100 Coal (U-P-27) | REL-27 |
 | F1-33 | Roamers before alien roles (U-D-66), or after the roster (L-03's dependency)? | REL-42 |
 | F1-34 | Add a standalone Windows build row (F-10 suggested) and try a first build early? | REL-107 |
 | F1-35 | The ending's words: what "fully lit on every street tile" means with lamp light, and why a dark route is kept after raids end | REL-50 |

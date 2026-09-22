@@ -16,6 +16,8 @@ The former patches west of Home and Coal beside the entrance are clear ground in
 | Copper ore | 96,352 | 3 × 4 | 1,200 |
 | Coal | 96,369 | 3 × 3 | 700 |
 
+*2026-09-23 (REL-27, U-P-27): the Coal deposit now holds 2,100 units; the table keeps the 2026-09-15 figure.*
+
 An example tested Steel line is Excavator (84,356) → Belt (85,359) → Foundry (84,360) → Belt (85,363) → chest (84,364), with outputs facing south. Generator (78,354) and Poles (81,357), (88,360) powered it. The parallel Copper footprints at x=96/97, additional Generator (90,366), and Assembler (84,368) have clear physical placement footprints. These are examples, not reserved construction ghosts or mandatory placements.
 
 Resource deposits now draw above the paving, so the yard does not hide them. Ore uses the existing world presentation; this is not a new world-art pass. [Deposit screenshot](evidence/ore-opening/deposits.png).

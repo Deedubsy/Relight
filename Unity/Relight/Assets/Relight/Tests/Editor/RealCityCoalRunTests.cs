@@ -14,6 +14,8 @@ namespace Relight.Authoring.Tests
     /// REL-88 (ECO-03a), "Measure how long Home's coal really lasts". Its accept line: "a recorded run states the
     /// minute coal runs out under 300 kW and 600 kW loads, and the earliest minute a player could reach more coal on
     /// today's build." This is the measuring step only: REL-27 owns solving the shortage.
+    /// REL-27 reran it on 2026-09-23 after raising the yard pile to 2,100 (U-P-27); the cap went from 200 to 600
+    /// minutes so the 300 kW run still ends inside it.
     ///
     /// On the REAL CITY, as a new game builds it (<see cref="RealCityFixture"/>), the test writes one log with three
     /// parts:
@@ -40,7 +42,7 @@ namespace Relight.Authoring.Tests
     {
         private const int Seed = 7;
         private const string YardCoal = "opening-coal-v1";
-        private const double CapMinutes = 200;
+        private const double CapMinutes = 600;
         /// <summary>Coal the engineer digs by hand for each Generator's first fuel.</summary>
         private const int SeedCoal = 10;
         /// <summary>How near a camp or a living alien must be to a patch to be counted as guarding it.</summary>

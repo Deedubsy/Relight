@@ -33,7 +33,8 @@ namespace Relight.World
             }
             Add(g,rows,"opening-iron-v1","Iron ore deposit",84,352,3,4,"ironore",7680);
             Add(g,rows,"opening-copper-v1","Copper ore deposit",96,352,3,4,"copperore",1200);
-            Add(g,rows,"opening-coal-v1","Coal deposit",96,369,3,3,"coal",700);
+            // U-P-27 (REL-27): three times the first 700, still the smallest coal on the map.
+            Add(g,rows,"opening-coal-v1","Coal deposit",96,369,3,3,"coal",2100);
             sites=new WorldSites(rows,original.RegionId,original.OriginX,original.OriginY);
             return g;
         }
