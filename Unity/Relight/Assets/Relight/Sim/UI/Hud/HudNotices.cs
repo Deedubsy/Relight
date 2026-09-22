@@ -55,8 +55,9 @@ namespace Relight.Sim.UI
         public IReadOnlyList<HudNotice> Rows => _live;
 
         /// <summary>
-        /// Post a notice. An existing row with the same <paramref name="key"/> is updated and its repeat count
-        /// raised; a new key takes a new row and the oldest row is dropped once there are more than
+        /// Post a notice. An existing row with the same <paramref name="key"/> is updated, and its repeat count
+        /// raised when the text and kind are both unchanged (a kind change alone keeps the count; new text starts
+        /// it again at 1); a new key takes a new row and the oldest row is dropped once there are more than
         /// <see cref="MaxRows"/> live ones.
         /// </summary>
         public HudNotice Post(string key, string text, HudNoticeKind kind, double now, double seconds = DefaultSeconds)
@@ -67,7 +68,11 @@ namespace Relight.Sim.UI
                 var r = _rows[i];
                 if (!string.Equals(r.Key, key, StringComparison.Ordinal)) continue;
                 var same = string.Equals(r.Text, text, StringComparison.Ordinal);
-                r.Repeats = r.Live(now) && same ? r.Repeats + 1 : 1;
+                // REL-6 (INT-02): only the same sentence said again is a repeat. The same sentence re-graded — a
+                // standing defence row turning to danger as a raid is warned, and back when it is over — is one
+                // notice changing its colour, not a second one, so its count stays where it was.
+                if (!r.Live(now) || !same) r.Repeats = 1;
+                else if (r.Kind == kind) r.Repeats++;
                 r.Text = text;
                 r.Kind = kind;
                 r.At = now;

@@ -164,6 +164,27 @@ namespace Relight.Sim.Tests.UI
         }
 
         [Test]
+        public void AKindChangeOnUnchangedTextIsNotARepeat()
+        {
+            // REL-6 (INT-02): re-grading a row is not saying it twice; saying it twice still is.
+            var n = new HudNotices();
+            n.Post("defence:Home", "Home: 1 turret dry", HudNoticeKind.Warning, 0, double.PositiveInfinity);
+            n.Post("defence:Home", "Home: 1 turret dry", HudNoticeKind.Danger, 1, double.PositiveInfinity);
+            Assert.That(n.Rows[0].Repeats, Is.EqualTo(1), "warning to danger");
+            Assert.That(n.Rows[0].Kind, Is.EqualTo(HudNoticeKind.Danger));
+            n.Post("defence:Home", "Home: 1 turret dry", HudNoticeKind.Warning, 2, double.PositiveInfinity);
+            Assert.That(n.Rows[0].Repeats, Is.EqualTo(1), "and back");
+            Assert.That(n.Rows[0].Kind, Is.EqualTo(HudNoticeKind.Warning));
+
+            n.Post("defence:Home", "Home: 1 turret dry", HudNoticeKind.Warning, 3, double.PositiveInfinity);
+            Assert.That(n.Rows[0].Repeats, Is.EqualTo(2), "the same sentence at the same grade is a repeat");
+            n.Post("defence:Home", "Home: 1 turret dry", HudNoticeKind.Danger, 4, double.PositiveInfinity);
+            Assert.That(n.Rows[0].Repeats, Is.EqualTo(2), "a re-grade keeps the count it had");
+            n.Post("defence:Home", "Home: 2 turrets dry", HudNoticeKind.Danger, 5, double.PositiveInfinity);
+            Assert.That(n.Rows[0].Repeats, Is.EqualTo(1), "a new sentence starts again");
+        }
+
+        [Test]
         public void AtMostThreeRowsAreShownAndTheOldestFallsOff()
         {
             var n = new HudNotices();
@@ -544,6 +565,40 @@ namespace Relight.Sim.Tests.UI
             vm.Refresh(ctx, st, 6, false, false, force: true);
             vm.Notices.Reap(6);
             Assert.That(RowsWith(vm, key), Is.Zero, "reloaded: the row clears itself");
+        }
+
+        [Test]
+        public void ADryTurretRowStaysAtOneRepeatAsARaidIsWarnedAndEnds()
+        {
+            // REL-6 (INT-02). The row is posted when it turns to danger and when it turns back, on the same text,
+            // and used to read "Home: 1 turret dry × 2", then "× 3" (seen 2026-09-21).
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            var phases = new System.Collections.Generic.List<ITickPhase> { new PowerPhase() };
+            var t = RaidFixture.Turret(ctx, st, 40, 40, 0);
+            st.Turrets.Of(t.Id).ShotT = 1;                           // it has fired: it ran dry
+            RaidFixture.Run(ctx, st, 2, phases);
+            var key = DefenceAlertSource.KeyPrefix + "Home";
+            var vm = new HudViewModel();
+            var now = 0.0;
+            void Look(HudNoticeKind kind, string when)
+            {
+                for (var i = 0; i < 5; i++, now += 0.15) vm.Refresh(ctx, st, now, false, false, force: true);
+                var row = Row(vm, key);
+                Assert.That(row, Is.Not.Null, when);
+                Assert.That(row.Text, Is.EqualTo("Home: 1 turret dry"), when);
+                Assert.That(row.Kind, Is.EqualTo(kind), when);
+                Assert.That(row.Repeats, Is.EqualTo(1), when + ": never \"× 2\"");
+                Assert.That(RowsWith(vm, key), Is.EqualTo(1), when);
+            }
+
+            Look(HudNoticeKind.Warning, "dry turret");
+            st.Director.Minor = new MinorRaid { StartsAt = st.T + 30 };
+            Look(HudNoticeKind.Danger, "raid warned");
+            st.Director.Minor = null;
+            Look(HudNoticeKind.Warning, "raid over");
+            st.Director.Minor = new MinorRaid { StartsAt = st.T + 30 };
+            Look(HudNoticeKind.Danger, "the next raid warned");
         }
 
         [Test]
