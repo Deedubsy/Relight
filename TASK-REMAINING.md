@@ -756,6 +756,7 @@ Verified from the decision row and `GAME_DESIGN.md` §11.1: the campaign is comp
 - **Depends on:** the decision (F1-18). Every D-phase authoring task will trip this.
 - **Accept when:** the rule is written in `DECISIONS.md` and a test pins it.
 - **Canonical:** U-D-SCENE-01, U-D-35, C-10. Newly identified as a risk. **Authorised?:** Needs decision.
+- **Built 2026-09-23 (REL-63), the save rule only.** The owner's rule is U-D-69 (b); it is spelled out in `TECHNICAL_ARCHITECTURE.md` §9.1 and pinned by the offline test `SaveMapBindingTests.DuringDevelopmentASceneEditOrphansEverySave`. The strict check is unchanged; the evidence fixture `slot-phasec-int.json` is not regenerated (it is evidence, and `RealWorldCarriesRegionAndRelocatesHomeSave` already asserts today's refusal). The enemy audit's ENM-08 (`SaveRelocate` and live raiders), added to the same Linear issue, is not part of this and stays open.
 
 #### AUD-PER-04 — Mask and route cost on the real runtime
 - **Priority:** P2. **Class:** Validation gap.

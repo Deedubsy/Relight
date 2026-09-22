@@ -61,6 +61,38 @@ namespace Relight.Sim.Tests.Persistence
             Assert.That(SaveSerializer.MapProblem("a", "b"), Is.Not.Null);
         }
 
+        /// <summary>
+        /// REL-63, U-D-69 (b): while the game is unreleased a save is bound to the exact map it was made on. The real
+        /// city's id is the imported baseline plus <c>-scene-</c> and a fingerprint of the scene (<c>SceneWorld</c>),
+        /// so any scene edit gives a new id, and two ids that share the baseline are still different maps. The old
+        /// save is refused as another map's — not damaged, left where it is — and the player starts a new game.
+        /// Loosening this (a hand-bumped map version, or relocating on load) is a new owner decision, not a fix to
+        /// this test; TECHNICAL_ARCHITECTURE.md §9.1 says so too.
+        /// </summary>
+        [Test]
+        public void DuringDevelopmentASceneEditOrphansEverySave()
+        {
+            const string before = "riverfront-arc-v4-editor-ac16d9188c05-scene-0123456789abcdef";
+            const string after = "riverfront-arc-v4-editor-ac16d9188c05-scene-fedcba9876543210";
+            Assert.That(SaveSerializer.MapProblem(before, after), Is.Not.Null, "one baseline, an edited scene: another map");
+            Assert.That(SaveSerializer.MapProblem(before, before), Is.Null);
+
+            var (fs, store) = PersistenceFixture.Store();
+            var (sim, _) = Scenarios.ShortRun().Play(60);
+            Assert.That(store.Save("long-run", sim.State, sim.Context.Data, At, before).Ok, Is.True);
+            var stored = (byte[])fs.ReadAllBytes(store.PathOf("long-run")).Clone();
+
+            var load = store.Load("long-run", sim.Context.Data, after);
+            Assert.That(load.Ok, Is.False, "no save is carried across a scene edit");
+            Assert.That(load.Damaged, Is.False, "the file is fine; it belongs to the map before the edit");
+            StringAssert.Contains("different map", load.Reason);
+            StringAssert.Contains(before, load.Reason);
+            StringAssert.Contains(after, load.Reason);
+            Assert.That(fs.FileExists(store.PathOf("long-run")), Is.True, "the old save is kept");
+            CollectionAssert.AreEqual(stored, fs.ReadAllBytes(store.PathOf("long-run")), "and not rewritten");
+            Assert.That(store.Load("long-run", sim.Context.Data, before).Ok, Is.True, "on its own map it still loads");
+        }
+
         [Test]
         public void TheStoresPassTheExpectationThroughAndTheIndexRemembersTheMap()
         {
