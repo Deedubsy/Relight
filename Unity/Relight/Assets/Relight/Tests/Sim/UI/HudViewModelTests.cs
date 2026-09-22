@@ -655,6 +655,183 @@ namespace Relight.Sim.Tests.UI
             Assert.That(src.BrownoutText, Is.EqualTo(""), "the machines' own 'running slowly' line owns that case");
         }
 
+        // ---- REL-60 (UI-10): the worst events raise a row -------------------------------------------------------
+
+        /// <summary>A state with the Home core placed on the fixture's core site and an empty event list.</summary>
+        private static (SimContext ctx, SimState st) WithCore()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            HomeCore.Ensure(ctx, st);
+            st.Events.Clear();
+            return (ctx, st);
+        }
+
+        [Test]
+        public void ACoreHitIsADangerRow_AHundredHitsAreOneRow_AndItFallsBackToDamagedWhenTheHitsStop()
+        {
+            var (ctx, st) = WithCore();
+            var vm = new HudViewModel();
+            vm.Refresh(ctx, st, 0, false, false, force: true);
+            Assert.That(Row(vm, HudViewModel.CoreNoticeKey), Is.Null, "a core at full health has no row");
+
+            HomeCore.Damage(st, 10);
+            vm.Intake(st.Events, 1);
+            var row = Row(vm, HudViewModel.CoreNoticeKey);
+            Assert.That(row, Is.Not.Null, "the CoreDamagedEvent raised the row the frame it happened");
+            Assert.That(row.Text, Is.EqualTo(HudViewModel.CoreUnderAttackText));
+            Assert.That(row.Kind, Is.EqualTo(HudNoticeKind.Danger), "§8: base damage outranks everything but the engineer");
+
+            for (var i = 0; i < 100; i++)
+            {
+                st.Events.Clear();
+                HomeCore.Damage(st, 1);
+                st.T += 0.02;
+                vm.Intake(st.Events, 1 + i * 0.02);
+                vm.Refresh(ctx, st, 1 + i * 0.02, false, false, force: true);
+            }
+            Assert.That(RowsWith(vm, HudViewModel.CoreNoticeKey), Is.EqualTo(1));
+            Assert.That(Row(vm, HudViewModel.CoreNoticeKey).Repeats, Is.EqualTo(1), "a hit is never counted as a repeat");
+
+            st.T += HudViewModel.CoreHitSeconds + 0.1;
+            vm.Refresh(ctx, st, 5, false, false, force: true);
+            row = Row(vm, HudViewModel.CoreNoticeKey);
+            Assert.That(row.Text, Is.EqualTo(HudViewModel.CoreDamagedText), "no hit for 5 s: damaged, not under attack");
+            Assert.That(row.Kind, Is.EqualTo(HudNoticeKind.Warning));
+
+            st.Home.Hp = ctx.Data.Defence.CoreHp;   // the repair's result; the repair itself is HomeCoreTests'
+            vm.Refresh(ctx, st, 6, false, false, force: true);
+            Assert.That(Row(vm, HudViewModel.CoreNoticeKey), Is.Null, "a whole core clears its row");
+        }
+
+        [Test]
+        public void ACoreKnockedOutRaisesTheDisabledRow_WhichSaysHowToRecommission()
+        {
+            var (ctx, st) = WithCore();
+            var vm = new HudViewModel();
+            HomeCore.Damage(st, 1000);
+            Assert.That(RaidFixture.Count<CoreDisabledEvent>(st), Is.EqualTo(1));
+
+            vm.Intake(st.Events, 1);
+            var row = Row(vm, HudViewModel.CoreNoticeKey);
+            Assert.That(row.Text, Is.EqualTo(HudViewModel.CoreDisabledText));
+            Assert.That(row.Text, Does.Contain(OpeningQueries.RecommissionButton), "the workshop button's own name");
+            Assert.That(row.Kind, Is.EqualTo(HudNoticeKind.Danger));
+
+            vm.Refresh(ctx, st, 1, false, false, force: true);
+            Assert.That(RowsWith(vm, HudViewModel.CoreNoticeKey), Is.EqualTo(1), "Refresh agrees with the event: one row");
+            Assert.That(Row(vm, HudViewModel.CoreNoticeKey).Repeats, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void APatchRepairTheCoreFellDuringShowsTheSimsSentenceOnce()
+        {
+            var (ctx, st) = WithCore();
+            var (hx, hy, hw, hh) = HomeQueries.CoreRect(st);
+            st.Engineer.Pos = new Vec2(hx + hw / 2.0, hy + hh / 2.0);
+            st.Engineer.Inv[ItemId.Steel] = 10;
+            st.Engineer.Inv[ItemId.Copper] = 10;
+            st.Ledger = Ledger.Open(st, ctx.Data);
+            HomeCore.Damage(st, 100);
+            Assert.That(new HomeCoreHandler().TryApply(ctx, st, new RepairCommand(RepairKinds.Core, -1), out var r)
+                        && r.Accepted, Is.True, "the patch repair starts");
+
+            HomeCore.Damage(st, 1000);   // knocked out while the patch is under way
+            var phase = new HomeCorePhase();
+            for (var i = 0; i < 20 * 60 && RaidFixture.Count<CoreRepairAbortedEvent>(st) == 0; i++)
+            {
+                phase.Tick(ctx, st, RaidFixture.Dt);
+                st.Tick++;
+                st.T += RaidFixture.Dt;
+            }
+            var aborted = RaidFixture.Last<CoreRepairAbortedEvent>(st);
+            Assert.That(aborted, Is.Not.Null, "the sim voided the patch");
+
+            var vm = new HudViewModel();
+            vm.Intake(st.Events, 1);
+            vm.Refresh(ctx, st, 1, false, false, force: true);
+            var row = Row(vm, HudViewModel.RepairAbortedKey);
+            Assert.That(row, Is.Not.Null, "the event's text used to reach no one");
+            Assert.That(row.Text, Is.EqualTo(aborted.Text));
+            Assert.That(row.Text, Is.EqualTo("Core knocked out during repair; a full recovery kit is required."));
+            Assert.That(row.Kind, Is.EqualTo(HudNoticeKind.Warning));
+            Assert.That(row.Repeats, Is.EqualTo(1));
+            Assert.That(Row(vm, HudViewModel.CoreNoticeKey).Text, Is.EqualTo(HudViewModel.CoreDisabledText));
+
+            vm.Notices.Reap(1 + HudViewModel.GuideSeconds + 0.1);
+            Assert.That(Row(vm, HudViewModel.RepairAbortedKey), Is.Null, "a moment, not a state: it goes");
+            Assert.That(Row(vm, HudViewModel.CoreNoticeKey), Is.Not.Null, "the disabled core's row stands");
+        }
+
+        [Test]
+        public void AnEngineerDownIsADangerRowUntilTheyAreUp_ThenANoteSaysSo()
+        {
+            var (ctx, st) = WithCore();
+            var vm = new HudViewModel();
+            st.Engineer.TakeDamage(ctx, st, ctx.Data.Engineer.MaxHp);
+            Assert.That(RaidFixture.Count<EngineerDownEvent>(st), Is.EqualTo(1));
+
+            vm.Intake(st.Events, 1);
+            var down = Row(vm, HudViewModel.EngineerDownKey);
+            Assert.That(down, Is.Not.Null, "the EngineerDownEvent raised the row");
+            Assert.That(down.Text, Is.EqualTo(HudViewModel.EngineerDownText));
+            Assert.That(down.Kind, Is.EqualTo(HudNoticeKind.Danger));
+            vm.Refresh(ctx, st, 1, false, false, force: true);
+            Assert.That(RowsWith(vm, HudViewModel.EngineerDownKey), Is.EqualTo(1));
+            Assert.That(Row(vm, HudViewModel.EngineerDownKey).Repeats, Is.EqualTo(1));
+
+            st.Events.Clear();
+            var phase = new EngineerMovementPhase();
+            for (var i = 0; i < 20 * 60 && st.Engineer.IsDown; i++)
+            {
+                phase.Tick(ctx, st, RaidFixture.Dt);
+                st.Tick++;
+                st.T += RaidFixture.Dt;
+            }
+            Assert.That(RaidFixture.Count<EngineerUpEvent>(st), Is.EqualTo(1), "the sim stood them back up");
+
+            vm.Intake(st.Events, 2);
+            vm.Refresh(ctx, st, 2, false, false, force: true);
+            Assert.That(Row(vm, HudViewModel.EngineerDownKey), Is.Null, "up: the danger row is gone");
+            var up = Row(vm, HudViewModel.EngineerUpKey);
+            Assert.That(up, Is.Not.Null, "and the EngineerUpEvent raised its own row, which the clear did not wipe");
+            Assert.That(up.Text, Is.EqualTo(HudViewModel.EngineerUpText));
+            Assert.That(up.Kind, Is.EqualTo(HudNoticeKind.Info));
+
+            vm.Notices.Reap(2 + HudViewModel.NoteSeconds + 0.1);
+            Assert.That(Row(vm, HudViewModel.EngineerUpKey), Is.Null, "the note is brief");
+        }
+
+        [Test]
+        public void ALoadedGameWithTheCoreAndEngineerDownSaysSoWithoutAnyEvent_AndAnOldHitIsNotAnAttack()
+        {
+            var (ctx, st) = WithCore();
+            st.T = 200;
+            st.Home.Hp = 0;
+            st.Home.DisabledAt = 150;
+            st.Engineer.Hp = 0;
+            st.Engineer.Down = st.T + 5;
+
+            var vm = new HudViewModel();
+            vm.Notices.Post("rel60:warning", "some warning", HudNoticeKind.Warning, 0, double.PositiveInfinity);
+            vm.Refresh(ctx, st, 1, false, false, force: true);
+            Assert.That(Row(vm, HudViewModel.CoreNoticeKey).Text, Is.EqualTo(HudViewModel.CoreDisabledText));
+            Assert.That(Row(vm, HudViewModel.EngineerDownKey), Is.Not.Null);
+            Assert.That(vm.Notices.Rows[0].Kind, Is.EqualTo(HudNoticeKind.Danger), "danger ranks above the warning");
+            Assert.That(vm.Notices.Rows[1].Kind, Is.EqualTo(HudNoticeKind.Danger));
+            Assert.That(vm.Notices.Rows[2].Key, Is.EqualTo("rel60:warning"));
+
+            // A hit heard in the session before a load back to an earlier save is not "under attack" now.
+            var seen = new HudViewModel();
+            seen.Intake(new System.Collections.Generic.List<SimEvent> { new CoreDamagedEvent(500, 250, 10) }, 1);
+            st.Home.Hp = 250;
+            st.Engineer.Down = -1;
+            st.Engineer.Hp = ctx.Data.Engineer.MaxHp;
+            seen.Refresh(ctx, st, 2, false, false, force: true);
+            Assert.That(Row(seen, HudViewModel.CoreNoticeKey).Text, Is.EqualTo(HudViewModel.CoreDamagedText));
+            Assert.That(Row(seen, HudViewModel.CoreNoticeKey).Kind, Is.EqualTo(HudNoticeKind.Warning));
+        }
+
         [Test]
         public void IntakeToleratesNoEventsAtAll()
         {

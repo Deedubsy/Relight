@@ -67,6 +67,10 @@ namespace Relight.Sim.UI
         private readonly List<ProblemGroup> _groups = new List<ProblemGroup>();
         private bool _taughtHesitation;
         private bool _taughtBlindTurret;
+        // REL-60: the sim time of the core's last hit, and what the core and engineer-down rows last said.
+        private double _coreHitT = double.NegativeInfinity;
+        private string _corePosted = "";
+        private bool _downPosted;
 
         /// <summary>The single power-alert producer (defect U-3). Nothing else may raise one.</summary>
         public readonly PowerAlertSource Power = new PowerAlertSource();
@@ -270,8 +274,16 @@ namespace Relight.Sim.UI
             }
             else { Core = ""; CoreFraction = 0; CoreDisabled = false; }
 
+            // REL-60 (UI-10): the core's standing row. It is read from STATE, so a loaded game with a downed core
+            // says so too, and posted only when what it says changes (U-D-55): a raid's hundred hits are one row.
+            // A hit is recent while the sim clock is at or past it, so a load back to an earlier save cannot keep
+            // saying "under attack" from the session before.
+            var hitRecently = st.T >= _coreHitT && st.T - _coreHitT < CoreHitSeconds;
+            PostCore(st.Home != null && st.Home.Placed ? CoreRowText(hp, maxCore, hitRecently) : "", now);
+
             // --- bottom left ----------------------------------------------------------------------------------
             var e = WorldQueries.Engineer(ctx, st);
+            PostEngineerDown(e.IsDown, now);
             if (e.IsDown)
             {
                 var left = Math.Max(0, e.UpAt - st.T);
@@ -350,6 +362,61 @@ namespace Relight.Sim.UI
             if (text.Length == 0) Notices.Clear(DroppedCargoKey);
             else Notices.Post(DroppedCargoKey, text, HudNoticeKind.Warning, now, double.PositiveInfinity);
             _cargoPosted = text;
+        }
+
+        /// <summary>REL-60 (UI-10): the one standing row for the Home core — under attack, disabled or damaged.</summary>
+        public const string CoreNoticeKey = "core:home";
+        /// <summary>REL-60: a patch repair the core fell during. The sim's own sentence, once.</summary>
+        public const string RepairAbortedKey = "core:repair-aborted";
+        /// <summary>REL-60: the standing row while the engineer is down.</summary>
+        public const string EngineerDownKey = "engineer:down";
+        /// <summary>REL-60: the moment the engineer is back up. Its own key, so the down row clearing cannot wipe it.</summary>
+        public const string EngineerUpKey = "engineer:up";
+
+        /// <summary>
+        /// Reference <c>campaignAlerts.ts:24</c>, whose "under attack" lasts while <c>st.t - e.lastHit &lt; 5</c>: the
+        /// core row says the core is being hit for this many SIM seconds after the last hit, then falls back to
+        /// "damaged".
+        /// </summary>
+        public const double CoreHitSeconds = 5;
+
+        public const string CoreUnderAttackText = "Home core under attack";
+        public const string CoreDisabledText =
+            "Home core disabled · press E at the core, then " + OpeningQueries.RecommissionButton + " in the workshop";
+        public const string CoreDamagedText = "Home core damaged · press E at the core to repair it";
+        public const string EngineerDownText = "Engineer down · wait to recover at Home";
+        public const string EngineerUpText = "Back on your feet at Home";
+
+        /// <summary>
+        /// The core row's sentence, "" at full health. §8 puts base damage above everything but engineer danger, so
+        /// a core being hit or knocked out is a <see cref="HudNoticeKind.Danger"/> row; one merely left damaged
+        /// after the hits stop is a warning, so a raid survived does not leave a red row until the repair.
+        /// </summary>
+        public static string CoreRowText(double hp, double max, bool hitRecently) =>
+            max <= 0 || hp >= max ? ""
+            : hp <= 0 ? CoreDisabledText
+            : hitRecently ? CoreUnderAttackText
+            : CoreDamagedText;
+
+        private static HudNoticeKind CoreRowKind(string text) =>
+            string.Equals(text, CoreDamagedText, StringComparison.Ordinal) ? HudNoticeKind.Warning : HudNoticeKind.Danger;
+
+        // One edge memory for the core row, shared by Intake (the frame it happens) and Refresh (from state), so the
+        // two never post the same sentence twice and the row never counts a repeat for a hit.
+        private void PostCore(string text, double now)
+        {
+            if (string.Equals(text, _corePosted, StringComparison.Ordinal)) return;
+            if (text.Length == 0) Notices.Clear(CoreNoticeKey);
+            else Notices.Post(CoreNoticeKey, text, CoreRowKind(text), now, double.PositiveInfinity);
+            _corePosted = text;
+        }
+
+        private void PostEngineerDown(bool down, double now)
+        {
+            if (down == _downPosted) return;
+            if (down) Notices.Post(EngineerDownKey, EngineerDownText, HudNoticeKind.Danger, now, double.PositiveInfinity);
+            else Notices.Clear(EngineerDownKey);
+            _downPosted = down;
         }
 
         /// <summary>The row's sentence. One pile names its place; several say how many and name the newest.</summary>
@@ -484,6 +551,29 @@ namespace Relight.Sim.UI
                             lit.Name + " connected · " + lit.Lights.ToString(CultureInfo.InvariantCulture)
                             + (lit.Lights == 1 ? " streetlight on" : " streetlights on"),
                             HudNoticeKind.Info, now, GuideSeconds);
+                        break;
+                    // REL-60 (UI-10): the worst moments of a raid. Each raises its row the frame it happens; Refresh
+                    // keeps the standing ones true to state on the same edge memory, so none is posted twice.
+                    case CoreDamagedEvent hit:
+                        _coreHitT = hit.T;
+                        if (hit.Hp > 0) PostCore(CoreUnderAttackText, now);
+                        break;
+                    case CoreDisabledEvent _:
+                        PostCore(CoreDisabledText, now);
+                        break;
+                    // The sim's own sentence, verbatim ("Core knocked out during repair; a full recovery kit is
+                    // required."). It is a moment, not a state — the core row already says the core is disabled.
+                    case CoreRepairAbortedEvent aborted:
+                        if (string.IsNullOrEmpty(aborted.Text)) break;
+                        Notices.Post(RepairAbortedKey, aborted.Text, HudNoticeKind.Warning, now, GuideSeconds);
+                        break;
+                    case EngineerDownEvent _:
+                        Notices.Clear(EngineerUpKey);
+                        PostEngineerDown(true, now);
+                        break;
+                    case EngineerUpEvent _:
+                        PostEngineerDown(false, now);
+                        Notices.Post(EngineerUpKey, EngineerUpText, HudNoticeKind.Info, now, NoteSeconds);
                         break;
                     // U-D-44: the workshop finishes batches while the player is anywhere else, so the HUD is the
                     // only place that can say so. One row, updated in place, naming where the goods are waiting.
