@@ -54,20 +54,8 @@ namespace Relight.Sim
 
         // ---------------------------------------------------------------- the failure path (E-18)
 
-        /// <summary>
-        /// How close to the Home core a raid body must be to block the core's repair, in tiles from the core's
-        /// edge (U-P-19). Before E-18 any raid body anywhere on the map blocked it.
-        /// </summary>
-        public const double CoreThreatTiles = 12;
-
-        /// <summary>
-        /// Seconds past a large raid's planned end after which it is called off whatever is still alive (U-P-20).
-        /// Plan 400 s + this + recovery 300 s stays under the 1080 s minimum interval, so the schedule holds.
-        /// </summary>
-        public const double MajorOverrunS = 300;
-
-        /// <summary>Seconds after a large raid ends before any survivor still on the map is removed (U-P-21).</summary>
-        public const double WithdrawPurgeS = 120;
+        // REL-84: CoreThreatTiles (U-P-19), MajorOverrunS (U-P-20) and WithdrawPurgeS (U-P-21) moved to
+        // SiegeTuning, unchanged at 12 tiles, 300 s and 120 s. Read them from ctx.Data.Siege.
 
         /// <summary>
         /// E-19, developer tool only: how far ahead the Admin panel's "skip the wait" puts the next large raid.
@@ -101,14 +89,10 @@ namespace Relight.Sim
 
         // ---------------------------------------------------------------- entry tiles
 
-        /// <summary>The nearest a wave may enter, in BFS steps from the core. Below this it is already inside.</summary>
-        public const int EntryNearSteps = 8;
-
-        /// <summary>The furthest a wave may enter. Past this the walk in is a wait, not a raid (fair travel, GP-W3).</summary>
-        public const int EntryFarSteps = 76;
-
-        /// <summary>A wave never enters this close to the engineer (reference campaignThreat.ts:132's 28 tiles).</summary>
-        public const double SafeFromEngineerTiles = 28;
+        // REL-84: EntryNearSteps (8), EntryFarSteps (76) and SafeFromEngineerTiles (28) moved to SiegeTuning, with
+        // the two ideal-distance scores the scans used to write inline (StagingIdealSteps 24, ApproachIdealSteps
+        // 42). Read them from ctx.Data.Siege. The tier bands (20/60, 12, 32, 20), the defence spacing radii and the
+        // BFS caps stay here: they are the shape of the algorithm, not numbers a designer turns.
 
         /// <summary>
         /// Can a wave enter the map here? ONE predicate, shared by <see cref="Origin"/>, <see cref="Approaches"/>
@@ -127,7 +111,7 @@ namespace Relight.Sim
             if (d < lo || d > hi) return false;
             if (!Ground.Passable(ctx, st, x, y)) return false;
             if (line != int.MinValue && y < line) return false;
-            return Distance(st.Engineer.Pos.X, st.Engineer.Pos.Y, x + .5, y + .5) >= SafeFromEngineerTiles;
+            return Distance(st.Engineer.Pos.X, st.Engineer.Pos.Y, x + .5, y + .5) >= ctx.Data.Siege.SafeFromEngineerTiles;
         }
 
         /// <summary>
@@ -157,18 +141,20 @@ namespace Relight.Sim
         /// </summary>
         private static int OriginTier(SimContext ctx, SimState st, RaidField fld, int line, int x, int y)
         {
+            var s = ctx.Data.Siege;
             if (EntryTile(ctx, st, fld, line, x, y, 20, 60)) return 0;
-            if (EntryTile(ctx, st, fld, line, x, y, 12, EntryFarSteps)) return 1;
-            if (EntryTile(ctx, st, fld, line, x, y, EntryNearSteps, EntryFarSteps)) return 2;
+            if (EntryTile(ctx, st, fld, line, x, y, 12, s.EntryFarSteps)) return 1;
+            if (EntryTile(ctx, st, fld, line, x, y, s.EntryNearSteps, s.EntryFarSteps)) return 2;
             return int.MaxValue;
         }
 
         /// <summary>As <see cref="OriginTier"/>, for a sector approach: further out, and clear of placed defences.</summary>
         private static int ApproachTier(SimContext ctx, SimState st, RaidField fld, int line, int x, int y)
         {
-            if (EntryTile(ctx, st, fld, line, x, y, 32, EntryFarSteps) && !NearDefence(ctx, st, x, y, 12)) return 0;
-            if (EntryTile(ctx, st, fld, line, x, y, 20, EntryFarSteps) && !NearDefence(ctx, st, x, y, 8)) return 1;
-            if (EntryTile(ctx, st, fld, line, x, y, EntryNearSteps, EntryFarSteps)) return 2;
+            var s = ctx.Data.Siege;
+            if (EntryTile(ctx, st, fld, line, x, y, 32, s.EntryFarSteps) && !NearDefence(ctx, st, x, y, 12)) return 0;
+            if (EntryTile(ctx, st, fld, line, x, y, 20, s.EntryFarSteps) && !NearDefence(ctx, st, x, y, 8)) return 1;
+            if (EntryTile(ctx, st, fld, line, x, y, s.EntryNearSteps, s.EntryFarSteps)) return 2;
             return int.MaxValue;
         }
 
@@ -181,7 +167,7 @@ namespace Relight.Sim
         /// approach at all and, on a region whose <see cref="SiteKind.RaidLine"/> sits well south of the core, does
         /// not overlap the half of the map the raid line allows — the band and the filter were disjoint, every tile
         /// was rejected, and the director fell back to a map-edge tile. The box is now derived from the band
-        /// (<see cref="EntryFarSteps"/>), which is what "use the actual map" means here.
+        /// (<see cref="SiegeTuning.EntryFarSteps"/>), which is what "use the actual map" means here.
         ///
         /// 2026-09-18: a tile whose tier is <see cref="int.MaxValue"/> is skipped outright. Before this the loop
         /// only compared tiers, so when NO tile qualified the first cheapest non-entry tile "won" — on Founders
@@ -199,13 +185,14 @@ namespace Relight.Sim
             var best = -1;
             var bestTier = int.MaxValue;
             var score = double.PositiveInfinity;
-            var reach = EntryFarSteps + 1;
+            var siege = ctx.Data.Siege;
+            var reach = siege.EntryFarSteps + 1;
             for (var y = Math.Max(0, by - reach); y < Math.Min(h, by + size + reach); y++)
                 for (var x = Math.Max(0, bx - reach); x < Math.Min(w, bx + size + reach); x++)
                 {
                     var tier = OriginTier(ctx, st, fld, line, x, y);
                     if (tier == int.MaxValue || tier > bestTier) continue;
-                    var s = Math.Abs(fld.At(x, y) - 24) * 100 + LightScore(ctx, st, fld, x, y) + Distance(x, y, bx, by);
+                    var s = Math.Abs(fld.At(x, y) - siege.StagingIdealSteps) * 100 + LightScore(ctx, st, fld, x, y) + Distance(x, y, bx, by);
                     if (tier == bestTier && s >= score) continue;
                     bestTier = tier;
                     score = s;
@@ -238,6 +225,7 @@ namespace Relight.Sim
             var cx = bx + size / 2.0;
             var cy = by + size / 2.0;
             var line = RaidLineY(ctx);
+            var siege = ctx.Data.Siege;
             var tile = new int[4];
             var tier = new int[4];
             var score = new double[4];
@@ -250,14 +238,14 @@ namespace Relight.Sim
                 if (authored && t == 0) t = -1;              // an authored camp on a fair approach IS the approach
                 var sector = Sector(x - cx, y - cy);
                 if (t > tier[sector]) return;
-                var s = Math.Abs(fld.At(x, y) - 42) * 100 + LightScore(ctx, st, fld, x, y) + Distance(x + .5, y + .5, cx, cy);
+                var s = Math.Abs(fld.At(x, y) - siege.ApproachIdealSteps) * 100 + LightScore(ctx, st, fld, x, y) + Distance(x + .5, y + .5, cx, cy);
                 if (t == tier[sector] && s >= score[sector]) return;
                 tier[sector] = t;
                 score[sector] = s;
                 tile[sector] = y * w + x;
             }
 
-            var reach = EntryFarSteps + 1;
+            var reach = siege.EntryFarSteps + 1;
             for (var y = Math.Max(0, by - reach); y < Math.Min(h, by + size + reach); y++)
                 for (var x = Math.Max(0, bx - reach); x < Math.Min(w, bx + size + reach); x++)
                     Offer(x, y, false);
@@ -288,10 +276,11 @@ namespace Relight.Sim
             var ox = origin % w;
             var oy = origin / w;
             var line = RaidLineY(ctx);
+            var siege = ctx.Data.Siege;
             var approach = Heading(ox - bx, oy - by);
 
             bool Valid(int x, int y) =>
-                EntryTile(ctx, st, toCore, line, x, y, EntryNearSteps, EntryFarSteps)
+                EntryTile(ctx, st, toCore, line, x, y, siege.EntryNearSteps, siege.EntryFarSteps)
                 && Heading(x - bx, y - by) == approach;
 
             if (Valid(ox, oy)) return origin;
@@ -407,8 +396,10 @@ namespace Relight.Sim
                 var t = queue[head];
                 var x = t % w;
                 var y = t / w;
+                // REL-84: the same 28 tiles EntryTile keeps an entry tile clear of the engineer, and the same rule
+                // — a raid body never appears on top of the player. One number, now read from one place.
                 if (Ground.Passable(ctx, st, x, y)
-                    && (layer == EnemyLayer.Site || Distance(st.Engineer.Pos.X, st.Engineer.Pos.Y, x + .5, y + .5) >= 28)
+                    && (layer == EnemyLayer.Site || Distance(st.Engineer.Pos.X, st.Engineer.Pos.Y, x + .5, y + .5) >= ctx.Data.Siege.SafeFromEngineerTiles)
                     && !Crowded(st, x + .5, y + .5, 1))
                 {
                     sx = x; sy = y; return true;

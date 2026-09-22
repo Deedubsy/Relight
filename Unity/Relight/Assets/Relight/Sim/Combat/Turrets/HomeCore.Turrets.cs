@@ -28,7 +28,7 @@ namespace Relight.Sim
     /// that took it down is still on the map (<c>d.major?.block===core.block || d.minor?.block===core.block</c>).
     /// Phase C has one Home block, so before E-18 "a live raid body of either layer" was the whole test — and a
     /// single survivor parked anywhere on the map blocked the repair for ever (ENM-03). E-18 (U-D-64 d): only a raid
-    /// body within <see cref="DirectorRules.CoreThreatTiles"/> of the core's edge blocks it. Site guards never did.
+    /// body within <see cref="SiegeTuning.CoreThreatTiles"/> of the core's edge blocks it. Site guards never did.
     /// </summary>
     public static partial class Home
     {
@@ -36,7 +36,7 @@ namespace Relight.Sim
         {
             var h = st.Home;
             if (h == null || !h.Placed) return;
-            var reach = DirectorRules.CoreThreatTiles;
+            var reach = ctx.Data.Siege.CoreThreatTiles;
             for (var i = 0; i < st.Enemies.Actors.Count; i++)
             {
                 var e = st.Enemies.Actors[i];

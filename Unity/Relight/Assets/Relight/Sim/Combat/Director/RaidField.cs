@@ -17,7 +17,7 @@ namespace Relight.Sim
     /// below its last row, so a 70-tile box measured from the top-left corner ended at row 417, every tile at or
     /// below the raid line read -1, no legal entry tile existed, and the introductory attack was born INSIDE the
     /// court (see DirectorRules.Origin). The box is now derived from the one rule that actually bounds where a wave
-    /// may enter, <see cref="DirectorRules.EntryFarSteps"/>, plus the 12 steps <see cref="DirectorRules.Staging"/>
+    /// may enter, <see cref="SiegeTuning.EntryFarSteps"/>, plus the 12 steps <see cref="DirectorRules.Staging"/>
     /// may search outward from an entry tile. Every distance the reference reported is still reported; distances
     /// in the extra ring are new, and everything outside the box is -1 in both.
     ///
@@ -32,23 +32,37 @@ namespace Relight.Sim
     public sealed class RaidField
     {
         /// <summary>
-        /// How far beyond the seed rectangle's edges the field is computed, in tiles: the furthest a wave may enter
-        /// (<see cref="DirectorRules.EntryFarSteps"/> BFS steps, which is at most that many tiles) plus the 12-step
-        /// outward search <see cref="DirectorRules.Staging"/> makes from an entry tile. A raid line further than
-        /// this from the core can never be reached and the director will say so (-1) rather than guess.
+        /// The MARGIN half of <see cref="Reach"/>, and not a tuning number: the 12 steps
+        /// <see cref="DirectorRules.Staging"/> may search outward from an entry tile. It is the search's own bound,
+        /// so it moves only when that loop does, and it is deliberately left here rather than on
+        /// <see cref="SiegeTuning"/> (REL-84).
         /// </summary>
-        public const int Reach = DirectorRules.EntryFarSteps + 12;
+        public const int StagingMargin = 12;
+
+        /// <summary>
+        /// How far beyond the seed rectangle's edges the field is computed, in tiles: the furthest a wave may enter
+        /// (<see cref="SiegeTuning.EntryFarSteps"/> BFS steps, which is at most that many tiles) plus
+        /// <see cref="StagingMargin"/>. A raid line further than this from the core can never be reached and the
+        /// director will say so (-1) rather than guess.
+        ///
+        /// REL-84 made it a value rather than a const, because the far band is now tuning. It is stored on the
+        /// field it built and is part of the cache key, so a field computed for one reach is never handed to a
+        /// caller asking for another.
+        /// </summary>
+        public static int ReachOf(SimContext ctx) => ctx.Data.Siege.EntryFarSteps + StagingMargin;
 
         /// <summary>Box origin in tiles (already clipped to the map).</summary>
         public readonly int X0, Y0, BW, BH;
+        /// <summary>The <see cref="ReachOf"/> this field was computed with.</summary>
+        public readonly int Reach;
         private readonly int[] _dist;
         private readonly int[] _cost;
         /// <summary>Global tile indices of the seed ring (distance 0), in scan order.</summary>
         public readonly int[] Targets;
 
-        internal RaidField(int x0, int y0, int bw, int bh, int[] dist, int[] cost, int[] targets)
+        internal RaidField(int x0, int y0, int bw, int bh, int reach, int[] dist, int[] cost, int[] targets)
         {
-            X0 = x0; Y0 = y0; BW = bw; BH = bh; _dist = dist; _cost = cost ?? dist; Targets = targets;
+            X0 = x0; Y0 = y0; BW = bw; BH = bh; Reach = reach; _dist = dist; _cost = cost ?? dist; Targets = targets;
         }
 
         /// <summary>Steps to the seed rectangle from (x, y), or -1 when it cannot be reached inside the box.</summary>
@@ -98,14 +112,19 @@ namespace Relight.Sim
     /// </summary>
     public sealed class RaidFieldCache
     {
+        /// <summary>
+        /// REL-84 added <see cref="Reach"/>. The box a field occupies is derived from the siege tuning's far entry
+        /// band, and a cache is held on <see cref="DirectorState"/> rather than on the context — so a state driven
+        /// with retuned data (a test, an Admin reload) could otherwise be handed a field whose box is the old size.
+        /// </summary>
         private readonly struct Key : IEquatable<Key>
         {
-            public readonly int X, Y, Size, Clearance;
+            public readonly int X, Y, Size, Clearance, Reach;
             public readonly bool Breach;
-            public Key(int x, int y, int size, bool breach, int clearance) { X = x; Y = y; Size = size; Breach = breach; Clearance = clearance; }
-            public bool Equals(Key o) => X == o.X && Y == o.Y && Size == o.Size && Breach == o.Breach && Clearance == o.Clearance;
+            public Key(int x, int y, int size, bool breach, int clearance, int reach) { X = x; Y = y; Size = size; Breach = breach; Clearance = clearance; Reach = reach; }
+            public bool Equals(Key o) => X == o.X && Y == o.Y && Size == o.Size && Breach == o.Breach && Clearance == o.Clearance && Reach == o.Reach;
             public override bool Equals(object o) => o is Key k && Equals(k);
-            public override int GetHashCode() => unchecked(((X * 397 ^ Y) * 397 ^ Size) * 397 ^ (Clearance * 2 + (Breach ? 1 : 0)));
+            public override int GetHashCode() => unchecked((((X * 397 ^ Y) * 397 ^ Size) * 397 ^ (Clearance * 2 + (Breach ? 1 : 0))) * 397 ^ Reach);
         }
 
         private readonly Dictionary<Key, RaidField> _map = new Dictionary<Key, RaidField>();
@@ -117,7 +136,7 @@ namespace Relight.Sim
         {
             var light = st.Light.Builds;
             if (_rev != st.Rev || _light != light) { _map.Clear(); _rev = st.Rev; _light = light; }
-            var key = new Key(x, y, size, breach, clearance);
+            var key = new Key(x, y, size, breach, clearance, RaidField.ReachOf(ctx));
             if (_map.TryGetValue(key, out var hit)) return hit;
             var built = Build(ctx, st, x, y, size, breach, clearance);
             if (_map.Count > 32) _map.Clear();
@@ -132,10 +151,11 @@ namespace Relight.Sim
             // The seed rectangle's last tile on each axis; a point seed (size 0) is its own last tile.
             var xLast = x + Math.Max(size, 1) - 1;
             var yLast = y + Math.Max(size, 1) - 1;
-            var x0 = Math.Max(0, x - RaidField.Reach);
-            var y0 = Math.Max(0, y - RaidField.Reach);
-            var x1 = Math.Min(w - 1, xLast + RaidField.Reach);
-            var y1 = Math.Min(h - 1, yLast + RaidField.Reach);
+            var reach = RaidField.ReachOf(ctx);
+            var x0 = Math.Max(0, x - reach);
+            var y0 = Math.Max(0, y - reach);
+            var x1 = Math.Min(w - 1, xLast + reach);
+            var y1 = Math.Min(h - 1, yLast + reach);
             var bw = Math.Max(0, x1 - x0 + 1);
             var bh = Math.Max(0, y1 - y0 + 1);
             var dist = new int[bw * bh];
@@ -147,7 +167,7 @@ namespace Relight.Sim
             bool Open(int xx, int yy)
             {
                 if (!Ground.InBounds(ctx, xx, yy)) return false;
-                if (xx < x - RaidField.Reach || xx > xLast + RaidField.Reach || yy < y - RaidField.Reach || yy > yLast + RaidField.Reach) return false;
+                if (xx < x - reach || xx > xLast + reach || yy < y - reach || yy > yLast + reach) return false;
                 if (!Ground.Walkable(ctx, xx, yy)) return false;
                 if (clearance > 0)
                 {
@@ -196,7 +216,7 @@ namespace Relight.Sim
                 }
             }
 
-            return new RaidField(x0, y0, bw, bh, dist, Weigh(ctx, st, x0, y0, bw, bh, dist, targets, w), targets.ToArray());
+            return new RaidField(x0, y0, bw, bh, reach, dist, Weigh(ctx, st, x0, y0, bw, bh, dist, targets, w), targets.ToArray());
         }
 
         /// <summary>

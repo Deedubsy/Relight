@@ -61,10 +61,19 @@ namespace Relight.Data
             return null;
         }
 
+        /// <summary>
+        /// REL-84 (E-19): raised whenever a definition or tuning asset is edited in the Inspector, so a running
+        /// game can rebuild its data and take the change without a restart (<c>WorldBootstrap.ReloadData</c>).
+        /// Editor only by nature — <c>OnValidate</c> never runs in a build, so a build only ever sees the values it
+        /// shipped with. Argument: the asset that changed.
+        /// </summary>
+        public static event System.Action<DataDefinition> Edited;
+
         protected virtual void OnValidate()
         {
             var problem = Problem();
             if (problem != null) Debug.LogWarning($"{GetType().Name} '{name}': {problem}", this);
+            Edited?.Invoke(this);
         }
     }
 

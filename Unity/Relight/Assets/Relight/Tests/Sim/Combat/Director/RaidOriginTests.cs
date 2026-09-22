@@ -50,14 +50,14 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var size), Is.True);
             var fld = st.Director.Fields.Field(ctx, st, bx, by, size, true);
             Assert.That(fld.At(CoreX + 4, line), Is.GreaterThanOrEqualTo(0), "the field reaches the raid line row");
-            Assert.That(fld.At(CoreX + 4, line), Is.LessThanOrEqualTo(DirectorRules.EntryFarSteps), "and it is inside the entry band there");
+            Assert.That(fld.At(CoreX + 4, line), Is.LessThanOrEqualTo(ctx.Data.Siege.EntryFarSteps), "and it is inside the entry band there");
 
             var origin = DirectorRules.Origin(ctx, st);
             Assert.That(origin, Is.GreaterThanOrEqualTo(0), "the director finds an entry tile");
             var ox = origin % Size;
             var oy = origin / Size;
             Assert.That(oy, Is.GreaterThanOrEqualTo(line), "the origin is at or below the raid line, not inside the court");
-            Assert.That(DirectorRules.EntryTile(ctx, st, fld, line, ox, oy, DirectorRules.EntryNearSteps, DirectorRules.EntryFarSteps), Is.True, "and it is a legal entry tile");
+            Assert.That(DirectorRules.EntryTile(ctx, st, fld, line, ox, oy, ctx.Data.Siege.EntryNearSteps, ctx.Data.Siege.EntryFarSteps), Is.True, "and it is a legal entry tile");
             Assert.That(DirectorRules.Staging(ctx, st, origin), Is.EqualTo(origin), "staging accepts the origin unchanged");
 
             var approaches = DirectorRules.Approaches(ctx, st);
@@ -73,7 +73,7 @@ namespace Relight.Sim.Tests.Combat
         [Test]
         public void AnUnreachableRaidLineYieldsNoOriginRatherThanAnInteriorTile()
         {
-            var ctx = Context(DirectorRules.EntryFarSteps + 20);
+            var ctx = Context(SiegeTuning.Fallback.EntryFarSteps + 20);
             var st = RaidFixture.State(ctx);
             Assert.That(DirectorRules.Origin(ctx, st), Is.EqualTo(-1), "no entry tile exists, so there is no origin");
             Assert.That(DirectorRules.Approaches(ctx, st), Is.Empty, "and nothing is advertised");
@@ -86,11 +86,11 @@ namespace Relight.Sim.Tests.Combat
             var ctx = Context(72);
             var st = RaidFixture.State(ctx);
             var fld = st.Director.Fields.Field(ctx, st, CoreX, CoreY, CoreSize, true);
-            Assert.That(fld.X0, Is.EqualTo(CoreX - RaidField.Reach));
+            Assert.That(fld.X0, Is.EqualTo(CoreX - fld.Reach));
             Assert.That(fld.Y0, Is.EqualTo(0), "clipped to the map's top edge");
-            Assert.That(fld.X0 + fld.BW - 1, Is.EqualTo(CoreX + CoreSize - 1 + RaidField.Reach));
-            Assert.That(fld.Y0 + fld.BH - 1, Is.EqualTo(CoreY + CoreSize - 1 + RaidField.Reach));
-            Assert.That(fld.At(CoreX + CoreSize - 1 + RaidField.Reach + 1, CoreY), Is.EqualTo(-1), "one tile past the reach is outside");
+            Assert.That(fld.X0 + fld.BW - 1, Is.EqualTo(CoreX + CoreSize - 1 + fld.Reach));
+            Assert.That(fld.Y0 + fld.BH - 1, Is.EqualTo(CoreY + CoreSize - 1 + fld.Reach));
+            Assert.That(fld.At(CoreX + CoreSize - 1 + fld.Reach + 1, CoreY), Is.EqualTo(-1), "one tile past the reach is outside");
         }
     }
 }

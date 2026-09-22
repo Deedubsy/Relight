@@ -8,8 +8,9 @@ namespace Relight.Sim
     /// </summary>
     public static class Enemies
     {
-        /// <summary>How long a body remembers where it last saw the engineer (reference hostileAwareness.ts <c>HOSTILE_MEMORY_SECONDS</c>).</summary>
-        public const double MemorySeconds = 6;
+        // REL-84: how long a body remembers where it last saw the engineer (reference hostileAwareness.ts
+        // HOSTILE_MEMORY_SECONDS) moved to SiegeTuning.MemoryS, unchanged at 6 s. Both sites that set it have a
+        // SimContext, so it is read from ctx.Data.Siege rather than kept as a const here.
 
         public static EnemyDef Def(GameData d, Enemy e) => d.TryEnemy(e.Kind, out var def) ? def : null;
 
@@ -125,7 +126,7 @@ namespace Relight.Sim
             var e = st.Enemies.Find(id);
             if (e == null) return;
             e.LastKnown = origin;
-            e.LastKnownUntil = st.T + MemorySeconds;
+            e.LastKnownUntil = st.T + ctx.Data.Siege.MemoryS;
             e.OnPlayer = true;
             var radius = ctx.Data.Raids.AlertRadiusTiles;
             for (var i = 0; i < st.Enemies.Actors.Count; i++)
@@ -159,7 +160,7 @@ namespace Relight.Sim
             if (distance <= (aware ? escape : notice) && ctx.Geometry.Sight(e.Pos.X, e.Pos.Y, p.Pos.X, p.Pos.Y))
             {
                 e.LastKnown = p.Pos;
-                e.LastKnownUntil = st.T + MemorySeconds;
+                e.LastKnownUntil = st.T + ctx.Data.Siege.MemoryS;
             }
             else if (aware && DirectorRules.Distance(e.Pos.X, e.Pos.Y, e.LastKnown.X, e.LastKnown.Y) < .5)
             {

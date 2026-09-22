@@ -111,7 +111,7 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(HomeCore.RepairProblem(ctx, st, RepairKinds.Core, -1), Is.EqualTo("wait for the attackers to leave"));
 
             // The survivors leave by themselves; nobody shoots them.
-            limit = (int)((DirectorRules.WithdrawPurgeS + 5) / RaidFixture.Dt);
+            limit = (int)((ctx.Data.Siege.WithdrawPurgeS + 5) / RaidFixture.Dt);
             ticks = 0;
             while (EnemyQueries.GroupAlive(st, raid.Id) > 0 && ticks++ < limit) RaidFixture.Run(ctx, st, 1, Phases());
             Assert.That(EnemyQueries.GroupAlive(st, raid.Id), Is.EqualTo(0), "every survivor has left the map");

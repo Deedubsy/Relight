@@ -57,6 +57,9 @@ public static class RaidDirectorGizmo
         public int[] Approaches = Array.Empty<int>();
         public int[] Staging = Array.Empty<int>();
         public Vector2 Engineer;
+        /// <summary>REL-84: the entry band, field reach and safe ring are tuning now, read from the context that built the snapshot.</summary>
+        public int EntryNear, EntryFar, Reach;
+        public double SafeRing;
         public readonly Mesh[] Tier = new Mesh[3];
         public readonly int[] TierCount = new int[3];
         public bool Live;
@@ -129,6 +132,8 @@ public static class RaidDirectorGizmo
     static Snapshot Compute(SimContext ctx, SimState st, bool live)
     {
         var s = new Snapshot { W = ctx.Geometry.Width, H = ctx.Geometry.Height, Live = live, Tick = st.Tick, BuiltAt = EditorApplication.timeSinceStartup };
+        var siege = ctx.Data.Siege;
+        s.EntryNear = siege.EntryNearSteps; s.EntryFar = siege.EntryFarSteps; s.Reach = RaidField.ReachOf(ctx); s.SafeRing = siege.SafeFromEngineerTiles;
         s.Engineer = new Vector2((float)st.Engineer.Pos.X, (float)st.Engineer.Pos.Y);
         s.Line = DirectorRules.RaidLineY(ctx);
         var cr = HomeQueries.CoreRect(st);
@@ -151,8 +156,8 @@ public static class RaidDirectorGizmo
             {
                 int tier;
                 if (DirectorRules.EntryTile(ctx, st, fld, s.Line, x, y, 20, 60)) tier = 0;
-                else if (DirectorRules.EntryTile(ctx, st, fld, s.Line, x, y, 12, DirectorRules.EntryFarSteps)) tier = 1;
-                else if (DirectorRules.EntryTile(ctx, st, fld, s.Line, x, y, DirectorRules.EntryNearSteps, DirectorRules.EntryFarSteps)) tier = 2;
+                else if (DirectorRules.EntryTile(ctx, st, fld, s.Line, x, y, 12, s.EntryFar)) tier = 1;
+                else if (DirectorRules.EntryTile(ctx, st, fld, s.Line, x, y, s.EntryNear, s.EntryFar)) tier = 2;
                 else continue;
                 s.TierCount[tier]++;
                 var q = quads[tier];
@@ -165,7 +170,7 @@ public static class RaidDirectorGizmo
         {
             var ox = s.Origin % s.W; var oy = s.Origin / s.W;
             s.OriginSteps = fld.At(ox, oy);
-            s.OriginLegal = DirectorRules.EntryTile(ctx, st, fld, s.Line, ox, oy, DirectorRules.EntryNearSteps, DirectorRules.EntryFarSteps);
+            s.OriginLegal = DirectorRules.EntryTile(ctx, st, fld, s.Line, ox, oy, s.EntryNear, s.EntryFar);
             s.OriginHeading = DirectorRules.HeadingWord(DirectorRules.Heading(ox + .5 - (s.SeedX + s.SeedSize / 2.0), oy + .5 - (s.SeedY + s.SeedSize / 2.0)));
         }
         s.Approaches = DirectorRules.Approaches(ctx, st);
@@ -176,7 +181,7 @@ public static class RaidDirectorGizmo
         sb.Append(live ? "LIVE tick " + st.Tick : "Edit Mode, new game");
         sb.Append(" | core ").Append(s.Core.x).Append(',').Append(s.Core.y).Append(' ').Append(s.Core.width).Append('x').Append(s.Core.height);
         sb.Append(" | raid line ").Append(s.Line == int.MinValue ? "none" : "row " + s.Line);
-        sb.Append(" | field box rows ").Append(s.Box.yMin).Append("..").Append(s.Box.yMax - 1).Append(" (reach ").Append(RaidField.Reach).Append(')');
+        sb.Append(" | field box rows ").Append(s.Box.yMin).Append("..").Append(s.Box.yMax - 1).Append(" (reach ").Append(s.Reach).Append(')');
         sb.Append(" | entry tiles ").Append(s.TierCount[0]).Append('/').Append(s.TierCount[1]).Append('/').Append(s.TierCount[2]).Append(" by tier");
         sb.Append(" | origin ").Append(s.Origin < 0 ? "NONE" : Tile(s, s.Origin) + " " + s.OriginSteps + " steps " + s.OriginHeading + (s.OriginLegal ? "" : " NOT LEGAL"));
         sb.Append(" | approaches ").Append(s.Approaches.Length);
@@ -247,7 +252,7 @@ public static class RaidDirectorGizmo
         {
             Gizmos.color = new Color(0.2f, 0.9f, 0.5f, 0.9f);
             Gizmos.DrawWireCube(Centre(s.Box), new Vector3(s.Box.width, s.Box.height, 0));
-            Handles.Label(new Vector3(s.Box.xMin + 0.5f, -s.Box.yMin + 0.2f, Z), "raid field box  rows " + s.Box.yMin + ".." + (s.Box.yMax - 1) + "  reach " + RaidField.Reach, style);
+            Handles.Label(new Vector3(s.Box.xMin + 0.5f, -s.Box.yMin + 0.2f, Z), "raid field box  rows " + s.Box.yMin + ".." + (s.Box.yMax - 1) + "  reach " + s.Reach, style);
             Handles.Label(new Vector3(s.Box.xMin + 0.5f, -(s.Box.yMax) - 0.4f, Z), "field ends: row " + (s.Box.yMax - 1) + " — below this every tile reads -1", style);
 
             Gizmos.color = new Color(0.35f, 0.65f, 1f, 1f);
@@ -268,7 +273,7 @@ public static class RaidDirectorGizmo
 
         // The engineer's safe ring.
         Handles.color = new Color(0.8f, 0.8f, 0.8f, 0.7f);
-        Handles.DrawWireDisc(new Vector3(s.Engineer.x, -s.Engineer.y, Z), Vector3.forward, (float)DirectorRules.SafeFromEngineerTiles);
+        Handles.DrawWireDisc(new Vector3(s.Engineer.x, -s.Engineer.y, Z), Vector3.forward, (float)s.SafeRing);
 
         // Approaches and their staging tiles.
         for (var i = 0; i < s.Approaches.Length; i++)

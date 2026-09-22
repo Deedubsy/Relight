@@ -108,7 +108,7 @@ namespace Relight.Sim.Tests.Combat
 
             // The whole combat stack now, so the bodies really walk. Nobody shoots them.
             st.Engineer.Pos = new Vec2(RaidFixture.CoreX + 4, RaidFixture.CoreY + 4);
-            var limit = (int)((DirectorRules.WithdrawPurgeS + 5) / RaidFixture.Dt);
+            var limit = (int)((ctx.Data.Siege.WithdrawPurgeS + 5) / RaidFixture.Dt);
             var ticks = 0;
             while (EnemyQueries.GroupAlive(st, a.Id) > 0 && ticks++ < limit) RaidFixture.Run(ctx, st, 1);
             Assert.That(EnemyQueries.GroupAlive(st, a.Id), Is.EqualTo(0), "every survivor has left the map");
@@ -142,7 +142,7 @@ namespace Relight.Sim.Tests.Combat
             RaidFixture.Run(ctx, st, 20, Clock());
             Assert.That(d.Major, Is.Not.Null, "EndsAt 0 means no plan: nothing to overrun");
 
-            d.Major.EndsAt = st.T - DirectorRules.MajorOverrunS + 1;
+            d.Major.EndsAt = st.T - ctx.Data.Siege.MajorOverrunS + 1;
             RaidFixture.Run(ctx, st, 1, Clock());
             Assert.That(d.Major, Is.Not.Null, "not yet");
 
@@ -187,7 +187,7 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(alive, Is.GreaterThan(0));
 
             // Only the director runs, so the bodies never move: they are stuck for the purpose of this test.
-            RaidFixture.Run(ctx, st, (int)((DirectorRules.WithdrawPurgeS - 5) / RaidFixture.Dt), Clock());
+            RaidFixture.Run(ctx, st, (int)((ctx.Data.Siege.WithdrawPurgeS - 5) / RaidFixture.Dt), Clock());
             Assert.That(EnemyQueries.GroupAlive(st, a.Id), Is.EqualTo(alive), "not before the purge time");
             RaidFixture.Run(ctx, st, (int)(10 / RaidFixture.Dt), Clock());
             Assert.That(EnemyQueries.GroupAlive(st, a.Id), Is.EqualTo(0));
@@ -233,7 +233,7 @@ namespace Relight.Sim.Tests.Combat
             var ctx = RaidFixture.Context();
             var st = State(ctx);
             var (cx, cy, cw, _) = HomeQueries.CoreRect(st);
-            var reach = DirectorRules.CoreThreatTiles;
+            var reach = ctx.Data.Siege.CoreThreatTiles;
 
             var e = RaidFixture.Body(st, "skitter", cx + cw + reach + 1.5, cy + 0.5, EnemyLayer.Major, 5);
             Assert.That(Home.AttackersNearby(ctx, st), Is.False, "just outside the ring");

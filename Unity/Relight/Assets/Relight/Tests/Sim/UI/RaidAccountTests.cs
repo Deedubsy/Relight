@@ -492,7 +492,7 @@ namespace Relight.Sim.Tests.UI
         public void ARaidThatBrokeOffIsRecordedAsThatAndCreditsNobody()
         {
             var (ctx, st, acc, a) = AnAssaultUnderWay();
-            a.EndsAt = st.T - DirectorRules.MajorOverrunS - 1;          // long past its planned end, bodies alive
+            a.EndsAt = st.T - ctx.Data.Siege.MajorOverrunS - 1;          // long past its planned end, bodies alive
             Drive(ctx, st, acc, RaidFixture.Dt);
 
             Assert.That(st.Director.Major, Is.Null);

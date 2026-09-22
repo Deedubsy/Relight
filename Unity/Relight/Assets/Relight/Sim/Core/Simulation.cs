@@ -28,7 +28,11 @@ namespace Relight.Sim
         /// </summary>
         public const int MaxTicksPerCall = 256 * TicksPerSecond;
 
-        public SimContext Context { get; }
+        /// <summary>
+        /// The context every tick and command runs against. Replaced as a whole by <see cref="ReplaceData"/>
+        /// (REL-84 tuning reload); never mutated in place.
+        /// </summary>
+        public SimContext Context { get; private set; }
         public SimState State { get; }
 
         /// <summary>Fractional tick accumulator, in ticks (reference <c>st.acc</c>, which is also in tile ticks).</summary>
@@ -77,6 +81,27 @@ namespace Relight.Sim
 
         /// <summary>Wraps an already-built state (loading, B-11; scenario builders in the tests).</summary>
         public static Simulation Wrap(SimContext ctx, SimState state) => new Simulation(ctx, state);
+
+        /// <summary>
+        /// REL-84 (CMB-09b, E-19): swap the balance data under a running game without a restart. The geometry,
+        /// layers, sites and map id stay; only <see cref="SimContext.Data"/> changes, and it changes between ticks
+        /// (a caller is by construction outside <see cref="Tick"/>). Every phase and handler reads the context it
+        /// is handed on each call and caches nothing across ticks, so the next tick simply runs on the new numbers.
+        ///
+        /// Tuning values are data, not save state: nothing in <see cref="SimState"/> is touched, and a save written
+        /// afterwards records the new data hash, so a load against the old data gives the existing mismatch
+        /// warning only. A <see cref="DataReloadedEvent"/> tells the HUD and the log; like every event it is never
+        /// saved. Returns false, and changes nothing, when the data is the same object already in use.
+        /// </summary>
+        public bool ReplaceData(GameData data)
+        {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            if (ReferenceEquals(data, Context.Data)) return false;
+            var was = Context;
+            Context = new SimContext(data, was.Geometry, was.Tiles, was.Threat, was.Sites, was.MapId);
+            State.Events.Add(new DataReloadedEvent(State.T, GameDataHash.Compute(was.Data), GameDataHash.Compute(data)));
+            return true;
+        }
 
         /// <summary>
         /// Apply one command now and return its result (reference session.ts <c>dispatch</c>, which flushes

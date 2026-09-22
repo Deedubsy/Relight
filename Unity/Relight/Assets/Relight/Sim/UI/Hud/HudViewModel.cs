@@ -360,6 +360,8 @@ namespace Relight.Sim.UI
 
         /// <summary>Notice key for a dig that stopped with a reason.</summary>
         public const string MiningNoticeKey = "mining";
+        /// <summary>REL-84: the balance data was swapped under the running game (an editor tuning reload).</summary>
+        public const string DataReloadKey = "data-reload";
 
         /// <summary>Real seconds a refusal stays on screen.</summary>
         public const double RefusalSeconds = 4;
@@ -450,6 +452,12 @@ namespace Relight.Sim.UI
                         _mined[gained.Item] = (total, now);
                         Notices.Post("mined:" + Items.Key(gained.Item),
                             "+" + total.ToString(CultureInfo.InvariantCulture) + " " + ItemTitle(_data, gained.Item) + " to Backpack",
+                            HudNoticeKind.Info, now, NoteSeconds);
+                        break;
+                    // REL-84: a tuning asset edited in the editor took effect. Developer-facing, so it names the hashes
+                    // a save would record, and a second edit within the window replaces the row rather than stacking.
+                    case DataReloadedEvent r:
+                        Notices.Post(DataReloadKey, "Tuning reloaded · data " + r.FromHash + " → " + r.ToHash,
                             HudNoticeKind.Info, now, NoteSeconds);
                         break;
                     case MiningStoppedEvent m:

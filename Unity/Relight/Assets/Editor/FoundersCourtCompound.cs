@@ -588,7 +588,7 @@ public static class FoundersCourtCompound
                     for (var x = mouthX0; x <= mouthX1; x++) { int v; if (dist.TryGetValue(new Vector2Int(x, mouthY), out v) && v < best) best = v; }
                     steps = best == int.MaxValue ? -1 : best;
                 }
-                var cap = DirectorRules.EntryFarSteps;
+                var cap = SiegeTuning.Fallback.EntryFarSteps;   // REL-84: the far band is tuning; the check reads the shipped default
                 check("C13 walk steps", steps >= 0 && steps + 10 <= cap, "core -> mouth row " + steps + " steps, + 10 = " + (steps + 10) + ", cap EntryFarSteps = " + cap);
             }
 
@@ -708,9 +708,10 @@ public static class FoundersCourtCompound
                 if (raid == null || core == null) check("C20 first attack origin", false, (raid == null ? "no RaidLine site" : "") + (core == null ? " no Core site" : ""));
                 else
                 {
-                    var reachable = raid.Y - (core.Y + core.H - 1) <= RaidField.Reach;
                     var map = ImportedGeometry.Build(g);
                     var ctx = new SimContext(ReferenceData.Create(), map, threat: new EnemyThreatLayer(), sites: sites, mapId: g.MapId);
+                    var reach = RaidField.ReachOf(ctx);
+                    var reachable = raid.Y - (core.Y + core.H - 1) <= reach;
                     var sim = Simulation.NewGame(ctx, 1);
                     var st = sim.State;
                     var w = ctx.Geometry.Width;
@@ -719,14 +720,14 @@ public static class FoundersCourtCompound
                     var line = DirectorRules.RaidLineY(ctx);
                     var origin = has ? DirectorRules.Origin(ctx, st) : -1;
                     var staged = DirectorRules.Staging(ctx, st, origin);
-                    var detail = "raid line row " + raid.Y + " is " + (raid.Y - (core.Y + core.H - 1)) + " rows below the core's last row (field reach " + RaidField.Reach + ")";
+                    var detail = "raid line row " + raid.Y + " is " + (raid.Y - (core.Y + core.H - 1)) + " rows below the core's last row (field reach " + reach + ")";
                     if (origin < 0) check("C20 first attack origin", false, detail + "; the director found no entry tile (origin -1)");
                     else
                     {
                         var ox = origin % w; var oy = origin / w;
                         var fld = st.Director.Fields.Field(ctx, st, bx, by, size, true);
                         var steps = fld.At(ox, oy);
-                        var entry = DirectorRules.EntryTile(ctx, st, fld, line, ox, oy, DirectorRules.EntryNearSteps, DirectorRules.EntryFarSteps);
+                        var entry = DirectorRules.EntryTile(ctx, st, fld, line, ox, oy, ctx.Data.Siege.EntryNearSteps, ctx.Data.Siege.EntryFarSteps);
                         var heading = DirectorRules.HeadingWord(DirectorRules.Heading(ox + .5 - (bx + size / 2.0), oy + .5 - (by + size / 2.0)));
                         var bad = new List<string>();
                         if (!reachable) bad.Add("raid line beyond the field's reach");

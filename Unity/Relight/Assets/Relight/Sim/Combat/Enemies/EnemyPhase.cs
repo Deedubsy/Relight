@@ -482,12 +482,13 @@ namespace Relight.Sim
         private static void TickCombatActor(SimContext ctx, SimState st, Enemy e, EnemyDef def, double dt)
         {
             var raids = ctx.Data.Raids;
+            var siege = ctx.Data.Siege;
             var p = st.Engineer;
             var distance = DirectorRules.Distance(p.Pos.X, p.Pos.Y, e.Pos.X, e.Pos.Y);
-            // Distant sleeping residents do not consume path searches (the reference's own 60-tile cut-off). A body
-            // that is walking home is not sleeping: it has to be ticked wherever the engineer has got to, or it
-            // would stand where it broke off for ever.
-            if (distance > 60 && e.Phase == EnemyPhaseKind.Idle && !e.OnPlayer && !e.Withdrawing) return;
+            // Distant sleeping residents do not consume path searches (the reference's own 60-tile cut-off, now
+            // <see cref="SiegeTuning.GuardSleepTiles"/>, REL-84). A body that is walking home is not sleeping: it
+            // has to be ticked wherever the engineer has got to, or it would stand where it broke off for ever.
+            if (distance > siege.GuardSleepTiles && e.Phase == EnemyPhaseKind.Idle && !e.OnPlayer && !e.Withdrawing) return;
             var sight = !p.IsDown && ctx.Geometry.Sight(e.Pos.X, e.Pos.Y, p.Pos.X, p.Pos.Y);
             Enemies.ObservePlayer(ctx, st, e, raids.NoticeTiles, raids.EscapeTiles);
 
@@ -503,8 +504,7 @@ namespace Relight.Sim
             // speed, and it will not turn and chase again until it is most of the way home
             // (<see cref="SiegeTuning.GuardReengageTiles"/>) and can actually see the engineer again. Nothing here
             // edits what the body knows: memory is cleared only on arrival, or by expiring on its own after
-            // <see cref="Enemies.MemorySeconds"/>, which is what makes breaking line of sight the real escape.
-            var siege = ctx.Data.Siege;
+            // <see cref="SiegeTuning.MemoryS"/>, which is what makes breaking line of sight the real escape.
             var known = e.LastKnownUntil > st.T;
             var fromHome = DirectorRules.Distance(e.Pos.X, e.Pos.Y, e.Home.X, e.Home.Y);
             if (e.Withdrawing)
@@ -579,12 +579,12 @@ namespace Relight.Sim
             // ALWAYS_DARK_SPEC §5.1). The reference then takes a bounded soft-cost route round the light; the port's
             // patrol is a two-tile loop round its birthplace and does not, which is a recorded difference.
             var angle = (e.Id * 7 + e.Patrol) * Math.PI / 2;
-            var gx = e.Home.X + Math.Cos(angle) * 2;
-            var gy = e.Home.Y + Math.Sin(angle) * 2;
+            var gx = e.Home.X + Math.Cos(angle) * siege.GuardPatrolRadiusTiles;
+            var gy = e.Home.Y + Math.Sin(angle) * siege.GuardPatrolRadiusTiles;
             if (DirectorRules.Distance(e.Pos.X, e.Pos.Y, gx, gy) < .6 || e.Stuck > 2) { e.Patrol++; e.Stuck = 0; }
             var bx = e.Pos.X;
             var by = e.Pos.Y;
-            StepToward(ctx, st, e, gx, gy, def.SpeedTilesPerS * .35 * dt, true, dt);
+            StepToward(ctx, st, e, gx, gy, def.SpeedTilesPerS * siege.GuardPatrolSpeedMul * dt, true, dt);
             e.Stuck = DirectorRules.Distance(e.Pos.X, e.Pos.Y, bx, by) < 1e-8 ? e.Stuck + dt : 0;
         }
     }

@@ -10,6 +10,11 @@ namespace Relight.Data
     /// <c>Tuning - Raids</c>, which <c>exportCatalogue.ts</c> regenerates. This asset holds only the shape the port
     /// decided: the minor raid's preparation warning, how long a notice stays news, and how a major assault is cut
     /// into waves. <see cref="SiegeTuning.Fallback"/> documents why each default is what it is.
+    ///
+    /// REL-84 added the last three groups — the failure path, where a wave enters, and the camp resident's patrol
+    /// and memory. They were literals in DirectorRules, DirectorPhase, EnemyPhase and Enemies; every default here
+    /// is the number those files carried, so an asset saved before REL-84 (which has none of these keys) keeps its
+    /// field initialisers and behaves exactly as it did.
     /// </summary>
     [CreateAssetMenu(menuName = "Relight/Tuning/Siege", fileName = "Tuning - Siege")]
     public sealed class SiegeTuningAsset : DataDefinition
@@ -64,6 +69,38 @@ namespace Relight.Data
         [Tooltip("How far back inside that it must get before it will turn and chase again.")]
         [SerializeField] private double guardReengageTiles = 22;
 
+        [Header("The failure path (REL-84, E-18)")]
+        [Tooltip("How close to the core's edge a raid body must be, in tiles, to block the core's repair (U-P-19).")]
+        [SerializeField] private double coreThreatTiles = 12;
+        [Tooltip("Seconds past a large raid's planned end after which it is called off whatever is still alive (U-P-20).")]
+        [SerializeField] private double majorOverrunSeconds = 300;
+        [Tooltip("Seconds after a large raid ends before any survivor still on the map is removed (U-P-21).")]
+        [SerializeField] private double withdrawPurgeSeconds = 120;
+
+        [Header("Where a wave enters (REL-84)")]
+        [Tooltip("The nearest a wave may enter, in BFS steps from the core. Below this it is already inside.")]
+        [SerializeField] private int entryNearSteps = 8;
+        [Tooltip("The furthest a wave may enter. Past this the walk in is a wait, not a raid.")]
+        [SerializeField] private int entryFarSteps = 76;
+        [Tooltip("A wave never enters, or is born, this close to the engineer, in tiles.")]
+        [SerializeField] private double safeFromEngineerTiles = 28;
+        [Tooltip("The entry distance a single wave is scored against, in steps: 100 points per step away from it.")]
+        [SerializeField] private int stagingIdealSteps = 24;
+        [Tooltip("The same, for a major assault's sector approaches, which stand further out.")]
+        [SerializeField] private int approachIdealSteps = 42;
+        [Tooltip("Clearance a small raid's warning must keep from the next large raid's warning window, in seconds.")]
+        [SerializeField] private double minorMajorGapSeconds = 120;
+
+        [Header("Camp residents: patrol and memory (REL-84)")]
+        [Tooltip("Past this distance from the engineer, in tiles, an idle camp resident is not ticked at all.")]
+        [SerializeField] private double guardSleepTiles = 60;
+        [Tooltip("The radius, in tiles, of a camp resident's patrol loop around its birthplace.")]
+        [SerializeField] private double guardPatrolRadiusTiles = 2;
+        [Tooltip("The share of its own speed a resident patrols at. It chases at the full speed.")]
+        [SerializeField] private double guardPatrolSpeedMul = 0.35;
+        [Tooltip("How long a body remembers where it last saw the engineer, in seconds.")]
+        [SerializeField] private double memorySeconds = 6;
+
         public SiegeTuning ToRecord() => new SiegeTuning(
             minorWarningSeconds, minorWarningRangeSeconds, minorStageRetrySeconds, noticeHoldSeconds,
             majorWaves, majorWaveGapSeconds, majorWaveSpreadSeconds, majorWaveTailSeconds,
@@ -71,7 +108,12 @@ namespace Relight.Data
             majorGrowthPerAssault, majorGrowthCap,
             majorBreakerAssault, majorBreakerWave, majorBreakerShare,
             guardPursuitTiles, guardReengageTiles,
-            KindText, Source, Provisional);
+            KindText, Source, Provisional,
+            coreThreatTiles, majorOverrunSeconds, withdrawPurgeSeconds,
+            entryNearSteps, entryFarSteps, safeFromEngineerTiles,
+            stagingIdealSteps, approachIdealSteps, minorMajorGapSeconds,
+            guardSleepTiles, guardPatrolRadiusTiles, guardPatrolSpeedMul,
+            memorySeconds);
 
         public void Fill(SiegeTuning s)
         {
@@ -95,6 +137,19 @@ namespace Relight.Data
             majorBreakerShare = s.MajorBreakerShare;
             guardPursuitTiles = s.GuardPursuitTiles;
             guardReengageTiles = s.GuardReengageTiles;
+            coreThreatTiles = s.CoreThreatTiles;
+            majorOverrunSeconds = s.MajorOverrunS;
+            withdrawPurgeSeconds = s.WithdrawPurgeS;
+            entryNearSteps = s.EntryNearSteps;
+            entryFarSteps = s.EntryFarSteps;
+            safeFromEngineerTiles = s.SafeFromEngineerTiles;
+            stagingIdealSteps = s.StagingIdealSteps;
+            approachIdealSteps = s.ApproachIdealSteps;
+            minorMajorGapSeconds = s.MinorMajorGapS;
+            guardSleepTiles = s.GuardSleepTiles;
+            guardPatrolRadiusTiles = s.GuardPatrolRadiusTiles;
+            guardPatrolSpeedMul = s.GuardPatrolSpeedMul;
+            memorySeconds = s.MemoryS;
         }
 
         public override string Problem()
@@ -120,6 +175,22 @@ namespace Relight.Data
             if (guardPursuitTiles <= 0) return "a camp resident that will not leave its tile cannot defend the camp";
             if (guardReengageTiles < 0 || guardReengageTiles > guardPursuitTiles)
                 return "a resident must come back inside its leash before it turns and chases again";
+            if (coreThreatTiles < 0) return "a ring round the core cannot have a negative radius";
+            if (majorOverrunSeconds < 0) return "an assault cannot be called off before its planned end";
+            if (withdrawPurgeSeconds < 0) return "survivors cannot be swept up before the raid they belong to ends";
+            if (entryNearSteps < 0) return "a wave cannot enter fewer than no steps from the core";
+            if (entryFarSteps <= entryNearSteps) return "the entry band has to have room between its near and far edges";
+            if (safeFromEngineerTiles < 0) return "the ring kept clear of the engineer cannot be negative";
+            if (stagingIdealSteps < entryNearSteps || stagingIdealSteps > entryFarSteps)
+                return "the ideal entry distance has to be inside the entry band";
+            if (approachIdealSteps < entryNearSteps || approachIdealSteps > entryFarSteps)
+                return "the ideal approach distance has to be inside the entry band";
+            if (minorMajorGapSeconds < 0) return "a small raid cannot be asked to keep a negative gap from a large one";
+            if (guardSleepTiles <= 0) return "a resident that is never ticked cannot defend its camp";
+            if (guardPatrolRadiusTiles < 0) return "a patrol cannot have a negative radius";
+            if (guardPatrolSpeedMul < 0 || guardPatrolSpeedMul > 1)
+                return "a patrol is a share of the body's own speed, never more than it";
+            if (memorySeconds < 0) return "a body cannot remember the engineer for less than no time";
             return null;
         }
     }

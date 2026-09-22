@@ -183,7 +183,7 @@ namespace Relight.Editor
                     AssetDatabase.CreateAsset(asset, $"{folder}/{wanted}.asset");
                     created++;
                 }
-                else if (HandEdited(asset))
+                else if (HandEdited(asset) && !StaleStamp(asset, a => fill(a, records[i])))
                 {
                     var record = records[i];
                     _kept.Add(AssetDatabase.GetAssetPath(asset));
@@ -263,17 +263,7 @@ namespace Relight.Editor
         private static bool Conflicted<TAsset>(TAsset asset, Action<TAsset> fill) where TAsset : DataDefinition
         {
             var stamp = asset.GeneratedFingerprint;
-            string reference;
-            var probe = ScriptableObject.CreateInstance<TAsset>();
-            try
-            {
-                fill(probe);
-                reference = Fingerprint(probe);
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(probe);
-            }
+            var reference = ReferenceFingerprint(fill);
             if (string.Equals(reference, stamp, StringComparison.Ordinal)) return false;
 
             var path = AssetDatabase.GetAssetPath(asset);
@@ -291,7 +281,8 @@ namespace Relight.Editor
             var path = $"{GeneratedFolder}/Tuning/{assetName}.asset";
             var asset = AssetDatabase.LoadAssetAtPath<TAsset>(path);
             var created = asset == null;
-            if (!created && HandEdited(asset))
+            var restamped = !created && HandEdited(asset) && StaleStamp(asset, fill);
+            if (!created && !restamped && HandEdited(asset))
             {
                 _kept.Add(path);
                 var conflicted = Conflicted(asset, fill);
@@ -303,9 +294,38 @@ namespace Relight.Editor
             Stamp(asset);
             if (created) AssetDatabase.CreateAsset(asset, path);
             else EditorUtility.SetDirty(asset);
-            log.Add($"{assetName}: {(created ? "created" : "updated")}");
+            log.Add($"{assetName}: {(created ? "created" : restamped ? "restamped" : "updated")}");
             return asset;
         }
+
+        /// <summary>
+        /// The reference record's fingerprint, taken from a throwaway instance of the asset's own type so its
+        /// serialised shape matches the asset's and the two fingerprints are comparable.
+        /// </summary>
+        private static string ReferenceFingerprint<TAsset>(Action<TAsset> fill) where TAsset : DataDefinition
+        {
+            var probe = ScriptableObject.CreateInstance<TAsset>();
+            try
+            {
+                fill(probe);
+                return Fingerprint(probe);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(probe);
+            }
+        }
+
+        /// <summary>
+        /// True when an asset <see cref="HandEdited"/> flags in fact carries exactly the reference's values. Nobody
+        /// edited it: the asset TYPE gained or lost serialised fields after the stamp was written (REL-84 added
+        /// thirteen to <c>SiegeTuningAsset</c>), so the stamp is stale, not the values. Such an asset is still the
+        /// generator's to update, and updating it also writes the new fields to disk and restores a true stamp.
+        /// Without this check every field added to a tuning asset turned that asset into a false "hand edit" that
+        /// was then reported as a CONFLICT on every run and never received the new fields.
+        /// </summary>
+        private static bool StaleStamp<TAsset>(TAsset asset, Action<TAsset> fill) where TAsset : DataDefinition
+            => string.Equals(Fingerprint(asset), ReferenceFingerprint(fill), StringComparison.Ordinal);
 
         private static bool _keepHandEdits = true;
 

@@ -5,7 +5,9 @@ namespace Relight.Sim
     /// <summary>
     /// Everything a tick or a command handler needs besides the state: the immutable <see cref="GameData"/> built at
     /// boot, the world geometry injected (never compiled in — U-M-14, R9), and the two explicit layer seams.
-    /// Constructed once per simulation; holds no mutable gameplay state.
+    /// Holds no mutable gameplay state. It is itself immutable: a tuning reload (REL-84,
+    /// <see cref="Simulation.ReplaceData"/>) builds a new one around the new data and the same world, so nothing
+    /// may cache a context across ticks — read the one handed to each call.
     /// </summary>
     public sealed class SimContext
     {

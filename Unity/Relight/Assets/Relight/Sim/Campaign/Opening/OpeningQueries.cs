@@ -210,7 +210,7 @@ namespace Relight.Sim
             // (EnemyCoreHook.Rect), and a large assault that took it pushes the next one out a full interval
             // (DirectorPhase.EndMajor). The repair is started from the Home workshop's core card, which E on the
             // core opens; it is never a hold. It is refused, and pauses, while raiders are within
-            // DirectorRules.CoreThreatTiles (HomeCore.RepairProblem, HomeCorePhase).
+            // SiegeTuning.CoreThreatTiles (HomeCore.RepairProblem, HomeCorePhase).
             if (st.Home != null && st.Home.Placed && !HomeQueries.CoreOperational(st))
             {
                 var card = HomeQueries.RepairCard(st, d);

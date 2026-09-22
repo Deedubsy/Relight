@@ -36,6 +36,19 @@ namespace Relight.Sim
     /// <param name="MajorBreakerShare">Share of the roster that arrives as Breakers, taken from the skitters.</param>
     /// <param name="GuardPursuitTiles">How far from its camp a resident will chase before it breaks off and walks back.</param>
     /// <param name="GuardReengageTiles">How far back inside that it must get before it will turn and chase again.</param>
+    /// <param name="CoreThreatTiles">How close to the Home core a raid body must be to block the core's repair, in tiles from the core's edge (U-P-19).</param>
+    /// <param name="MajorOverrunS">Seconds past a large raid's planned end after which it is called off whatever is still alive (U-P-20).</param>
+    /// <param name="WithdrawPurgeS">Seconds after a large raid ends before any survivor still on the map is removed (U-P-21).</param>
+    /// <param name="EntryNearSteps">The nearest a wave may enter, in BFS steps from the core. Below this it is already inside.</param>
+    /// <param name="EntryFarSteps">The furthest a wave may enter. Past this the walk in is a wait, not a raid (fair travel, GP-W3).</param>
+    /// <param name="SafeFromEngineerTiles">A wave never enters, or is born, this close to the engineer (reference campaignThreat.ts:132's 28 tiles).</param>
+    /// <param name="StagingIdealSteps">The entry distance a single wave is scored against: 100 points per step away from it.</param>
+    /// <param name="ApproachIdealSteps">The same, for a sector approach of a major assault, which stands further out.</param>
+    /// <param name="MinorMajorGapS">Clearance a small raid's own warning must keep from the next large raid's warning window.</param>
+    /// <param name="GuardSleepTiles">Past this distance from the engineer an idle camp resident is not ticked at all (reference cut-off).</param>
+    /// <param name="GuardPatrolRadiusTiles">The radius of a camp resident's patrol loop around its birthplace.</param>
+    /// <param name="GuardPatrolSpeedMul">The share of its own speed a camp resident patrols at; it chases at the full speed.</param>
+    /// <param name="MemoryS">How long a body remembers where it last saw the engineer (reference hostileAwareness.ts HOSTILE_MEMORY_SECONDS).</param>
     public sealed record SiegeTuning(
         double MinorWarningS, double MinorWarningRangeS, double MinorStageRetryS, double NoticeHoldS,
         int MajorWaves, double MajorWaveGapS, double MajorWaveSpreadS, double MajorWaveTailS,
@@ -43,7 +56,16 @@ namespace Relight.Sim
         double MajorGrowthPerAssault, double MajorGrowthCap,
         int MajorBreakerAssault, int MajorBreakerWave, double MajorBreakerShare,
         double GuardPursuitTiles, double GuardReengageTiles,
-        string Kind = "provisional", string Source = "", bool Provisional = true)
+        string Kind = "provisional", string Source = "", bool Provisional = true,
+        // REL-84: the threat numbers that used to be literals in DirectorRules, DirectorPhase, EnemyPhase and
+        // Enemies. Every default below IS the literal those files carried, so moving them changed nothing. They
+        // trail the provenance columns — the same placement DefenceTuning.LowAmmoFraction uses, and for the same
+        // reason: every existing construction of this record keeps compiling and takes the defaults.
+        double CoreThreatTiles = 12, double MajorOverrunS = 300, double WithdrawPurgeS = 120,
+        int EntryNearSteps = 8, int EntryFarSteps = 76, double SafeFromEngineerTiles = 28,
+        int StagingIdealSteps = 24, int ApproachIdealSteps = 42, double MinorMajorGapS = 120,
+        double GuardSleepTiles = 60, double GuardPatrolRadiusTiles = 2, double GuardPatrolSpeedMul = 0.35,
+        double MemoryS = 6)
     {
         /// <summary>
         /// The values this build ships, and the ones a <see cref="GameData"/> built without a siege row uses.
@@ -98,6 +120,10 @@ namespace Relight.Sim
         ///
         /// The guard leash (36 tiles out, 22 back in) keeps the distance the camps already used and turns it into
         /// readable behaviour rather than an invisible switch: see <see cref="EnemyPhase"/>'s TickCombatActor.
+        ///
+        /// REL-84 added the trailing threat block, which this constructor does not pass: each one defaults to the
+        /// literal its old site carried (U-P-19/20/21 and the reference's own entry, patrol and memory numbers), so
+        /// <see cref="Fallback"/> still describes exactly the build that shipped.
         /// </summary>
         public static readonly SiegeTuning Fallback = new SiegeTuning(
             30, 15, 30, 45,

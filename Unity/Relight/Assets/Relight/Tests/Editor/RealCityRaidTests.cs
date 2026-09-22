@@ -108,7 +108,7 @@ namespace Relight.Authoring.Tests
                 Assert.That(d.NextStart, Is.GreaterThanOrEqualTo(st.T + r.IntervalMinS - 1), label + "the next waits a full interval");
 
                 // The survivors walk off through the real city; any that cannot are removed at the purge time.
-                Assert.That(RunUntil(sim, DirectorRules.WithdrawPurgeS + 5, notices, () => MajorBodies(st) == 0), Is.True,
+                Assert.That(RunUntil(sim, ctx.Data.Siege.WithdrawPurgeS + 5, notices, () => MajorBodies(st) == 0), Is.True,
                     label + MajorBodies(st) + " survivors never left");
                 notices.Add(st.T.ToString("0") + " test: " + label + "the last survivor was gone");
 

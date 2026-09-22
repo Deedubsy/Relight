@@ -33,7 +33,7 @@ namespace Relight.Sim
 
             CoreFell(ctx, st);
             EndMajor(ctx, st);
-            PurgeStragglers(st);
+            PurgeStragglers(ctx, st);
 
             // An unresolved previous assault never becomes a second simultaneous target or accumulated debt.
             if (d.Major != null && d.Major.Committed && st.T >= d.NextStart)
@@ -77,7 +77,7 @@ namespace Relight.Sim
         /// <item>CLEARED — it owes nothing and its last body is gone. Unchanged.</item>
         /// <item>CALLED OFF — the retreat has been called (the core fell, the target was lost, C-09 withdrew it).
         ///       It ends at once; the survivors keep walking off on their own.</item>
-        /// <item>OVERRAN — it is <see cref="DirectorRules.MajorOverrunS"/> past its planned end with bodies still
+        /// <item>OVERRAN — it is <see cref="SiegeTuning.MajorOverrunS"/> past its planned end with bodies still
         ///       alive. It is called off. A hand-built test raid has no planned end (0) and never overruns.</item>
         /// </list>
         /// An ending that is not CLEARED also makes the next raid wait a full interval from now (U-D-64 d).
@@ -93,7 +93,7 @@ namespace Relight.Sim
             RaidOutcome outcome;
             if (a.Retreat) outcome = DirectorRules.CalledOff(ctx, st);
             else if (a.Remaining == 0 && alive == 0) outcome = RaidOutcome.Cleared;
-            else if (a.EndsAt > 0 && st.T >= a.EndsAt + DirectorRules.MajorOverrunS) outcome = RaidOutcome.BrokeOff;
+            else if (a.EndsAt > 0 && st.T >= a.EndsAt + ctx.Data.Siege.MajorOverrunS) outcome = RaidOutcome.BrokeOff;
             else return;
 
             d.History.Add(new RaidRecord
@@ -101,7 +101,9 @@ namespace Relight.Sim
                 Id = a.Id, Started = a.StartsAt, Ended = st.T,
                 Spawned = d.MajorSpawned, Outcome = (int)outcome,
             });
-            if (d.History.Count > 32) d.History.RemoveAt(0);
+            // REL-84: the depth the saved record list is trimmed to is the exported RaidTuning.AssaultHistory (32),
+            // the number the data tables already carried and nothing read.
+            if (d.History.Count > r.AssaultHistory) d.History.RemoveAt(0);
             d.LastMajorEnd = st.T;
             d.RecoveryUntil = Math.Max(d.RecoveryUntil, st.T + r.RecoveryS);
             d.Major = null;
@@ -118,14 +120,15 @@ namespace Relight.Sim
         }
 
         /// <summary>
-        /// A survivor of a finished large raid that has still not left the map <see cref="DirectorRules.WithdrawPurgeS"/>
+        /// A survivor of a finished large raid that has still not left the map <see cref="SiegeTuning.WithdrawPurgeS"/>
         /// after it ended is removed without a kill — the C-09 purge, for the same reason: a body that cannot find
         /// its way out must not block the core's repair, or join the next raid, for ever.
         /// </summary>
-        private static void PurgeStragglers(SimState st)
+        private static void PurgeStragglers(SimContext ctx, SimState st)
         {
             var d = st.Director;
             if (d.History.Count == 0) return;
+            var purge = ctx.Data.Siege.WithdrawPurgeS;
             var list = st.Enemies.Actors;
             for (var i = list.Count - 1; i >= 0; i--)
             {
@@ -135,7 +138,7 @@ namespace Relight.Sim
                 for (var h = d.History.Count - 1; h >= 0; h--)
                 {
                     if (d.History[h].Id != e.Group) continue;
-                    if (st.T > d.History[h].Ended + DirectorRules.WithdrawPurgeS) list.RemoveAt(i);
+                    if (st.T > d.History[h].Ended + purge) list.RemoveAt(i);
                     break;
                 }
             }
@@ -494,7 +497,7 @@ namespace Relight.Sim
             var warn = siege.MinorWarningS
                 + DirectorRules.RaidChoice(st.Seed, d.RaidsStarted + 1013, (int)siege.MinorWarningRangeS);
             // The raid must still be clear of the next major's own warning window once its warning has run out.
-            if (d.NextStart - (st.T + warn) < r.WarningS + 120) return;
+            if (d.NextStart - (st.T + warn) < r.WarningS + siege.MinorMajorGapS) return;
             if (!DirectorRules.Target(ctx, st, out _, out _, out _)) return;
 
             var origin = DirectorRules.Origin(ctx, st);

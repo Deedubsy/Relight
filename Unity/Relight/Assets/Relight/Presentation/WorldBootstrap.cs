@@ -84,6 +84,44 @@ namespace Relight.Presentation
             if (startOnAwake) StartSession();
         }
 
+        // REL-84 (E-19): a tuning asset edited in the Inspector while the game runs is rebuilt into the live
+        // simulation on the next frame. OnValidate can fire several times for one edit, and from the editor's own
+        // thread of events, so the reload is only marked here and done in Update, once, between two frames' ticks.
+        private bool _reloadPending;
+
+        private void OnEnable() => DataDefinition.Edited += MarkReload;
+        private void OnDisable() => DataDefinition.Edited -= MarkReload;
+        private void MarkReload(DataDefinition _) => _reloadPending = true;
+
+        private void Update()
+        {
+            if (!_reloadPending) return;
+            _reloadPending = false;
+            ReloadData();
+        }
+
+        /// <summary>
+        /// Rebuild the data record from the registry's assets as they are now and hand it to the running game
+        /// (<see cref="Simulation.ReplaceData"/>). The same build the session started with is used — the opening
+        /// balance for a versioned opening, the legacy build for a save from before it — so a reload changes only
+        /// what was edited. Returns true when the live game now runs on different data. Public so an Admin control
+        /// can call it too; nothing here is a debug grant, it re-reads the assets a build already shipped with.
+        /// </summary>
+        public bool ReloadData()
+        {
+            if (host == null || host.Simulation == null || registry == null) return false;
+            var sim = host.Simulation;
+            var data = sim.State.OpeningResourceVersion > 0 ? registry.Build() : registry.BuildLegacy();
+            if (data == null) return false;
+            var before = GameDataHash.Compute(sim.Context.Data);
+            var after = GameDataHash.Compute(data);
+            if (before == after) return false;
+            sim.ReplaceData(data);
+            Debug.Log($"Relight: tuning reloaded at T={sim.State.T:0.0}: dataVersion {before} → {after}. " +
+                      "A save written now records the new hash; loading it against the old data warns only.");
+            return true;
+        }
+
         private void Start()
         {
             if (string.IsNullOrEmpty(uiSceneName)) return;
