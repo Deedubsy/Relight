@@ -12,15 +12,16 @@ namespace Relight.Presentation
     /// <summary>
     /// C-11. The single audio hook (UI_AND_ONBOARDING §12, TASKS F-04). Everything in the game that wants a sound
     /// calls <see cref="Play(string,System.Nullable{Vector2})"/> with a key; whether that key maps to a clip is
-    /// entirely <see cref="AudioCueRouter"/>'s business, and today it maps to nothing.
+    /// entirely <see cref="AudioCueRouter"/>'s business. No authored clip exists yet, so today it plays the rough
+    /// sound <see cref="PlaceholderSounds"/> makes in code for that key (REL-67, U-D-69 (d)).
     ///
     /// The rules this obeys, from §12.1:
     /// <list type="number">
     /// <item>"A cue is a readback, never a mechanic." Nothing here returns a value a caller can branch on, so no cue
     /// can gate an action, and <c>Relight.Sim</c> does not reference this assembly at all.</item>
-    /// <item><b>No clips.</b> "An unmapped key logs nothing and plays nothing" — an unknown key is silence, not a
-    /// warning, because the whole key table is unmapped until D-11 supplies assets and a console full of warnings
-    /// during the opening would be worse than the silence.</item>
+    /// <item>"An unmapped key logs nothing and plays nothing" — a key with neither an authored clip nor a
+    /// placeholder is silence, not a warning, because a console full of warnings would be worse than the
+    /// silence.</item>
     /// <item>"Sound follows the clock." The router drains a paused host's (empty) event list, so a paused game makes
     /// no sound and nothing queues up to replay on resume.</item>
     /// </list>
@@ -30,7 +31,7 @@ namespace Relight.Presentation
     /// </summary>
     public static class AudioCue
     {
-        /// <summary>The scene's router. Null means every cue is silence, which is the shipped state.</summary>
+        /// <summary>The scene's router. Null means every cue is silence.</summary>
         public static IAudioCueSink Sink { get; set; }
 
         /// <summary>How many cues have been asked for since the game started. A wiring check, never gameplay.</summary>

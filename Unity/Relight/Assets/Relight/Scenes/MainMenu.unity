@@ -256,6 +256,60 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &599964852
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 599964854}
+  - component: {fileID: 599964853}
+  m_Layer: 0
+  m_Name: Audio Cues
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &599964853
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599964852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e10d7cbaf3d99806322656c4a69e6224, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.Presentation::Relight.Presentation.AudioCueRouter
+  host: {fileID: 0}
+  uiGroup: {fileID: 0}
+  worldGroup: {fileID: 0}
+  alertsGroup: {fileID: 0}
+  masterGroup: {fileID: 0}
+  cues: []
+  voices: 16
+  hearingTiles: 40
+  placeholders: 1
+  approachCues: 1
+--- !u!4 &599964854
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599964852}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -412,7 +466,6 @@ MonoBehaviour:
   worldSceneName: World
   buildString: "Phase C \xB7 2026-09-14"
   currentMapId: riverfront-arc-v4-editor-ac16d9188c05
-  daySeconds: 1200
 --- !u!114 &1892430404
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -459,3 +512,4 @@ SceneRoots:
   - {fileID: 519420032}
   - {fileID: 619394802}
   - {fileID: 1892430402}
+  - {fileID: 599964854}

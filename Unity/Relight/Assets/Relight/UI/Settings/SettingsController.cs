@@ -158,11 +158,6 @@ namespace Relight.UI.Settings
             Label(_root, "kept-label", FrontEndText.AutosavesKeptLabel);
             Label(_root, "heading-interface", FrontEndText.SectionInterface);
             Label(_root, "heading-audio", FrontEndText.SectionAudio);
-            if(mixer==null)
-            {
-                Label(_root,"heading-audio","Audio · unavailable in this build");
-                foreach(var control in new VisualElement[]{_master,_ui,_world,_alerts,_mute}) control?.SetEnabled(false);
-            }
             Label(_root, "heading-saving", FrontEndText.SectionSaving);
             Label(_root, "heading-bindings", FrontEndText.SectionBindings);
             Label(_root, "heading-restore", FrontEndText.SectionRestore);
@@ -282,6 +277,12 @@ namespace Relight.UI.Settings
             if (_ui != null) _ui.RegisterValueChangedCallback(e => OnVolume(UiParam, _uiValue, e.newValue));
             if (_world != null) _world.RegisterValueChangedCallback(e => OnVolume(WorldParam, _worldValue, e.newValue));
             if (_alerts != null) _alerts.RegisterValueChangedCallback(e => OnVolume(AlertsParam, _alertsValue, e.newValue));
+            // §3.8.1: each slider plays a short cue from its own group on release, so the level is heard while it
+            // is being set. Release only, so a drag does not machine-gun the cue.
+            Preview(_master, AudioCue.Ui.Confirm);
+            Preview(_ui, AudioCue.Ui.Confirm);
+            Preview(_world, PreviewWorld);
+            Preview(_alerts, PreviewAlerts);
             if (_mute != null) _mute.RegisterValueChangedCallback(e => OnMute(e.newValue));
             if (_brightness != null) _brightness.RegisterValueChangedCallback(e => OnBrightness(e.newValue));
 
@@ -398,12 +399,35 @@ namespace Relight.UI.Settings
             Persist();
         }
 
+        /// <summary>The cue the World slider plays on release: a turret shot, the commonest world sound.</summary>
+        public const string PreviewWorld = "turret.shot";
+
+        /// <summary>The cue the Alerts slider plays on release: the raid warning, the alert that matters most.</summary>
+        public const string PreviewAlerts = "raid.warning";
+
+        private static void Preview(Slider slider, string key)
+        {
+            if (slider == null) return;
+            slider.RegisterCallback<PointerUpEvent>(_ => AudioCue.Play(key), TrickleDown.TrickleDown);
+            slider.RegisterCallback<KeyUpEvent>(e =>
+            {
+                if (e.keyCode == KeyCode.LeftArrow || e.keyCode == KeyCode.RightArrow
+                    || e.keyCode == KeyCode.UpArrow || e.keyCode == KeyCode.DownArrow
+                    || e.keyCode == KeyCode.Home || e.keyCode == KeyCode.End
+                    || e.keyCode == KeyCode.PageUp || e.keyCode == KeyCode.PageDown)
+                    AudioCue.Play(key);
+            }, TrickleDown.TrickleDown);
+        }
+
         /// <summary>
-        /// Push every level to the mixer. Mute silences the master bus only, so unmuting restores the four
-        /// levels the player set rather than a remembered snapshot that could drift out of step with them.
+        /// Push every level to the router's own levels (REL-67: the project has no mixer yet) and, when one is
+        /// assigned, to the mixer. Mute silences the master only, so unmuting restores the four levels the player
+        /// set rather than a remembered snapshot that could drift out of step with them.
         /// </summary>
         private void ApplyAudio()
         {
+            AudioLevels.Set(Preferences.Master, Preferences.UiVolume, Preferences.WorldVolume,
+                Preferences.AlertsVolume, Preferences.Mute);
             if (mixer == null) return;
             var master = Preferences.Mute ? 0f : Preferences.Master;
             mixer.SetFloat(MasterParam, Decibels(master));

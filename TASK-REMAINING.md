@@ -718,11 +718,11 @@ Verified from the decision row and `GAME_DESIGN.md` §11.1: the campaign is comp
 
 #### AUD-UI-09 — Older open UI findings still open
 - **Priority:** P3. **Class:** Defect (recorded 2026-09-14, none closed).
-- **Now:** volume sliders drive nothing; the tooltip registry leaks; the alerts block sits under an open drawer; badge shapes are illegible at 14 px; the 152 px card height "is arithmetic rather than a measured tallest card". Not re-verified by this audit.
+- **Now:** volume sliders drive nothing *(fixed 2026-09-23 by REL-67: each slider now sets its own group’s loudness)*; the tooltip registry leaks; the alerts block sits under an open drawer; badge shapes are illegible at 14 px; the 152 px card height "is arithmetic rather than a measured tallest card". Not re-verified by this audit.
 - **Canonical:** TASKS log 2026-09-14, 2026-09-16, 2026-09-21. **Authorised?:** Needs go-ahead.
 
 #### AUD-UI-10 — The worst events have no on-screen alert
-- **Priority:** P1. `UI_AND_ONBOARDING.md` §8 ranks base damage and engineer danger above every other alert; with no audio (AUD-ART-01) they are currently signalled by nothing.
+- **Priority:** P1. `UI_AND_ONBOARDING.md` §8 ranks base damage and engineer danger above every other alert; with no audio (AUD-ART-01) they are currently signalled by nothing. *(2026-09-23: REL-67’s placeholders now sound `core.disabled`, `engineer.down` and `engineer.up`; the on-screen rows are still missing.)*
 - **Class:** Missing approved feature.
 - **Now:** per agent 9, `HudViewModel.Intake` (`:347-411`) has no case for core damaged, core disabled, repair aborted, engineer down or engineer up. The text of `CoreRepairAbortedEvent` is never shown and the aborted patch is not refunded. `[CODE]` on the agent's reading; consistent with the assistant's own grep that `CargoDroppedEvent` has no consumer.
 - **Outcome:** each of those events raises a row, ranked as §8 says.
@@ -789,6 +789,7 @@ Verified from the decision row and `GAME_DESIGN.md` §11.1: the campaign is comp
 - **Priority:** P1 for a game about hearing things in the dark. **Class:** Missing approved feature.
 - **Now:** `AudioCueRouter` is wired; `World.unity:87621` has `cues: []`; no audio files exist. Alerts, the relief cues and approach sounds (U-D-62) are all silent. `[CODE]`
 - **Canonical:** D-11, F-04, U-D-33. **Authorised?:** Rows exist; D-11 waits on D-09.
+- **Built 2026-09-23 (REL-67, U-D-69 (d), U-P-28):** placeholder sounds made in code now play for every routed cue and interface key when no clip is set; each alien kind in the game has its own approach sound, heard to 48 tiles and panned by where it is; the four volume sliders work and preview their group. Code and automated tests only, plus a Play Mode wiring check by the assistant; **no one has listened to it yet**. The real clip set, the mixer and D-11’s voice limits remain.
 
 #### AUD-ART-02 — Art is procedural and blocked on the owner
 - **Priority:** P2. **Class:** Missing approved feature, blocked.
