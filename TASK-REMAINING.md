@@ -887,7 +887,7 @@ Exit: a person finishes the game. F-ACC.
 |---|---|---|
 | F1-01 | Master Switch: site, bill of materials, surge size | AUD-END-02, F-05a |
 | F1-02 | What do the four factories each make? ("all four factories" has no meaning yet) | AUD-END-02 |
-| F1-03 | The Freight stronghold design: adopt, amend or replace? It is the only written middle of the game and has no decision ID. Includes the 10-Concrete repair and the 440-tile core carry | AUD-EXP-04, AUD-CMB-03, GP-W7 |
+| F1-03 | The Freight stronghold design: adopt, amend or replace? It is the only written middle of the game and has no decision ID. Includes the 10-Concrete repair and the 440-tile core carry. **Decided 2026-09-22 (U-D-69 a):** adopted whole; later decisions win where they clash, and the clashes are listed when GP-W7 starts; built in the fourth batch | AUD-EXP-04, AUD-CMB-03, GP-W7 |
 | F1-04 | The final raid's target: is it always Home? | AUD-END-04 |
 | F1-05 | Does the light board remove D-07's named pins? | AUD-EXP-06 |
 | F1-06 | Radio-gated raid warnings: kept for majors, or retired? The code says "retired"; no decision does | AUD-CMB-01 |
@@ -896,13 +896,13 @@ Exit: a person finishes the game. F-ACC.
 | F1-09 | Admin tools in release builds: hidden, or behind a flag? | AUD-UI-07 |
 | F1-10 | Review of U-D-63's six implementer choices (120 s threshold, rank order, account wording, Admin gate) | GP-W6 acceptance |
 | F1-11 | Interim: hide machines that cannot work until gates exist? | AUD-OPN-06 |
-| F1-12 | Start GP-W7 and GP-W8? | M2 |
+| F1-12 | Start GP-W7 and GP-W8? **Decided 2026-09-22 (U-D-69 a) for GP-W7:** yes, the whole Freight plan, in the fourth batch. GP-W8 is not answered | M2 |
 | F1-13 | U-Q-04: art package and tileset licence | F-03 |
 | F1-14 | Spec §10: overlay strength, tram-stop lighting, the court's dark centre, hard-edged light pools | L-ACC |
 | F1-15 | C-R01 to C-R07: proposals from another session; accept, fold in or drop | Phase C |
 | F1-16 | Should alien sight be blocked by player walls? | AUD-CMB-08 |
 | F1-17 | Picking up a wreck and re-placing it repairs it for free: exploit or escape hatch? | AUD-INT-14 |
-| F1-18 | What is a save bound to? Today any scene edit orphans every save | AUD-PER-03, all Phase D authoring |
+| F1-18 | What is a save bound to? Today any scene edit orphans every save. **Decided 2026-09-22 (U-D-69 b), for development only:** the strict map check stays; a map change may stop old saves loading and the player starts a new game | AUD-PER-03, all Phase D authoring |
 | F1-19 | What should a dead Home core cost the player? Today: almost nothing. **Decided 2026-09-21 (U-D-64 d, U-D-66 part 6):** the raid ends, survivors walk off, the player repairs, the next raid waits a full interval | AUD-CMB-07, AUD-OPN-07, the ending's trip rule |
 | F1-20 | Which moments deserve an event autosave? | AUD-PER-05 |
 
@@ -918,10 +918,10 @@ Exit: a person finishes the game. F-ACC.
 | F1-26 | Should raids come from the side of a living stronghold? | REL-40, REL-38 |
 | F1-27 | Does the 240 cap count sleeping roamers and garrisons? | REL-42, REL-98 |
 | F1-28 | What happens when the first small raid reaches the Home core's floor? **Decided 2026-09-22 (U-D-68 b):** the raid breaks off and the HUD says the core held | part of REL-75, REL-72 |
-| F1-29 | When does a stronghold fight begin and end, and may it hold back a large-raid warning without limit? | part of REL-75, REL-93, REL-96 |
+| F1-29 | When does a stronghold fight begin and end, and may it hold back a large-raid warning without limit? **Decided 2026-09-22 (U-D-69 e):** no other limit; the fight ends about 30 s after the engineer leaves or goes down | part of REL-75, REL-93, REL-96 |
 | F1-30 | What counts as a raid that cannot finish, and what outcome is recorded? **Answered in part 2026-09-22 (U-D-68 a):** nothing the player places may wall a raid off; raiders attack it (E-24). The recorded outcome for any other stuck raid is still open; the neutral interim stands | part of REL-44, REL-80 |
-| F1-31 | Must a Unity save made today keep loading as systems are added? | REL-44, 42, 35, 38, 76, 43, 63 |
-| F1-32 | Home coal: numbers, or coal reaches Home sooner? (after the REL-88 measurement) | REL-27 |
+| F1-31 | Must a Unity save made today keep loading as systems are added? **Decided 2026-09-22 (U-D-69 b), for development only:** no; a clean break is allowed while the game is unreleased | REL-44, 42, 35, 38, 76, 43, 63 |
+| F1-32 | Home coal: numbers, or coal reaches Home sooner? (after the REL-88 measurement) **Decided 2026-09-22 (U-D-69 c):** numbers, a bigger pile or a slower burn | REL-27 |
 | F1-33 | Roamers before alien roles (U-D-66), or after the roster (L-03's dependency)? | REL-42 |
 | F1-34 | Add a standalone Windows build row (F-10 suggested) and try a first build early? | REL-107 |
 | F1-35 | The ending's words: what "fully lit on every street tile" means with lamp light, and why a dark route is kept after raids end | REL-50 |
