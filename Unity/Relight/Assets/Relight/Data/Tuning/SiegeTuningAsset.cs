@@ -101,6 +101,22 @@ namespace Relight.Data
         [Tooltip("How long a body remembers where it last saw the engineer, in seconds.")]
         [SerializeField] private double memorySeconds = 6;
 
+        [Header("Raid pacing and fair timing (REL-75, E-21)")]
+        [Tooltip("The quiet spell after a large raid's recovery, in seconds: no warning and no small raid (U-P-17).")]
+        [SerializeField] private double quietAfterMajorSeconds = 480;
+        [Tooltip("Ordinary small raids that must arrive between one large raid and the next warning.")]
+        [SerializeField] private int minorsPerCycle = 1;
+        [Tooltip("How long after the quiet spell, in seconds, a large-raid warning waits for the cycle's small raid (U-P-22).")]
+        [SerializeField] private double minorHoldCapSeconds = 600;
+        [Tooltip("The longest, in seconds, a due small raid waits while the engineer is down or fighting a camp (U-P-23).")]
+        [SerializeField] private double minorDelayCapSeconds = 180;
+        [Tooltip("Past this straight-line distance from the raid's target, in tiles, the engineer is far (U-P-24).")]
+        [SerializeField] private double farTargetTiles = 150;
+        [Tooltip("Seconds added to a small raid's warning when the engineer is far from its target (U-P-24).")]
+        [SerializeField] private double farWarningExtraSeconds = 30;
+        [Tooltip("The share of the Home core's hit points the first small raid cannot take it below (U-P-25).")]
+        [SerializeField] private double firstMinorCoreFloor = 0.5;
+
         public SiegeTuning ToRecord() => new SiegeTuning(
             minorWarningSeconds, minorWarningRangeSeconds, minorStageRetrySeconds, noticeHoldSeconds,
             majorWaves, majorWaveGapSeconds, majorWaveSpreadSeconds, majorWaveTailSeconds,
@@ -113,7 +129,10 @@ namespace Relight.Data
             entryNearSteps, entryFarSteps, safeFromEngineerTiles,
             stagingIdealSteps, approachIdealSteps, minorMajorGapSeconds,
             guardSleepTiles, guardPatrolRadiusTiles, guardPatrolSpeedMul,
-            memorySeconds);
+            memorySeconds,
+            quietAfterMajorSeconds, minorsPerCycle, minorHoldCapSeconds,
+            minorDelayCapSeconds, farTargetTiles, farWarningExtraSeconds,
+            firstMinorCoreFloor);
 
         public void Fill(SiegeTuning s)
         {
@@ -150,6 +169,13 @@ namespace Relight.Data
             guardPatrolRadiusTiles = s.GuardPatrolRadiusTiles;
             guardPatrolSpeedMul = s.GuardPatrolSpeedMul;
             memorySeconds = s.MemoryS;
+            quietAfterMajorSeconds = s.QuietAfterMajorS;
+            minorsPerCycle = s.MinorsPerCycle;
+            minorHoldCapSeconds = s.MinorHoldCapS;
+            minorDelayCapSeconds = s.MinorDelayCapS;
+            farTargetTiles = s.FarTargetTiles;
+            farWarningExtraSeconds = s.FarWarningExtraS;
+            firstMinorCoreFloor = s.FirstMinorCoreFloor;
         }
 
         public override string Problem()
@@ -191,6 +217,14 @@ namespace Relight.Data
             if (guardPatrolSpeedMul < 0 || guardPatrolSpeedMul > 1)
                 return "a patrol is a share of the body's own speed, never more than it";
             if (memorySeconds < 0) return "a body cannot remember the engineer for less than no time";
+            if (quietAfterMajorSeconds < 0) return "a quiet spell cannot be shorter than none";
+            if (minorsPerCycle < 0) return "a cycle cannot owe a negative number of small raids";
+            if (minorHoldCapSeconds < 0) return "a warning cannot wait a negative time for a small raid";
+            if (minorDelayCapSeconds < 0) return "a small raid cannot wait a negative time for the engineer";
+            if (farTargetTiles <= 0) return "the engineer cannot be far from a target at no distance";
+            if (farWarningExtraSeconds < 0) return "a far target cannot shorten the warning";
+            if (firstMinorCoreFloor < 0 || firstMinorCoreFloor >= 1)
+                return "the first small raid's floor is a share of the core's hit points, below all of them";
             return null;
         }
     }

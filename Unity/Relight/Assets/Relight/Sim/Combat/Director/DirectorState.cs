@@ -113,6 +113,12 @@ namespace Relight.Sim
         public bool Spawned;
         /// <summary>The announced approach, as a compass word, so the arriving wave matches what was said.</summary>
         public string Heading = "";
+        /// <summary>
+        /// REL-75 (U-D-66 (5), U-D-68 (b)): the Home core hit points this raid may not take the core below, or 0 for
+        /// no floor. Only the campaign's first ordinary small raid has one; when a hit would cross it the raid breaks
+        /// off (<see cref="DirectorPacing.CoreHeld"/>). Save v12; an older raid reads as 0.
+        /// </summary>
+        public double Floor;
 
         public void Visit(IStateVisitor v)
         {
@@ -124,6 +130,7 @@ namespace Relight.Sim
             v.Field("owed", ref Owed);
             v.Field("spawned", ref Spawned);
             v.Field("heading", ref Heading);
+            v.Field("floor", ref Floor);
         }
     }
 
@@ -215,6 +222,24 @@ namespace Relight.Sim
         /// <summary>The assault whose warning has been announced, so <see cref="RaidNoticeEvent"/> is raised once.</summary>
         public int WarnedId;
 
+        // ---- REL-75 (E-21, U-D-64 (d), U-D-66 (5)): pacing and fair timing. Save v12; an older file reads the
+        //      defaults below, which hold nothing back, so a loaded save carries on as it was (SaveUpgrade). ----
+
+        /// <summary>
+        /// Absolute sim second the quiet spell after the last large raid ends: recovery, then
+        /// <see cref="SiegeTuning.QuietAfterMajorS"/> with no warning and no small raid. 0 before the first.
+        /// </summary>
+        public double QuietUntil;
+        /// <summary>Ordinary small raids that have arrived since the last large raid began. Reset when one commits.</summary>
+        public int CycleMinors;
+        /// <summary>Absolute sim second the last small raid ended, or -1.</summary>
+        public double LastMinorEnd = -1;
+        /// <summary>
+        /// Absolute sim second a due small raid was first held back because the engineer was down or fighting, or
+        /// -1 when none is waiting. It waits at most <see cref="SiegeTuning.MinorDelayCapS"/> from here.
+        /// </summary>
+        public double MinorDelayedSince = -1;
+
         public MajorRaid Major;
         public MinorRaid Minor;
         public List<RaidRecord> History = new List<RaidRecord>();
@@ -261,6 +286,10 @@ namespace Relight.Sim
             v.Field("reserved", ref Reserved);
             v.Field("reserveReason", ref ReserveReason);
             v.Field("debugAllowed", ref DebugAllowed);
+            v.Field("quietUntil", ref QuietUntil);
+            v.Field("cycleMinors", ref CycleMinors);
+            v.Field("lastMinorEnd", ref LastMinorEnd);
+            v.Field("minorDelayedSince", ref MinorDelayedSince);
         }
     }
 

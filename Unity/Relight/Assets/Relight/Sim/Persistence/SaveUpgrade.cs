@@ -70,6 +70,8 @@ namespace Relight.Sim
         public const string History = "history";
         public const string Outcome = "outcome";
         public const string Defeated = "defeated";
+        /// <summary>v11 → v12 (REL-75): a small raid's core floor.</summary>
+        public const string Floor = "floor";
 
         /// <summary>
         /// The one city every pre-C6 imported save was made on (WORLD_AND_ASSETS.md §2.3). A save that names this
@@ -190,6 +192,13 @@ namespace Relight.Sim
                 if (problem.Length != 0) return problem;
                 what += (what.Length == 0 ? " with" : " and") + " each earlier assault kept with the one account of how it ended";
                 v = 11;
+            }
+            if (v == 11)
+            {
+                var problem = ElevenToTwelve(state, out damaged);
+                if (problem.Length != 0) return problem;
+                what += (what.Length == 0 ? " with" : " and") + " no quiet spell or small-raid hold owed from before the pacing rules";
+                v = 12;
             }
             // Every version between OldestReadable and Version has a step above; a gap here is a programming error.
             if (v != SaveSchema.Version)
@@ -320,6 +329,24 @@ namespace Relight.Sim
                     var record = history.At(i);
                     if (record != null && record.IsObject) record.TryRemoveMember(Defeated);
                 }
+            FillMissing(state, FreshDocument());
+            return "";
+        }
+
+        /// <summary>
+        /// v11 → v12: raid pacing and fair timing (REL-75, E-21). The director gains the quiet spell's end, the
+        /// cycle's small-raid count, the last small raid's end and a due small raid's delay, and a small raid gains
+        /// its core floor. The director members are plain numbers a fresh director carries, so the generic fill
+        /// supplies them, and the fresh values hold nothing back: no quiet spell is owed, and the first warning the
+        /// loaded game gives is where the file already had it. <c>director.minor</c> is JSON null in a fresh state,
+        /// so a raid the file already has gets its <c>floor</c> stamped here as 0: the build that wrote it had no
+        /// floor, and a raid under way must not gain one because the game was saved and reloaded.
+        /// </summary>
+        static string ElevenToTwelve(JsonValue state, out bool damaged)
+        {
+            damaged = false;
+            var minor = state.Member(Director)?.Member(Minor);
+            if (minor != null && minor.IsObject) minor.TryAddMember(Floor, JsonValue.NumberValue(0));
             FillMissing(state, FreshDocument());
             return "";
         }

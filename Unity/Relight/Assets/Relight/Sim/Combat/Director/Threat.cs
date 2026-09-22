@@ -130,8 +130,10 @@ namespace Relight.Sim
         /// announced by <c>Warn</c>, committed by <c>Commit</c> and spawned wave by wave, so what a developer
         /// watches is the path a player gets. A raid already warned keeps its plan and slides along the clock; a
         /// recovery spell that would refuse the new start is cut short, because a recovery spell IS the clock.
-        /// It does not override the rules the director tests for: a reserved approach, a fallen core and a raid
-        /// already under way are refused, with the reason. Returns "" when the clock was moved.
+        /// It does not override the rules the director tests for: a reserved approach, a fallen core, a raid
+        /// already under way, a small raid still on the map and a stronghold fight are refused, with the reason.
+        /// The pacing holds that are only a matter of time (REL-75: the quiet spell, the wait for the cycle's small
+        /// raid and the gap after it) are waived, as the recovery spell is. Returns "" when the clock was moved.
         /// </summary>
         public static string PullIn(SimContext ctx, SimState st, double startsAt)
         {
@@ -139,8 +141,15 @@ namespace Relight.Sim
             if (d.Major != null && d.Major.Committed) return "A large raid is already under way.";
             if (d.Reserved) return d.ReserveReason.Length > 0 ? d.ReserveReason : "The approach is reserved.";
             if (!DirectorRules.Target(ctx, st, out _, out _, out _)) return "There is no standing core to assault. Repair Home first.";
+            if (d.Minor != null) return "A small raid is still on the map. Clear enemies first.";
+            if (DirectorPacing.StrongholdFight(ctx, st)) return "A stronghold fight is on.";
             if (startsAt < st.T) startsAt = st.T;
             if (d.RecoveryUntil > startsAt) d.RecoveryUntil = startsAt;
+            // REL-75: the pacing holds are clocks too; cut them short so the warning opens on the next tick.
+            var siege = ctx.Data.Siege;
+            d.QuietUntil = Math.Min(d.QuietUntil, st.T);
+            d.CycleMinors = Math.Max(d.CycleMinors, siege.MinorsPerCycle);
+            if (d.LastMinorEnd >= 0 && d.LastMinorEnd > st.T - siege.MinorMajorGapS) d.LastMinorEnd = st.T - siege.MinorMajorGapS;
             d.NextStart = startsAt;
             if (d.Major != null)
             {

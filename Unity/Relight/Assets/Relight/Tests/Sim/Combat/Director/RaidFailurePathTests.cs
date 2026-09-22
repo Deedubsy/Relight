@@ -120,10 +120,13 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(new HomeCoreHandler().TryApply(ctx, st, new RepairCommand(RepairKinds.Core, 0), out var r), Is.True);
             Assert.That(r.Problem, Is.Empty, "the fallen core can be repaired once the raid has ended");
 
-            // Put the core back and let the clock reach the next assault.
+            // Put the core back and let the clock reach the next assault. REL-75 (U-D-64 d): after the quiet spell
+            // the warning waits for the cycle's small raid, which in this director-only bench never ends, so it
+            // opens when the hold's own cap runs out (U-P-22). Run the clock through that wait, not past it.
             st.Home.Hp = ctx.Data.Defence.CoreHp;
             st.T = d.NextStart - ctx.Data.Raids.WarningS;
-            RaidFixture.Run(ctx, st, 1, Clock());
+            var until = st.T + 2 * ctx.Data.Siege.MinorHoldCapS + ctx.Data.Raids.WarningS;
+            while (d.Major == null && st.T < until) RaidFixture.Run(ctx, st, 1, Clock());
             Assert.That(d.Major, Is.Not.Null, "the director schedules the next assault");
             Assert.That(d.Major.Id, Is.Not.EqualTo(a.Id));
             Assert.That(Unresolved(st), Is.EqualTo(0));

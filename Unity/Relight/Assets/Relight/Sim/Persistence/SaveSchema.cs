@@ -60,6 +60,13 @@ namespace Relight.Sim
     /// template record and the step stamps 0 (cleared) on every record the file already holds — which is the truth
     /// about a build that only ever recorded an assault once its last body was gone.
     ///
+    /// Version 11 (INT-04c) takes the dead <c>defeated</c> flag off each history record.
+    ///
+    /// Version 12 (2026-09-22, REL-75, E-21) adds the raid pacing members: <c>director.quietUntil</c>,
+    /// <c>cycleMinors</c>, <c>lastMinorEnd</c> and <c>minorDelayedSince</c>, and <c>director.minor.floor</c>. The
+    /// director members come from the generic fill with values that hold nothing back; a small raid already in
+    /// the file is stamped with no floor (<see cref="SaveUpgrade"/>).
+    ///
     /// The document is one JSON object:
     /// <code>
     /// {
@@ -88,7 +95,7 @@ namespace Relight.Sim
     public static class SaveSchema
     {
         /// <summary>Schema version this build writes. Files from <see cref="OldestReadable"/> up to it are read.</summary>
-        public const int Version = 11;
+        public const int Version = 12;
 
         /// <summary>
         /// The oldest schema version this build still reads (through <see cref="SaveUpgrade"/>). Never 0: there

@@ -120,6 +120,27 @@ Owned by the port (`Kind = provisional`), created by REL-43; the asset holds `Si
 | GuardPatrolSpeedMul | 0.35 | literal in `EnemyPhase` patrol speed | EnemyPhase | — |
 | MemoryS | 6 s | `Enemies.MemorySeconds` | Enemies | — |
 
+### Raid pacing and fair timing, added by REL-75 (E-21, 2026-09-23)
+
+New fields, so each one is a new number, not a moved literal. Every value is the assistant's placeholder under
+U-D-28; none has been seen in play. `MinorMajorGapS` (above) is now also read by `DirectorPacing` (the gap after
+the cycle's small raid) and `Threat.PullIn`.
+
+| Field | Value | Read by | U-P |
+|---|---|---|---|
+| QuietAfterMajorS | 480 s | DirectorPhase (`EndMajor`), DirectorPacing | U-P-17 |
+| MinorsPerCycle | 1 | DirectorPhase, DirectorPacing, Threat | U-P-17 |
+| MinorHoldCapS | 600 s | DirectorPacing | U-P-22 |
+| MinorDelayCapS | 180 s | DirectorPhase (`MinorAnnounce`) | U-P-23 |
+| FarTargetTiles / FarWarningExtraS | 150 tiles / 30 s | DirectorPacing, DirectorPhase | U-P-24 |
+| FirstMinorCoreFloor | 0.5 | DirectorPacing, EnemyCoreHook | U-P-25 |
+
+**What the pacing adds up to** (read from the rules, not measured in play): after a large raid ends at E the
+recovery spell runs to E+300, the quiet spell to E+780, the cycle's small raid is warned at E+780 to E+900, and
+after it ends the gap is 120 s and then the full 300 s large-raid warning. Start to start that is about 27 to 31
+minutes with raids of ordinary length (longer raids stretch it), not U-D-38's nominal 18 to 22. If the small raid
+never comes, the warning opens 600 s after the quiet spell at the latest.
+
 ## Still literals, on purpose
 
 The accept line says no threat number may remain a literal in director, roamer or garrison code. These stay,

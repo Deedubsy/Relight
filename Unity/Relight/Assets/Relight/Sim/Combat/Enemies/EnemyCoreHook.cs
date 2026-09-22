@@ -45,6 +45,21 @@ namespace Relight.Sim
         /// </summary>
         static partial void CoreDownImpl(SimContext ctx, SimState st, ref bool down);
 
+        /// <summary>
+        /// REL-75: the core's hit points now and at full, when the region has a placed core. With no implementation
+        /// <paramref name="found"/> stays false and no floor can apply, which is right for a map with no core.
+        /// </summary>
+        static partial void CoreHpImpl(SimContext ctx, SimState st, ref double hp, ref double max, ref bool found);
+
+        /// <summary>The placed core's hit points and its full hit points. False when the region has no placed core.</summary>
+        public static bool Hp(SimContext ctx, SimState st, out double hp, out double max)
+        {
+            hp = 0; max = 0;
+            var found = false;
+            CoreHpImpl(ctx, st, ref hp, ref max, ref found);
+            return found;
+        }
+
         /// <summary>The placed core has fallen. A fallen core is not a raid target (E-18, U-D-64 d).</summary>
         public static bool Down(SimContext ctx, SimState st)
         {
@@ -53,10 +68,27 @@ namespace Relight.Sim
             return down;
         }
 
-        /// <summary>Apply <paramref name="amount"/> hit points of damage to the Home core; a no-op until C-05 lands.</summary>
+        /// <summary>
+        /// Apply <paramref name="amount"/> hit points of damage to the Home core; a no-op until C-05 lands.
+        ///
+        /// REL-75 (U-D-66 (5), U-D-68 (b)): while the campaign's first small raid is on the map the core cannot go
+        /// below that raid's floor. The hit that would cross it takes the core to the floor exactly, and the raid
+        /// breaks off (<see cref="DirectorPacing.CoreHeld"/>). Every raid body's hit on the core comes through here,
+        /// so this is the one place the floor has to be kept.
+        /// </summary>
         public static void Damage(SimContext ctx, SimState st, double amount)
         {
             if (amount <= 0) return;
+            var floor = DirectorPacing.CoreFloorHp(st);
+            if (floor > 0 && Hp(ctx, st, out var hp, out _))
+            {
+                if (hp - amount <= floor)
+                {
+                    amount = hp - floor;
+                    DirectorPacing.CoreHeld(ctx, st);
+                }
+                if (amount <= 0) return;
+            }
             DamageCoreImpl(ctx, st, amount);
         }
 

@@ -20,7 +20,8 @@ namespace Relight.Authoring.Tests
     /// The context is <see cref="RealCityFixture"/>'s: the city exactly as a new game builds it.
     ///
     /// The one liberty taken is the CLOCK: the first large raid is ~25 minutes into a new game, so each cycle pulls
-    /// <c>NextStart</c> in to one warning from now. Nothing else about the raid is touched — the warning, the
+    /// <c>NextStart</c> in to one warning from now, waiving REL-75's pacing holds as the Admin pull-in does
+    /// (<see cref="RealCityFixture.PullInLargeRaid"/>). Nothing else about the raid is touched — the warning, the
     /// commit, the waves, the walk in, the damage and the ending are the game's own.
     /// </summary>
     public sealed class RealCityRaidTests
@@ -137,9 +138,9 @@ namespace Relight.Authoring.Tests
             for (var cycle = 1; cycle <= 2; cycle++)
             {
                 var label = "cycle " + cycle + ": ";
-                d.NextStart = Math.Max(st.T + r.WarningS + 1, d.RecoveryUntil + 1);
+                RealCityFixture.PullInLargeRaid(ctx, st);       // REL-75: waives the pacing holds too
 
-                Assert.That(RunUntil(sim, r.WarningS + 30, notices, () => d.Major != null && d.Major.Committed), Is.True,
+                Assert.That(RunUntil(sim, RealCityFixture.WarningWait(ctx), notices, () => d.Major != null && d.Major.Committed), Is.True,
                     label + "the large raid was warned and committed" + Tail(notices));
                 var id = d.Major.Id;
                 var history = d.History.Count;
@@ -176,8 +177,8 @@ namespace Relight.Authoring.Tests
             }
 
             // And a third is scheduled on the ordinary clock's terms.
-            d.NextStart = Math.Max(st.T + r.WarningS + 1, d.RecoveryUntil + 1);
-            Assert.That(RunUntil(sim, r.WarningS + 30, notices, () => d.Major != null && d.Major.Committed), Is.True,
+            RealCityFixture.PullInLargeRaid(ctx, st);
+            Assert.That(RunUntil(sim, RealCityFixture.WarningWait(ctx), notices, () => d.Major != null && d.Major.Committed), Is.True,
                 "a third large raid was warned and committed" + Tail(notices));
 
             var unresolved = notices.FindAll(n => n.Contains(Unresolved));
@@ -229,9 +230,9 @@ namespace Relight.Authoring.Tests
                 Assert.That(RunUntil(sim, 600, notices, () => !d.Reserved && (d.Minor == null || !d.Minor.Spawned), m), Is.True,
                     label + "the director came free for a large raid" + Tail(notices));
                 defence.Restore(ctx, st);
-                d.NextStart = Math.Max(st.T + r.WarningS + 1, d.RecoveryUntil + 1);
+                RealCityFixture.PullInLargeRaid(ctx, st);       // REL-75: waives the pacing holds too
 
-                Assert.That(RunUntil(sim, r.WarningS + 30, notices, () => d.Major != null && d.Major.Committed, m), Is.True,
+                Assert.That(RunUntil(sim, RealCityFixture.WarningWait(ctx), notices, () => d.Major != null && d.Major.Committed, m), Is.True,
                     label + "the large raid was warned and committed" + Tail(notices));
                 var id = d.Major.Id;
                 var coreAtStart = HomeQueries.CoreHp(st);

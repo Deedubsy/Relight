@@ -36,6 +36,7 @@ namespace Relight.Sim
                 var outcome = m.Retreat ? DirectorRules.CalledOff(ctx, st) : RaidOutcome.Cleared;
                 st.Events.Add(new RaidEndedEvent(st.T, m.Id, false, m.Scripted, (int)outcome, m.StartsAt));
                 d.Minor = null;
+                d.LastMinorEnd = st.T;                                  // REL-75: the gap before a warning runs from here
             }
 
             CoreFell(ctx, st);
@@ -46,7 +47,7 @@ namespace Relight.Sim
             if (d.Major != null && d.Major.Committed && st.T >= d.NextStart)
                 Future(ctx, st, "Previous assault cleanup is still unresolved.");
 
-            if (d.Major == null && st.T >= d.NextStart - r.WarningS) Schedule(ctx, st);
+            if (d.Major == null && st.T >= d.NextStart - r.WarningS && !HoldWarning(ctx, st)) Schedule(ctx, st);
 
             Commit(ctx, st);
             Spawn(ctx, st);
@@ -116,6 +117,12 @@ namespace Relight.Sim
             d.RecoveryUntil = Math.Max(d.RecoveryUntil, st.T + r.RecoveryS);
             d.Major = null;
             d.MajorSpawned = 0;
+            // REL-75 (U-D-64 d): the quiet spell follows the recovery, and the cycle's small raid comes after it,
+            // a short random while in, so it does not always land on the same second.
+            var siege = ctx.Data.Siege;
+            d.QuietUntil = Math.Max(d.QuietUntil, d.RecoveryUntil + siege.QuietAfterMajorS);
+            d.NextMinor = d.QuietUntil + DirectorRules.RaidChoice(st.Seed, 4099 + d.Serial, (int)r.MinorRangeS);
+            d.MinorDelayedSince = -1;
 
             if (outcome == RaidOutcome.Cleared) return;
             d.Serial++;
@@ -203,6 +210,21 @@ namespace Relight.Sim
             d.NextStart = st.T + r.IntervalMinS + DirectorRules.RaidChoice(st.Seed, d.Serial, (int)r.IntervalRangeS);
             Director.Say(ctx, st, reason + " Opportunity skipped; a future assault will receive a fresh warning.");
             st.Events.Add(new RaidNoticeEvent(st.T, RaidNoticeKind.Skipped, d.Notice, -1));
+        }
+
+        // ------------------------------------------------------------------ pacing (REL-75)
+
+        /// <summary>
+        /// The large-raid warning is due, but a pacing rule says it must wait (<see cref="DirectorPacing.WarningHold"/>).
+        /// The clock is carried along one warning ahead of now, silently, so when the hold lifts the raid is booked
+        /// with its full warning rather than a short one, and <see cref="Schedule"/> does not read the wait as a
+        /// missed start. Nothing is said: a warning that has not opened is not news.
+        /// </summary>
+        private static bool HoldWarning(SimContext ctx, SimState st)
+        {
+            if (DirectorPacing.WarningHold(ctx, st).Length == 0) return false;
+            st.Director.NextStart = st.T + ctx.Data.Raids.WarningS;
+            return true;
         }
 
         // ------------------------------------------------------------------ major
@@ -298,6 +320,7 @@ namespace Relight.Sim
             }
 
             a.Committed = true;
+            d.CycleMinors = 0;                                          // REL-75: a new cycle starts with this raid
             d.Serial++;
             d.NextStart = a.StartsAt + r.IntervalMinS + DirectorRules.RaidChoice(st.Seed, d.Serial, (int)r.IntervalRangeS);
         }
@@ -467,6 +490,8 @@ namespace Relight.Sim
             {
                 if (DirectorRules.Birth(ctx, st, from, (int)EnemyLayer.Minor, m.Id, false) == 0) break;
                 m.Owed--;
+                // REL-75: the cycle's small raid is the one that actually arrives, not the one that was announced.
+                if (!m.Spawned && !m.Scripted) d.CycleMinors++;
                 m.Spawned = true;
             }
             // Whatever the map would not take is written off here, not carried as a debt (U-D-38).
@@ -498,20 +523,24 @@ namespace Relight.Sim
             if (st.T < d.NextMinor) return;
             d.NextMinor = st.T + r.MinorMinS
                 + DirectorRules.RaidChoice(st.Seed, d.RaidsStarted + (int)Math.Floor(st.T), (int)r.MinorRangeS);
-            if (st.OpeningResourceVersion > 0 && st.Opening.EndedAt < 0) return;
-            if (d.Major != null || d.Minor != null || d.Reserved) return;
-            if (st.T < d.RecoveryUntil) return;
+            if (!MinorMayStart(ctx, st, out var warn, out var origin, out var count))
+            {
+                d.MinorDelayedSince = -1;
+                return;
+            }
 
-            var warn = siege.MinorWarningS
-                + DirectorRules.RaidChoice(st.Seed, d.RaidsStarted + 1013, (int)siege.MinorWarningRangeS);
-            // The raid must still be clear of the next major's own warning window once its warning has run out.
-            if (d.NextStart - (st.T + warn) < r.WarningS + siege.MinorMajorGapS) return;
-            if (!DirectorRules.Target(ctx, st, out _, out _, out _)) return;
-
-            var origin = DirectorRules.Origin(ctx, st);
-            if (origin < 0 || DirectorRules.Staging(ctx, st, origin) < 0) return;
-            var count = (int)r.MinorCountBase + DirectorRules.RaidChoice(st.Seed, d.RaidsStarted, (int)r.MinorCountRange);
-            if (st.Enemies.Actors.Count + count > r.LivingBudget) return;
+            // REL-75 (U-D-66 (5)): not while the engineer is down or fighting a camp or a stronghold. The raid is
+            // held, not dropped, and tried again each second, for at most MinorDelayCapS; then it starts anyway.
+            if (DirectorPacing.Unfair(ctx, st))
+            {
+                if (d.MinorDelayedSince < 0) d.MinorDelayedSince = st.T;
+                if (st.T < d.MinorDelayedSince + siege.MinorDelayCapS)
+                {
+                    d.NextMinor = st.T + 1;
+                    return;
+                }
+            }
+            d.MinorDelayedSince = -1;
 
             var id = d.NextId++;
             var heading = DirectorRules.HeadingsOf(ctx, st, new[] { origin });
@@ -525,11 +554,48 @@ namespace Relight.Sim
                 Owed = count,
                 Spawned = false,
                 Heading = heading,
+                // REL-75 (U-D-68 b): the campaign's first ordinary small raid cannot take the core below its floor.
+                Floor = d.RaidsStarted == 0 ? DirectorPacing.FirstFloor(ctx, st) : 0,
             };
             d.RaidsStarted++;
             var text = "Raid inbound from " + heading + " in " + Seconds(warn) + ".";
             Director.Say(st, text, d.Minor.StartsAt + siege.NoticeHoldS);
             st.Events.Add(new RaidNoticeEvent(st.T, RaidNoticeKind.MinorRaid, text, id));
+        }
+
+        /// <summary>
+        /// Everything that decides whether a small raid can be announced now, and if so its warning, approach and
+        /// size. Split out of <see cref="MinorAnnounce"/> (REL-75) so the fair-timing delay is asked only of a raid
+        /// that would otherwise start: a delay clock must not run while nothing was due.
+        /// </summary>
+        private static bool MinorMayStart(SimContext ctx, SimState st, out double warn, out int origin, out int count)
+        {
+            var d = st.Director;
+            var r = ctx.Data.Raids;
+            var siege = ctx.Data.Siege;
+            warn = 0; origin = -1; count = 0;
+            if (st.OpeningResourceVersion > 0 && st.Opening.EndedAt < 0) return false;
+            if (d.Major != null || d.Minor != null || d.Reserved) return false;
+            if (st.T < d.RecoveryUntil) return false;
+            // REL-75 (U-D-64 d): nothing in the quiet spell, and one small raid per cycle once large raids have begun.
+            if (st.T < d.QuietUntil) return false;
+            var cycle = DirectorPacing.InCycle(st);
+            if (cycle && d.CycleMinors >= siege.MinorsPerCycle) return false;
+
+            warn = siege.MinorWarningS
+                + DirectorRules.RaidChoice(st.Seed, d.RaidsStarted + 1013, (int)siege.MinorWarningRangeS);
+            // REL-75 (U-D-66 (5)): a raid on a target far from the engineer gives them time to get back to it.
+            if (DirectorPacing.Far(ctx, st)) warn += siege.FarWarningExtraS;
+            // Before the first large raid, the raid must still be clear of that raid's own warning window once its
+            // warning has run out. Inside a cycle the large-raid warning waits for the small raid instead
+            // (DirectorPacing.WarningHold), so the clock is carried along and this test would refuse every raid.
+            if (!cycle && d.NextStart - (st.T + warn) < r.WarningS + siege.MinorMajorGapS) return false;
+            if (!DirectorRules.Target(ctx, st, out _, out _, out _)) return false;
+
+            origin = DirectorRules.Origin(ctx, st);
+            if (origin < 0 || DirectorRules.Staging(ctx, st, origin) < 0) return false;
+            count = (int)r.MinorCountBase + DirectorRules.RaidChoice(st.Seed, d.RaidsStarted, (int)r.MinorCountRange);
+            return st.Enemies.Actors.Count + count <= r.LivingBudget;
         }
     }
 }

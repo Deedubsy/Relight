@@ -253,7 +253,8 @@ namespace Relight.Sim.Tests.UI
         /// INT-04a (3). A large raid commits while a small one is on the ground. The director turns the small raid
         /// back itself (<c>DirectorPhase.Commit</c>), so the defence did not repel it: it closes with no account,
         /// and the tally that opens is the large raid's. The large raid's warning is cut to one second here by
-        /// moving <c>NextStart</c>; everything after that is the director's own.
+        /// moving <c>NextStart</c>, once the small raid has outlasted the pacing hold (REL-75); everything after
+        /// that is the director's own.
         /// </summary>
         [Test]
         public void ALargeRaidOverALiveSmallRaidLeavesTheSmallOneWithNoAccount()
@@ -266,6 +267,9 @@ namespace Relight.Sim.Tests.UI
             Assert.That(acc.Watching, Is.True, "the small raid is being tallied");
             acc.Intake(new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true, EnemyLayer.Minor, 1));
 
+            // REL-75 (U-P-22): a large-raid warning waits while a small raid is on, but only for MinorHoldCapS
+            // after it arrived. This is the small raid that outlasts that wait.
+            st.T = System.Math.Max(st.T, m.StartsAt + ctx.Data.Siege.MinorHoldCapS);
             st.Director.NextStart = st.T + 1;
             Drive(ctx, st, acc, 1 + 2 * RaidFixture.Dt);
             var major = st.Director.Major;

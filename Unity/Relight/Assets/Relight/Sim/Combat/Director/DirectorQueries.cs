@@ -3,7 +3,8 @@ using System;
 namespace Relight.Sim
 {
     /// <summary>Why the director spoke. The HUD picks its wording from this, never by parsing the text.</summary>
-    public enum RaidNoticeKind { Announced = 0, Skipped = 1, Deferred = 2, MinorRaid = 3, Reserved = 4, Released = 5 }
+    /// <remarks><see cref="CoreHeld"/> (REL-75, U-D-68 b): the first small raid reached the Home core's floor and is breaking off.</remarks>
+    public enum RaidNoticeKind { Announced = 0, Skipped = 1, Deferred = 2, MinorRaid = 3, Reserved = 4, Released = 5, CoreHeld = 6 }
 
     /// <summary>
     /// A director notice, for the alert feed (C-07) and the guide (C-09). <see cref="Text"/> carries the reference's
@@ -61,7 +62,8 @@ namespace Relight.Sim
         int Survived, bool Pinned, int NextBodies,
         int Wave, int Waves, int Remaining, int Cancelled,
         string Minor, int MajorAlive, int MinorAlive, int Living, int ActiveBudget, int LivingBudget,
-        int LastId, int LastOutcome);
+        int LastId, int LastOutcome,
+        string Pacing = "", int CycleMinors = 0, int MinorsPerCycle = 0);
 
     public static class DirectorQueries
     {
@@ -79,6 +81,7 @@ namespace Relight.Sim
             else if (a != null && a.Committed) { phase = "assault"; left = Math.Max(0, a.EndsAt - st.T); }
             else if (a != null) { phase = "warned"; left = Math.Max(0, a.StartsAt - st.T); }
             else if (st.T < d.RecoveryUntil) { phase = "recovery"; left = d.RecoveryUntil - st.T; }
+            else if (st.T < d.QuietUntil) { phase = "quiet"; left = d.QuietUntil - st.T; }     // REL-75
             else if (d.Reserved) phase = "held";
             else phase = "waiting";
 
@@ -91,7 +94,8 @@ namespace Relight.Sim
                 step, st.Admin.RaidNumber >= 0, SiegePlan.TotalFor(ctx, step),
                 a == null ? 0 : a.Wave + 1, a == null ? 0 : a.Waves, a == null ? 0 : a.Remaining, a == null ? 0 : a.Cancelled,
                 small, major, minor, total, r.ActiveRaidBudget, r.LivingBudget,
-                last == null ? 0 : last.Id, last == null ? -1 : last.Outcome);
+                last == null ? 0 : last.Id, last == null ? -1 : last.Outcome,
+                a == null ? DirectorPacing.WarningHold(ctx, st) : "", d.CycleMinors, ctx.Data.Siege.MinorsPerCycle);
         }
 
         /// <summary>The readout as the Admin page prints it. Developer text; nothing a player sees.</summary>
@@ -100,6 +104,7 @@ namespace Relight.Sim
             var phase = v.Phase == "assault" ? $"assault · wave {Math.Min(v.Wave, v.Waves)} of {v.Waves} · {v.Remaining} still to arrive · planned end in {v.PhaseSeconds:0} s"
                 : v.Phase == "warned" ? $"warned · starts in {v.PhaseSeconds:0} s · {v.Waves} waves, {v.Remaining} bodies"
                 : v.Phase == "recovery" ? $"recovery · {v.PhaseSeconds:0} s left"
+                : v.Phase == "quiet" ? $"quiet spell · {v.PhaseSeconds:0} s left"
                 : v.Phase == "held" ? "held · " + (v.Hold.Length > 0 ? v.Hold : "the approach is reserved")
                 : v.Phase;
             var target = v.HasTarget ? $"Home core at {v.TargetX}, {v.TargetY}" + (v.CoreMaxHp > 0 ? " · " + HomeQueries.CoreHpText(v.CoreHp, v.CoreMaxHp) : " · authored site, no core placed")
@@ -111,6 +116,8 @@ namespace Relight.Sim
                 + "\nTarget: " + target
                 + $"\nRaids survived: {v.Survived}" + (v.Pinned ? " (pinned by Admin)" : "") + $" · the next one booked brings {v.NextBodies}"
                 + "\nSmall raid: " + v.Minor
+                + $"\nPacing: small raids this cycle {v.CycleMinors} of {v.MinorsPerCycle}"
+                + (v.Pacing.Length > 0 ? " · the next warning waits: " + v.Pacing : "")
                 + $"\nLarge-raid bodies alive: {v.MajorAlive} of {v.ActiveBudget} · small-raid: {v.MinorAlive} · all enemies: {v.Living} of {v.LivingBudget}"
                 + "\nLast large raid: " + last;
         }

@@ -30,6 +30,16 @@ namespace Relight.Sim
             found = size > 0;
         }
 
+        /// <summary>REL-75: the placed core's hit points and its full hit points, for the first small raid's floor.</summary>
+        static partial void CoreHpImpl(SimContext ctx, SimState st, ref double hp, ref double max, ref bool found)
+        {
+            var h = st?.Home;
+            if (h == null || !h.Placed) return;
+            hp = h.Hp;
+            max = HomeQueries.CoreMaxHp(ctx?.Data);
+            found = true;
+        }
+
         /// <summary>E-18: the core was placed and is at 0 hit points.</summary>
         static partial void CoreDownImpl(SimContext ctx, SimState st, ref bool down)
         {

@@ -49,6 +49,13 @@ namespace Relight.Sim
     /// <param name="GuardPatrolRadiusTiles">The radius of a camp resident's patrol loop around its birthplace.</param>
     /// <param name="GuardPatrolSpeedMul">The share of its own speed a camp resident patrols at; it chases at the full speed.</param>
     /// <param name="MemoryS">How long a body remembers where it last saw the engineer (reference hostileAwareness.ts HOSTILE_MEMORY_SECONDS).</param>
+    /// <param name="QuietAfterMajorS">The quiet spell after a large raid's recovery: no warning, no small raid (U-D-64 d, U-P-17).</param>
+    /// <param name="MinorsPerCycle">Ordinary small raids that must arrive between one large raid and the next warning (U-D-64 d).</param>
+    /// <param name="MinorHoldCapS">How long after the quiet spell a large-raid warning waits for the cycle's small raid before it gives up waiting (U-P-22).</param>
+    /// <param name="MinorDelayCapS">The longest a due small raid waits while the engineer is down or fighting a camp (U-D-66 (5), U-P-23).</param>
+    /// <param name="FarTargetTiles">Past this straight-line distance from the raid's target the engineer is "far" (U-P-24).</param>
+    /// <param name="FarWarningExtraS">Seconds added to a small raid's warning when the engineer is far from its target (U-D-66 (5), U-P-24).</param>
+    /// <param name="FirstMinorCoreFloor">The share of the Home core's hit points the first small raid cannot take it below (U-D-68 b, U-P-25).</param>
     public sealed record SiegeTuning(
         double MinorWarningS, double MinorWarningRangeS, double MinorStageRetryS, double NoticeHoldS,
         int MajorWaves, double MajorWaveGapS, double MajorWaveSpreadS, double MajorWaveTailS,
@@ -65,7 +72,11 @@ namespace Relight.Sim
         int EntryNearSteps = 8, int EntryFarSteps = 76, double SafeFromEngineerTiles = 28,
         int StagingIdealSteps = 24, int ApproachIdealSteps = 42, double MinorMajorGapS = 120,
         double GuardSleepTiles = 60, double GuardPatrolRadiusTiles = 2, double GuardPatrolSpeedMul = 0.35,
-        double MemoryS = 6)
+        double MemoryS = 6,
+        // REL-75 (E-21): raid pacing and fair timing. Trailing for the same reason as the block above.
+        double QuietAfterMajorS = 480, int MinorsPerCycle = 1, double MinorHoldCapS = 600,
+        double MinorDelayCapS = 180, double FarTargetTiles = 150, double FarWarningExtraS = 30,
+        double FirstMinorCoreFloor = 0.5)
     {
         /// <summary>
         /// The values this build ships, and the ones a <see cref="GameData"/> built without a siege row uses.
@@ -124,6 +135,9 @@ namespace Relight.Sim
         /// REL-84 added the trailing threat block, which this constructor does not pass: each one defaults to the
         /// literal its old site carried (U-P-19/20/21 and the reference's own entry, patrol and memory numbers), so
         /// <see cref="Fallback"/> still describes exactly the build that shipped.
+        ///
+        /// REL-75 added the pacing block the same way; its defaults are the values U-P-17 and U-P-22 to U-P-25
+        /// record (THREAT_TUNING.md).
         /// </summary>
         public static readonly SiegeTuning Fallback = new SiegeTuning(
             30, 15, 30, 45,

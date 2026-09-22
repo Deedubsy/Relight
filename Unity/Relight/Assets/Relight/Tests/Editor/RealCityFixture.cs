@@ -169,5 +169,32 @@ namespace Relight.Authoring.Tests
             var h = st.Home;
             return x < h.X + h.W + 1 && x + size > h.X - 1 && y < h.Y + h.H + 1 && y + size > h.Y - 1;
         }
+
+        /// <summary>
+        /// The one liberty the real-city raid runs take: pull the next large raid in to one warning from now (never
+        /// inside the recovery spell). REL-75 added pacing holds that are only a matter of time — the quiet spell,
+        /// the wait for the cycle's small raid and the gap after it — so they are waived here exactly as the Admin
+        /// pull-in waives them (<see cref="Director.PullIn"/>). A small raid still on the map keeps holding the
+        /// warning, as it does in the game; wait <see cref="WarningWait"/> for the commit.
+        /// </summary>
+        public static void PullInLargeRaid(SimContext ctx, SimState st)
+        {
+            var d = st.Director;
+            var siege = ctx.Data.Siege;
+            d.NextStart = Math.Max(st.T + ctx.Data.Raids.WarningS + 1, d.RecoveryUntil + 1);
+            d.QuietUntil = Math.Min(d.QuietUntil, st.T);
+            d.CycleMinors = Math.Max(d.CycleMinors, siege.MinorsPerCycle);
+            if (d.LastMinorEnd >= 0 && d.LastMinorEnd > st.T - siege.MinorMajorGapS) d.LastMinorEnd = st.T - siege.MinorMajorGapS;
+        }
+
+        /// <summary>
+        /// How long a pulled-in large raid may take to be warned and committed: the full warning, plus, when a small
+        /// raid was already announced, its own longest warning, the REL-75 hold for it and the gap after it.
+        /// </summary>
+        public static double WarningWait(SimContext ctx)
+        {
+            var siege = ctx.Data.Siege;
+            return ctx.Data.Raids.WarningS + 30 + siege.MinorHoldCapS + siege.MinorMajorGapS + 120;
+        }
     }
 }

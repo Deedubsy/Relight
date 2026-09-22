@@ -116,8 +116,8 @@ namespace Relight.Authoring.Tests
             log.Add(F(st.T) + " carrying " + Show(carried));
 
             // 1. Force a large raid: the clock is pulled in, the warning and commit are the game's own.
-            d.NextStart = Math.Max(st.T + r.WarningS + 1, d.RecoveryUntil + 1);
-            Assert.That(RunUntil(sim, r.WarningS + 30, log, () => d.Major != null && d.Major.Committed), Is.True,
+            RealCityFixture.PullInLargeRaid(ctx, st);           // REL-75: waives the pacing holds too
+            Assert.That(RunUntil(sim, RealCityFixture.WarningWait(ctx), log, () => d.Major != null && d.Major.Committed), Is.True,
                 "the large raid was warned and committed" + Tail(log));
             var raidId = d.Major.Id;
             var history = d.History.Count;
@@ -245,8 +245,8 @@ namespace Relight.Authoring.Tests
             log.Add(F(st.T) + " core recommissioned at " + F(HomeQueries.CoreHp(st)) + " HP");
 
             // 7. The next large raid is scheduled and commits on the ordinary clock's terms.
-            d.NextStart = Math.Max(st.T + r.WarningS + 1, d.RecoveryUntil + 1);
-            Assert.That(RunUntil(sim, r.WarningS + 30, log, () => d.Major != null && d.Major.Committed), Is.True,
+            RealCityFixture.PullInLargeRaid(ctx, st);
+            Assert.That(RunUntil(sim, RealCityFixture.WarningWait(ctx), log, () => d.Major != null && d.Major.Committed), Is.True,
                 "the next large raid was warned and committed" + Tail(log));
             Assert.That(d.Major.Id, Is.Not.EqualTo(raidId));
             log.Add(F(st.T) + " next large raid " + d.Major.Id + " committed");
