@@ -645,6 +645,25 @@ namespace Relight.Sim.Tests.UI
         }
 
         [Test]
+        public void ADistrictComingBackSaysPowerBackAndNotConnectedAgain()
+        {
+            // REL-11 (INT-07): the sim marks a district that has already been announced and is coming back after
+            // losing its supply. The lamps light again, so the event still arrives and the sweep still draws; the
+            // announcement is not made twice.
+            var vm = new HudViewModel();
+            vm.Intake(new SimEvent[] { new DistrictLitEvent(1, "sub:2", "Ironworks", 6, 61, 29) }, 1);
+            vm.Notices.Reap(1);
+            Assert.That(Row(vm, HudViewModel.DistrictLitKey).Text, Is.EqualTo("Ironworks connected · 6 streetlights on"));
+
+            vm.Intake(new SimEvent[] { new DistrictLitEvent(9, "sub:2", "Ironworks", 6, 61, 29, true) }, 9);
+            vm.Notices.Reap(9);
+            var row = Row(vm, HudViewModel.DistrictLitKey);
+            Assert.That(row.Text, Is.EqualTo("Ironworks: power back"));
+            Assert.That(row.Text, Does.Not.Contain("connected"), "a refuel is not a connection");
+            Assert.That(vm.Notices.Rows.Count, Is.EqualTo(1), "one district, one row");
+        }
+
+        [Test]
         public void ABrownoutOnALampOrATurretIsPostedOnceAndClearedWhenItEnds()
         {
             var ctx = RaidFixture.Context();

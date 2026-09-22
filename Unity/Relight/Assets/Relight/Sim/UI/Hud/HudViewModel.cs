@@ -693,10 +693,15 @@ namespace Relight.Sim.UI
                         Teach(BlindTurretKey, BlindTurretLine, HudNoticeKind.Warning, now);
                         break;
                     // L-02 (§5.4): the moment that replaces dawn gets a line as well as its sweep and cue.
+                    // REL-11 (INT-07): the name is the PLACE the sim put in the event, so this row never says
+                    // "Substation 0"; and a district coming back after losing its supply is not a connection, so it
+                    // gets the quiet line instead of the announcement it had already made.
                     case DistrictLitEvent lit:
                         Notices.Post(DistrictLitKey,
-                            lit.Name + " connected · " + lit.Lights.ToString(CultureInfo.InvariantCulture)
-                            + (lit.Lights == 1 ? " streetlight on" : " streetlights on"),
+                            lit.Returning
+                                ? lit.Name + ": power back"
+                                : lit.Name + " connected · " + lit.Lights.ToString(CultureInfo.InvariantCulture)
+                                  + (lit.Lights == 1 ? " streetlight on" : " streetlights on"),
                             HudNoticeKind.Info, now, GuideSeconds);
                         break;
                     // REL-60 (UI-10): the worst moments of a raid. Each raises its row the frame it happens; Refresh

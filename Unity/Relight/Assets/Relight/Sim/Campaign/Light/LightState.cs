@@ -36,6 +36,14 @@ namespace Relight.Sim
         internal readonly System.Collections.Generic.HashSet<string> LiveDistricts =
             new System.Collections.Generic.HashSet<string>();
 
+        /// <summary>
+        /// REL-11: the districts that have said "connected" this session. A district in here that comes back after
+        /// losing its supply is returning, not connecting. Transient on purpose (U-D-31): a load takes whatever is
+        /// live as already announced, so nothing here is saved and the save schema is unchanged.
+        /// </summary>
+        internal readonly System.Collections.Generic.HashSet<string> AnnouncedDistricts =
+            new System.Collections.Generic.HashSet<string>();
+
         /// <summary>How many times the mask has actually been stamped. A test hook; the reference has no counter.</summary>
         public int Builds { get; internal set; }
 
@@ -58,6 +66,7 @@ namespace Relight.Sim
             EngineerLit = false;
             EnteredAt = double.NegativeInfinity;
             LiveDistricts.Clear();
+            AnnouncedDistricts.Clear();
         }
     }
 

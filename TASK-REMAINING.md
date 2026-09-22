@@ -308,6 +308,7 @@ Required work is D1 to D10. Optional work is D11.
 - **Verify:** sim test.
 - **Canonical:** L-02, spec §5.4.
 - **Authorised?:** Needs go-ahead.
+- **Fixed 2026-09-23 (REL-11):** the event now carries the place from `Districts.NameAt` (INT-09a's shared rule), and a district that has already announced itself this session and comes back is `Returning` — "Founders Court: power back", no fanfare. The sweep still draws, because the lamps really do relight. The announced set is transient (U-D-31); no save field, no schema change. Checked live: all nine substation sites are "Substation N" and all nine sit in a named district. Evidence: `Unity/Docs/evidence/rel-11/`.
 
 #### AUD-INT-08 — "Base under attack" for five minutes after the attack
 - **Priority:** P2.

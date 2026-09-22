@@ -57,6 +57,20 @@ namespace Relight.Sim
 
             // DistrictLitEvent: a substation site's circuit starts delivering, so the streetlights it owns come on.
             // Once per connection — it is raised on the change, and nothing is raised while the district stays lit.
+            //
+            // REL-11 (INT-07), two corrections:
+            //   * the event carries the PLACE, from the one district query (INT-09a), not the substation site's own
+            //     name: the importer names the real city's sites "Substation 0" to "Substation 8", and nobody should
+            //     ever be told a substation number. Districts.NameAt is the same rule the defence and power rows
+            //     name their place with, so one spot is never named two ways. With no districts at all, the site's
+            //     own name is all there is.
+            //   * a district that has been announced once this session and comes back after losing its supply is
+            //     RETURNING, not connecting. A belt-fed generator running dry and refuelling used to repeat the
+            //     whole "connected" announcement every time. The lights really do come back on, so the picture still
+            //     sweeps; what a return does not get is the connection line and its cue.
+            // The announced set is transient, like the rest of the relief memory (U-D-31): on load a district that
+            // is already live is taken as announced, and one that is dark now and comes back later says "connected"
+            // once more. Nothing is saved and no schema changes.
             var subs = PowerGrid.SubstationSites(ctx);
             if (subs.Count > 0)
             {
@@ -70,9 +84,12 @@ namespace Relight.Sim
                     if (live == was) continue;
                     if (!live) { s.LiveDistricts.Remove(site.Id); continue; }
                     s.LiveDistricts.Add(site.Id);
-                    if (first) continue;
+                    if (first) { s.AnnouncedDistricts.Add(site.Id); continue; }
                     var lights = StreetLights.OwnedBy(ctx, site);
-                    if (lights > 0) st.Events.Add(new DistrictLitEvent(st.T, site.Id, site.Name, lights, site.Centre.X, site.Centre.Y));
+                    if (lights <= 0) continue;
+                    var back = !s.AnnouncedDistricts.Add(site.Id);
+                    var name = Districts.NameAt(ctx, site.Centre.X, site.Centre.Y) ?? site.Name;
+                    st.Events.Add(new DistrictLitEvent(st.T, site.Id, name, lights, site.Centre.X, site.Centre.Y, back));
                 }
             }
 
@@ -144,8 +161,13 @@ namespace Relight.Sim
     /// <summary>
     /// ALWAYS_DARK_SPEC §5.4: a substation site gained supply and the <paramref name="Lights"/> streetlights it owns
     /// came on. Presentation answers with a sweep of light across the district and a cue. (X, Y) is the site centre.
+    ///
+    /// <paramref name="Name"/> is the PLACE (<see cref="Districts.NameAt"/>), never the substation site's own name
+    /// (REL-11). <paramref name="Returning"/> is true when this district has already been announced this session and
+    /// is coming back after losing its supply: the lamps still light, but it is not a connection and does not say so.
     /// </summary>
-    public sealed record DistrictLitEvent(double T, string SiteId, string Name, int Lights, double X, double Y) : SimEvent(T);
+    public sealed record DistrictLitEvent(double T, string SiteId, string Name, int Lights, double X, double Y,
+        bool Returning = false) : SimEvent(T);
 
     /// <summary>ALWAYS_DARK_SPEC §5.4: the engineer stepped from unlit ground onto lit ground. At most one per 10 s.</summary>
     public sealed record EnteredLightEvent(double T, double X, double Y) : SimEvent(T);

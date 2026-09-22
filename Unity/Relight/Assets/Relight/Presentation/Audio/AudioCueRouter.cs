@@ -261,8 +261,11 @@ namespace Relight.Presentation
 
                 // L-02, ALWAYS_DARK_SPEC §5.4: the two relief moments that replace dawn. The sim already limits
                 // them (once per connection; at most once in ten seconds), so neither needs a budget here.
+                // REL-11: the cue belongs to a district CONNECTING. A district coming back after its supply failed
+                // lights its lamps again — the sweep still draws — but the announcement is not made twice, so a
+                // generator running dry and being refuelled never replays the fanfare.
                 case DistrictLitEvent lit:
-                    Cast("light.district-on", new Vector2((float)lit.X, (float)lit.Y));
+                    if (!lit.Returning) Cast("light.district-on", new Vector2((float)lit.X, (float)lit.Y));
                     break;
                 case EnteredLightEvent _:
                     Cast("light.entered", null);
