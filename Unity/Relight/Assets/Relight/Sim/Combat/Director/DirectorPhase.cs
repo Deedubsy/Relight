@@ -29,7 +29,14 @@ namespace Relight.Sim
             // A wave whose last body is gone is over, whoever killed it. A WARNED raid has no bodies yet and owes
             // the map some, so "none alive" is only the end once it has actually arrived and finished arriving.
             if (d.Minor != null && d.Minor.Spawned && d.Minor.Owed <= 0 && EnemyQueries.GroupAlive(st, d.Minor.Id) == 0)
+            {
+                // REL-85: the one place a small raid that fought ends, so the one place its log line closes. It
+                // keeps no saved record; its outcome is the account's rule (cleared unless its retreat was called).
+                var m = d.Minor;
+                var outcome = m.Retreat ? DirectorRules.CalledOff(ctx, st) : RaidOutcome.Cleared;
+                st.Events.Add(new RaidEndedEvent(st.T, m.Id, false, m.Scripted, (int)outcome, m.StartsAt));
                 d.Minor = null;
+            }
 
             CoreFell(ctx, st);
             EndMajor(ctx, st);
@@ -104,6 +111,7 @@ namespace Relight.Sim
             // REL-84: the depth the saved record list is trimmed to is the exported RaidTuning.AssaultHistory (32),
             // the number the data tables already carried and nothing read.
             if (d.History.Count > r.AssaultHistory) d.History.RemoveAt(0);
+            st.Events.Add(new RaidEndedEvent(st.T, a.Id, true, false, (int)outcome, a.StartsAt));   // REL-85
             d.LastMajorEnd = st.T;
             d.RecoveryUntil = Math.Max(d.RecoveryUntil, st.T + r.RecoveryS);
             d.Major = null;

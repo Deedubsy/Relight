@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using Relight.Data;
 using Relight.Sim;
@@ -42,6 +44,118 @@ namespace Relight.Authoring.Tests
             Assert.That(map, Is.Not.Null, "the full-city geometry asset did not build");
             Assert.That((map.Width, map.Height), Is.EqualTo((864, 576)), "this must be the real city, not a crop");
             return new SimContext(registry.Build(), map, threat: new EnemyThreatLayer(), sites: siteList, mapId: opening.MapId);
+        }
+
+        // ------------------------------------------------------------------ REL-85: a defence on the real streets
+
+        /// <summary>The machines <see cref="Defend"/> placed, so a run can refill and repair them between raids.</summary>
+        public sealed class Defence
+        {
+            public readonly List<Machine> Turrets = new List<Machine>();
+            public readonly List<Machine> Poles = new List<Machine>();
+            public readonly List<Machine> Generators = new List<Machine>();
+            /// <summary>Ideal spots the placement rule refused within the search radius, for the run's record.</summary>
+            public int Skipped;
+
+            /// <summary>Full hoppers, full fuel, no damage: what a player's resupply and repair between raids leave.</summary>
+            public void Restore(SimContext ctx, SimState st)
+            {
+                foreach (var t in Turrets)
+                {
+                    TurretRules.TurretRepairHook(ctx, st, t.Id, 1e9);
+                    t.Rounds = TurretHopper.Capacity(ctx.Data, t);
+                }
+                foreach (var p in Poles) TurretRules.TurretRepairHook(ctx, st, p.Id, 1e9);
+                foreach (var g in Generators)
+                {
+                    TurretRules.TurretRepairHook(ctx, st, g.Id, 1e9);
+                    g.Inv[ItemId.Coal] = ctx.Data.Power.GeneratorFuelCap;
+                }
+            }
+
+            /// <summary>Coal left in all the generators together.</summary>
+            public double Coal
+            {
+                get { double c = 0; foreach (var g in Generators) c += g.Inv[ItemId.Coal]; return c; }
+            }
+        }
+
+        /// <summary>
+        /// A ring of gun turrets around the Home core on the real streets: <paramref name="turrets"/> turrets at
+        /// <paramref name="ringTiles"/> outside the core's edge, a pole ring two tiles out that they hang off, and
+        /// <paramref name="generators"/> fuelled generators beside the first poles (two, so a full hopper of coal
+        /// outlasts one raid cycle and power is not what the run measures by accident). Every footprint is one the
+        /// game's own placement rule accepts (<see cref="Placement.GeometryProblem"/>) and that keeps a tile clear of
+        /// the core, found as the nearest such spot to the ideal one; a spot with none within
+        /// <paramref name="searchTiles"/> is skipped and counted. Nothing is charged for: the run measures the
+        /// defence, not the economy that paid for it.
+        /// </summary>
+        public static Defence Defend(SimContext ctx, SimState st, int turrets = 8, int ringTiles = 5, int generators = 2,
+            int searchTiles = 4)
+        {
+            var home = st.Home;
+            var cx = home.X + home.W / 2.0;
+            var cy = home.Y + home.H / 2.0;
+            var d = new Defence();
+            const int poles = 8;
+            for (var k = 0; k < poles; k++)
+            {
+                var a = 2 * Math.PI * k / poles;
+                var r = home.W / 2.0 + 2;
+                var p = Place(ctx, st, "pole", cx + r * Math.Cos(a), cy + r * Math.Sin(a), searchTiles);
+                if (p == null) { d.Skipped++; continue; }
+                d.Poles.Add(p);
+                if (d.Generators.Count < generators)
+                {
+                    var g = Place(ctx, st, "generator", p.X + 2, p.Y, searchTiles);
+                    if (g == null) d.Skipped++;
+                    else d.Generators.Add(g);
+                }
+            }
+            for (var k = 0; k < turrets; k++)
+            {
+                var a = 2 * Math.PI * k / turrets;
+                var r = home.W / 2.0 + ringTiles;
+                var t = Place(ctx, st, "turret", cx + r * Math.Cos(a), cy + r * Math.Sin(a), searchTiles);
+                if (t == null) { d.Skipped++; continue; }
+                d.Turrets.Add(t);
+            }
+            d.Restore(ctx, st);
+            return d;
+        }
+
+        /// <summary>The nearest legal footprint for <paramref name="kind"/> to (<paramref name="x"/>, <paramref name="y"/>), or null.</summary>
+        private static Machine Place(SimContext ctx, SimState st, string kind, double x, double y, int searchTiles)
+        {
+            Assert.That(ctx.Data.TryMachine(kind, out var spec), Is.True, kind + " is not in the catalogue");
+            var ox = (int)Math.Round(x - spec.Size / 2.0);
+            var oy = (int)Math.Round(y - spec.Size / 2.0);
+            int bx = 0, by = 0;
+            var best = double.MaxValue;
+            for (var dy = -searchTiles; dy <= searchTiles; dy++)
+                for (var dx = -searchTiles; dx <= searchTiles; dx++)
+                {
+                    var dist = dx * dx + dy * dy;
+                    if (dist >= best) continue;
+                    if (TouchesCore(st, ox + dx, oy + dy, spec.Size)) continue;
+                    if (Placement.GeometryProblem(ctx, st, kind, ox + dx, oy + dy, Dir.N) != "") continue;
+                    best = dist; bx = ox + dx; by = oy + dy;
+                }
+            if (best == double.MaxValue) return null;
+            var m = new Machine { Id = st.NextId++, Kind = kind, X = bx, Y = by, Dir = Dir.N, Size = spec.Size };
+            st.Machines.Add(m);
+            st.Rev++;
+            return m;
+        }
+
+        /// <summary>
+        /// The placement rule checks machines and city walls, not the core's own rectangle, so the fixture keeps
+        /// its machines a tile clear of it: stricter than the game, never looser.
+        /// </summary>
+        private static bool TouchesCore(SimState st, int x, int y, int size)
+        {
+            var h = st.Home;
+            return x < h.X + h.W + 1 && x + size > h.X - 1 && y < h.Y + h.H + 1 && y + size > h.Y - 1;
         }
     }
 }

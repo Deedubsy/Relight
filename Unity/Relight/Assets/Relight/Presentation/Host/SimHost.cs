@@ -58,6 +58,13 @@ namespace Relight.Presentation
         /// <summary>Events drained after this frame's ticks; valid until the next Update.</summary>
         public IReadOnlyList<SimEvent> LastFrameEvents => _frameEvents;
 
+        /// <summary>
+        /// REL-85: every raid this session leaves one line (<see cref="Sim.RaidLog"/>). Fed the drained events each
+        /// frame, and each finished line goes to the Unity log as "Relight raid log: …". A new session starts a
+        /// new log; the lines are never saved.
+        /// </summary>
+        public RaidLog RaidLog { get; private set; } = new RaidLog();
+
         /// <summary>Ticks run in the most recent Update.</summary>
         public int LastFrameTicks { get; private set; }
 
@@ -102,6 +109,8 @@ namespace Relight.Presentation
         {
             Simulation = sim ?? throw new ArgumentNullException(nameof(sim));
             _frameEvents.Clear();
+            RaidLog = new RaidLog();
+            RaidLog.Written += line => UnityEngine.Debug.Log("Relight raid log: " + line.Text);
             LastFrameTicks = 0;
             TotalTicks = 0;
             AcceptedRealSeconds = 0;
@@ -150,6 +159,7 @@ namespace Relight.Presentation
             TotalTicks += n;
             _frameEvents.Clear();
             Simulation.DrainEvents(_frameEvents);
+            RaidLog.Observe(Simulation.Context, Simulation.State, _frameEvents);
 
             if (n > 0)
             {

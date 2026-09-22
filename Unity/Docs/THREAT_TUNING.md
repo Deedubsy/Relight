@@ -27,6 +27,20 @@ assets carried on that date, and the asset wins whenever the two disagree.
   fingerprint move and kept it as a "hand edit" (reported as a CONFLICT on every run). Since REL-84 the generator
   restamps an asset whose values equal the reference, so `Relight/Setup/Generate Data Assets` writes the new field.
 
+## Measuring a change
+
+- **The raid log** (REL-85, CMB-09c): every raid that reaches the ground leaves one line — id, size, outcome, start
+  and end, length, bodies spawned, killed, peak alive, rounds fired, turrets that ran dry, core HP lost, structures
+  wrecked. In Play each line goes to the Console as `Relight raid log: …`. Rounds, dry turrets and wrecks are counted
+  on the whole map (not the raid's district), so two raids on the ground at once share them and both lines say so.
+  The log is not save state; a new session starts a new one.
+- **The real-city defence run**: the EditMode test
+  `RealCityRaidTests.ADefendedHomeFacesThreeLargeRaids_AndEveryRaidLeavesOneLogLine` defends the Home on the real
+  city (eight gun turrets on a pole ring, two generators, restored between raids) and runs three large-raid cycles
+  with every phase of the sim, in seconds of real time. It writes its log to
+  `Unity/Relight/Logs/REL-85-real-city-defence-run.txt` (ignored by git, and outside `Unity/Docs/evidence/` until the
+  owner approves adding it). Change a number, run the test, compare the lines.
+
 ## Raid director — `Tuning - Raids.asset` → `RaidTuning`
 
 Source of the row: `packages/sim/src/campaignThreat.ts` (reference export, `Kind = current`). Reader column:
