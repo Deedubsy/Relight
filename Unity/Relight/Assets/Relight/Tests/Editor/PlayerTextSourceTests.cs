@@ -22,7 +22,7 @@ namespace Relight.Authoring.Tests
     {
         const string RegistryPath = "Assets/Relight/Data/GameDataRegistry.asset";
         static readonly string[] Mojibake = { "\u00C2", "\u00C3", "\u00E2\u20AC", "\uFFFD" };
-        static readonly HashSet<string> Keys = new HashSet<string> { "bullet", "bullet-batch", "bullet-batch-mk2", "hand-bullets" };
+        static readonly HashSet<string> Keys = new HashSet<string> { "bullet", "bullet-batch", "hand-bullets" };
         static readonly string[] Folders = { "Sim", "UI", "Presentation", "Data" };
 
         static string Root => Path.Combine(Application.dataPath, "Relight");

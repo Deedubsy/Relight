@@ -173,8 +173,6 @@ namespace Relight.Sim
                 OutputKey: "", Kind: "current", Source: "packages/sim/src/recipes.ts:9", Provisional: false),
             new Recipe("bullet-batch", "Rounds batch", new[] { new ItemStack(ItemId.Steel, 2), new ItemStack(ItemId.Copper, 1) }, new[] { new ItemStack(ItemId.Magazine, 10) }, 6.0, "Assembler",
                 OutputKey: "", Kind: "current", Source: "packages/sim/src/recipes.ts:9; packages/sim/src/constants.ts:18", Provisional: false),
-            new Recipe("bullet-batch-mk2", "Rounds batch (Mk2)", new[] { new ItemStack(ItemId.Steel, 2), new ItemStack(ItemId.Copper, 1) }, new[] { new ItemStack(ItemId.Magazine, 10) }, 3.0, "Assembler Mk2",
-                OutputKey: "", Kind: "current", Source: "packages/sim/src/constants.ts:17; packages/sim/src/constants.ts:18", Provisional: false),
             new Recipe("shell", "Shell", new[] { new ItemStack(ItemId.Steel, 2), new ItemStack(ItemId.Coal, 1) }, new[] { new ItemStack(ItemId.Shell, 1) }, 3.0, "Assembler",
                 OutputKey: "", Kind: "current", Source: "packages/sim/src/recipes.ts:9", Provisional: false),
             new Recipe("overclock-module", "Overclock Module", new[] { new ItemStack(ItemId.AlienArtifact, 2), new ItemStack(ItemId.Wire, 4), new ItemStack(ItemId.Frame, 2), new ItemStack(ItemId.Board, 1) }, new[] { new ItemStack(ItemId.Overclock, 1) }, 20.0, "Alien workbench",

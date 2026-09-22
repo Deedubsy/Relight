@@ -60,6 +60,23 @@ namespace Relight.Sim
             }
         }
 
+        /// <summary>
+        /// REL-26 (ECO-02): one line per recipe whose <c>Station</c> nothing runs, neither a machine's
+        /// <c>RecipeStation</c> nor the Home workshop (<see cref="HandCraft.Station"/>). No player can make such a
+        /// recipe. Empty when every station is provided. The data check (DataValidator) and the catalogue tests read it.
+        /// </summary>
+        public static List<string> UnprovidedStations(GameData d)
+        {
+            var provided = new HashSet<string>(StringComparer.Ordinal) { HandCraft.Station };
+            foreach (var s in d.Machines)
+                if (s.RecipeStation.Length > 0) provided.Add(s.RecipeStation);
+            var problems = new List<string>();
+            foreach (var r in d.Recipes)
+                if (!provided.Contains(r.Station ?? ""))
+                    problems.Add($"Recipe '{r.Key}': its station '{r.Station}' is run by no machine and is not the {HandCraft.Station}");
+            return problems;
+        }
+
         /// <summary>Whether a recipe key is one this machine may run.</summary>
         public static bool Supports(GameData d, Machine m, string key)
         {

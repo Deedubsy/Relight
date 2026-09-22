@@ -363,8 +363,9 @@ const recipes: RecipeRow[] = [
   fromRecipes('concrete', 'Concrete', 'Mixer', 'current', SRC.recipesTable),
   fromRecipes('bullet-batch', 'Shot magazine', 'Assembler', 'current', join2(SRC.recipesTable, SRC.roundsPerMag),
     undefined, 'Rounds batch'),
-  fromRecipes('bullet-batch-mk2', 'Shot magazine', 'Assembler Mk2', 'current', join2(SRC.mk2Seconds, SRC.roundsPerMag),
-    SHOT_MAGAZINE_MK2_SECONDS, 'Rounds batch (Mk2)'),
+  // REL-26 (ECO-02): no separate Mk2 row. The Mk2 carries the plain "Assembler" station (MACHINE_STATION above) and
+  // runs `bullet-batch` at its speedMul, 6 s / 2 = SHOT_MAGAZINE_MK2_SECONDS, so a 'bullet-batch-mk2' on an
+  // "Assembler Mk2" station named a station no machine provides and duplicated what the Mk2 already does.
   fromRecipes('shell', 'Shell', 'Assembler', 'current', SRC.recipesTable),
   fromAssembler('overclock-module', 'overclock', 'Alien workbench', 'current', SRC.assemblerRecipes),
   // Hand crafting: the same ingredients and yield, HAND_BULLET_SECONDS instead of the recipe's own time.
@@ -388,6 +389,13 @@ const recipes: RecipeRow[] = [
     station: 'Alien workbench', outputKey: '',
   },
 ];
+{
+  // REL-26: the removed Mk2 row's 3 s must stay what the Mk2 gets from `bullet-batch` at its speedMul.
+  const shot = recipes.find(r => r.key === 'bullet-batch')!;
+  if (shot.seconds / speedMul('assembler2') !== SHOT_MAGAZINE_MK2_SECONDS)
+    throw new Error(`exportCatalogue: ${SRC.mk2Seconds} is ${SHOT_MAGAZINE_MK2_SECONDS} s but the Mk2 runs bullet-batch in ` +
+      `${shot.seconds / speedMul('assembler2')} s; the Mk2 needs its own recipe row again`);
+}
 
 // ------------------------------------------------------------------ weapons (§5)
 

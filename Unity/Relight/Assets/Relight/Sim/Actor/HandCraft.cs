@@ -124,6 +124,9 @@ namespace Relight.Sim
     /// </summary>
     public static class HandCraft
     {
+        /// <summary>The recipe station the workshop runs (catalogue §3): a place, not a machine kind.</summary>
+        public const string Station = "Home workshop";
+
         private const double Eps = 1e-9;
 
         /// <summary>Stacks the output tray holds. Chosen to buffer several slow batches without becoming a free chest.</summary>
@@ -165,7 +168,7 @@ namespace Relight.Sim
 
         /// <summary>A batch recipe the workshop can run. The rifle is an equipment craft and is not one of these.</summary>
         public static Recipe Recipe(GameData d, string key) =>
-            d.TryRecipe(key ?? "hand-bullets", out var r) && r.Station == "Home workshop" && r.Outputs.Count > 0 ? r : null;
+            d.TryRecipe(key ?? "hand-bullets", out var r) && r.Station == Station && r.Outputs.Count > 0 ? r : null;
 
         // ---- the output tray -------------------------------------------------------------------------------
 

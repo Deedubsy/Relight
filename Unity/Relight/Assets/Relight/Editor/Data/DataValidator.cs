@@ -11,7 +11,8 @@ namespace Relight.Editor
     /// <summary>
     /// Registry-wide content checks (TA §5.4): no duplicate keys, every recipe and cost item known, machines
     /// carry a size and a power figure, every asset carries a Kind and a Source, no retired id, no "Unresolved"
-    /// marker, and the registry converts to a <see cref="GameData"/> without throwing.
+    /// marker, the registry converts to a <see cref="GameData"/> without throwing, and (REL-26) every recipe's
+    /// station is one a machine or the Home workshop runs (<see cref="ProductionRules.UnprovidedStations"/>).
     /// Menu: Relight/Validate Game Data, or -executeMethod Relight.Editor.DataValidator.Validate.
     /// In batchmode a failure exits with code 1.
     /// </summary>
@@ -26,7 +27,6 @@ namespace Relight.Editor
         [MenuItem("Relight/Validate Game Data")]
         public static void Validate()
         {
-            var problems = new List<string>();
             var report = new StringBuilder();
             var registry = AssetDatabase.LoadAssetAtPath<GameDataRegistry>(DataAssetGenerator.RegistryPath);
             if (registry == null)
@@ -34,7 +34,17 @@ namespace Relight.Editor
                 Finish(new List<string> { $"no registry at {DataAssetGenerator.RegistryPath}" }, report);
                 return;
             }
+            Finish(Check(registry, report), report);
+        }
 
+        /// <summary>
+        /// Every problem the data check finds in <paramref name="registry"/>; empty means it passes. The counts go to
+        /// <paramref name="report"/> when one is given. <see cref="Validate"/> runs this on the project's registry.
+        /// </summary>
+        public static List<string> Check(GameDataRegistry registry, StringBuilder report = null)
+        {
+            report ??= new StringBuilder();
+            var problems = new List<string>();
             var keys = new Dictionary<string, string>(StringComparer.Ordinal);
             var assetCount = 0;
             foreach (var def in registry.All())
@@ -97,6 +107,7 @@ namespace Relight.Editor
             {
                 problems.Add("the registry does not convert to GameData: " + e.Message);
             }
+            if (data != null) problems.AddRange(ProductionRules.UnprovidedStations(data));
 
             report.AppendLine($"assets checked: {assetCount}");
             if (data != null)
@@ -108,7 +119,7 @@ namespace Relight.Editor
                 foreach (var def in registry.All()) if (def != null && def.Provisional) provisional++;
                 report.AppendLine($"provisional assets: {provisional}");
             }
-            Finish(problems, report);
+            return problems;
         }
 
         private static void Finish(List<string> problems, StringBuilder report)

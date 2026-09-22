@@ -98,6 +98,50 @@ namespace Relight.Sim.Tests
             }
         }
 
+        /// <summary>
+        /// REL-26 (ECO-02): 'bullet-batch-mk2' named an "Assembler Mk2" station no machine runs, so nobody could make
+        /// it. It is removed: the Mk2 carries the plain "Assembler" station and makes `bullet-batch` at its 2x.
+        /// </summary>
+        [Test]
+        public void EveryRecipeStationIsRunByAMachineOrTheWorkshop()
+        {
+            Assert.That(ProductionRules.UnprovidedStations(ReferenceData.Create()), Is.Empty, "the catalogue");
+            Assert.That(ProductionRules.UnprovidedStations(OpeningBalance.Apply(ReferenceData.Create())), Is.Empty,
+                "with the opening's hand recipes added");
+        }
+
+        [Test]
+        public void ARecipeOnAStationNothingRunsIsReported()
+        {
+            var b = ReferenceData.Create();
+            var recipes = new List<Recipe>(b.Recipes) { b.Recipes[0] with { Key = "rel26-orphan", Station = "Assembler Mk2" } };
+            var data = new GameData(b.Items, b.Machines, recipes, b.Engineer, b.World, b.Weapons, b.Enemies,
+                b.Ammunition, b.Turrets, b.Power, b.Time, b.Raids, b.Opening, b.Stake, b.Defence, b.Siege);
+            var problems = ProductionRules.UnprovidedStations(data);
+            Assert.That(problems.Count, Is.EqualTo(1), string.Join("; ", problems));
+            Assert.That(problems[0].IndexOf("'rel26-orphan'", System.StringComparison.Ordinal), Is.GreaterThanOrEqualTo(0), problems[0]);
+            Assert.That(problems[0].IndexOf("'Assembler Mk2'", System.StringComparison.Ordinal), Is.GreaterThanOrEqualTo(0), problems[0]);
+        }
+
+        /// <summary>What the removed row gave, the Mk2 still gives: the same rounds recipe in 3 s instead of 6.</summary>
+        [Test]
+        public void TheMk2MakesRoundsAtTwiceTheAssemblersSpeed()
+        {
+            var d = ReferenceData.Create();
+            Assert.That(d.TryRecipe("bullet-batch-mk2", out _), Is.False);
+            var list = new List<Recipe>();
+            foreach (var kind in new[] { "assembler", "assembler2" })
+            {
+                var m = new Machine { Kind = kind };
+                ProductionRules.RecipesFor(d, m, list);
+                Assert.That(list.Exists(r => r.Key == "bullet-batch"), Is.True, kind);
+            }
+            Assert.That(d.TryRecipe("bullet-batch", out var shot), Is.True);
+            Assert.That(shot.Seconds, Is.EqualTo(6.0));
+            Assert.That(shot.Seconds / ProductionRules.SpeedMul(d, new Machine { Kind = "assembler2" }), Is.EqualTo(3.0),
+                "the removed row's 3 s");
+        }
+
         [Test]
         public void MachinesCarrySizeAndInventoryContract()
         {
