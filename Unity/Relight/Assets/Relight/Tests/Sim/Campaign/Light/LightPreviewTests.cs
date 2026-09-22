@@ -75,6 +75,69 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(tint.At(45, 41), Is.False, "inside the ring, but dark");
         }
 
+        /// <summary>
+        /// REL-116 (found by REL-58): the tint used to promise the lit street behind a warehouse, outside the very
+        /// coverage outline drawn over it. A turret cannot shoot what it cannot see, so it must not be tinted.
+        /// </summary>
+        [Test]
+        public void TheTintStopsAtTheWallEvenWhenTheGroundBehindItIsLit()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            for (var y = 38; y <= 44; y++) RaidFixture.Add(ctx, st, "wall", 45, y);
+
+            RaidFixture.Add(ctx, st, "lamp", 48, 41);                    // behind the wall, from the turret's side
+            RaidFixture.Power(ctx, st, 50, 41);
+            RaidFixture.Add(ctx, st, "lamp", 43, 44);                    // in front of it, in plain sight
+            RaidFixture.Power(ctx, st, 43, 46);
+            RaidFixture.Run(ctx, st, 1, Phases());
+
+            var cover = TurretSight.Coverage(ctx, st, "turret", 40, 40);
+            Assert.That(cover.Known, Is.True);
+            var within = LightPreview.LitWithin(st, cover.CentreX, cover.CentreY, cover.RangeTiles);
+            var visible = LightPreview.LitVisible(ctx, st, in cover);
+
+            Assert.That(LightQueries.LitAt(st, 47, 41), Is.True, "the ground behind the wall really is lit");
+            Assert.That(within.At(47, 41), Is.True, "and it really is inside the range ring");
+            Assert.That(visible.At(47, 41), Is.False, "but the turret cannot see it, so it is not tinted");
+
+            Assert.That(LightQueries.LitAt(st, 43, 43), Is.True, "the near lamp really is lighting its own street");
+            Assert.That(visible.At(43, 43), Is.True, "lit and in plain sight: still tinted");
+
+            // Nothing is tinted that the gun could not fire at, and nothing is tinted that was not lit to start with.
+            for (var ty = within.Y0; ty < within.Y0 + within.H; ty++)
+                for (var tx = within.X0; tx < within.X0 + within.W; tx++)
+                {
+                    if (!visible.At(tx, ty)) continue;
+                    Assert.That(within.At(tx, ty), Is.True, "tinted but not lit in range: " + tx + "," + ty);
+                    Assert.That(Sightline.Clear(ctx, st, cover.CentreX, cover.CentreY, tx + 0.5, ty + 0.5), Is.True,
+                        "tinted but out of sight: " + tx + "," + ty);
+                }
+            Assert.That(visible.Count, Is.LessThan(within.Count), "the wall costs the tint something");
+        }
+
+        /// <summary>REL-116 acceptance 2: with nothing in the way the tint is exactly what it always was.</summary>
+        [Test]
+        public void WithNothingInTheWayTheTintIsUnchanged()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            RaidFixture.Add(ctx, st, "lamp", 48, 41);
+            RaidFixture.Power(ctx, st, 50, 41);
+            RaidFixture.Add(ctx, st, "lamp", 43, 44);
+            RaidFixture.Run(ctx, st, 1, Phases());
+
+            var cover = TurretSight.Coverage(ctx, st, "turret", 40, 40);
+            var within = LightPreview.LitWithin(st, cover.CentreX, cover.CentreY, cover.RangeTiles);
+            var visible = LightPreview.LitVisible(ctx, st, in cover);
+
+            Assert.That(within.Count, Is.GreaterThan(0), "there is something to tint");
+            Assert.That(visible.Count, Is.EqualTo(within.Count));
+            for (var ty = within.Y0; ty < within.Y0 + within.H; ty++)
+                for (var tx = within.X0; tx < within.X0 + within.W; tx++)
+                    Assert.That(visible.At(tx, ty), Is.EqualTo(within.At(tx, ty)), "tile " + tx + "," + ty);
+        }
+
         [Test]
         public void RunsAndOutlineDescribeTheSameShape()
         {

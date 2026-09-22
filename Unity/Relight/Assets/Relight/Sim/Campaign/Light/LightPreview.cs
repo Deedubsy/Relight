@@ -131,6 +131,49 @@ namespace Relight.Sim
             return new TileWindow(x0, y0, bw, bh, tiles);
         }
 
+        /// <summary>
+        /// REL-116: the lit ground a turret placed at this coverage's centre can ACTUALLY reach — <see cref="LitWithin"/>
+        /// with everything its line of fire cannot see knocked out.
+        ///
+        /// The tint answers "how much of what I can shoot at is lit" (§5.7), so it must not promise ground the gun
+        /// cannot see: a turret tucked beside a warehouse used to tint the lit street behind the warehouse, outside
+        /// the very coverage outline drawn over it. A tile is kept when it is inside the wedge between the two rays
+        /// that bracket it — the shorter of the two, so nothing is tinted outside the outline drawn from the same
+        /// sweep — and when <see cref="Sightline.Clear"/> agrees, which is the rule the gun itself fires by.
+        ///
+        /// With nothing in the way every ray reaches the full range, so the tint is exactly <see cref="LitWithin"/>.
+        /// Cost is one sight test per lit tile in range; callers cache it with the sweep.
+        /// </summary>
+        public static TileWindow LitVisible(SimContext ctx, SimState st, in TurretCoverage cover)
+        {
+            if (ctx == null || st == null || !cover.Known || cover.Reach == null || cover.Reach.Length == 0) return default;
+            var lit = LitWithin(st, cover.CentreX, cover.CentreY, cover.RangeTiles);
+            if (lit.Empty) return lit;
+
+            var rays = cover.Reach.Length;
+            var perRadian = rays / (2.0 * Math.PI);
+            var tiles = new byte[lit.W * lit.H];
+            for (var ty = lit.Y0; ty < lit.Y0 + lit.H; ty++)
+                for (var tx = lit.X0; tx < lit.X0 + lit.W; tx++)
+                {
+                    if (!lit.At(tx, ty)) continue;
+                    var dx = tx + 0.5 - cover.CentreX;
+                    var dy = ty + 0.5 - cover.CentreY;
+                    var d = Math.Sqrt(dx * dx + dy * dy);
+                    if (d > 0)
+                    {
+                        var a = Math.Atan2(dy, dx);
+                        if (a < 0) a += 2.0 * Math.PI;
+                        var i0 = (int)Math.Floor(a * perRadian) % rays;
+                        var i1 = (i0 + 1) % rays;
+                        if (d > Math.Min(cover.Reach[i0], cover.Reach[i1])) continue;
+                        if (!Sightline.Clear(ctx, st, cover.CentreX, cover.CentreY, tx + 0.5, ty + 0.5)) continue;
+                    }
+                    tiles[(ty - lit.Y0) * lit.W + (tx - lit.X0)] = 1;
+                }
+            return new TileWindow(lit.X0, lit.Y0, lit.W, lit.H, tiles);
+        }
+
         /// <summary>The set tiles as one run per unbroken stretch of each row — what a fill is drawn from.</summary>
         public static void Runs(in TileWindow w, List<TileRun> into)
         {

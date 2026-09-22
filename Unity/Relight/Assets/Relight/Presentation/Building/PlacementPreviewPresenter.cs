@@ -89,7 +89,8 @@ namespace Relight.Presentation
         private Dir _lightDir = Dir.N;
 
         private readonly List<TileRun> _tintRuns = new List<TileRun>();
-        private int _tintBuilds = int.MinValue, _tintX = int.MinValue, _tintY = int.MinValue;
+        // REL-116: the tint follows the SWEEP as well as the light, so it is redrawn when the world changes too.
+        private int _tintBuilds = int.MinValue, _tintRev = int.MinValue, _tintX = int.MinValue, _tintY = int.MinValue;
         private string _tintKind = "";
 
         private bool _shown, _pair;
@@ -230,7 +231,7 @@ namespace Relight.Presentation
 
             n = Links(n, ctx, st, spec.Size);
             n = Conveyor(n, w, h);
-            n = Range(n, st, d, w, h);
+            n = Range(n, ctx, st, d, w, h);
             n = LightCover(n, ctx, st);
 
             for (var i = n; i < _pool.Count; i++) if (_pool[i] != null) _pool[i].enabled = false;
@@ -308,7 +309,7 @@ namespace Relight.Presentation
         /// The nominal range as a faint circle and, inside it, the ground the turret can actually reach. The two
         /// together are the point: the gap between them is what the player is being shown.
         /// </summary>
-        private int Range(int n, SimState st, GameData d, int w, int h)
+        private int Range(int n, SimContext ctx, SimState st, GameData d, int w, int h)
         {
             if (!d.TryTurret(_kind, out var t) || t.RangeTiles <= 0) return n;
             var cx = _x + w / 2.0;
@@ -319,10 +320,12 @@ namespace Relight.Presentation
             if (dark < t.RangeTiles)
             {
                 var builds = LightQueries.Builds(st);
-                if (_tintBuilds != builds || _tintX != _x || _tintY != _y || _tintKind != _kind)
+                if (_tintBuilds != builds || _tintRev != st.Rev || _tintX != _x || _tintY != _y || _tintKind != _kind)
                 {
-                    _tintBuilds = builds; _tintX = _x; _tintY = _y; _tintKind = _kind;
-                    var lit = LightPreview.LitWithin(st, cx, cy, t.RangeTiles);
+                    _tintBuilds = builds; _tintRev = st.Rev; _tintX = _x; _tintY = _y; _tintKind = _kind;
+                    // REL-116: only the lit ground this turret can see. _cover was swept for this spot earlier in
+                    // the same draw, so the tint and the outline over it are the one shape.
+                    var lit = LightPreview.LitVisible(ctx, st, in _cover);
                     LightPreview.Runs(in lit, _tintRuns);
                 }
                 for (var i = 0; i < _tintRuns.Count; i++)
