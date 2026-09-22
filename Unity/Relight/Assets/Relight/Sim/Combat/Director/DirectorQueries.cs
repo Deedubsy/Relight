@@ -30,10 +30,14 @@ namespace Relight.Sim
         /// (GP-W3: what is announced must be what arrives). "" when there is nothing to name.
         /// </summary>
         public readonly string Label;
+        /// <summary>The raid this describes (REL-74), so the HUD can find its bodies; 0 when there is none.</summary>
+        public readonly int RaidId;
 
-        public RaidWarning(string kind, double secondsLeft, string direction, string notice, Vec2 at, string label = "")
+        public RaidWarning(string kind, double secondsLeft, string direction, string notice, Vec2 at, string label = "",
+            int raidId = 0)
         {
             Kind = kind; SecondsLeft = secondsLeft; Direction = direction; Notice = notice; At = at; Label = label;
+            RaidId = raidId;
         }
     }
 
@@ -121,6 +125,10 @@ namespace Relight.Sim
             var cy = by + size / 2.0;
 
             var m = d.Minor;
+            // REL-74: a small raid that is only walking away gives way to a large one that is warned or on the
+            // ground. The director turns the small raid back the moment an assault commits, so this is exactly the
+            // assault's opening minutes, and the strip and the raid arrow used to follow the retreat instead.
+            if (m != null && m.Retreat && d.Major != null && !d.Major.Retreat) m = null;
             if (m != null)
             {
                 var at = new Vec2(m.Origin % w + .5, m.Origin / w + .5);
@@ -128,16 +136,16 @@ namespace Relight.Sim
                 // and the heading it was announced on, so the strip cannot claim an attack that has not arrived.
                 var label = m.Scripted ? "Small enemy group" : "Raid";
                 if (!m.Spawned)
-                    return new RaidWarning("warning", Math.Max(0, m.StartsAt - st.T), Direction(at, cx, cy), d.Notice, at, label);
+                    return new RaidWarning("warning", Math.Max(0, m.StartsAt - st.T), Direction(at, cx, cy), d.Notice, at, label, m.Id);
                 return new RaidWarning(m.Retreat ? "withdrawal" : "minor raid", 0,
-                    Direction(at, cx, cy), d.Notice, at, label);
+                    Direction(at, cx, cy), d.Notice, at, label, m.Id);
             }
             var a = d.Major;
             if (a != null)
             {
                 var at = new Vec2(a.Origin % w + .5, a.Origin / w + .5);
                 var kind = a.Retreat ? "withdrawal" : st.T >= a.StartsAt ? "assault" : "warning";
-                return new RaidWarning(kind, Math.Max(0, a.StartsAt - st.T), Direction(at, cx, cy), d.Notice, at, "Major assault");
+                return new RaidWarning(kind, Math.Max(0, a.StartsAt - st.T), Direction(at, cx, cy), d.Notice, at, "Major assault", a.Id);
             }
             if (st.T < d.RecoveryUntil)
                 return new RaidWarning("recovery", 0, "·", d.Notice, new Vec2(cx, cy));
@@ -158,6 +166,71 @@ namespace Relight.Sim
         /// <summary>Compass word for the heading from the core to a point (reference <c>openingDirection</c>).</summary>
         public static string Direction(Vec2 at, double cx, double cy) =>
             DirectorRules.HeadingWord(DirectorRules.Heading(at.X - cx, at.Y - cy));
+
+        /// <summary>
+        /// REL-74: the sides a set of approach tiles lie on, seen from the raid's target, in the words a banner
+        /// uses: "east", "east and south-west", "north, east and south". The same sides and order as
+        /// <see cref="DirectorRules.HeadingsOf"/>, spelled out. "" when there is no target or nothing to name.
+        /// </summary>
+        public static string SideWords(SimContext ctx, SimState st, int[] origins)
+        {
+            if (origins == null || origins.Length == 0) return "";
+            if (!DirectorRules.Target(ctx, st, out var bx, out var by, out var size)) return "";
+            var w = ctx.Geometry.Width;
+            var words = new System.Collections.Generic.List<string>();
+            for (var i = 0; i < origins.Length; i++)
+            {
+                if (origins[i] < 0) continue;
+                var word = SideWord(origins[i] % w + .5 - (bx + size / 2.0), origins[i] / w + .5 - (by + size / 2.0));
+                if (word.Length > 0 && !words.Contains(word)) words.Add(word);
+            }
+            if (words.Count == 0) return "";
+            if (words.Count == 1) return words[0];
+            return string.Join(", ", words.GetRange(0, words.Count - 1).ToArray()) + " and " + words[words.Count - 1];
+        }
+
+        /// <summary>
+        /// REL-74: where a raid on the ground is, for the raid arrow: its living body nearest the target, which is
+        /// the front of the fight. A body walking home is not counted. False when none of the raid's bodies is on
+        /// the map (before a wave is born, or once they are all dead or leaving).
+        /// </summary>
+        public static bool Front(SimContext ctx, SimState st, int raidId, out Vec2 at)
+        {
+            at = default;
+            if (raidId <= 0 || st?.Enemies == null) return false;
+            var hasTarget = DirectorRules.Target(ctx, st, out var bx, out var by, out var size);
+            var cx = bx + size / 2.0;
+            var cy = by + size / 2.0;
+            var best = double.PositiveInfinity;
+            var list = st.Enemies.Actors;
+            for (var i = 0; i < list.Count; i++)
+            {
+                var e = list[i];
+                if (e.Group != raidId || e.Layer == EnemyLayer.Site || e.Withdrawing || e.Hp <= 0) continue;
+                var dx = e.Pos.X - cx;
+                var dy = e.Pos.Y - cy;
+                var d2 = hasTarget ? dx * dx + dy * dy : 0;
+                if (d2 >= best) continue;
+                best = d2;
+                at = e.Pos;
+            }
+            return !double.IsPositiveInfinity(best);
+        }
+
+        /// <summary>
+        /// REL-74: the side a point lies on, seen from the raid's target, as a word ("south-east"); "" with no target,
+        /// or for a point at the target's own centre.
+        /// </summary>
+        public static string SideOf(SimContext ctx, SimState st, double x, double y) =>
+            DirectorRules.Target(ctx, st, out var bx, out var by, out var size)
+                ? SideWord(x - (bx + size / 2.0), y - (by + size / 2.0))
+                : "";
+
+        private static string SideWord(double dx, double dy)
+        {
+            var h = DirectorRules.Heading(dx, dy);
+            return h < 0 ? "" : OpeningRules.Compass(DirectorRules.HeadingWord(h));
+        }
 
         /// <summary>Absolute sim second the next major assault begins.</summary>
         public static double NextMajorAt(SimState st) => st.Director.NextStart;

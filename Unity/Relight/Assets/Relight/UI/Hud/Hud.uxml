@@ -72,6 +72,42 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
+        <!--
+          REL-74 (E-20, U-D-66 (7)). The raid arrow, the wave banner and the raid report card.
+
+          The arrow is the one element here that moves: RaidArrowView sets its left, top and head rotation every
+          frame, because the camera moves every frame. Everything else is classes, as above.
+
+          The card's nine rows are authored for the same reason as the notice rows: RaidAccountSource.MaxCardRows
+          is the whole set. The card is opaque chrome (pickable), so a click on it is not a click on the world;
+          report-close dismisses it.
+        -->
+        <ui:VisualElement name="raid-arrow" class="is-hidden" picking-mode="Ignore">
+            <ui:VisualElement name="raid-arrow-head" picking-mode="Ignore" />
+            <ui:Label name="raid-arrow-label" text="" picking-mode="Ignore" />
+        </ui:VisualElement>
+
+        <ui:Label name="wave-banner" text="" class="is-hidden" picking-mode="Ignore" />
+
+        <ui:VisualElement name="raid-report" class="hud-block is-hidden">
+            <ui:VisualElement name="report-header" picking-mode="Ignore">
+                <ui:Label name="report-title" text="" picking-mode="Ignore" />
+                <ui:Button name="report-close" text="Close" class="ui-button ui-button-secondary" />
+            </ui:VisualElement>
+            <ui:VisualElement name="report-rows" picking-mode="Ignore">
+                <ui:VisualElement name="report-row-0" class="report-row is-hidden" picking-mode="Ignore"><ui:Label class="report-label" picking-mode="Ignore" /><ui:Label class="report-value" picking-mode="Ignore" /></ui:VisualElement>
+                <ui:VisualElement name="report-row-1" class="report-row is-hidden" picking-mode="Ignore"><ui:Label class="report-label" picking-mode="Ignore" /><ui:Label class="report-value" picking-mode="Ignore" /></ui:VisualElement>
+                <ui:VisualElement name="report-row-2" class="report-row is-hidden" picking-mode="Ignore"><ui:Label class="report-label" picking-mode="Ignore" /><ui:Label class="report-value" picking-mode="Ignore" /></ui:VisualElement>
+                <ui:VisualElement name="report-row-3" class="report-row is-hidden" picking-mode="Ignore"><ui:Label class="report-label" picking-mode="Ignore" /><ui:Label class="report-value" picking-mode="Ignore" /></ui:VisualElement>
+                <ui:VisualElement name="report-row-4" class="report-row is-hidden" picking-mode="Ignore"><ui:Label class="report-label" picking-mode="Ignore" /><ui:Label class="report-value" picking-mode="Ignore" /></ui:VisualElement>
+                <ui:VisualElement name="report-row-5" class="report-row is-hidden" picking-mode="Ignore"><ui:Label class="report-label" picking-mode="Ignore" /><ui:Label class="report-value" picking-mode="Ignore" /></ui:VisualElement>
+                <ui:VisualElement name="report-row-6" class="report-row is-hidden" picking-mode="Ignore"><ui:Label class="report-label" picking-mode="Ignore" /><ui:Label class="report-value" picking-mode="Ignore" /></ui:VisualElement>
+                <ui:VisualElement name="report-row-7" class="report-row is-hidden" picking-mode="Ignore"><ui:Label class="report-label" picking-mode="Ignore" /><ui:Label class="report-value" picking-mode="Ignore" /></ui:VisualElement>
+                <ui:VisualElement name="report-row-8" class="report-row is-hidden" picking-mode="Ignore"><ui:Label class="report-label" picking-mode="Ignore" /><ui:Label class="report-value" picking-mode="Ignore" /></ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label name="report-lesson" text="" picking-mode="Ignore" />
+        </ui:VisualElement>
+
         <ui:VisualElement name="mining" class="hud-block is-hidden" picking-mode="Ignore">
             <ui:Label name="mining-title" text="" />
             <ui:ProgressBar name="mining-meter" low-value="0" high-value="1" value="0" title=" " class="hud-meter" />

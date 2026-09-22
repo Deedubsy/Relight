@@ -3,12 +3,12 @@
    All text, quantities, icons and fills are separate UI elements. */
 :root { --ui-drawer-bottom: 128px; --ui-toolbar-bottom: 150px; }
 .panel, #inventory-panel, #build-panel, #status-panel, #pause-card, #modal-card, .title-body,
-#goal-card, #world-target, #status-content, #action-bar, #engineer-block, #tooltip, .slot-menu {
+#goal-card, #world-target, #status-content, #action-bar, #engineer-block, #tooltip, .slot-menu, #raid-report {
     background-image: url("project://database/Assets/Relight/UI/Art/Industrial/panel-frame.png?fileID=901173127204631227&guid=04f3b38a40bd14c409de3526118577e2&type=3#panel-frame"); -unity-slice-scale: 0.12; background-color: rgba(0,0,0,0); border-width: 0; border-radius: 0;
     padding: 16px;
 }
 #pause-card, #modal-card, .title-body { padding: 26px; }
-.panel-title, #drawer-heading, #goal-title, #target-title, #tooltip-title, .workshop-heading, .inventory-heading, .pause-title, .modal-title, .screen-heading {
+.panel-title, #drawer-heading, #goal-title, #target-title, #tooltip-title, .workshop-heading, .inventory-heading, .pause-title, .modal-title, .screen-heading, #report-title {
     background-image: url("project://database/Assets/Relight/UI/Art/Industrial/enamel-plate.png?fileID=-4628022180814281444&guid=b1ab6ec1048c7bb4885453b92b6c2665&type=3#enamel-plate"); -unity-slice-scale: 0.1; background-color: rgba(0,0,0,0); border-width: 0; border-radius: 0;
     color: #25281e; -unity-font-style: bold; font-size: 18px;
     padding: 5px 16px; margin: 0 0 8px 0; min-height: 32px; flex-shrink: 0; white-space: normal;

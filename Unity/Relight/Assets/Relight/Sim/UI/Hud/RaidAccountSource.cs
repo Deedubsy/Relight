@@ -5,6 +5,20 @@ using System.Text;
 
 namespace Relight.Sim.UI
 {
+    /// <summary>One line of the raid report card (REL-74): "Rounds fired · 212".</summary>
+    public readonly struct RaidReportRow
+    {
+        public readonly string Label;
+        public readonly string Value;
+        /// <summary>True for a loss, so the card paints the row as one.</summary>
+        public readonly bool Bad;
+
+        public RaidReportRow(string label, string value, bool bad)
+        {
+            Label = label; Value = value; Bad = bad;
+        }
+    }
+
     /// <summary>
     /// GP-W6: the ONE producer of the post-attack account, on the same one-producer rule as
     /// <see cref="PowerAlertSource"/> and <see cref="DefenceAlertSource"/>.
@@ -48,16 +62,29 @@ namespace Relight.Sim.UI
     /// rule (<see cref="DirectorRules.CalledOff"/>) from what this class watched: whether its retreat was called,
     /// and whether the core was down at any look during it.
     ///
+    /// <b>The report card (REL-74, E-20).</b> The same tally, laid out as rows (<see cref="CardRows"/>) under a
+    /// title (<see cref="CardTitle"/>), with the one line that teaches (<see cref="CardLesson"/>): "East turrets
+    /// ran dry in wave 3". The card is the account made readable, not a second account: every row is one of the
+    /// counts above and follows the same rules, so a zero loss is not written and nothing is guessed. The side and
+    /// the wave in the lesson are the ones this class saw at the moment each thing happened: the side is where the
+    /// machine stood, seen from the raid's target, and the wave is the large raid's newest named wave then.
+    ///
     /// Per session and never saved, like <c>DefenceAlertSource._raised</c>: nothing here adds to the save.
     /// Engine-free, so <c>Tests/Sim/UI/RaidAccountTests.cs</c> can drive it without an editor.
     /// </summary>
     public sealed class RaidAccountSource
     {
-        /// <summary>The inbox key, so a second raid's account replaces the first rather than stacking under it.</summary>
-        public const string Key = "raid.account";
-
-        /// <summary>Real seconds the account stays up: two lines take longer to read than a guide line.</summary>
+        /// <summary>
+        /// Real seconds the report card stays up (REL-74; it replaced the notice row the account was posted as). A
+        /// card takes longer to read than a guide line.
+        /// </summary>
         public const double Seconds = 20;
+
+        /// <summary>
+        /// The most rows a card can have: kills, rounds, core, dry, dark, power, wrecked, waves and time. Hud.uxml
+        /// authors this many rows, so the view creates none.
+        /// </summary>
+        public const int MaxCardRows = 9;
 
         /// <summary>
         /// A raid this session never saw waiting still counts as "seen arriving" if it is first met within this many
@@ -84,6 +111,15 @@ namespace Relight.Sim.UI
         /// <summary>True while a raid is being tallied.</summary>
         public bool Watching => _open;
 
+        /// <summary>The report card's title, the account's headline without its counts: "Major assault repelled".</summary>
+        public string CardTitle { get; private set; } = "";
+
+        /// <summary>The report card's rows, in a fixed order; a loss row appears only when its count is not zero.</summary>
+        public IReadOnlyList<RaidReportRow> CardRows => _rows;
+
+        /// <summary>The one line that teaches, the worst thing seen first: "East turrets ran dry in wave 3", or "Nothing lost".</summary>
+        public string CardLesson { get; private set; } = "";
+
         private bool _open;
         private int _raidId;
         private readonly HashSet<int> _seenWaiting = new HashSet<int>();
@@ -101,10 +137,25 @@ namespace Relight.Sim.UI
         private bool _coreDisabled;
         private bool _outage;
         private readonly HashSet<int> _dryAtStart = new HashSet<int>();
-        private readonly HashSet<int> _wentDry = new HashSet<int>();
-        private readonly HashSet<int> _wrecked = new HashSet<int>();
-        private readonly HashSet<int> _blind = new HashSet<int>();
+        private readonly Dictionary<int, Mark> _wentDry = new Dictionary<int, Mark>();
+        private readonly Dictionary<int, Mark> _wrecked = new Dictionary<int, Mark>();
+        private readonly Dictionary<int, Mark> _blind = new Dictionary<int, Mark>();
+        private int _outageWave;
+        private bool _hasCore;
+        private double _openedAt;
+        private int _waves;
+        private int _waveSeen;
+        private readonly List<int> _dryNow = new List<int>();
+        private readonly List<RaidReportRow> _rows = new List<RaidReportRow>();
         private readonly StringBuilder _sb = new StringBuilder(160);
+
+        /// <summary>Where a lost machine stood and which wave was walking in when it was lost.</summary>
+        private readonly struct Mark
+        {
+            public readonly string Side;
+            public readonly int Wave;
+            public Mark(string side, int wave) { Side = side; Wave = wave; }
+        }
 
         /// <summary>Open a tally when a raid arrives, keep the dry-turret watch while it runs, close it when it is gone.</summary>
         public void Refresh(SimContext ctx, SimState st)
@@ -140,7 +191,14 @@ namespace Relight.Sim.UI
 
             if (_open)
             {
-                WatchTurrets(ctx, st, _place, _wentDry, _dryAtStart);
+                if (_major && st.Director.Major != null && st.Director.Major.Id == _raidId)
+                    _waveSeen = Math.Max(_waveSeen, st.Director.Major.WaveAnnounced);
+                DryTurrets(ctx, st, _place, _dryNow);
+                for (var i = 0; i < _dryNow.Count; i++)
+                {
+                    var id2 = _dryNow[i];
+                    if (!_dryAtStart.Contains(id2) && !_wentDry.ContainsKey(id2)) _wentDry[id2] = MarkOf(id2);
+                }
                 if (!_major && st.Director.Minor != null && st.Director.Minor.Id == _raidId)
                     _retreat = st.Director.Minor.Retreat;
                 if (EnemyCoreHook.Down(ctx, st)) _coreDownSeen = true;
@@ -168,13 +226,13 @@ namespace Relight.Sim.UI
                     if (k.Layer != EnemyLayer.Site && k.Group == _raidId) _kills++;
                     break;
                 case StructureDamagedEvent s when s.Hp <= 0:
-                    if (Here(s.MachineId)) _wrecked.Add(s.MachineId);
+                    if (Here(s.MachineId) && !_wrecked.ContainsKey(s.MachineId)) _wrecked[s.MachineId] = MarkOf(s.MachineId);
                     break;
                 case TurretBlindEvent b:
-                    if (Here(b.MachineId)) _blind.Add(b.MachineId);
+                    if (Here(b.MachineId) && !_blind.ContainsKey(b.MachineId)) _blind[b.MachineId] = MarkOf(b.MachineId);
                     break;
                 case PowerOutageEvent p:
-                    if (Here(p.MachineId)) _outage = true;
+                    if (Here(p.MachineId) && !_outage) { _outage = true; _outageWave = WaveNow(); }
                     break;
                 case TurretShotEvent t:
                     if (Here(t.MachineId)) _rounds++;
@@ -250,27 +308,58 @@ namespace Relight.Sim.UI
             _coreLost = 0;
             _coreDisabled = false;
             _outage = false;
+            _outageWave = 0;
+            _hasCore = DirectorRules.Target(ctx, st, out _, out _, out _);
+            _openedAt = st.T;
+            _waves = major && st.Director.Major != null ? st.Director.Major.Waves : 0;
+            _waveSeen = major && st.Director.Major != null ? st.Director.Major.WaveAnnounced : 0;
             _dryAtStart.Clear();
             _wentDry.Clear();
             _wrecked.Clear();
             _blind.Clear();
             // A turret that was already empty when they arrived did not "run dry" in this fight; the defence row
             // (E-17) had been saying so for as long as it stood.
-            WatchTurrets(ctx, st, _place, _dryAtStart, null);
+            DryTurrets(ctx, st, _place, _dryNow);
+            for (var i = 0; i < _dryNow.Count; i++) _dryAtStart.Add(_dryNow[i]);
         }
 
-        private static void WatchTurrets(SimContext ctx, SimState st, int place, HashSet<int> into, HashSet<int> except)
+        /// <summary>The turrets in <paramref name="place"/> that are dry now, having once been loaded.</summary>
+        private static void DryTurrets(SimContext ctx, SimState st, int place, List<int> into)
         {
+            into.Clear();
             var d = ctx.Data;
             for (var i = 0; i < st.Machines.Count; i++)
             {
                 var m = st.Machines[i];
                 if (!TurretHopper.IsTurret(d, m)) continue;
                 if (place >= 0 && PlaceOf(ctx, m) != place) continue;
-                if (except != null && except.Contains(m.Id)) continue;
                 if (TurretAmmo.State(d, m) != TurretAmmoState.Dry || !TurretAmmo.EverLoaded(st, m)) continue;
                 into.Add(m.Id);
             }
+        }
+
+        /// <summary>
+        /// The wave walking in now: the large raid's newest named wave while it is the one watched, else 0 (a small
+        /// raid, or a large one the director has already dropped), which the lesson reads as "no wave to name".
+        /// </summary>
+        private int WaveNow()
+        {
+            if (!_major || _st == null) return 0;
+            var a = _st.Director.Major;
+            return a != null && a.Id == _raidId ? a.WaveAnnounced : 0;
+        }
+
+        /// <summary>Where this machine stands, seen from the raid's target, and the wave walking in now.</summary>
+        private Mark MarkOf(int machineId)
+        {
+            var side = "";
+            var m = _st?.MachineById(machineId);
+            if (m != null)
+            {
+                var (w, h) = m.Dimensions;
+                side = DirectorQueries.SideOf(_ctx, _st, m.X + w / 2.0, m.Y + h / 2.0);
+            }
+            return new Mark(side, WaveNow());
         }
 
         private void Close(SimState st)
@@ -305,7 +394,96 @@ namespace Relight.Sim.UI
                     Clause(ref first, "core lost " + Math.Ceiling(_coreLost).ToString("0", CultureInfo.InvariantCulture) + " HP");
             }
             Text = _sb.ToString();
+            BuildCard(st, head, coreDown);
             Serial++;
+        }
+
+        /// <summary>REL-74: the report card, from the same tally as <see cref="Text"/>.</summary>
+        private void BuildCard(SimState st, string head, bool coreDown)
+        {
+            CardTitle = (_major ? "Major assault " : "Raid ") + head;
+            _rows.Clear();
+            _rows.Add(new RaidReportRow("Aliens killed", Num(_kills), false));
+            _rows.Add(new RaidReportRow("Rounds fired", Num(_rounds), false));
+            if (_hasCore)
+            {
+                var hp = Math.Ceiling(_coreLost).ToString("0", CultureInfo.InvariantCulture) + " HP";
+                var core = _coreDisabled ? "knocked out"
+                    : _coreDownAtOpen ? "already down"
+                    : coreDown ? "down"
+                    : _coreLost > 0 ? "lost " + hp
+                    : "no damage";
+                _rows.Add(new RaidReportRow("Core", core, core != "no damage"));
+            }
+            if (_wentDry.Count > 0) _rows.Add(new RaidReportRow("Turrets ran dry", Num(_wentDry.Count), true));
+            if (_blind.Count > 0) _rows.Add(new RaidReportRow("Hit from the dark", Count(_blind.Count, "turret", "turrets"), true));
+            if (_outage) _rows.Add(new RaidReportRow("Power", "failed", true));
+            if (_wrecked.Count > 0) _rows.Add(new RaidReportRow("Wrecked", Count(_wrecked.Count, "structure", "structures"), true));
+            if (_major && _waves > 1)
+                _rows.Add(new RaidReportRow("Waves", Num(Math.Min(_waveSeen, _waves)) + " of " + Num(_waves), false));
+            _rows.Add(new RaidReportRow("Lasted", Duration(st.T - _openedAt), false));
+            CardLesson = Lesson(coreDown);
+        }
+
+        /// <summary>
+        /// The one line that teaches, worst first: turrets that ran dry, then turrets hit from the dark, then the
+        /// power, then wrecks, then the core. Every line names only what the tally holds.
+        /// </summary>
+        private string Lesson(bool coreDown)
+        {
+            if (_wentDry.Count > 0) return Losing(_wentDry, "turret", "turrets", "ran dry", "ran dry");
+            if (_blind.Count > 0) return Losing(_blind, "turret", "turrets", "was hit from the dark", "were hit from the dark");
+            if (_outage) return "Power failed" + InWave(_outageWave);
+            if (_wrecked.Count > 0) return Losing(_wrecked, "structure", "structures", "was wrecked", "were wrecked");
+            if (_coreDisabled) return "The core was knocked out";
+            if (_coreDownAtOpen) return "The core was already down";
+            if (coreDown) return "The core is down";
+            if (_coreLost > 0) return "They reached the core";
+            return "Nothing lost";
+        }
+
+        /// <summary>
+        /// "The east turret ran dry in wave 3", "East and south turrets ran dry, the first in wave 2",
+        /// "2 structures were wrecked": sides in the order they were first seen, and the wave only when the raid
+        /// has more than one.
+        /// </summary>
+        private string Losing(Dictionary<int, Mark> lost, string one, string many, string was, string were)
+        {
+            var sides = new List<string>();
+            var first = int.MaxValue;
+            var last = 0;
+            foreach (var mk in lost.Values)
+            {
+                if (mk.Side.Length > 0 && !sides.Contains(mk.Side)) sides.Add(mk.Side);
+                if (mk.Wave > 0) { first = Math.Min(first, mk.Wave); last = Math.Max(last, mk.Wave); }
+            }
+            var wave = !_major || _waves <= 1 || first == int.MaxValue ? ""
+                : lost.Count == 1 || first == last ? InWave(first)
+                : ", the first in wave " + Num(first);
+            if (lost.Count == 1)
+                return (sides.Count == 1 ? "The " + sides[0] + " " + one : "A " + one) + " " + was + wave;
+            string who;
+            if (sides.Count == 0) who = Num(lost.Count) + " " + many;
+            else if (sides.Count == 1) who = Capital(sides[0]) + " " + many;
+            else
+                who = Capital(string.Join(", ", sides.GetRange(0, sides.Count - 1).ToArray())
+                      + " and " + sides[sides.Count - 1]) + " " + many;
+            return who + " " + were + wave;
+        }
+
+        private string InWave(int wave) => !_major || _waves <= 1 || wave <= 0 ? "" : " in wave " + Num(wave);
+
+        private static string Capital(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
+
+        private static string Num(int n) => n.ToString(CultureInfo.InvariantCulture);
+
+        /// <summary>"45 s", "2 min 10 s", "3 min": sim time, whole seconds.</summary>
+        public static string Duration(double seconds)
+        {
+            var s = Math.Max(0, (int)Math.Round(seconds));
+            if (s < 60) return Num(s) + " s";
+            var rest = s % 60;
+            return Num(s / 60) + " min" + (rest == 0 ? "" : " " + Num(rest) + " s");
         }
 
         /// <summary>

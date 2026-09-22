@@ -54,6 +54,13 @@ namespace Relight.UI
         private Label _threatText, _alert, _noticeMore, _miningTitle, _miningDetail, _handLockText;
         private Button _openInventory, _openBuild;
         private GameplayDock _dock;
+        private RaidArrowView _arrow;
+        private VisualElement _report;
+        private Label _banner, _reportTitle, _reportLesson;
+        private Button _reportClose;
+        private readonly VisualElement[] _reportRows = new VisualElement[RaidAccountSource.MaxCardRows];
+        private readonly Label[] _reportLabels = new Label[RaidAccountSource.MaxCardRows];
+        private readonly Label[] _reportValues = new Label[RaidAccountSource.MaxCardRows];
         private ProgressBar _coreMeter, _engineerMeter, _reload, _miningMeter;
         private readonly Label[] _notices = new Label[HudNotices.MaxRows];
         private readonly Label[] _problems = new Label[HudViewModel.MaxProblems];
@@ -126,11 +133,41 @@ namespace Relight.UI
             _handLock = _root.Q<VisualElement>("hand-lock");
             _handLockText = _root.Q<Label>("hand-lock-text");
 
+            BindRaidFeedback(document.rootVisualElement);
             WireActionBar();
             _dock = new GameplayDock(document.rootVisualElement, host, shell, GetComponent<InventoryPanelController>());
             WireTooltips();
 
             Paint(true);
+        }
+
+        /// <summary>
+        /// REL-74 (E-20): the raid arrow, the wave banner and the report card (<c>Hud.uxml</c>). The arrow gets its
+        /// own view because it moves every frame; the banner and the card are strings and classes like the rest.
+        /// </summary>
+        private void BindRaidFeedback(VisualElement documentRoot)
+        {
+            _arrow?.Detach();
+            _arrow = new RaidArrowView(documentRoot);
+
+            _banner = _root.Q<Label>("wave-banner");
+            _report = _root.Q<VisualElement>("raid-report");
+            _reportTitle = _root.Q<Label>("report-title");
+            _reportLesson = _root.Q<Label>("report-lesson");
+            for (var i = 0; i < _reportRows.Length; i++)
+            {
+                var row = _root.Q<VisualElement>("report-row-" + i);
+                _reportRows[i] = row;
+                _reportLabels[i] = row?.Q<Label>(className: "report-label");
+                _reportValues[i] = row?.Q<Label>(className: "report-value");
+            }
+
+            var close = _root.Q<Button>("report-close");
+            if (close != null && !ReferenceEquals(close, _reportClose))
+            {
+                _reportClose = close;
+                close.clicked += () => { _model.DismissReport(); Paint(true); };
+            }
         }
 
         /// <summary>
@@ -261,6 +298,7 @@ namespace Relight.UI
             PulsePip(now, reduce);
 
             _dock?.Paint();
+            _arrow?.Paint(_model);   // REL-74: every frame, before the throttle, because the camera moves every frame
             if (!_model.Refresh(ctx, st, now, paused, menuOpen, force)) return;
 
             Set(_clock, _model.Clock);
@@ -287,6 +325,10 @@ namespace Relight.UI
             Toggle(_threatText, "is-danger", _model.ThreatUrgent);
             Show(_threat, _model.Threat.Length > 0);
             Show(_pip, _model.ThreatUrgent);
+
+            Set(_banner, _model.Banner);
+            Show(_banner, _model.BannerVisible);
+            PaintReport();
 
             Set(_alert, _model.Alert);
             Show(_alert, _model.Alert.Length > 0);
@@ -332,6 +374,30 @@ namespace Relight.UI
             var more = _model.Notices.MoreText;
             Set(_noticeMore, more);
             Show(_noticeMore, more.Length > 0);
+        }
+
+        /// <summary>
+        /// REL-74: the report card. Rows past the card's own count are hidden, as the notice rows are; a loss row
+        /// and the lesson under a loss are painted as one.
+        /// </summary>
+        private void PaintReport()
+        {
+            Show(_report, _model.ReportVisible);
+            if (!_model.ReportVisible) return;
+            Set(_reportTitle, _model.ReportTitle);
+            Set(_reportLesson, _model.ReportLesson);
+            Toggle(_report, "report-loss", _model.ReportLoss);
+            var rows = _model.ReportRows;
+            for (var i = 0; i < _reportRows.Length; i++)
+            {
+                var row = _reportRows[i];
+                if (row == null) continue;
+                if (i >= rows.Count) { Show(row, false); continue; }
+                Set(_reportLabels[i], rows[i].Label);
+                Set(_reportValues[i], rows[i].Value);
+                Toggle(row, "is-bad", rows[i].Bad);
+                Show(row, true);
+            }
         }
 
         private void PaintProblems()

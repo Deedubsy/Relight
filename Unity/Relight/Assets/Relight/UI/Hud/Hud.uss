@@ -513,3 +513,156 @@
 .compact-ui #core-block { width: 220px; }
 .compact-ui #engineer-block { left: auto; right: 16px; top: 80px; bottom: auto; width: 245px; }
 .compact-ui #engineer-block #weapon, .compact-ui #engineer-block #ammo, .compact-ui #engineer-block #backpack, .compact-ui #engineer-block #reload-meter { display: none; }
+
+/* ---- REL-74 (E-20, U-D-66 (7)): the raid arrow, the wave banner and the report card ----------------------- */
+
+/* The arrow. RaidArrowView sets #raid-arrow's left and top and the head's rotation every frame (the camera moves
+   every frame), and paints the head's shape in the head's own colour. Nothing here moves on its own, so reduced
+   motion needs no rule. It steps aside while a drawer is open, like the other world-pinned readouts. */
+#raid-arrow {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 36px;
+    height: 36px;
+}
+
+#raid-arrow-head {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 36px;
+    height: 36px;
+    color: var(--ui-danger);
+}
+
+#raid-arrow-label {
+    position: absolute;
+    left: 18px;
+    top: 38px;
+    translate: -50% 0;
+    font-size: var(--ui-font-size-small);
+    color: var(--ui-text);
+    background-color: rgba(21, 29, 30, 0.88);
+    border-top-left-radius: var(--ui-radius);
+    border-top-right-radius: var(--ui-radius);
+    border-bottom-left-radius: var(--ui-radius);
+    border-bottom-right-radius: var(--ui-radius);
+    padding-left: var(--ui-space-2);
+    padding-right: var(--ui-space-2);
+    padding-top: 1px;
+    padding-bottom: 1px;
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* Over a raid it can see, and in the lower half of the screen, the label goes above the head so it never covers
+   what the arrow points at or runs under the action bar. */
+#raid-arrow.label-above #raid-arrow-label {
+    top: auto;
+    bottom: 38px;
+}
+
+.drawer-open #raid-arrow {
+    display: none;
+}
+
+/* The banner: one line, top-centre, under the status strip. Up for RaidBannerSource.Seconds. */
+#wave-banner {
+    position: absolute;
+    top: 70px;
+    align-self: center;
+    max-width: 560px;
+    font-size: 22px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: var(--ui-text);
+    background-color: rgba(21, 29, 30, 0.9);
+    border-bottom-width: 3px;
+    border-bottom-color: var(--ui-danger);
+    padding-left: 18px;
+    padding-right: 18px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    white-space: normal;
+}
+
+.compact-ui #wave-banner {
+    top: 64px;
+    max-width: 430px;
+    font-size: 18px;
+}
+
+/* The report card: the relief beat after a raid, top-centre, below where the banner stands. */
+#raid-report {
+    top: 112px;
+    align-self: center;
+    width: 420px;
+}
+
+.compact-ui #raid-report {
+    top: 104px;
+    width: 360px;
+}
+
+#report-header {
+    flex-direction: row;
+    align-items: center;
+}
+
+#report-title {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+#report-close {
+    min-height: 26px;
+    height: 26px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-left: var(--ui-space-2);
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.report-row {
+    flex-direction: row;
+    justify-content: space-between;
+    padding-left: var(--ui-space-1);
+    padding-right: var(--ui-space-1);
+    padding-top: 1px;
+    padding-bottom: 1px;
+}
+
+.report-label {
+    font-size: 15px;
+    color: var(--ui-secondary);
+    margin: 0;
+    padding: 0;
+}
+
+.report-value {
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: var(--ui-text);
+    margin: 0;
+    padding: 0;
+}
+
+.report-row.is-bad .report-value {
+    color: var(--ui-danger);
+}
+
+#report-lesson {
+    margin-top: var(--ui-space-2);
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: var(--ui-working);
+    white-space: normal;
+}
+
+#raid-report.report-loss #report-lesson {
+    color: var(--ui-danger);
+}

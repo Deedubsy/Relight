@@ -598,8 +598,13 @@ namespace Relight.Sim.Tests.UI
             Assert.That(acc.Serial, Is.Zero);
         }
 
+        /// <summary>
+        /// GP-W6's "posted exactly once", kept through REL-74: the account is now shown as the report card instead of
+        /// a notice row, so the check is that the card opens once per finished account, closes on its timer, does not
+        /// reopen, and that no notice row repeats it.
+        /// </summary>
         [Test]
-        public void TheHudPostsEachAccountExactlyOnce()
+        public void TheHudShowsEachAccountExactlyOnce()
         {
             var (ctx, st, _) = Bench();
             var vm = new HudViewModel();
@@ -608,24 +613,27 @@ namespace Relight.Sim.Tests.UI
             Arrive(st);
             vm.Refresh(ctx, st, 1, false, false, force: true);
             vm.Intake(new SimEvent[] { new EnemyKilledEvent(st.T, 1, "drone", 0, 0, true, EnemyLayer.Minor, 1) }, 1);
-            Assert.That(Row(vm), Is.Null, "nothing is said while the fight is on");
+            Assert.That(vm.ReportVisible, Is.False, "nothing is said while the fight is on");
 
             Leave(st);
             vm.Refresh(ctx, st, 2, false, false, force: true);
-            var row = Row(vm);
-            Assert.That(row, Is.Not.Null);
-            Assert.That(row.Text, Is.EqualTo(vm.Account.Text));
-            Assert.That(row.Kind, Is.EqualTo(HudNoticeKind.Info));
+            Assert.That(vm.ReportVisible, Is.True);
+            Assert.That(vm.ReportTitle, Is.EqualTo("Raid repelled"));
+            Assert.That(vm.ReportLoss, Is.False);
+            Assert.That(NoticeSaying(vm, vm.Account.Text), Is.False, "the card replaces the notice row; not both");
 
-            for (var i = 3; i < 8; i++) vm.Refresh(ctx, st, i, false, false, force: true);
-            Assert.That(Row(vm).Repeats, Is.EqualTo(1), "posted when the raid ended, never again");
+            vm.Refresh(ctx, st, 2 + RaidAccountSource.Seconds + 0.5, false, false, force: true);
+            Assert.That(vm.ReportVisible, Is.False, "the card closes on its timer");
+            for (var i = 30; i < 35; i++) vm.Refresh(ctx, st, i, false, false, force: true);
+            Assert.That(vm.ReportVisible, Is.False, "shown when the raid ended, never again");
+            Assert.That(vm.Account.Serial, Is.EqualTo(1));
         }
 
-        private static HudNotice Row(HudViewModel vm)
+        private static bool NoticeSaying(HudViewModel vm, string text)
         {
             for (var i = 0; i < vm.Notices.Rows.Count; i++)
-                if (vm.Notices.Rows[i].Key == RaidAccountSource.Key) return vm.Notices.Rows[i];
-            return null;
+                if (vm.Notices.Rows[i].Text == text) return true;
+            return false;
         }
     }
 }

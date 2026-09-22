@@ -61,7 +61,11 @@ namespace Relight.Sim.UI
         private string _brownoutPosted = "";
         private string _lowFuelPosted = "";
         private string _cargoPosted = "";
-        private int _accountPosted;
+        private int _accountShown;
+        private double _reportUntil = double.NegativeInfinity;
+        private int _reportRaid = -1;
+        private int _bannerShown;
+        private double _bannerUntil = double.NegativeInfinity;
         private GameData _data;
         private readonly Dictionary<ItemId, (int n, double at)> _mined = new Dictionary<ItemId, (int n, double at)>();
         private readonly List<ProblemGroup> _groups = new List<ProblemGroup>();
@@ -84,6 +88,9 @@ namespace Relight.Sim.UI
 
         /// <summary>The single post-attack account producer (GP-W6).</summary>
         public readonly RaidAccountSource Account = new RaidAccountSource();
+
+        /// <summary>The single wave-banner producer (REL-74).</summary>
+        public readonly RaidBannerSource Banners = new RaidBannerSource();
 
         /// <summary>The keyed alert inbox: one urgent strip plus at most three transient rows (§8).</summary>
         public readonly HudNotices Notices = new HudNotices();
@@ -173,6 +180,53 @@ namespace Relight.Sim.UI
         /// <summary>True while the threat line describes something already attacking.</summary>
         public bool ThreatUrgent { get; private set; }
 
+        // ---- raid feedback (REL-74, E-20, U-D-66 (7)) --------------------------------------------------------
+
+        /// <summary>True while a raid is warned or on the ground: the edge arrow is drawn.</summary>
+        public bool RaidPointerVisible { get; private set; }
+
+        /// <summary>
+        /// Where the arrow points, in world tiles (y down, as the sim counts): the warned raid's approach, then the
+        /// front of the raid once its bodies are on the map.
+        /// </summary>
+        public double RaidPointerX { get; private set; }
+        public double RaidPointerY { get; private set; }
+
+        /// <summary>The arrow's label: "Raid · 30 s", "Major assault · 45 s", "Wave 2 of 4", "Raid".</summary>
+        public string RaidPointerLabel { get; private set; } = "";
+
+        /// <summary>The newest wave banner, "Wave 3 of 4, from the east"; shown while <see cref="BannerVisible"/>.</summary>
+        public string Banner { get; private set; } = "";
+
+        /// <summary>True for <see cref="RaidBannerSource.Seconds"/> real seconds after each banner.</summary>
+        public bool BannerVisible { get; private set; }
+
+        /// <summary>
+        /// True for <see cref="RaidAccountSource.Seconds"/> real seconds after a watched raid ends, until the player
+        /// closes it (<see cref="DismissReport"/>) or the next raid reaches the ground. Hidden while a drawer is
+        /// open, and those seconds do not count.
+        /// </summary>
+        public bool ReportVisible { get; private set; }
+
+        /// <summary>The report card's title, "Major assault repelled".</summary>
+        public string ReportTitle => Account.CardTitle;
+
+        /// <summary>The report card's rows (<see cref="RaidAccountSource.CardRows"/>).</summary>
+        public IReadOnlyList<RaidReportRow> ReportRows => Account.CardRows;
+
+        /// <summary>The line that teaches, "East turrets ran dry in wave 3".</summary>
+        public string ReportLesson => Account.CardLesson;
+
+        /// <summary>True when the card reports a loss, so it is framed as a warning.</summary>
+        public bool ReportLoss => Account.Losses;
+
+        /// <summary>Close the report card now (its close button). It does not come back for the same raid.</summary>
+        public void DismissReport()
+        {
+            _reportUntil = double.NegativeInfinity;
+            ReportVisible = false;
+        }
+
         // W-B R1 (correction pass): the one-line objective MIRROR is gone. The owner saw the objective twice,
         // once in the HUD strip and once on the goal card, and the card is the one that can carry the materials
         // and the "Why this next?" detail. OpeningQueries.Objective is now read only by GoalCardViewModel.
@@ -197,6 +251,7 @@ namespace Relight.Sim.UI
         public bool Refresh(SimContext ctx, SimState st, double now, bool paused, bool menuOpen, bool force = false)
         {
             if (!force && now - _lastRefresh < RefreshSeconds) return false;
+            var sinceLast = now - _lastRefresh;
             _lastRefresh = now;
             Refreshes++;
 
@@ -208,6 +263,8 @@ namespace Relight.Sim.UI
                 Core = Engineer = Weapon = Ammo = Backpack = HandLock = Threat = Alert = "";
                 LightText = ""; InDark = false;
                 MiningVisible = false;
+                RaidPointerVisible = false; RaidPointerLabel = "";
+                BannerVisible = false; ReportVisible = false;
                 _problems.Clear();
                 Notices.Reap(now);
                 return true;
@@ -250,14 +307,33 @@ namespace Relight.Sim.UI
             PostDefence(now);
             PostDroppedCargo(ctx, st, now);
 
-            // GP-W6: the post-attack account, posted once when the raid it watched is over.
+            // GP-W6: the post-attack account, shown once when the raid it watched is over. REL-74: as the report
+            // card, which replaces the notice row it used to be; posting both would say the same thing twice.
             Account.Refresh(ctx, st);
-            if (Account.Serial != _accountPosted)
+            if (Account.Serial != _accountShown)
             {
-                _accountPosted = Account.Serial;
-                Notices.Post(RaidAccountSource.Key, Account.Text,
-                    Account.Losses ? HudNoticeKind.Warning : HudNoticeKind.Info, now, RaidAccountSource.Seconds);
+                _accountShown = Account.Serial;
+                _reportUntil = now + RaidAccountSource.Seconds;
+                _reportRaid = RaidAccountSource.UnderWay(st, out var onGround, out _, out _) ? onGround : -1;
             }
+            // The card belongs to the quiet after a raid: the next one reaching the ground puts it away.
+            if (RaidAccountSource.UnderWay(st, out var raidNow, out _, out _) && raidNow != _reportRaid)
+                _reportUntil = double.NegativeInfinity;
+            // A drawer covers the top of the screen, so the card steps aside while one is open and its time waits:
+            // a player who opened the Backpack as the raid ended still gets the whole card after.
+            if (menuOpen && now < _reportUntil && sinceLast > 0 && !double.IsInfinity(sinceLast))
+                _reportUntil += Math.Min(sinceLast, 1);
+            ReportVisible = now < _reportUntil && !menuOpen;
+
+            // REL-74: one banner per wave, each shown once.
+            Banners.Refresh(ctx, st);
+            if (Banners.Serial != _bannerShown)
+            {
+                _bannerShown = Banners.Serial;
+                _bannerUntil = now + RaidBannerSource.Seconds;
+            }
+            Banner = Banners.Text;
+            BannerVisible = now < _bannerUntil && Banner.Length > 0;
 
             var maxCore = HomeQueries.CoreMaxHp(d);
             var hp = HomeQueries.CoreHp(st);
@@ -335,6 +411,7 @@ namespace Relight.Sim.UI
             // --- threat ---------------------------------------------------------------------------------------
             Threat = ThreatLine(ctx, st, out var urgent);
             ThreatUrgent = urgent;
+            Pointer(ctx, st);
 
             // --- machine problems -----------------------------------------------------------------------------
             CollectProblems(ctx, st);
@@ -644,7 +721,62 @@ namespace Relight.Sim.UI
                     string.IsNullOrEmpty(wv.Label) ? "Small enemy group" : wv.Label,
                     string.IsNullOrEmpty(wv.Direction) ? "·" : wv.Direction, Math.Ceiling(wv.SecondsLeft));
             urgent = true;
+            // REL-74: a raid on the ground is described from state. The director's notice is the last thing it
+            // SAID, and for an assault's first wave, or a small raid, that is still the countdown ("inbound … in
+            // 45 s"), which the line kept printing in red for as long as the fight lasted.
+            if (wv.Kind == "assault" && st.Director.Major != null)
+            {
+                var a = st.Director.Major;
+                var w = Math.Max(1, Math.Min(a.WaveAnnounced, a.Waves));
+                var sides = DirectorRules.HeadingsOf(ctx, st, a.Waves > 0 ? SiegePlan.Sides(a, w - 1) : a.Origins);
+                var from = sides == "·" ? "" : " · from the " + sides;
+                return a.Waves > 1
+                    ? string.Format(CultureInfo.InvariantCulture, "Major assault · wave {0} of {1}{2}", w, a.Waves, from)
+                    : "Major assault under way" + from;
+            }
+            if (wv.Kind == "minor raid")
+                return (string.IsNullOrEmpty(wv.Label) ? "Raid" : wv.Label) + " attacking"
+                       + (string.IsNullOrEmpty(wv.Direction) || wv.Direction == "·" ? "" : " · from the " + wv.Direction);
+            // REL-74: after a raid nothing is attacking. Once the director's last word had expired, the recovery
+            // fell through to "Base under attack" in red for the rest of it; a withdrawal did the same.
+            if (wv.Kind == "recovery")
+            {
+                urgent = false;
+                return wv.Notice ?? "";
+            }
+            if (wv.Kind == "withdrawal" && string.IsNullOrEmpty(wv.Notice))
+            {
+                urgent = false;
+                return (string.IsNullOrEmpty(wv.Label) ? "Raid" : wv.Label) + " withdrawing";
+            }
             return string.IsNullOrEmpty(wv.Notice) ? "Base under attack" : wv.Notice;
+        }
+
+        /// <summary>
+        /// REL-74: the raid arrow. It is up while a raid is warned or on the ground, never while one only walks
+        /// away. It points at the warned approach until bodies are on the map, then at the raid's front
+        /// (<see cref="DirectorQueries.Front"/>), and back at the approach between waves.
+        /// </summary>
+        private void Pointer(SimContext ctx, SimState st)
+        {
+            var wv = DirectorQueries.Warning(ctx, st);
+            var warned = wv.Kind == "warning";
+            var onGround = wv.Kind == "assault" || wv.Kind == "minor raid";
+            RaidPointerVisible = (warned || onGround) && wv.RaidId > 0;
+            if (!RaidPointerVisible) { RaidPointerLabel = ""; return; }
+
+            var at = wv.At;
+            if (onGround && DirectorQueries.Front(ctx, st, wv.RaidId, out var front)) at = front;
+            RaidPointerX = at.X;
+            RaidPointerY = at.Y;
+            var label = string.IsNullOrEmpty(wv.Label) ? "Raid" : wv.Label;
+            var a = st.Director.Major;
+            if (warned)
+                RaidPointerLabel = label + " · " + Math.Ceiling(wv.SecondsLeft).ToString("0", CultureInfo.InvariantCulture) + " s";
+            else if (wv.Kind == "assault" && a != null && a.Waves > 1)
+                RaidPointerLabel = string.Format(CultureInfo.InvariantCulture, "Wave {0} of {1}",
+                    Math.Max(1, Math.Min(a.WaveAnnounced, a.Waves)), a.Waves);
+            else RaidPointerLabel = label;
         }
 
         /// <summary>One row's worth of machines: the same kind in the same state, or one of the two circuit-wide rows.</summary>
