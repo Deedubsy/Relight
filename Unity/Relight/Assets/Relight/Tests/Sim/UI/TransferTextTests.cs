@@ -26,8 +26,8 @@ namespace Relight.Sim.Tests
         [Test]
         public void AMergeThatMovedNothingStillReportsTheWholeRemainder()
         {
-            Assert.AreEqual("0 Bullets moved to Backpack. 30 stay in Turret (Backpack full).",
-                TransferText.Moved(0, 30, "Bullets", "Turret", "Backpack"));
+            Assert.AreEqual("0 Rounds moved to Backpack. 30 stay in Turret (Backpack full).",
+                TransferText.Moved(0, 30, "Rounds", "Turret", "Backpack"));
         }
 
         [Test]

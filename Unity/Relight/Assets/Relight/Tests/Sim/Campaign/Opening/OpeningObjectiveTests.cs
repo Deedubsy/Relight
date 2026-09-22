@@ -268,12 +268,12 @@ namespace Relight.Sim.Tests.Campaign
         }
 
         /// <summary>
-        /// U-D-53's other half. The Assembler has no default either, so "Build 1 Assembler and set it to Bullets"
+        /// U-D-53's other half. The Assembler has no default either, so "Build 1 Assembler and set it to Rounds"
         /// is two steps: the build row has to stop asking once the machine exists, and the second half has to be an
         /// instruction the player can act on rather than a clause on a step they already finished.
         /// </summary>
         [Test]
-        public void AnAssemblerWithNoRecipeAsksForTheBulletsRecipe()
+        public void AnAssemblerWithNoRecipeAsksForTheRoundsRecipe()
         {
             var ctx = OpeningFixture.Context();
             var st = OpeningFixture.State(ctx);
@@ -288,7 +288,7 @@ namespace Relight.Sim.Tests.Campaign
             OpeningFixture.Run(ctx, st, 1);
 
             Assert.That(OpeningQueries.Objective(ctx, st).Text,
-                Is.EqualTo("Build 1 Assembler and set it to Bullets"), "no Assembler yet");
+                Is.EqualTo("Build 1 Assembler and set it to Rounds"), "no Assembler yet");
 
             var asm = RaidFixture.Add(ctx, st, "assembler", turret.X - 4, turret.Y);
             OpeningFixture.Run(ctx, st, 1);
@@ -296,12 +296,12 @@ namespace Relight.Sim.Tests.Campaign
             var set = OpeningQueries.Objective(ctx, st);
             Assert.That(set.Id, Is.EqualTo("opening-ammo"));
             Assert.That(set.Title, Is.EqualTo("Set up the Assembler"), "the build half is done; the recipe half is not");
-            Assert.That(set.Text, Is.EqualTo("Select the Bullets recipe"));
+            Assert.That(set.Text, Is.EqualTo("Select the Rounds recipe"));
             Assert.That(set.HasLocation, Is.True, "and it points at the machine they built");
 
             st.Production.Of(asm.Id).Recipe = "bullet-batch";
             st.Rev++;
-            Assert.That(OpeningQueries.Objective(ctx, st).Text, Is.Not.EqualTo("Select the Bullets recipe"),
+            Assert.That(OpeningQueries.Objective(ctx, st).Text, Is.Not.EqualTo("Select the Rounds recipe"),
                 "choosing it completes the step");
         }
 
@@ -316,7 +316,7 @@ namespace Relight.Sim.Tests.Campaign
 
             foreach (var s in seen)
                 Assert.That(s.ToLowerInvariant(), Does.Not.Contain("magazine"),
-                    "§7.0-b: player text always says Bullets — offending string: " + s);
+                    "§7.0-b: player text always says Rounds — offending string: " + s);
 
             // And the fixed notices the phase raises, whatever a sweep happens to reach.
             foreach (var f in typeof(OpeningPhase).GetFields(BindingFlags.Public | BindingFlags.Static))
@@ -324,15 +324,32 @@ namespace Relight.Sim.Tests.Campaign
                     Assert.That(((string)f.GetValue(null)).ToLowerInvariant(), Does.Not.Contain("magazine"), f.Name);
         }
 
+        /// <summary>REL-55 / U-D-68 (c): ammunition is "rounds" in all player text, never "bullets".</summary>
+        [Test]
+        public void NoPlayerFacingStringSaysBullets()
+        {
+            var seen = new List<string>();
+            foreach (var text in Sweep(seen)) { }
+            Assert.That(seen, Is.Not.Empty);
+
+            foreach (var s in seen)
+                Assert.That(s.ToLowerInvariant(), Does.Not.Contain("bullet"),
+                    "U-D-68 (c): player text always says rounds — offending string: " + s);
+
+            foreach (var f in typeof(OpeningPhase).GetFields(BindingFlags.Public | BindingFlags.Static))
+                if (f.FieldType == typeof(string))
+                    Assert.That(((string)f.GetValue(null)).ToLowerInvariant(), Does.Not.Contain("bullet"), f.Name);
+        }
+
         [Test]
         public void TheSweepReachesTheAmmunitionRowsThatUsedToSayMagazine()
         {
             var seen = new List<string>();
             foreach (var t in Sweep(seen)) { }
-            Assert.That(seen.Exists(s => s.Contains("Bullets")), Is.True,
-                "the Assembler recipe is named to the player as Bullets");
-            Assert.That(seen.Exists(s => s.Contains("bullets")), Is.True);
-            Assert.That(seen.Exists(s => s.Contains("1 item = 1 bullet")), Is.True,
+            Assert.That(seen.Exists(s => s.Contains("Rounds")), Is.True,
+                "the Assembler recipe is named to the player as Rounds");
+            Assert.That(seen.Exists(s => s.Contains("rounds")), Is.True);
+            Assert.That(seen.Exists(s => s.Contains("1 item = 1 round")), Is.True,
                 "U-D-08 is stated where loading happens");
         }
 

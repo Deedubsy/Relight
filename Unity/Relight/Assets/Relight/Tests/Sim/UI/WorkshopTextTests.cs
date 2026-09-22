@@ -37,7 +37,7 @@ namespace Relight.Sim.Tests
         [Test]
         public void ARecipeCardNamesItsOutputAndBatchSize()
         {
-            Assert.AreEqual("Bullets ×10", WorkshopText.RecipeTitle("Bullets", 10));
+            Assert.AreEqual("Rounds ×10", WorkshopText.RecipeTitle("Rounds", 10));
             Assert.AreEqual("Rifle ×1", WorkshopText.RecipeTitle("Rifle", 1));
         }
 

@@ -36,7 +36,7 @@ namespace Relight.Sim
                 if (c == null) { views.Add(new PocketSlotView(i, null, null, 0, 0)); continue; }
                 var key = new ItemKey(c.Item);
                 var name = key.IsItem(out var id) ? d.Item(id).DisplayName
-                    : d.TryMachine(c.Item, out var spec) ? spec.DisplayName : c.Item;
+                    : d.TryMachine(c.Item, out _) ? PlayerNames.Machine(d, c.Item) : PlayerNames.Weapon(d, c.Item);
                 views.Add(new PocketSlotView(i, c.Item, name, c.Count, d.StackSize(key)));
             }
             return views;
@@ -70,7 +70,7 @@ namespace Relight.Sim
             var d = ctx.Data;
             var m = st.MachineById(id);
             if (m == null) return null;
-            var label = d.TryMachine(m.Kind, out var spec) ? spec.DisplayName : m.Kind;
+            var label = PlayerNames.Machine(d, m.Kind);
             var has = MachineInventory.HasInventory(d, m);
             var counts = new ItemCounts();
             if (has) MachineInventory.Contents(d, m, counts);

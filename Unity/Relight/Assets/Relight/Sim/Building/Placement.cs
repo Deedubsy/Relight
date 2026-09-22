@@ -107,7 +107,7 @@ namespace Relight.Sim
             if (ProductionRules.IsProcessor(d, m) && (st.Production.Find(m.Id)?.Busy ?? false))
                 return (false, "wait for the processor to finish before packing it");
             if (string.Equals(m.Kind, "depot", StringComparison.Ordinal)) return (false, "the Depot stays");
-            if (!Interaction.InReach(ctx, st, m)) return (false, $"Walk closer to the {(d.TryMachine(m.Kind, out var s) ? s.DisplayName : m.Kind)}");
+            if (!Interaction.InReach(ctx, st, m)) return (false, $"Walk closer to the {PlayerNames.Machine(d, m.Kind)}");
 
             var keys = new List<ItemKey>();
             var counts = new List<double>();

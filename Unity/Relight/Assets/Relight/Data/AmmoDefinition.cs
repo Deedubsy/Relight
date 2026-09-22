@@ -10,7 +10,7 @@ namespace Relight.Data
         [Tooltip("The carried item this ammunition is.")]
         [SerializeField] private ItemId item = ItemId.Magazine;
 
-        [Tooltip("Rounds fired per item consumed. One under U-D-08 (one item = one bullet).")]
+        [Tooltip("Rounds fired per item consumed. One under U-D-08 (one item = one round).")]
         [SerializeField] private int roundsPerItem = 1;
 
         [SerializeField] private int stackSize = 1;

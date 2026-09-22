@@ -403,7 +403,7 @@ namespace Relight.Sim
             return n;
         }
 
-        /// <summary>"Bullets ×40 · Rifle ×1" — what is waiting in the output tray, in canonical key order.</summary>
+        /// <summary>"Rounds ×40 · Rifle ×1" — what is waiting in the output tray, in canonical key order.</summary>
         public static string TrayContents(GameData d, ItemBag bag)
         {
             if (bag == null) return "";
@@ -488,10 +488,7 @@ namespace Relight.Sim
         public static string NameOf(GameData d, ItemKey key)
         {
             if (key.IsItem(out var id)) return d == null ? Items.Key(id) : d.Item(id).DisplayName;
-            var kind = key.Key;
-            var colon = kind.IndexOf(':');
-            if (colon > 0) kind = kind.Substring(0, colon);
-            return d != null && d.TryWeapon(kind, out var profile) ? profile.DisplayName : kind;
+            return PlayerNames.Weapon(d, key.Key);
         }
 
         // ---- migration and tick ----------------------------------------------------------------------------

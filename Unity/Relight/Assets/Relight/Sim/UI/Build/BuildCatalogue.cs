@@ -256,7 +256,7 @@ namespace Relight.Sim.UI
                 case "lamp": return "Lights the surrounding area when connected to power.";
                 case "arclamp": return "Provides wider-area lighting when connected to power.";
                 case "floodlight": return "Projects a directional cone of light. Rotate it to aim the beam.";
-                case "turret": return "Automatically fires at enemies in range. Supply bullets and connect power.";
+                case "turret": return "Automatically fires at enemies in range. Supply rounds and connect power.";
                 case "cannon": return "Defends the area with heavy shells. Supply shells and connect power.";
                 case "wall": return "Blocks movement and absorbs enemy attacks to protect your base.";
                 case "barricade": return "A defensive obstacle that blocks movement and absorbs enemy attacks.";

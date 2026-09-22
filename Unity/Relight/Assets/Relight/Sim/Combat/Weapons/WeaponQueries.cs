@@ -49,7 +49,7 @@ namespace Relight.Sim
             d.TryWeapon(w.Kind, out var p);
             var seconds = p?.ReloadSeconds ?? 0;
             var fraction = w.Reload > 0 && seconds > 0 ? (seconds - w.Reload) / seconds : 0;
-            return new EquippedWeapon(w.Id, w.Kind, p?.DisplayName ?? w.Kind, w.Loaded, p?.Capacity ?? 0,
+            return new EquippedWeapon(w.Id, w.Kind, PlayerNames.Weapon(d, w.Kind), w.Loaded, p?.Capacity ?? 0,
                 fraction, w.Reload > 0, reserve, p?.EffectiveTiles ?? 0, p?.MaxTiles ?? 0, w.Cooldown, true);
         }
 

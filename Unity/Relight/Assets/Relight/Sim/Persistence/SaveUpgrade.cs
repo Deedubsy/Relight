@@ -142,7 +142,7 @@ namespace Relight.Sim
             if(v==4)
             {
                 FillMissing(state,FreshDocument());
-                what += " with its original resource layout and saved bullet queue retained";
+                what += " with its original resource layout and saved ammunition queue retained";
                 v=5;
             }
             if (v == 5)

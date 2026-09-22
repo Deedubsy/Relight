@@ -64,7 +64,7 @@ namespace Relight.Sim
         public const string NoWeaponText = "Equip a Rifle";
         public const string ReloadingText = "Reloading";
         public const string MagFullText = "Magazine is full";
-        public const string NoBulletsText = "Carry bullets in your Backpack";
+        public const string NoBulletsText = "Carry rounds in your Backpack";
         public const string BarSlotText = "Choose an action bar slot";
 
         /// <summary>The rifle's recipe key in <see cref="GameData.Recipes"/> (catalogue row "rifle").</summary>
@@ -264,7 +264,7 @@ namespace Relight.Sim
             var w = st.Weapons.ActiveWeapon();
             var seconds = Seconds(ctx.Data, w);
             w.Reload = seconds;
-            return (true, $"Reloading · {seconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} seconds; uses carried bullets");
+            return (true, $"Reloading · {seconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} seconds; uses carried rounds");
         }
 
         public static double Capacity(GameData d, WeaponInstance w) =>

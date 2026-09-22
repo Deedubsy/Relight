@@ -53,6 +53,13 @@ namespace Relight.Sim
     /// <summary>Read-only production questions for presentation and other subsystems.</summary>
     public static class ProductionQueries
     {
+        /// <summary>
+        /// REL-55 (UI-05): what a processor with no recipe says instead of "idle", which a machine between crafts
+        /// also says. U-D-53 ships the Foundry and both Assemblers with no recipe, so this is the first thing a new
+        /// Assembler shows. Text only: the state stays <see cref="MachineOperatingState.Idle"/>.
+        /// </summary>
+        public const string NoRecipeText = "no recipe set";
+
         /// <summary>The player-facing line for a state.</summary>
         public static string StateText(MachineOperatingState s)
         {
@@ -129,6 +136,7 @@ namespace Relight.Sim
             var work = st.Production.Find(id);
             double progress = 0;
             var recipe = "";
+            var text = StateText(s);
             if (m != null && ProductionRules.IsProcessor(ctx.Data, m))
             {
                 var r = ProductionRules.RecipeOf(ctx.Data, st, m);
@@ -137,6 +145,7 @@ namespace Relight.Sim
                     recipe = r.Key;
                     if (work != null && work.Busy && r.Seconds > 0) progress = Math.Min(1, work.Timer / r.Seconds);
                 }
+                else if (s == MachineOperatingState.Idle) text = NoRecipeText;
             }
             else if (m != null && ProductionRules.IsMiner(ctx.Data, m))
             {
@@ -144,7 +153,7 @@ namespace Relight.Sim
                 var cycle = 1 / (rate * ProductionRules.SpeedMul(ctx.Data, m));
                 if (work != null && cycle > 0) progress = Math.Min(1, work.Timer / cycle);
             }
-            return new MachineStatus(s, StateText(s), progress, recipe, throttle);
+            return new MachineStatus(s, text, progress, recipe, throttle);
         }
 
         /// <summary>Actual operation, power and output, for both inspection and world hover.</summary>

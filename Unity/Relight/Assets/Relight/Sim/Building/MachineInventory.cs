@@ -103,7 +103,7 @@ namespace Relight.Sim
         /// </summary>
         public static double ChestCap(GameData d) => d.TryMachine("chest", out var spec) && spec.InventorySlots > 0 ? spec.InventorySlots : 200;
 
-        private static string Label(GameData d, Machine m) => d.TryMachine(m.Kind, out var spec) ? spec.DisplayName : m.Kind;
+        private static string Label(GameData d, Machine m) => PlayerNames.Machine(d, m.Kind);
 
         /// <summary>Reference `machineTransferPreview`: how much would move, or why nothing would.</summary>
         public static (double moved, string reason) Preview(SimContext ctx, SimState st, int id, ItemId item, double n, bool put)

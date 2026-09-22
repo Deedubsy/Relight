@@ -183,13 +183,13 @@ namespace Relight.Sim
             {
                 var f = lane == null || lane.Filter < 0 ? "any item" : d.Item((ItemId)lane.Filter).DisplayName;
                 var h = lane == null || lane.Hold < 0 ? "none" : d.Item((ItemId)lane.Hold).DisplayName;
-                return $"Filter: {f} Â· held: {h}";
+                return $"Filter: {f} · held: {h}";
             }
             if (FlowRules.IsSplitter(m.Kind))
             {
                 var p = lane == null ? 0 : lane.Priority;
                 var name = p == 1 ? "left" : p == 2 ? "right" : "balanced";
-                return $"Splitter → {Compass(m.Dir)} Â· priority: {name} Â· {(lane?.Items.Count ?? 0)}/{FlowRules.SplitterCapacity} buffered Â· blocked priority falls back";
+                return $"Splitter → {Compass(m.Dir)} · priority: {name} · {(lane?.Items.Count ?? 0)}/{FlowRules.SplitterCapacity} buffered · blocked priority falls back";
             }
             if (FlowRules.IsUnderground(m.Kind))
             {
@@ -198,9 +198,9 @@ namespace Relight.Sim
                 var pair = mate != null
                     ? $"{FlowRules.UndergroundLength(m, mate) - 1} hidden tiles; paired"
                     : "unpaired: stock waits";
-                return $"Underground {role} Â· {pair} Â· {(lane?.Items.Count ?? 0)} buffered";
+                return $"Underground {role} · {pair} · {(lane?.Items.Count ?? 0)} buffered";
             }
-            return $"{(string.Equals(m.Kind, "fastbelt", StringComparison.Ordinal) ? "Fast conveyor" : "Conveyor")} → {Compass(m.Dir)} Â· {(lane?.Items.Count ?? 0)} carried";
+            return $"{(string.Equals(m.Kind, "fastbelt", StringComparison.Ordinal) ? "Fast conveyor" : "Conveyor")} → {Compass(m.Dir)} · {(lane?.Items.Count ?? 0)} carried";
         }
 
         private static string Compass(Dir d) => d == Dir.N ? "north" : d == Dir.E ? "east" : d == Dir.S ? "south" : "west";

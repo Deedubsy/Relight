@@ -92,7 +92,7 @@ namespace Relight.UI
                 else if(key.Length>0)
                 {
                     foreach(var w in WeaponQueries.Owned(sim.State))if(w.Id==key || w.Kind==key)
-                    { name=sim.Context.Data.TryWeapon(w.Kind,out var ws)?ws.DisplayName:w.Kind; count=PackLayout.Num(w.Loaded); available=true; break; }
+                    { name=PlayerNames.Weapon(sim.Context.Data,w.Kind); count=PackLayout.Num(w.Loaded); available=true; break; }
                     if(!available){name="Unowned";count="0";}
                 }
                 ItemIcons.Paint(b.Q("dock-icon"),b.Q<Label>("dock-icon-code"),key);
@@ -124,7 +124,7 @@ namespace Relight.UI
                 var v=BuildCatalogue.Card(sim.Context.Data,spec,sim.State.Engineer.Inv);
                 return new TooltipContent{Title=v.DisplayName+" ["+SlotKey(n)+"]",Body=v.Facts+"\n"+v.Availability,Footer=v.CostText+"\nCount = packed structures + builds affordable from Backpack. Right-click clears this shortcut."};
             }
-            return new TooltipContent{Title=slots[n].Q<Label>("dock-name").text+" ["+SlotKey(n)+"]",Body="Select this owned weapon. Equipment and loaded bullets stay with the weapon instance.",Footer="Use Backpack to equip. Right-click clears this shortcut."};
+            return new TooltipContent{Title=slots[n].Q<Label>("dock-name").text+" ["+SlotKey(n)+"]",Body="Select this owned weapon. Equipment and loaded rounds stay with the weapon instance.",Footer="Use Backpack to equip. Right-click clears this shortcut."};
         }
         void PaintTarget(Simulation sim,bool panel)
         {
@@ -136,7 +136,7 @@ namespace Relight.UI
             {
                 x=machine.X;y=machine.Y;(w,h)=machine.Dimensions;
                 if(!WorldTargetQueries.Visible(ctx,st,x,y,w,h))return;
-                name=ctx.Data.TryMachine(machine.Kind,out var ms)?ms.DisplayName:machine.Kind;
+                name=PlayerNames.Machine(ctx.Data,machine.Kind);
                 var status=ProductionQueries.Status(ctx,st,machine.Id);
                 blocked=!Interaction.InReach(ctx,st,machine);
                 verb=blocked?"Walk closer to interact":"["+Key("World/Equip","E")+"] Open / configure";

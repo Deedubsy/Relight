@@ -47,7 +47,7 @@ namespace Relight.Sim.Tests
         {
             var data = ReferenceData.Create();
             Assert.That(data.Item(ItemId.Steel).DisplayName, Is.EqualTo("Steel plates"));
-            Assert.That(data.Item(ItemId.Magazine).DisplayName, Is.EqualTo("Bullets"));
+            Assert.That(data.Item(ItemId.Magazine).DisplayName, Is.EqualTo("Rounds"), "U-D-68 (c)");
             Assert.That(data.Item(ItemId.Crude).DisplayName, Is.EqualTo("Crude oil"));
             Assert.That(data.TryMachine("turret", out var turret), Is.True);
             Assert.That(turret.DisplayName, Is.EqualTo("Gun turret"));

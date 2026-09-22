@@ -133,13 +133,13 @@ namespace Relight.Sim.UI
         /// <summary>0..1 of the engineer's hit points.</summary>
         public double EngineerFraction { get; private set; }
 
-        /// <summary>"Rifle · 12 / 20 bullets", "Reloading" while it reloads, "" with nothing equipped.</summary>
+        /// <summary>"Rifle · 12 / 20 rounds", "Reloading" while it reloads, "" with nothing equipped.</summary>
         public string Weapon { get; private set; } = "";
 
         /// <summary>0 when not reloading, else 0..1 through the reload, for a meter.</summary>
         public double ReloadFraction { get; private set; }
 
-        /// <summary>"74 bullets carried" — the reserve the Backpack can still feed (§4).</summary>
+        /// <summary>"74 rounds carried" — the reserve the Backpack can still feed (§4).</summary>
         public string Ammo { get; private set; } = "";
 
         /// <summary>"Backpack 12/40".</summary>
@@ -301,12 +301,13 @@ namespace Relight.Sim.UI
             {
                 _sb.Clear();
                 _sb.Append(w.DisplayName);
-                // §5.7 / §7.5 correction 7.0-b: the player-facing word is always "bullets", never "magazine".
-                _sb.AppendFormat(CultureInfo.InvariantCulture, " · {0:0} / {1:0} bullets", w.Loaded, w.Capacity);
+                // §5.7 / §7.5 correction 7.0-b: the player-facing word is always "rounds", never "magazine" or
+                // "bullets" (U-D-68 (c), REL-55).
+                _sb.AppendFormat(CultureInfo.InvariantCulture, " · {0:0} / {1:0} rounds", w.Loaded, w.Capacity);
                 if (w.Reloading) _sb.Append(" · reloading");
                 Weapon = _sb.ToString();
                 ReloadFraction = w.Reloading ? Clamp01(w.ReloadFraction) : 0;
-                Ammo = string.Format(CultureInfo.InvariantCulture, "{0:0} bullets carried", w.Reserve);
+                Ammo = string.Format(CultureInfo.InvariantCulture, "{0:0} rounds carried", w.Reserve);
             }
 
             var (used, cap) = InventoryQueries.Capacity(ctx, st);

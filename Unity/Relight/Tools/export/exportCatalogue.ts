@@ -164,13 +164,21 @@ const ENUM_NAME: Record<string, string> = {
 };
 for (const k of ITEM_ORDER) if (!(ITEMS as readonly string[]).includes(k)) throw new Error(`item ${k} is not in flow.ts ITEMS`);
 
+/**
+ * Unity-side player names that differ from the reference's `itemName`. U-D-68 (c), owner 2026-09-22: ammunition is
+ * "rounds" in all player text, never "bullets". Only the display name moves; the key `magazine` stays, so saves and
+ * recipes are untouched.
+ */
+const UNITY_ITEM_NAME: Record<string, string> = { magazine: 'Rounds' };
+const playerItemName = (k: string): string => UNITY_ITEM_NAME[k] ?? itemName(k);
+
 interface Row { key: string; kind: 'current' | 'approved' | 'provisional'; source: string; provisional: boolean }
 const row = (key: string, kind: Row['kind'], source: string): Row => ({ key, kind, source, provisional: kind === 'provisional' });
 
 const items = ITEM_ORDER.map(k => ({
   ...row(k, 'current', k === 'magazine' ? join2(SRC.items, SRC.ammoUnit) : (k.startsWith('core') ? SRC.stackDefault : SRC.items)),
   enumName: ENUM_NAME[k],
-  displayName: itemName(k),
+  displayName: playerItemName(k),
   stackSize: stackSize(k),
 }));
 
@@ -354,15 +362,15 @@ const recipes: RecipeRow[] = [
   fromRecipes('board', 'Board', 'Assembler', 'current', SRC.recipesTable),
   fromRecipes('concrete', 'Concrete', 'Mixer', 'current', SRC.recipesTable),
   fromRecipes('bullet-batch', 'Shot magazine', 'Assembler', 'current', join2(SRC.recipesTable, SRC.roundsPerMag),
-    undefined, 'Bullet batch'),
+    undefined, 'Rounds batch'),
   fromRecipes('bullet-batch-mk2', 'Shot magazine', 'Assembler Mk2', 'current', join2(SRC.mk2Seconds, SRC.roundsPerMag),
-    SHOT_MAGAZINE_MK2_SECONDS, 'Bullet batch (Mk2)'),
+    SHOT_MAGAZINE_MK2_SECONDS, 'Rounds batch (Mk2)'),
   fromRecipes('shell', 'Shell', 'Assembler', 'current', SRC.recipesTable),
   fromAssembler('overclock-module', 'overclock', 'Alien workbench', 'current', SRC.assemblerRecipes),
   // Hand crafting: the same ingredients and yield, HAND_BULLET_SECONDS instead of the recipe's own time.
   {
     ...row('hand-bullets', 'provisional', join2(SRC.handBullets, SRC.recipesTable)),
-    displayName: 'Hand bullet batch', inputs: stacks(byName('Shot magazine').inputs as Record<string, number>),
+    displayName: 'Hand rounds batch', inputs: stacks(byName('Shot magazine').inputs as Record<string, number>),
     outputs: [{ item: 'magazine', count: ROUNDS_PER_MAG }], seconds: HAND_BULLET_SECONDS,
     station: 'Home workshop', outputKey: '',
   },
@@ -434,12 +442,12 @@ const extensionPoints = [
 const ammunition = [
   {
     ...row('bullet', 'approved', join2(SRC.ammoUnit, SRC.items, SRC.roundsPerMag, SRC.asmAmmoBuffer)),
-    displayName: itemName('magazine'), item: 'magazine', roundsPerItem: 1, stackSize: stackSize('magazine'),
+    displayName: playerItemName('magazine'), item: 'magazine', roundsPerItem: 1, stackSize: stackSize('magazine'),
     itemsPerCraft: ROUNDS_PER_MAG, outputBuffer: 50,
   },
   {
     ...row('shell', 'current', join2(SRC.items, SRC.asmCaps)),
-    displayName: itemName('shell'), item: 'shell', roundsPerItem: 1, stackSize: stackSize('shell'),
+    displayName: playerItemName('shell'), item: 'shell', roundsPerItem: 1, stackSize: stackSize('shell'),
     itemsPerCraft: 1, outputBuffer: ASM_OUTPUT_CAP,
   },
 ];

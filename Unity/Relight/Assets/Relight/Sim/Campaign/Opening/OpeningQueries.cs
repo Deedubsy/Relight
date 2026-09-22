@@ -137,7 +137,8 @@ namespace Relight.Sim
     /// condition is simply not returned, so a save that arrives with three turrets, an equipped Rifle or a running
     /// delivery advances past those rows with no completion flag anywhere (Constitution rule 8).
     ///
-    /// Every player-facing string here says "bullets", never "magazine": UI_AND_ONBOARDING.md §7.5 correction 7.0-b.
+    /// Every player-facing string here says "rounds", never "magazine" (UI_AND_ONBOARDING.md §7.5 correction 7.0-b) and
+    /// never "bullets" (U-D-68 (c), REL-55).
     /// `magazine` survives only as <see cref="ItemId.Magazine"/> and the recipe keys.
     /// </summary>
     public static class OpeningQueries
@@ -360,7 +361,7 @@ namespace Relight.Sim
                     "Craft a Rifle at Home workshop · " + Num(rifle != null ? rifle.Seconds : 0) + " s",
                     "Craft Rifle using carried supplies. The finished Rifle waits in the Home workshop's output tray, "
                     + "not your Backpack — collect it there, then Equip it in slot 1 and select weapon tool 9. Keep "
-                    + "bullets for the expedition as well as turret defence.",
+                    + "rounds for the expedition as well as turret defence.",
                     true, home, Inputs(ctx, st, rifle));
             }
 
@@ -400,10 +401,10 @@ namespace Relight.Sim
                 // 11 — make the first ammunition.
                 if (first == null && e.Inv[ItemId.Magazine] < 1)
                     return new ObjectiveView("opening-workshop", "Make turret ammunition",
-                        "Open Home Workshop → Craft " + perCraft + " bullets",
-                        "Make " + perCraft + " bullets (" + Num(bullets != null ? bullets.Seconds : 0)
+                        "Open Home Workshop → Craft " + perCraft + " rounds",
+                        "Make " + perCraft + " rounds (" + Num(bullets != null ? bullets.Seconds : 0)
                         + " seconds). Open Backpack and expand Home Workshop while near Home. Stay nearby until "
-                        + "it finishes; the bullets appear in your Backpack. A turret holds " + Hopper(d)
+                        + "it finishes; the rounds appear in your Backpack. A turret holds " + Hopper(d)
                         + ", so keep crafting while you gather.",
                         true, home, Inputs(ctx, st, bullets));
 
@@ -449,10 +450,10 @@ namespace Relight.Sim
                 return new ObjectiveView("opening-workshop", "Prepare your first turret",
                     "Prepare your first turret. Build it near your base and fill it with ammunition.",
                     Loaded(d, first) + " · " + missing + " more to fill"
-                    + (carried < missing ? " · craft " + (missing - carried) + " more bullets at Home Workshop ("
+                    + (carried < missing ? " · craft " + (missing - carried) + " more rounds at Home Workshop ("
                         + perCraft + " per craft)" : "")
-                    + ". It is powered (" + kw + " kW). Open the turret inventory, select bullets, choose a quantity and "
-                    + "Load (1 item = 1 bullet); belts can fill it later. Once it is fully loaded, a small enemy group will test it.",
+                    + ". It is powered (" + kw + " kW). Open the turret inventory, select rounds, choose a quantity and "
+                    + "Load (1 item = 1 round); belts can fill it later. Once it is fully loaded, a small enemy group will test it.",
                     true, Centre(first),
                     new[] { new ObjectiveMaterial(Items.Key(ItemId.Magazine), Name(d, ItemId.Magazine), missing, carried,
                         Math.Min(missing, OpeningRules.HomeStock(st, ItemId.Magazine))) });
@@ -480,7 +481,7 @@ namespace Relight.Sim
                 return At("opening-attack", "Defend your turret",
                     "Small enemy group attacking from the " + direction + ". Stay near your turret and help defend.",
                     (loadedPrefix.Length > 0 ? loadedPrefix + " · " : "") + op.Shots
-                    + " bullets fired so far. Reload by hand if it runs dry; the group withdraws once beaten or after "
+                    + " rounds fired so far. Reload by hand if it runs dry; the group withdraws once beaten or after "
                     + Num(t.MaxDurationS / 60) + " minutes." + Uncovered(ctx, st, guardedTurret, spec),
                     at);
 
@@ -488,9 +489,9 @@ namespace Relight.Sim
             if (ended && op.EndedAt >= 0 && st.T < op.EndedAt + t.AckS)
                 return At("opening-attack", op.Status == OpeningStatus.Repelled ? "Attack repelled" : "Attack over",
                     (op.Status == OpeningStatus.Repelled ? "Attack repelled. " : "") + "Your turret used " + op.Shots
-                    + " bullets. Connect ammunition production to keep it supplied.",
+                    + " rounds. Connect ammunition production to keep it supplied.",
                     (loadedPrefix.Length > 0 ? loadedPrefix + ". " : "")
-                    + "Each bullet is one ammunition item. An Assembler set to Bullets, with a belt into the turret, "
+                    + "Each round is one ammunition item. An Assembler set to Rounds, with a belt into the turret, "
                     + "keeps it filled without hand loading.",
                     at);
 
@@ -527,21 +528,21 @@ namespace Relight.Sim
                     var steel = batch != null ? ProductionRules.Need(batch, ItemId.Steel) : 2;
                     var copper = batch != null ? ProductionRules.Need(batch, ItemId.Copper) : 1;
                     var yield = batch != null ? ProductionRules.Yield(batch) : 10;
-                    var mix = steel + " Steel + " + copper + " Copper make " + yield + " bullets.";
+                    var mix = steel + " Steel + " + copper + " Copper make " + yield + " rounds.";
 
                     // U-D-53 split the reference's single step in two. The Assembler now ships with no recipe, so
                     // "built but unset" is a state the player can sit in, and the second half of "Build 1 Assembler
-                    // and set it to Bullets" has to be an instruction they can act on rather than a clause on a
+                    // and set it to Rounds" has to be an instruction they can act on rather than a clause on a
                     // step they already finished.
                     var idle = UnsetBulletProcessor(ctx, st);
                     if (idle != null)
-                        return At("opening-ammo", "Set up the " + KindName(d, idle), "Select the Bullets recipe",
+                        return At("opening-ammo", "Set up the " + KindName(d, idle), "Select the Rounds recipe",
                             "A loaded turret runs dry. " + mix + " Feed the machine Steel plates and Copper, then run "
                             + "a belt from its output into the turret (or into a chest with an inserter onward).",
                             Centre(idle));
 
                     return new ObjectiveView("opening-ammo", "Automate your turret’s ammunition supply",
-                        "Build 1 Assembler and set it to Bullets",
+                        "Build 1 Assembler and set it to Rounds",
                         "A loaded turret runs dry. Feed Steel plates and Copper to a powered Assembler, then run a belt "
                         + "from its output into the turret (or into a chest with an inserter onward). " + mix,
                         true, at, Packed(ctx, st, "assembler"));
@@ -552,7 +553,7 @@ namespace Relight.Sim
                 var buffered = OpeningRules.OutputBuffer(ctx, st, ammo);
                 if (status.State != MachineOperatingState.Running && status.State != MachineOperatingState.Throttled && buffered == 0)
                     return At("opening-ammo", "Automate your turret’s ammunition supply", status.Text,
-                        "Inspect your bullet Assembler for its current input, power or output shortage. A loaded turret "
+                        "Inspect the Assembler making rounds for its current input, power or output shortage. A loaded turret "
                         + "is only a reserve.", ammoAt);
 
                 if (!ReachesAny(ctx, st, ammo, turrets))
@@ -566,19 +567,19 @@ namespace Relight.Sim
                 if (op.ProducedAt < 0 && buffered <= 0)
                     return At("opening-ammo", "Automate your turret’s ammunition supply",
                         "Route connected; waiting for the Assembler to produce",
-                        "Follow the first bullets along the belt. A connection alone does not mean the turret has ammunition.",
+                        "Follow the first rounds along the belt. A connection alone does not mean the turret has ammunition.",
                         ammoAt);
 
                 return At("opening-ammo", "Automate your turret’s ammunition supply",
-                    "Bullets produced; waiting for the first batch to reach the turret",
-                    "The objective completes when produced bullets enter the turret through the belt. Keep Steel plates, "
+                    "Rounds produced; waiting for the first batch to reach the turret",
+                    "The objective completes when produced rounds enter the turret through the belt. Keep Steel plates, "
                     + "Copper and generator fuel supplied.", ammoAt);
             }
 
             if (st.T < op.SuppliedAt + t.SupplyAckS)
                 return At("opening-ammo", "Automatic resupply working",
                     "Automatic resupply working. Your production line is replenishing the turret.",
-                    "Bullets now arrive without hand loading. Watch the Assembler’s Steel, Copper and power; the "
+                    "Rounds now arrive without hand loading. Watch the Assembler’s Steel, Copper and power; the "
                     + "reserve is only as deep as its inputs.", at);
 
             // ---------------------------------------------------------- §7.6 three turrets
@@ -599,14 +600,14 @@ namespace Relight.Sim
             var emptyTurret = FirstEmpty(turrets);
             if (emptyTurret != null)
                 return At("opening-workshop", "Load your new turret",
-                    "Load bullets into the empty turret or extend your ammunition belt to it",
+                    "Load rounds into the empty turret or extend your ammunition belt to it",
                     Loaded(d, emptyTurret) + ". A turret without ammunition covers nothing. Belts, inserters or hand "
                     + "loading all work.", Centre(emptyTurret));
 
             // ---------------------------------------------------------- §7.7 the first excursion
             if (e.Inv[ItemId.Magazine] < ScoutBullets && !OpeningRules.LeftForFirstCamp(ctx, st))
                 return At("opening-workshop", "Prepare to scout",
-                    "Carry at least eight bullets for the first camp",
+                    "Carry at least eight rounds for the first camp",
                     "Your turrets are supplied and your Rifle is ready. Check turret ammunition and generator fuel before "
                     + "leaving; the reserve is finite. The nearest freight camp is a short trip from Home.", home);
 
@@ -625,7 +626,7 @@ namespace Relight.Sim
         /// </summary>
         private static readonly string[] Words = { "one", "two", "three" };
 
-        /// <summary>Reference goal.ts:157: eight bullets before the first camp is worth walking to.</summary>
+        /// <summary>Reference goal.ts:157: eight rounds before the first camp is worth walking to.</summary>
         private const int ScoutBullets = 8;
 
         private static readonly ObjectiveMaterial[] NoMaterials = Array.Empty<ObjectiveMaterial>();
@@ -681,9 +682,9 @@ namespace Relight.Sim
 
         private static string Hopper(GameData d) => d.TryTurret("turret", out var s) ? Num(s.Hopper) : "50";
 
-        /// <summary>Reference goal.ts:128 <c>loadedText</c>, already in bullets.</summary>
+        /// <summary>Reference goal.ts:128 <c>loadedText</c>, in rounds (the reference says "bullets"; U-D-68 (c)).</summary>
         private static string Loaded(GameData d, Machine m) =>
-            "Loaded " + m.Rounds + " / " + Num(TurretHopper.Capacity(d, m)) + " bullets";
+            "Loaded " + m.Rounds + " / " + Num(TurretHopper.Capacity(d, m)) + " rounds";
 
         private static Vec2 Centre(Machine m)
         {
@@ -738,8 +739,7 @@ namespace Relight.Sim
         }
 
         /// <summary>A kind's player-facing name ("Assembler", "Assembler Mk2"), for a step that points at one.</summary>
-        private static string KindName(GameData d, Machine m) =>
-            d.TryMachine(m.Kind, out var s) && s.DisplayName.Length > 0 ? s.DisplayName : m.Kind;
+        private static string KindName(GameData d, Machine m) => PlayerNames.Machine(d, m.Kind);
 
         private static bool ReachesAny(SimContext ctx, SimState st, Machine source, List<Machine> targets)
         {
@@ -1154,7 +1154,7 @@ namespace Relight.Sim
             var d = ctx.Data;
             var have = (int)Math.Floor(st.Engineer.Inv[new ItemKey(key)]);
             if (Items.TryParse(key, out var id)) return new[] { Row(d, st, id, n) };
-            var name = d.TryMachine(key, out var spec) ? spec.DisplayName : key;
+            var name = PlayerNames.Machine(d, key);
             return new[] { new ObjectiveMaterial(key, name, n, have, 0) };
         }
 
