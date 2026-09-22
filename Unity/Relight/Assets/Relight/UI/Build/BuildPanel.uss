@@ -15,6 +15,13 @@
  * stopped pricing the card in pixels and gave it `flex-basis: 50%` on a host, the way U-D-52 did the recipe cards:
  * two to a row at any width that can hold two, one when it cannot. The drawer is still a fixed width, so a bigger
  * screen shows more world, not a bigger menu — the same ConstantPixelSize reasoning as the HUD.
+ *
+ * REL-120: that held at 760 and nowhere else. Under `.compact-ui` — 1280×720, or 1920 with the UI at 150% — the
+ * drawer is 680, which left the grid 358px (measured, not summed), and the host's own 200px floor meant one
+ * 200px card per row with 158px of it empty. Two answers, both in the sheets and neither in the card: the pane
+ * beside the grid is narrower when the drawer is (industrial.uss, `.compact-ui .build-detail`), which takes the
+ * grid to 426 and buys the second column back; and a host GROWS, so a row that can still only hold one is filled
+ * by it rather than left half empty. Evidence: Docs/evidence/rel-120.
  */
 
 #build-panel {
@@ -79,9 +86,15 @@
  * REL-114, measured in Play Mode on 2026-09-21 once the test could find the cards: the 144px above was too low.
  * The tallest host (card-mixer) is 164px, so the floor is 168px. The sum above is kept as the record of how the
  * first figure was reached, not as the current one.
+ *
+ * REL-120 — `flex-grow: 1` is the answer to the row that holds only ONE host. `flex-basis: 50%` asks for half the
+ * row and `min-width` then raises a too-small half back to 200px, so a grid under 400px wide fits one 200px card
+ * and leaves the rest of the row empty: the wide dead space beside the single column at 1280×720. Growing lets
+ * that lone host take the whole row instead, and its card's text column with it. A row that holds two is
+ * unchanged: two 50% bases are the whole row, there is no free space, and grow has nothing to hand out.
  */
 .build-host {
-    flex-grow: 0;
+    flex-grow: 1;
     flex-shrink: 0;
     flex-basis: 50%;
     min-width: 200px;
@@ -193,6 +206,19 @@
 }
 
 /* ---- detail pane ------------------------------------------------------------------------------------------ */
+
+/*
+ * REL-120 — every line in this panel wraps inside it. `.panel-sub` is the shared sub-line and carries no
+ * `white-space`, so the detail pane's stat line ("3×3 tiles · 0.5/s · holds 1 item · 40 HP") ran straight through
+ * the pane and out past the panel's right border at all three sizes: 269px of text in a column of 241 at 1920 and
+ * 181 in compact, so 24px and 84px past. A `nowrap` label keeps its box and draws the text beyond it, which is why
+ * a bounds check never caught this one. The pane is fixed and the facts grow with the machine, so the line has to
+ * wrap; only the shorter class names — `.card-name`, `.card-status` — stay `nowrap` with an ellipsis, because
+ * there the grid's shape is the thing being protected.
+ */
+#build-panel .panel-sub {
+    white-space: normal;
+}
 
 .build-detail {
     width: 260px;

@@ -197,6 +197,120 @@ namespace Relight.Tests.Play.Ui
         }
 
         /// <summary>
+        /// REL-120: the grid holds two columns at the narrow drawer as well as the wide one, and no line of the
+        /// panel's text crosses its border. Both were broken at 1280×720 and at 1920 with the interface at 150%,
+        /// which are the same layout — the drawer is 680 there rather than 760 (`.compact-ui #build-panel`), and
+        /// the detail pane's fixed 260 took so much of it that two 200px hosts no longer fit. The card is not
+        /// what changed: the pane beside it is narrower when the drawer is, and a host GROWS, so a row that can
+        /// still hold only one is filled by it instead of leaving the rest of the row empty.
+        ///
+        /// The size is forced on the panel here rather than on the screen: a Play test cannot resize the Game
+        /// view, and the interface scale lives on a PanelSettings ASSET, which a test must not dirty. Adding the
+        /// class and the width to the live elements puts the same numbers through the same layout engine, and
+        /// both are taken off again at the end.
+        ///
+        /// <see cref="HudController"/> is stopped for that window. It repaints every frame and its dock sets
+        /// `compact-ui` from the root's OWN resolved size, so on a big Game view it strips the class back off
+        /// between the test adding it and the layout pass — which made this test pass or fail by the editor's
+        /// window size rather than by the sheets. It is switched back on in the `finally`.
+        /// </summary>
+        [UnityTest, Timeout(30000)]
+        public IEnumerator TheBuildGridKeepsTwoColumnsWhenTheDrawerIsNarrow()
+        {
+            const float Compact = 680f;                 // `.compact-ui #build-panel` in industrial.uss
+
+            yield return SceneFixture.LoadWorld();
+            var shell = Object.FindAnyObjectByType<UiShell>();
+            Assert.That(shell, Is.Not.Null, "GameUI.unity has no UiShell.");
+            var build = Object.FindAnyObjectByType<BuildPanelController>();
+            if (build == null) Assert.Ignore("needs scene: GameUI.unity has no BuildPanelController.");
+
+            var document = UiFixture.DocumentWith(Build, out var panel);
+            Assert.That(panel, Is.Not.Null, "no element named \"" + Build + "\".");
+            var root = document.rootVisualElement;
+            var wasCompact = root.ClassListContains("compact-ui");
+            var hud = Object.FindAnyObjectByType<HudController>();
+            var hudWasOn = hud != null && hud.enabled;
+
+            Assert.That(shell.Open(Build), Is.True, "UiShell.Open(\"" + Build + "\") refused.");
+            yield return null;
+            build.Paint(true);
+            yield return null;
+
+            if (hud != null) hud.enabled = false;      // or its dock takes `compact-ui` straight back off again
+            root.AddToClassList("compact-ui");
+            panel.style.width = Compact;
+            yield return null;
+            yield return null;                         // a second frame, so the layout pass has run before measuring
+
+            try
+            {
+                var grid = root.Q<VisualElement>("build-grid");
+                Assert.That(grid, Is.Not.Null, "BuildPanel.uxml has no #build-grid.");
+
+                var hosts = new List<VisualElement>();
+                foreach (var child in grid.Children())
+                    if (UiFixture.Shown(child)) hosts.Add(child);
+                if (hosts.Count < 2)
+                    Assert.Ignore("the " + build.Tab + " tab shows " + hosts.Count + " cards, so there is no second "
+                        + "column to look for.");
+
+                var columns = 0;
+                foreach (var host in hosts)
+                    if (Mathf.Abs(host.worldBound.y - hosts[0].worldBound.y) < 1f) columns++;
+                Assert.That(columns, Is.GreaterThanOrEqualTo(2),
+                    "the build grid is " + grid.worldBound.width.ToString("0") + "px wide in a " + Compact
+                    + "px drawer and holds " + columns + " column(s). Two 200px hosts need 400: either the detail "
+                    + "pane beside the grid has grown back (`.compact-ui .build-detail`, industrial.uss) or the "
+                    + "`min-width` on `.build-host` has.");
+
+                // Nothing is left half empty either: the row the hosts occupy reaches the grid's own right edge.
+                var used = 0f;
+                foreach (var host in hosts) if (host.worldBound.xMax > used) used = host.worldBound.xMax;
+                Assert.That(used, Is.EqualTo(grid.worldBound.xMax).Within(2f),
+                    "the cards stop " + (grid.worldBound.xMax - used).ToString("0") + "px short of the grid's right "
+                    + "edge, which is the dead space REL-120 removed: `.build-host` is not growing into its row.");
+
+                // And no line of text crosses the drawer's inner edge (the stat line "… · 40 HP" did). A label's
+                // BOX cannot show that on its own: a `nowrap` label keeps its box and draws the text straight
+                // through it, which is exactly why REL-120 went unseen. So both are checked — the box against the
+                // panel's inner edge, and the text against the column the label actually has.
+                var inner = panel.worldBound.xMax - panel.resolvedStyle.paddingRight;
+                foreach (var label in panel.Query<Label>().ToList())
+                {
+                    if (!UiFixture.Shown(label) || string.IsNullOrEmpty(label.text)) continue;
+
+                    Assert.That(label.worldBound.xMax, Is.LessThanOrEqualTo(inner + 1f),
+                        "#" + label.name + " (\"" + label.text + "\") reaches "
+                        + label.worldBound.xMax.ToString("0") + ", past the panel's inner edge at "
+                        + inner.ToString("0") + ". A sub-line of this panel is not wrapping (REL-120).");
+
+                    var onOneLine = label.MeasureTextSize(label.text, 0f, VisualElement.MeasureMode.Undefined,
+                        0f, VisualElement.MeasureMode.Undefined).x;
+                    var column = label.contentRect.width;
+                    if (onOneLine <= column + 1f) continue;          // it fits; how it is set does not matter
+
+                    // It does not fit, so it must be allowed to wrap or to ellipse. Running on is the defect.
+                    // (`overflow` is not on IResolvedStyle; the ellipsis rules in this panel set it alongside
+                    // `text-overflow`, so the one property is the honest thing to read.)
+                    var wraps = label.resolvedStyle.whiteSpace == WhiteSpace.Normal;
+                    var ellipses = label.resolvedStyle.textOverflow == TextOverflow.Ellipsis;
+                    Assert.That(wraps || ellipses, Is.True,
+                        "#" + label.name + " (\"" + label.text + "\") is " + onOneLine.ToString("0")
+                        + "px of text in a " + column.ToString("0") + "px column, and it neither wraps nor "
+                        + "ellipses, so it draws " + (onOneLine - column).ToString("0")
+                        + "px past its own box (REL-120: `#build-panel .panel-sub { white-space: normal }`).");
+                }
+            }
+            finally
+            {
+                panel.style.width = StyleKeyword.Null;
+                if (!wasCompact) root.RemoveFromClassList("compact-ui");
+                if (hud != null) hud.enabled = hudWasOn;
+            }
+        }
+
+        /// <summary>
         /// Playtest defect: "action bar disappears / panels cover everything". A drawer may cover the world; it
         /// may not cover the two buttons that open the drawers.
         /// </summary>

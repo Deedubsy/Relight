@@ -221,6 +221,12 @@ Button:focus { border-width: 1px; border-color: #e3b96f; }
 .compact-ui #action-bar { max-width: 1000px; }
 .compact-ui #dock-actions .ui-button { font-size: 13px; }
 .compact-ui #build-panel { width: 680px; }
+/* REL-120: at 680 the detail pane's 260 + 16 margin left the grid 358 for the cards — short of the 400 two 200px
+   hosts need, so the grid fell to ONE column at 1280x720 and at 1920 with the UI at 150%, with 158px of the row
+   empty beside it. The cards are what a player scans; the pane beside them is one machine's facts and reads fine
+   narrower. 200 + 8 margin gives the grid 426: two columns of 213 again, above the 200px floor rather than
+   exactly on it. Both figures were read off the running panel — Docs/evidence/rel-120. */
+.compact-ui .build-detail { width: 200px; margin-left: 8px; }
 
 /* Live inspection corrections: keep the objective visible, remove inherited stretch. */
 .drawer-open #goal-card { display: flex; }
