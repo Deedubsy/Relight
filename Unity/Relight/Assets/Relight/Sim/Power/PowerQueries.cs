@@ -70,6 +70,15 @@ namespace Relight.Sim
         }
 
         /// <summary>
+        /// REL-7 (INT-03). One circuit's figures in the grid summary's shape (<see cref="PowerSummary.Circuits"/> is 1),
+        /// so the HUD can ask "which circuit is in trouble?" rather than average a dying circuit into a healthy one.
+        /// </summary>
+        public static PowerSummary CircuitSummary(GameData d, PowerCircuit c) =>
+            c == null ? default
+                : new PowerSummary(c.Demand, c.Supply, c.Load, c.Generators.Count, c.RatedGenerators, 1,
+                    FuelSecondsAt(d, c.FuelUnits, c.Load));
+
+        /// <summary>
         /// GP-W6. The ONE fuel-time formula: the inverse of <see cref="PowerPhase"/>'s burn, where a load of
         /// <paramref name="kw"/> draws <c>kw / (CoalMj × 1000)</c> units a second. <see cref="double.PositiveInfinity"/>
         /// when nothing is drawing. It is an ESTIMATE by nature — the load moves — and every caller says so.

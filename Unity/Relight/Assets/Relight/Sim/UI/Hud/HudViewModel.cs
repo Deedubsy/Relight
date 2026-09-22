@@ -58,8 +58,8 @@ namespace Relight.Sim.UI
         private readonly StringBuilder _sb = new StringBuilder(96);
         private readonly List<HudProblem> _problems = new List<HudProblem>();
         private double _lastRefresh = double.NegativeInfinity;
-        private bool _brownout;
-        private bool _lowFuel;
+        private string _brownoutPosted = "";
+        private string _lowFuelPosted = "";
         private string _cargoPosted = "";
         private int _accountPosted;
         private GameData _data;
@@ -233,19 +233,13 @@ namespace Relight.Sim.UI
             // saying a second time what the strip above it already said.
             Alert = Power.AlertText;
             Notices.Clear(PowerAlertSource.AlertKey);
-            // L-02 (§5.7): a brownout is posted ONCE, when it starts, and cleared when it ends — never re-posted per
-            // refresh, which is the repeat-count churn U-D-55 removed for the outage.
-            var brownout = Power.BrownoutText.Length > 0;
-            if (brownout && !_brownout)
-                Notices.Post(PowerAlertSource.BrownoutKey, Power.BrownoutText, HudNoticeKind.Warning, now, GuideSeconds);
-            if (!brownout && _brownout) Notices.Clear(PowerAlertSource.BrownoutKey);
-            _brownout = brownout;
+            // L-02 (§5.7): a brownout is posted when it starts and cleared when it ends — never re-posted per
+            // refresh, which is the repeat-count churn U-D-55 removed for the outage. REL-7: it STANDS while true,
+            // like low fuel, and both rows are re-posted only when the place they name changes.
+            PostPower(PowerAlertSource.BrownoutKey, Power.BrownoutText, ref _brownoutPosted, now);
             // GP-W6: low fuel is a standing state on the same edge rule. The sentence does not count down, so it
             // is posted once; a player who dismisses it has been told, and the strip's fuel line keeps the time.
-            if (FuelLow && !_lowFuel)
-                Notices.Post(PowerAlertSource.LowFuelKey, Power.LowFuelText, HudNoticeKind.Warning, now, double.PositiveInfinity);
-            if (!FuelLow && _lowFuel) Notices.Clear(PowerAlertSource.LowFuelKey);
-            _lowFuel = FuelLow;
+            PostPower(PowerAlertSource.LowFuelKey, Power.LowFuelText, ref _lowFuelPosted, now);
 
             // E-17 (U-D-61): one standing row per place for dry turrets and wrecks, from the one producer.
             Defence.FallbackPlace = Power.PlaceName;
@@ -403,6 +397,15 @@ namespace Relight.Sim.UI
 
         // One edge memory for the core row, shared by Intake (the frame it happens) and Refresh (from state), so the
         // two never post the same sentence twice and the row never counts a repeat for a hit.
+        /// <summary>A standing power warning, posted when its sentence changes and cleared when it goes.</summary>
+        private void PostPower(string key, string text, ref string posted, double now)
+        {
+            if (string.Equals(text, posted, StringComparison.Ordinal)) return;
+            if (text.Length == 0) Notices.Clear(key);
+            else Notices.Post(key, text, HudNoticeKind.Warning, now, double.PositiveInfinity);
+            posted = text;
+        }
+
         private void PostCore(string text, double now)
         {
             if (string.Equals(text, _corePosted, StringComparison.Ordinal)) return;

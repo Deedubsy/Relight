@@ -21,6 +21,11 @@ namespace Relight.Sim
         public readonly List<int> Generators = new List<int>();
         /// <summary>Generators on the circuit whether fuelled or not (the reference's <c>c.rated</c>, counted).</summary>
         public int RatedGenerators;
+        /// <summary>
+        /// REL-7 (INT-03): fuel units left in this circuit's generators, so a warning can read the circuit that is
+        /// running dry instead of an average over the whole map.
+        /// </summary>
+        public double FuelUnits;
     }
 
     /// <summary>
@@ -295,6 +300,7 @@ namespace Relight.Sim
                     {
                         c.Supply += SourceKw(d, m);      // campaignPower.ts:46
                         c.Generators.Add(m.Id);
+                        c.FuelUnits += fuel;
                         grid.FuelUnits += fuel;
                     }
                 }

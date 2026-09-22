@@ -135,8 +135,14 @@ namespace Relight.Sim.UI
         }
 
         /// <summary>The same place name for a bare position (INT-01 names where the dropped cargo lies with it).</summary>
-        public string PlaceAt(SimContext ctx, double cx, double cy) =>
-            Districts.NameAt(ctx, cx, cy) ?? (string.IsNullOrEmpty(FallbackPlace) ? "Home" : FallbackPlace);
+        public string PlaceAt(SimContext ctx, double cx, double cy) => NameAt(ctx, cx, cy, FallbackPlace);
+
+        /// <summary>
+        /// The label rule itself, for a producer that has no <see cref="DefenceAlertSource"/> of its own: the power
+        /// warnings name their place with it (REL-7), so a power row and a defence row never name one spot twice.
+        /// </summary>
+        public static string NameAt(SimContext ctx, double cx, double cy, string fallback) =>
+            Districts.NameAt(ctx, cx, cy) ?? (string.IsNullOrEmpty(fallback) ? "Home" : fallback);
 
         /// <summary>"Ironworks: 3 turrets dry, 1 low, 5 wrecks" — only the parts that are not zero.</summary>
         private string Sentence(DefenceAlertRow r)

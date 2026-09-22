@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using Relight.Sim.Tests.Combat;
 using Relight.Sim.Tests.Production;
@@ -90,7 +91,7 @@ namespace Relight.Sim.Tests.UI
             Assert.That(vm.FuelText, Does.Contain("(estimate)"));
             var row = Row(vm, PowerAlertSource.LowFuelKey);
             Assert.That(row, Is.Not.Null, "the warning is on the HUD");
-            Assert.That(row.Text, Is.EqualTo(PowerAlertSource.LowFuelLine(ctx.Data)));
+            Assert.That(row.Text, Is.EqualTo(PowerAlertSource.LowFuelLine(ctx.Data, "Home")), "no districts: the fallback place");
             Assert.That(row.Text, Does.Contain("A full slot of"), "it teaches the reserve, not just the alarm");
             Assert.That(row.Text, Does.Contain(PowerQueries.FuelTimeText(PowerQueries.FullSlotSeconds(ctx.Data))));
 
@@ -210,6 +211,134 @@ namespace Relight.Sim.Tests.UI
             Assert.That(low.Value.Count, Is.EqualTo(2), "both slowed turrets, on one row");
             Assert.That(low.Value.Text, Is.EqualTo("Low power: 2 machines "
                 + ProductionQueries.StateText(MachineOperatingState.Throttled) + " — " + HudViewModel.ThrottledRemedy));
+        }
+
+        // ---- REL-7 (INT-03): the circuit in trouble, not the whole map -----------------------------------------
+
+        /// <summary>
+        /// Two districts far apart: Founders Court round (21,71) and Ironworks round (131,71), their substation lots
+        /// well out of any pole's reach at y=40, so each test's two circuits stay two.
+        /// </summary>
+        private static (SimContext ctx, SimState st) TwoDistricts(params SiteRecord[] extra)
+        {
+            var sites = new List<SiteRecord>
+            {
+                new SiteRecord("home", "Home Court", SiteKind.Core, RaidFixture.CoreX, RaidFixture.CoreY,
+                    RaidFixture.CoreSize, RaidFixture.CoreSize, "", 0),
+                new SiteRecord("substation:0", "Substation 0", SiteKind.Substation, 20, 70, 3, 3),
+                new SiteRecord("substation:1", "Substation 1", SiteKind.Substation, 130, 70, 3, 3),
+                new SiteRecord("label:fc", "Founders Court", SiteKind.Label, 20, 74, 1, 1),
+                new SiteRecord("label:iw", "Ironworks", SiteKind.Label, 130, 74, 1, 1),
+            };
+            sites.AddRange(extra);
+            var ctx = new SimContext(ReferenceData.Create(), RaidFixture.Map(), null, null, new WorldSites(sites));
+            var st = RaidFixture.State(ctx);
+            HomeCore.Ensure(ctx, st);
+            return (ctx, st);
+        }
+
+        [Test]
+        public void TwoCircuitsWithUnevenFuel_TheOneRunningDryRaisesLowFuel_NamingItsPlace()
+        {
+            // Linear REL-7's worked example: 2 coal at 300 kW lasts about 27 s, 50 coal at 100 kW about 33 min,
+            // and the whole-map average of 52 coal at 400 kW (520 s) hid the first.
+            var (ctx, st) = TwoDistricts();
+            RaidFixture.Add(ctx, st, "pole", 20, 40);
+            var founders = RaidFixture.Add(ctx, st, "generator", 22, 40);
+            founders.Inv.Add(ItemId.Coal, 2);
+            for (var i = 0; i < 3; i++) RaidFixture.Add(ctx, st, "assembler", 12 + i * 3, 42);
+            RaidFixture.Add(ctx, st, "pole", 130, 40);
+            var ironworks = RaidFixture.Add(ctx, st, "generator", 132, 40);
+            ironworks.Inv.Add(ItemId.Coal, 50);
+            RaidFixture.Add(ctx, st, "assembler", 122, 42);
+            ProductionFixture.Run(ctx, st, 1);
+
+            var grid = PowerGrid.Of(ctx, st);
+            Assert.That(grid.Circuits.Count, Is.EqualTo(2), "the fixture is two circuits");
+            Assert.That(PowerQueries.Network(ctx, st).FuelSeconds, Is.GreaterThan(PowerAlertSource.LowFuelSeconds),
+                "the grid total is the average that hid the dying circuit");
+            var dying = PowerQueries.CircuitSummary(ctx.Data, grid.Of(founders.Id)).FuelSeconds;
+            Assert.That(dying, Is.LessThan(PowerAlertSource.LowFuelSeconds));
+
+            var vm = new HudViewModel();
+            vm.Refresh(ctx, st, 0, false, false, force: true);
+            Assert.That(vm.FuelLow, Is.True);
+            Assert.That(Row(vm, PowerAlertSource.LowFuelKey)?.Text,
+                Is.EqualTo(PowerAlertSource.LowFuelLine(ctx.Data, "Founders Court")), "the row names where the coal must go");
+            Assert.That(vm.FuelText, Does.Contain(PowerQueries.FuelTimeText(dying)),
+                "the strip's fuel time is the same circuit's, so the two never disagree");
+
+            // Refuel Founders Court and let Ironworks run low: the one row moves to name the other place.
+            founders.Inv.Add(ItemId.Coal, 40);
+            ironworks.Inv[ItemId.Coal] = 1;                              // 1 coal at 100 kW: about 40 s
+            ProductionFixture.Run(ctx, st, 1);
+            for (var i = 1; i <= 3; i++) vm.Refresh(ctx, st, i, false, false, force: true);
+            var row = Row(vm, PowerAlertSource.LowFuelKey);
+            Assert.That(row?.Text, Is.EqualTo(PowerAlertSource.LowFuelLine(ctx.Data, "Ironworks")));
+            Assert.That(row.Repeats, Is.EqualTo(1), "a new place is a new sentence, not a repeat");
+        }
+
+        [Test]
+        public void TwoCircuitsWithOneShort_TheShortOneRaisesAStandingBrownoutRow_ThatTheTotalsHid()
+        {
+            var (ctx, st) = TwoDistricts();
+            // Ironworks: a turret and four Assemblers (420 kW) on one Generator (300 kW).
+            RaidFixture.Add(ctx, st, "pole", 130, 40);
+            RaidFixture.Add(ctx, st, "generator", 132, 40).Inv.Add(ItemId.Coal, 50);
+            foreach (var (x, y) in new[] { (122, 42), (125, 42), (128, 42), (131, 43) })
+                RaidFixture.Add(ctx, st, "assembler", x, y);
+            var turret = RaidFixture.Add(ctx, st, "turret", 126, 37);
+            turret.Rounds = 20;
+            // Founders Court: three idle Generators, a big surplus on a circuit of its own.
+            RaidFixture.Add(ctx, st, "pole", 20, 40);
+            foreach (var (x, y) in new[] { (22, 40), (22, 43), (18, 43) })
+                RaidFixture.Add(ctx, st, "generator", x, y).Inv.Add(ItemId.Coal, 50);
+            ProductionFixture.Run(ctx, st, 1);
+
+            Assert.That(PowerGrid.Of(ctx, st).Circuits.Count, Is.EqualTo(2), "the fixture is two circuits");
+            Assert.That(PowerAlertSource.IsShort(PowerQueries.Network(ctx, st)), Is.False,
+                "1200 kW against 420 kW over the whole map: the totals hide the short circuit");
+            var throttle = PowerQueries.Throttle(ctx, st, turret.Id);
+            Assert.That(throttle, Is.GreaterThan(0).And.LessThan(1), "the Ironworks turret is browned out");
+
+            var vm = new HudViewModel();
+            for (var i = 0; i <= 5; i++) vm.Refresh(ctx, st, i * 0.15, false, false, force: true);
+            var row = Row(vm, PowerAlertSource.BrownoutKey);
+            Assert.That(row?.Text, Is.EqualTo(PowerAlertSource.BrownoutSentence("Ironworks")));
+            Assert.That(row.Kind, Is.EqualTo(HudNoticeKind.Warning));
+            Assert.That(row.Repeats, Is.EqualTo(1), "U-D-55: posted on its edge, never per refresh");
+            Assert.That(vm.PowerShort, Is.True);
+            Assert.That(vm.PowerText, Does.EndWith(PowerAlertSource.ShortSuffix), "the strip marks the short circuit too");
+
+            vm.Notices.Reap(600);
+            Assert.That(Row(vm, PowerAlertSource.BrownoutKey), Is.Not.Null, "a brownout stands while it is true");
+        }
+
+        [Test]
+        public void AStreetlightOnlyBrownoutRaisesTheRow_NamingTheLitDistrict()
+        {
+            // A district lit only by its streetlights: no lamp and no turret anywhere, so the old machine-only walk
+            // never raised the notice however far the lights shrank.
+            var (ctx, st) = TwoDistricts(
+                new SiteRecord(StreetLights.IdPrefix + "0", "Street light", SiteKind.Light, 16, 64, 1, 1));
+            var light = StreetLights.Sites(ctx)[0];
+            // A pole 3.5 tiles from the Founders Court substation lot links the lot, and with it the light, to a
+            // Generator carrying four Assemblers: 402 kW against 300.
+            RaidFixture.Power(ctx, st, 16, 68);
+            foreach (var (x, y) in new[] { (8, 66), (11, 66), (8, 69), (11, 69) })
+                RaidFixture.Add(ctx, st, "assembler", x, y);
+            ProductionFixture.Run(ctx, st, 1);
+
+            var grid = PowerGrid.Of(ctx, st);
+            Assert.That(grid.OfSite(light.Id), Is.Not.Null, "the light is on the circuit");
+            Assert.That(StreetLights.Throttle(grid, light), Is.GreaterThan(0).And.LessThan(1), "and it is browned out");
+            for (var i = 0; i < st.Machines.Count; i++)
+                Assert.That(LightSources.IsLightMachine(ctx.Data, st.Machines[i]) || ctx.Data.TryTurret(st.Machines[i].Kind, out _),
+                    Is.False, "no placed light or turret: the streetlight is the only defence here");
+
+            var vm = new HudViewModel();
+            vm.Refresh(ctx, st, 0, false, false, force: true);
+            Assert.That(Row(vm, PowerAlertSource.BrownoutKey)?.Text, Is.EqualTo(PowerAlertSource.BrownoutSentence("Founders Court")));
         }
 
         // ---- the problem rows ---------------------------------------------------------------------------------
