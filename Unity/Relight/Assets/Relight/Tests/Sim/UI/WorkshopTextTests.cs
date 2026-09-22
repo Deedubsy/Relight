@@ -24,7 +24,8 @@ namespace Relight.Sim.Tests
         [Test]
         public void CoreHpRoundsUpSoAThinSliverNeverReadsAsZero()
         {
-            Assert.AreEqual("1 / 200 HP", WorkshopText.CoreHp(0.2, 200));
+            // REL-10 changed this expectation from "1 / 200 HP": the card now prints the HUD's form.
+            Assert.AreEqual("1/200 HP", WorkshopText.CoreHp(0.2, 200));
         }
 
         [Test]

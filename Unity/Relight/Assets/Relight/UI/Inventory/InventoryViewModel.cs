@@ -230,7 +230,7 @@ namespace Relight.UI
             else if(TurretHopper.IsTurret(d,m))
             {
                 var ammo=TurretHopper.Ammo(d,m);var cap=TurretHopper.Capacity(d,m);Reserved(ammo,"Ammo",cap,true);
-                StoreCapacity=$"{Count(ammo):0} / {cap:0} rounds";StoreHint="Drop compatible ammunition into the ammo slot.";
+                StoreCapacity=TurretHopper.RoundsText(d,m);StoreHint="Drop compatible ammunition into the ammo slot.";
             }
             else if(ProductionRules.IsMiner(d,m))
             {

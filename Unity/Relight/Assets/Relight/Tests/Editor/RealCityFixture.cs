@@ -69,7 +69,7 @@ namespace Relight.Authoring.Tests
                 foreach (var g in Generators)
                 {
                     TurretRules.TurretRepairHook(ctx, st, g.Id, 1e9);
-                    g.Inv[ItemId.Coal] = ctx.Data.Power.GeneratorFuelCap;
+                    g.Inv[ItemId.Coal] = MachineInventory.GeneratorFuelCap(ctx.Data);
                 }
             }
 

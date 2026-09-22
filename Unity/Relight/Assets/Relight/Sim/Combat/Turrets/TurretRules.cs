@@ -171,9 +171,19 @@ namespace Relight.Sim
         private const double Eps = 1e-9;
 
         /// <summary>Hopper capacity in rounds, from <c>TurretDef.Hopper</c> (turret 50, cannon 20).</summary>
-        public static int Capacity(GameData d, Machine m) =>
-            m != null && d.TryTurret(m.Kind, out var def) && def.Hopper > 0 ? def.Hopper
-            : m != null && d.TryMachine(m.Kind, out var spec) && spec.AmmoCap > 0 ? spec.AmmoCap : 0;
+        public static int Capacity(GameData d, Machine m) => m != null ? Capacity(d, m.Kind) : 0;
+
+        /// <summary>The same capacity for a kind, before one is built ("A turret holds 50").</summary>
+        public static int Capacity(GameData d, string kind) =>
+            d.TryTurret(kind, out var def) && def.Hopper > 0 ? def.Hopper
+            : d.TryMachine(kind, out var spec) && spec.AmmoCap > 0 ? spec.AmmoCap : 0;
+
+        /// <summary>
+        /// "9 / 50 rounds": a turret's load as every surface prints it (REL-10). The hover, the world card, the
+        /// turret's panel and the opening objectives all show this string, so they can never disagree.
+        /// </summary>
+        public static string RoundsText(GameData d, Machine m) =>
+            (m != null ? m.Rounds : 0) + " / " + Capacity(d, m) + " rounds";
 
         /// <summary>The round a kind eats: <c>TurretDef.Ammo</c> (turret bullets, cannon shells).</summary>
         public static ItemId Ammo(GameData d, Machine m) =>

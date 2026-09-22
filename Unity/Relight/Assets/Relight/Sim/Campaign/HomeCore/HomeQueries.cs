@@ -21,6 +21,18 @@ namespace Relight.Sim
 
         public static double CoreHp(SimState st) => st.Home != null && st.Home.Placed ? st.Home.Hp : 0;
 
+        /// <summary>The core's full health: <c>DEFENCE.coreHp</c>, the same number <see cref="HomeCore.Price"/> repairs to.</summary>
+        public static double CoreMaxHp(GameData d) => d?.Defence != null ? d.Defence.CoreHp : 0;
+
+        /// <summary>
+        /// "438/500 HP": the core's health as every surface prints it (REL-10), rounded UP so a core with any health
+        /// left never reads 0 (reference coreCard <c>Math.ceil</c>). The HUD, the hover, the workshop card and the
+        /// Admin readout all show this string, in the HUD's form (the Engineer's "100/100 HP" sits beside it).
+        /// </summary>
+        public static string CoreHpText(double hp, double max) =>
+            ((long)Math.Ceiling(hp)).ToString(System.Globalization.CultureInfo.InvariantCulture) + "/"
+            + ((long)Math.Ceiling(max)).ToString(System.Globalization.CultureInfo.InvariantCulture) + " HP";
+
         /// <summary>Sim time the core was last knocked out, or -1 if never (reference <c>coreDisabledAt</c>).</summary>
         public static double CoreDisabledAt(SimState st) => st.Home?.DisabledAt ?? -1;
 
@@ -113,7 +125,7 @@ namespace Relight.Sim
             var h = st.Home;
             if (h == null || !h.Placed) return "";
             var p = HomeCore.Price(data, st, RepairKinds.Core, -1);
-            var text = $"Base core · {Math.Ceiling(h.Hp)}/{p.Max} HP";
+            var text = "Base core · " + CoreHpText(h.Hp, p.Max);
             if (h.Hp <= 0) text += " · DISABLED";
             if (h.RepairKind == RepairKinds.Core) return text + $" · repair {Math.Ceiling(h.RepairRemaining)}s (stay in reach)";
             if (h.Hp < p.Max) text += $" · E opens the Home workshop — repair it there ({p.Steel} steel + {p.Copper} copper, {p.Seconds}s{(p.Recommission ? "" : $" / {data.Defence.RepairHp} HP")})";

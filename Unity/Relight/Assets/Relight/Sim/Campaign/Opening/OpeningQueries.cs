@@ -265,10 +265,12 @@ namespace Relight.Sim
             if (gen.Inv[ItemId.Coal] + gen.Inv[ItemId.Fuel] <= 0)
                 return new ObjectiveView("opening-workshop", "Fuel your Generator",
                     "Gather Coal, then open the Generator inventory",
-                    "Drag Coal from your Backpack into the Generator fuel slot. One Coal runs it for about "
-                    + Num(Math.Round(d.Power.CoalMj * 1000 / d.Power.GeneratorKw)) + " s at its full "
-                    + Num(d.Power.GeneratorKw) + " kW, and burns slower when less is drawn. The slot holds "
-                    + Num(d.Power.GeneratorFuelCap) + ", so fill it rather than topping it up — and an Excavator on a "
+                    // REL-10: the slot size and the time are the ones the Generator's own panel and the HUD show.
+                    "Drag Coal from your Backpack into the Generator fuel slot. The slot holds "
+                    + Num(MachineInventory.GeneratorFuelCap(d)) + ", and a full slot runs it "
+                    + PowerQueries.FuelTimeText(PowerQueries.FullSlotSeconds(d)) + " at its full "
+                    + Num(PowerQueries.GeneratorKw(d)) + " kW (estimate); it burns slower when less is drawn. Fill it "
+                    + "rather than topping it up — and an Excavator on a "
                     + "Coal patch with a belt into the Generator ends hand-feeding it for good.",
                     true, Centre(gen), One(ctx, st, Items.Key(ItemId.Coal), 1));
 
@@ -691,11 +693,10 @@ namespace Relight.Sim
 
         private static string Name(GameData d, ItemId id) => d.Item(id).DisplayName;
 
-        private static string Hopper(GameData d) => d.TryTurret("turret", out var s) ? Num(s.Hopper) : "50";
+        private static string Hopper(GameData d) => Num(TurretHopper.Capacity(d, "turret"));
 
         /// <summary>Reference goal.ts:128 <c>loadedText</c>, in rounds (the reference says "bullets"; U-D-68 (c)).</summary>
-        private static string Loaded(GameData d, Machine m) =>
-            "Loaded " + m.Rounds + " / " + Num(TurretHopper.Capacity(d, m)) + " rounds";
+        private static string Loaded(GameData d, Machine m) => "Loaded " + TurretHopper.RoundsText(d, m);
 
         private static Vec2 Centre(Machine m)
         {

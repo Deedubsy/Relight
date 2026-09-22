@@ -110,7 +110,10 @@ namespace Relight.Sim.UI
         /// <summary>0..1 of demand actually delivered, for the strip's meter.</summary>
         public double PowerFraction { get; private set; }
 
-        /// <summary>"Fuel · about 4 min at this load (estimate)", or "" when nothing is burning.</summary>
+        /// <summary>
+        /// "about 4 min at this load (estimate)", or "" when nothing is burning: the power tooltip's "Fuel left" row
+        /// (REL-10; it had no reader before). The time is <see cref="PowerAlertSource.FuelText"/>'s.
+        /// </summary>
         public string FuelText { get; private set; } = "";
 
         /// <summary>True while <see cref="FuelText"/> is under the low-fuel line.</summary>
@@ -224,7 +227,7 @@ namespace Relight.Sim.UI
             PowerShort = Power.Short;
             PowerOff = Power.Off;
             PowerFraction = Power.Delivered;
-            FuelText = Power.FuelText.Length > 0 ? "Fuel · " + Power.FuelText + " at this load (estimate)" : "";
+            FuelText = Power.FuelText.Length > 0 ? Power.FuelText + " at this load (estimate)" : "";
             FuelLow = Power.LowFuelText.Length > 0;
             // U-D-55. An outage is a STANDING state, not an event, so it lives in the urgent strip and NOWHERE
             // else. It used to be posted into the notice inbox as well, with an infinite lifetime, on every
@@ -256,7 +259,7 @@ namespace Relight.Sim.UI
                     Account.Losses ? HudNoticeKind.Warning : HudNoticeKind.Info, now, RaidAccountSource.Seconds);
             }
 
-            var maxCore = d.Defence != null ? d.Defence.CoreHp : 0;
+            var maxCore = HomeQueries.CoreMaxHp(d);
             var hp = HomeQueries.CoreHp(st);
             if (st.Home != null && st.Home.Placed)
             {
@@ -264,7 +267,7 @@ namespace Relight.Sim.UI
                 CoreFraction = maxCore > 0 ? Clamp01(hp / maxCore) : 0;
                 Core = CoreDisabled
                     ? "Home core · DISABLED"
-                    : string.Format(CultureInfo.InvariantCulture, "Home core · {0:0}/{1:0} HP", Math.Ceiling(hp), maxCore);
+                    : "Home core · " + HomeQueries.CoreHpText(hp, maxCore);
             }
             else { Core = ""; CoreFraction = 0; CoreDisabled = false; }
 

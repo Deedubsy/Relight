@@ -86,9 +86,11 @@ namespace Relight.Sim.UI
         public static string CoreCardTitle(double hp)
             => hp <= 0 ? CoreTitle + CoreDisabledSuffix : CoreTitle;
 
-        /// <summary>coreCard: <c>`${Math.ceil(cost.hp)} / ${cost.max} HP`</c>.</summary>
-        public static string CoreHp(double hp, double max)
-            => Ceil(hp) + " / " + Ceil(max) + " HP";
+        /// <summary>
+        /// coreCard: <c>`${Math.ceil(cost.hp)} / ${cost.max} HP`</c>, now in the HUD's "438/500 HP" form so the card and
+        /// the HUD print the same string (REL-10).
+        /// </summary>
+        public static string CoreHp(double hp, double max) => HomeQueries.CoreHpText(hp, max);   // REL-10: the one producer
 
         /// <summary>
         /// coreCard's one button, in its three states: a running repair counts down, a dead core is

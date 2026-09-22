@@ -83,7 +83,7 @@ namespace Relight.Sim
             var last = d.History.Count > 0 ? d.History[d.History.Count - 1] : null;
             var step = DirectorPhase.GrowthStep(st);
             return new DirectorReadout(phase, left, Math.Max(0, d.NextStart - st.T), d.Reserved ? d.ReserveReason : "",
-                has, bx, by, st.Home.Placed ? st.Home.Hp : 0, st.Home.Placed ? ctx.Data.Defence.CoreHp : 0,
+                has, bx, by, st.Home.Placed ? st.Home.Hp : 0, st.Home.Placed ? HomeQueries.CoreMaxHp(ctx.Data) : 0,
                 step, st.Admin.RaidNumber >= 0, SiegePlan.TotalFor(ctx, step),
                 a == null ? 0 : a.Wave + 1, a == null ? 0 : a.Waves, a == null ? 0 : a.Remaining, a == null ? 0 : a.Cancelled,
                 small, major, minor, total, r.ActiveRaidBudget, r.LivingBudget,
@@ -98,7 +98,7 @@ namespace Relight.Sim
                 : v.Phase == "recovery" ? $"recovery · {v.PhaseSeconds:0} s left"
                 : v.Phase == "held" ? "held · " + (v.Hold.Length > 0 ? v.Hold : "the approach is reserved")
                 : v.Phase;
-            var target = v.HasTarget ? $"Home core at {v.TargetX}, {v.TargetY}" + (v.CoreMaxHp > 0 ? $" · {v.CoreHp:0}/{v.CoreMaxHp:0} hp" : " · authored site, no core placed")
+            var target = v.HasTarget ? $"Home core at {v.TargetX}, {v.TargetY}" + (v.CoreMaxHp > 0 ? " · " + HomeQueries.CoreHpText(v.CoreHp, v.CoreMaxHp) : " · authored site, no core placed")
                 : "none · the core is down";
             var last = v.LastOutcome < 0 ? "none yet"
                 : $"raid {v.LastId} · " + (v.LastOutcome == (int)RaidOutcome.Cleared ? "cleared" : v.LastOutcome == (int)RaidOutcome.Lost ? "lost (the core fell)" : "broke off");

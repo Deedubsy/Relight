@@ -94,12 +94,16 @@ namespace Relight.Sim
             FuelSecondsAt(ctx.Data, FuelUnits(st, machineId), GeneratorShareKw(ctx, st, machineId));
 
         /// <summary>How long one full fuel slot runs one generator flat out — the practical reserve the warning teaches.</summary>
-        public static double FullSlotSeconds(GameData d)
-        {
-            var kw = d != null && d.TryMachine("generator", out var s) && s.PowerKw < 0 ? -s.PowerKw
-                : d?.Power != null && d.Power.GeneratorKw > 0 ? d.Power.GeneratorKw : 300;
-            return FuelSecondsAt(d, MachineInventory.GeneratorFuelCap(d), kw);
-        }
+        public static double FullSlotSeconds(GameData d) =>
+            FuelSecondsAt(d, MachineInventory.GeneratorFuelCap(d), GeneratorKw(d));
+
+        /// <summary>
+        /// A Generator's full output in kW: the machine spec's supply, else the power tuning's, else 300. REL-10: the
+        /// one figure <see cref="FullSlotSeconds"/> and the opening's "at its full N kW" both read.
+        /// </summary>
+        public static double GeneratorKw(GameData d) =>
+            d != null && d.TryMachine("generator", out var s) && s.PowerKw < 0 ? -s.PowerKw
+            : d?.Power != null && d.Power.GeneratorKw > 0 ? d.Power.GeneratorKw : 300;
 
         /// <summary>
         /// A fuel time as the player reads it, deliberately coarse because it is an estimate: "under 10 s",

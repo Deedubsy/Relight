@@ -140,8 +140,7 @@ namespace Relight.UI
                 var status=ProductionQueries.Status(ctx,st,machine.Id);
                 blocked=!Interaction.InReach(ctx,st,machine);
                 verb=blocked?"Walk closer to interact":"["+Key("World/Equip","E")+"] Open / configure";
-                info=ProductionQueries.Description(ctx,st,machine.Id);
-                if(TurretHopper.IsTurret(ctx.Data,machine))info+=" · "+machine.Rounds+" rounds";
+                info=ProductionQueries.Description(ctx,st,machine.Id);   // REL-10: a turret's load is already in it
             }
             else if(DeathCache.OnTile(st,x,y) is DropCache pile)
             {

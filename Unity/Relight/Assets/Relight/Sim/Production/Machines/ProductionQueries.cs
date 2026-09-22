@@ -179,10 +179,12 @@ namespace Relight.Sim
                 }
                 // E-17 (U-D-61): the hover says what the world badge says. It says it even where the badge cannot:
                 // an unpowered turret's one badge is the bolt, and the hover still adds that it is empty.
+                // REL-10: a healthy turret shows its load too, from the one producer, so the world card no longer
+                // appends a second count of its own.
                 var ammo = TurretAmmo.State(ctx.Data, m);
                 if (ammo == TurretAmmoState.Dry) text += "\nOut of ammunition";
-                else if (ammo == TurretAmmoState.Low)
-                    text += $"\nLow on ammunition · {m.Rounds} / {TurretHopper.Capacity(ctx.Data, m)} rounds";
+                else if (ammo == TurretAmmoState.Low) text += "\nLow on ammunition · " + TurretHopper.RoundsText(ctx.Data, m);
+                else if (TurretHopper.IsTurret(ctx.Data, m)) text += "\nLoaded " + TurretHopper.RoundsText(ctx.Data, m);
             }
             // GP-W5: a damaged or destroyed machine says so here, with its price, for EVERY kind — a wrecked
             // conveyor is as repairable as a wrecked turret and the two read the same. The state word above is

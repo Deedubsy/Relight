@@ -193,8 +193,7 @@ namespace Relight.UI
                 ("Generators", n.Generators + " of " + n.RatedGenerators + " fuelled", n.Generators > 0),
                 ("Circuits", n.Circuits.ToString(), n.Circuits > 0)
             };
-            if (n.Generators > 0 && !double.IsPositiveInfinity(n.FuelSeconds))
-                rows.Add(("Fuel left (estimate)", _model.Power.FuelText + " at this load", !_model.FuelLow));
+            if (_model.FuelText.Length > 0) rows.Add(("Fuel left", _model.FuelText, !_model.FuelLow));   // REL-10
 
             return new TooltipContent
             {
