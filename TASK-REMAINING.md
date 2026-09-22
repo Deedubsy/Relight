@@ -678,6 +678,7 @@ Verified from the decision row and `GAME_DESIGN.md` §11.1: the campaign is comp
 - **Priority:** P3. **Class:** Defect (E-17 and GP-W6 overlap).
 - **Now:** the problems row says "2 × Gun turret: disabled (0 hp) — walk to it and repair it"; the defence row says "2 wrecks", and counts walls. `[CODE]` `[SEEN]`
 - **Canonical:** E-17, GP-W6. **Authorised?:** Needs go-ahead.
+- **Fixed 2026-09-23 (REL-53):** both rows already counted the same predicate (`TurretRules.Wrecked`, every machine kind), so the defect was the vocabulary, not the arithmetic. `ProductionQueries.StateText(Disabled)` now says “wrecked (0 hp)” — the word the world badge, repair card and raid account already use — and the defence sentence says “N structures wrecked”, so a wrecked wall is no longer read as a wrecked turret. U-D-61’s counting rule is unchanged. One new HUD view-model test covers a wrecked turret plus a wrecked wall. Evidence: `Unity/Docs/evidence/rel-53/`.
 
 #### AUD-UI-04 — Five PlayMode tests fail, unexplained
 - **Priority:** P1. A red baseline hides the next regression.

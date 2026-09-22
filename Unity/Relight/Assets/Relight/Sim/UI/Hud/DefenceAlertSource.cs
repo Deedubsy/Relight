@@ -25,7 +25,8 @@ namespace Relight.Sim.UI
     /// <list type="bullet">
     /// <item>RAISED when a turret at the place is dry, or is low while a raid is warned or under way
     ///       (<see cref="DirectorQueries.RaidExpected"/>). A low turret in peacetime is the world badge's job.</item>
-    /// <item>COUNTS the wrecks at the same place — every machine at 0 hit points, not only turrets.</item>
+    /// <item>COUNTS the wrecks at the same place — every machine at 0 hit points, not only turrets, which is why
+    ///       the sentence says "structures wrecked" and not "wrecks" (REL-53).</item>
     /// <item>CLEARS ITSELF once the turrets are reloaded and the wrecks repaired: a row that has been raised stays
     ///       while anything dry or wrecked is left at its place. Wrecks alone never raise one.</item>
     /// <item>SILENT for a turret that has never been loaded (<see cref="TurretAmmo.EverLoaded"/>), so nothing shows
@@ -144,7 +145,16 @@ namespace Relight.Sim.UI
         public static string NameAt(SimContext ctx, double cx, double cy, string fallback) =>
             Districts.NameAt(ctx, cx, cy) ?? (string.IsNullOrEmpty(fallback) ? "Home" : fallback);
 
-        /// <summary>"Ironworks: 3 turrets dry, 1 low, 5 wrecks" — only the parts that are not zero.</summary>
+        /// <summary>
+        /// "Ironworks: 3 turrets dry, 1 low, 5 structures wrecked" — only the parts that are not zero.
+        ///
+        /// REL-53 (UI-03): the wreck clause says WHAT it counts. U-D-61's rule is unchanged — this counts every
+        /// machine at 0 hit points at the place, walls and conveyors included, not only turrets — but beside
+        /// "3 turrets dry" the old "5 wrecks" read as five wrecked turrets, and the problem rows, which split by
+        /// kind, then looked as though they disagreed with it. "Structures" is the word the raid account already
+        /// uses for the same tally ("2 structures were wrecked"), and "wrecked" is now the one word for 0 hit
+        /// points on both rows.
+        /// </summary>
         private string Sentence(DefenceAlertRow r)
         {
             _sb.Clear();
@@ -159,7 +169,7 @@ namespace Relight.Sim.UI
             if (r.Wrecks > 0)
             {
                 if (parts > 0) _sb.Append(", ");
-                _sb.Append(r.Wrecks).Append(r.Wrecks == 1 ? " wreck" : " wrecks");
+                _sb.Append(r.Wrecks).Append(r.Wrecks == 1 ? " structure wrecked" : " structures wrecked");
             }
             return _sb.ToString();
         }

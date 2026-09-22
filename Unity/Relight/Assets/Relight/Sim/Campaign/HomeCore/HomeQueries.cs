@@ -62,7 +62,8 @@ namespace Relight.Sim
         /// WHY THIS EXISTS. The sim has always been able to repair a machine: <c>RepairCommand(Machine, id)</c>
         /// prices it, charges it and heals it. Nothing ever SHOWED it. The core had a workshop card quoting its
         /// price; a knocked-out turret — and, since GP-W5 gave every buildable machine an integrity row, a
-        /// knocked-out assembler, miner or conveyor — read "disabled (0 hp)" and stopped there, with no cost, no
+        /// knocked-out assembler, miner or conveyor — read "wrecked (0 hp)" (then "disabled (0 hp)", REL-53) and
+        /// stopped there, with no cost, no
         /// button and no statement that it could be brought back at all. A wreck that looks permanent is a wreck
         /// the player bulldozes and rebuilds from scratch, which is the expensive, wrong answer.
         ///

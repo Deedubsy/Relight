@@ -92,7 +92,7 @@ namespace Relight.Sim.Tests.Combat
 
         /// <summary>
         /// GP-W5. The player-facing half of "a wreck is repairable". The sim could always repair a machine; nothing
-        /// ever SHOWED it, so a flattened turret read "disabled (0 hp)" and looked permanent — and the cheapest
+        /// ever SHOWED it, so a flattened turret read "wrecked (0 hp)" and looked permanent — and the cheapest
         /// answer to something permanent is to bulldoze it and rebuild, which is the expensive, wrong one.
         ///
         /// The card is asserted as the PLAYER READS IT, one sentence at a time, because every number on it is a

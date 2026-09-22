@@ -219,7 +219,8 @@ namespace Relight.Sim.Tests.UI
             Assert.That(source.Refresh(ctx, st), Is.True);
             Assert.That(source.Rows[0].Wrecks, Is.EqualTo(expected));
             Assert.That(source.Rows[0].Dry, Is.EqualTo(1), "a wrecked turret is a wreck, not a dry turret");
-            Assert.That(source.Rows[0].Text, Is.EqualTo("Home: 1 turret dry, 2 wrecks"));
+            Assert.That(source.Rows[0].Text, Is.EqualTo("Home: 1 turret dry, 2 structures wrecked"),
+                "REL-53: the clause says what it counts — one of these two is a wall");
         }
 
         [Test]
@@ -246,7 +247,7 @@ namespace Relight.Sim.Tests.UI
 
             t.Rounds = 50;
             Assert.That(source.Refresh(ctx, st), Is.True, "reloaded, but the wreck still stands");
-            Assert.That(source.Rows[0].Text, Is.EqualTo("Home: 1 wreck"));
+            Assert.That(source.Rows[0].Text, Is.EqualTo("Home: 1 structure wrecked"));
 
             TurretRules.TurretRepairHook(ctx, st, wall.Id, TurretRules.MaxHp(ctx.Data, wall));
             Assert.That(source.Refresh(ctx, st), Is.False, "reloaded and repaired");

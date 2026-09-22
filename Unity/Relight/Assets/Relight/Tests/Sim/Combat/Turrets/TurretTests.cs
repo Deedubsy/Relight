@@ -121,7 +121,7 @@ namespace Relight.Sim.Tests.Combat
         // ---------------------------------------------------------------- damage and repair
 
         /// <summary>
-        /// A defence at 0 hp is out of action until it is repaired: it stops firing, reports "disabled (0 hp)" and
+        /// A defence at 0 hp is out of action until it is repaired: it stops firing, reports "wrecked (0 hp)" and
         /// comes back the moment W-A's repair command hands hit points back through <c>TurretRepairHook</c>.
         /// </summary>
         [Test]
@@ -136,7 +136,8 @@ namespace Relight.Sim.Tests.Combat
             TurretRules.Damage(ctx, st, t, max);
             Assert.That(TurretQueries.Disabled(ctx, st, t.Id), Is.True);
             Assert.That(ProductionQueries.OperatingState(ctx, st, t.Id), Is.EqualTo(MachineOperatingState.Disabled));
-            Assert.That(ProductionQueries.StateText(MachineOperatingState.Disabled), Is.EqualTo("disabled (0 hp)"));
+            Assert.That(ProductionQueries.StateText(MachineOperatingState.Disabled), Is.EqualTo("wrecked (0 hp)"),
+                "REL-53: one word for 0 hit points, the same one the defence row uses");
             Assert.That(RaidFixture.Last<StructureDamagedEvent>(st), Is.Not.Null);
 
             var before = t.Rounds;

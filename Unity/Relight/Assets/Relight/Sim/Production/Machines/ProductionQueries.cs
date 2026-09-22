@@ -71,7 +71,11 @@ namespace Relight.Sim
                 case MachineOperatingState.OutOfFuel: return "out of fuel";
                 case MachineOperatingState.OutputFull: return "output full";
                 case MachineOperatingState.NoInput: return "waiting for materials";
-                case MachineOperatingState.Disabled: return "disabled (0 hp)";
+                // REL-53 (UI-03): "wrecked", not "disabled". A machine at 0 hit points is a wreck everywhere else
+                // the game talks about it — the world badge, the raid account ("2 structures were wrecked"), the
+                // repair card — and this is the one vocabulary the HUD's problem rows print verbatim, so the second
+                // word had to go from here rather than be papered over in the HUD.
+                case MachineOperatingState.Disabled: return "wrecked (0 hp)";
                 default: return "idle";
             }
         }

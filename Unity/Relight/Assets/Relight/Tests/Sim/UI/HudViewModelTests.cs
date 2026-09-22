@@ -360,6 +360,52 @@ namespace Relight.Sim.Tests.UI
             Assert.That(p.Text, Does.Contain(HudViewModel.Remedy(p.State)));
         }
 
+        /// <summary>
+        /// REL-53 (UI-03): one machine at 0 hit points is never described with two different words in two rows,
+        /// and the two counts never disagree without saying why. A wrecked turret and a wrecked wall, with a dry
+        /// turret beside them to raise the defence row: the problem rows name the KIND, the defence row names the
+        /// PLACE and says it is counting structures, and both call 0 hit points "wrecked".
+        /// </summary>
+        [Test]
+        public void AWreckedTurretAndAWreckedWallReadTheSameWayInBothRows()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            HomeCore.Ensure(ctx, st);
+            var dry = RaidFixture.Turret(ctx, st, 40, 40, 0);
+            st.Turrets.Of(dry.Id).ShotT = 1;                      // it has fired, so its empty hopper counts
+            var gun = RaidFixture.Turret(ctx, st, 44, 40, 50);
+            var wall = RaidFixture.Add(ctx, st, "wall", 48, 40);
+            RaidFixture.Run(ctx, st, 2, new System.Collections.Generic.List<ITickPhase> { new PowerPhase() });
+            TurretRules.Damage(ctx, st, gun, TurretRules.MaxHp(ctx.Data, gun) + 1);
+            TurretRules.Damage(ctx, st, wall, TurretRules.MaxHp(ctx.Data, wall) + 1);
+
+            var vm = new HudViewModel();
+            vm.Refresh(ctx, st, 0, false, false, force: true);
+
+            var wrecked = 0;
+            for (var i = 0; i < vm.Problems.Count; i++)
+            {
+                Assert.That(vm.Problems[i].Text, Does.Not.Contain("disabled"),
+                    "the old second vocabulary is gone from every row, not only the wreck ones");
+                if (vm.Problems[i].State != MachineOperatingState.Disabled) continue;
+                wrecked += vm.Problems[i].Count;
+                Assert.That(vm.Problems[i].Text, Does.Contain("wrecked (0 hp)"));
+                Assert.That(vm.Problems[i].Text, Does.Contain("walk to it and repair it"));
+            }
+            Assert.That(wrecked, Is.EqualTo(2), "one turret and one wall, each on its own row because they differ in kind");
+            Assert.That(vm.Problems[0].State, Is.EqualTo(MachineOperatingState.Disabled), "a wreck ranks first");
+
+            var defence = new DefenceAlertSource();
+            Assert.That(defence.Refresh(ctx, st), Is.True);
+            Assert.That(defence.Rows.Count, Is.EqualTo(1), "one row per place, however many machines are down");
+            Assert.That(defence.Rows[0].Wrecks, Is.EqualTo(wrecked), "the same two machines, counted the same way");
+            Assert.That(defence.Rows[0].Text, Is.EqualTo("Home: 1 turret dry, 2 structures wrecked"));
+            Assert.That(defence.Rows[0].Text, Does.Contain("wrecked"), "the same word as the problem rows");
+            Assert.That(defence.Rows[0].Text, Does.Not.Contain("turrets wrecked"),
+                "it counts every structure at the place, and says so, so the wall is not read as a turret");
+        }
+
         [Test]
         public void ProblemsStopAtThree()
         {
