@@ -217,6 +217,59 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(RaidFixture.Count<TurretBlindEvent>(st), Is.EqualTo(1));
         }
 
+        /// <summary>
+        /// REL-14 (INT-10). The gap the audit named: a turret firing at the thing in front of it while something it
+        /// cannot see shells it from the dark. The biter at 4 tiles is inside dark sight, so the gun holds it as a
+        /// target and keeps shooting; the Spitter at 7 is unlit and beyond dark sight, so a lamp on ITS ground is
+        /// still the answer, and the badge and the guide line must both say so. It used to be silent here.
+        /// </summary>
+        [Test]
+        public void ATurretFiringAtOneAlienIsStillBlindToTheOneShellingItFromTheDark()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            var t = RaidFixture.Turret(ctx, st, 40, 40);
+            RaidFixture.Guard(st, "biter", 45.0, 41.0);              // 4 out, unlit: inside dark sight, so a real target
+            RaidFixture.Guard(st, "spitter", 48.0, 41.0);            // 7 out, unlit: beyond dark sight, unanswerable
+
+            for (var i = 0; i < 40; i++)
+            {
+                TurretRules.Damage(ctx, st, t, 1);
+                RaidFixture.Run(ctx, st, 1, Phases());
+            }
+
+            Assert.That(st.Turrets.Of(t.Id).Target, Is.Not.Zero, "the near biter is in reach even unlit");
+            Assert.That(Shots(st), Is.GreaterThan(0), "and the gun is firing at it");
+            Assert.That(TurretQueries.Blind(ctx, st, t.Id), Is.True, "REL-14: having a target is no reason to stay quiet");
+            Assert.That(RaidFixture.Count<TurretBlindEvent>(st), Is.EqualTo(1));
+            Assert.That(TurretQueries.BlindNow(st, t.Id), Is.True, "the tick latched the same answer the badge reads");
+        }
+
+        /// <summary>
+        /// REL-14: the badge reads <see cref="TurretQueries.BlindNow"/>, the latch the tick wrote, so it can never
+        /// disagree with the guide line the same tick's event raised.
+        /// </summary>
+        [Test]
+        public void TheLatchedAnswerFollowsTheQueryTickByTick()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            var t = RaidFixture.Turret(ctx, st, 40, 40);
+            RaidFixture.Guard(st, "spitter", 48.0, 41.0);
+            RaidFixture.Run(ctx, st, 5, Phases());
+            Assert.That(TurretQueries.BlindNow(st, t.Id), Is.False, "nothing has hit it yet");
+
+            for (var i = 0; i < 40; i++)
+            {
+                TurretRules.Damage(ctx, st, t, 1);
+                RaidFixture.Run(ctx, st, 1, Phases());
+            }
+            Assert.That(TurretQueries.BlindNow(st, t.Id), Is.True);
+
+            RaidFixture.Run(ctx, st, (int)(TurretQueries.BlindSeconds / RaidFixture.Dt) + 2, Phases());
+            Assert.That(TurretQueries.BlindNow(st, t.Id), Is.False, "the hits stopped, and the latch let go");
+        }
+
         [Test]
         public void ATurretHitWithNoAlienInTheDarkIsNotCalledBlind()
         {

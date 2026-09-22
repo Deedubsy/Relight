@@ -102,7 +102,9 @@ namespace Relight.Presentation
                 { var dry=Red;dry.a=pulse;AmmoBadge(at,dry,false); }
                 // L-02 (ALWAYS_DARK_SPEC §5.7): a turret being hit by something it cannot see into the dark. An eye
                 // with a slash, in the sim's own words (TurretQueries.Blind, which is never true without power).
-                else if(turret && TurretQueries.Blind(ctx,st,m.Id))
+                // REL-14: read the tick's latched answer, not the query. The query sweeps every body and casts a
+                // sightline; this ran it per turret per frame, and the sim had already worked it out that tick.
+                else if(turret && TurretQueries.BlindNow(st,m.Id))
                 {
                     var eye=Red;eye.a=pulse;
                     var lid=Stroke(9,.04f,eye);

@@ -344,6 +344,7 @@ Required work is D1 to D10. Optional work is D11.
 - **Accept when:** tests for "blind while firing" and "all turrets wrecked".
 - **Canonical:** L-02, E-17.
 - **Authorised?:** Needs go-ahead.
+- **Fixed 2026-09-23 (REL-14):** all three parts held on inspection. The `Target == 0` early-out is gone, so a turret firing at one alien is still blind to the one shelling it from the dark. A wrecked turret now raises its place's defence row (`DefenceAlertRow.TurretWrecks`), recorded as **U-D-70**, which narrows one clause of U-D-61; a wrecked wall or belt alone still raises nothing. The badge reads `TurretQueries.BlindNow`, the answer `TurretPhase` already latched that tick — 24 µs per frame before, below measurement resolution after, for 12 turrets under fire with 60 bodies. Four new tests. [Evidence](Unity/Docs/evidence/rel-14/README.md).
 
 #### AUD-INT-11 — A turret inside the workshop walls never fires
 - **Priority:** P2. Legal, silent and fatal, and it has been open since 2026-09-14.

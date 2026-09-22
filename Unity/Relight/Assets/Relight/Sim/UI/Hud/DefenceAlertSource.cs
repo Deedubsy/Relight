@@ -13,6 +13,11 @@ namespace Relight.Sim.UI
         public int Dry;
         public int Low;
         public int Wrecks;
+        /// <summary>
+        /// How many of <see cref="Wrecks"/> are turrets (REL-14). The sentence still counts every structure; this is
+        /// only what decides whether the place is worth raising at all.
+        /// </summary>
+        public int TurretWrecks;
         /// <summary>True while a raid is warned or under way: the row is danger, not a chore.</summary>
         public bool Urgent;
         public string Text;
@@ -23,12 +28,14 @@ namespace Relight.Sim.UI
     /// <see cref="PowerAlertSource"/> (UI_AND_ONBOARDING.md §9 defect U-3: one producer, never two). One row per
     /// place, never one per gun:
     /// <list type="bullet">
-    /// <item>RAISED when a turret at the place is dry, or is low while a raid is warned or under way
-    ///       (<see cref="DirectorQueries.RaidExpected"/>). A low turret in peacetime is the world badge's job.</item>
+    /// <item>RAISED when a turret at the place is dry, or is WRECKED (REL-14, U-D-70), or is low while a raid is
+    ///       warned or under way (<see cref="DirectorQueries.RaidExpected"/>). A low turret in peacetime is the
+    ///       world badge's job.</item>
     /// <item>COUNTS the wrecks at the same place — every machine at 0 hit points, not only turrets, which is why
-    ///       the sentence says "structures wrecked" and not "wrecks" (REL-53).</item>
+    ///       the sentence says "structures wrecked" and not "wrecks" (REL-53). Only the turrets among them raise
+    ///       the row: a wrecked conveyor is counted once the place is already speaking, and never rings by itself.</item>
     /// <item>CLEARS ITSELF once the turrets are reloaded and the wrecks repaired: a row that has been raised stays
-    ///       while anything dry or wrecked is left at its place. Wrecks alone never raise one.</item>
+    ///       while anything dry or wrecked is left at its place.</item>
     /// <item>SILENT for a turret that has never been loaded (<see cref="TurretAmmo.EverLoaded"/>), so nothing shows
     ///       at game start or for a turret the player has just put down. An unsupplied turret is the power
     ///       alert's business and is not counted here: unpowered reads first.</item>
@@ -38,8 +45,9 @@ namespace Relight.Sim.UI
     /// with no substation sites. It is shown under the name of the label nearest that substation
     /// (<see cref="PlaceOf"/>).
     ///
-    /// "Raised" is remembered here, not in the save. After a load a dry turret raises its row again at once; a
-    /// place left with wrecks only comes back silent, and its wrecks still carry their world badges.
+    /// "Raised" is remembered here, not in the save. After a load a dry turret raises its row again at once, and so
+    /// does a wrecked one; a place left with nothing but wrecked walls and belts comes back silent, and those wrecks
+    /// still carry their world badges.
     /// </summary>
     public sealed class DefenceAlertSource
     {
@@ -81,7 +89,7 @@ namespace Relight.Sim.UI
                 if (!wreck && ammo == TurretAmmoState.Ok) continue;
 
                 var row = RowFor(PlaceOf(ctx, m));
-                if (wreck) row.Wrecks++;
+                if (wreck) { row.Wrecks++; if (TurretHopper.IsTurret(d, m)) row.TurretWrecks++; }
                 else if (ammo == TurretAmmoState.Dry) row.Dry++;
                 else row.Low++;
             }
@@ -89,7 +97,11 @@ namespace Relight.Sim.UI
             for (var i = 0; i < _scratch.Count; i++)
             {
                 var row = _scratch[i];
-                var raise = row.Dry > 0 || (raid && row.Low > 0);
+                // REL-14 (INT-10): a WRECKED TURRET raises the place too. Before this, a place could only be reported
+                // once something there had run dry, so the worst case of all — every gun at the site knocked down in
+                // one raid, none of them having run out first — was the one case that said nothing. Other wrecks are
+                // still only counted: a broken conveyor is not a defence emergency and must not ring like one.
+                var raise = row.Dry > 0 || row.TurretWrecks > 0 || (raid && row.Low > 0);
                 if (raise) _raised.Add(row.Place);
                 var stands = raise || (_raised.Contains(row.Place) && row.Wrecks > 0);
                 if (!stands) continue;

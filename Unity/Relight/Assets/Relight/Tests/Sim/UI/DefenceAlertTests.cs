@@ -224,13 +224,63 @@ namespace Relight.Sim.Tests.UI
         }
 
         [Test]
-        public void WrecksAloneNeverRaiseARow()
+        public void AWreckedWallOrBeltAloneNeverRaisesARow()
         {
             var ctx = RaidFixture.Context();
             var st = RaidFixture.State(ctx);
             var wall = RaidFixture.Add(ctx, st, "wall", 60, 40);
             Wreck(ctx, st, wall);
             Assert.That(new DefenceAlertSource().Refresh(ctx, st), Is.False);
+        }
+
+        /// <summary>
+        /// REL-14 (INT-10), U-D-70. The worst case of all used to be the quiet one: every gun at a place knocked
+        /// down in a single raid, none of them having run dry first, so nothing was ever dry and no row was ever
+        /// raised. A wrecked TURRET now raises its place on its own.
+        /// </summary>
+        [Test]
+        public void APlaceWhoseTurretsAreAllWreckedIsReported()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            var a = Gun(ctx, st, 40, 40, 50);
+            var b = Gun(ctx, st, 50, 40, 50);
+            Settle(ctx, st);
+            var source = new DefenceAlertSource();
+            Assert.That(source.Refresh(ctx, st), Is.False, "two loaded guns, nothing wrong");
+
+            Wreck(ctx, st, a);
+            Wreck(ctx, st, b);
+            Assert.That(source.Refresh(ctx, st), Is.True, "both guns down and neither ever ran dry");
+            Assert.That(source.Rows.Count, Is.EqualTo(1));
+            Assert.That(source.Rows[0].Dry, Is.Zero, "a wrecked turret is a wreck, not a dry turret");
+            Assert.That(source.Rows[0].Wrecks, Is.EqualTo(2));
+            Assert.That(source.Rows[0].Text, Is.EqualTo("Home: 2 structures wrecked"));
+
+            TurretRules.TurretRepairHook(ctx, st, a.Id, TurretRules.MaxHp(ctx.Data, a));
+            TurretRules.TurretRepairHook(ctx, st, b.Id, TurretRules.MaxHp(ctx.Data, b));
+            Assert.That(source.Refresh(ctx, st), Is.False, "repaired, and the row clears itself as before");
+        }
+
+        /// <summary>
+        /// The other half of U-D-70: a wrecked turret raises the place, and the wrecked belt beside it is counted
+        /// in the same sentence — but the belt alone could not have raised it.
+        /// </summary>
+        [Test]
+        public void ANonTurretWreckIsCountedOnceTheTurretHasRaisedThePlace()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            var gun = Gun(ctx, st, 40, 40, 50);
+            var wall = RaidFixture.Add(ctx, st, "wall", 60, 40);
+            Settle(ctx, st);
+            Wreck(ctx, st, wall);
+            var source = new DefenceAlertSource();
+            Assert.That(source.Refresh(ctx, st), Is.False, "the wall alone says nothing");
+
+            Wreck(ctx, st, gun);
+            Assert.That(source.Refresh(ctx, st), Is.True);
+            Assert.That(source.Rows[0].Text, Is.EqualTo("Home: 2 structures wrecked"));
         }
 
         [Test]

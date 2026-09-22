@@ -112,10 +112,16 @@ namespace Relight.Sim
 
         /// <summary>
         /// L-02, ALWAYS_DARK_SPEC §5.7: this turret is being damaged by something it cannot target BECAUSE OF THE
-        /// DARK. All of: it is a working weapon; it was hit in the last <see cref="BlindSeconds"/>; it has no target;
-        /// and an alien stands within its full range on an unlit tile beyond its dark sight — so a lamp on that
-        /// ground is the answer. A turret blinded by a wall, out of range of its attacker or simply out of ammunition
-        /// is not this, and the eye-with-a-slash badge must not claim otherwise.
+        /// DARK. All of: it is a working weapon; it was hit in the last <see cref="BlindSeconds"/>; and an alien
+        /// stands within its full range on an unlit tile beyond its dark sight — so a lamp on that ground is the
+        /// answer. A turret blinded by a wall, out of range of its attacker or simply out of ammunition is not this,
+        /// and the eye-with-a-slash badge must not claim otherwise.
+        ///
+        /// REL-14 (INT-10): having a target is NOT a reason to stay quiet. A gun firing at the skitter in front of it
+        /// while a Spitter shells it from the unlit street is the exact case the guide line teaches — "light the
+        /// ground it guards" — and it used to be the one case the badge refused to show. The sweep below can never
+        /// name the current target: <see cref="TurretRules.Reach"/> only reaches an unlit body inside dark sight, and
+        /// every body it considers here is unlit and beyond it.
         /// </summary>
         public static bool Blind(SimContext ctx, SimState st, int id)
         {
@@ -123,7 +129,7 @@ namespace Relight.Sim
             var m = st.MachineById(id);
             if (m == null || !ctx.Data.TryTurret(m.Kind, out var def)) return false;
             var u = st.Turrets.Find(id);
-            if (u == null || u.Target != 0 || st.T - u.HitAt > BlindSeconds) return false;
+            if (u == null || st.T - u.HitAt > BlindSeconds) return false;
             if (TurretRules.Hp(ctx.Data, st, m) <= 0) return false;
             if (def.PowerKw > 0 && !PowerQueries.Supplied(ctx, st, m.Id)) return false;   // unpowered reads first
             if (m.Rounds < 1) return false;                                                // a lamp would not make it fire
@@ -144,6 +150,18 @@ namespace Relight.Sim
             }
             return false;
         }
+
+        /// <summary>
+        /// REL-14 (INT-10): the answer <see cref="Blind"/> gave on the last tick, latched by <see cref="TurretPhase"/>.
+        /// This is what a presenter asks. <see cref="Blind"/> itself sweeps every body on the map and casts a
+        /// sightline at each candidate — a tick's work, not a frame's, and the world drew every turret's badge with
+        /// it. The sim already computes it once per tick for <see cref="TurretBlindEvent"/>, so reading the latch
+        /// also means the badge and the guide line can never disagree about the same turret.
+        ///
+        /// Not saved (<see cref="TurretUnit.Blind"/> is not visited), so a freshly loaded game shows no eye until the
+        /// first tick, and a paused game holds the answer it was paused with.
+        /// </summary>
+        public static bool BlindNow(SimState st, int id) => st?.Turrets.Find(id)?.Blind ?? false;
 
         /// <summary>Every turret on the map, in placement order, for the presenter's index.</summary>
         public static System.Collections.Generic.List<int> All(SimContext ctx, SimState st)
