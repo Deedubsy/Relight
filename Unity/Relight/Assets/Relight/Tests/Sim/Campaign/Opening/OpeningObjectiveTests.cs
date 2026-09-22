@@ -341,6 +341,76 @@ namespace Relight.Sim.Tests.Campaign
                     Assert.That(((string)f.GetValue(null)).ToLowerInvariant(), Does.Not.Contain("bullet"), f.Name);
         }
 
+        // ------------------------------------------------------------------ REL-19 (OPN-01): the last objective
+
+        /// <summary>
+        /// REL-19's acceptance: "no objective text names a feature that does not exist; a test scans objective text
+        /// for a deny-list ("Projects", "destinations", "restoration") until those exist." When one of them is
+        /// built, its word leaves this list in the same change.
+        /// </summary>
+        [Test]
+        public void NoObjectiveNamesAFeatureThatIsNotInTheBuild()
+        {
+            var seen = new List<string>();
+            foreach (var t in Sweep(seen)) { }
+            Assert.That(seen.Exists(s => s == OpeningQueries.TerminalText), Is.True, "the sweep reaches the last row");
+
+            var missing = new[] { "projects", "destination", "restoration" };
+            foreach (var s in seen)
+            {
+                if (string.IsNullOrEmpty(s)) continue;
+                var lower = s.ToLowerInvariant();
+                foreach (var word in missing)
+                    Assert.That(lower.IndexOf(word, System.StringComparison.Ordinal), Is.EqualTo(-1),
+                        "REL-19: \"" + word + "\" is not in the build — offending string: " + s);
+            }
+        }
+
+        /// <summary>
+        /// The owner's row for REL-19 (tracker F-05, plateau part): "a save at the last objective shows the terminal
+        /// message and reloads cleanly; no objective dangles". The last row asks for nothing it could wait on — no
+        /// marker, no materials — says the guide ends, and is the same row after a save and load.
+        /// </summary>
+        [Test]
+        public void TheLastObjectiveEndsTheGuideAndSurvivesASaveAndLoad()
+        {
+            var ctx = OpeningFixture.Context();
+            var st = OpeningFixture.State(ctx);
+            OpeningFixture.ToRifle(ctx, st);
+            st.Weapons.Slot0 = st.Weapons.Owned[0].Id;
+            OpeningFixture.ReadyTurret(ctx, st);
+            RaidFixture.Turret(ctx, st, RaidFixture.CoreX - 6, RaidFixture.CoreY);
+            RaidFixture.Turret(ctx, st, RaidFixture.CoreX, RaidFixture.CoreY + 6);
+            st.Opening.Status = OpeningStatus.Repelled;
+            st.Opening.EndedAt = -1;
+            st.Opening.SuppliedAt = st.T;
+            st.T += 1000;
+            st.Engineer.Inv[ItemId.Magazine] += 8;
+            OpeningFixture.Run(ctx, st, 1);
+
+            var last = OpeningQueries.Objective(ctx, st);
+            Assert.That(last.Title, Is.EqualTo("Keep your workshop producing"));
+            Assert.That(last.Text, Is.EqualTo(OpeningQueries.TerminalText));
+            Assert.That(last.Detail, Does.StartWith("The guided opening ends here."));
+            Assert.That(last.HasLocation, Is.False, "nothing to walk to that the guide could wait on");
+            Assert.That(last.Materials, Is.Empty, "nothing to gather that the guide could wait on");
+            foreach (var claim in new[] { "complete", "victory", "you win", "is won" })
+                Assert.That((last.Title + " " + last.Text + " " + last.Detail).ToLowerInvariant()
+                    .IndexOf(claim, System.StringComparison.Ordinal), Is.EqualTo(-1),
+                    "F-05: the port never marks the game complete — \"" + claim + "\"");
+
+            var loaded = OpeningFixture.RoundTrip(ctx, st);
+            var again = OpeningQueries.Objective(ctx, loaded);
+            Assert.That(again.Id, Is.EqualTo(last.Id));
+            Assert.That(again.Title, Is.EqualTo(last.Title));
+            Assert.That(again.Text, Is.EqualTo(last.Text));
+            Assert.That(again.Detail, Is.EqualTo(last.Detail));
+
+            OpeningFixture.Run(ctx, loaded, 1);
+            Assert.That(OpeningQueries.Objective(ctx, loaded).Text, Is.EqualTo(OpeningQueries.TerminalText),
+                "and it stays the last row once the loaded game runs");
+        }
+
         [Test]
         public void TheSweepReachesTheAmmunitionRowsThatUsedToSayMagazine()
         {

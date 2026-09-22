@@ -611,9 +611,12 @@ namespace Relight.Sim
                     "Your turrets are supplied and your Rifle is ready. Check turret ammunition and generator fuel before "
                     + "leaving; the reserve is finite. The nearest freight camp is a short trip from Home.", home);
 
-            return new ObjectiveView("opening-workshop", "Keep your workshop producing",
-                "Explore and connect your known destinations",
-                "Your existing production is running. Use Projects for restoration and service details.",
+            // REL-19 (OPN-01): the terminal row. It used to send the player to "known destinations" and a Projects
+            // panel for "restoration", none of which is in the build. It now names only what is: raids keep coming
+            // while the core stands (DirectorPhase.Schedule), powered lamps light the ground (LightSources), and the
+            // freight camps are on the map (SiteKind.Camp). It says the guide ends here and never that the game is
+            // won (tracker row F-05). When later objectives exist this message moves to the last of them.
+            return new ObjectiveView("opening-workshop", "Keep your workshop producing", TerminalText, TerminalDetail,
                 false, Vec2.Zero, NoMaterials);
         }
 
@@ -625,6 +628,14 @@ namespace Relight.Sim
         /// unreachable; the index shifts by one to match.
         /// </summary>
         private static readonly string[] Words = { "one", "two", "three" };
+
+        /// <summary>REL-19: the terminal row's instruction, the next things the build really offers.</summary>
+        public const string TerminalText = "Hold Home, light more ground and scout the freight camps";
+
+        /// <summary>REL-19: the terminal row's detail. It ends the guide without calling the game finished.</summary>
+        public const string TerminalDetail = "The guided opening ends here. Attacks keep coming, so keep your turrets "
+            + "supplied with rounds and your Generator fuelled. Powered lamps light the ground around them. The freight "
+            + "camps lie beyond Home; carry rounds when you go.";
 
         /// <summary>Reference goal.ts:157: eight rounds before the first camp is worth walking to.</summary>
         private const int ScoutBullets = 8;

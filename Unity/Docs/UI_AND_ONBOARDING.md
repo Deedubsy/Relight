@@ -996,6 +996,8 @@ The chain then hands off to the freight-camp / plant / core steps sourced from `
 
 > **Keep your workshop producing** — "Explore and connect your known destinations." / "Your existing production is running. Use Projects for restoration and service details."
 
+**Unity port, 2026-09-22 (REL-19, OPN-01; rewording only):** the reference's terminal text above names destinations, a Projects panel and restoration, none of which the port has. The port keeps the title and says instead: "Hold Home, light more ground and scout the freight camps" / "The guided opening ends here. Attacks keep coming, so keep your turrets supplied with rounds and your Generator fuelled. Powered lamps light the ground around them. The freight camps lie beyond Home; carry rounds when you go." (`OpeningQueries.TerminalText` / `TerminalDetail`). A sim test rejects "Projects", "destinations" and "restoration" in any objective until those exist. The proper replacement, the first expedition objective, waits on the owner's word on GP-W7.
+
 ### 7.8 Recovery paths and progressed saves
 
 - `initOpeningEncounter` marks progressed saves **`'skipped'`**. Its comment: "*Fresh campaigns wait for the first full turret; progressed saves never receive a beginner attack.*" This case is correct and stays (**IR**) — it is the *only* one that should permanently skip; see §7.0-a for the case that should not.
