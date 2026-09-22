@@ -29,9 +29,9 @@ namespace Relight.Sim
         public void Tick(SimContext ctx, SimState st, double dt)
         {
             // The ballistics seam is never saved: re-point it every tick so a load, a restart and a fresh game all
-            // reach the same bodies (Wave 1 integration note).
-            if (st.Enemies.Seam == null) st.Enemies.Seam = new EnemyTargets(st);
-            st.Weapons.Targets = st.Enemies.Seam;
+            // reach the same bodies (Wave 1 integration note). Simulation.Wrap points it too, because this phase runs
+            // after the weapons and a loaded game would otherwise shoot through everything for one tick (REL-62).
+            EnemyTargets.Point(st);
 
             if (st.Admin.FreezeEnemies)
             {

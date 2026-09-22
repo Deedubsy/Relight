@@ -25,13 +25,12 @@ namespace Relight.Sim
         }
     }
 
-    /// <summary>Re-points the transient ballistics seam after a new game or a load.</summary>
+    /// <summary>
+    /// Re-points the transient ballistics seam after a new game. A LOAD runs no initialisers, which is why
+    /// <see cref="Simulation.Wrap"/> points it as well (REL-62).
+    /// </summary>
     public sealed class EnemyInitializer : IStateInitializer
     {
-        public void Init(SimContext ctx, SimState st)
-        {
-            st.Enemies.Seam = new EnemyTargets(st);
-            st.Weapons.Targets = st.Enemies.Seam;
-        }
+        public void Init(SimContext ctx, SimState st) => EnemyTargets.Point(st);
     }
 }

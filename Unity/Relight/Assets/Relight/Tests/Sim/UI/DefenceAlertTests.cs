@@ -305,5 +305,58 @@ namespace Relight.Sim.Tests.UI
             Wreck(ctx, st, wall);
             Assert.That(source.Refresh(ctx, st), Is.False, "a cleared row is not brought back by a wreck alone");
         }
+
+        /// <summary>
+        /// REL-62 (PER-02). "Raised" lives in the session, not the save. A place whose turret has been reloaded and
+        /// whose damage left is a wrecked wall was reported before the player quit and came back SILENT, because the
+        /// dry turret that raised it was dealt with hours ago. The first refresh after a load re-derives the row.
+        /// </summary>
+        [Test]
+        public void AStandingWreckRowIsBackOnTheFirstRefreshAfterALoad()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            var t = Gun(ctx, st, 40, 40, 0);
+            var wall = RaidFixture.Add(ctx, st, "wall", 60, 40);
+            Settle(ctx, st);
+            Wreck(ctx, st, wall);
+            var before = new DefenceAlertSource();
+            Assert.That(before.Refresh(ctx, st), Is.True, "a dry turret, and a wrecked wall at the same place");
+            t.Rounds = 50;
+            Assert.That(before.Refresh(ctx, st), Is.True, "reloaded, and the wreck still stands");
+            Assert.That(before.Rows[0].Text, Is.EqualTo("Home: 1 structure wrecked"));
+
+            var doc = SaveSerializer.WriteText(st, ctx.Data);
+            var read = SaveSerializer.ReadText(doc, ctx.Data);
+            Assert.That(read.Ok, Is.True, read.Reason);
+            var loaded = Simulation.Wrap(ctx, read.State).State;
+
+            var after = new DefenceAlertSource();
+            Assert.That(after.Refresh(ctx, loaded), Is.True, "the row the player quit with is still there");
+            Assert.That(after.Rows[0].Text, Is.EqualTo("Home: 1 structure wrecked"));
+
+            // Once, and only once: from here the session rule is the one it always was.
+            TurretRules.TurretRepairHook(ctx, loaded, wall.Id, TurretRules.MaxHp(ctx.Data, wall));
+            Assert.That(after.Refresh(ctx, loaded), Is.False, "repaired, and the row clears itself");
+            Wreck(ctx, loaded, loaded.MachineById(wall.Id));
+            Assert.That(after.Refresh(ctx, loaded), Is.False, "a cleared row is not brought back by a wreck alone");
+        }
+
+        /// <summary>
+        /// The other side of the same rule: a NEW game seeds nothing. Only a resumed state carries
+        /// <see cref="SimState.Resumed"/>, so a wrecked wall in a game being played still says nothing by itself.
+        /// </summary>
+        [Test]
+        public void AWreckedWallInAGameThatWasNeverLoadedStillSaysNothing()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            Gun(ctx, st, 40, 40, 50);
+            var wall = RaidFixture.Add(ctx, st, "wall", 60, 40);
+            Settle(ctx, st);
+            Wreck(ctx, st, wall);
+            Assert.That(st.Resumed, Is.False, "this state was built, not loaded");
+            Assert.That(new DefenceAlertSource().Refresh(ctx, st), Is.False);
+        }
     }
 }

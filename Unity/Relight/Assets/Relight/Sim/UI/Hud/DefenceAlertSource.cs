@@ -46,8 +46,16 @@ namespace Relight.Sim.UI
     /// (<see cref="PlaceOf"/>).
     ///
     /// "Raised" is remembered here, not in the save. After a load a dry turret raises its row again at once, and so
-    /// does a wrecked one; a place left with nothing but wrecked walls and belts comes back silent, and those wrecks
-    /// still carry their world badges.
+    /// does a wrecked one.
+    ///
+    /// REL-62 (PER-02): a place left with nothing but wrecked walls and belts was the one row that could NOT
+    /// re-derive itself, because whatever raised it — the dry or wrecked turret — had since been dealt with. On the
+    /// first refresh after a LOAD (<see cref="SimState.Resumed"/>) the places that carry a wreck are seeded as
+    /// raised, so a standing "3 structures wrecked" survives the load instead of waiting for the next thing to break.
+    /// It runs once and only for a resumed game: within a session, and for a new game, the rule is exactly as before
+    /// — a wrecked wall never raises a row by itself, and a row the player has cleared is not brought back by one.
+    /// The price is the honest half of "re-derived from the world": a place whose wall was wrecked while its row had
+    /// never been raised does speak after the load. Nothing is added to the save; the schema stays at 9 by design.
     /// </summary>
     public sealed class DefenceAlertSource
     {
@@ -60,18 +68,21 @@ namespace Relight.Sim.UI
         private readonly List<DefenceAlertRow> _scratch = new List<DefenceAlertRow>();
         private readonly HashSet<string> _raised = new HashSet<string>(StringComparer.Ordinal);
         private readonly StringBuilder _sb = new StringBuilder(64);
+        /// <summary>False until the first refresh against a real world has seeded <see cref="_raised"/> (REL-62).</summary>
+        private bool _seeded;
 
         /// <summary>The rows that stand now, in place-name order. Re-used between calls.</summary>
         public IReadOnlyList<DefenceAlertRow> Rows => _rows;
 
-        /// <summary>Forget what was raised (a new session).</summary>
-        public void Reset() { _rows.Clear(); _raised.Clear(); }
+        /// <summary>Forget what was raised (a new session). The next refresh seeds again, as a fresh source does.</summary>
+        public void Reset() { _rows.Clear(); _raised.Clear(); _seeded = false; }
 
         /// <summary>Recount every place. Returns true while any row stands.</summary>
         public bool Refresh(SimContext ctx, SimState st)
         {
             _rows.Clear();
-            if (ctx == null || st == null) { _raised.Clear(); return false; }
+            // No world yet is not a first refresh: the seeding waits for the one that has something to read.
+            if (ctx == null || st == null) { _raised.Clear(); _seeded = false; return false; }
 
             var d = ctx.Data;
             var raid = DirectorQueries.RaidExpected(st);
@@ -92,6 +103,20 @@ namespace Relight.Sim.UI
                 if (wreck) { row.Wrecks++; if (TurretHopper.IsTurret(d, m)) row.TurretWrecks++; }
                 else if (ammo == TurretAmmoState.Dry) row.Dry++;
                 else row.Low++;
+            }
+
+            // REL-62 (PER-02): the FIRST refresh after a LOAD re-derives what was standing when the game was saved.
+            // "Raised" is session memory, so a load starts with none of it, and a place whose turrets have all been
+            // reloaded and whose only damage left is a wrecked wall had nothing to raise it a second time: the row the
+            // player saved with simply vanished. Seeding once from the wrecks brings it back and changes nothing
+            // afterwards. A NEW GAME seeds nothing — Simulation.Wrap raises Resumed, Simulation.NewGame does not — so
+            // U-D-61's rule that a wrecked wall never raises a row by itself is untouched for a game being played.
+            if (!_seeded)
+            {
+                _seeded = true;
+                if (st.Resumed)
+                    for (var i = 0; i < _scratch.Count; i++)
+                        if (_scratch[i].Wrecks > 0) _raised.Add(_scratch[i].Place);
             }
 
             for (var i = 0; i < _scratch.Count; i++)

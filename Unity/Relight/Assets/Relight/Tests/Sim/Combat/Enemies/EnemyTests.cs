@@ -183,6 +183,41 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(loaded.Weapons.Targets.Count, Is.EqualTo(1));
         }
 
+        /// <summary>
+        /// REL-62 (ENM-07). A bolt already in the air when the player saved must hit the body on the FIRST tick after
+        /// the load — and this test never points the seam by hand, which is the whole point of it. The seam is
+        /// transient, a load runs no initialisers, and the weapon phase runs BEFORE the enemy phase that re-points
+        /// it, so for one tick the player's own shots looked out at nothing and passed through every body on the map.
+        /// </summary>
+        [Test]
+        public void ALoadedGameHitsBodiesOnItsFirstTick()
+        {
+            var ctx = RaidFixture.Context();
+            var st = RaidFixture.State(ctx);
+            var e = RaidFixture.Guard(st, "spitter", 84.5, 76.5, hp: 50);
+            Assert.That(ctx.Data.TryWeapon("plasma", out var bolt), Is.True);
+            st.Engineer.Pos = new Vec2(84.0, 76.5);
+            Ballistics.Fire(ctx, st, bolt, 84.5, 76.5);      // half a tile short of the body: one tick's travel
+            Assert.That(st.Weapons.Projectiles.Count, Is.EqualTo(1), "a bolt is in the air when the game is saved");
+
+            var doc = SaveSerializer.WriteText(st, ctx.Data);
+            var read = SaveSerializer.ReadText(doc, ctx.Data);
+            Assert.That(read.Ok, Is.True, read.Reason);
+            Assert.That(read.State.Weapons.Targets, Is.Null, "the seam is never saved");
+
+            var loaded = Simulation.Wrap(ctx, read.State).State;     // exactly what loading a game does
+            Assert.That(loaded.Weapons.Targets, Is.Not.Null, "and the load points it before any tick runs");
+
+            // The real tick order: Weapons first, the phase that re-points the seam third.
+            RaidFixture.Run(ctx, loaded, 1, new List<ITickPhase>
+            {
+                new WeaponPhase(), new TurretPhase(), new EnemyPhase(), new DirectorPhase(),
+            });
+            var body = loaded.Enemies.Find(e.Id);
+            Assert.That(body, Is.Not.Null, "50 hit points, and the bolt does 25");
+            Assert.That(body.Hp, Is.LessThan(50), "the bolt in the air hit it on the first tick after the load");
+        }
+
         /// <summary>The player's rifle reaches bodies through the same seam the turret phase re-points every tick.</summary>
         [Test]
         public void ThePlayerProjectileSeamSeesTheBodies()

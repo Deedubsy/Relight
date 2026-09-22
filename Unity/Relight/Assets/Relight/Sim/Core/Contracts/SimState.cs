@@ -30,6 +30,16 @@ namespace Relight.Sim
         /// <summary>Events of the current tick; drained by the host each frame; never saved.</summary>
         public readonly List<SimEvent> Events = new List<SimEvent>();
 
+        /// <summary>
+        /// True when this state was ATTACHED from a save rather than started fresh — <see cref="Simulation.Wrap"/>
+        /// sets it, <see cref="Simulation.NewGame"/> leaves it false (REL-62). Transient by construction: it is not
+        /// in <see cref="Visit"/>, so it is in neither the save nor the hash, and it says nothing about the world.
+        /// It exists for the things that live in the SESSION and not in the save — a HUD row that was standing when
+        /// the player quit — so they can re-derive themselves once, on the first refresh after a load, instead of
+        /// coming back silent. Nothing in the sim reads it.
+        /// </summary>
+        public bool Resumed;
+
         public Engineer Engineer = new Engineer();
 
         public void Visit(IStateVisitor v)

@@ -226,6 +226,18 @@ namespace Relight.Sim
         private readonly SimState _st;
         public EnemyTargets(SimState st) { _st = st; }
 
+        /// <summary>
+        /// REL-62 (ENM-07): point a state's weapon seam at its own bodies, building it if it has none. The ONE place
+        /// that knows how, so the tick, the initialiser and <see cref="Simulation.Wrap"/> cannot drift apart — and so
+        /// no test has to reach in and set the seam itself to make shooting work.
+        /// </summary>
+        public static void Point(SimState st)
+        {
+            if (st == null) return;
+            if (st.Enemies.Seam == null) st.Enemies.Seam = new EnemyTargets(st);
+            st.Weapons.Targets = st.Enemies.Seam;
+        }
+
         public int Count => _st.Enemies.Actors.Count;
 
         public Vec2 At(int index) => _st.Enemies.Actors[index].Pos;

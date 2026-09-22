@@ -83,10 +83,25 @@ namespace Relight.Sim
         /// Wraps an already-built state (loading, B-11; scenario builders in the tests). The lit mask is never saved
         /// and a loaded state runs no initialisers, so it is built here, once, for every caller alike (REL-9): a
         /// loaded game is not dark until its first tick, and no loader outside the sim has to build it.
+        ///
+        /// REL-62 (ENM-07): the ballistics seam is rebuilt here for the same reason. It is never saved either, and
+        /// <see cref="EnemyPhase"/> re-points it every tick — but the tick order is Weapons → Turrets → Enemies, so
+        /// on the FIRST tick after a load the player's own shots looked out at a null target list and passed through
+        /// every body on the map. One tick is 50 ms and it took a load to see it, which is why it survived: the
+        /// enemy tests set the seam by hand and never met the seam they were hiding.
+        ///
+        /// REL-62 (PER-02): this is also the one place that knows a state was RESUMED rather than started, so it is
+        /// where <see cref="SimState.Resumed"/> is raised. The flag is transient and no phase reads it; it is for the
+        /// HUD rows that live in the session and have to re-derive themselves once after a load.
         /// </summary>
         public static Simulation Wrap(SimContext ctx, SimState state)
         {
-            if (ctx != null && state != null) LightPhase.Ensure(ctx, state);
+            if (ctx != null && state != null)
+            {
+                LightPhase.Ensure(ctx, state);
+                EnemyTargets.Point(state);
+                state.Resumed = true;
+            }
             return new Simulation(ctx, state);
         }
 
