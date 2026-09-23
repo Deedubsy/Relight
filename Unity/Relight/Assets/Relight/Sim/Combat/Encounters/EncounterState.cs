@@ -66,6 +66,22 @@ namespace Relight.Sim
         /// <see cref="EncounterCatalogue.FightTailSeconds"/> after they leave or go down.
         /// </summary>
         public double FightUntil = -1;
+        /// <summary>
+        /// The strongholds whose guardian has died (§5.5, FRT-06, save v16), by <see cref="StrongholdDef.Id"/>, in
+        /// the order they fell. A guardian dies once.
+        /// </summary>
+        public List<string> Felled = new List<string>();
+        /// <summary>
+        /// Power cores lying on the ground (§4.3 <c>CoreDrop</c>, FRT-06, save v16): one where each guardian fell
+        /// until the engineer picks it up (FRT-07).
+        /// </summary>
+        public List<LooseCore> Cores = new List<LooseCore>();
+
+        public bool HasFallen(string stronghold)
+        {
+            for (var i = 0; i < Felled.Count; i++) if (string.CompareOrdinal(Felled[i], stronghold) == 0) return true;
+            return false;
+        }
 
         public bool IsOpen(string stronghold)
         {
@@ -101,6 +117,8 @@ namespace Relight.Sim
             v.StringList("pouch", Pouch);
             v.StringList("opened", Opened);
             v.Field("fightUntil", ref FightUntil);
+            v.StringList("felled", Felled);
+            v.List("cores", Cores, () => new LooseCore());
         }
     }
 

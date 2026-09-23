@@ -190,7 +190,7 @@ namespace Relight.Sim.Tests
         {
             var data = ReferenceData.Create();
             Assert.That(data.Weapons.Count, Is.EqualTo(4));
-            Assert.That(data.Enemies.Count, Is.EqualTo(3));   // GP-W5: CombatBalance appends the approved Breaker
+            Assert.That(data.Enemies.Count, Is.EqualTo(4));   // GP-W5 appends the Breaker, FRT-06 the guardian
             Assert.That(data.Ammunition.Count, Is.EqualTo(2));
             Assert.That(data.Turrets.Count, Is.EqualTo(2));
 

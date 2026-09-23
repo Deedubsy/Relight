@@ -42,6 +42,7 @@ namespace Relight.Sim.Tests.Combat
                 new SiteRecord("freight:door:0", "Freight warehouse door 0", SiteKind.StrongholdDoor, 65, 61, 3, 1),
                 new SiteRecord("freight:door:1", "Freight warehouse door 1", SiteKind.StrongholdDoor, 56, 49, 1, 3),
                 new SiteRecord(Arena, "Freight warehouse floor", SiteKind.Arena, 57, 40, 28, 21, "", 60),
+                new SiteRecord(Arena + ":guardian", "Freight warehouse guardian", SiteKind.Arena, 77, 50, 1, 1),
             };
             for (var i = 0; i < Groups.Length; i++)
                 sites.Add(new SiteRecord(Arena + ":group:" + i, "group", SiteKind.Arena, Groups[i].X, Groups[i].Y, 1, 1));
@@ -163,8 +164,11 @@ namespace Relight.Sim.Tests.Combat
             At(st, Cx, Cy + 48);
             Tick(ctx, st);
             Assert.That(st.Encounters.Find(Arena).Resolved, Is.True);
-            Assert.That(st.Events.OfType<EncounterResolvedEvent>().Single().Bodies, Is.EqualTo(60));
-            var bodies = st.Enemies.Actors.Where(e => e.Site == Arena).ToList();
+            Assert.That(st.Events.OfType<EncounterResolvedEvent>().Single().Bodies, Is.EqualTo(61), "60 and the guardian (FRT-06)");
+            var all = st.Enemies.Actors.Where(e => e.Site == Arena).ToList();
+            var guardian = all.Single(e => e.Kind == GuardianRules.Kind);
+            Assert.That(Inside(guardian.Pos.X, guardian.Pos.Y), Is.True, "the guardian waits on the floor");
+            var bodies = all.Where(e => e != guardian).ToList();
             Assert.That(bodies.Count, Is.EqualTo(60));
             Assert.That(bodies.Count(e => e.Kind == "spitter"), Is.EqualTo(12), "every fifth a spitter");
             var serial = EncounterCatalogue.Find(Arena).Serial;
@@ -252,7 +256,7 @@ namespace Relight.Sim.Tests.Combat
 
             var load = SaveSerializer.ReadText(SaveSerializer.WriteText(st, ctx.Data), ctx.Data);
             Assert.That(load.Ok, Is.True, load.Reason);
-            Assert.That(load.Header.Version, Is.EqualTo(15));
+            Assert.That(load.Header.Version, Is.EqualTo(SaveSchema.Version));
             var b = load.State;
             Assert.That(b.Encounters.Opened, Is.EqualTo(new[] { "freight" }));
             Assert.That(b.Encounters.FightUntil, Is.EqualTo(until));

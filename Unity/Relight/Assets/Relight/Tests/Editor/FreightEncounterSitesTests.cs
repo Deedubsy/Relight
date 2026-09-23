@@ -36,7 +36,7 @@ namespace Relight.Authoring.Tests
                 Assert.That(site, Is.Not.Null, def.Id + ": its site " + def.Site + " is not in the real city");
                 Assert.That(EncounterPhase.TryPlace(ctx, st, def, site, out var places), Is.True,
                     def.Id + ": the garrison does not fit round its groups");
-                Assert.That(places.Count, Is.EqualTo(def.Bodies), def.Id);
+                Assert.That(places.Count, Is.EqualTo(EncounterCatalogue.Garrison(def)), def.Id);
             }
         }
 

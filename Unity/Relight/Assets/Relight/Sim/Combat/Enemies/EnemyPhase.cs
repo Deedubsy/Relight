@@ -473,8 +473,8 @@ namespace Relight.Sim
         /// <summary>
         /// Reference gameplayCombat.ts <c>tickCombatActor</c>: a camp resident. It patrols its birthplace, wakes its
         /// own squad when it sees the engineer, commits an attack from an aim point, and goes back to patrol when
-        /// the memory runs out. The guardian charge phase belongs to the freight guardian, which is not in the port's
-        /// roster, so the charge branch is omitted.
+        /// the memory runs out. A stronghold guardian's windup ends in a charge instead of a strike, run by
+        /// <see cref="GuardianRules.Charge"/> (FRT-06).
         ///
         /// GP-W5 replaced the hard 36-tile boundary this used to break off at with a leash it can be watched on:
         /// see the comment at the pursuit check below for why the old rule made retreating from a camp free.
@@ -531,6 +531,11 @@ namespace Relight.Sim
                 }
             }
 
+            if (e.Phase == EnemyPhaseKind.Charge)
+            {
+                GuardianRules.Charge(ctx, st, e, def, dt);
+                return;
+            }
             if (e.Phase == EnemyPhaseKind.Recover)
             {
                 if (st.T < e.Until) return;
@@ -539,6 +544,7 @@ namespace Relight.Sim
             if (e.Phase == EnemyPhaseKind.Windup)
             {
                 if (st.T < e.Until) return;
+                if (GuardianRules.Is(e)) { GuardianRules.BeginCharge(st, e); return; }
                 if (def.Ranged) Spit(ctx, st, e, def);
                 else if (sight && distance <= def.RangeTiles && p.Dash <= 0) st.Engineer.TakeDamage(ctx, st, def.Damage);
                 e.Phase = EnemyPhaseKind.Recover;
@@ -567,7 +573,7 @@ namespace Relight.Sim
                 if (sight && distance <= raids.EscapeTiles && distance <= def.RangeTiles)
                 {
                     e.Phase = EnemyPhaseKind.Windup;
-                    e.Until = st.T + def.WindupS;
+                    e.Until = st.T + GuardianRules.WindupSeconds(e, def);
                     e.Aim = p.Pos;
                     return;
                 }

@@ -302,9 +302,10 @@ namespace Relight.Sim
         public static bool TryPlace(SimContext ctx, SimState st, EncounterDef def, SiteRecord site,
             out List<(Vec2 Pos, int Group)> places, TileRect? keepClear = null)
         {
-            places = new List<(Vec2, int)>(def.Bodies);
-            if (def.Bodies <= 0) return true;
-            if (st.Enemies.Actors.Count + def.Bodies > ctx.Data.Raids.LivingBudget) return false;
+            var total = EncounterCatalogue.Garrison(def);
+            places = new List<(Vec2, int)>(total);
+            if (total <= 0) return true;
+            if (st.Enemies.Actors.Count + total > ctx.Data.Raids.LivingBudget) return false;
 
             var centres = GroupCentres(ctx, def, site);
             var want = new int[centres.Count];
@@ -323,6 +324,16 @@ namespace Relight.Sim
             {
                 var g = i % centres.Count;
                 places.Add((byGroup[g][next[g]++], g));
+            }
+            // FRT-06: a stronghold's guardian stands at its own site, in a group of its own after the squads, and
+            // the garrison is not born without it.
+            var stronghold = EncounterCatalogue.StrongholdOf(def);
+            if (stronghold != null)
+            {
+                var at = ctx.Sites.Find(stronghold.Guardian);
+                var spot = Gather(ctx, st, at != null ? at.Centre : site.Centre, 1, chosen, keepClear);
+                if (spot.Count < 1) { places.Clear(); return false; }
+                places.Add((spot[0], centres.Count));
             }
             return true;
         }

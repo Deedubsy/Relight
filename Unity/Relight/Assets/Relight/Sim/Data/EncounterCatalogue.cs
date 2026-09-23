@@ -53,11 +53,12 @@ namespace Relight.Sim
     /// <summary>
     /// One stronghold (FREIGHT_STRONGHOLD_DESIGN §4.3): the keys that open it, the locked doors they open and the
     /// arena encounter behind them. A stronghold whose <see cref="Arena"/> site is not in the loaded region does
-    /// not exist in that game, exactly as an encounter whose site is missing does not. The guardian and the core
-    /// drop arrive with FRT-06.
+    /// not exist in that game, exactly as an encounter whose site is missing does not. <see cref="Guardian"/> is
+    /// the site its guardian is born at (FRT-06), one body beyond the arena row's <see cref="EncounterDef.Bodies"/>.
     /// </summary>
     public sealed record StrongholdDef(
-        string Id, string Name, IReadOnlyList<string> Keys, IReadOnlyList<string> Doors, string Arena, string Source);
+        string Id, string Name, IReadOnlyList<string> Keys, IReadOnlyList<string> Doors, string Arena,
+        string Guardian, string Source);
 
     /// <summary>
     /// Batch 4 (U-D-73): the port-owned encounter rows, the <see cref="CombatBalance"/> pattern. The reference keeps
@@ -199,8 +200,9 @@ namespace Relight.Sim
             new StrongholdDef("freight", "Freight warehouse",
                 new[] { "freight:camp:1", "freight:camp:2", "freight:camp:3" },
                 new[] { "freight:door:0", "freight:door:1" },
-                "freight:arena",
-                "Unity/Docs/FREIGHT_STRONGHOLD_DESIGN_2026-09-18.md §4.3, §5.4; packages/sim/src/firstRegion.ts openFreight; U-P-40"),
+                "freight:arena", "freight:arena:guardian",
+                "Unity/Docs/FREIGHT_STRONGHOLD_DESIGN_2026-09-18.md §4.3, §5.4, §5.5; packages/sim/src/firstRegion.ts "
+                + "openFreight; U-P-40, U-P-41"),
         };
 
         public static EncounterDef Find(string id)
@@ -209,9 +211,28 @@ namespace Relight.Sim
             return null;
         }
 
-        /// <summary>The roster key body <paramref name="i"/> of <paramref name="def"/>'s garrison is born as.</summary>
+        /// <summary>The stronghold whose arena row is <paramref name="def"/>, or null for every other row.</summary>
+        public static StrongholdDef StrongholdOf(EncounterDef def)
+        {
+            if (def == null) return null;
+            for (var i = 0; i < Strongholds.Count; i++)
+                if (string.CompareOrdinal(Strongholds[i].Arena, def.Id) == 0) return Strongholds[i];
+            return null;
+        }
+
+        /// <summary>
+        /// How many bodies <paramref name="def"/>'s garrison is born with: its <see cref="EncounterDef.Bodies"/>,
+        /// and one more, the guardian, for a stronghold's arena (FRT-06).
+        /// </summary>
+        public static int Garrison(EncounterDef def) => def.Bodies + (StrongholdOf(def) != null ? 1 : 0);
+
+        /// <summary>
+        /// The roster key body <paramref name="i"/> of <paramref name="def"/>'s garrison is born as. The one body
+        /// past <see cref="EncounterDef.Bodies"/> of an arena is its guardian.
+        /// </summary>
         public static string KindOf(EncounterDef def, int i)
         {
+            if (i >= def.Bodies) return GuardianRules.Kind;
             var fromEnd = def.Bodies - 1 - i;
             if (def.Extra != null)
                 for (var k = def.Extra.Count - 1; k >= 0; k--)

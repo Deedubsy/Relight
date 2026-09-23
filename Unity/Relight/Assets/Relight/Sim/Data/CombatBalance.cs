@@ -79,12 +79,32 @@ namespace Relight.Sim
                   + "build a gate so we can full wall off an area\"); REL-132; approved feature, assistant values",
             Provisional: true);
 
+        /// <summary>
+        /// Batch 4, FRT-06 (REL-141): the Freight warehouse guardian (FREIGHT_STRONGHOLD_DESIGN §4.3). The
+        /// reference has the row (gameplayCombat.ts <c>GP_COMBAT.guardian</c>) but never exported it, because the
+        /// exporter only takes the kinds the reference's director births. The numbers are the reference's, the
+        /// interval and the reach included (the design leaves both unstated); its charge and its phase 2 are
+        /// <see cref="GuardianRules"/>. Provisional for the same reason as the Breaker: the owner has adopted the
+        /// design (U-D-69 (a)) but has not signed off a single number.
+        /// </summary>
+        public static EnemyDef Guardian() => new EnemyDef(
+            GuardianRules.Kind, "Guardian",
+            600.0, 2.7, 25.0, 4.0, 1.2, 9.0,
+            false, "stronghold boss; winds up, then charges in a straight line and stands exposed after",
+            "provisional",
+            "packages/sim/src/gameplayCombat.ts GP_COMBAT.guardian; Unity/Docs/FREIGHT_STRONGHOLD_DESIGN_2026-09-18.md "
+            + "§4.3, §5.5; U-D-69 (a); REL-141; reference values, not signed off",
+            true);
+
         public static GameData Apply(GameData d)
         {
             var enemies = new List<EnemyDef>(d.Enemies);
             var has = false;
             for (var i = 0; i < enemies.Count; i++) if (enemies[i].Key == "breaker") has = true;
             if (!has) enemies.Add(Breaker());
+            var hasGuardian = false;
+            for (var i = 0; i < enemies.Count; i++) if (enemies[i].Key == GuardianRules.Kind) hasGuardian = true;
+            if (!hasGuardian) enemies.Add(Guardian());
 
             var machines = new List<MachineSpec>(d.Machines);
             var hasGate = false;

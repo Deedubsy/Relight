@@ -111,10 +111,13 @@ namespace Relight.Sim
             var index = st.Enemies.IndexOf(id);
             if (index < 0) return false;
             var e = st.Enemies.Actors[index];
+            var before = e.Hp;
             e.Hp -= amount;
+            GuardianRules.Hurt(ctx, st, e, before);          // FRT-06: phase 2 and the arena-wide alert
             if (e.Hp > 0) return false;
             st.Enemies.Actors.RemoveAt(index);
             st.Events.Add(new EnemyKilledEvent(st.T, e.Id, e.Kind, e.Pos.X, e.Pos.Y, byTurret, e.Layer, e.Group));
+            GuardianRules.Died(st, e);                       // FRT-06: the Power core drops where it fell
             return true;
         }
 

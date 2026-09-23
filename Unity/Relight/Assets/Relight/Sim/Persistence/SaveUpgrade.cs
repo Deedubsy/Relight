@@ -226,6 +226,13 @@ namespace Relight.Sim
                 what += (what.Length == 0 ? " with" : " and") + " the warehouse doors still shut";
                 v = 15;
             }
+            if (v == 15)
+            {
+                var problem = FifteenToSixteen(state, out damaged);
+                if (problem.Length != 0) return problem;
+                what += (what.Length == 0 ? " with" : " and") + " no guardian felled yet";
+                v = 16;
+            }
             // Every version between OldestReadable and Version has a step above; a gap here is a programming error.
             if (v != SaveSchema.Version)
                 return "unsupported save version " + fromVersion.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -418,6 +425,18 @@ namespace Relight.Sim
         /// empty and -1. A version-14 build had no doors to open and no stronghold to fight, so that is its truth.
         /// </summary>
         static string FourteenToFifteen(JsonValue state, out bool damaged)
+        {
+            damaged = false;
+            FillMissing(state, FreshDocument());
+            return "";
+        }
+
+        /// <summary>
+        /// Version 15 → 16 (REL-141): <c>encounters.felled</c> and <c>encounters.cores</c> come from the fill, both
+        /// empty. A version-15 build had no guardian, so none had fallen and no core lay anywhere. A version-15 save
+        /// whose warehouse garrison was already born keeps that garrison, which has no guardian in it (U-P-41).
+        /// </summary>
+        static string FifteenToSixteen(JsonValue state, out bool damaged)
         {
             damaged = false;
             FillMissing(state, FreshDocument());
