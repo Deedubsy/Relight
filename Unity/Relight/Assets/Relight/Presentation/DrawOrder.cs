@@ -17,6 +17,9 @@ namespace Relight.Presentation
         /// <summary>Cargo dropped at a death (INT-01): over the darkness, so it can be found again where the engineer fell.</summary>
         public const int DroppedCargoRim = 513;
         public const int DroppedCargo = 514;
+        /// <summary>The Freight chapter's search circles and hold rings (FRT-10): over the darkness, since the camps are in it.</summary>
+        public const int FreightCircle = 515;
+        public const int FreightHold = 516;
         public const int PlacementPreview = 520;
         public const int SilhouetteRim = 529;
         public const int Silhouette = 530;

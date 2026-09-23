@@ -178,6 +178,18 @@ namespace Relight.Sim.UI
         /// <summary>"Repairing — Cancel to move. · Escape cancels" while the engineer is pinned, else "".</summary>
         public string HandLock { get; private set; } = "";
 
+        /// <summary>FRT-10 (§8): "Keys 1/3" while the Freight keys matter; "" otherwise.</summary>
+        public string FreightKeys { get; private set; } = "";
+
+        /// <summary>FRT-10 (§8): the hold clock at a key camp, "Holding West passage · 12 / 30 s"; "" otherwise.</summary>
+        public string FreightHold { get; private set; } = "";
+
+        /// <summary>FRT-10 (§8): the carrying line while the Power core is in both hands.</summary>
+        public string FreightCarry { get; private set; } = "";
+
+        /// <summary>FRT-10 (§8): the plant panel's line — its stage, then kW and hit points once lit.</summary>
+        public string FreightPlant { get; private set; } = "";
+
         /// <summary>The upper-right threat line, or "" when nothing is coming.</summary>
         public string Threat { get; private set; } = "";
 
@@ -265,6 +277,7 @@ namespace Relight.Sim.UI
                 PowerText = PowerAlertSource.NoSourceText;
                 PowerShort = false; PowerOff = true; PowerFraction = 0; FuelText = ""; FuelLow = false;
                 Core = Engineer = Weapon = Ammo = Backpack = HandLock = Threat = Alert = "";
+                FreightKeys = FreightHold = FreightCarry = FreightPlant = "";
                 LightText = ""; InDark = false;
                 MiningVisible = false;
                 RaidPointerVisible = false; RaidPointerLabel = "";
@@ -411,6 +424,12 @@ namespace Relight.Sim.UI
 
             // --- prompts --------------------------------------------------------------------------------------
             HandLock = HandCraft.HandLocked(st) ? HandCraft.LockTextFor(st) + HandLockSuffix : "";
+
+            // --- the Freight chapter (FRT-10, §8) ---------------------------------------------------------------
+            FreightKeys = FreightObjectives.KeysLine(ctx, st);
+            FreightHold = FreightObjectives.HoldLine(ctx, st);
+            FreightCarry = FreightObjectives.CarryingLine(st);
+            FreightPlant = FreightObjectives.PlantLine(ctx, st);
 
             // --- threat ---------------------------------------------------------------------------------------
             Threat = ThreatLine(ctx, st, out var urgent);
@@ -600,6 +619,11 @@ namespace Relight.Sim.UI
         /// <summary>FRT-09: a raid took a plant to 0 hit points.</summary>
         public const string PlantFellKey = "plant-fell:";
 
+        /// <summary>FRT-10: a key camp held, the warehouse opened, its guardian killed — one row per moment.</summary>
+        public const string FreightNoticeKey = "freight:";
+
+        public const string GuardianKilledText = "The guardian is down · its Power core lies where it fell";
+
         /// <summary>REL-66: the save was read through an older schema, moved between regions, or healed on load.</summary>
         public const string LoadUpgradedKey = "load:upgraded";
         /// <summary>REL-66: the file asked for was unusable and its previous copy was loaded instead.</summary>
@@ -756,6 +780,17 @@ namespace Relight.Sim.UI
                     // stays up for as long as the guide lines do.
                     case PlantCommissionedEvent lit:
                         Notices.Post(PlantLitKey + lit.Plant, Plants.CardText(lit.Name, lit.Kw),
+                            HudNoticeKind.Info, now, GuideSeconds);
+                        break;
+                    // FRT-10 (§5.2, §8): the chapter's other moments get a line each.
+                    case EncounterClaimedEvent claimed:
+                        Notices.Post(FreightNoticeKey + claimed.Id, claimed.Text, HudNoticeKind.Info, now, GuideSeconds);
+                        break;
+                    case StrongholdOpenedEvent opened:
+                        Notices.Post(FreightNoticeKey + opened.Id, opened.Text, HudNoticeKind.Info, now, GuideSeconds);
+                        break;
+                    case GuardianKilledEvent killed:
+                        Notices.Post(FreightNoticeKey + killed.Stronghold + ":guardian", GuardianKilledText,
                             HudNoticeKind.Info, now, GuideSeconds);
                         break;
                     case PlantFellEvent fell:

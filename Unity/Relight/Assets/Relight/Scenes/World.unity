@@ -88244,6 +88244,7 @@ GameObject:
   - component: {fileID: 1892430413}
   - component: {fileID: 1892430415}
   - component: {fileID: 1892430416}
+  - component: {fileID: 1892430417}
   m_Layer: 0
   m_Name: Sim
   m_TagString: Untagged
@@ -88532,6 +88533,26 @@ MonoBehaviour:
   z: -1.5
   colour: {r: 1, g: 0.78, b: 0.25, a: 1}
   rimColour: {r: 0.08, g: 0.07, b: 0.05, a: 0.95}
+--- !u!114 &1892430417
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1892430401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a0642b61fcdbff4fa4275d1cf54312b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Relight.Presentation::Relight.Presentation.FreightCirclePresenter
+  host: {fileID: 0}
+  z: -1.5
+  searchWidth: 0.18
+  holdWidth: 0.14
+  fillWidth: 0.32
+  searchColour: {r: 1, g: 0.78, b: 0.25, a: 0.35}
+  holdColour: {r: 1, g: 0.78, b: 0.25, a: 0.9}
+  fillColour: {r: 0.55, g: 0.95, b: 0.45, a: 0.95}
 --- !u!1 &1892987529
 GameObject:
   m_ObjectHideFlags: 0

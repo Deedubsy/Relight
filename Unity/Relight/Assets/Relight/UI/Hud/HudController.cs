@@ -53,6 +53,7 @@ namespace Relight.UI
         private AutosaveController _autosave;
         private VisualElement _root, _threat, _mining, _handLock, _pip, _reloadMeter;
         private Label _clock, _light, _power, _core, _engineer, _weapon, _ammo, _backpack;
+        private Label _freightKeys, _freightHold, _freightCarry, _freightPlant;
         private Label _threatText, _alert, _noticeMore, _miningTitle, _miningDetail, _handLockText;
         private Button _openInventory, _openBuild;
         private GameplayDock _dock;
@@ -131,6 +132,10 @@ namespace Relight.UI
             _reloadMeter = _reload;
             _ammo = _root.Q<Label>("ammo");
             _backpack = _root.Q<Label>("backpack");
+            _freightKeys = _root.Q<Label>("freight-keys");
+            _freightHold = _root.Q<Label>("freight-hold");
+            _freightCarry = _root.Q<Label>("freight-carry");
+            _freightPlant = _root.Q<Label>("freight-plant");
 
             _handLock = _root.Q<VisualElement>("hand-lock");
             _handLockText = _root.Q<Label>("hand-lock-text");
@@ -355,6 +360,10 @@ namespace Relight.UI
             Show(_reloadMeter, _model.ReloadFraction > 0);
             Set(_ammo, _model.Ammo);
             Set(_backpack, _model.Backpack);
+            Line(_freightKeys, _model.FreightKeys);
+            Line(_freightHold, _model.FreightHold);
+            Line(_freightCarry, _model.FreightCarry);
+            Line(_freightPlant, _model.FreightPlant);
 
             Set(_handLockText, _model.HandLock);
             Show(_handLock, _model.HandLock.Length > 0);
@@ -453,6 +462,13 @@ namespace Relight.UI
         private static void Set(Label l, string text)
         {
             if (l != null) l.text = text;
+        }
+
+        /// <summary>A label that shows only while it has something to say.</summary>
+        private static void Line(Label l, string text)
+        {
+            Set(l, text);
+            Show(l, !string.IsNullOrEmpty(text));
         }
 
         private static void Value(ProgressBar b, double v)

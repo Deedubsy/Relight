@@ -121,6 +121,11 @@
             <ui:ProgressBar name="reload-meter" low-value="0" high-value="1" value="0" title=" " class="hud-meter is-hidden" />
             <ui:Label name="ammo" text="" class="hud-sub" />
             <ui:Label name="backpack" text="" class="hud-sub" />
+            <!-- FRT-10 (design §8): the Freight chapter's lines. Each is hidden while it has nothing to say. -->
+            <ui:Label name="freight-keys" text="" class="hud-sub freight-line is-hidden" />
+            <ui:Label name="freight-hold" text="" class="hud-sub freight-line is-accent is-hidden" />
+            <ui:Label name="freight-carry" text="" class="hud-sub freight-line is-accent is-hidden" />
+            <ui:Label name="freight-plant" text="" class="hud-sub freight-line is-hidden" />
         </ui:VisualElement>
 
         <ui:VisualElement name="hand-lock" class="hud-block is-hidden" picking-mode="Ignore">

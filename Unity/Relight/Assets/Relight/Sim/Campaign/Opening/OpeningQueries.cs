@@ -615,6 +615,14 @@ namespace Relight.Sim
                     "Your turrets are supplied and your Rifle is ready. Check turret ammunition and generator fuel before "
                     + "leaving; the reserve is finite. The nearest freight camp is a short trip from Home.", home);
 
+            // FRT-10 (REL-145, design §5.9): the Freight chapter's nine objectives follow the opening where the map
+            // has the chapter's places. The terminal row below moves to after the ninth, as REL-19 said it would.
+            var freight = FreightObjectives.Next(ctx, st);
+            if (freight.HasValue) return freight.Value;
+            if (FreightObjectives.Step(ctx, st) == FreightObjectives.Done)
+                return new ObjectiveView("opening-workshop", "Keep your workshop producing", FreightDoneText,
+                    FreightDoneDetail, false, Vec2.Zero, NoMaterials);
+
             // REL-19 (OPN-01): the terminal row. It used to send the player to "known destinations" and a Projects
             // panel for "restoration", none of which is in the build. It now names only what is: raids keep coming
             // while the core stands (DirectorPhase.Schedule), powered lamps light the ground (LightSources), and the
@@ -640,6 +648,13 @@ namespace Relight.Sim
         public const string TerminalDetail = "The guided opening ends here. Attacks keep coming, so keep your turrets "
             + "supplied with rounds and your Generator fuelled. Powered lamps light the ground around them. The freight "
             + "camps lie beyond Home; carry rounds when you go.";
+
+        /// <summary>FRT-10: the terminal row once Riverside Works is lit. Like REL-19's, it never calls the game won.</summary>
+        public const string FreightDoneText = "Hold Home and Riverside Works, and light more ground";
+
+        /// <summary>FRT-10: the terminal row's detail after the Freight chapter.</summary>
+        public const string FreightDoneDetail = "The Freight chapter ends here. Attacks keep coming for Home and for "
+            + "the plant, so keep your turrets supplied and your Generator fuelled.";
 
         /// <summary>Reference goal.ts:157: eight rounds before the first camp is worth walking to.</summary>
         private const int ScoutBullets = 8;
