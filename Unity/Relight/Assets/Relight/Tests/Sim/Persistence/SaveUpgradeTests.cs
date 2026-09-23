@@ -51,7 +51,12 @@ namespace Relight.Sim.Tests.Persistence
         /// that build's shape is pinned above; members elsewhere are kept as they are. Member values are emitted by
         /// <see cref="JsonValue.ToCanonicalJson"/> so the result is exactly what the writer produces for that shape.
         /// </summary>
-        private static string PruneToV2(JsonValue state)
+        private static readonly string[] V2MachineStamped = { "dir", "id", "inv", "kind", "out", "rounds", "site", "size", "x", "y" };
+
+        private static readonly Dictionary<string, System.Func<JsonValue, string>> MachineStamps =
+            new Dictionary<string, System.Func<JsonValue, string>> { ["site"] = _ => "\"\"" };
+
+        private static string PruneToV2(JsonValue state, bool stampMachines = false)
         {
             return Obj(state, V2State, new Dictionary<string, System.Func<JsonValue, string>>
             {
@@ -61,7 +66,8 @@ namespace Relight.Sim.Tests.Persistence
                 ["machines"] = ms =>
                 {
                     var parts = new List<string>();
-                    foreach (var m in ms.Items) parts.Add(Obj(m, V2Machine, null));
+                    foreach (var m in ms.Items)
+                        parts.Add(stampMachines ? Obj(m, V2MachineStamped, MachineStamps) : Obj(m, V2Machine, null));
                     return "[" + string.Join(",", parts) + "]";
                 },
             });
@@ -255,7 +261,9 @@ namespace Relight.Sim.Tests.Persistence
             // The members the file lacked hold a fresh state's values: the loaded document, pruned back to the v2
             // shape and re-filled from a fresh state, is the loaded document.
             var loaded = JsonValue.Parse(PersistenceFixture.Canonical(r.State), out _);
-            var pruned = JsonValue.Parse(PruneToV2(loaded), out _);
+            // The fill does not reach into list items, so a member added to each machine is stamped at the value the
+            // upgrade stamps (v14's site: every machine an old file carried is the player's).
+            var pruned = JsonValue.Parse(PruneToV2(loaded, stampMachines: true), out _);
             SaveUpgrade.FillMissing(pruned, JsonValue.Parse(CanonicalJsonWriter.Write(new SimState()), out _));
             Assert.That(pruned.ToCanonicalJson(), Is.EqualTo(loaded.ToCanonicalJson()));
         }

@@ -711,7 +711,8 @@ namespace Relight.Sim
         private static Machine FirstOfKind(SimState st, string kind)
         {
             for (var i = 0; i < st.Machines.Count; i++)
-                if (string.Equals(st.Machines[i].Kind, kind, StringComparison.Ordinal)) return st.Machines[i];
+                if (string.Equals(st.Machines[i].Kind, kind, StringComparison.Ordinal) && !st.Machines[i].IsSiteBound)
+                    return st.Machines[i];
             return null;
         }
 
@@ -1068,7 +1069,7 @@ namespace Relight.Sim
             for (var i = 0; i < st.Machines.Count; i++)
             {
                 var m = st.Machines[i];
-                if (!string.Equals(m.Kind, "chest", StringComparison.Ordinal)) continue;
+                if (!string.Equals(m.Kind, "chest", StringComparison.Ordinal) || m.IsSiteBound) continue;
                 if (m.Inv[item] < 1) continue;
                 var c = Centre(m);
                 var dd = OpeningRules.Dist(c.X, c.Y, at.X, at.Y);

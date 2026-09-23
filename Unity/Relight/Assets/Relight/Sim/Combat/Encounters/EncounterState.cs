@@ -49,6 +49,18 @@ namespace Relight.Sim
     public sealed class EncounterState : IVisitable
     {
         public List<EncounterRecord> Records = new List<EncounterRecord>();
+        /// <summary>
+        /// The engineer's quest pouch (§5.2, FRT-03, save v14): the stronghold keys claimed so far, in the order
+        /// they were claimed. It is not the Backpack: a key takes no slot, cannot be dropped or stored, and is not
+        /// lost when the engineer goes down.
+        /// </summary>
+        public List<string> Pouch = new List<string>();
+
+        public bool Holds(string key)
+        {
+            for (var i = 0; i < Pouch.Count; i++) if (string.CompareOrdinal(Pouch[i], key) == 0) return true;
+            return false;
+        }
 
         public EncounterRecord Find(string id)
         {
@@ -66,7 +78,11 @@ namespace Relight.Sim
             return r;
         }
 
-        public void Visit(IStateVisitor v) => v.List("records", Records, () => new EncounterRecord());
+        public void Visit(IStateVisitor v)
+        {
+            v.List("records", Records, () => new EncounterRecord());
+            v.StringList("pouch", Pouch);
+        }
     }
 
     public sealed partial class SimState

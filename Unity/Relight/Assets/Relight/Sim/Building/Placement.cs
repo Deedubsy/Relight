@@ -107,6 +107,8 @@ namespace Relight.Sim
             if (ProductionRules.IsProcessor(d, m) && (st.Production.Find(m.Id)?.Busy ?? false))
                 return (false, "wait for the processor to finish before packing it");
             if (string.Equals(m.Kind, "depot", StringComparison.Ordinal)) return (false, "the Depot stays");
+            // FRT-03: a camp's cache crate was never the player's to take — empty it, it stays.
+            if (m.IsSiteBound) return (false, "the crate stays with the camp; take what is in it");
             if (!Interaction.InReach(ctx, st, m)) return (false, $"Walk closer to the {PlayerNames.Machine(d, m.Kind)}");
 
             var keys = new List<ItemKey>();

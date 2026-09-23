@@ -10,6 +10,12 @@ namespace Relight.Sim
     public sealed record EncounterClearedEvent(double T, string Id) : SimEvent(T);
 
     /// <summary>
+    /// A key camp was held long enough and its key went into the pouch (§5.2). <c>Text</c> is the HUD line
+    /// ("West passage secured — key 1 of 3"); <c>Held</c> and <c>Of</c> are its two numbers.
+    /// </summary>
+    public sealed record EncounterClaimedEvent(double T, string Id, string Key, int Held, int Of, string Text) : SimEvent(T);
+
+    /// <summary>
     /// Batch 4, FRT-02 (REL-137): the one tick every hostile place runs through (FREIGHT_STRONGHOLD_DESIGN §3,
     /// §5.1). It walks <see cref="EncounterCatalogue.All"/> in order and, for each row whose site the region has,
     /// births the garrison the first time the engineer comes close enough, then notes when the last of it dies.
@@ -44,7 +50,102 @@ namespace Relight.Sim
                     rec.ClearedAt = st.T;
                     st.Events.Add(new EncounterClearedEvent(st.T, def.Id));
                 }
+                if (!rec.Claimed && Occupies(def)) Occupy(st, def, site, rec);
             }
+        }
+
+        /// <summary>This row is claimed by being held (§5.2), not on its last kill.</summary>
+        public static bool Occupies(EncounterDef def) => def.OccupySeconds > 0 && !string.IsNullOrEmpty(def.Key);
+
+        /// <summary>
+        /// §5.2: the hold clock runs while the engineer, up, is within <see cref="EncounterDef.OccupyRadius"/> of the
+        /// marker and no living guard of this camp is within <see cref="EncounterDef.GuardRadius"/> of it. Stepping
+        /// out, going down or a guard coming back stops it, and it starts again from nothing.
+        /// </summary>
+        private static void Occupy(SimState st, EncounterDef def, SiteRecord site, EncounterRecord rec)
+        {
+            var marker = site.Centre;
+            var p = st.Engineer;
+            var holding = !p.IsDown
+                && DirectorRules.Distance(p.Pos.X, p.Pos.Y, marker.X, marker.Y) <= def.OccupyRadius
+                && !GuardNear(st, def.Id, marker, def.GuardRadius);
+            if (!holding) { rec.OccupiedSince = -1; return; }
+            if (rec.OccupiedSince < 0) rec.OccupiedSince = st.T;
+            if (st.T - rec.OccupiedSince < def.OccupySeconds) return;
+
+            rec.Claimed = true;
+            rec.OccupiedSince = -1;
+            if (!st.Encounters.Holds(def.Key)) st.Encounters.Pouch.Add(def.Key);
+            var held = st.Encounters.Pouch.Count;
+            var of = KeyCount();
+            st.Events.Add(new EncounterClaimedEvent(st.T, def.Id, def.Key, held, of,
+                def.Name + " secured — key " + held + " of " + of));
+        }
+
+        /// <summary>How many keys the catalogue hands out: one per key camp.</summary>
+        public static int KeyCount()
+        {
+            var n = 0;
+            var all = EncounterCatalogue.All;
+            for (var i = 0; i < all.Count; i++) if (Occupies(all[i])) n++;
+            return n;
+        }
+
+        /// <summary>A living guard of <paramref name="id"/> within <paramref name="radius"/> of <paramref name="at"/>.</summary>
+        public static bool GuardNear(SimState st, string id, Vec2 at, double radius)
+        {
+            var actors = st.Enemies.Actors;
+            for (var i = 0; i < actors.Count; i++)
+            {
+                var e = actors[i];
+                if (e.Hp <= 0 || string.CompareOrdinal(e.Site, id) != 0) continue;
+                if (DirectorRules.Distance(e.Pos.X, e.Pos.Y, at.X, at.Y) <= radius) return true;
+            }
+            return false;
+        }
+
+        /// <summary>The machine kind a cache crate is: the ordinary Supply chest, opened with the ordinary panel.</summary>
+        public const string CrateKind = "chest";
+
+        /// <summary>
+        /// Where <paramref name="def"/>'s cache crate would stand: the free Supply-chest footprint nearest the marker
+        /// that leaves the marker tile itself clear, so the engineer can still stand on the camp to hold it. Null
+        /// when the camp carries no cache or nothing fits within <see cref="EncounterCatalogue.GroupSpreadTiles"/>.
+        /// </summary>
+        public static TileRect? CrateSpot(SimContext ctx, SimState st, EncounterDef def, SiteRecord site)
+        {
+            if (def.Cache == null || def.Cache.Count == 0) return null;
+            if (!ctx.Data.TryMachine(CrateKind, out var spec)) return null;
+            var (w, h) = Footprints.Dimensions(CrateKind, Dir.N, spec.Size);
+            var mx = (int)Math.Floor(site.Centre.X);
+            var my = (int)Math.Floor(site.Centre.Y);
+            var reach = (int)EncounterCatalogue.GroupSpreadTiles;
+            TileRect? best = null;
+            var bestD = double.PositiveInfinity;
+            for (var y = my - reach; y <= my + reach; y++)
+                for (var x = mx - reach; x <= mx + reach; x++)
+                {
+                    var r = new TileRect(x, y, w, h);
+                    if (r.Contains(mx, my)) continue;
+                    var d = DirectorRules.Distance(x + w * .5, y + h * .5, mx + .5, my + .5);
+                    if (d >= bestD) continue; // strictly nearer, so ties keep the first in row order
+                    if (Placement.GeometryProblem(ctx, st, CrateKind, x, y, Dir.N).Length != 0) continue;
+                    if (!Clear(ctx, st, r)) continue;
+                    best = r;
+                    bestD = d;
+                }
+            return best;
+        }
+
+        private static bool Clear(SimContext ctx, SimState st, TileRect r)
+        {
+            for (var y = r.Y; y < r.Y + r.H; y++)
+                for (var x = r.X; x < r.X + r.W; x++)
+                    if (!Ground.Passable(ctx, st, x, y)) return false;
+            var actors = st.Enemies.Actors;
+            for (var i = 0; i < actors.Count; i++)
+                if (actors[i].Hp > 0 && r.Contains((int)Math.Floor(actors[i].Pos.X), (int)Math.Floor(actors[i].Pos.Y))) return false;
+            return true;
         }
 
         /// <summary>How close the engineer must come for <paramref name="def"/> to be found.</summary>
@@ -69,7 +170,8 @@ namespace Relight.Sim
             if (p.IsDown) return;
             var marker = site.Centre;
             if (DirectorRules.Distance(p.Pos.X, p.Pos.Y, marker.X, marker.Y) > ResolveTiles(def)) return;
-            if (!TryPlace(ctx, st, def, site, out var places)) return;
+            var crate = CrateSpot(ctx, st, def, site);
+            if (!TryPlace(ctx, st, def, site, out var places, crate)) return;
 
             for (var i = 0; i < places.Count; i++)
             {
@@ -95,10 +197,29 @@ namespace Relight.Sim
                 });
                 st.Events.Add(new EnemySpawnedEvent(st.T, id, key, pos.X, pos.Y, group));
             }
+            if (crate.HasValue && rec.Cache == 0) rec.Cache = PutCrate(ctx, st, def, crate.Value);
             rec.Resolved = true;
             rec.ResolvedAt = st.T;
             rec.ClearedAt = -1;
             st.Events.Add(new EncounterResolvedEvent(st.T, def.Id, places.Count));
+        }
+
+        /// <summary>
+        /// §5.3: the sim sets the crate down, bound to the camp, with the row's cache in it. The cache enters the
+        /// game here, so it is counted in <see cref="Stats.Found"/> for the ledger.
+        /// </summary>
+        private static int PutCrate(SimContext ctx, SimState st, EncounterDef def, TileRect at)
+        {
+            var m = Placement.Add(ctx, st, CrateKind, at.X, at.Y, Dir.N);
+            m.Site = def.Id;
+            for (var i = 0; i < def.Cache.Count; i++)
+            {
+                var s = def.Cache[i];
+                if (s.Count <= 0) continue;
+                m.Inv.Add(s.Item, s.Count);
+                st.Stats.Found.Add(s.Item, s.Count);
+            }
+            return m.Id;
         }
 
         /// <summary>
@@ -126,7 +247,7 @@ namespace Relight.Sim
         /// false when the whole garrison cannot be placed right now. Changes nothing.
         /// </summary>
         public static bool TryPlace(SimContext ctx, SimState st, EncounterDef def, SiteRecord site,
-            out List<(Vec2 Pos, int Group)> places)
+            out List<(Vec2 Pos, int Group)> places, TileRect? keepClear = null)
         {
             places = new List<(Vec2, int)>(def.Bodies);
             if (def.Bodies <= 0) return true;
@@ -140,7 +261,7 @@ namespace Relight.Sim
             var byGroup = new List<Vec2>[centres.Count];
             for (var g = 0; g < centres.Count; g++)
             {
-                byGroup[g] = Gather(ctx, st, centres[g], want[g], chosen);
+                byGroup[g] = Gather(ctx, st, centres[g], want[g], chosen, keepClear);
                 if (byGroup[g].Count < want[g]) { places.Clear(); return false; }
             }
             // Dealt round the groups in turn, so body i is in group i % groups — the same deal KindOf assumes.
@@ -153,7 +274,8 @@ namespace Relight.Sim
             return true;
         }
 
-        private static List<Vec2> Gather(SimContext ctx, SimState st, Vec2 centre, int want, List<Vec2> chosen)
+        private static List<Vec2> Gather(SimContext ctx, SimState st, Vec2 centre, int want, List<Vec2> chosen,
+            TileRect? keepClear)
         {
             var got = new List<Vec2>(want);
             if (want <= 0) return got;
@@ -169,7 +291,7 @@ namespace Relight.Sim
                 var t = queue[head];
                 var x = t % w;
                 var y = t / w;
-                if (Ground.Passable(ctx, st, x, y) && Fits(st, x + .5, y + .5, chosen))
+                if (Ground.Passable(ctx, st, x, y) && !(keepClear?.Contains(x, y) ?? false) && Fits(st, x + .5, y + .5, chosen))
                 {
                     var at = new Vec2(x + .5, y + .5);
                     got.Add(at);

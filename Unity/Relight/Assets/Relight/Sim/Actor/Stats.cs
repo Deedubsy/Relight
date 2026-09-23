@@ -14,6 +14,11 @@ namespace Relight.Sim
         public ItemCounts Made = new ItemCounts();
         /// <summary>Items mined out of the ground — reference `stats.minedOf`. Phase C fills this; Phase B has no mining.</summary>
         public ItemCounts MinedOf = new ItemCounts();
+        /// <summary>
+        /// Items that were lying in an encounter's cache crate when the sim put it down (FRT-03, save v14). They
+        /// enter the game there, so they are a source like mining.
+        /// </summary>
+        public ItemCounts Found = new ItemCounts();
 
         // --- ledger sinks ---------------------------------------------------
         /// <summary>Items consumed as recipe inputs — reference `stats.consumed`.</summary>
@@ -76,6 +81,7 @@ namespace Relight.Sim
             v.Field("genFed", ref GenFed);
             v.Object("delivered", ref Delivered, () => new ItemCounts());
             v.Object("putBack", ref PutBack, () => new ItemCounts());
+            v.Object("found", ref Found, () => new ItemCounts());
         }
     }
 

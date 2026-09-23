@@ -223,7 +223,8 @@ namespace Relight.Sim
             for (var i = 0; i < st.Machines.Count; i++)
             {
                 var m = st.Machines[i];
-                if (string.Equals(m.Kind, "chest", StringComparison.Ordinal)) n += m.Inv[item];
+                // A camp's cache crate (FRT-03) is out in the city, not Home.
+                if (string.Equals(m.Kind, "chest", StringComparison.Ordinal) && !m.IsSiteBound) n += m.Inv[item];
             }
             return (int)Math.Floor(n);
         }

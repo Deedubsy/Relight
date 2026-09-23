@@ -24,6 +24,15 @@ namespace Relight.Sim
         public int Out;
         /// <summary>Loaded rounds for turrets/cannon (one round = one bullet, U-D-08) — reference `m.rounds`.</summary>
         public int Rounds;
+        /// <summary>
+        /// The encounter this machine belongs to, or "" for anything the player built (FREIGHT_STRONGHOLD_DESIGN
+        /// §5.3, FRT-03). A camp's cache crate is the only such machine: the sim put it there, so it can be emptied
+        /// but never picked up (<see cref="Placement.CanPickUp"/>), and it is nobody's Home stock.
+        /// </summary>
+        public string Site = "";
+
+        /// <summary>The sim placed this for an encounter; the player did not build it.</summary>
+        public bool IsSiteBound => !string.IsNullOrEmpty(Site);
 
         public (int w, int h) Dimensions => Footprints.Dimensions(Kind, Dir, Size);
         public TileRect Rect { get { var (w, h) = Dimensions; return new TileRect(X, Y, w, h); } }
@@ -39,6 +48,7 @@ namespace Relight.Sim
             v.Object("inv", ref Inv, () => new ItemCounts());
             v.Field("out", ref Out);
             v.Field("rounds", ref Rounds);
+            v.Field("site", ref Site); // save v14
             VisitProduction(v); // Phase C
         }
 

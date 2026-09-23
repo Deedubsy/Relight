@@ -76,6 +76,7 @@ namespace Relight.Sim
         public const string Enemies = "enemies";
         public const string Actors = "actors";
         public const string Site = "site";
+        public const string Machines = "machines";
 
         /// <summary>
         /// The one city every pre-C6 imported save was made on (WORLD_AND_ASSETS.md §2.3). A save that names this
@@ -210,6 +211,13 @@ namespace Relight.Sim
                 if (problem.Length != 0) return problem;
                 what += (what.Length == 0 ? " with" : " and") + " no Freight camp found yet";
                 v = 13;
+            }
+            if (v == 13)
+            {
+                var problem = ThirteenToFourteen(state, out damaged);
+                if (problem.Length != 0) return problem;
+                what += (what.Length == 0 ? " with" : " and") + " no stronghold key held yet";
+                v = 14;
             }
             // Every version between OldestReadable and Version has a step above; a gap here is a programming error.
             if (v != SaveSchema.Version)
@@ -379,6 +387,20 @@ namespace Relight.Sim
                 {
                     var body = actors.At(i);
                     if (body != null && body.IsObject) body.TryAddMember(Site, JsonValue.TextValue(""));
+                }
+            FillMissing(state, FreshDocument());
+            return "";
+        }
+
+        static string ThirteenToFourteen(JsonValue state, out bool damaged)
+        {
+            damaged = false;
+            var machines = state.Member(Machines);
+            if (machines != null && machines.IsArray)
+                for (var i = 0; i < machines.Count; i++)
+                {
+                    var m = machines.At(i);
+                    if (m != null && m.IsObject) m.TryAddMember(Site, JsonValue.TextValue(""));
                 }
             FillMissing(state, FreshDocument());
             return "";

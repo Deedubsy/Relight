@@ -71,6 +71,11 @@ namespace Relight.Sim
     /// claimed) and <c>site</c> on each enemy (the camp it guards). The fill supplies the first, empty; every body
     /// already in the file is stamped with no camp (<see cref="SaveUpgrade"/>).
     ///
+    /// Version 14 (2026-09-23, REL-138, batch 4) adds <c>encounters.pouch</c> (the stronghold keys held),
+    /// <c>stats.found</c> (what came out of camp crates, a ledger source) and <c>site</c> on each machine (the camp
+    /// a cache crate belongs to). The fill supplies the first two, empty; every machine already in the file is
+    /// stamped as the player's own (<see cref="SaveUpgrade"/>).
+    ///
     /// The document is one JSON object:
     /// <code>
     /// {
@@ -99,7 +104,7 @@ namespace Relight.Sim
     public static class SaveSchema
     {
         /// <summary>Schema version this build writes. Files from <see cref="OldestReadable"/> up to it are read.</summary>
-        public const int Version = 13;
+        public const int Version = 14;
 
         /// <summary>
         /// The oldest schema version this build still reads (through <see cref="SaveUpgrade"/>). Never 0: there

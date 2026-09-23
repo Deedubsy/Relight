@@ -197,7 +197,7 @@ namespace Relight.Sim.Tests.Combat
         }
 
         [Test]
-        public void AFoundCampRoundTripsAtVersionThirteen()
+        public void AFoundCampRoundTripsAtTheCurrentVersion()
         {
             var ctx = Context();
             var st = RaidFixture.State(ctx);
@@ -208,7 +208,7 @@ namespace Relight.Sim.Tests.Combat
             var text = SaveSerializer.WriteText(st, ctx.Data);
             var load = SaveSerializer.ReadText(text, ctx.Data);
             Assert.That(load.Ok, Is.True, load.Reason);
-            Assert.That(load.Header.Version, Is.EqualTo(13));
+            Assert.That(load.Header.Version, Is.EqualTo(SaveSchema.Version), "13 when this was written; 14 since REL-138");
             var a = st.Encounters.Find(Camp);
             var b = load.State.Encounters.Find(Camp);
             Assert.That(b, Is.Not.Null);

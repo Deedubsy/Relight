@@ -124,7 +124,7 @@ namespace Relight.Sim
             for (var i = 0; i < Items.Count; i++)
             {
                 var k = (ItemId)i;
-                sources.Add(k, s.MinedOf[k] + s.Made[k]);
+                sources.Add(k, s.MinedOf[k] + s.Made[k] + s.Found[k]);
                 sinks.Add(k, s.Consumed[k] + s.Placed[k]);
             }
             sinks.Add(ItemId.Steel, s.SpentSteel);
