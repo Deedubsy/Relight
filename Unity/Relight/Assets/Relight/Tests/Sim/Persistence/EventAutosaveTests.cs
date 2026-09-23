@@ -9,7 +9,7 @@ namespace Relight.Sim.Tests.Persistence
     /// REL-65 (PER-05): the event autosaves of TECHNICAL_ARCHITECTURE.md §9.4.2 — one when a raid starts (its
     /// warning opens), one when a raid ends — through the same ring as the timed saves. An event save resets the
     /// five-minute timer; none is written while the engineer is down, and the one owed waits until they are up.
-    /// "Site restored or plant commissioned" has no sim event yet (plants are not built), so it is not wired.
+    /// FRT-08 (REL-143) adds a third moment, a plant commissioned. "Site restored" has no sim event yet.
     /// </summary>
     public sealed class EventAutosaveTests
     {
@@ -111,6 +111,19 @@ namespace Relight.Sim.Tests.Persistence
             Assert.That(sched.Observe(One(new RaidNoticeEvent(t, RaidNoticeKind.MinorRaid, "Raid inbound from the east in 30 s.", 9)), sim)?.Ok, Is.True);
             Assert.That(sched.Observe(One(new RaidEndedEvent(t, 9, false, false, (int)RaidOutcome.Cleared, t)), sim)?.Ok, Is.True);
             Assert.That(Ring(fs, store), Is.EqualTo(2));
+        }
+
+        /// <summary>FRT-08: lighting a plant is a milestone, and it writes one save.</summary>
+        [Test]
+        public void APlantCommissionedWritesOneSave()
+        {
+            var (fs, store, sched, sim) = Setup();
+            var t = sim.State.T;
+            var r = sched.Observe(One(new PlantCommissionedEvent(t, "plant:riverside", "Riverside Works", 600, 40, 40)), sim);
+            Assert.That(r?.Ok, Is.True);
+            Assert.That(Ring(fs, store), Is.EqualTo(1));
+            Assert.That(sched.Observe(One(new PlantPreparedEvent(t, "plant:riverside")), sim), Is.Null,
+                "preparing it is a step, not the milestone");
         }
 
         /// <summary>

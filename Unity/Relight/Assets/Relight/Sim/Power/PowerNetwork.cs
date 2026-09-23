@@ -26,6 +26,8 @@ namespace Relight.Sim
         /// running dry instead of an average over the whole map.
         /// </summary>
         public double FuelUnits;
+        /// <summary>FRT-08: what commissioned plants put into this circuit (the reference's <c>c.plantSupply</c>).</summary>
+        public double PlantKw;
     }
 
     /// <summary>
@@ -165,6 +167,8 @@ namespace Relight.Sim
         }
 
         private static readonly SiteRecord[] NoSites = new SiteRecord[0];
+        [ThreadStatic] private static List<SiteRecord> _plantScratch;
+        private static List<SiteRecord> PlantScratch => _plantScratch ??= new List<SiteRecord>();
         private static readonly ConditionalWeakTable<WorldSites, SiteRecord[]> SubstationCache =
             new ConditionalWeakTable<WorldSites, SiteRecord[]>();
 
@@ -234,6 +238,23 @@ namespace Relight.Sim
             for (var i = 0; i < subs.Count; i++)
             {
                 var s = subs[i];
+                nodes.Add(new Node
+                {
+                    Machine = -1,
+                    X = s.X, Y = s.Y, W = s.W, H = s.H,
+                    Cx = s.X + s.W / 2.0, Cy = s.Y + s.H / 2.0,
+                    Reach = siteReach,
+                });
+            }
+
+            // FRT-08 (campaignPower.ts:50): a commissioned plant is a supply node that cables like a substation lot.
+            // Last, so no existing circuit's root moves; only a lit plant adds a node, so an unlit map builds as before.
+            var plants = PlantScratch;
+            Plants.Supplying(ctx, st, plants);
+            var firstPlant = nodes.Count;
+            for (var i = 0; i < plants.Count; i++)
+            {
+                var s = plants[i];
                 nodes.Add(new Node
                 {
                     Machine = -1,
@@ -324,6 +345,20 @@ namespace Relight.Sim
                 {
                     var root = Root(firstSite + i);
                     if (placedRoot.Contains(root)) grid.AttachSite(subs[i].Id, Circuit(root));
+                }
+            }
+
+            // campaignPower.ts:50 — each supplying plant's kW goes into its own node's circuit. The circuit exists
+            // even with nothing on it yet, so the grid shows the supply the moment the core goes in.
+            if (plants.Count > 0)
+            {
+                var plantKw = Plants.Kw(d);
+                for (var i = 0; i < plants.Count; i++)
+                {
+                    var c = Circuit(Root(firstPlant + i));
+                    c.Supply += plantKw;
+                    c.PlantKw += plantKw;
+                    grid.AttachSite(plants[i].Id, c);
                 }
             }
 

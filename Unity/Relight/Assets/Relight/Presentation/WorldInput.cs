@@ -462,6 +462,15 @@ namespace Relight.Presentation
             if (HandCraft.NearDepot(sim.Context, sim.State)) { OpenMachine?.Invoke(-1); return; }
             // FRT-07: E puts a carried Power core down, or lifts one in reach. It comes before a cargo pile because
             // a death leaves both on one spot, and a pile can still be picked by pointing at it.
+            // FRT-08: at a plant not yet lit, E is its next step: prepare it, then put the core in. It comes before
+            // the core so that E with the core in both hands at a prepared plant commissions it, not drops it.
+            var plant = Plants.NearestInReach(sim.Context, sim.State, out _);
+            var stage = plant == null ? null : sim.State.Encounters.Plant(plant.Id);
+            if (plant != null && (stage == null || !stage.Commissioned))
+            {
+                host.Submit(stage != null && stage.Prepared ? (Command)new CommissionPlantCommand() : new PreparePlantCommand());
+                return;
+            }
             if (CoreCarry.Holding(sim.State.Engineer)) { host.Submit(new DropCoreCommand()); return; }
             if (CoreCarry.NearestInReach(sim.Context, sim.State) != null) { host.Submit(new PickUpCoreCommand()); return; }
             var near = DeathCache.NearestInReach(sim.Context, sim.State);

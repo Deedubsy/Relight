@@ -122,9 +122,10 @@ namespace Relight.Sim
         ///       <see cref="RaidNoticeKind.MinorRaid"/> for a small one), once per raid: a large raid's later wave
         ///       lines and a warning announced again are the same raid. A group staged at once (the opening's
         ///       encounter, the Admin raid) has no warning, so only its end saves;</item>
-        /// <item><b>a raid is resolved</b> — any <see cref="RaidEndedEvent"/>.</item>
+        /// <item><b>a raid is resolved</b> — any <see cref="RaidEndedEvent"/>;</item>
+        /// <item><b>a plant is commissioned</b> — <see cref="PlantCommissionedEvent"/> (FRT-08).</item>
         /// </list>
-        /// "Site restored or plant commissioned" has no sim event yet; wire it here when plants exist.
+        /// "Site restored" has no sim event yet.
         /// The guard: no event save while the engineer is down. The save is owed instead and written on the first
         /// frame they are up, so no event save ever holds a downed engineer. Several moments in one frame are one
         /// save. Timed saves and <c>auto-quit.json</c> are not guarded and behave as before.
@@ -150,6 +151,7 @@ namespace Relight.Sim
         {
             if (e is RaidNoticeEvent n && (n.Kind == RaidNoticeKind.Announced || n.Kind == RaidNoticeKind.MinorRaid))
                 return _warned.Add(n.RaidId) ? "a raid's warning" : null;
+            if (e is PlantCommissionedEvent) return "a plant commissioned";
             if (e is RaidEndedEvent r)
             {
                 _warned.Remove(r.RaidId);

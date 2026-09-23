@@ -596,6 +596,7 @@ namespace Relight.Sim.UI
         public const string HesitationKey = "guide:light-hesitation";
         public const string BlindTurretKey = "guide:blind-turret";
         public const string DistrictLitKey = "light:district";
+        public const string PlantLitKey = "plant-lit:";
 
         /// <summary>REL-66: the save was read through an older schema, moved between regions, or healed on load.</summary>
         public const string LoadUpgradedKey = "load:upgraded";
@@ -747,6 +748,12 @@ namespace Relight.Sim.UI
                                 ? lit.Name + ": power back"
                                 : lit.Name + " connected · " + lit.Lights.ToString(CultureInfo.InvariantCulture)
                                   + (lit.Lights == 1 ? " streetlight on" : " streetlights on"),
+                            HudNoticeKind.Info, now, GuideSeconds);
+                        break;
+                    // FRT-08 (§5.7): the milestone card. A lit plant is the campaign's biggest moment so far, so it
+                    // stays up for as long as the guide lines do.
+                    case PlantCommissionedEvent lit:
+                        Notices.Post(PlantLitKey + lit.Plant, Plants.CardText(lit.Name, lit.Kw),
                             HudNoticeKind.Info, now, GuideSeconds);
                         break;
                     // REL-60 (UI-10): the worst moments of a raid. Each raises its row the frame it happens; Refresh

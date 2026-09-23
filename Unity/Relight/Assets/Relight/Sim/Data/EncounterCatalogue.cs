@@ -61,6 +61,14 @@ namespace Relight.Sim
         string Guardian, string Source);
 
     /// <summary>
+    /// A campaign power plant (§4.4 <c>PlantDef</c>): the site it stands on, the squat that holds it, what it costs to
+    /// prepare and to commission from carried stock, and the stronghold whose Power core lights it.
+    /// </summary>
+    public sealed record PlantDef(
+        string Id, string Name, string Squat, IReadOnlyList<ItemStack> RepairCost, IReadOnlyList<ItemStack> Commission,
+        string Core, string Source);
+
+    /// <summary>
     /// Batch 4 (U-D-73): the port-owned encounter rows, the <see cref="CombatBalance"/> pattern. The reference keeps
     /// its camps as a hand-written list in gameplaySites.ts (FIRST_CAMPS) and its garrisons as numbers on the city
     /// json; neither reaches the exported catalogue, so the rows live here.
@@ -204,6 +212,26 @@ namespace Relight.Sim
                 "Unity/Docs/FREIGHT_STRONGHOLD_DESIGN_2026-09-18.md §4.3, §5.4, §5.5; packages/sim/src/firstRegion.ts "
                 + "openFreight; U-P-40, U-P-41"),
         };
+
+        /// <summary>
+        /// The plants (§4.4). One in batch 4: Riverside Works. Ironworks and Civic Utility have their sites on the map
+        /// (FRT-01) but no rows yet: their squats, costs and cores are out of this batch's scope (U-P-43).
+        /// </summary>
+        public static readonly IReadOnlyList<PlantDef> Plants = new[]
+        {
+            new PlantDef("plant:riverside", "Riverside Works", "plant:riverside:squat",
+                new[] { new ItemStack(ItemId.Steel, 20), new ItemStack(ItemId.Concrete, 10) },
+                new[] { new ItemStack(ItemId.Steel, 30), new ItemStack(ItemId.Copper, 15) },
+                "freight",
+                "Unity/Docs/FREIGHT_STRONGHOLD_DESIGN_2026-09-18.md §4.4, §5.7; packages/sim/src/progression.ts "
+                + "CORRECTIONS.plantCost; U-P-43"),
+        };
+
+        public static PlantDef Plant(string id)
+        {
+            for (var i = 0; i < Plants.Count; i++) if (string.CompareOrdinal(Plants[i].Id, id) == 0) return Plants[i];
+            return null;
+        }
 
         public static EncounterDef Find(string id)
         {

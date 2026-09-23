@@ -10,7 +10,11 @@ namespace Relight.Sim
     {
         static partial void AddEncounterPhases(List<ITickPhase> list) => list.Add(new EncounterPhase());
 
-        /// <summary>FRT-07: lifting and putting down a Power core.</summary>
-        static partial void AddEncounterHandlers(List<ICommandHandler> list) => list.Add(new CoreCarryHandler());
+        /// <summary>FRT-07: lifting and putting down a Power core. FRT-08: preparing and commissioning a plant.</summary>
+        static partial void AddEncounterHandlers(List<ICommandHandler> list)
+        {
+            list.Add(new CoreCarryHandler());
+            list.Add(new PlantHandler());
+        }
     }
 }

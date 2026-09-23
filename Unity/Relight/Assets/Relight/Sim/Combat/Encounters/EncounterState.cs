@@ -42,6 +42,31 @@ namespace Relight.Sim
     }
 
     /// <summary>
+    /// A plant's stage (§5.7 <c>PlantState</c>, FRT-08, save v18), keyed by <see cref="PlantDef.Id"/>. Added when it
+    /// is prepared, so an untouched plant has no record and a fresh game and an upgraded save agree.
+    /// </summary>
+    public sealed class PlantRecord : IVisitable
+    {
+        public string Id = "";
+        /// <summary>Its squat is cleared and its repair paid (§4.4 <c>Prepared</c>).</summary>
+        public bool Prepared;
+        /// <summary>Sim time its Power core went in; -1 before.</summary>
+        public double CommissionedAt = -1;
+        /// <summary>Its hit points once commissioned; it supplies only while above 0. FRT-09's raid is what lowers it.</summary>
+        public double Hp;
+
+        public bool Commissioned => CommissionedAt >= 0;
+
+        public void Visit(IStateVisitor v)
+        {
+            v.Field("id", ref Id);
+            v.Field("prepared", ref Prepared);
+            v.Field("commissionedAt", ref CommissionedAt);
+            v.Field("hp", ref Hp);
+        }
+    }
+
+    /// <summary>
     /// Batch 4's encounters, visited as <c>encounters</c> (save v13). A record is added the first tick its row
     /// runs, in catalogue order, so a fresh game, an upgraded v12 save and a crop that lacks a camp all start from
     /// "nothing found yet" without a list to keep in step with the catalogue.
@@ -76,6 +101,20 @@ namespace Relight.Sim
         /// until the engineer picks it up (FRT-07).
         /// </summary>
         public List<LooseCore> Cores = new List<LooseCore>();
+        /// <summary>The plants prepared so far (§5.7, FRT-08, save v18), in the order they were prepared.</summary>
+        public List<PlantRecord> Plants = new List<PlantRecord>();
+        /// <summary>
+        /// The plant commissioned most recently (§5.7 <c>NewestPlant</c>, FRT-08, save v18); "" before any. FRT-09's
+        /// next major raid reads it.
+        /// </summary>
+        public string NewestPlant = "";
+
+        public PlantRecord Plant(string id)
+        {
+            for (var i = 0; i < Plants.Count; i++)
+                if (string.CompareOrdinal(Plants[i].Id, id) == 0) return Plants[i];
+            return null;
+        }
 
         public bool HasFallen(string stronghold)
         {
@@ -119,6 +158,8 @@ namespace Relight.Sim
             v.Field("fightUntil", ref FightUntil);
             v.StringList("felled", Felled);
             v.List("cores", Cores, () => new LooseCore());
+            v.List("plants", Plants, () => new PlantRecord());
+            v.Field("newestPlant", ref NewestPlant);
         }
     }
 
