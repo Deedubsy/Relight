@@ -76,6 +76,10 @@ namespace Relight.Sim
     /// a cache crate belongs to). The fill supplies the first two, empty; every machine already in the file is
     /// stamped as the player's own (<see cref="SaveUpgrade"/>).
     ///
+    /// Version 15 (2026-09-23, REL-140, batch 4) adds <c>encounters.opened</c> (the strongholds whose doors are
+    /// open) and <c>encounters.fightUntil</c> (U-D-69 (e)'s stronghold fight clock). The fill supplies both: no door
+    /// open and no fight fought.
+    ///
     /// The document is one JSON object:
     /// <code>
     /// {
@@ -104,7 +108,7 @@ namespace Relight.Sim
     public static class SaveSchema
     {
         /// <summary>Schema version this build writes. Files from <see cref="OldestReadable"/> up to it are read.</summary>
-        public const int Version = 14;
+        public const int Version = 15;
 
         /// <summary>
         /// The oldest schema version this build still reads (through <see cref="SaveUpgrade"/>). Never 0: there

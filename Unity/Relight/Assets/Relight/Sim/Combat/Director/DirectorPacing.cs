@@ -18,8 +18,8 @@ namespace Relight.Sim
     ///       engineer gets <see cref="SiegeTuning.FarWarningExtraS"/> more warning (U-P-24); the first small raid
     ///       cannot take the Home core below its floor, and breaks off there (U-D-68 b, U-P-25).</item>
     /// <item><b>Strongholds</b> (U-D-69 e). A stronghold fight holds back a large-raid warning with no other time
-    ///       limit. The rule is built behind one question, <see cref="StrongholdFight"/>, which nothing answers until
-    ///       the Freight work adds strongholds.</item>
+    ///       limit. The rule is built behind one question, <see cref="StrongholdFight"/>, which
+    ///       <see cref="StrongholdRules"/> answers since FRT-05.</item>
     /// </list>
     /// A hold is silent: the warning simply has not opened yet, so the HUD shows nothing and the player is told
     /// nothing they would have to un-learn. The large raid's own warning is always the full one.
@@ -27,12 +27,12 @@ namespace Relight.Sim
     public static partial class DirectorPacing
     {
         /// <summary>
-        /// U-D-69 (e): is a stronghold fight on? Answered by the Freight work, which owns strongholds. With no
-        /// implementation it stays false, which is the truth on a map that has none.
+        /// U-D-69 (e): is a stronghold fight on? Answered by the Freight work, which owns strongholds
+        /// (<see cref="StrongholdRules.FightOn"/>, FRT-05). On a map with none it stays false.
         /// </summary>
         static partial void StrongholdFightImpl(SimContext ctx, SimState st, ref bool on);
 
-        /// <summary>A stronghold fight is on (U-D-69 e). Always false until strongholds exist.</summary>
+        /// <summary>A stronghold fight is on (U-D-69 e).</summary>
         public static bool StrongholdFight(SimContext ctx, SimState st)
         {
             var on = false;

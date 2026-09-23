@@ -140,6 +140,8 @@ namespace Relight.Sim
                     for (var x = r.X; x < r.X + r.W; x++)
                         if (x >= 0 && y >= 0 && x < w && y < h) _solid[y * w + x] = mark;
             }
+            // FRT-05: a stronghold's doors are solid to everyone until it is opened (StrongholdRules).
+            StrongholdRules.MarkShutDoors(ctx, st, _solid, Blocked);
             _solidRev = st.Rev;
             return _solid;
         }

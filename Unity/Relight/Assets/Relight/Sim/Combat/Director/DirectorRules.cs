@@ -48,6 +48,8 @@ namespace Relight.Sim
         public static bool HostileOpen(SimContext ctx, SimState st, int x, int y)
         {
             if (!Ground.Walkable(ctx, x, y)) return false;
+            // FRT-05: a shut stronghold door keeps its garrison in and everyone else out (StrongholdRules).
+            if (StrongholdRules.DoorShut(ctx, st, x, y)) return false;
             var m = st.Enemies.Index.At(ctx, st, x, y);
             if (m == null) return true;
             if (Ground.WalkThrough(m.Kind)) return true;

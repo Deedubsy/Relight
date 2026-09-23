@@ -47,7 +47,8 @@ namespace Relight.Sim.Tests
             Assert.That(ctx.Data.TryMachine("wall", out var wall), Is.True);
             Assert.That(spec.Hp, Is.LessThan(wall.Hp),
                 "a door should be the weak point of a wall, not the strong one");
-            Assert.That(spec.Cost, Is.Not.Null.And.Count.GreaterThan(0), "a gate nobody pays for is not a build");
+            Assert.That(spec.Cost, Is.Not.Null);
+            Assert.That(spec.Cost.Count, Is.GreaterThan(0), "a gate nobody pays for is not a build");
             Assert.That(spec.Unlock, Is.Empty, "the hole in a wall is a problem the moment walls exist");
             Assert.That(BuildCatalogue.Category(Gate), Is.EqualTo(BuildCategory.Defence));
             Assert.That(BuildCatalogue.DescriptionFor(Gate), Is.Not.Empty,
@@ -348,8 +349,9 @@ namespace Relight.Sim.Tests
         [Test]
         public void TheGateAddsNothingToTheSaveFormat()
         {
-            // 13 since REL-137 (the encounters) and 14 since REL-138 (keys and crates), neither the gate's doing.
-            Assert.That(SaveSchema.Version, Is.EqualTo(14),
+            // 13 since REL-137 (the encounters), 14 since REL-138 (keys and crates) and 15 since REL-140 (the
+            // stronghold doors and fight clock), none of them the gate's doing.
+            Assert.That(SaveSchema.Version, Is.EqualTo(15),
                 "a gate is an ordinary machine; if the version moved, something here started saving state of its own");
         }
     }

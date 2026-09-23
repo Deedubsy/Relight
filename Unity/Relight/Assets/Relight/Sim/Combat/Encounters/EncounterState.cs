@@ -55,6 +55,23 @@ namespace Relight.Sim
         /// lost when the engineer goes down.
         /// </summary>
         public List<string> Pouch = new List<string>();
+        /// <summary>
+        /// The strongholds whose doors are open (§5.4, FRT-05, save v15), by <see cref="StrongholdDef.Id"/>, in the
+        /// order they were opened. A door never shuts again.
+        /// </summary>
+        public List<string> Opened = new List<string>();
+        /// <summary>
+        /// U-D-69 (e), FRT-05 (save v15): sim time a stronghold fight runs until; -1 when none has been fought.
+        /// Pushed on every tick the engineer is engaged, so the fight ends
+        /// <see cref="EncounterCatalogue.FightTailSeconds"/> after they leave or go down.
+        /// </summary>
+        public double FightUntil = -1;
+
+        public bool IsOpen(string stronghold)
+        {
+            for (var i = 0; i < Opened.Count; i++) if (string.CompareOrdinal(Opened[i], stronghold) == 0) return true;
+            return false;
+        }
 
         public bool Holds(string key)
         {
@@ -82,6 +99,8 @@ namespace Relight.Sim
         {
             v.List("records", Records, () => new EncounterRecord());
             v.StringList("pouch", Pouch);
+            v.StringList("opened", Opened);
+            v.Field("fightUntil", ref FightUntil);
         }
     }
 

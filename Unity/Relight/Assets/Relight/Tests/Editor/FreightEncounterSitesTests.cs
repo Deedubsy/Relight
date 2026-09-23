@@ -59,5 +59,53 @@ namespace Relight.Authoring.Tests
                         Is.GreaterThanOrEqualTo(25), d.Id + " is too near " + k.Id);
             }
         }
+
+        /// <summary>
+        /// FRT-05 (REL-140): on the real city the two doors are the only way through the warehouse walls. With them
+        /// shut, a body on the floor can reach nothing outside the ring by the rule enemy movement uses; with them
+        /// open, it can.
+        /// </summary>
+        [Test]
+        public void TheWarehouseDoorsAreTheOnlyWayIn()
+        {
+            var ctx = RealCityFixture.Context(out _opening);
+            var st = Simulation.NewGame(ctx, 1).State;
+            var floor = ctx.Sites.Find("freight:arena");
+            Assert.That(floor, Is.Not.Null);
+            Assert.That(ctx.Sites.OfKind(SiteKind.StrongholdDoor).Count(), Is.EqualTo(2));
+            var guardian = ctx.Sites.Find("freight:arena:guardian");
+            bool Out(int x, int y) => x < floor.X - 1 || x > floor.X + floor.W || y < floor.Y - 1 || y > floor.Y + floor.H;
+
+            Assert.That(Flood(ctx, guardian.X, guardian.Y, (x, y) => DirectorRules.HostileOpen(ctx, st, x, y)).Any(t => Out(t.X, t.Y)),
+                Is.False, "with the doors shut nothing on the floor can walk out");
+            st.Encounters.Opened.Add("freight");
+            st.Rev++;
+            Assert.That(Flood(ctx, guardian.X, guardian.Y, (x, y) => DirectorRules.HostileOpen(ctx, st, x, y)).Any(t => Out(t.X, t.Y)),
+                Is.True, "open, the doors lead out");
+            Assert.That(Flood(ctx, guardian.X, guardian.Y, (x, y) => Ground.PassableForEngineer(ctx, st, x, y)).Any(t => Out(t.X, t.Y)),
+                Is.True, "and the engineer can walk in");
+        }
+
+        /// <summary>Tiles reachable from (x, y) through <paramref name="open"/>, stopping 40 tiles out.</summary>
+        static System.Collections.Generic.HashSet<(int X, int Y)> Flood(SimContext ctx, int x, int y, System.Func<int, int, bool> open)
+        {
+            var seen = new System.Collections.Generic.HashSet<(int X, int Y)> { (x, y) };
+            var q = new System.Collections.Generic.Queue<(int X, int Y)>();
+            q.Enqueue((x, y));
+            while (q.Count > 0)
+            {
+                var c = q.Dequeue();
+                for (var k = 0; k < 4; k++)
+                {
+                    var nx = c.X + Dirs.DX[k];
+                    var ny = c.Y + Dirs.DY[k];
+                    if (System.Math.Abs(nx - x) > 40 || System.Math.Abs(ny - y) > 40) continue;
+                    if (!Ground.InBounds(ctx, nx, ny) || seen.Contains((nx, ny)) || !open(nx, ny)) continue;
+                    seen.Add((nx, ny));
+                    q.Enqueue((nx, ny));
+                }
+            }
+            return seen;
+        }
     }
 }

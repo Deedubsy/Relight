@@ -219,6 +219,13 @@ namespace Relight.Sim
                 what += (what.Length == 0 ? " with" : " and") + " no stronghold key held yet";
                 v = 14;
             }
+            if (v == 14)
+            {
+                var problem = FourteenToFifteen(state, out damaged);
+                if (problem.Length != 0) return problem;
+                what += (what.Length == 0 ? " with" : " and") + " the warehouse doors still shut";
+                v = 15;
+            }
             // Every version between OldestReadable and Version has a step above; a gap here is a programming error.
             if (v != SaveSchema.Version)
                 return "unsupported save version " + fromVersion.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -402,6 +409,17 @@ namespace Relight.Sim
                     var m = machines.At(i);
                     if (m != null && m.IsObject) m.TryAddMember(Site, JsonValue.TextValue(""));
                 }
+            FillMissing(state, FreshDocument());
+            return "";
+        }
+
+        /// <summary>
+        /// Version 14 → 15 (REL-140): <c>encounters.opened</c> and <c>encounters.fightUntil</c> come from the fill,
+        /// empty and -1. A version-14 build had no doors to open and no stronghold to fight, so that is its truth.
+        /// </summary>
+        static string FourteenToFifteen(JsonValue state, out bool damaged)
+        {
+            damaged = false;
             FillMissing(state, FreshDocument());
             return "";
         }

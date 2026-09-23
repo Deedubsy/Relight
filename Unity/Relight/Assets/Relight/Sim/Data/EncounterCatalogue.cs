@@ -51,6 +51,15 @@ namespace Relight.Sim
         IReadOnlyList<ItemStack> Cache, string Key, double RepeatSeconds, int Serial, string Source);
 
     /// <summary>
+    /// One stronghold (FREIGHT_STRONGHOLD_DESIGN §4.3): the keys that open it, the locked doors they open and the
+    /// arena encounter behind them. A stronghold whose <see cref="Arena"/> site is not in the loaded region does
+    /// not exist in that game, exactly as an encounter whose site is missing does not. The guardian and the core
+    /// drop arrive with FRT-06.
+    /// </summary>
+    public sealed record StrongholdDef(
+        string Id, string Name, IReadOnlyList<string> Keys, IReadOnlyList<string> Doors, string Arena, string Source);
+
+    /// <summary>
     /// Batch 4 (U-D-73): the port-owned encounter rows, the <see cref="CombatBalance"/> pattern. The reference keeps
     /// its camps as a hand-written list in gameplaySites.ts (FIRST_CAMPS) and its garrisons as numbers on the city
     /// json; neither reaches the exported catalogue, so the rows live here.
@@ -62,8 +71,9 @@ namespace Relight.Sim
     /// carries the design's <c>RaidWeight</c>, because living camps do not change raid size (U-D-73 (1)).
     ///
     /// Rows arrive with the commits that use them: the key camps and the Riverside squat with FRT-02 (REL-137),
-    /// the small camps with FRT-04 (REL-139) and the warehouse with FRT-05. Key camps and the squat never refill
-    /// (<see cref="EncounterDef.RepeatSeconds"/> 0): a key is taken once, and a plant is cleared once.
+    /// the small camps with FRT-04 (REL-139) and the warehouse with FRT-05 (REL-140). Key camps, the warehouse and
+    /// the squat never refill (<see cref="EncounterDef.RepeatSeconds"/> 0): a key is taken once, and a plant is
+    /// cleared once.
     /// </summary>
     public static class EncounterCatalogue
     {
@@ -85,6 +95,23 @@ namespace Relight.Sim
         public const double LootRepeatSeconds = 900;
         /// <summary>§3: a player machine this close to a cleared camp's marker keeps it from being refilled.</summary>
         public const double BuiltNearTiles = 20;
+        /// <summary>
+        /// FRT-05 (U-P-40): the warehouse garrison is born when the engineer comes this close to the middle of the
+        /// warehouse floor, not on the first step inside it. Born at the door, its two inside squads would be about
+        /// four tiles from the engineer and §5.1's no-surprise rule could never let them in; born at the start of
+        /// the game, 60 bodies would sit in <see cref="RaidTuning.LivingBudget"/> all game. From 48 tiles every
+        /// squad, inside or out, is well over 12 tiles off.
+        /// </summary>
+        public const double ArenaResolveTiles = 48;
+        /// <summary>§5.4 (the reference's openFreight): the engineer opens a stronghold within this of either door.</summary>
+        public const double DoorReachTiles = 3;
+        /// <summary>
+        /// U-D-69 (e), FRT-05 (U-P-40): the engineer is in a stronghold fight within this of its arena floor, or
+        /// while any of its garrison is chasing them.
+        /// </summary>
+        public const double FightNearTiles = 12;
+        /// <summary>U-D-69 (e): the fight is over this long after the engineer leaves or goes down.</summary>
+        public const double FightTailSeconds = 30;
         /// <summary>The first group number an encounter squad takes; raid groups are raid ids and stay far below.</summary>
         public const int GroupBase = 1000000;
 
@@ -149,12 +176,31 @@ namespace Relight.Sim
                 new[] { new ItemStack(ItemId.Magazine, 30) },
                 null, LootRepeatSeconds, 14,
                 Design + "; U-P-39"),
+            // The warehouse floor (FRT-05, §4.2 freight:arena): 60 guards in six squads, four round the outside and
+            // two shut in by the doors, every fifth a spitter as the reference's per-squad `% 5 == 4`. No key and no
+            // crate; the guardian and the core it drops are FRT-06's.
+            new EncounterDef("freight:arena", "Freight warehouse", "freight:arena",
+                EncounterKind.Arena, EncounterDiscovery.Proximity,
+                60, 5, None, AtMarker,
+                0, 0, 0,
+                Array.Empty<ItemStack>(), null, 0, 20,
+                Design + "; U-D-73 (60 guards, inside U-D-64 (c)); U-P-40"),
             new EncounterDef("plant:riverside:squat", "Riverside squat", "plant:riverside",
                 EncounterKind.Squat, EncounterDiscovery.Proximity,
                 8, 0, None, new[] { (-3, 0), (3, 0) },
                 0, 0, 0,
                 Array.Empty<ItemStack>(), null, 0, 50,
                 Design + "; §4.4"),
+        };
+
+        /// <summary>The strongholds (§4.3). One in batch 4: the Freight warehouse.</summary>
+        public static readonly IReadOnlyList<StrongholdDef> Strongholds = new[]
+        {
+            new StrongholdDef("freight", "Freight warehouse",
+                new[] { "freight:camp:1", "freight:camp:2", "freight:camp:3" },
+                new[] { "freight:door:0", "freight:door:1" },
+                "freight:arena",
+                "Unity/Docs/FREIGHT_STRONGHOLD_DESIGN_2026-09-18.md §4.3, §5.4; packages/sim/src/firstRegion.ts openFreight; U-P-40"),
         };
 
         public static EncounterDef Find(string id)

@@ -180,7 +180,7 @@ namespace Relight.Sim.Tests.Combat
             var st = Bench(ctx);
             Assert.That(DirectorPacing.InCycle(st), Is.False);
             Assert.That(DirectorPacing.WarningHold(ctx, st), Is.Empty);
-            Assert.That(DirectorPacing.StrongholdFight(ctx, st), Is.False, "no strongholds exist yet (U-D-69 e)");
+            Assert.That(DirectorPacing.StrongholdFight(ctx, st), Is.False, "the synthetic map has no stronghold (U-D-69 e)");
         }
 
         // ---------------------------------------------------------------- fair timing (U-D-66 (5))

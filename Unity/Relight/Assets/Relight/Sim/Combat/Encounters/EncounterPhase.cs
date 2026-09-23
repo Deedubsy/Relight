@@ -61,6 +61,7 @@ namespace Relight.Sim
                 if (!rec.Claimed && Occupies(def)) Occupy(st, def, site, rec);
                 if (Refills(st, def, site, rec)) Refill(st, def, rec);
             }
+            StrongholdRules.Tick(ctx, st);
         }
 
         /// <summary>
@@ -201,9 +202,9 @@ namespace Relight.Sim
 
         /// <summary>How close the engineer must come for <paramref name="def"/> to be found.</summary>
         public static double ResolveTiles(EncounterDef def) =>
-            def.Discovery == EncounterDiscovery.SearchArea
-                ? EncounterCatalogue.SearchResolveTiles
-                : EncounterCatalogue.ProximityTiles;
+            def.Kind == EncounterKind.Arena ? EncounterCatalogue.ArenaResolveTiles
+            : def.Discovery == EncounterDiscovery.SearchArea ? EncounterCatalogue.SearchResolveTiles
+            : EncounterCatalogue.ProximityTiles;
 
         /// <summary>Living bodies that guard <paramref name="id"/>.</summary>
         public static int Living(SimState st, string id)
