@@ -131,6 +131,7 @@ Every decision, one line each. Rows U-D-01b–U-D-73 and U-M-01–U-M-40 live in
 | U-M-38 | Phase B loose ends before owner acceptance | Recorded | 2026-09-13 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
 | U-M-39 | Correction pass: controls and UI | Recorded | 2026-09-14 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
 | U-M-40 | Correction pass: full riverfront map, saves and presentation | Recorded | 2026-09-14 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-41 | A raid targets the real footprint, for its route and its damage | Accepted (engineering) | 2026-09-23 | [file](decisions/U-M-41-raids-target-the-real-footprint.md) |
 | Current UI implementation authority | Owner authorised the 2026-09-14 UI/UX pass | Accepted (owner) | 2026-09-14 | [section](#current-ui-implementation-authority--2026-09-14) |
 | Owner UI direction | 2026-09-14 follow-up UI direction | Accepted (owner) | 2026-09-14 | [section](#owner-ui-direction--2026-09-14-follow-up) |
 | U-D-ORE-01 | Owner-approved ore opening | Accepted (owner) | 2026-09-15 | [section](#u-d-ore-01--owner-approved-ore-opening-2026-09-15) |
