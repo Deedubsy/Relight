@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using Relight.Sim;
+using Relight.Sim.UI;
+using Relight.World;
 using UnityEngine;
 
 namespace Relight.Presentation
@@ -31,6 +33,12 @@ namespace Relight.Presentation
         /// <summary>The simulation the views were last built from; a different one means a different session.</summary>
         private Simulation _session;
         private Material _activityMaterial;
+        private Transform _coreMark;
+        private BuildingConditionVisual _coreCondition;
+
+        /// <summary>REL-133: true while the Home core is drawing the repair mark. For the play tests.</summary>
+        public bool CoreRepairShowing => _coreCondition != null && _coreCondition.Showing;
+
         private void LateUpdate()
         {
             Sync();
@@ -38,6 +46,34 @@ namespace Relight.Presentation
             if(_activityMaterial==null)_activityMaterial=new Material(Shader.Find("Sprites/Default"));
             var dt=host.Paused?0:Mathf.Min(Time.deltaTime,.1f);
             foreach(var view in _views.Values)if(view!=null)view.Animate(sim,dt,_activityMaterial);
+            AnimateCore(sim,dt);
+        }
+
+        /// <summary>
+        /// REL-133. The Home core is a rect on <see cref="HomeState"/>, not a <see cref="Machine"/> — nothing places
+        /// it and nothing may pack it — so it has no <see cref="MachineView"/> to hang the repair mark on and gets
+        /// one object of its own here. It is drawn from this presenter rather than from one of its own because the
+        /// core IS a building to the player: it is the thing they repair most, and the owner's note says "when a
+        /// building is being repaired" without carving it out.
+        ///
+        /// The object is made on the first core repair and then kept, like every other stroke in this presenter.
+        /// </summary>
+        private void AnimateCore(Simulation sim,float dt)
+        {
+            var st=sim.State;
+            if(!BuildingCondition.RepairingCore(st)){_coreCondition?.Hide();return;}
+            var h=st.Home;
+            if(_coreMark==null)
+            {
+                var go=new GameObject("Home core condition");
+                go.transform.SetParent(container==null?transform:container,false);
+                _coreMark=go.transform;
+            }
+            // Followed every frame rather than set once: HomeCore.Ensure can place the core on a later tick, and a
+            // loaded save brings a core that may stand somewhere else entirely.
+            _coreMark.position=WorldSpace.RectCentre(h.X,h.Y,h.W,h.H);
+            if(_coreCondition==null)_coreCondition=new BuildingConditionVisual(_coreMark,_activityMaterial);
+            _coreCondition.Draw(h.W,h.H,BuildingCondition.RepairProgress(sim.Context.Data,st),dt);
         }
         private void OnDestroy(){if(_activityMaterial!=null)Destroy(_activityMaterial);}
 

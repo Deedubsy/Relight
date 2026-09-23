@@ -1,5 +1,6 @@
 using Relight.Data;
 using Relight.Sim;
+using Relight.Sim.UI;
 using Relight.World;
 using UnityEngine;
 
@@ -24,13 +25,26 @@ namespace Relight.Presentation
         private LineRenderer _direction;
         private Material _directionMaterial;
         private MachineActivityVisual _activity;
+        private BuildingConditionVisual _condition;
         public MachineOperatingState ActivityState => _activity?.State ?? MachineOperatingState.Idle;
         public float ActivityMotion => _activity?.Motion ?? 0;
+
+        /// <summary>REL-133: true while this machine is drawing the repair mark. For the play tests.</summary>
+        public bool RepairShowing => _condition != null && _condition.Showing;
 
         public void Animate(Simulation sim,float dt,Material material)
         {
             if (_sprite == null || !_sprite.isVisible) return;
             var m=sim.State.MachineById(MachineId);
+            // REL-133: the repair mark has its own gate and is drawn ABOVE the activity gate below, because the
+            // things most often repaired — a Wall, a chest, a pole — are not things MachineActivityVisual supports.
+            if(m!=null && BuildingCondition.RepairingMachine(sim.State,m.Id))
+            {
+                if(_condition==null)_condition=new BuildingConditionVisual(transform,material);
+                var (cw,ch)=m.Dimensions;
+                _condition.Draw(cw,ch,BuildingCondition.RepairProgress(sim.Context.Data,sim.State),dt);
+            }
+            else _condition?.Hide();
             // E-17: a wreck of any kind is supported while it is one, and put away once it is repaired.
             if(m==null || !MachineActivityVisual.Supports(sim.Context.Data,sim.State,m)){_activity?.Hide();return;}
             if(_activity==null)_activity=new MachineActivityVisual(transform,material);
