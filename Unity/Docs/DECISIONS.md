@@ -2,13 +2,140 @@
 
 This file is the migration's decision record. It holds three kinds of entry, kept apart:
 
-- **Confirmed owner decisions** that the Unity port must honour. Each entry names its provenance in the reference project. The reference `docs/DECISIONS.md` and `docs/EXPLORATION_DEFENCE_PLAN.md` §6.3 remain the historical record; this file records what carries over and does not rewrite them.
+- **Confirmed owner decisions** that the Unity port must honour. Each entry names its provenance in the reference project. The reference `docs/DECISIONS.md` and `docs/EXPLORATION_DEFENCE_PLAN.md` §6.3 remain the historical record; this file records what carries over and does not rewrite them. New decisions are one file each in [decisions/](decisions/README.md); the [Index](#index) lists all of them.
 - **Migration choices** made by the coordinator with justification. These are engineering choices, not gameplay approvals, and the owner can overturn them.
 - **Owner questions**, each marked resolved, awaiting external information, or deferred to the phase where it becomes answerable (§4). One remains open: U-Q-04 (the art package and tileset licence). U-Q-02 (the ending) was resolved on 2026-09-20 by U-D-60.
 
 Status labels used across the package: **Implemented and retained** / **Approved but not implemented** / **Implemented but needs correction** / **Unresolved** / **Retired**. Numbers are tagged **current** (in code today), **approved** (explicitly confirmed by the owner) or **provisional** (chosen for the checkpoint, may change).
 
 Related: [GAME_DESIGN.md](GAME_DESIGN.md) for the experience these decisions shape, [CONTENT_CATALOGUE.md](CONTENT_CATALOGUE.md) for the values, [MIGRATION_MAP.md](MIGRATION_MAP.md) for per-system disposition, [TASKS.md](TASKS.md) for status.
+
+---
+
+## Index
+
+Every decision, one line each. Rows U-D-01b–U-D-73 and U-M-01–U-M-40 live in the sections below and are not moved. **From U-D-74 and U-M-41 on, each decision is its own file in [decisions/](decisions/README.md)**, added with `/decision`, and gets a line here in the same change. Status is read from the row itself; a blank date means the row states none.
+
+| ID | Title | Status | Date | Where |
+|---|---|---|---|---|
+| U-D-01b | The migration target is Unity; the reference stays runnable | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-02b | Relight only; nothing from the machine-survival game | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-03 | The sim alone mutates gameplay, through commands | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-04 | Play runs at fixed 1× with pause | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-05 | Item conservation: transfers, reloads, cancellations and saves never lose or duplicate items | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-06 | Persistent unlocks: Keys, Schematics, Artifacts, modules, Power cores | Accepted (owner) | 2026-09-10 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-07 | Weapons are owned items | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-08 | One ammunition item is one bullet | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-09 | Storage↔Backpack transfers work across every slot; drops merge | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-10 | Handcrafting requires a stationary player | Superseded by U-D-44 | 2026-09-15 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-11 | Workshop recipe cards show icon, name, quantities and progress | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-12 | Powered machines need an actual connected network | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-13 | Fuel comes from real supplies; automatic delivery is taught | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-14 | Permanent readable HUD: day/time and network demand/supply | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-15 | Distinct weapon ranges, visible shots, rotating turret cannons | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-16 | Major attacks: approaches, one director, cadence, no overdue debt | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-17 | Opening tutorial: the introductory attack and three turrets | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-18 | The campaign Backpack opens with 20 Steel + 5 Copper | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-19 | The Home core is the Home workshop building | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-20 | Defended factory/plant sites, never a territorial economy | Accepted (owner) | 2026-09-09 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-21 | The authored city riverfront-arc-v4 is the world | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-22 | GP-15–25 approved in direction | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-23 | The ending is not invented by the port | Amended in part by U-D-60 (ending decided; third-plant rule stands) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-24 | Human and release gates were never run or passed | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-25 | Energy cells | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-26 | A temporary obstruction defers the introductory encounter; it never cancels it | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-27 | Unity starts fresh; existing saves stay with the reference game | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-28 | Focused tuning during Unity playtesting is delegated | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-29 | Placeholder art proceeds; art with unverified permissions stays out | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-30 | Unity 6.6 with UI Toolkit is the target | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-31 | The full approved gameplay direction is in scope | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-32 | legacy-v1 and its obsolete gameplay are retired from the Unity port | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-33 | Audio is in scope, proportionate | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-34 | The old telemetry and reporting system is retired | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-35 | Manual saves plus rotating autosaves | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-36 | The reference baseline is an identifiable snapshot | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-37 | Five regular enemy types, guardians handled separately | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-38 | The raid structure is preserved as implemented | Accepted (owner); 18–22 min cadence no longer holds under U-D-64 (d) (note in row) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-39 | Frames and Boards keep their existing Alien workbench and Overclock uses | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-40 | Guardian HP provisional at Freight 600, Quarry 1,000, Wharf 1,500 | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-41 | Front end: New Game, Continue, Load and Settings | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-42 | Desktop keyboard and mouse for the initial port | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-43 | Intended fixes are carried into Unity and verified there | Accepted (owner) | 2026-09-11 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-44 | The Home workshop processes queued jobs while the player is away | Accepted (owner) | 2026-09-15 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-45 | A raid is announced only after a valid approach is found | Accepted (owner) | 2026-09-15 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-46 | One line-of-sight rule for everything that shoots | Accepted (owner) | 2026-09-15 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-47 | A major assault is a planned, saved sequence of waves | Accepted (owner) | 2026-09-15 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-48 | Combat on configured data; broken machines are mendable rubble | Amended in part by U-D-68, U-D-69 | 2026-09-15 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-49 | A drawer is a place, not a mode; producers show inventories | Accepted (owner) | 2026-09-16 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-50 | Slot grids own the inventory drawer's height | Amended by U-D-51 (shape rejected) | 2026-09-16 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-51 | The inventory drawer is two columns: player left, producer right | Amended by U-D-52 | 2026-09-16 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-52 | A producer's slots are fixed at the top of its column | Accepted (owner) | 2026-09-16 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-53 | Opening-chain machines arrive with no recipe | Accepted (owner) | 2026-09-16 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-54 | A flattened core is never a win; the chain warns of hidden mistakes | Accepted (owner) | 2026-09-16 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-55 | Buffer chests, one outage message, Tab is the Backpack, even build cards | Accepted (owner) | 2026-09-17 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-56 | E only interacts; tracers start where the sim recorded the shot | Accepted (owner) |  | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-57 | Drops land where aimed; Sort on the Backpack; Shift-drag splits | Accepted (owner) | 2026-09-17 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-58 | The world is always dark, and aliens avoid light | Accepted (owner) | 2026-09-19 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-59 | Light in a fight: light is a fence and a scope | Accepted (owner) | 2026-09-20 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-60 | The ending: switch the city on | Accepted (owner) | 2026-09-20 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-61 | A turret says when it is running dry | Accepted (owner) | 2026-09-20 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-62 | Quarry siege, Wharf two fronts, aliens heard, energy weapons last | Accepted (owner) | 2026-09-20 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-63 | GP-W6: power wording, problem rows, post-attack account, HUD column | Accepted (owner) | 2026-09-21 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-64 | The dark has four layers, each with its own job | Accepted (owner) | 2026-09-21 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-65 | The tram connects every base | Accepted (owner) | 2026-09-21 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-66 | Eight improvements to the threat design: interesting, fair, tunable | Accepted (owner) | 2026-09-21 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-67 | A switch scaling major raids by turret count, shipped off | Accepted (owner) | 2026-09-21 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-68 | Four owner rules given before the second batch | Accepted (owner) | 2026-09-22 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-69 | Eight owner answers given before the third batch | Accepted (owner) | 2026-09-22 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-70 | A wrecked turret raises its place's defence row on its own | Accepted (owner) | 2026-09-23 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-71 | Ten notes from the owner's third-batch play, and four answers | Accepted (owner) | 2026-09-23 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-72 | The Gate, and the one wall a turret may shoot over | Accepted (owner) | 2026-09-23 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-D-73 | Batch 4 is the Freight plan, with four owner answers | Accepted (owner) | 2026-09-23 | [§1](#1-confirmed-owner-decisions-carried-into-the-port) |
+| U-M-01 | Target: Unity 6.6 (6000.6) with UI Toolkit | Confirmed by the owner (U-D-30) |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-02 | Plain C# sim assembly with no UnityEngine reference, 20 Hz | Proposed |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-03 | No ECS/DOTS, no job system in the first port | Proposed |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-04 | Balance and content data live in ScriptableObjects | Adopted 2026-09-12 |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-05 | World import pipeline: one-shot exporter plus Unity importer | Proposed |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-06 | Old-save import is NOT required for the Unity build | Confirmed by the owner (U-D-27) |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-07 | Scenes: Boot, MainMenu, World; UI as UI Toolkit documents | Proposed |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-08 | One prefab per machine, turret, enemy and vehicle family | Proposed |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-09 | Retire browser-only tooling | Proposed |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-10 | SVG art rasterised as placeholder; unlicensed tileset unused | Proposed | 2026-09-11 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-11 | Documentation authority in the Unity project | Confirmed by brief |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-12 | Provisional numbers are starting points; focused tuning allowed | Confirmed by brief; widened by U-D-28 |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-13 | Consistency is proven inside Unity; cross-language comparison is limited to selected outcomes | Adopted |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-14 | Sim tile space stays Y-down; Unity flips Y once | Proposed |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-15 | Existing content imported from TypeScript; new content authored in Unity | Adopted |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-16 | UI font and motion | Proposed |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-17 | Performance target: 60 fps on the reference machine | Proposed |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-18 | Evidence folder layout | Proposed |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-19 | The reference baseline is a preserved snapshot, not a commit | Adopted; confirmed by the owner (U-D-36) | 2026-09-11 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-20 | Editor tooling: one Unity MCP integration, one operator at a time | Adopted; MCP unavailable (U-M-28) | 2026-09-11 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-21 | UI authoring workflow | Adopted |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-22 | Phase B is scoped to a foundation | Adopted 2026-09-11 |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-23 | Deferred work is recorded with an explicit trigger | Adopted 2026-09-11 |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-24 | Audio is routed through one presentation-side cue hook | Mechanism adopted; default superseded by U-D-33 |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-25 | Sim records in Relight.Sim; assets in Data/World; one-way dependency | Adopted 2026-09-11 |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-26 | Tick interval, tick cost and frame budget are never conflated | Adopted 2026-09-11 |  | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-27 | B-01 record: the installed target | Recorded; root amended by U-M-32 | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-28 | B-02a outcome: Unity MCP unavailable for editor work | Recorded | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-29 | B-03 delegated choices | Recorded | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-30 | B-08 delegated choices | Recorded | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-31 | B-06 delegated choices | Recorded; (2) superseded by U-M-37 | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-32 | Project root is Unity/Relight/ | Recorded | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-33 | Wave-2 delegated choices (B-05, B-11, B-12) | Recorded | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-34 | B-13 delegated choices | Recorded | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-35 | B-14 prototype verdicts | Recorded | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-36 | Phase B closure: generated data assets are the editable source | Recorded | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-37 | Phase B repair pass (Astra audit F1–F8) | Recorded | 2026-09-12 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-38 | Phase B loose ends before owner acceptance | Recorded | 2026-09-13 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-39 | Correction pass: controls and UI | Recorded | 2026-09-14 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| U-M-40 | Correction pass: full riverfront map, saves and presentation | Recorded | 2026-09-14 | [§2](#2-migration-choices-coordinator-justified-overturnable) |
+| Current UI implementation authority | Owner authorised the 2026-09-14 UI/UX pass | Accepted (owner) | 2026-09-14 | [section](#current-ui-implementation-authority--2026-09-14) |
+| Owner UI direction | 2026-09-14 follow-up UI direction | Accepted (owner) | 2026-09-14 | [section](#owner-ui-direction--2026-09-14-follow-up) |
+| U-D-ORE-01 | Owner-approved ore opening | Accepted (owner) | 2026-09-15 | [section](#u-d-ore-01--owner-approved-ore-opening-2026-09-15) |
+| U-D-SCENE-01 | Scene-authored Unity world | Accepted (owner) | 2026-09-15 | [section](#u-d-scene-01--scene-authored-unity-world-owner-2026-09-15) |
+| U-D-RAID-01 | Raid field reach and origin guard | Accepted (engineering) | 2026-09-19 | [section](#u-d-raid-01--raid-field-reach-and-origin-guard-engineering-2026-09-19-owner-authorised-the-fix-with-do-it-use-gizmos-where-you-can) |
 
 ---
 

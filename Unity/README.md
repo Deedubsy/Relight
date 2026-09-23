@@ -24,7 +24,7 @@ Numbers are tagged **current** (what the code does today), **approved** (explici
 
 ## Reading order
 
-1. [Docs/DECISIONS.md](Docs/DECISIONS.md) — confirmed owner decisions, migration choices, provisional values, and the disposition of every owner question (§4: resolved, awaiting external information, or deferred to a phase).
+1. [Docs/DECISIONS.md](Docs/DECISIONS.md) — start at its Index; new decisions are files in [Docs/decisions/](Docs/decisions/README.md); confirmed owner decisions, migration choices, provisional values, and the disposition of every owner question (§4: resolved, awaiting external information, or deferred to a phase).
 2. [Docs/GAME_DESIGN.md](Docs/GAME_DESIGN.md) — the intended experience: core loop, opening, progression, production, power, combat, raids, ending (decided 2026-09-20, not implemented).
 3. [Docs/CONTENT_CATALOGUE.md](Docs/CONTENT_CATALOGUE.md) — items, recipes, machines, weapons, enemies, director numbers, rewards, with current/approved/provisional tags and source references.
 4. [Docs/WORLD_AND_ASSETS.md](Docs/WORLD_AND_ASSETS.md) — regions, sites, coordinates, tile conventions, canonical world sources, the export/import mapping, asset inventory and provenance.

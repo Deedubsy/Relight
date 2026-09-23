@@ -1,0 +1,11 @@
+#!/bin/sh
+# Decision-records check: see Unity/Docs/decisions/README.md.
+# Enabled per clone with: git config core.hooksPath .githooks
+dir=$(dirname "$0")
+for py in python3 python py; do
+  if command -v "$py" >/dev/null 2>&1 && "$py" -c "import sys; sys.exit(sys.version_info < (3, 6))" >/dev/null 2>&1; then
+    exec "$py" "$dir/check_decisions.py"
+  fi
+done
+echo "pre-commit: no Python 3 found; decision-records check skipped" >&2
+exit 0
