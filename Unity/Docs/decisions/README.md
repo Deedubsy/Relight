@@ -26,7 +26,11 @@ One file per decision, from **U-D-74** (owner policy) and **U-M-41** (engineerin
 - DECISIONS.md gains a new id (U-D-74+ / U-M-41+) as a table row instead of a file;
 - any added line in a text or code file mentions a new id that has no file, except the current **Next free ids** and lines about this folder.
 
-It cannot notice a decision nobody numbered. Enable it once per clone with `git config core.hooksPath .githooks`; bypass only in an emergency with `git commit --no-verify`.
+It cannot notice a decision nobody numbered; the Claude gate below covers that. Enable it once per clone with `git config core.hooksPath .githooks`; bypass only in an emergency with `git commit --no-verify`.
+
+## The Claude gate
+
+`.claude/settings.json` runs `.claude/hooks/decision_gate.py` before every Bash command a Claude Code session runs. It refuses a `git commit` once, listing what counts as an unrecorded decision (a choice between options with a reason, an engineering rule, a new owner rule). The session checks, runs `/decision` if needed, then re-runs the commit as `DECISION_CHECK=done git commit ...`. It applies to Claude Code sessions only, from their next start, and relies on the session's judgement; the git check above stays the deterministic one.
 
 Statuses: `Proposed` · `Accepted (owner)` · `Accepted (engineering)` · `Superseded by U-D-nn` · `Amended by U-D-nn` · `Retired`.
 

@@ -189,6 +189,8 @@ Team **Relightgame**, project **Relight**. There is no "In Review" state; finish
 **Decision-records commit check.** `.githooks/pre-commit` blocks a commit that mentions a new U-D/U-M id
 (U-D-74+ / U-M-41+) without its file in `Unity/Docs/decisions/` and its Index line. It is on when
 `git config --get core.hooksPath` prints `.githooks`; a fresh clone needs `git config core.hooksPath .githooks`.
+Claude sessions also meet `.claude/hooks/decision_gate.py`: the first `git commit` is refused until the session has checked
+for an unnumbered decision (a choice between options, a new owner rule) and re-runs it as `DECISION_CHECK=done git commit ...`.
 
 **The two offline projects lived in the session scratchpad, which is session-specific. They are gone.
 Rebuild them at the start of the next session** — they are what make the owner's "don't run too many
