@@ -47,8 +47,8 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(line, Is.EqualTo(CoreY + CoreSize - 1 + 72));
             Assert.That(line - CoreY, Is.GreaterThan(70), "the old box, 70 tiles from the core's top-left tile, could not reach this row");
 
-            Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var size), Is.True);
-            var fld = st.Director.Fields.Field(ctx, st, bx, by, size, true);
+            Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th), Is.True);
+            var fld = st.Director.Fields.Field(ctx, st, bx, by, tw, th, true);
             Assert.That(fld.At(CoreX + 4, line), Is.GreaterThanOrEqualTo(0), "the field reaches the raid line row");
             Assert.That(fld.At(CoreX + 4, line), Is.LessThanOrEqualTo(ctx.Data.Siege.EntryFarSteps), "and it is inside the entry band there");
 
@@ -85,7 +85,7 @@ namespace Relight.Sim.Tests.Combat
         {
             var ctx = Context(72);
             var st = RaidFixture.State(ctx);
-            var fld = st.Director.Fields.Field(ctx, st, CoreX, CoreY, CoreSize, true);
+            var fld = st.Director.Fields.Field(ctx, st, CoreX, CoreY, CoreSize, CoreSize, true);
             Assert.That(fld.X0, Is.EqualTo(CoreX - fld.Reach));
             Assert.That(fld.Y0, Is.EqualTo(0), "clipped to the map's top edge");
             Assert.That(fld.X0 + fld.BW - 1, Is.EqualTo(CoreX + CoreSize - 1 + fld.Reach));

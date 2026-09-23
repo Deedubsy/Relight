@@ -167,17 +167,17 @@ namespace Relight.Sim
         }
 
         /// <summary>
-        /// FRT-09: a standing plant's footprint as a raid destination, in the director's terms (the larger side as
-        /// <paramref name="size"/>, as <see cref="EnemyCoreHook.Rect"/> reports the Home core). False once it falls.
+        /// FRT-09: a standing plant's footprint as a raid destination, in the director's terms (as
+        /// <see cref="EnemyCoreHook.Rect"/> reports the Home core). False once it falls.
         /// </summary>
-        public static bool Rect(SimContext ctx, SimState st, string id, out int x, out int y, out int size)
+        public static bool Rect(SimContext ctx, SimState st, string id, out int x, out int y, out int w, out int h)
         {
-            x = 0; y = 0; size = 0;
+            x = 0; y = 0; w = 0; h = 0;
             if (!Standing(st, id)) return false;
             var s = ctx?.Sites?.Find(id);
             if (s == null) return false;
-            x = s.X; y = s.Y; size = s.W > s.H ? s.W : s.H;
-            if (size <= 0) size = 1;
+            // REL-124: the site's real width and height, not a square on its longer side.
+            x = s.X; y = s.Y; w = s.W > 0 ? s.W : 1; h = s.H > 0 ? s.H : 1;
             return true;
         }
 

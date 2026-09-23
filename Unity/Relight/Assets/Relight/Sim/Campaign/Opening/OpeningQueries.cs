@@ -690,8 +690,8 @@ namespace Relight.Sim
         {
             if (turret == null || st.Opening == null || st.Opening.Origin < 0) return "";
             var reach = spec != null ? spec.RangeTiles : 9.0;
-            if (!DirectorRules.Target(ctx, st, out var bx, out var by, out var size)) return "";
-            var gap = DirectorQueries.Clearance(ctx, st, st.Opening.Origin, turret, bx, by, size);
+            if (!DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th)) return "";
+            var gap = DirectorQueries.Clearance(ctx, st, st.Opening.Origin, turret, bx, by, tw, th);
             if (double.IsInfinity(gap) || gap <= reach) return "";
             return " Their path passes about " + Num(Math.Round(gap)) + " tiles from your turret, which only reaches "
                 + Num(reach) + " — it will not fire on them. Build another between the marker and the Home core.";

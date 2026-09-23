@@ -86,9 +86,9 @@ namespace Relight.Sim
         /// </summary>
         public static bool Far(SimContext ctx, SimState st)
         {
-            if (!DirectorRules.Target(ctx, st, out var x, out var y, out var size)) return false;
-            var dx = st.Engineer.Pos.X - (x + size / 2.0);
-            var dy = st.Engineer.Pos.Y - (y + size / 2.0);
+            if (!DirectorRules.Target(ctx, st, out var x, out var y, out var tw, out var th)) return false;
+            var dx = st.Engineer.Pos.X - (x + tw / 2.0);
+            var dy = st.Engineer.Pos.Y - (y + th / 2.0);
             var far = ctx.Data.Siege.FarTargetTiles;
             return dx * dx + dy * dy > far * far;
         }

@@ -282,8 +282,8 @@ namespace Relight.Sim.UI
 
         /// <summary>The place this raid is aimed at: where its target stands. With no target left, the whole map.</summary>
         private static int TargetPlace(SimContext ctx, SimState st) =>
-            DirectorRules.Target(ctx, st, out var x, out var y, out var size)
-                ? PlaceAt(ctx, x + size / 2.0, y + size / 2.0)
+            DirectorRules.Target(ctx, st, out var x, out var y, out var tw, out var th)
+                ? PlaceAt(ctx, x + tw / 2.0, y + th / 2.0)
                 : -1;
 
         /// <summary>Is this machine in the raid's place? A machine that is no longer on the map is not counted.</summary>
@@ -309,7 +309,7 @@ namespace Relight.Sim.UI
             _coreDisabled = false;
             _outage = false;
             _outageWave = 0;
-            _hasCore = DirectorRules.Target(ctx, st, out _, out _, out _);
+            _hasCore = DirectorRules.Target(ctx, st, out _, out _, out _, out _);
             _openedAt = st.T;
             _waves = major && st.Director.Major != null ? st.Director.Major.Waves : 0;
             _waveSeen = major && st.Director.Major != null ? st.Director.Major.WaveAnnounced : 0;

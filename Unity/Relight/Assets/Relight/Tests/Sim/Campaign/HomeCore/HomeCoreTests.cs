@@ -362,13 +362,13 @@ namespace Relight.Sim.Tests.Campaign
             var st = State(ctx);
             var (cx, cy, cw, ch) = HomeQueries.CoreRect(st);
 
-            Assert.That(EnemyCoreHook.Rect(ctx, st, out var x, out var y, out var size), Is.True);
-            Assert.That((x, y, size), Is.EqualTo((cx, cy, cw > ch ? cw : ch)), "the fall-back 3x3 at the spawn tile");
+            Assert.That(EnemyCoreHook.Rect(ctx, st, out var x, out var y, out var w, out var h), Is.True);
+            Assert.That((x, y, w, h), Is.EqualTo((cx, cy, cw, ch)), "the fall-back 3x3 at the spawn tile");
 
             HomeCore.Damage(st, ctx.Data.Defence.CoreHp);
             Assert.That(HomeQueries.CoreOperational(st), Is.False);
             // No authored site on the synthetic map, so the declaring side's ctx.Sites.Core fall-back finds nothing.
-            Assert.That(EnemyCoreHook.Rect(ctx, st, out _, out _, out _), Is.False, "a destroyed core is not a target");
+            Assert.That(EnemyCoreHook.Rect(ctx, st, out _, out _, out _, out _), Is.False, "a destroyed core is not a target");
         }
 
         // ---------------------------------------------------------------- helpers

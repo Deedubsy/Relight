@@ -19,9 +19,9 @@ namespace Relight.Sim
     ///     {
     ///         static partial void DamageCoreImpl(SimContext ctx, SimState st, double amount) =>
     ///             HomeCore.Damage(st, amount);
-    ///         static partial void CoreRectImpl(SimContext ctx, SimState st, ref int x, ref int y, ref int size, ref bool found)
+    ///         static partial void CoreRectImpl(SimContext ctx, SimState st, ref int x, ref int y, ref int w, ref int h, ref bool found)
     ///         {
-    ///             // set x/y/size to the core footprint and found = true while the core still stands
+    ///             // set x/y/w/h to the core footprint and found = true while the core still stands
     ///         }
     ///     }
     /// }
@@ -37,7 +37,7 @@ namespace Relight.Sim
         /// The core footprint, if the region has one. C-05 may override the authored rect (for instance to stop
         /// reporting it once the core is destroyed) by implementing <c>CoreRectImpl</c>.
         /// </summary>
-        static partial void CoreRectImpl(SimContext ctx, SimState st, ref int x, ref int y, ref int size, ref bool found);
+        static partial void CoreRectImpl(SimContext ctx, SimState st, ref int x, ref int y, ref int w, ref int h, ref bool found);
 
         /// <summary>
         /// E-18. True when the region HAS a core of its own and that core is at 0 hit points. C-05 answers; with no
@@ -92,12 +92,15 @@ namespace Relight.Sim
             DamageCoreImpl(ctx, st, amount);
         }
 
-        /// <summary>The raid destination: the core footprint in tiles. False when the region has no core (synthetic map).</summary>
-        public static bool Rect(SimContext ctx, SimState st, out int x, out int y, out int size)
+        /// <summary>
+        /// The raid destination: the core footprint in tiles, at its real width and height (REL-124). False when the
+        /// region has no core (synthetic map).
+        /// </summary>
+        public static bool Rect(SimContext ctx, SimState st, out int x, out int y, out int w, out int h)
         {
-            x = 0; y = 0; size = 0;
+            x = 0; y = 0; w = 0; h = 0;
             var found = false;
-            CoreRectImpl(ctx, st, ref x, ref y, ref size, ref found);
+            CoreRectImpl(ctx, st, ref x, ref y, ref w, ref h, ref found);
             if (found) return true;
             // E-18: the authored-site fall-back is for a region whose core was never placed. A core that was placed
             // and has fallen is not a target at all — answering with the site here is what kept a beaten raid
@@ -105,8 +108,8 @@ namespace Relight.Sim
             if (Down(ctx, st)) return false;
             var site = ctx.Sites?.Core;
             if (site == null) return false;
-            x = site.X; y = site.Y; size = site.W > site.H ? site.W : site.H;
-            return size > 0;
+            x = site.X; y = site.Y; w = site.W; h = site.H;
+            return w > 0 && h > 0;
         }
     }
 }

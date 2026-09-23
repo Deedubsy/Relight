@@ -82,7 +82,7 @@ namespace Relight.Sim
             var d = st.Director;
             var r = ctx.Data.Raids;
             var a = d.Major;
-            var has = DirectorRules.Target(ctx, st, out var bx, out var by, out _);
+            var has = DirectorRules.Target(ctx, st, out var bx, out var by, out _, out _);
             Live(st, out var major, out var minor, out var total);
 
             string phase; double left = 0;
@@ -136,9 +136,9 @@ namespace Relight.Sim
         {
             var d = st.Director;
             var w = ctx.Geometry.Width;
-            DirectorRules.Target(ctx, st, out var bx, out var by, out var size);
-            var cx = bx + size / 2.0;
-            var cy = by + size / 2.0;
+            DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th);
+            var cx = bx + tw / 2.0;
+            var cy = by + th / 2.0;
 
             var m = d.Minor;
             // REL-74: a small raid that is only walking away gives way to a large one that is warned or on the
@@ -168,8 +168,8 @@ namespace Relight.Sim
             {
                 var at = new Vec2(a.Origin % w + .5, a.Origin / w + .5);
                 // FRT-09: an assault on a plant is named from the plant it is coming for.
-                if (!string.IsNullOrEmpty(a.Plant) && DirectorRules.Target(ctx, st, a.Plant, out var px, out var py, out var ps))
-                { cx = px + ps / 2.0; cy = py + ps / 2.0; }
+                if (!string.IsNullOrEmpty(a.Plant) && DirectorRules.Target(ctx, st, a.Plant, out var px, out var py, out var pw, out var ph))
+                { cx = px + pw / 2.0; cy = py + ph / 2.0; }
                 var kind = a.Retreat ? "withdrawal" : st.T >= a.StartsAt ? "assault" : "warning";
                 return new RaidWarning(kind, Math.Max(0, a.StartsAt - st.T), Direction(at, cx, cy), d.Notice, at, "Major assault", a.Id);
             }
@@ -201,13 +201,13 @@ namespace Relight.Sim
         public static string SideWords(SimContext ctx, SimState st, int[] origins, string aim = "")
         {
             if (origins == null || origins.Length == 0) return "";
-            if (!DirectorRules.Target(ctx, st, aim, out var bx, out var by, out var size)) return "";
+            if (!DirectorRules.Target(ctx, st, aim, out var bx, out var by, out var tw, out var th)) return "";
             var w = ctx.Geometry.Width;
             var words = new System.Collections.Generic.List<string>();
             for (var i = 0; i < origins.Length; i++)
             {
                 if (origins[i] < 0) continue;
-                var word = SideWord(origins[i] % w + .5 - (bx + size / 2.0), origins[i] / w + .5 - (by + size / 2.0));
+                var word = SideWord(origins[i] % w + .5 - (bx + tw / 2.0), origins[i] / w + .5 - (by + th / 2.0));
                 if (word.Length > 0 && !words.Contains(word)) words.Add(word);
             }
             if (words.Count == 0) return "";
@@ -226,9 +226,9 @@ namespace Relight.Sim
             if (raidId <= 0 || st?.Enemies == null) return false;
             var major = st.Director.Major;
             var aim = major != null && major.Id == raidId ? major.Plant ?? "" : "";
-            var hasTarget = DirectorRules.Target(ctx, st, aim, out var bx, out var by, out var size);
-            var cx = bx + size / 2.0;
-            var cy = by + size / 2.0;
+            var hasTarget = DirectorRules.Target(ctx, st, aim, out var bx, out var by, out var tw, out var th);
+            var cx = bx + tw / 2.0;
+            var cy = by + th / 2.0;
             var best = double.PositiveInfinity;
             var list = st.Enemies.Actors;
             for (var i = 0; i < list.Count; i++)
@@ -250,8 +250,8 @@ namespace Relight.Sim
         /// or for a point at the target's own centre.
         /// </summary>
         public static string SideOf(SimContext ctx, SimState st, double x, double y) =>
-            DirectorRules.Target(ctx, st, out var bx, out var by, out var size)
-                ? SideWord(x - (bx + size / 2.0), y - (by + size / 2.0))
+            DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th)
+                ? SideWord(x - (bx + tw / 2.0), y - (by + th / 2.0))
                 : "";
 
         private static string SideWord(double dx, double dy)
@@ -304,22 +304,22 @@ namespace Relight.Sim
         {
             var m = st.MachineById(turretId);
             if (m == null) return -1;
-            if (!DirectorRules.Target(ctx, st, out var bx, out var by, out var size)) return -1;
+            if (!DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th)) return -1;
             var best = -1;
             var score = double.PositiveInfinity;
-            Consider(ctx, st, DirectorRules.Origin(ctx, st), m, bx, by, size, ref best, ref score);
+            Consider(ctx, st, DirectorRules.Origin(ctx, st), m, bx, by, tw, th, ref best, ref score);
             var list = DirectorRules.Approaches(ctx, st);
             if (list != null)
                 for (var i = 0; i < list.Length; i++)
-                    Consider(ctx, st, list[i], m, bx, by, size, ref best, ref score);
+                    Consider(ctx, st, list[i], m, bx, by, tw, th, ref best, ref score);
             return best;
         }
 
         private static void Consider(SimContext ctx, SimState st, int origin, Machine m,
-            int bx, int by, int size, ref int best, ref double score)
+            int bx, int by, int tw, int th, ref int best, ref double score)
         {
             if (origin < 0) return;
-            var c = Clearance(ctx, st, origin, m, bx, by, size);
+            var c = Clearance(ctx, st, origin, m, bx, by, tw, th);
             if (c >= score) return;
             score = c;
             best = origin;
@@ -329,9 +329,9 @@ namespace Relight.Sim
         /// Reference campaignThreat.ts:241 <c>approachClearance</c>: walk the breach field down from
         /// <paramref name="origin"/> to the core and report the closest that path comes to the machine's centre.
         /// </summary>
-        public static double Clearance(SimContext ctx, SimState st, int origin, Machine m, int bx, int by, int size)
+        public static double Clearance(SimContext ctx, SimState st, int origin, Machine m, int bx, int by, int tw, int th)
         {
-            var fld = st.Director.Fields.Field(ctx, st, bx, by, size, true);
+            var fld = st.Director.Fields.Field(ctx, st, bx, by, tw, th, true);
             var w = ctx.Geometry.Width;
             var cx = m.X + m.Size / 2.0;
             var cy = m.Y + m.Size / 2.0;

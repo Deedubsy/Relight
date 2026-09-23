@@ -111,11 +111,24 @@ namespace Relight.Tests.Play
             if (screen.z <= 0 || screen.x < 0 || screen.y < 0 || screen.x > Screen.width || screen.y > Screen.height)
                 Assert.Ignore("the pile's tile is off screen; the camera framing is not this test's subject.");
             yield return Point(mouse, new Vector2(screen.x, screen.y));
-            yield return Press(keyboard, Key.E);
-            yield return Release(keyboard);
-            yield return Until(() => DeathCache.Find(st, id) == null, 3f);
+            // REL-125: when E does nothing, say why — the notice it raised, the tile the pointer resolved to (the
+            // camera may still be settling after the walk back) and what is left in the pile.
+            var notices = new List<string>();
+            var noticeWas = WorldInput.InteractionNotice;
+            WorldInput.InteractionNotice = text => { notices.Add(text); noticeWas?.Invoke(text); };
+            var pointedAt = "";
+            try
+            {
+                yield return Press(keyboard, Key.E);
+                pointedAt = PointerTile(camera, mouse);
+                yield return Release(keyboard);
+                yield return Until(() => DeathCache.Find(st, id) == null, 3f);
+            }
+            finally { WorldInput.InteractionNotice = noticeWas; }
 
-            Assert.That(DeathCache.Find(st, id), Is.Null, "E did not collect the pile (or it was not emptied).");
+            Assert.That(DeathCache.Find(st, id), Is.Null, "E did not collect the pile (or it was not emptied). Pile at ("
+                + fellX + ", " + fellY + "), pointer on " + pointedAt + ", in reach " + DeathCache.InReach(ctx, st, pile)
+                + ", left in it " + Left(pile) + ", notices [" + string.Join(" | ", notices) + "].");
             Assert.That(st.Drops.Caches, Is.Empty, "4. an emptied pile is removed.");
             var after = Cargo(e);
             Assert.That(after.Count, Is.EqualTo(before.Count), "a different set of items came back.");
@@ -138,6 +151,24 @@ namespace Relight.Tests.Play
             for (var i = 0; i < keys.Count; i++)
                 if (!keys[i].IsWeapon) held[keys[i].Key] = e.Inv[keys[i]];
             return held;
+        }
+
+        /// <summary>The tile WorldInput resolves the pointer to, by its own projection (WorldInput.TryPointer).</summary>
+        private static string PointerTile(Camera camera, Mouse mouse)
+        {
+            var at = mouse.position.ReadValue();
+            var world = camera.ScreenToWorldPoint(new Vector3(at.x, at.y, -camera.transform.position.z));
+            var p = WorldSpace.Position(world);
+            return "(" + (int)System.Math.Floor(p.X) + ", " + (int)System.Math.Floor(p.Y) + ")";
+        }
+
+        private static string Left(DropCache pile)
+        {
+            var keys = new List<ItemKey>();
+            pile.Items.Keys(keys);
+            var parts = new List<string>();
+            for (var i = 0; i < keys.Count; i++) parts.Add(keys[i].Key + " " + pile.Items[keys[i]]);
+            return parts.Count == 0 ? "nothing" : string.Join(", ", parts);
         }
 
         private static double Dist(Vec2 a, Vec2 b) =>

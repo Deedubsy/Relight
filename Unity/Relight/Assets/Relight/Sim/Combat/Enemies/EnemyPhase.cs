@@ -83,7 +83,7 @@ namespace Relight.Sim
                 if (!e.Withdrawing) { e.Waypoint = -1; e.Withdrawing = true; }
                 e.OnPlayer = false;
                 var w = ctx.Geometry.Width;
-                var fld = Enemies.Route(ctx, st, e, e.Origin % w, e.Origin / w, 0);
+                var fld = Enemies.Route(ctx, st, e, e.Origin % w, e.Origin / w, 0, 0);
                 if (WalkField(ctx, st, e, def, fld, dt, false)) Leave(st, e);   // a body going home does not dither
                 return;
             }
@@ -115,8 +115,8 @@ namespace Relight.Sim
 
             // FRT-09: a body of an assault on a plant walks to that plant and bites it instead of the Home core.
             var aim = DirectorRules.AimOf(st, e);
-            if (!DirectorRules.Target(ctx, st, aim, out var bx, out var by, out var size)) { e.Stuck += dt; return; }
-            var route = Enemies.Route(ctx, st, e, bx, by, size);
+            if (!DirectorRules.Target(ctx, st, aim, out var bx, out var by, out var tw, out var th)) { e.Stuck += dt; return; }
+            var route = Enemies.Route(ctx, st, e, bx, by, tw, th);
             if (WalkField(ctx, st, e, def, route, dt, true)) DirectorRules.DamageTarget(ctx, st, aim, Enemies.StructureDps(d, def) * dt);
         }
 
@@ -151,7 +151,7 @@ namespace Relight.Sim
                 retreat = st.Director.Major == null || st.Director.Major.Retreat || st.Director.Major.Id != e.Group;
             else retreat = st.Director.Minor == null || st.Director.Minor.Retreat;
             var aim = DirectorRules.AimOf(st, e);
-            if (!retreat && !DirectorRules.Target(ctx, st, aim, out _, out _, out _)) retreat = true;
+            if (!retreat && !DirectorRules.Target(ctx, st, aim, out _, out _, out _, out _)) retreat = true;
             exit = retreat;
 
             if (!retreat)
@@ -169,11 +169,11 @@ namespace Relight.Sim
                 { tx = near.X; ty = near.Y; what = EnemyTargetKind.Structure; structure = near; return EnemyAction.Attack; }
             }
 
-            int gx, gy, size;
-            if (retreat) { gx = e.Origin % w; gy = e.Origin / w; size = 0; }
-            else DirectorRules.Target(ctx, st, aim, out gx, out gy, out size);
+            int gx, gy, gw, gh;
+            if (retreat) { gx = e.Origin % w; gy = e.Origin / w; gw = 0; gh = 0; }
+            else DirectorRules.Target(ctx, st, aim, out gx, out gy, out gw, out gh);
 
-            var fld = Enemies.Route(ctx, st, e, gx, gy, size);
+            var fld = Enemies.Route(ctx, st, e, gx, gy, gw, gh);
             var here = fld.At((int)Math.Floor(e.Pos.X), (int)Math.Floor(e.Pos.Y));
             var reset = retreat && !e.Withdrawing;
             what = retreat ? EnemyTargetKind.Exit : EnemyTargetKind.Core;
@@ -234,7 +234,7 @@ namespace Relight.Sim
             double x, y;
             if (what == EnemyTargetKind.You) { x = st.Engineer.Pos.X; y = st.Engineer.Pos.Y; }
             else if (structure != null) { x = structure.X + structure.Size / 2.0; y = structure.Y + structure.Size / 2.0; }
-            else if (DirectorRules.Target(ctx, st, DirectorRules.AimOf(st, e), out var bx, out var by, out var size)) { x = bx + size / 2.0; y = by + size / 2.0; }
+            else if (DirectorRules.Target(ctx, st, DirectorRules.AimOf(st, e), out var bx, out var by, out var tw, out var th)) { x = bx + tw / 2.0; y = by + th / 2.0; }
             else { x = tileX + .5; y = tileY + .5; }
 
             var sight = ctx.Geometry.Sight(e.Pos.X, e.Pos.Y, x, y);
@@ -302,12 +302,13 @@ namespace Relight.Sim
             // GP-W5: a glob does the roster-wide structure multiple to a machine and its plain damage to a body,
             // the same split every bite uses — 16 to a wall, 10 to the engineer, from the one rule.
             var structureDamage = spitter != null ? Enemies.StructureDamage(ctx.Data, spitter) : damage;
-            var hasCore = DirectorRules.Target(ctx, st, out var bx, out var by, out var size);
+            var hasCore = DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th);
             // FRT-09: while an assault is on a plant, a glob that reaches the plant hits it.
             var plant = st.Director.Major?.Plant ?? "";
-            int px = 0, py = 0, psize = 0;
-            var hasPlant = plant.Length > 0 && DirectorRules.Target(ctx, st, plant, out px, out py, out psize);
-            bool OnPlant(int tx, int ty) => hasPlant && tx >= px && ty >= py && tx < px + psize && ty < py + psize;
+            int px = 0, py = 0, pw = 0, ph = 0;
+            var hasPlant = plant.Length > 0 && DirectorRules.Target(ctx, st, plant, out px, out py, out pw, out ph);
+            // REL-124: a glob hits the target only inside its real footprint.
+            bool OnPlant(int tx, int ty) => hasPlant && DirectorRules.Inside(tx, ty, px, py, pw, ph);
 
             for (var i = list.Count - 1; i >= 0; i--)
             {
@@ -325,13 +326,13 @@ namespace Relight.Sim
                     {
                         var m = st.Enemies.Index.At(ctx, st, tx, ty);
                         if (TurretRules.BlocksRaiders(ctx.Data, m)) TurretRules.Damage(ctx, st, m, structureDamage);
-                        else if (hasCore && tx >= bx && ty >= by && tx < bx + size && ty < by + size) EnemyCoreHook.Damage(ctx, st, structureDamage);
+                        else if (hasCore && DirectorRules.Inside(tx, ty, bx, by, tw, th)) EnemyCoreHook.Damage(ctx, st, structureDamage);
                         else if (OnPlant(tx, ty)) Plants.Damage(ctx, st, plant, structureDamage);
                         dead = true;
                         break;
                     }
                     p.Pos = new Vec2(x, y);
-                    if (hasCore && tx >= bx && ty >= by && tx < bx + size && ty < by + size)
+                    if (hasCore && DirectorRules.Inside(tx, ty, bx, by, tw, th))
                     {
                         EnemyCoreHook.Damage(ctx, st, structureDamage);
                         dead = true;
