@@ -152,6 +152,67 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(LightQueries.LitAt(st, lx + r + 1, ly), Is.False, "and no further");
         }
 
+        /// <summary>
+        /// REL-126 / U-D-71 (a): the owner asked for "a little bigger", so the port's lights reach a quarter
+        /// further than the reference's. <see cref="DarkWorld"/> owns the difference, and it owns it in BOTH the
+        /// machine rows the light mask reads and the tuning record the opening advice quotes — if those two ever
+        /// disagree the game would light one distance and promise another.
+        ///
+        /// The layer is also checked to be idempotent. It writes absolute reaches rather than multiplying in
+        /// place, so a second application must be a no-op; a multiplier would quietly compound to 1.5625x.
+        /// </summary>
+        [Test]
+        public void ThePortsLightsReachAQuarterFurtherThanTheReferences()
+        {
+            var reference = CatalogueData.Build();
+            Assert.That(reference.TryMachine("lamp", out var referenceLamp), Is.True);
+            Assert.That(referenceLamp.LightRadiusTiles, Is.EqualTo(4), "the reference's own Lamp, for the ratio below");
+
+            var d = ReferenceData.Create();
+            Assert.That(d.TryMachine("lamp", out var lamp), Is.True);
+            Assert.That(d.TryMachine("arclamp", out var arc), Is.True);
+            Assert.That(d.TryMachine("floodlight", out var flood), Is.True);
+
+            Assert.That(lamp.LightRadiusTiles, Is.EqualTo(4 * DarkWorld.LightRadiusScale).Within(1e-9));
+            Assert.That(arc.LightRadiusTiles, Is.EqualTo(6 * DarkWorld.LightRadiusScale).Within(1e-9));
+            Assert.That(flood.ConeRangeTiles, Is.EqualTo(12 * DarkWorld.LightRadiusScale).Within(1e-9));
+            Assert.That(reference.TryMachine("floodlight", out var referenceFlood), Is.True);
+            Assert.That(flood.ConeHalfAngleRad, Is.EqualTo(referenceFlood.ConeHalfAngleRad).Within(1e-9),
+                "the cone got longer, not wider");
+
+            Assert.That(d.Power.LampRadiusTiles, Is.EqualTo(lamp.LightRadiusTiles).Within(1e-9));
+            Assert.That(d.Power.ArcLampRadiusTiles, Is.EqualTo(arc.LightRadiusTiles).Within(1e-9));
+            Assert.That(d.Power.FloodlightRangeTiles, Is.EqualTo(flood.ConeRangeTiles).Within(1e-9));
+            Assert.That(d.Power.StreetLightRadiusTiles, Is.EqualTo(7 * DarkWorld.LightRadiusScale).Within(1e-9));
+            Assert.That(StreetLights.RadiusTiles(d), Is.EqualTo(d.Power.StreetLightRadiusTiles).Within(1e-9),
+                "the kerb lights have no machine row and read the tuning record");
+
+            var twice = DarkWorld.Apply(d);
+            Assert.That(twice.TryMachine("lamp", out var again), Is.True);
+            Assert.That(again.LightRadiusTiles, Is.EqualTo(lamp.LightRadiusTiles).Within(1e-9), "applying the layer twice changes nothing");
+            Assert.That(twice.Power.StreetLightRadiusTiles, Is.EqualTo(d.Power.StreetLightRadiusTiles).Within(1e-9));
+            Assert.That(twice, Is.SameAs(d), "and does not even rebuild the record");
+        }
+
+        /// <summary>
+        /// The reach the owner actually sees: a Lamp lights the tile the reference left dark. One assertion about
+        /// a number is not the same as one about the light on the ground.
+        /// </summary>
+        [Test]
+        public void ALampNowLightsTheTileTheReferenceLeftDark()
+        {
+            var ctx = Ctx();
+            var st = Fresh(ctx);
+            const int lx = 20, ly = 20;
+            RaidFixture.Add(ctx, st, "lamp", lx, ly);
+            RaidFixture.Power(ctx, st, lx + 2, ly);
+            RaidFixture.Run(ctx, st, 1, Phases());
+
+            Assert.That(LightQueries.LitAt(st, lx, ly + 4), Is.True, "the reference's own edge, still lit");
+            Assert.That(LightQueries.LitAt(st, lx, ly + 5), Is.True, "and the tile it could not reach");
+            Assert.That(LightQueries.LitAt(st, lx, ly + 6), Is.False, "the new edge is an edge, not an absence of one");
+        }
+
         [Test]
         public void AnUnfuelledGeneratorLeavesTheLampDark()
         {
@@ -305,7 +366,10 @@ namespace Relight.Sim.Tests.Campaign
             var n = PowerQueries.Network(ctx, st);
             Assert.That(n.DemandKw, Is.EqualTo(LightRules.StreetLightKw).Within(1e-9),
                 "campaignPower.ts:51 - the light's draw is billed through the ordinary demand path");
-            var r = (int)LightRules.StreetLightRadiusTiles;
+            // The radius the data actually carries, not the reference constant: since REL-126 the port's own
+            // layer (DarkWorld) sets it, and LightRules.StreetLightRadiusTiles is only the fallback for data
+            // that has no Power record at all.
+            var r = (int)StreetLights.RadiusTiles(ctx.Data);
             Assert.That(LightQueries.LitAt(st, 30, 30), Is.True);
             Assert.That(LightQueries.LitAt(st, 30 + r, 30), Is.True);
             Assert.That(LightQueries.LitAt(st, 30 + r + 1, 30), Is.False);

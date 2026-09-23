@@ -26,8 +26,14 @@ namespace Relight.Presentation
     [AddComponentMenu("Relight/Mouse Flashlight Presenter")]
     public sealed class MouseFlashlightPresenter : MonoBehaviour
     {
-        /// <summary>D-UI-11's provisional reach, in tiles.</summary>
-        public const double ReachTiles = 12;
+        /// <summary>
+        /// D-UI-11's provisional reach, in tiles. REL-126 took it from 12 to 14 with the placed lights: the owner
+        /// asked for "a little bigger" and answered "both", so the torch moved too. **The figure is the
+        /// implementer's under U-D-28 (U-P-29), not the owner's.** It is deliberately not the placed lights'
+        /// quarter — a torch that grew to 15 would out-reach an Arc lamp, and the point of a lamp is that it beats
+        /// carrying your own.
+        /// </summary>
+        public const double ReachTiles = 14;
 
         /// <summary>D-UI-11's provisional width: 60 degrees across, so 30 degrees each side of the aim.</summary>
         public const double HalfAngleRad = System.Math.PI / 6;

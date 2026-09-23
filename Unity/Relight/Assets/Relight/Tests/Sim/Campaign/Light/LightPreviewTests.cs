@@ -72,7 +72,9 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(tint.At(49, 41), Is.True, "lit and 8.51 out");
             Assert.That(LightQueries.LitAt(st, 52, 44), Is.True);
             Assert.That(tint.At(52, 44), Is.False, "lit, but outside the ring");
-            Assert.That(tint.At(45, 41), Is.False, "inside the ring, but dark");
+            // 6.71 from the lamp. It was 45,41 until REL-126 gave the Lamp its fifth tile, which put that tile
+            // exactly on the new edge — the assertion is about a dark tile inside the ring, so it moved to one.
+            Assert.That(tint.At(43, 41), Is.False, "inside the ring, but dark");
         }
 
         /// <summary>
