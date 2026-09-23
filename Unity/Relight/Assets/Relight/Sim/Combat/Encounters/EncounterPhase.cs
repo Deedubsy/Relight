@@ -10,6 +10,12 @@ namespace Relight.Sim
     public sealed record EncounterClearedEvent(double T, string Id) : SimEvent(T);
 
     /// <summary>
+    /// A cleared loot camp came back (§3, FRT-04): its record is reset, and its garrison is born again the next time
+    /// the engineer comes close enough. Its crate stays as it was left.
+    /// </summary>
+    public sealed record EncounterRefilledEvent(double T, string Id) : SimEvent(T);
+
+    /// <summary>
     /// A key camp was held long enough and its key went into the pouch (§5.2). <c>Text</c> is the HUD line
     /// ("West passage secured — key 1 of 3"); <c>Held</c> and <c>Of</c> are its two numbers.
     /// </summary>
@@ -48,10 +54,55 @@ namespace Relight.Sim
                 if (rec.ClearedAt < 0 && Living(st, def.Id) == 0)
                 {
                     rec.ClearedAt = st.T;
+                    // §5.2: a camp that is not held for its key is claimed on its last kill.
+                    if (!Occupies(def)) rec.Claimed = true;
                     st.Events.Add(new EncounterClearedEvent(st.T, def.Id));
                 }
                 if (!rec.Claimed && Occupies(def)) Occupy(st, def, site, rec);
+                if (Refills(st, def, site, rec)) Refill(st, def, rec);
             }
+        }
+
+        /// <summary>
+        /// §3's reoccupation rule: a cleared camp with a <see cref="EncounterDef.RepeatSeconds"/> comes back once that
+        /// long has passed since its last death, unless a machine of the player's stands within
+        /// <see cref="EncounterCatalogue.BuiltNearTiles"/> of its marker. Building there is how a player keeps a
+        /// cleared camp as an outpost; leaving it bare is how they farm it. Checked every tick, so a camp held off
+        /// by a machine comes back once the machine is taken up.
+        /// </summary>
+        public static bool Refills(SimState st, EncounterDef def, SiteRecord site, EncounterRecord rec)
+        {
+            if (def.RepeatSeconds <= 0 || rec.ClearedAt < 0) return false;
+            if (st.T - rec.ClearedAt < def.RepeatSeconds) return false;
+            return !BuiltNear(st, site.Centre, EncounterCatalogue.BuiltNearTiles);
+        }
+
+        /// <summary>A machine of the player's (not a camp crate) whose footprint centre is within <paramref name="radius"/>.</summary>
+        public static bool BuiltNear(SimState st, Vec2 at, double radius)
+        {
+            var ms = st.Machines;
+            for (var i = 0; i < ms.Count; i++)
+            {
+                var m = ms[i];
+                if (m.IsSiteBound) continue;
+                var r = m.Rect;
+                if (DirectorRules.Distance(r.X + r.W * .5, r.Y + r.H * .5, at.X, at.Y) <= radius) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// The camp is as it was before it was found, except that it is still <see cref="EncounterRecord.Discovered"/>
+        /// and keeps its crate: §5.3, a refilled camp does not refill the crate.
+        /// </summary>
+        private static void Refill(SimState st, EncounterDef def, EncounterRecord rec)
+        {
+            rec.Resolved = false;
+            rec.ResolvedAt = -1;
+            rec.ClearedAt = -1;
+            rec.Claimed = false;
+            rec.OccupiedSince = -1;
+            st.Events.Add(new EncounterRefilledEvent(st.T, def.Id));
         }
 
         /// <summary>This row is claimed by being held (§5.2), not on its last kill.</summary>
@@ -170,7 +221,8 @@ namespace Relight.Sim
             if (p.IsDown) return;
             var marker = site.Centre;
             if (DirectorRules.Distance(p.Pos.X, p.Pos.Y, marker.X, marker.Y) > ResolveTiles(def)) return;
-            var crate = CrateSpot(ctx, st, def, site);
+            // A refilled camp already has its crate (§5.3), so only a first life looks for a place for one.
+            var crate = rec.Cache == 0 ? CrateSpot(ctx, st, def, site) : null;
             if (!TryPlace(ctx, st, def, site, out var places, crate)) return;
 
             for (var i = 0; i < places.Count; i++)

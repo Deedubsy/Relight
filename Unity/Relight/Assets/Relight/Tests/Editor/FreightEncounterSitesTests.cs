@@ -1,3 +1,4 @@
+using System.Linq;
 using NUnit.Framework;
 using Relight.Sim;
 using Relight.World;
@@ -36,6 +37,26 @@ namespace Relight.Authoring.Tests
                 Assert.That(EncounterPhase.TryPlace(ctx, st, def, site, out var places), Is.True,
                     def.Id + ": the garrison does not fit round its groups");
                 Assert.That(places.Count, Is.EqualTo(def.Bodies), def.Id);
+            }
+        }
+
+        /// <summary>FRT-04 (U-P-39): the port's four small camps stand at least 25 tiles from every key camp, so
+        /// clearing one never wakes the other.</summary>
+        [Test]
+        public void TheSmallCampsStandWellClearOfTheKeyCamps()
+        {
+            var ctx = RealCityFixture.Context(out _opening);
+            var keys = EncounterCatalogue.All.Where(d => d.Key != null).Select(d => ctx.Sites.Find(d.Site)).ToList();
+            var small = EncounterCatalogue.All.Where(d => d.Kind == EncounterKind.LootCamp).ToList();
+            Assert.That(keys.Count, Is.EqualTo(3));
+            Assert.That(small.Count, Is.EqualTo(4));
+            foreach (var d in small)
+            {
+                var s = ctx.Sites.Find(d.Site);
+                Assert.That(Ground.Walkable(ctx, s.X, s.Y), Is.True, d.Id + ": its marker is not on open ground");
+                foreach (var k in keys)
+                    Assert.That(DirectorRules.Distance(s.Centre.X, s.Centre.Y, k.Centre.X, k.Centre.Y),
+                        Is.GreaterThanOrEqualTo(25), d.Id + " is too near " + k.Id);
             }
         }
     }

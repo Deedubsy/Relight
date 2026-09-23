@@ -62,7 +62,8 @@ namespace Relight.Sim
     /// carries the design's <c>RaidWeight</c>, because living camps do not change raid size (U-D-73 (1)).
     ///
     /// Rows arrive with the commits that use them: the key camps and the Riverside squat with FRT-02 (REL-137),
-    /// the small camps with FRT-04 and the warehouse with FRT-05.
+    /// the small camps with FRT-04 (REL-139) and the warehouse with FRT-05. Key camps and the squat never refill
+    /// (<see cref="EncounterDef.RepeatSeconds"/> 0): a key is taken once, and a plant is cleared once.
     /// </summary>
     public static class EncounterCatalogue
     {
@@ -77,6 +78,13 @@ namespace Relight.Sim
         public const double NoSurpriseBirthTiles = 12;
         /// <summary>How far from its group's centre a body may be placed, the same bound raid staging uses.</summary>
         public const double GroupSpreadTiles = 6;
+        /// <summary>
+        /// §3 (the reference's <c>FABRICATION.repeatSeconds</c>): a cleared loot camp comes back this long after its
+        /// last death, unless the player has built within <see cref="BuiltNearTiles"/> of it.
+        /// </summary>
+        public const double LootRepeatSeconds = 900;
+        /// <summary>§3: a player machine this close to a cleared camp's marker keeps it from being refilled.</summary>
+        public const double BuiltNearTiles = 20;
         /// <summary>The first group number an encounter squad takes; raid groups are raid ids and stay far below.</summary>
         public const int GroupBase = 1000000;
 
@@ -109,6 +117,38 @@ namespace Relight.Sim
                 new[] { new ItemStack(ItemId.Magazine, 60), new ItemStack(ItemId.Copper, 10) },
                 "freight:camp:3", 0, 3,
                 Design),
+            // The four small corridor camps (FRT-04, §4.2 freight:small:1..4). The design leaves their tiles to the
+            // port, so their sites are port-authored (RegionImporter, U-P-39): street crossings on the Freight
+            // corridor, each at least 25 tiles from a key camp. Skitters only; found only up close; loot, no key;
+            // claimed on the last kill; refilled LootRepeatSeconds after, unless the player has built near.
+            new EncounterDef("freight:small:1", "Crossing camp", "freight:small:1",
+                EncounterKind.LootCamp, EncounterDiscovery.Proximity,
+                6, 0, None, AtMarker,
+                0, 0, 0,
+                new[] { new ItemStack(ItemId.Magazine, 20), new ItemStack(ItemId.Steel, 10) },
+                null, LootRepeatSeconds, 11,
+                Design + "; U-P-39"),
+            new EncounterDef("freight:small:2", "East street camp", "freight:small:2",
+                EncounterKind.LootCamp, EncounterDiscovery.Proximity,
+                7, 0, None, new[] { (0, -3), (0, 3) },
+                0, 0, 0,
+                new[] { new ItemStack(ItemId.IronOre, 20), new ItemStack(ItemId.Steel, 10) },
+                null, LootRepeatSeconds, 12,
+                Design + "; U-P-39"),
+            new EncounterDef("freight:small:3", "North crossing camp", "freight:small:3",
+                EncounterKind.LootCamp, EncounterDiscovery.Proximity,
+                5, 0, None, AtMarker,
+                0, 0, 0,
+                new[] { new ItemStack(ItemId.CopperOre, 20), new ItemStack(ItemId.Copper, 10) },
+                null, LootRepeatSeconds, 13,
+                Design + "; U-P-39"),
+            new EncounterDef("freight:small:4", "Warehouse road camp", "freight:small:4",
+                EncounterKind.LootCamp, EncounterDiscovery.Proximity,
+                8, 0, None, new[] { (0, -3), (0, 3) },
+                0, 0, 0,
+                new[] { new ItemStack(ItemId.Magazine, 30) },
+                null, LootRepeatSeconds, 14,
+                Design + "; U-P-39"),
             new EncounterDef("plant:riverside:squat", "Riverside squat", "plant:riverside",
                 EncounterKind.Squat, EncounterDiscovery.Proximity,
                 8, 0, None, new[] { (-3, 0), (3, 0) },

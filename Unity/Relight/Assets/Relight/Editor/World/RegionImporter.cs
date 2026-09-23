@@ -444,9 +444,10 @@ namespace Relight.Editor
         /// <summary>
         /// Sites, in a fixed order: the core, substations, resources, camps (each camp then its spawn groups),
         /// the raid line, tram stops, yards, labels, lights, then (batch 4, U-D-73) plants, power cores, stronghold
-        /// doors and the arena (its floor, guardian tile and garrison groups). Ids are the reference ids; a derived id
-        /// (a camp's group, a yard, a label, a door, an arena group) is the reference id or name with an index, so
-        /// overrides have a stable key. The batch-4 kinds come last so every earlier site keeps its place.
+        /// doors, the arena (its floor, guardian tile and garrison groups) and the port's small camps. Ids are the
+        /// reference ids; a derived id (a camp's group, a yard, a label, a door, an arena group) is the reference id
+        /// or name with an index, so overrides have a stable key. The batch-4 kinds come last so every earlier site
+        /// keeps its place.
         ///
         /// The order and the ids are IDENTICAL for every region: what changes between the Home crop and the full city
         /// is the rect, never the key, so a <see cref="HomeSitesOverrides"/> entry authored against the crop still
@@ -612,9 +613,29 @@ namespace Relight.Editor
                         g++;
                     }
                 }
+                // Batch 4, FRT-04 (REL-139): the four small corridor camps. The reference has no tiles for them
+                // (design §4.2 leaves them to the port), so they are authored here (U-P-39): street crossings on
+                // the Freight corridor, each at least 25 tiles from a key camp. They come only with the Freight
+                // floor, so a region without the stronghold has none.
+                if (city.combat.hasFreightArena)
+                    foreach (var (id, name, x, y) in SmallCamps)
+                        list.Add(new WorldSite
+                        {
+                            id = id, name = name, kind = WorldSiteKind.Camp, rect = new RectInt(x, y, 1, 1),
+                            item = "", amount = 0,
+                        });
             }
             return list;
         }
+
+        /// <summary>The small corridor camps' markers (U-P-39), in catalogue order.</summary>
+        internal static readonly (string Id, string Name, int X, int Y)[] SmallCamps =
+        {
+            ("freight:small:1", "Crossing camp", 72, 252),
+            ("freight:small:2", "East street camp", 126, 226),
+            ("freight:small:3", "North crossing camp", 72, 144),
+            ("freight:small:4", "Warehouse road camp", 126, 74),
+        };
 
         private static RectInt Rect(JRect r) =>
             r == null ? new RectInt(0, 0, 0, 0) : new RectInt(r.x, r.y, r.w, r.h);
