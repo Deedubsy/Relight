@@ -453,6 +453,18 @@ Assets/Relight/
   Tests/
 ```
 
+**As built (2026-09-23, batch 4, REL-136 to REL-146).** The Freight chapter lives in `Sim/Combat/Encounters/` with its data in `Sim/Data/EncounterCatalogue.cs`, and the plant in `Sim/Campaign/Plants/`:
+
+- `Sim/Data/EncounterCatalogue.cs`: the port-owned table (not a ScriptableObject). `EncounterDef` rows for the three key camps, the four small loot camps, the Riverside squat and the `freight:arena` garrison; the `StrongholdDef` (three keys, two doors, the arena, the guardian); the `PlantDef` for Riverside Works. Numbers are in DECISIONS U-P-37 to U-P-45.
+- `EncounterState.cs`: `EncounterRecord` per encounter, the key pouch, opened doors, the fight clock, fallen guardians, loose cores and `PlantRecord`s. It is saved (save versions 13 to 19).
+- `EncounterPhase.cs`: finding, whole-garrison birth, clearing, loot-camp refill and the 30 s occupation claim. It runs after `EnemyPhase` and before `DirectorPhase` (`SimComposition.Combat.cs`).
+- `Stronghold.cs`: `StrongholdRules`, which covers the shut doors in the walk grid and for hostiles, opening them with three keys, and the stronghold-fight hook `DirectorPacing` reads.
+- `Guardian.cs`: `GuardianRules` (the windup and straight charge, phase 2 at 300 HP, waking the arena, the dropped core as `LooseCore`).
+- `CoreCarry.cs`: the two-handed carry and its refusals.
+- `FreightObjectives.cs`: the nine derived objectives, the HUD lines and the circles; it holds no state of its own.
+- `Sim/Campaign/Plants/Plants.cs`: prepare, commission, the 600 kW supply node, the plant raid's aim, and the fall.
+- Presentation: `Presentation/Combat/FreightCirclePresenter.cs` on the World scene's `Sim` object draws the search and hold circles. The kite measurement (`Tests/Sim/Combat/Encounters/FreightKiteMeasurement.cs`, `[Explicit]`) is evidence only (`Docs/evidence/freight-kite/`).
+
 ### 4.2 The simulation host
 
 A single `SimHost : MonoBehaviour` owns the clock. Nothing else ticks the sim.
