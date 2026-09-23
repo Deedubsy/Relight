@@ -41,9 +41,13 @@ namespace Relight.Sim.Tests.Campaign
             var st = sim.State;
             var turret = RaidFixture.Turret(ctx, st, 30, 28);
             RaidFixture.Add(ctx, st, "lamp", 30, 40);
-            RaidFixture.Add(ctx, st, "pole", 32, 40);
-            RaidFixture.Add(ctx, st, "pole", 38, 40);
-            var generator = RaidFixture.Add(ctx, st, "generator", 40, 40);
+            // The lamp's line runs south of it, not east: since REL-128 a Pole at 32,40 would be within reach of the
+            // turret's own at 32,30, and this fixture needs two circuits — one that can run out of coal while the
+            // turret's keeps running. Every node below is at least 13.5 tiles from the turret's pole and generator,
+            // and the lamp's nearest node is still its own (4 tiles, against the turret pole's 9.62).
+            RaidFixture.Add(ctx, st, "pole", 30, 45);
+            RaidFixture.Add(ctx, st, "pole", 36, 45);
+            var generator = RaidFixture.Add(ctx, st, "generator", 38, 45);
             var alien = RaidFixture.Guard(st, "biter", 30.5, 36.5);
             st.Engineer.Pos = new Vec2(generator.X + 0.5, generator.Y + 0.5);
             st.Engineer.Inv[ItemId.Coal] = 10;

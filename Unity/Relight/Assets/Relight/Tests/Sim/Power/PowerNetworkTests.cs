@@ -13,16 +13,87 @@ namespace Relight.Sim.Tests.Power
     /// </summary>
     public sealed class PowerNetworkTests
     {
+        // ---------------------------------------------------------------- the reach itself
+
+        /// <summary>
+        /// REL-128 / U-D-71 (c), the owner's "Power pole connection range needs to be increased by about 50%": the
+        /// port's three distribution reaches against the reference's own, read from the generated catalogue right
+        /// here so the ratio is proved rather than asserted twice.
+        ///
+        /// The substation's half of this is the implementer's extension, not the owner's request (U-P-30): the
+        /// authored city's substation lots are reach nodes in their own right and the opening's advice describes
+        /// pole-to-pole linking, so leaving the substation at 8 would have made the tutorial's sentence untrue.
+        ///
+        /// The <see cref="MachineSpec"/> rows and the <see cref="PowerTuning"/> record must agree: the lots have no
+        /// machine row at all and read their reach from the record (<see cref="PowerGrid.SiteReach"/>).
+        /// </summary>
+        [Test]
+        public void ThePortsPolesCarryHalfAgainAsFarAsTheReferences()
+        {
+            var reference = CatalogueData.Build();
+            Assert.That(reference.Power.PoleReachTiles, Is.EqualTo(8).Within(1e-9), "the reference's own Pole");
+            Assert.That(reference.Power.BigPoleReachTiles, Is.EqualTo(12).Within(1e-9));
+            Assert.That(reference.Power.SubstationReachTiles, Is.EqualTo(8).Within(1e-9));
+
+            var d = ReferenceData.Create();
+            Assert.That(d.Power.PoleReachTiles, Is.EqualTo(8 * GridBalance.ReachScale).Within(1e-9));
+            Assert.That(d.Power.BigPoleReachTiles, Is.EqualTo(12 * GridBalance.ReachScale).Within(1e-9));
+            Assert.That(d.Power.SubstationReachTiles, Is.EqualTo(8 * GridBalance.ReachScale).Within(1e-9));
+
+            foreach (var (key, reach) in new[]
+                     {
+                         ("pole", d.Power.PoleReachTiles),
+                         ("bigpole", d.Power.BigPoleReachTiles),
+                         ("substation", d.Power.SubstationReachTiles),
+                     })
+            {
+                Assert.That(d.TryMachine(key, out var spec), Is.True, key);
+                Assert.That(spec.ReachTiles, Is.EqualTo(reach).Within(1e-9),
+                    key + ": the machine row and the tuning record must answer the same number");
+                Assert.That(PowerGrid.ReachOf(d, key), Is.EqualTo(reach).Within(1e-9));
+            }
+
+            Assert.That(PowerGrid.SiteReach(d), Is.EqualTo(d.Power.SubstationReachTiles).Within(1e-9),
+                "an authored lot has no machine row and reads the record");
+
+            var twice = GridBalance.Apply(d);
+            Assert.That(twice, Is.SameAs(d), "applying the layer twice changes nothing and does not rebuild the record");
+        }
+
+        /// <summary>
+        /// The one row the layer must not touch: a distribution machine it has never heard of keeps its own reach,
+        /// so a node added to the catalogue later is not silently rescaled by a layer written before it existed.
+        /// </summary>
+        [Test]
+        public void TheLayerLeavesAReachItHasNoNumberForAlone()
+        {
+            Assert.That(GridBalance.Reach("turret"), Is.Zero);
+            Assert.That(GridBalance.Reach("lamp"), Is.Zero);
+
+            var d = ReferenceData.Create();
+            var original = CatalogueData.Build();
+            foreach (var spec in original.Machines)
+            {
+                if (GridBalance.Reach(spec.Key) > 0) continue;
+                Assert.That(d.TryMachine(spec.Key, out var after), Is.True, spec.Key);
+                Assert.That(after.ReachTiles, Is.EqualTo(spec.ReachTiles).Within(1e-9),
+                    spec.Key + ": untouched by the reach layer");
+            }
+        }
+
         // ---------------------------------------------------------------- the link rule
 
         /// <summary>
         /// campaignPower.ts:17 <c>within</c>: a reach node's centre must be within its reach of the other node's
-        /// FOOTPRINT. A Pole at (10,10) has its centre at (10.5,10.5) and 8 tiles of reach, so a 2×2 Generator
-        /// whose left edge is at x = 18 is 7.5 tiles away and joins; at x = 19 it is 8.5 tiles away and does not.
-        /// The generator's own reach is 0, so nothing links back the other way.
+        /// FOOTPRINT. A Pole at (10,10) has its centre at (10.5,10.5) and <see cref="GridBalance.PoleReachTiles"/>
+        /// of reach, so a 2×2 Generator whose left edge is at x = 22 is 11.5 tiles away and joins; at x = 23 it is
+        /// 12.5 tiles away and does not. The generator's own reach is 0, so nothing links back the other way.
+        ///
+        /// The two columns were 18 and 19 until REL-128 gave the Pole its 50% (8 → 12 tiles). The rule under test
+        /// is the boundary, not the number, so the pair moved with it.
         /// </summary>
-        [TestCase(18, true)]
-        [TestCase(19, false)]
+        [TestCase(22, true)]
+        [TestCase(23, false)]
         public void AGeneratorAtTheEdgeOfAPolesReachConnectsAndOneTileFurtherDoesNot(int genX, bool connected)
         {
             var ctx = ProductionFixture.Context();
@@ -260,7 +331,9 @@ namespace Relight.Sim.Tests.Power
             ProductionFixture.Add(ctx, st, "bigpole", 13, 10);          // the yard's own pole
             var relay = ProductionFixture.Add(ctx, st, "bigpole", 21, 10);   // the span out to the far yard
             var near = ProductionFixture.Add(ctx, st, "foundry", 13, 13);
-            var far = ProductionFixture.Add(ctx, st, "foundry", 30, 10);
+            // 36 rather than 30 since REL-128: at an 18-tile big pole the yard's own pole would otherwise cover the
+            // far yard by itself, and cutting the relay would prove nothing.
+            var far = ProductionFixture.Add(ctx, st, "foundry", 36, 10);
             var plain = ProductionFixture.Add(ctx, st, "pole", 40, 30);
             ProductionFixture.Seal(ctx, st);
 
@@ -302,24 +375,27 @@ namespace Relight.Sim.Tests.Power
             }));
 
         /// <summary>
-        /// Court D55: the site is a reach-8 node. A Pole at (26,41) has its centre 13.5 tiles from the lot's west edge
-        /// and its generator at (28,41) is 11.5 tiles from the lot's centre, so neither links; one more Pole at
-        /// (33,43) is 6.5 tiles from the lot and 6.7 from the first Pole, which puts the site on the generator's
-        /// circuit.
+        /// Court D55: the site is a reach node in its own right — <see cref="GridBalance.SubstationReachTiles"/> since
+        /// REL-128. A Pole at (25,41) has its centre 14.5 tiles from the lot's west edge and its generator at (27,41)
+        /// is 12.5 tiles from the lot's centre, so neither links; one more Pole at (33,43) is 6.5 tiles from the lot
+        /// and 7.7 from the first Pole, which puts the site on the generator's circuit.
+        ///
+        /// The west pair was at (26,41) until REL-128 raised both reaches by half: at 12 the lot's own reach found the
+        /// generator, and the "out of reach" half of the test had nothing left to say.
         /// </summary>
         [Test]
         public void APoleWithinReachOfASubstationSiteLinksItToTheCircuit()
         {
             var ctx = SubstationContext();
             var st = RaidFixture.State(ctx);
-            RaidFixture.Power(ctx, st, 26, 41);        // pole (26,41), fuelled generator (28,41)
+            RaidFixture.Power(ctx, st, 25, 41);        // pole (25,41), fuelled generator (27,41)
 
             Assert.That(PowerGrid.Of(ctx, st).OfSite(SubId), Is.Null, "out of reach: the site is on no circuit");
 
             var pole = RaidFixture.Add(ctx, st, "pole", 33, 43);
             var grid = PowerGrid.Of(ctx, st);
             var c = grid.OfSite(SubId);
-            Assert.That(c, Is.Not.Null, "a pole within 8 tiles of the footprint links to the site");
+            Assert.That(c, Is.Not.Null, "a pole within its reach of the footprint links to the site");
             Assert.That(c, Is.SameAs(grid.Of(pole.Id)));
             Assert.That(c.Supply, Is.GreaterThan(0));
             Assert.That(c.Demand, Is.Zero, "the site itself neither supplies nor draws");
@@ -350,9 +426,9 @@ namespace Relight.Sim.Tests.Power
             var beside = RaidFixture.Add(ctx, st, "foundry", SubX + 3, SubY);
             Assert.That(PowerQueries.Connected(ctx, st, beside.Id), Is.False, "the lot alone connects nothing");
 
-            // A pole east of the Foundry (6.5 tiles from it, 9.5 from the lot, 10.5 from the lot's centre) with a
-            // generator of its own.
-            RaidFixture.Power(ctx, st, SubX + 12, SubY + 1);
+            // A pole east of the Foundry (9.5 tiles from it, 12.5 from the lot, and 13.5 the other way from the lot's
+            // centre) with a generator of its own. It stood at SubX + 12 until REL-128 raised both reaches by half.
+            RaidFixture.Power(ctx, st, SubX + 15, SubY + 1);
             Assert.That(PowerGrid.Of(ctx, st).OfSite(SubId), Is.Null, "the lot is not linked to that pole");
             Assert.That(PowerQueries.Supplied(ctx, st, beside.Id), Is.True, "the pole in reach powers the Foundry");
         }

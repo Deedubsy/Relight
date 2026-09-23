@@ -326,8 +326,10 @@ namespace Relight.Sim
                     "Chain Poles from your network to the Founders Court substation",
                     (lights == 0 ? "Founders Court’s streetlights run" : lights == 1 ? "Founders Court’s streetlight runs"
                         : "Founders Court’s " + Num(lights) + " streetlights run")
+                    // REL-128: the sentence is about what a POLE does, so it quotes the Pole's own reach. It used to
+                    // quote the substation site's, which agreed only because the two numbers happened to match.
                     + " from the block substation in the Works Yard, marked here. Poles link within "
-                    + Num(PowerGrid.SiteReach(d)) + " tiles of another Pole, a Generator or the substation footprint; a "
+                    + Num(PowerGrid.ReachOf(d, "pole")) + " tiles of another Pole, a Generator or the substation footprint; a "
                     + "cable appears once linked and the placement preview shows purple lines to everything in reach. "
                     + "Chain Poles from your network to it and the court lights up.",
                     true, sub.Centre, Packed(ctx, st, "pole"));

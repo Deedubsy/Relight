@@ -37,12 +37,17 @@ namespace Relight.Sim.Tests.Campaign
                 new SiteRecord("label:iron", "Ironworks", SiteKind.Label, 52, 30, 1, 1),
             }));
 
-        /// <summary>A fuelled generator at 34,30 and poles east to the lot. Returns the last pole, the link to cut.</summary>
+        /// <summary>
+        /// A fuelled generator at 34,30 and poles east to the lot. Returns the last pole, the link to cut.
+        ///
+        /// The span was three poles at 40, 48 and 56 until REL-128 gave the Pole its 50%: at 12 tiles the one at 48
+        /// reached the lot's west edge on its own, so cutting the last pole cut nothing. Two longer hops do the same
+        /// job, and the one at 44,31 is 15.5 tiles from the lot — the returned pole is again the only way in.
+        /// </summary>
         private static Machine Connect(SimContext ctx, SimState st)
         {
             RaidFixture.Power(ctx, st, 32, 30);
-            RaidFixture.Add(ctx, st, "pole", 40, 30);
-            RaidFixture.Add(ctx, st, "pole", 48, 30);
+            RaidFixture.Add(ctx, st, "pole", 44, 31);
             return RaidFixture.Add(ctx, st, "pole", 56, 30);
         }
 

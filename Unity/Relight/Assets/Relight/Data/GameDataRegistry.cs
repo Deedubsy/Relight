@@ -82,9 +82,14 @@ namespace Relight.Data
         }
 
         /// <summary>Converts the whole registry into the simulation's data record. Call this once, at boot.</summary>
-        public GameData Build() => DarkWorld.Apply(CombatBalance.Apply(OpeningBalance.Apply(BuildOriginal())));
+        public GameData Build() =>
+            DarkWorld.Apply(CombatBalance.Apply(OpeningBalance.Apply(GridBalance.Apply(BuildOriginal()))));
 
-        /// <summary>The data a save from before the opening resource layout loads with: the original balance, but still no sun (U-D-58).</summary>
+        /// <summary>
+        /// The data a save from before the opening resource layout loads with: the original balance, but still no
+        /// sun (U-D-58). <see cref="GridBalance"/> is balance, so it is deliberately absent — a save laid out under
+        /// eight-tile poles keeps the grid it was built for (REL-128).
+        /// </summary>
         public GameData BuildLegacy() => DarkWorld.Apply(BuildOriginal());
 
         public GameData BuildOriginal()

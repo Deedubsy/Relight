@@ -143,6 +143,13 @@ namespace Relight.Sim
         public static double ReachOf(GameData d, Machine m) => d.TryMachine(m.Kind, out var s) ? s.ReachTiles : 0;
 
         /// <summary>
+        /// The same reach for a KIND rather than a placed machine, for the callers that have no machine to ask
+        /// about — the opening advice quoting what a Pole does before the player has one (REL-128).
+        /// </summary>
+        public static double ReachOf(GameData d, string kind) =>
+            d != null && d.TryMachine(kind, out var s) ? s.ReachTiles : 0;
+
+        /// <summary>
         /// The region's authored substation lots in export order, cached per <see cref="WorldSites"/> instance (the
         /// sites are immutable). Empty on the synthetic map and in any fixture without them.
         /// </summary>

@@ -139,7 +139,13 @@ namespace Relight.Sim.Tests.Combat
             var ctx = RaidFixture.Context();
             var st = RaidFixture.State(ctx);
             var t = RaidFixture.Turret(ctx, st, 30, 28);             // centre 31,29; pole 32,30; generator 34,30
-            var lamp = Lamp(ctx, st, 30, 40);                        // pole 32,40 is 10 from the turret's: no link
+            // Not the Lamp() helper: its pole would sit at 32,40, which a REL-128 Pole reaches from the turret's own
+            // at 32,30 — one circuit, and the brownout this test is about would take the turret down with it. So the
+            // lamp is fed from the south instead: 13.58 tiles from the turret's pole, and nearer the lamp (3.5) than
+            // that pole is (9.62), so the lamp still hangs off the circuit that browns out.
+            var lamp = RaidFixture.Add(ctx, st, "lamp", 30, 40);
+            RaidFixture.Add(ctx, st, "pole", 30, 44);
+            RaidFixture.Power(ctx, st, 24, 48);                      // pole 24,48 and its generator, clear of the block
             var e = RaidFixture.Guard(st, "biter", 30.5, 36.5);      // 4 tiles north of the lamp, 7.52 from the turret
 
             RaidFixture.Run(ctx, st, 100, Phases());
@@ -147,7 +153,8 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(LightQueries.LitAt(st, 30, 36), Is.True);
             Assert.That(before, Is.GreaterThan(0));
 
-            // Six 100 kW assemblers on the lamp's pole: 605 kW asked of 300 kW, radius 4 shrinks to about 3.
+            // Six 100 kW assemblers on the lamp's pole: 605 kW asked of 300 kW, and the light shrinks back past the
+            // four tiles the alien is standing at.
             foreach (var (x, y) in new[] { (28, 43), (32, 43), (36, 43), (28, 47), (32, 47), (36, 47) })
                 RaidFixture.Add(ctx, st, "assembler", x, y);
             RaidFixture.Run(ctx, st, 100, Phases());
