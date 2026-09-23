@@ -57,6 +57,23 @@ namespace Relight.Sim.Tests
         }
 
         [Test]
+        public void APowerCoreIsNeverTakenForTheHomeCore()
+        {
+            // Batch 4 (REL-136): a stronghold's power core has its own kind, so the Home core lookup (the FIRST Core)
+            // cannot land on it even when the power core comes first in the list.
+            var s = new WorldSites(new[]
+            {
+                new SiteRecord("core:freight", "Occupied freight depot", SiteKind.PowerCore, 63, 48, 1, 1),
+                new SiteRecord("home-workshop", "Home workshop", SiteKind.Core, 22, 256, 10, 14),
+                new SiteRecord("plant:riverside", "Riverside Works", SiteKind.Plant, 287, 417, 1, 1),
+            });
+            Assert.AreEqual("home-workshop", s.Core.Id);
+            Assert.AreEqual(new[] { "core:freight" }, s.OfKind(SiteKind.PowerCore).Select(x => x.Id).ToArray());
+            Assert.AreEqual(new[] { "plant:riverside" }, s.OfKind(SiteKind.Plant).Select(x => x.Id).ToArray());
+            Assert.IsNull(new WorldSites(new[] { s.Find("core:freight") }).Core, "a map with only a power core has no Home core");
+        }
+
+        [Test]
         public void RefusesDuplicateIdsAndEmptyRects()
         {
             Assert.Throws<ArgumentException>(() => new WorldSites(new[]

@@ -24,6 +24,20 @@ namespace Relight.Sim
         Label = 7,
         /// <summary>An authored kerb streetlight (C-11; reference ground.ts G.blocks[bi].lights).</summary>
         Light = 8,
+        /// <summary>
+        /// Batch 4 (U-D-73). A stronghold's power core (riverfront.ts cores, "Occupied freight depot"): the prize the
+        /// guardian holds. Its own kind, never <see cref="Core"/>, because the first Core is the Home core.
+        /// </summary>
+        PowerCore = 9,
+        /// <summary>Batch 4. A campaign power plant a Power core commissions (riverfront.ts plants).</summary>
+        Plant = 10,
+        /// <summary>
+        /// Batch 4. A stronghold entrance (gameplaySites.ts FREIGHT_GATES), locked until the keys are carried. A site
+        /// door, not the player's buildable Gate (U-D-72).
+        /// </summary>
+        StrongholdDoor = 11,
+        /// <summary>Batch 4. A stronghold's floor rect, its guardian tile and its garrison groups (FREIGHT_ARENA).</summary>
+        Arena = 12,
     }
 
     /// <summary>

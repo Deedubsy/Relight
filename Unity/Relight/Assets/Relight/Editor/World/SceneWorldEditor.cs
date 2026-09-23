@@ -238,6 +238,31 @@ namespace Relight.Editor
             }
             finally{Object.DestroyImmediate(current);Object.DestroyImmediate(original);}
         }
+        /// <summary>
+        /// Batch 4 (REL-136). Adds a Scene Site for every imported site whose id the editable world lacks, and touches
+        /// nothing else: an existing site keeps its authored position, size and amount. Re-runnable; returns the ids added.
+        /// Reads the same opening layout <see cref="Create"/> does, and never adds a Resource: resources are authored in
+        /// the scene (the opening removes three reference patches near Home), so a missing one was taken out on purpose.
+        /// </summary>
+        [MenuItem("Relight/World/Add Missing Imported Sites",false,34)]
+        public static void AddMissingSitesMenu()=>Debug.Log("Relight: added sites "+string.Join(", ",AddMissingSites()));
+        public static List<string> AddMissingSites()
+        {
+            if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Stop Play Mode first.");
+            var w=Find();if(w==null)throw new InvalidOperationException("Open World.unity with its Editable World first.");
+            var bootstrap=Object.FindFirstObjectByType<WorldBootstrap>();if(bootstrap==null)throw new InvalidOperationException("Open World.unity first.");
+            var have=new HashSet<string>();foreach(var s in w.GetComponentsInChildren<SceneSite>(true))have.Add(s.id);
+            var parent=w.transform.Find("Sites and resources")??w.transform;var added=new List<string>();
+            var layout=OpeningResourceLayout.Build(bootstrap.SourceGeometry,bootstrap.SourceSites,out var sites);Object.DestroyImmediate(layout);
+            foreach(var s in sites.All)
+            {
+                if(s.Kind==SiteKind.Resource||have.Contains(s.Id))continue;
+                var c=At<SceneSite>(s.Name+" ["+s.Id+"]",parent,s.X,s.Y);c.id=s.Id;c.siteName=s.Name;c.kind=s.Kind;c.size=new Vector2Int(s.W,s.H);c.item=s.Item;c.amount=s.Amount;
+                Undo.RegisterCreatedObjectUndo(c.gameObject,"Add imported site");added.Add(s.Id);
+            }
+            if(added.Count>0){EditorUtility.SetDirty(w);EditorSceneManager.MarkSceneDirty(w.gameObject.scene);RefreshNow();}
+            return added;
+        }
         static bool Contains(RectInt outer,RectInt inner)=>inner.x>=outer.x&&inner.y>=outer.y&&inner.xMax<=outer.xMax&&inner.yMax<=outer.yMax;
         static void ClearRect(WorldGeometryAsset g,RectInt r,bool resource){for(var y=r.y;y<r.yMax;y++)for(var x=r.x;x<r.xMax;x++)if(g.InBounds(x,y)){var i=g.Index(x,y);if(resource){g.Kind[i]=(byte)TileClass.Ground;g.Patch[i]=0;}else g.Solid[i]=0;}}
         static void CreatePaths(List<WorldGeometryAsset.Poly> paths,ScenePathKind kind,Transform parent)

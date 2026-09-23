@@ -443,8 +443,10 @@ namespace Relight.Editor
 
         /// <summary>
         /// Sites, in a fixed order: the core, substations, resources, camps (each camp then its spawn groups),
-        /// the raid line, tram stops, yards, labels, lights. Ids are the reference ids; a derived id (a camp's group,
-        /// a yard, a label) is the reference id or name with an index, so overrides have a stable key.
+        /// the raid line, tram stops, yards, labels, lights, then (batch 4, U-D-73) plants, power cores, stronghold
+        /// doors and the arena (its floor, guardian tile and garrison groups). Ids are the reference ids; a derived id
+        /// (a camp's group, a yard, a label, a door, an arena group) is the reference id or name with an index, so
+        /// overrides have a stable key. The batch-4 kinds come last so every earlier site keeps its place.
         ///
         /// The order and the ids are IDENTICAL for every region: what changes between the Home crop and the full city
         /// is the rect, never the key, so a <see cref="HomeSitesOverrides"/> entry authored against the crop still
@@ -553,6 +555,62 @@ namespace Relight.Editor
                         rect = new RectInt(light.x, light.y, 1, 1), item = "", amount = 0,
                     });
                     li++;
+                }
+                foreach (var plant in s.plants ?? Array.Empty<JSite>())
+                    if (plant != null)
+                        list.Add(new WorldSite
+                        {
+                            id = plant.id, name = plant.name, kind = WorldSiteKind.Plant,
+                            rect = new RectInt(plant.x, plant.y, 1, 1), item = "", amount = 0,
+                        });
+                foreach (var core in s.cores ?? Array.Empty<JSite>())
+                    if (core != null)
+                        list.Add(new WorldSite
+                        {
+                            id = core.id, name = core.name, kind = WorldSiteKind.PowerCore,
+                            rect = new RectInt(core.x, core.y, 1, 1), item = "", amount = 0,
+                        });
+            }
+
+            if (city.combat != null)
+            {
+                var d = 0;
+                foreach (var gate in city.combat.freightGates ?? Array.Empty<JRect>())
+                {
+                    if (gate == null) continue;
+                    list.Add(new WorldSite
+                    {
+                        id = "freight:door:" + d, name = "Freight warehouse door " + d, kind = WorldSiteKind.StrongholdDoor,
+                        rect = Rect(gate), item = "", amount = 0,
+                    });
+                    d++;
+                }
+                var arena = city.combat.freightArena;
+                if (city.combat.hasFreightArena && arena != null && arena.rect != null)
+                {
+                    list.Add(new WorldSite
+                    {
+                        id = "freight:arena", name = "Freight warehouse floor", kind = WorldSiteKind.Arena,
+                        rect = Rect(arena.rect), item = "", amount = arena.count,
+                    });
+                    if (arena.guardian != null)
+                        list.Add(new WorldSite
+                        {
+                            id = "freight:arena:guardian", name = "Freight warehouse guardian", kind = WorldSiteKind.Arena,
+                            rect = new RectInt(arena.guardian.x, arena.guardian.y, 1, 1), item = "", amount = 0,
+                        });
+                    var g = 0;
+                    foreach (var p in arena.groups ?? Array.Empty<JPoint>())
+                    {
+                        // Four of the six reference groups lie OUTSIDE the floor rect (design §4.2): they are the
+                        // squads that wait in the yard around the warehouse. The point is kept as authored.
+                        list.Add(new WorldSite
+                        {
+                            id = "freight:arena:group:" + g, name = "Freight warehouse group " + g, kind = WorldSiteKind.Arena,
+                            rect = new RectInt(p.x, p.y, 1, 1), item = "", amount = 0,
+                        });
+                        g++;
+                    }
                 }
             }
             return list;
