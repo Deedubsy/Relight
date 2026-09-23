@@ -205,6 +205,63 @@ namespace Relight.Sim
             return true;
         }
 
+        /// <summary>
+        /// REL-131. <see cref="StampWindow"/>'s shadow, on its own: which tiles of a box a source standing at
+        /// (<paramref name="sx"/>, <paramref name="sy"/>) can see, by the same <see cref="Opaque"/> rule and the
+        /// same segment walk a Lamp's light is stamped with.
+        ///
+        /// It exists because the player's torch cannot be expressed as a <see cref="Light"/> — its cone points
+        /// wherever the mouse is, a continuous angle, while <see cref="Light.Dir"/> is one of the eight — and the
+        /// owner asked for walls to stop it. Casting that shadow with a second rule of its own would have let the
+        /// torch and the lamps disagree about the same wall. So the caller supplies the shape and this supplies
+        /// only what stands in the way.
+        ///
+        /// <b>The caller marks what it wants tested.</b> On entry a 1 at <c>(ty - y0) * bw + (tx - x0)</c> means
+        /// "does the source see this tile?" and a 0 means "do not ask"; on return a 1 is a tile the source sees.
+        /// A cone therefore pays for the tiles it reaches and not for the whole bounding box, and the entries it
+        /// never asked about are left alone rather than being reported as shadow.
+        ///
+        /// Returns false when the box holds no occluder at all, having changed nothing: open ground, where most
+        /// light stands, costs one scan of the box and no line walks whatsoever.
+        ///
+        /// <b>Nothing in the simulation calls this.</b> The lit mask is still stamped by <see cref="StampWindow"/>,
+        /// and the torch is still invisible to <c>LightQueries.LitAt</c>; this is the shared geometry underneath
+        /// both, not a new sim query.
+        /// </summary>
+        public static bool Shadow(byte[] clear, int x0, int y0, int bw, int bh,
+            SimContext ctx, SimState st, double sx, double sy)
+        {
+            if (clear == null || ctx == null || st == null || bw <= 0 || bh <= 0) return false;
+            if (clear.Length < bw * bh) return false;
+            var mw = ctx.Geometry.Width;
+            var mh = ctx.Geometry.Height;
+
+            Span<bool> occ = bw * bh <= 1024 ? stackalloc bool[bw * bh] : new bool[bw * bh];
+            var any = false;
+            for (var by = 0; by < bh; by++)
+                for (var bx = 0; bx < bw; bx++)
+                {
+                    var tx = x0 + bx;
+                    var ty = y0 + by;
+                    // Off the map blocks nothing, which is the same answer LineClear gives a sample outside its box.
+                    var o = tx >= 0 && ty >= 0 && tx < mw && ty < mh && Opaque(ctx, st, tx, ty);
+                    occ[by * bw + bx] = o;
+                    any |= o;
+                }
+            if (!any) return false;
+
+            var fx = (int)Math.Floor(sx);
+            var fy = (int)Math.Floor(sy);
+            for (var by = 0; by < bh; by++)
+                for (var bx = 0; bx < bw; bx++)
+                {
+                    var i = by * bw + bx;
+                    if (clear[i] == 0) continue;
+                    if (!LineClear(occ, x0, y0, bw, bh, sx, sy, fx, fy, x0 + bx, y0 + by)) clear[i] = 0;
+                }
+            return true;
+        }
+
         /// <summary>Fill a rect of the mask (the Home lot's built-in area lighting, light.ts <c>lightMask</c>'s last line).</summary>
         public static void StampRect(byte[] mask, int tw, int th, int x, int y, int w, int h)
         {

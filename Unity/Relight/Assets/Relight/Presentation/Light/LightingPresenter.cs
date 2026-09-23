@@ -115,6 +115,14 @@ namespace Relight.Presentation
         private Vec2 _beamFrom;
         private double _beamDirX, _beamDirY, _beamRange, _beamCos, _beamGlow;
 
+        // REL-131: the torch's own shadow, one byte a tile over the beam's bounding box, 1 where the beam gets
+        // through. Rebuilt every frame, unlike _glows, because the beam follows the pointer and there is nothing
+        // to cache; the cost is kept down at both ends instead — only the tiles the cone reaches are line-tested,
+        // and a box holding no wall at all is answered by one scan with no line walk in it.
+        private byte[] _beamClear;
+        private int _beamBx, _beamBy, _beamBw, _beamBh;
+        private bool _beamShadow;
+
         /// <summary>Texels written on the last frame. A profiling and test hook; not gameplay.</summary>
         public int Texels { get; private set; }
 
@@ -189,6 +197,8 @@ namespace Relight.Presentation
             // buildings in it would keep lifting silhouettes off enemies after the overlay had gone.
             _glows.Clear();
             _glowFold = 0;
+            // Same reason for the beam's shadow: a stale box would shadow a beam drawn from a new position.
+            _beamShadow = false;
         }
 
         private void LateUpdate()
@@ -199,6 +209,11 @@ namespace Relight.Presentation
 
             var ctx = sim.Context;
             var st = sim.State;
+
+            // REL-131. Above every early return below, because Reveal() is read by the enemy presenter on frames
+            // this one draws nothing at all — a stale box would shadow a beam that has since moved. It costs
+            // nothing when the torch is off, which is the only case the returns below care about.
+            BeamShadow(ctx, st);
 
             // The strength of the night. LightQueries.Daylight is the sim's clock; the smoothstep is the
             // renderer's (riverfrontLighting.ts), so dusk fades rather than steps.
@@ -454,6 +469,84 @@ namespace Relight.Presentation
             return best;
         }
 
+        /// <summary>
+        /// REL-131. Work out what the torch cannot see past, for this frame's beam. The owner's note:
+        /// <i>"Existing and placed walls should block light from the player torch, but not light from placed
+        /// objects"</i>; asked which half to build, they chose <b>only stop the torch</b>, so placed lights keep
+        /// the behaviour REL-116 gave them and this is the torch half alone.
+        ///
+        /// Still picture only. The shadow is drawn and nothing else: <c>LightQueries.LitAt</c> has never known the
+        /// torch exists and does not learn it here, so no raider hesitates and no turret sees further because of
+        /// where the player is pointing.
+        ///
+        /// Two costs are deliberately avoided. Tiles whose centre and four corners all fall outside the cone are
+        /// never line-tested — the corners as well as the centre, because the overlay is supersampled and a texel
+        /// near a tile's edge can be inside the cone when the tile's own centre is not, and a tile left untested
+        /// would read as shadow and cut a bite out of the cone's rim. And a bounding box with no wall in it is
+        /// answered by <see cref="LightRules.Shadow"/> in one scan, which is the open ground the player crosses
+        /// for most of a run.
+        /// </summary>
+        private void BeamShadow(SimContext ctx, SimState st)
+        {
+            _beamShadow = false;
+            if (!_beam || ctx == null || ctx.Geometry == null || st == null) return;
+
+            var r = _beamRange;
+            var x0 = Mathf.FloorToInt((float)(_beamFrom.X - r));
+            var y0 = Mathf.FloorToInt((float)(_beamFrom.Y - r));
+            var bw = Mathf.CeilToInt((float)(_beamFrom.X + r)) - x0 + 1;
+            var bh = Mathf.CeilToInt((float)(_beamFrom.Y + r)) - y0 + 1;
+            if (bw <= 0 || bh <= 0) return;
+
+            var n = bw * bh;
+            if (_beamClear == null || _beamClear.Length < n) _beamClear = new byte[n];
+            System.Array.Clear(_beamClear, 0, n);
+            _beamBx = x0;
+            _beamBy = y0;
+            _beamBw = bw;
+            _beamBh = bh;
+
+            // Mark the tiles the cone can touch. The feet glow is deliberately not marked here: it is never
+            // occluded (standing against a wall must not put the player in the dark), and Beam() returns it
+            // before it ever consults the shadow.
+            var r2 = r * r;
+            for (var by = 0; by < bh; by++)
+                for (var bx = 0; bx < bw; bx++)
+                    if (ConeTouches(x0 + bx, y0 + by, r2)) _beamClear[by * bw + bx] = 1;
+
+            _beamShadow = LightRules.Shadow(_beamClear, x0, y0, bw, bh, ctx, st, _beamFrom.X, _beamFrom.Y);
+        }
+
+        /// <summary>Does the cone reach any part of this tile? Centre and four corners, which is enough at one tile.</summary>
+        private bool ConeTouches(int tx, int ty, double r2)
+        {
+            for (var k = 0; k < 5; k++)
+            {
+                var px = tx + (k == 0 ? 0.5 : k == 1 || k == 3 ? 0.0 : 1.0);
+                var py = ty + (k == 0 ? 0.5 : k <= 2 ? 0.0 : 1.0);
+                var ex = px - _beamFrom.X;
+                var ey = py - _beamFrom.Y;
+                var d2 = ex * ex + ey * ey;
+                if (d2 > r2) continue;
+                if (d2 < 1e-12) return true;
+                if ((ex * _beamDirX + ey * _beamDirY) / System.Math.Sqrt(d2) >= _beamCos) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// REL-131. Does the beam reach the tile this position stands on? True whenever no shadow was built — no
+        /// wall inside the beam's reach, no simulation to ask — so the open-ground case costs one bool test.
+        /// </summary>
+        private bool BeamVisible(double wx, double wy)
+        {
+            if (!_beamShadow) return true;
+            var bx = Mathf.FloorToInt((float)wx) - _beamBx;
+            var by = Mathf.FloorToInt((float)wy) - _beamBy;
+            if (bx < 0 || by < 0 || bx >= _beamBw || by >= _beamBh) return true;
+            return _beamClear[by * _beamBw + bx] != 0;
+        }
+
         /// <summary>The per-frame half: darkness strength, minus the beam, into the texture.</summary>
         private void Paint(float darkness)
         {
@@ -503,6 +596,10 @@ namespace Relight.Presentation
 
             var cos = (ex * _beamDirX + ey * _beamDirY) / d;
             if (cos < _beamCos) return Mathf.Clamp01(glow);
+
+            // REL-131: a wall stops the cone here. After the glow, never before it — the small light at one's own
+            // feet is not occluded, so standing with your back to a wall does not put you in the dark.
+            if (!BeamVisible(wx, wy)) return Mathf.Clamp01(glow);
 
             // Radial falloff over the last third of the reach, angular falloff over the outer quarter of the cone,
             // so the beam has no hard rim anywhere.
