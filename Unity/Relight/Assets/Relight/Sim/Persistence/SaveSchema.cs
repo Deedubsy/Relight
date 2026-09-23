@@ -90,6 +90,10 @@ namespace Relight.Sim
     /// (prepared, commissionedAt, hp), and <c>encounters.newestPlant</c>, the plant lit most recently. The fill
     /// supplies no plant touched and none lit.
     ///
+    /// Version 19 (2026-09-23, REL-144, batch 4) adds <c>director.major.plant</c>, the plant an assault goes for
+    /// ("" for the Home core), and <c>director.plantRaid</c>, the plant owed the next assault. An upgraded assault
+    /// is on the Home core, and no plant is owed one.
+    ///
     /// The document is one JSON object:
     /// <code>
     /// {
@@ -118,7 +122,7 @@ namespace Relight.Sim
     public static class SaveSchema
     {
         /// <summary>Schema version this build writes. Files from <see cref="OldestReadable"/> up to it are read.</summary>
-        public const int Version = 18;
+        public const int Version = 19;
 
         /// <summary>
         /// The oldest schema version this build still reads (through <see cref="SaveUpgrade"/>). Never 0: there

@@ -58,7 +58,7 @@ namespace Relight.Sim.UI
                     // The director names waves in order and can name two in one tick only when a wave gap is shorter
                     // than a tick; the newest is the one walking in, so it is the one worth the top of the screen.
                     var w = a.WaveAnnounced - 1;
-                    var side = DirectorQueries.SideWords(ctx, st, SiegePlan.Sides(a, w));
+                    var side = DirectorQueries.SideWords(ctx, st, SiegePlan.Sides(a, w), a.Plant);
                     Show(a.Waves > 1
                         ? "Wave " + Num(w + 1) + " of " + Num(a.Waves) + From(side)
                         : "Major assault" + From(side));

@@ -12,6 +12,11 @@ namespace Relight.Sim
         public int Id;
         /// <summary>Tile index of the locked approach (<c>y * width + x</c>).</summary>
         public int Origin = -1;
+        /// <summary>
+        /// FRT-09: the plant this assault goes for, or "" for the Home core. Chosen once, when it is booked
+        /// (<see cref="Plants.RaidAim"/>), and saved with it. Save v19; an older assault reads as "".
+        /// </summary>
+        public string Plant = "";
         /// <summary>The compass approaches the roster rotates through; always contains <see cref="Origin"/>.</summary>
         public int[] Origins = System.Array.Empty<int>();
         public double StartsAt;
@@ -82,6 +87,7 @@ namespace Relight.Sim
             v.Field("waveStart", ref WaveStart);
             v.Field("waveApproaches", ref WaveApproaches);
             v.Field("waveOffset", ref WaveOffset);
+            v.Field("plant", ref Plant);
         }
     }
 
@@ -239,6 +245,12 @@ namespace Relight.Sim
         /// -1 when none is waiting. It waits at most <see cref="SiegeTuning.MinorDelayCapS"/> from here.
         /// </summary>
         public double MinorDelayedSince = -1;
+        /// <summary>
+        /// FRT-09 (design §5.8, U-D-73): the plant commissioned since the last major raid was committed, which the
+        /// next one is booked against; "" when normal selection (the Home core) applies. Set by
+        /// <see cref="Plants.Commission"/>, cleared when an assault against it commits. Save v19.
+        /// </summary>
+        public string PlantRaid = "";
 
         public MajorRaid Major;
         public MinorRaid Minor;
@@ -290,6 +302,7 @@ namespace Relight.Sim
             v.Field("cycleMinors", ref CycleMinors);
             v.Field("lastMinorEnd", ref LastMinorEnd);
             v.Field("minorDelayedSince", ref MinorDelayedSince);
+            v.Field("plantRaid", ref PlantRaid);
         }
     }
 

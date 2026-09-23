@@ -247,6 +247,13 @@ namespace Relight.Sim
                 what += (what.Length == 0 ? " with" : " and") + " no power plant touched";
                 v = 18;
             }
+            if (v == 18)
+            {
+                var problem = EighteenToNineteen(state, out damaged);
+                if (problem.Length != 0) return problem;
+                what += (what.Length == 0 ? " with" : " and") + " every assault on the Home core";
+                v = 19;
+            }
             // Every version between OldestReadable and Version has a step above; a gap here is a programming error.
             if (v != SaveSchema.Version)
                 return "unsupported save version " + fromVersion.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -468,6 +475,21 @@ namespace Relight.Sim
         static string SeventeenToEighteen(JsonValue state, out bool damaged)
         {
             damaged = false;
+            FillMissing(state, FreshDocument());
+            return "";
+        }
+
+        /// <summary>
+        /// v18 → v19 (REL-144): an assault's aim and the plant owed the next one. A fresh director's <c>major</c> is
+        /// JSON null, the trap versions 7 to 9 each fell into, so an assault the file already holds is stamped
+        /// here with <c>plant</c> "", the Home core — the only target the build that wrote it had. The owed plant
+        /// is filled as "" by the generic fill: that build never booked an assault against a plant.
+        /// </summary>
+        static string EighteenToNineteen(JsonValue state, out bool damaged)
+        {
+            damaged = false;
+            var major = state.Member(Director)?.Member(Major);
+            if (major != null && major.IsObject) major.TryAddMember("plant", JsonValue.TextValue(""));
             FillMissing(state, FreshDocument());
             return "";
         }

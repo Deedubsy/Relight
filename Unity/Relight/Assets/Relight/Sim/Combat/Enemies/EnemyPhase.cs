@@ -113,9 +113,11 @@ namespace Relight.Sim
                 return;
             }
 
-            if (!DirectorRules.Target(ctx, st, out var bx, out var by, out var size)) { e.Stuck += dt; return; }
+            // FRT-09: a body of an assault on a plant walks to that plant and bites it instead of the Home core.
+            var aim = DirectorRules.AimOf(st, e);
+            if (!DirectorRules.Target(ctx, st, aim, out var bx, out var by, out var size)) { e.Stuck += dt; return; }
             var route = Enemies.Route(ctx, st, e, bx, by, size);
-            if (WalkField(ctx, st, e, def, route, dt, true)) EnemyCoreHook.Damage(ctx, st, Enemies.StructureDps(d, def) * dt);
+            if (WalkField(ctx, st, e, def, route, dt, true)) DirectorRules.DamageTarget(ctx, st, aim, Enemies.StructureDps(d, def) * dt);
         }
 
         private static void Leave(SimState st, Enemy e)
@@ -148,7 +150,8 @@ namespace Relight.Sim
             if (e.Layer == EnemyLayer.Major)
                 retreat = st.Director.Major == null || st.Director.Major.Retreat || st.Director.Major.Id != e.Group;
             else retreat = st.Director.Minor == null || st.Director.Minor.Retreat;
-            if (!retreat && !DirectorRules.Target(ctx, st, out _, out _, out _)) retreat = true;
+            var aim = DirectorRules.AimOf(st, e);
+            if (!retreat && !DirectorRules.Target(ctx, st, aim, out _, out _, out _)) retreat = true;
             exit = retreat;
 
             if (!retreat)
@@ -168,7 +171,7 @@ namespace Relight.Sim
 
             int gx, gy, size;
             if (retreat) { gx = e.Origin % w; gy = e.Origin / w; size = 0; }
-            else DirectorRules.Target(ctx, st, out gx, out gy, out size);
+            else DirectorRules.Target(ctx, st, aim, out gx, out gy, out size);
 
             var fld = Enemies.Route(ctx, st, e, gx, gy, size);
             var here = fld.At((int)Math.Floor(e.Pos.X), (int)Math.Floor(e.Pos.Y));
@@ -231,7 +234,7 @@ namespace Relight.Sim
             double x, y;
             if (what == EnemyTargetKind.You) { x = st.Engineer.Pos.X; y = st.Engineer.Pos.Y; }
             else if (structure != null) { x = structure.X + structure.Size / 2.0; y = structure.Y + structure.Size / 2.0; }
-            else if (DirectorRules.Target(ctx, st, out var bx, out var by, out var size)) { x = bx + size / 2.0; y = by + size / 2.0; }
+            else if (DirectorRules.Target(ctx, st, DirectorRules.AimOf(st, e), out var bx, out var by, out var size)) { x = bx + size / 2.0; y = by + size / 2.0; }
             else { x = tileX + .5; y = tileY + .5; }
 
             var sight = ctx.Geometry.Sight(e.Pos.X, e.Pos.Y, x, y);
@@ -246,7 +249,7 @@ namespace Relight.Sim
                 if (st.T < e.Until) return true;
                 if (def.Ranged) Spit(ctx, st, e, def);
                 else if (contact && sight && DirectorRules.Distance(x, y, e.Aim.X, e.Aim.Y) < 1.5)
-                    ApplyHit(ctx, st, what, structure, def.Damage);
+                    ApplyHit(ctx, st, e, what, structure, def.Damage);
                 e.Phase = EnemyPhaseKind.Recover;
                 e.Until = st.T + def.IntervalS - def.WindupS;
                 return true;
@@ -261,11 +264,11 @@ namespace Relight.Sim
             return false;
         }
 
-        private static void ApplyHit(SimContext ctx, SimState st, EnemyTargetKind what, Machine structure, double damage)
+        private static void ApplyHit(SimContext ctx, SimState st, Enemy e, EnemyTargetKind what, Machine structure, double damage)
         {
             if (what == EnemyTargetKind.You) st.Engineer.TakeDamage(ctx, st, damage);
             else if (structure != null) TurretRules.Damage(ctx, st, structure, damage);
-            else EnemyCoreHook.Damage(ctx, st, damage);
+            else DirectorRules.DamageTarget(ctx, st, DirectorRules.AimOf(st, e), damage);
         }
 
         private static void Spit(SimContext ctx, SimState st, Enemy e, EnemyDef def)
@@ -300,6 +303,11 @@ namespace Relight.Sim
             // the same split every bite uses — 16 to a wall, 10 to the engineer, from the one rule.
             var structureDamage = spitter != null ? Enemies.StructureDamage(ctx.Data, spitter) : damage;
             var hasCore = DirectorRules.Target(ctx, st, out var bx, out var by, out var size);
+            // FRT-09: while an assault is on a plant, a glob that reaches the plant hits it.
+            var plant = st.Director.Major?.Plant ?? "";
+            int px = 0, py = 0, psize = 0;
+            var hasPlant = plant.Length > 0 && DirectorRules.Target(ctx, st, plant, out px, out py, out psize);
+            bool OnPlant(int tx, int ty) => hasPlant && tx >= px && ty >= py && tx < px + psize && ty < py + psize;
 
             for (var i = list.Count - 1; i >= 0; i--)
             {
@@ -318,6 +326,7 @@ namespace Relight.Sim
                         var m = st.Enemies.Index.At(ctx, st, tx, ty);
                         if (TurretRules.BlocksRaiders(ctx.Data, m)) TurretRules.Damage(ctx, st, m, structureDamage);
                         else if (hasCore && tx >= bx && ty >= by && tx < bx + size && ty < by + size) EnemyCoreHook.Damage(ctx, st, structureDamage);
+                        else if (OnPlant(tx, ty)) Plants.Damage(ctx, st, plant, structureDamage);
                         dead = true;
                         break;
                     }
@@ -325,6 +334,12 @@ namespace Relight.Sim
                     if (hasCore && tx >= bx && ty >= by && tx < bx + size && ty < by + size)
                     {
                         EnemyCoreHook.Damage(ctx, st, structureDamage);
+                        dead = true;
+                        break;
+                    }
+                    if (OnPlant(tx, ty))
+                    {
+                        Plants.Damage(ctx, st, plant, structureDamage);
                         dead = true;
                         break;
                     }

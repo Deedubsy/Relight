@@ -198,6 +198,7 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(st.Encounters.Cores, Is.Empty, "and not on the ground either");
             Assert.That(rec.CommissionedAt, Is.EqualTo(1234.5));
             Assert.That(rec.Hp, Is.EqualTo(Plants.MaxHp(ctx.Data)).And.GreaterThan(0));
+            Assert.That(st.Director.PlantRaid, Is.EqualTo(Id), "and the next major raid is owed to it (FRT-09)");
             Assert.That(st.Encounters.NewestPlant, Is.EqualTo(Id));
             var lit = RaidFixture.Last<PlantCommissionedEvent>(st);
             Assert.That(lit.Kw, Is.EqualTo(600));
@@ -237,7 +238,7 @@ namespace Relight.Sim.Tests.Combat
             var st = Prepared(ctx);
             var a = SaveSerializer.ReadText(SaveSerializer.WriteText(st, ctx.Data), ctx.Data);
             Assert.That(a.Ok, Is.True, a.Reason);
-            Assert.That(a.Header.Version, Is.EqualTo(18));
+            Assert.That(a.Header.Version, Is.EqualTo(SaveSchema.Version));
             Assert.That(a.State.Encounters.Plant(Id).Prepared, Is.True);
             Assert.That(a.State.Encounters.Plant(Id).Commissioned, Is.False);
             Assert.That(StateHash.Compute(a.State), Is.EqualTo(StateHash.Compute(st)));

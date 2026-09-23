@@ -167,6 +167,9 @@ namespace Relight.Sim
             if (a != null)
             {
                 var at = new Vec2(a.Origin % w + .5, a.Origin / w + .5);
+                // FRT-09: an assault on a plant is named from the plant it is coming for.
+                if (!string.IsNullOrEmpty(a.Plant) && DirectorRules.Target(ctx, st, a.Plant, out var px, out var py, out var ps))
+                { cx = px + ps / 2.0; cy = py + ps / 2.0; }
                 var kind = a.Retreat ? "withdrawal" : st.T >= a.StartsAt ? "assault" : "warning";
                 return new RaidWarning(kind, Math.Max(0, a.StartsAt - st.T), Direction(at, cx, cy), d.Notice, at, "Major assault", a.Id);
             }
@@ -195,10 +198,10 @@ namespace Relight.Sim
         /// uses: "east", "east and south-west", "north, east and south". The same sides and order as
         /// <see cref="DirectorRules.HeadingsOf"/>, spelled out. "" when there is no target or nothing to name.
         /// </summary>
-        public static string SideWords(SimContext ctx, SimState st, int[] origins)
+        public static string SideWords(SimContext ctx, SimState st, int[] origins, string aim = "")
         {
             if (origins == null || origins.Length == 0) return "";
-            if (!DirectorRules.Target(ctx, st, out var bx, out var by, out var size)) return "";
+            if (!DirectorRules.Target(ctx, st, aim, out var bx, out var by, out var size)) return "";
             var w = ctx.Geometry.Width;
             var words = new System.Collections.Generic.List<string>();
             for (var i = 0; i < origins.Length; i++)
@@ -221,7 +224,9 @@ namespace Relight.Sim
         {
             at = default;
             if (raidId <= 0 || st?.Enemies == null) return false;
-            var hasTarget = DirectorRules.Target(ctx, st, out var bx, out var by, out var size);
+            var major = st.Director.Major;
+            var aim = major != null && major.Id == raidId ? major.Plant ?? "" : "";
+            var hasTarget = DirectorRules.Target(ctx, st, aim, out var bx, out var by, out var size);
             var cx = bx + size / 2.0;
             var cy = by + size / 2.0;
             var best = double.PositiveInfinity;

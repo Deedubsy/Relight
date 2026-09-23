@@ -597,6 +597,8 @@ namespace Relight.Sim.UI
         public const string BlindTurretKey = "guide:blind-turret";
         public const string DistrictLitKey = "light:district";
         public const string PlantLitKey = "plant-lit:";
+        /// <summary>FRT-09: a raid took a plant to 0 hit points.</summary>
+        public const string PlantFellKey = "plant-fell:";
 
         /// <summary>REL-66: the save was read through an older schema, moved between regions, or healed on load.</summary>
         public const string LoadUpgradedKey = "load:upgraded";
@@ -755,6 +757,10 @@ namespace Relight.Sim.UI
                     case PlantCommissionedEvent lit:
                         Notices.Post(PlantLitKey + lit.Plant, Plants.CardText(lit.Name, lit.Kw),
                             HudNoticeKind.Info, now, GuideSeconds);
+                        break;
+                    case PlantFellEvent fell:
+                        Notices.Post(PlantFellKey + fell.Plant, Plants.FellText(fell.Name),
+                            HudNoticeKind.Danger, now, GuideSeconds);
                         break;
                     // REL-60 (UI-10): the worst moments of a raid. Each raises its row the frame it happens; Refresh
                     // keeps the standing ones true to state on the same edge memory, so none is posted twice.

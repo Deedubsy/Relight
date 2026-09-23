@@ -66,9 +66,12 @@ namespace Relight.Sim
         private static void CoreFell(SimContext ctx, SimState st)
         {
             var d = st.Director;
-            if (!EnemyCoreHook.Down(ctx, st)) return;
-            if (d.Minor != null && d.Minor.Spawned && !d.Minor.Retreat) { d.Minor.Retreat = true; d.Minor.Owed = 0; }
-            if (d.Major != null && d.Major.Committed && !d.Major.Retreat)
+            // FRT-09: an assault on a plant is beaten when that plant falls, whatever Home is doing; the Home core
+            // falling beats the small raid and any assault on Home.
+            var homeDown = EnemyCoreHook.Down(ctx, st);
+            if (homeDown && d.Minor != null && d.Minor.Spawned && !d.Minor.Retreat) { d.Minor.Retreat = true; d.Minor.Owed = 0; }
+            if (d.Major != null && d.Major.Committed && !d.Major.Retreat
+                && (string.IsNullOrEmpty(d.Major.Plant) ? homeDown : Plants.Down(st, d.Major.Plant)))
             {
                 d.Major.Retreat = true;
                 d.Major.Cancelled += d.Major.Remaining;
@@ -99,7 +102,7 @@ namespace Relight.Sim
 
             var alive = EnemyQueries.GroupAlive(st, a.Id);
             RaidOutcome outcome;
-            if (a.Retreat) outcome = DirectorRules.CalledOff(ctx, st);
+            if (a.Retreat) outcome = DirectorRules.CalledOff(ctx, st, a.Plant);
             else if (a.Remaining == 0 && alive == 0) outcome = RaidOutcome.Cleared;
             else if (a.EndsAt > 0 && st.T >= a.EndsAt + ctx.Data.Siege.MajorOverrunS) outcome = RaidOutcome.BrokeOff;
             else return;
@@ -248,12 +251,15 @@ namespace Relight.Sim
                 Future(ctx, st, d.ReserveReason.Length > 0 ? d.ReserveReason : "The approach is reserved.");
                 return;
             }
-            if (!DirectorRules.Target(ctx, st, out _, out _, out _))
+            // FRT-09 (design §5.8): the first assault booked after a commissioning goes for the newest plant; after
+            // it commits, normal selection — the Home core — resumes.
+            var aim = Plants.RaidAim(st);
+            if (!DirectorRules.Target(ctx, st, aim, out _, out _, out _))
             {
                 Future(ctx, st, "No operational core with a reachable assault approach.");
                 return;
             }
-            var origins = Stageable(ctx, st, DirectorRules.Approaches(ctx, st));
+            var origins = Stageable(ctx, st, DirectorRules.Approaches(ctx, st, aim), aim);
             if (origins.Length == 0) { Future(ctx, st, "No operational core with a reachable assault approach."); return; }
             var a = new MajorRaid
             {
@@ -263,6 +269,7 @@ namespace Relight.Sim
                 StartsAt = d.NextStart,
                 Retreat = false,
                 Committed = false,
+                Plant = aim,
             };
             // GP-W4: the whole encounter is planned here, once, and saved — head count, composition, wave times,
             // approaches and length. Spawning afterwards only reads the plan, so what the player is warned about
@@ -272,12 +279,12 @@ namespace Relight.Sim
         }
 
         /// <summary>The approaches a wave can actually be born on, in order. Empty when the map offers none.</summary>
-        private static int[] Stageable(SimContext ctx, SimState st, int[] origins)
+        private static int[] Stageable(SimContext ctx, SimState st, int[] origins, string aim)
         {
             if (origins == null || origins.Length == 0) return Array.Empty<int>();
             var keep = new System.Collections.Generic.List<int>(origins.Length);
             for (var i = 0; i < origins.Length; i++)
-                if (DirectorRules.Staging(ctx, st, origins[i]) >= 0) keep.Add(origins[i]);
+                if (DirectorRules.Staging(ctx, st, origins[i], aim) >= 0) keep.Add(origins[i]);
             return keep.ToArray();
         }
 
@@ -301,7 +308,8 @@ namespace Relight.Sim
             var problem = d.Reserved
                     ? (d.ReserveReason.Length > 0 ? d.ReserveReason : "The approach is reserved.")
                 : st.T < d.RecoveryUntil ? "The last attack is still being cleared up."
-                : !DirectorRules.Target(ctx, st, out _, out _, out _) ? "There is no core left to assault."
+                : !DirectorRules.Target(ctx, st, a.Plant, out _, out _, out _)
+                    ? (string.IsNullOrEmpty(a.Plant) ? "There is no core left to assault." : "There is no plant left to assault.")
                 : !HasStaging(ctx, st, a) ? "The announced approaches are no longer open."
                 : "";
             if (problem.Length > 0)
@@ -320,6 +328,7 @@ namespace Relight.Sim
             }
 
             a.Committed = true;
+            if (!string.IsNullOrEmpty(a.Plant) && a.Plant == d.PlantRaid) d.PlantRaid = "";   // FRT-09: its raid came
             d.CycleMinors = 0;                                          // REL-75: a new cycle starts with this raid
             d.Serial++;
             d.NextStart = a.StartsAt + r.IntervalMinS + DirectorRules.RaidChoice(st.Seed, d.Serial, (int)r.IntervalRangeS);
@@ -329,7 +338,7 @@ namespace Relight.Sim
         {
             var list = a.Origins != null && a.Origins.Length > 0 ? a.Origins : new[] { a.Origin };
             for (var i = 0; i < list.Length; i++)
-                if (DirectorRules.Staging(ctx, st, list[i]) >= 0) return true;
+                if (DirectorRules.Staging(ctx, st, list[i], a.Plant) >= 0) return true;
             return false;
         }
 
@@ -364,7 +373,7 @@ namespace Relight.Sim
             if (st.T < SiegePlan.Due(ctx, a, a.Wave, a.WaveSpawned)) return;
             if (st.Enemies.Actors.Count >= r.LivingBudget) return;
             if (MajorAlive(st) >= r.ActiveRaidBudget) return;
-            if (!DirectorRules.Target(ctx, st, out _, out _, out _)) { a.Retreat = true; a.Remaining = 0; return; }
+            if (!DirectorRules.Target(ctx, st, a.Plant, out _, out _, out _)) { a.Retreat = true; a.Remaining = 0; return; }
 
             // The planned side first. If the map has closed it since the warning, the body takes another of the
             // SAME wave's announced approaches rather than stalling the assault or inventing a new one.
@@ -372,7 +381,7 @@ namespace Relight.Sim
             var sides = SiegePlan.Approaches(a, a.Wave);
             for (var attempt = 0; attempt < sides && born == 0; attempt++)
             {
-                var from = DirectorRules.Staging(ctx, st, SiegePlan.Origin(a, a.Wave, a.WaveSpawned + attempt));
+                var from = DirectorRules.Staging(ctx, st, SiegePlan.Origin(a, a.Wave, a.WaveSpawned + attempt), a.Plant);
                 if (from < 0) continue;
                 born = DirectorRules.Birth(ctx, st, from, (int)EnemyLayer.Major, a.Id, false,
                     SiegePlan.Kind(a, a.Wave, a.WaveSpawned));
@@ -401,7 +410,7 @@ namespace Relight.Sim
                 a.Origin = SiegePlan.Origin(a, w, 0);
                 if (w == 0) continue;                       // the inbound warning already named the opening wave
                 var text = "Assault wave " + (w + 1) + " of " + a.Waves + " from "
-                    + DirectorRules.HeadingsOf(ctx, st, SiegePlan.Sides(a, w)) + ".";
+                    + DirectorRules.HeadingsOf(ctx, st, SiegePlan.Sides(a, w), a.Plant) + ".";
                 Director.Say(st, text, a.EndsAt + ctx.Data.Siege.NoticeHoldS);
                 st.Events.Add(new RaidNoticeEvent(st.T, RaidNoticeKind.Announced, text, a.Id));
             }
@@ -433,17 +442,21 @@ namespace Relight.Sim
             // GP-W4: name the side the FIRST wave actually opens on, not every side the assault will eventually
             // use — an assault announced from four quarters at once is not something a player can prepare for.
             // The scale is stated separately, so preparation can be proportionate.
-            var opening = DirectorRules.HeadingsOf(ctx, st, SiegePlan.Sides(a, 0));
-            var text = "Major assault inbound from " + opening + " in " + Seconds(a.StartsAt - st.T) + ".";
+            var opening = DirectorRules.HeadingsOf(ctx, st, SiegePlan.Sides(a, 0), a.Plant);
+            var text = "Major assault" + OnPlant(a) + " inbound from " + opening + " in " + Seconds(a.StartsAt - st.T) + ".";
             if (a.Waves > 1)
             {
-                var all = DirectorRules.HeadingsOf(ctx, st, a.Origins);
+                var all = DirectorRules.HeadingsOf(ctx, st, a.Origins, a.Plant);
                 text += " " + a.Waves + " waves over " + Minutes(a.EndsAt - a.StartsAt)
                     + (all == opening ? "." : ", later ones from " + all + ".");
             }
             Director.Say(st, text, a.EndsAt + ctx.Data.Siege.NoticeHoldS);
             st.Events.Add(new RaidNoticeEvent(st.T, RaidNoticeKind.Announced, text, a.Id));
         }
+
+        /// <summary>FRT-09: " on Riverside Works" for an assault on a plant, so the player knows where to stand; "" for Home.</summary>
+        private static string OnPlant(MajorRaid a) =>
+            string.IsNullOrEmpty(a.Plant) ? "" : " on " + (EncounterCatalogue.Plant(a.Plant)?.Name ?? a.Plant);
 
         /// <summary>A countdown as the HUD says it: whole seconds, never negative.</summary>
         private static string Seconds(double s) => Math.Max(0, (int)Math.Round(s)) + " s";

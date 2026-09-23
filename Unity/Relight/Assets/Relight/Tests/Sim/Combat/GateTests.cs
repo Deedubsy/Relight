@@ -351,8 +351,9 @@ namespace Relight.Sim.Tests
         {
             // 13 since REL-137 (the encounters), 14 since REL-138 (keys and crates), 15 since REL-140 (the
             // stronghold doors and fight clock), 16 since REL-141 (the guardian and its core), 17 since REL-142 (the
-            // carried core) and 18 since REL-143 (the plants), none of them the gate's doing.
-            Assert.That(SaveSchema.Version, Is.EqualTo(18),
+            // carried core), 18 since REL-143 (the plants) and 19 since REL-144 (the plant raid), none of them the
+            // gate's doing.
+            Assert.That(SaveSchema.Version, Is.EqualTo(19),
                 "a gate is an ordinary machine; if the version moved, something here started saving state of its own");
         }
     }

@@ -75,11 +75,40 @@ namespace Relight.Sim
             EnemyCoreHook.Rect(ctx, st, out x, out y, out size);
 
         /// <summary>
+        /// FRT-09: a raid's destination rect by its aim — "" is the Home core (<see cref="Target(SimContext, SimState,
+        /// out int, out int, out int)"/>), anything else the standing plant with that id. A major assault carries its
+        /// aim in <see cref="MajorRaid.Plant"/>; a small raid always aims at Home.
+        /// </summary>
+        public static bool Target(SimContext ctx, SimState st, string aim, out int x, out int y, out int size) =>
+            string.IsNullOrEmpty(aim) ? Target(ctx, st, out x, out y, out size) : Plants.Rect(ctx, st, aim, out x, out y, out size);
+
+        /// <summary>A raid body's hit on its aim: the Home core (and its first-raid floor) or the plant.</summary>
+        public static void DamageTarget(SimContext ctx, SimState st, string aim, double amount)
+        {
+            if (string.IsNullOrEmpty(aim)) EnemyCoreHook.Damage(ctx, st, amount);
+            else Plants.Damage(ctx, st, aim, amount);
+        }
+
+        /// <summary>The aim was there and has fallen: the Home core down, or the plant at 0 hit points.</summary>
+        public static bool TargetDown(SimContext ctx, SimState st, string aim) =>
+            string.IsNullOrEmpty(aim) ? EnemyCoreHook.Down(ctx, st) : Plants.Down(st, aim);
+
+        /// <summary>The aim of the assault a body belongs to; "" for Home, a small raid or a leftover.</summary>
+        public static string AimOf(SimState st, Enemy e)
+        {
+            var a = st.Director.Major;
+            return e != null && e.Layer == EnemyLayer.Major && a != null && a.Id == e.Group ? a.Plant ?? "" : "";
+        }
+
+        /// <summary>The raid line applies to approaches on the Home core only; a plant is attacked from any side.</summary>
+        private static int LineFor(SimContext ctx, string aim) => string.IsNullOrEmpty(aim) ? RaidLineY(ctx) : int.MinValue;
+
+        /// <summary>
         /// How a raid whose retreat has been called ended (E-18): it beat its target if the core is down, and
         /// otherwise it broke off. One rule, for the saved record of a large raid and the account of a small one.
         /// </summary>
-        public static RaidOutcome CalledOff(SimContext ctx, SimState st) =>
-            EnemyCoreHook.Down(ctx, st) ? RaidOutcome.Lost : RaidOutcome.BrokeOff;
+        public static RaidOutcome CalledOff(SimContext ctx, SimState st, string aim = "") =>
+            TargetDown(ctx, st, aim) ? RaidOutcome.Lost : RaidOutcome.BrokeOff;
 
         /// <summary>
         /// The <see cref="SiteKind.RaidLine"/> gate row: Home raid entry tiles must be at or below it (reference
@@ -182,13 +211,13 @@ namespace Relight.Sim
         /// inside the fence. The <see cref="RaidField"/> box was the reason no tile qualified (see its remarks);
         /// this guard is what keeps a future map fault an honest -1 instead of an interior spawn.
         /// </summary>
-        public static int Origin(SimContext ctx, SimState st)
+        public static int Origin(SimContext ctx, SimState st, string aim = "")
         {
-            if (!Target(ctx, st, out var bx, out var by, out var size)) return FallbackOrigin(ctx, st);
+            if (!Target(ctx, st, aim, out var bx, out var by, out var size)) return FallbackOrigin(ctx, st);
             var w = ctx.Geometry.Width;
             var h = ctx.Geometry.Height;
             var fld = st.Director.Fields.Field(ctx, st, bx, by, size, true);
-            var line = RaidLineY(ctx);
+            var line = LineFor(ctx, aim);
             var best = -1;
             var bestTier = int.MaxValue;
             var score = double.PositiveInfinity;
@@ -219,9 +248,9 @@ namespace Relight.Sim
         /// any other tile and wins its sector only when it is genuinely on a fair approach — in which case it is
         /// strictly preferred, which is the Sites contract's intent. A camp that is not gets no say.
         /// </summary>
-        public static int[] Approaches(SimContext ctx, SimState st)
+        public static int[] Approaches(SimContext ctx, SimState st, string aim = "")
         {
-            if (!Target(ctx, st, out var bx, out var by, out var size))
+            if (!Target(ctx, st, aim, out var bx, out var by, out var size))
             {
                 var only = FallbackOrigin(ctx, st);
                 return only < 0 ? Array.Empty<int>() : new[] { only };
@@ -231,7 +260,7 @@ namespace Relight.Sim
             var fld = st.Director.Fields.Field(ctx, st, bx, by, size, true);
             var cx = bx + size / 2.0;
             var cy = by + size / 2.0;
-            var line = RaidLineY(ctx);
+            var line = LineFor(ctx, aim);
             var siege = ctx.Data.Siege;
             var tile = new int[4];
             var tier = new int[4];
@@ -265,7 +294,7 @@ namespace Relight.Sim
             for (var i = 0; i < 4; i++) if (tile[i] >= 0) found.Add(tile[i]);
             if (found.Count > 0) return found.ToArray();
             // No sector qualified — take whatever single entry tile the map does have, and say nothing it cannot keep.
-            var one = Origin(ctx, st);
+            var one = Origin(ctx, st, aim);
             return one < 0 ? Array.Empty<int>() : new[] { one };
         }
 
@@ -274,15 +303,15 @@ namespace Relight.Sim
         /// exact entry tile is obstructed search at most 12 steps outward for one that is no closer to the core, so
         /// a wave can never bypass the defences it was meant to walk into. -1 when nothing qualifies.
         /// </summary>
-        public static int Staging(SimContext ctx, SimState st, int origin)
+        public static int Staging(SimContext ctx, SimState st, int origin, string aim = "")
         {
             if (origin < 0) return -1;
-            if (!Target(ctx, st, out var bx, out var by, out var size)) return Ground.Passable(ctx, st, origin % ctx.Geometry.Width, origin / ctx.Geometry.Width) ? origin : -1;
+            if (!Target(ctx, st, aim, out var bx, out var by, out var size)) return Ground.Passable(ctx, st, origin % ctx.Geometry.Width, origin / ctx.Geometry.Width) ? origin : -1;
             var w = ctx.Geometry.Width;
             var toCore = st.Director.Fields.Field(ctx, st, bx, by, size, true);
             var ox = origin % w;
             var oy = origin / w;
-            var line = RaidLineY(ctx);
+            var line = LineFor(ctx, aim);
             var siege = ctx.Data.Siege;
             var approach = Heading(ox - bx, oy - by);
 
@@ -325,10 +354,10 @@ namespace Relight.Sim
         /// The compass words of a set of approach tiles, distinct and in sector order, as the warning says them:
         /// "N", "N and E", "N, E and S". "·" when there is nothing to name.
         /// </summary>
-        public static string HeadingsOf(SimContext ctx, SimState st, int[] origins)
+        public static string HeadingsOf(SimContext ctx, SimState st, int[] origins, string aim = "")
         {
             if (origins == null || origins.Length == 0) return "·";
-            if (!Target(ctx, st, out var bx, out var by, out var size)) return "·";
+            if (!Target(ctx, st, aim, out var bx, out var by, out var size)) return "·";
             var w = ctx.Geometry.Width;
             var cx = bx + size / 2.0;
             var cy = by + size / 2.0;

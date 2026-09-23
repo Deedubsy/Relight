@@ -20,6 +20,9 @@ namespace Relight.Sim
     public sealed record PlantCommissionedEvent(double T, string Plant, string Name, double Kw, double X, double Y)
         : SimEvent(T);
 
+    /// <summary>A raid took a commissioned plant to 0 hit points: it no longer supplies (FRT-09).</summary>
+    public sealed record PlantFellEvent(double T, string Plant, string Name) : SimEvent(T);
+
     /// <summary>
     /// Batch 4, FRT-08 (REL-143): clearing, preparing and commissioning a power plant (FREIGHT_STRONGHOLD_DESIGN
     /// §4.4, §5.7). Riverside Works is the one plant with a row.
@@ -148,11 +151,69 @@ namespace Relight.Sim
             rec.CommissionedAt = st.T;
             rec.Hp = MaxHp(ctx.Data);
             st.Encounters.NewestPlant = p.Id;
+            st.Director.PlantRaid = p.Id;              // FRT-09: the next major raid comes for it
             st.Rev++;                                  // the power model is keyed on the revision: rebuild it now
             var c = site.Centre;
             st.Events.Add(new PlantCommissionedEvent(st.T, p.Id, p.Name, Kw(ctx.Data), c.X, c.Y));
             return (true, "");
         }
+
+        /// <summary>A commissioned plant that still has hit points.</summary>
+        public static bool Standing(SimState st, string id)
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            var rec = st.Encounters?.Plant(id);
+            return rec != null && rec.Commissioned && rec.Hp > 0;
+        }
+
+        /// <summary>
+        /// FRT-09: a standing plant's footprint as a raid destination, in the director's terms (the larger side as
+        /// <paramref name="size"/>, as <see cref="EnemyCoreHook.Rect"/> reports the Home core). False once it falls.
+        /// </summary>
+        public static bool Rect(SimContext ctx, SimState st, string id, out int x, out int y, out int size)
+        {
+            x = 0; y = 0; size = 0;
+            if (!Standing(st, id)) return false;
+            var s = ctx?.Sites?.Find(id);
+            if (s == null) return false;
+            x = s.X; y = s.Y; size = s.W > s.H ? s.W : s.H;
+            if (size <= 0) size = 1;
+            return true;
+        }
+
+        /// <summary>A commissioned plant that a raid has taken to 0 hit points.</summary>
+        public static bool Down(SimState st, string id)
+        {
+            if (string.IsNullOrEmpty(id)) return false;
+            var rec = st.Encounters?.Plant(id);
+            return rec != null && rec.Commissioned && rec.Hp <= 0;
+        }
+
+        /// <summary>
+        /// A raid body's hit on a plant. At 0 it stops supplying: the revision moves so the power model is rebuilt,
+        /// and <see cref="PlantFellEvent"/> tells the HUD. Nothing brings it back yet (FRT-09 builds no repair).
+        /// </summary>
+        public static void Damage(SimContext ctx, SimState st, string id, double amount)
+        {
+            if (amount <= 0 || !Standing(st, id)) return;
+            var rec = st.Encounters.Plant(id);
+            rec.Hp = Math.Max(0, rec.Hp - amount);
+            if (rec.Hp > 0) return;
+            st.Rev++;
+            st.Events.Add(new PlantFellEvent(st.T, id, EncounterCatalogue.Plant(id)?.Name ?? id));
+        }
+
+        /// <summary>
+        /// FRT-09 (design §5.8, U-D-73): the plant the next major raid is booked against — the newest commissioned
+        /// plant while it is owed its raid and still stands — or "" for the Home core, the normal selection.
+        /// </summary>
+        public static string RaidAim(SimState st)
+        {
+            var id = st.Director?.PlantRaid ?? "";
+            return Standing(st, id) ? id : "";
+        }
+
+        public static string FellText(string name) => name + " has fallen. It no longer supplies power.";
 
         /// <summary>The commissioned plants that supply now, with their sites on this map, in catalogue order.</summary>
         public static void Supplying(SimContext ctx, SimState st, List<SiteRecord> into)
