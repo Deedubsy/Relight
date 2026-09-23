@@ -168,6 +168,9 @@ namespace Relight.Sim
             into.Clear();
             var step = Step(ctx, st);
             if (step <= 0) return;
+            // A search circle is the chapter's pointer, so it waits for the chapter: Step reads 1 from a new game's
+            // first tick, while the objective only reaches freight-1 once every opening row is behind the player.
+            bool? chapter = null;
             for (var k = 0; k < Camps.Length; k++)
             {
                 var def = EncounterCatalogue.Find(Camps[k]);
@@ -177,7 +180,7 @@ namespace Relight.Sim
                 if (rec == null || !rec.Resolved)
                 {
                     // Camp 1 is searched from step 1, camp 2 from step 3, camp 3 from step 4.
-                    if (step < Done && step >= SearchFrom(k))
+                    if (step < Done && step >= SearchFrom(k) && (chapter ??= InChapter(ctx, st)))
                         into.Add(new FreightCircle(def.Id, SearchCentre(ctx, def.Id), SearchRadius, false, 0));
                     continue;
                 }
@@ -186,7 +189,13 @@ namespace Relight.Sim
             }
         }
 
+        const string Nbsp = "\u00A0";
+
         static int SearchFrom(int k) => k == 0 ? 1 : k + 2;
+
+        /// <summary>True when the objective the player is shown is one of the chapter's nine.</summary>
+        public static bool InChapter(SimContext ctx, SimState st) =>
+            OpeningQueries.Objective(ctx, st).Id.StartsWith("freight-", StringComparison.Ordinal);
 
         /// <summary>"Keys 1/3" while the keys matter: from the first hold until the warehouse opens.</summary>
         public static string KeysLine(SimContext ctx, SimState st)
@@ -210,8 +219,9 @@ namespace Relight.Sim
                 var at = ctx.Sites.Find(def.Id).Centre;
                 if (e.IsDown || Distance(e.Pos, at) > def.OccupyRadius) continue;
                 if (rec.OccupiedSince >= 0)
-                    return "Holding " + def.Name + " · " + Secs(st.T - rec.OccupiedSince) + " / "
-                        + Secs(def.OccupySeconds) + " s";
+                    // No-break spaces keep the count whole when the narrow engineer block wraps the line.
+                    return "Holding " + def.Name + " · " + Secs(st.T - rec.OccupiedSince) + Nbsp + "/" + Nbsp
+                        + Secs(def.OccupySeconds) + Nbsp + "s";
                 if (EncounterPhase.GuardNear(st, def.Id, at, def.GuardRadius))
                     return def.Name + ": clear the guards within " + Num(def.GuardRadius) + " tiles to hold it";
             }

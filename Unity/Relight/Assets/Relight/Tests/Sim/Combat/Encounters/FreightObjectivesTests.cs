@@ -39,9 +39,21 @@ namespace Relight.Sim.Tests.Combat
             return new SimContext(ReferenceData.Create(), RaidFixture.Map(), null, null, new WorldSites(sites));
         }
 
+        /// <summary>A state with every opening row behind the player, so the objective is the chapter's.</summary>
         static SimState State(SimContext ctx)
         {
-            var st = RaidFixture.State(ctx);
+            var st = OpeningFixture.State(ctx);
+            OpeningFixture.ToRifle(ctx, st);
+            st.Weapons.Slot0 = st.Weapons.Owned[0].Id;
+            OpeningFixture.ReadyTurret(ctx, st);
+            RaidFixture.Turret(ctx, st, RaidFixture.CoreX - 6, RaidFixture.CoreY);
+            RaidFixture.Turret(ctx, st, RaidFixture.CoreX, RaidFixture.CoreY + 6);
+            st.Opening.Status = OpeningStatus.Repelled;
+            st.Opening.EndedAt = -1;
+            st.Opening.SuppliedAt = st.T;
+            st.T += 1000;
+            st.Engineer.Inv[ItemId.Magazine] += 8;
+            OpeningFixture.Run(ctx, st, 1);
             st.Engineer.Pos = new Vec2(RaidFixture.CoreX + 4, RaidFixture.CoreY + 12);
             return st;
         }
@@ -103,18 +115,7 @@ namespace Relight.Sim.Tests.Combat
         public void TheChapterFollowsTheOpeningAndTheTerminalRowMovesAfterIt()
         {
             var ctx = Context();
-            var st = OpeningFixture.State(ctx);
-            OpeningFixture.ToRifle(ctx, st);
-            st.Weapons.Slot0 = st.Weapons.Owned[0].Id;
-            OpeningFixture.ReadyTurret(ctx, st);
-            RaidFixture.Turret(ctx, st, RaidFixture.CoreX - 6, RaidFixture.CoreY);
-            RaidFixture.Turret(ctx, st, RaidFixture.CoreX, RaidFixture.CoreY + 6);
-            st.Opening.Status = OpeningStatus.Repelled;
-            st.Opening.EndedAt = -1;
-            st.Opening.SuppliedAt = st.T;
-            st.T += 1000;
-            st.Engineer.Inv[ItemId.Magazine] += 8;
-            OpeningFixture.Run(ctx, st, 1);
+            var st = State(ctx);
 
             var first = OpeningQueries.Objective(ctx, st);
             Assert.That(first.Id, Is.EqualTo("freight-1"), first.Title);
@@ -129,6 +130,21 @@ namespace Relight.Sim.Tests.Combat
             Assert.That((last.Title + " " + last.Text + " " + last.Detail).ToLowerInvariant(),
                 Does.Not.Contain("won").And.Not.Contain("victory").And.Not.Contain("complete"),
                 "F-05: the port never marks the game complete");
+        }
+
+        [Test]
+        public void NoSearchCircleShowsBeforeTheChapter()
+        {
+            var ctx = Context();
+            var st = OpeningFixture.State(ctx);
+            Assert.That(FreightObjectives.Step(ctx, st), Is.EqualTo(1), "the step reads 1 from the first tick");
+            Assert.That(OpeningQueries.Objective(ctx, st).Id, Does.Not.StartWith("freight-"));
+            Assert.That(Circles(ctx, st), Is.Empty, "the search circle waits for the chapter");
+
+            Found(st, FreightObjectives.Camps[0]);
+            var c = Circles(ctx, st);
+            Assert.That(c.Count, Is.EqualTo(1), "a camp the player found on their own still shows its hold ring");
+            Assert.That(c[0].Hold, Is.True);
         }
 
         [Test]
@@ -162,7 +178,7 @@ namespace Relight.Sim.Tests.Combat
             Found(st, FreightObjectives.Camps[0]);
             st.Engineer.Pos = Marker(0);
             Seconds(ctx, st, 15);
-            Assert.That(FreightObjectives.HoldLine(ctx, st), Does.StartWith("Holding ").And.EndWith(" / 30 s"));
+            Assert.That(FreightObjectives.HoldLine(ctx, st), Does.StartWith("Holding ").And.EndWith("\u00A0/\u00A030\u00A0s"), "the count does not break across lines");
             Assert.That(FreightObjectives.Next(ctx, st).Value.Text, Does.StartWith("Holding: 1"));
             var ring = Circles(ctx, st).Single(r => r.Hold);
             Assert.That(ring.Fraction, Is.InRange(0.45, 0.55), "the ring fills with the clock");
