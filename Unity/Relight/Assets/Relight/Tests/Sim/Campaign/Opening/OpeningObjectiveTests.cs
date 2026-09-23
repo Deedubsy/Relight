@@ -93,6 +93,46 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(next.Title, Does.StartWith("Expand your defences"), "the chain moves on to §7.6");
         }
 
+        /// <summary>
+        /// REL-129 / U-D-71 note (4): <i>"'Automatic resupply working' sticks for a minute after completing before
+        /// changing to 'Expand your defences'"</i>. The mechanism is right — the card is meant to be an
+        /// acknowledgement — and the figure was wrong: the reference's 45 s, which the owner read as a minute.
+        ///
+        /// The window is asserted from <see cref="OpeningBalance.SupplyAckSeconds"/> rather than from the literal 10,
+        /// so this test states the rule (the card holds, then yields) and not a second copy of the number. The
+        /// literal it does pin is the one that matters to the player: whatever the window is, it is well under the
+        /// minute they complained about.
+        /// </summary>
+        [Test]
+        public void TheResupplyCardYieldsToTheNextObjectiveInSecondsNotAMinute()
+        {
+            var ctx = OpeningFixture.Context();
+            var st = OpeningFixture.State(ctx);
+            OpeningFixture.ToRifle(ctx, st);
+            st.Weapons.Slot0 = st.Weapons.Owned[0].Id;
+            var turret = OpeningFixture.ReadyTurret(ctx, st);
+            st.Opening.Status = OpeningStatus.Repelled;
+            st.Opening.TurretId = turret.Id;
+            st.Opening.EndedAt = -1;
+
+            var hold = ctx.Data.Opening.SupplyAckS;
+            Assert.That(hold, Is.EqualTo(OpeningBalance.SupplyAckSeconds).Within(1e-9));
+            Assert.That(hold, Is.LessThan(30), "the owner read 45 s as a minute; it must not be near one");
+
+            var suppliedAt = st.T;
+            st.Opening.SuppliedAt = suppliedAt;
+            Assert.That(OpeningQueries.Objective(ctx, st).Title, Is.EqualTo("Automatic resupply working"),
+                "the delivery is acknowledged");
+
+            st.T = suppliedAt + hold - 1;
+            Assert.That(OpeningQueries.Objective(ctx, st).Title, Is.EqualTo("Automatic resupply working"),
+                "and stays up for long enough to be read");
+
+            st.T = suppliedAt + hold + 1;
+            Assert.That(OpeningQueries.Objective(ctx, st).Title, Does.StartWith("Expand your defences"),
+                "then gets out of the way of the next objective");
+        }
+
         [Test]
         public void ThreeLoadedTurretsMoveTheChainOnToScouting()
         {

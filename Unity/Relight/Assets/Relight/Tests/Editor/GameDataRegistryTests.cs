@@ -106,5 +106,23 @@ namespace Relight.Authoring.Tests
             Assert.That(sim.Power.BigPoleReachTiles, Is.EqualTo(game.Power.BigPoleReachTiles).Within(1e-9));
             Assert.That(sim.Power.SubstationReachTiles, Is.EqualTo(game.Power.SubstationReachTiles).Within(1e-9));
         }
+
+        [Test] public void TheResupplyCardHoldsForSecondsInEveryPathANewGameUses()
+        {
+            // REL-129. Same shape as the reach above: the asset keeps the reference's 45 s and the layer sets the
+            // port's figure in both chains, so the sim tests and the game cannot disagree about how long the card
+            // stands between a finished objective and the next one.
+            var registry = AssetDatabase.LoadAssetAtPath<GameDataRegistry>(RegistryPath);
+            Assert.That(registry, Is.Not.Null);
+            Assert.That(registry.BuildOriginal().Opening.SupplyAckS, Is.EqualTo(45).Within(1e-9),
+                "the asset still carries the reference's figure");
+
+            var game = registry.Build();
+            Assert.That(game.Opening.SupplyAckS, Is.EqualTo(OpeningBalance.SupplyAckSeconds).Within(1e-9));
+            Assert.That(game.Opening.SupplyAckS, Is.LessThan(game.Opening.AckS),
+                "it yields sooner than the 'Attack repelled' card, which nothing is waiting behind");
+            Assert.That(ReferenceData.Create().Opening.SupplyAckS, Is.EqualTo(game.Opening.SupplyAckS).Within(1e-9),
+                "what the sim tests measure and what the game plays must be one number");
+        }
     }
 }
