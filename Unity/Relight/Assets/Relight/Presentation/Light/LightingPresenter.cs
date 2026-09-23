@@ -103,6 +103,13 @@ namespace Relight.Presentation
         private float _sweepStart;
         private double _sweepX, _sweepY, _sweepSeconds;
 
+        // REL-127: the small glow drawn around each placed building, picture only. The footprints inside the visible
+        // rectangle are collected once and folded into _shade with the mask, because the set only moves when the
+        // player builds or the view pans — not once a frame like the beam, which follows the pointer. _glowFold is
+        // the same trick LightSources.Fold plays: a cheap value that changes exactly when the picture would.
+        private readonly System.Collections.Generic.List<TileRect> _glows = new System.Collections.Generic.List<TileRect>();
+        private int _glowFold;
+
         // The beam, in sim tile space, as the flashlight last set it.
         private bool _beam;
         private Vec2 _beamFrom;
@@ -126,8 +133,15 @@ namespace Relight.Presentation
         /// <summary>True while the darkness overlay is being drawn at all (false under forced daylight).</summary>
         public bool Dark => _sr != null && _sr.enabled;
 
-        /// <summary>How much the flashlight reveals a sim position, 0 to 1. Picture only (D-UI-11).</summary>
-        public float Reveal(Vec2 simPos) => _beam ? Beam(simPos.X, simPos.Y) : 0f;
+        /// <summary>
+        /// How much a sim position is revealed by something this class draws rather than by the sim's mask, 0 to 1:
+        /// the flashlight beam (D-UI-11), or a building's glow (REL-127). Picture only — no sim query moves either
+        /// way. The glow is included because the alternative is worse than leaving it out: <c>EnemyPresenter</c>
+        /// paints a flat silhouette over anything standing on ground the mask calls unlit, so a raider crossing the
+        /// visibly lit strip beside the player's Foundry would be a black cut-out on bright ground.
+        /// </summary>
+        public float Reveal(Vec2 simPos) =>
+            Mathf.Max(_beam ? Beam(simPos.X, simPos.Y) : 0f, Glow(simPos.X, simPos.Y));
 
         /// <summary>
         /// Point the visibility beam (D-UI-11). Presentation only: it subtracts darkness and touches nothing else.
@@ -171,6 +185,10 @@ namespace Relight.Presentation
             if (_sr != null) _sr.enabled = false;
             Texels = 0;
             Held = 0;
+            // A presenter that is not drawing reveals nothing: Reveal() reads _glows, so leaving the last frame's
+            // buildings in it would keep lifting silhouettes off enemies after the overlay had gone.
+            _glows.Clear();
+            _glowFold = 0;
         }
 
         private void LateUpdate()
@@ -201,6 +219,7 @@ namespace Relight.Presentation
             if (mask == null || mw <= 0 || mh <= 0) { _sr.enabled = false; Texels = 0; Held = 0; return; }
 
             if (!Rect(cam, mw, mh)) { _sr.enabled = false; Texels = 0; Held = 0; return; }
+            Glows(ctx, st);
             var builds = LightQueries.Builds(st);
             if (builds != _builds) { _builds = builds; _dirty = true; Rebuilt(mask, mw, mh); }
             if (_sweeping) Advance();
@@ -347,6 +366,9 @@ namespace Relight.Presentation
                 var ty = _ry + _rh - 1 - Mathf.FloorToInt((j + 0.5f) * inv);
                 var row = j * _tw;
                 var lit = ty >= 0 && ty < mh;
+                // The texel's centre in continuous tile space, for the building glow: the mask is per tile, but the
+                // glow is a distance and would step in whole tiles if it were sampled at tile indices.
+                var wy = _ry + _rh - (j + 0.5f) * inv;
                 for (var i = 0; i < _tw; i++)
                 {
                     var tx = _rx + Mathf.FloorToInt((i + 0.5f) * inv);
@@ -362,10 +384,74 @@ namespace Relight.Presentation
                             System.Math.Sqrt(dx * dx + dy * dy), elapsed);
                         if (hold > 0f) { a = hold; Held++; }
                     }
+                    // REL-127: the building glow lifts the darkness here, in the cached half, because the buildings
+                    // stand still. The beam is subtracted later, in Paint, because the pointer does not.
+                    if (a > 0f && _glows.Count > 0) a *= 1f - Glow(_rx + (i + 0.5f) * inv, wy);
                     _shade[row + i] = a;
                 }
             }
             _dirty = false;
+        }
+
+        /// <summary>
+        /// REL-127. Collect the footprints of the buildings whose glow could reach the visible rectangle, and mark
+        /// the shade cache dirty only when that set has actually moved — so a pan or a placement rebuilds it and a
+        /// passing second does not. Read-only over <c>st.Machines</c>, exactly as the mask read above is: this class
+        /// writes nothing to the simulation, and <see cref="Relight.Sim.UI.BuildingGlow"/> is never asked by it.
+        /// </summary>
+        private void Glows(SimContext ctx, SimState st)
+        {
+            _glows.Clear();
+            var d = ctx?.Data;
+            if (d != null && st != null)
+            {
+                var reach = (float)Relight.Sim.UI.BuildingGlow.ReachTiles;
+                float x0 = _rx - reach, y0 = _ry - reach, x1 = _rx + _rw + reach, y1 = _ry + _rh + reach;
+                for (var i = 0; i < st.Machines.Count; i++)
+                {
+                    var m = st.Machines[i];
+                    if (!Relight.Sim.UI.BuildingGlow.Glows(d, m)) continue;
+                    var r = m.Rect;
+                    if (r.X + r.W < x0 || r.X > x1 || r.Y + r.H < y0 || r.Y > y1) continue;
+                    _glows.Add(r);
+                }
+            }
+
+            var fold = 17;
+            unchecked
+            {
+                fold = fold * 31 + _glows.Count;
+                for (var i = 0; i < _glows.Count; i++)
+                {
+                    var r = _glows[i];
+                    fold = fold * 31 + r.X;
+                    fold = fold * 31 + r.Y;
+                    fold = fold * 31 + r.W;
+                    fold = fold * 31 + r.H;
+                }
+            }
+            if (fold == _glowFold) return;
+            _glowFold = fold;
+            _dirty = true;
+        }
+
+        /// <summary>
+        /// How much a building's glow lifts the darkness at a sim position, 0 to 1 (REL-127). The strongest glow
+        /// reaching the point wins rather than the sum of them, so a yard of machines has one even spill instead of a
+        /// bright seam wherever two of them overlap.
+        /// </summary>
+        private float Glow(double wx, double wy)
+        {
+            var best = 0f;
+            for (var i = 0; i < _glows.Count; i++)
+            {
+                var r = _glows[i];
+                var d = Relight.Sim.UI.BuildingGlow.Distance(r.X, r.Y, r.W, r.H, wx, wy);
+                if (d >= Relight.Sim.UI.BuildingGlow.ReachTiles) continue;
+                var s = (float)Relight.Sim.UI.BuildingGlow.Strength(d);
+                if (s > best) best = s;
+            }
+            return best;
         }
 
         /// <summary>The per-frame half: darkness strength, minus the beam, into the texture.</summary>
