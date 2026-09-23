@@ -119,38 +119,44 @@ namespace Relight.Sim
         /// </summary>
         private readonly struct Key : IEquatable<Key>
         {
-            public readonly int X, Y, Size, Clearance, Reach;
+            public readonly int X, Y, W, H, Clearance, Reach;
             public readonly bool Breach;
-            public Key(int x, int y, int size, bool breach, int clearance, int reach) { X = x; Y = y; Size = size; Breach = breach; Clearance = clearance; Reach = reach; }
-            public bool Equals(Key o) => X == o.X && Y == o.Y && Size == o.Size && Breach == o.Breach && Clearance == o.Clearance && Reach == o.Reach;
+            public Key(int x, int y, int w, int h, bool breach, int clearance, int reach) { X = x; Y = y; W = w; H = h; Breach = breach; Clearance = clearance; Reach = reach; }
+            public bool Equals(Key o) => X == o.X && Y == o.Y && W == o.W && H == o.H && Breach == o.Breach && Clearance == o.Clearance && Reach == o.Reach;
             public override bool Equals(object o) => o is Key k && Equals(k);
-            public override int GetHashCode() => unchecked((((X * 397 ^ Y) * 397 ^ Size) * 397 ^ (Clearance * 2 + (Breach ? 1 : 0))) * 397 ^ Reach);
+            public override int GetHashCode() => unchecked(((((X * 397 ^ Y) * 397 ^ W) * 397 ^ H) * 397 ^ (Clearance * 2 + (Breach ? 1 : 0))) * 397 ^ Reach);
         }
 
         private readonly Dictionary<Key, RaidField> _map = new Dictionary<Key, RaidField>();
         private int _rev = int.MinValue;
         private int _light = int.MinValue;
 
-        /// <summary>Reference campaignThreat.ts:97 <c>field(st, x, y, size, breach, clearance)</c>.</summary>
-        public RaidField Field(SimContext ctx, SimState st, int x, int y, int size, bool breach, int clearance = 0)
+        /// <summary>
+        /// Reference campaignThreat.ts:97 <c>field(st, x, y, size, breach, clearance)</c>. REL-124: the seed is the
+        /// target's real <paramref name="tw"/> × <paramref name="th"/> rect, not the reference's square; 0 × 0 is a
+        /// point seed.
+        /// </summary>
+        public RaidField Field(SimContext ctx, SimState st, int x, int y, int tw, int th, bool breach, int clearance = 0)
         {
             var light = st.Light.Builds;
             if (_rev != st.Rev || _light != light) { _map.Clear(); _rev = st.Rev; _light = light; }
-            var key = new Key(x, y, size, breach, clearance, RaidField.ReachOf(ctx));
+            var key = new Key(x, y, tw, th, breach, clearance, RaidField.ReachOf(ctx));
             if (_map.TryGetValue(key, out var hit)) return hit;
-            var built = Build(ctx, st, x, y, size, breach, clearance);
+            var built = Build(ctx, st, x, y, tw, th, breach, clearance);
             if (_map.Count > 32) _map.Clear();
             _map[key] = built;
             return built;
         }
 
-        private static RaidField Build(SimContext ctx, SimState st, int x, int y, int size, bool breach, int clearance)
+        private static RaidField Build(SimContext ctx, SimState st, int x, int y, int tw, int th, bool breach, int clearance)
         {
             var w = ctx.Geometry.Width;
             var h = ctx.Geometry.Height;
-            // The seed rectangle's last tile on each axis; a point seed (size 0) is its own last tile.
-            var xLast = x + Math.Max(size, 1) - 1;
-            var yLast = y + Math.Max(size, 1) - 1;
+            // The seed rectangle's last tile on each axis; a point seed (0 × 0) is its own last tile.
+            var point = tw <= 0 || th <= 0;
+            if (point) { tw = 0; th = 0; }
+            var xLast = x + Math.Max(tw, 1) - 1;
+            var yLast = y + Math.Max(th, 1) - 1;
             var reach = RaidField.ReachOf(ctx);
             var x0 = Math.Max(0, x - reach);
             var y0 = Math.Max(0, y - reach);
@@ -184,11 +190,11 @@ namespace Relight.Sim
                 return breach && TurretRules.BlocksRaiders(ctx.Data, m);
             }
 
-            for (var yy = y - 1 - clearance; yy <= y + size + clearance; yy++)
-                for (var xx = x - 1 - clearance; xx <= x + size + clearance; xx++)
+            for (var yy = y - 1 - clearance; yy <= y + th + clearance; yy++)
+                for (var xx = x - 1 - clearance; xx <= x + tw + clearance; xx++)
                 {
-                    if (size > 0 && xx >= x && xx < x + size && yy >= y && yy < y + size) continue;
-                    if (size == 0 && (xx != x || yy != y)) continue;
+                    if (!point && DirectorRules.Inside(xx, yy, x, y, tw, th)) continue;
+                    if (point && (xx != x || yy != y)) continue;
                     if (!Open(xx, yy)) continue;
                     var b = (yy - y0) * bw + (xx - x0);
                     if (b < 0 || b >= dist.Length || dist[b] == 0) continue;

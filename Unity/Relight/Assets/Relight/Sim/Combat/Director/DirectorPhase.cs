@@ -254,7 +254,7 @@ namespace Relight.Sim
             // FRT-09 (design §5.8): the first assault booked after a commissioning goes for the newest plant; after
             // it commits, normal selection — the Home core — resumes.
             var aim = Plants.RaidAim(st);
-            if (!DirectorRules.Target(ctx, st, aim, out _, out _, out _))
+            if (!DirectorRules.Target(ctx, st, aim, out _, out _, out _, out _))
             {
                 Future(ctx, st, "No operational core with a reachable assault approach.");
                 return;
@@ -308,7 +308,7 @@ namespace Relight.Sim
             var problem = d.Reserved
                     ? (d.ReserveReason.Length > 0 ? d.ReserveReason : "The approach is reserved.")
                 : st.T < d.RecoveryUntil ? "The last attack is still being cleared up."
-                : !DirectorRules.Target(ctx, st, a.Plant, out _, out _, out _)
+                : !DirectorRules.Target(ctx, st, a.Plant, out _, out _, out _, out _)
                     ? (string.IsNullOrEmpty(a.Plant) ? "There is no core left to assault." : "There is no plant left to assault.")
                 : !HasStaging(ctx, st, a) ? "The announced approaches are no longer open."
                 : "";
@@ -373,7 +373,7 @@ namespace Relight.Sim
             if (st.T < SiegePlan.Due(ctx, a, a.Wave, a.WaveSpawned)) return;
             if (st.Enemies.Actors.Count >= r.LivingBudget) return;
             if (MajorAlive(st) >= r.ActiveRaidBudget) return;
-            if (!DirectorRules.Target(ctx, st, a.Plant, out _, out _, out _)) { a.Retreat = true; a.Remaining = 0; return; }
+            if (!DirectorRules.Target(ctx, st, a.Plant, out _, out _, out _, out _)) { a.Retreat = true; a.Remaining = 0; return; }
 
             // The planned side first. If the map has closed it since the warning, the body takes another of the
             // SAME wave's announced approaches rather than stalling the assault or inventing a new one.
@@ -603,7 +603,7 @@ namespace Relight.Sim
             // warning has run out. Inside a cycle the large-raid warning waits for the small raid instead
             // (DirectorPacing.WarningHold), so the clock is carried along and this test would refuse every raid.
             if (!cycle && d.NextStart - (st.T + warn) < r.WarningS + siege.MinorMajorGapS) return false;
-            if (!DirectorRules.Target(ctx, st, out _, out _, out _)) return false;
+            if (!DirectorRules.Target(ctx, st, out _, out _, out _, out _)) return false;
 
             origin = DirectorRules.Origin(ctx, st);
             if (origin < 0 || DirectorRules.Staging(ctx, st, origin) < 0) return false;

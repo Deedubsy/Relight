@@ -126,10 +126,10 @@ namespace Relight.Authoring.Tests
             // 2. Die during it. A raider bites only what is in its reach (EnemyPhase.Decide), so the unarmed engineer
             // is stood where the first raider to come within ActIn tiles of the core is standing, and left there.
             const double ActIn = 12;
-            Assert.That(DirectorRules.Target(ctx, st, out var gx, out var gy, out var gsize), Is.True, "the raid has a target");
-            var coreX = gx + gsize / 2.0;
-            var coreY = gy + gsize / 2.0;
-            log.Add(F(st.T) + " raid target at (" + gx + ", " + gy + ") size " + gsize + "; Home rect (" + st.Home.X + ", " + st.Home.Y
+            Assert.That(DirectorRules.Target(ctx, st, out var gx, out var gy, out var gw, out var gh), Is.True, "the raid has a target");
+            var coreX = gx + gw / 2.0;
+            var coreY = gy + gh / 2.0;
+            log.Add(F(st.T) + " raid target at (" + gx + ", " + gy + ") " + gw + "x" + gh + "; Home rect (" + st.Home.X + ", " + st.Home.Y
                     + ") " + st.Home.W + "x" + st.Home.H);
             Enemy first = null;
             var lookAt = st.T;

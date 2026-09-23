@@ -19,12 +19,11 @@ namespace Relight.Authoring.Tests
     /// can get from where a raider bites the core to the street past it. The check steps diagonally as well as
     /// straight, so it is stricter than any body's walk.
     ///
-    /// The ring is measured from the raid's TARGET (<see cref="DirectorRules.Target"/>), not from the Home's own
-    /// rectangle. The target is a square as wide as the Home's longer side, so for the 10×14 Home it runs four tiles
-    /// past the core's east wall, and a raider standing beside that square bites the core. A ring drawn tight to the
-    /// Home's east wall is therefore inside the target, and the first version of this test watched a skitter damage
-    /// the core from outside an unbroken wall ring. That is a defect of its own (Linear REL-124), not REL-115's, and
-    /// is left for the owner; this test rings the square so that it measures only what REL-115 changed.
+    /// The ring is measured from the raid's TARGET (<see cref="DirectorRules.Target"/>), which since REL-124 is the
+    /// Home's own rectangle, 10 wide and 14 high. Before REL-124 the target was a square on the longer side, four tiles
+    /// past the east wall, and the first version of this test watched a skitter bite the core from outside a ring
+    /// drawn tight to that wall; the ring was then drawn round the square instead. It is now drawn tight to the real
+    /// walls, which is the case REL-124 fixed.
     /// </summary>
     public sealed class RealCityRingTests
     {
@@ -65,29 +64,29 @@ namespace Relight.Authoring.Tests
 
         private static string Tail(List<string> notices) => "\nraid notices:\n  " + string.Join("\n  ", notices);
 
-        /// <summary>The raid's target square: where its route field is seeded and what a bite beside it damages.</summary>
-        private static (int X, int Y, int Size) Target(SimContext ctx, SimState st)
+        /// <summary>The raid's target rectangle: where its route field is seeded and what a bite beside it damages.</summary>
+        private static (int X, int Y, int W, int H) Target(SimContext ctx, SimState st)
         {
-            Assert.That(DirectorRules.Target(ctx, st, out var x, out var y, out var size), Is.True, "the Home core is a target");
-            return (x, y, size);
+            Assert.That(DirectorRules.Target(ctx, st, out var x, out var y, out var w, out var h), Is.True, "the Home core is a target");
+            return (x, y, w, h);
         }
 
-        private static bool Inside((int X, int Y, int Size) t, int x, int y) =>
-            x >= t.X && x < t.X + t.Size && y >= t.Y && y < t.Y + t.Size;
+        private static bool Inside((int X, int Y, int W, int H) t, int x, int y) =>
+            x >= t.X && x < t.X + t.W && y >= t.Y && y < t.Y + t.H;
 
         /// <summary>
-        /// Can something on foot get from beside the target square, where a raider bites the core, to
+        /// Can something on foot get from beside the target rectangle, where a raider bites the core, to
         /// <paramref name="reach"/> tiles out from it? A flood over the tiles <see cref="DirectorRules.HostileOpen"/>
-        /// calls open, eight ways, never through the square itself (the route field never enters it either).
+        /// calls open, eight ways, never through the rectangle itself (the route field never enters it either).
         /// </summary>
         private static bool Escapes(SimContext ctx, SimState st, int reach)
         {
             var t = Target(ctx, st);
-            int x0 = t.X - reach, y0 = t.Y - reach, x1 = t.X + t.Size - 1 + reach, y1 = t.Y + t.Size - 1 + reach;
+            int x0 = t.X - reach, y0 = t.Y - reach, x1 = t.X + t.W - 1 + reach, y1 = t.Y + t.H - 1 + reach;
             var seen = new HashSet<long>();
             var open = new Queue<(int X, int Y)>();
-            for (var y = t.Y - 1; y <= t.Y + t.Size; y++)
-                for (var x = t.X - 1; x <= t.X + t.Size; x++)
+            for (var y = t.Y - 1; y <= t.Y + t.H; y++)
+                for (var x = t.X - 1; x <= t.X + t.W; x++)
                 {
                     if (Inside(t, x, y) || !DirectorRules.HostileOpen(ctx, st, x, y)) continue;
                     if (seen.Add(((long)y << 20) | (uint)x)) open.Enqueue((x, y));
@@ -108,14 +107,14 @@ namespace Relight.Authoring.Tests
         }
 
         /// <summary>
-        /// A closed ring of <paramref name="kind"/> round the raid's target square: every tile
-        /// <paramref name="offset"/> out from the square that a body could stand on is covered by one, placed where
+        /// A closed ring of <paramref name="kind"/> round the raid's target rectangle: every tile
+        /// <paramref name="offset"/> out from the rectangle that a body could stand on is covered by one, placed where
         /// the game's own placement rule accepts it (<see cref="RealCityFixture.PlaceNear"/>). The first offset from
         /// two out whose ring the flood cannot get past is kept; a ring that leaves a gap is lifted again and the next
         /// offset tried.
         ///
         /// The ring is laid by walking round it. A piece wider than a tile (a 2×2 chest) takes the tile it is on and
-        /// the next one along, and hangs outward, away from the square; laid row by row instead, two chests can leave
+        /// the next one along, and hangs outward, away from the rectangle; laid row by row instead, two chests can leave
         /// a single tile between them that no chest fits. Where that spot is refused, the nearest accepted footprint
         /// that covers the tile is used.
         /// </summary>
@@ -126,7 +125,7 @@ namespace Relight.Authoring.Tests
             for (offset = 2; offset <= 9; offset++)
             {
                 var ring = new List<Machine>();
-                int x0 = t.X - offset, y0 = t.Y - offset, x1 = t.X + t.Size - 1 + offset, y1 = t.Y + t.Size - 1 + offset;
+                int x0 = t.X - offset, y0 = t.Y - offset, x1 = t.X + t.W - 1 + offset, y1 = t.Y + t.H - 1 + offset;
                 var walk = Walk(x0, y0, x1, y1);
                 for (var i = 0; i < walk.Count; i++)
                 {
@@ -167,9 +166,9 @@ namespace Relight.Authoring.Tests
             return walk;
         }
 
-        /// <summary>A footprint that reaches into the target square or the seed ring beside it.</summary>
-        private static bool Overlaps((int X, int Y, int Size) t, int x, int y, int size) =>
-            x < t.X + t.Size + 1 && x + size > t.X - 1 && y < t.Y + t.Size + 1 && y + size > t.Y - 1;
+        /// <summary>A footprint that reaches into the target rectangle or the seed ring beside it.</summary>
+        private static bool Overlaps((int X, int Y, int W, int H) t, int x, int y, int size) =>
+            x < t.X + t.W + 1 && x + size > t.X - 1 && y < t.Y + t.H + 1 && y + size > t.Y - 1;
 
         /// <summary>
         /// The whole acceptance, once for chests and once for walls. A large raid meets a closed ring, breaks a piece
@@ -198,7 +197,7 @@ namespace Relight.Authoring.Tests
                 if (plates > 0) m.Inv.Add(ItemId.Steel, plates);
             }
             var t = Target(ctx, st);
-            TestContext.WriteLine($"{kind}: {ring.Count} pieces, {offset} tiles out from the raid's {t.Size}×{t.Size} target " +
+            TestContext.WriteLine($"{kind}: {ring.Count} pieces, {offset} tiles out from the raid's {t.W}×{t.H} target " +
                 $"at ({t.X}, {t.Y}) round the {st.Home.W}×{st.Home.H} Home, {TurretRules.MaxHp(ctx.Data, ring[0])} HP each");
 
             RunUntil(sim, 1, notices, () => false);          // the director seeds its clock on the first tick

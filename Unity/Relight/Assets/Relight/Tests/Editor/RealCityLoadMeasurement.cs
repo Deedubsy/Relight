@@ -482,8 +482,8 @@ namespace Relight.Authoring.Tests
             Assert.That(origin, Is.GreaterThanOrEqualTo(0), "an approach");
             var id = Director.ScheduleGroup(ctx, st, origin, 20, false, 0, false);
             Assert.That(id, Is.Not.Zero, "the raid was staged");
-            Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var size), Is.True);
-            var field = st.Director.Fields.Field(ctx, st, bx, by, size, false);
+            Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th), Is.True);
+            var field = st.Director.Fields.Field(ctx, st, bx, by, tw, th, false);
             var w = ctx.Geometry.Width;
             var tiles = new List<int>();
             for (var y = 0; y < ctx.Geometry.Height; y++)
@@ -589,7 +589,7 @@ namespace Relight.Authoring.Tests
 
         private static void Routes(StringBuilder file, SimContext ctx, SimState st)
         {
-            Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var size), Is.True, "the Home core is a raid target");
+            Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th), Is.True, "the Home core is a raid target");
             var origin = DirectorRules.Origin(ctx, st);
             var w = ctx.Geometry.Width;
             List<double> Cold(int x, int y, int s, bool breach)

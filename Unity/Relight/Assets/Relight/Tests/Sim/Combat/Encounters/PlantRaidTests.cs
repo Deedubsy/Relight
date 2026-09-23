@@ -71,8 +71,8 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(a.Total, Is.EqualTo(h.Total), "the raid size is unchanged");
             Assert.That(a.WaveCount.Sum(), Is.EqualTo(h.WaveCount.Sum()));
 
-            Assert.That(DirectorRules.Target(ctx, st, a.Plant, out var x, out var y, out var size), Is.True);
-            Assert.That((x, y, size), Is.EqualTo((Px, Py, 1)), "its destination is the plant's footprint");
+            Assert.That(DirectorRules.Target(ctx, st, a.Plant, out var x, out var y, out var pw, out var ph), Is.True);
+            Assert.That((x, y, pw, ph), Is.EqualTo((Px, Py, 1, 1)), "its destination is the plant's footprint");
             Assert.That(st.Director.PlantRaid, Is.EqualTo(Id), "still owed until the assault commits");
 
             st.T = a.StartsAt;

@@ -46,9 +46,9 @@ namespace Relight.Sim
                 var list = DirectorRules.Approaches(ctx, st);
                 if (list != null && list.Length > 0)
                 {
-                    DirectorRules.Target(ctx, st, out var bx, out var by, out var size);
-                    var cx = bx + size / 2.0;
-                    var cy = by + size / 2.0;
+                    DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th);
+                    var cx = bx + tw / 2.0;
+                    var cy = by + th / 2.0;
                     var w = ctx.Geometry.Width;
                     for (var i = 0; i < list.Length; i++)
                     {

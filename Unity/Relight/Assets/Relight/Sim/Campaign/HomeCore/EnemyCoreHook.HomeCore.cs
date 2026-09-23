@@ -13,21 +13,22 @@ namespace Relight.Sim
         static partial void DamageCoreImpl(SimContext ctx, SimState st, double amount) => HomeCore.Damage(st, amount);
 
         /// <summary>
-        /// The live core footprint. <paramref name="size"/> is the declaring side's single dimension, so it takes the
-        /// larger of the rect's two (the authored Home workshop is 10×14, the synthetic fall-back 3×3) — exactly what
-        /// <c>EnemyCoreHook.Rect</c>'s own <c>ctx.Sites.Core</c> fall-back does.
+        /// The live core footprint, at its real width and height (the authored Home workshop is 10×14, the synthetic
+        /// fall-back 3×3). REL-124: this used to report one side, the larger, so raids aimed at a 14×14 square that ran
+        /// four tiles past the core's east wall and bit the core through whatever the player built there.
         /// A destroyed core reports <paramref name="found"/> = false: it is no longer a thing to attack. Since E-18
         /// the declaring side does NOT then answer from <c>ctx.Sites.Core</c> either — <c>CoreDownImpl</c> below
         /// tells it the core fell, so the raid has no target and its bodies walk off.
         /// </summary>
-        static partial void CoreRectImpl(SimContext ctx, SimState st, ref int x, ref int y, ref int size, ref bool found)
+        static partial void CoreRectImpl(SimContext ctx, SimState st, ref int x, ref int y, ref int w, ref int h, ref bool found)
         {
-            var h = st?.Home;
-            if (h == null || !h.Placed || h.Hp <= 0) return;
-            x = h.X;
-            y = h.Y;
-            size = h.W > h.H ? h.W : h.H;
-            found = size > 0;
+            var home = st?.Home;
+            if (home == null || !home.Placed || home.Hp <= 0) return;
+            x = home.X;
+            y = home.Y;
+            w = home.W;
+            h = home.H;
+            found = w > 0 && h > 0;
         }
 
         /// <summary>REL-75: the placed core's hit points and its full hit points, for the first small raid's floor.</summary>

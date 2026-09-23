@@ -90,8 +90,8 @@ namespace Relight.Sim.Tests.Combat
             for (var x = 40; x < RaidFixture.CoreX; x++)
                 Assert.That(LightQueries.LitAt(st, x, 79), Is.True, $"the fixture must light the whole street ({x})");
 
-            Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var size), Is.True);
-            var fld = st.Director.Fields.Field(ctx, st, bx, by, size, true);
+            Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th), Is.True);
+            var fld = st.Director.Fields.Field(ctx, st, bx, by, tw, th, true);
             Assert.That(fld.Weighted, Is.True);
             Assert.That(fld.At(41, 79), Is.GreaterThanOrEqualTo(0), "reachable in plain steps");
             Assert.That(fld.Cost(41, 79), Is.GreaterThan(fld.At(41, 79)), "and dearer, but never closed, by light");
@@ -140,8 +140,8 @@ namespace Relight.Sim.Tests.Combat
             var gen = RaidFixture.Add(ctx, st, "generator", 62, 62);
             RaidFixture.Run(ctx, st, 2, Phases());
             Assert.That(LightQueries.LitAt(st, 58, 58), Is.False, "no fuel, no light");
-            Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var size), Is.True);
-            var before = st.Director.Fields.Field(ctx, st, bx, by, size, true);
+            Assert.That(DirectorRules.Target(ctx, st, out var bx, out var by, out var tw, out var th), Is.True);
+            var before = st.Director.Fields.Field(ctx, st, bx, by, tw, th, true);
             Assert.That(before.LightPenalty(58, 58), Is.Zero);
 
             var rev = st.Rev;
@@ -150,7 +150,7 @@ namespace Relight.Sim.Tests.Combat
             Assert.That(st.Rev, Is.EqualTo(rev), "the fixture must not move Rev");
             Assert.That(LightQueries.LitAt(st, 58, 58), Is.True);
 
-            var after = st.Director.Fields.Field(ctx, st, bx, by, size, true);
+            var after = st.Director.Fields.Field(ctx, st, bx, by, tw, th, true);
             Assert.That(after, Is.Not.SameAs(before));
             Assert.That(after.Weighted, Is.True);
             Assert.That(after.LightPenalty(58, 58), Is.GreaterThan(0), "the way out of the lamp's disc now costs more");

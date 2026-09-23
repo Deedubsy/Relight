@@ -94,7 +94,7 @@ namespace Relight.Sim.Tests.Campaign
             Assert.That(card.Detail, Does.Contain("has been called off"));
 
             // "no raid attacks a core that is down"
-            Assert.That(DirectorRules.Target(ctx, st, out _, out _, out _), Is.False, "a downed core is not a target");
+            Assert.That(DirectorRules.Target(ctx, st, out _, out _, out _, out _), Is.False, "a downed core is not a target");
             Assert.That(card.Detail, Does.Contain("no raid attacks a core that is down"));
 
             // "After a large assault takes the core, the next one waits a full interval."

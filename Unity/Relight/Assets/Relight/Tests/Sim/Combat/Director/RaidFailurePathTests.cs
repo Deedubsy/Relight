@@ -58,14 +58,14 @@ namespace Relight.Sim.Tests.Combat
 
             var unplaced = RaidFixture.State(ctx);
             Assert.That(EnemyCoreHook.Down(ctx, unplaced), Is.False);
-            Assert.That(DirectorRules.Target(ctx, unplaced, out var x, out var y, out _), Is.True, "the authored site");
+            Assert.That(DirectorRules.Target(ctx, unplaced, out var x, out var y, out _, out _), Is.True, "the authored site");
             Assert.That((x, y), Is.EqualTo((RaidFixture.CoreX, RaidFixture.CoreY)));
 
             var st = State(ctx);
-            Assert.That(DirectorRules.Target(ctx, st, out _, out _, out _), Is.True);
+            Assert.That(DirectorRules.Target(ctx, st, out _, out _, out _, out _), Is.True);
             HomeCore.Damage(st, 1e9);
             Assert.That(EnemyCoreHook.Down(ctx, st), Is.True);
-            Assert.That(DirectorRules.Target(ctx, st, out _, out _, out _), Is.False,
+            Assert.That(DirectorRules.Target(ctx, st, out _, out _, out _, out _), Is.False,
                 "the authored site must not stand in for a core that has fallen");
         }
 

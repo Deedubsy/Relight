@@ -140,7 +140,7 @@ namespace Relight.Sim
             var d = st.Director;
             if (d.Major != null && d.Major.Committed) return "A large raid is already under way.";
             if (d.Reserved) return d.ReserveReason.Length > 0 ? d.ReserveReason : "The approach is reserved.";
-            if (!DirectorRules.Target(ctx, st, out _, out _, out _)) return "There is no standing core to assault. Repair Home first.";
+            if (!DirectorRules.Target(ctx, st, out _, out _, out _, out _)) return "There is no standing core to assault. Repair Home first.";
             if (d.Minor != null) return "A small raid is still on the map. Clear enemies first.";
             if (DirectorPacing.StrongholdFight(ctx, st)) return "A stronghold fight is on.";
             if (startsAt < st.T) startsAt = st.T;

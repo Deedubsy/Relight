@@ -71,16 +71,20 @@ namespace Relight.Sim
         public const double AdminSkipLeadS = 10;
 
         /// <summary>The raid's destination rect: the Home core when the region has one.</summary>
-        public static bool Target(SimContext ctx, SimState st, out int x, out int y, out int size) =>
-            EnemyCoreHook.Rect(ctx, st, out x, out y, out size);
+        public static bool Target(SimContext ctx, SimState st, out int x, out int y, out int w, out int h) =>
+            EnemyCoreHook.Rect(ctx, st, out x, out y, out w, out h);
 
         /// <summary>
         /// FRT-09: a raid's destination rect by its aim — "" is the Home core (<see cref="Target(SimContext, SimState,
-        /// out int, out int, out int)"/>), anything else the standing plant with that id. A major assault carries its
-        /// aim in <see cref="MajorRaid.Plant"/>; a small raid always aims at Home.
+        /// out int, out int, out int, out int)"/>), anything else the standing plant with that id. A major assault carries its
+        /// aim in <see cref="MajorRaid.Plant"/>; a small raid always aims at Home. The rect is the target's real width
+        /// and height (REL-124).
         /// </summary>
-        public static bool Target(SimContext ctx, SimState st, string aim, out int x, out int y, out int size) =>
-            string.IsNullOrEmpty(aim) ? Target(ctx, st, out x, out y, out size) : Plants.Rect(ctx, st, aim, out x, out y, out size);
+        public static bool Target(SimContext ctx, SimState st, string aim, out int x, out int y, out int w, out int h) =>
+            string.IsNullOrEmpty(aim) ? Target(ctx, st, out x, out y, out w, out h) : Plants.Rect(ctx, st, aim, out x, out y, out w, out h);
+
+        /// <summary>REL-124: is tile (tx, ty) inside the rect at (x, y) of <paramref name="w"/> × <paramref name="h"/>?</summary>
+        public static bool Inside(int tx, int ty, int x, int y, int w, int h) => tx >= x && ty >= y && tx < x + w && ty < y + h;
 
         /// <summary>A raid body's hit on its aim: the Home core (and its first-raid floor) or the plant.</summary>
         public static void DamageTarget(SimContext ctx, SimState st, string aim, double amount)
@@ -213,18 +217,18 @@ namespace Relight.Sim
         /// </summary>
         public static int Origin(SimContext ctx, SimState st, string aim = "")
         {
-            if (!Target(ctx, st, aim, out var bx, out var by, out var size)) return FallbackOrigin(ctx, st);
+            if (!Target(ctx, st, aim, out var bx, out var by, out var tw, out var th)) return FallbackOrigin(ctx, st);
             var w = ctx.Geometry.Width;
             var h = ctx.Geometry.Height;
-            var fld = st.Director.Fields.Field(ctx, st, bx, by, size, true);
+            var fld = st.Director.Fields.Field(ctx, st, bx, by, tw, th, true);
             var line = LineFor(ctx, aim);
             var best = -1;
             var bestTier = int.MaxValue;
             var score = double.PositiveInfinity;
             var siege = ctx.Data.Siege;
             var reach = siege.EntryFarSteps + 1;
-            for (var y = Math.Max(0, by - reach); y < Math.Min(h, by + size + reach); y++)
-                for (var x = Math.Max(0, bx - reach); x < Math.Min(w, bx + size + reach); x++)
+            for (var y = Math.Max(0, by - reach); y < Math.Min(h, by + th + reach); y++)
+                for (var x = Math.Max(0, bx - reach); x < Math.Min(w, bx + tw + reach); x++)
                 {
                     var tier = OriginTier(ctx, st, fld, line, x, y);
                     if (tier == int.MaxValue || tier > bestTier) continue;
@@ -250,16 +254,16 @@ namespace Relight.Sim
         /// </summary>
         public static int[] Approaches(SimContext ctx, SimState st, string aim = "")
         {
-            if (!Target(ctx, st, aim, out var bx, out var by, out var size))
+            if (!Target(ctx, st, aim, out var bx, out var by, out var tw, out var th))
             {
                 var only = FallbackOrigin(ctx, st);
                 return only < 0 ? Array.Empty<int>() : new[] { only };
             }
             var w = ctx.Geometry.Width;
             var h = ctx.Geometry.Height;
-            var fld = st.Director.Fields.Field(ctx, st, bx, by, size, true);
-            var cx = bx + size / 2.0;
-            var cy = by + size / 2.0;
+            var fld = st.Director.Fields.Field(ctx, st, bx, by, tw, th, true);
+            var cx = bx + tw / 2.0;
+            var cy = by + th / 2.0;
             var line = LineFor(ctx, aim);
             var siege = ctx.Data.Siege;
             var tile = new int[4];
@@ -282,8 +286,8 @@ namespace Relight.Sim
             }
 
             var reach = siege.EntryFarSteps + 1;
-            for (var y = Math.Max(0, by - reach); y < Math.Min(h, by + size + reach); y++)
-                for (var x = Math.Max(0, bx - reach); x < Math.Min(w, bx + size + reach); x++)
+            for (var y = Math.Max(0, by - reach); y < Math.Min(h, by + th + reach); y++)
+                for (var x = Math.Max(0, bx - reach); x < Math.Min(w, bx + tw + reach); x++)
                     Offer(x, y, false);
 
             if (ctx.Sites != null)
@@ -306,9 +310,9 @@ namespace Relight.Sim
         public static int Staging(SimContext ctx, SimState st, int origin, string aim = "")
         {
             if (origin < 0) return -1;
-            if (!Target(ctx, st, aim, out var bx, out var by, out var size)) return Ground.Passable(ctx, st, origin % ctx.Geometry.Width, origin / ctx.Geometry.Width) ? origin : -1;
+            if (!Target(ctx, st, aim, out var bx, out var by, out var tw, out var th)) return Ground.Passable(ctx, st, origin % ctx.Geometry.Width, origin / ctx.Geometry.Width) ? origin : -1;
             var w = ctx.Geometry.Width;
-            var toCore = st.Director.Fields.Field(ctx, st, bx, by, size, true);
+            var toCore = st.Director.Fields.Field(ctx, st, bx, by, tw, th, true);
             var ox = origin % w;
             var oy = origin / w;
             var line = LineFor(ctx, aim);
@@ -357,10 +361,10 @@ namespace Relight.Sim
         public static string HeadingsOf(SimContext ctx, SimState st, int[] origins, string aim = "")
         {
             if (origins == null || origins.Length == 0) return "·";
-            if (!Target(ctx, st, aim, out var bx, out var by, out var size)) return "·";
+            if (!Target(ctx, st, aim, out var bx, out var by, out var tw, out var th)) return "·";
             var w = ctx.Geometry.Width;
-            var cx = bx + size / 2.0;
-            var cy = by + size / 2.0;
+            var cx = bx + tw / 2.0;
+            var cy = by + th / 2.0;
             var words = new List<string>();
             for (var i = 0; i < origins.Length; i++)
             {

@@ -210,11 +210,11 @@ namespace Relight.Sim
         /// target through open ground, otherwise the breach field, which treats a defence as a door it can chew
         /// through. That is what makes walls matter without ever trapping a wave.
         /// </summary>
-        public static RaidField Route(SimContext ctx, SimState st, Enemy e, int x, int y, int size)
+        public static RaidField Route(SimContext ctx, SimState st, Enemy e, int x, int y, int tw, int th)
         {
-            var normal = st.Director.Fields.Field(ctx, st, x, y, size, false);
+            var normal = st.Director.Fields.Field(ctx, st, x, y, tw, th, false);
             if (normal.At((int)Math.Floor(e.Pos.X), (int)Math.Floor(e.Pos.Y)) >= 0) return normal;
-            return st.Director.Fields.Field(ctx, st, x, y, size, true);
+            return st.Director.Fields.Field(ctx, st, x, y, tw, th, true);
         }
     }
 
