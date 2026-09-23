@@ -67,6 +67,10 @@ namespace Relight.Sim
     /// director members come from the generic fill with values that hold nothing back; a small raid already in
     /// the file is stamped with no floor (<see cref="SaveUpgrade"/>).
     ///
+    /// Version 13 (2026-09-23, REL-137, batch 4) adds <c>encounters</c> (which camps have been found, cleared and
+    /// claimed) and <c>site</c> on each enemy (the camp it guards). The fill supplies the first, empty; every body
+    /// already in the file is stamped with no camp (<see cref="SaveUpgrade"/>).
+    ///
     /// The document is one JSON object:
     /// <code>
     /// {
@@ -95,7 +99,7 @@ namespace Relight.Sim
     public static class SaveSchema
     {
         /// <summary>Schema version this build writes. Files from <see cref="OldestReadable"/> up to it are read.</summary>
-        public const int Version = 12;
+        public const int Version = 13;
 
         /// <summary>
         /// The oldest schema version this build still reads (through <see cref="SaveUpgrade"/>). Never 0: there

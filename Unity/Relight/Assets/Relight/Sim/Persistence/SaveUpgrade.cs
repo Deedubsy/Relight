@@ -72,6 +72,10 @@ namespace Relight.Sim
         public const string Defeated = "defeated";
         /// <summary>v11 → v12 (REL-75): a small raid's core floor.</summary>
         public const string Floor = "floor";
+        /// <summary>v12 → v13 (REL-137): the camp a body guards.</summary>
+        public const string Enemies = "enemies";
+        public const string Actors = "actors";
+        public const string Site = "site";
 
         /// <summary>
         /// The one city every pre-C6 imported save was made on (WORLD_AND_ASSETS.md §2.3). A save that names this
@@ -199,6 +203,13 @@ namespace Relight.Sim
                 if (problem.Length != 0) return problem;
                 what += (what.Length == 0 ? " with" : " and") + " no quiet spell or small-raid hold owed from before the pacing rules";
                 v = 12;
+            }
+            if (v == 12)
+            {
+                var problem = TwelveToThirteen(state, out damaged);
+                if (problem.Length != 0) return problem;
+                what += (what.Length == 0 ? " with" : " and") + " no Freight camp found yet";
+                v = 13;
             }
             // Every version between OldestReadable and Version has a step above; a gap here is a programming error.
             if (v != SaveSchema.Version)
@@ -347,6 +358,28 @@ namespace Relight.Sim
             damaged = false;
             var minor = state.Member(Director)?.Member(Minor);
             if (minor != null && minor.IsObject) minor.TryAddMember(Floor, JsonValue.NumberValue(0));
+            FillMissing(state, FreshDocument());
+            return "";
+        }
+
+        /// <summary>
+        /// v12 → v13: the encounters (REL-137, batch 4). The state gains <c>encounters</c>, which a fresh state
+        /// carries as a real, empty list, so the generic fill supplies it — and "nothing found" is the truth about a
+        /// build that had no camps. Each body gains <c>site</c>; <c>enemies.actors</c> is a list, which the fill does
+        /// not reach into, so every body the file holds is stamped "" here: no body a v12 build made guarded a camp
+        /// (its Admin spawns were camp-layer bodies with no camp), and none must start holding a key camp shut
+        /// because the game was saved and reloaded.
+        /// </summary>
+        static string TwelveToThirteen(JsonValue state, out bool damaged)
+        {
+            damaged = false;
+            var actors = state.Member(Enemies)?.Member(Actors);
+            if (actors != null && actors.IsArray)
+                for (var i = 0; i < actors.Count; i++)
+                {
+                    var body = actors.At(i);
+                    if (body != null && body.IsObject) body.TryAddMember(Site, JsonValue.TextValue(""));
+                }
             FillMissing(state, FreshDocument());
             return "";
         }

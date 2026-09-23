@@ -18,6 +18,7 @@ namespace Relight.Sim
             AddWeaponPhases(list);
             AddTurretPhases(list);
             AddEnemyPhases(list);
+            AddEncounterPhases(list);   // batch 4: a garrison born this tick is ticked by the enemies from the next
             AddDirectorPhases(list);
         }
 
@@ -42,6 +43,7 @@ namespace Relight.Sim
         static partial void AddTurretPhases(List<ITickPhase> list);
         static partial void AddEnemyPhases(List<ITickPhase> list);
         static partial void AddDirectorPhases(List<ITickPhase> list);
+        static partial void AddEncounterPhases(List<ITickPhase> list);
         static partial void AddWeaponInitializers(List<IStateInitializer> list);
         static partial void AddTurretInitializers(List<IStateInitializer> list);
         static partial void AddEnemyInitializers(List<IStateInitializer> list);

@@ -348,7 +348,8 @@ namespace Relight.Sim.Tests
         [Test]
         public void TheGateAddsNothingToTheSaveFormat()
         {
-            Assert.That(SaveSchema.Version, Is.EqualTo(12),
+            // 13 since REL-137 (the encounters), which is not the gate's doing.
+            Assert.That(SaveSchema.Version, Is.EqualTo(13),
                 "a gate is an ordinary machine; if the version moved, something here started saving state of its own");
         }
     }

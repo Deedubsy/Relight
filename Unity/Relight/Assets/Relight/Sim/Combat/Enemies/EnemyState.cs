@@ -43,6 +43,12 @@ namespace Relight.Sim
         public int Layer;
         /// <summary>The raid group it was born into (reference <c>c.campaign.group</c>).</summary>
         public int Group;
+        /// <summary>
+        /// Batch 4 (FRT-02): the <see cref="EncounterDef.Id"/> of the camp, squat or arena it guards; "" for a raider,
+        /// a roamer or an Admin spawn. A squad alerts by <see cref="Group"/>; everything that asks "is this place
+        /// still held" — the key camp's hold rule, the guardian's room-wide alert — asks by this.
+        /// </summary>
+        public string Site = "";
         /// <summary>The tile index it entered by and withdraws to (reference <c>c.campaign.origin</c>).</summary>
         public int Origin;
         /// <summary>Where it was born, the centre of its patrol (reference <c>a.home</c>).</summary>
@@ -84,6 +90,7 @@ namespace Relight.Sim
             v.Field("dir", ref Dir);
             v.Field("layer", ref Layer);
             v.Field("group", ref Group);
+            v.Field("site", ref Site);
             v.Field("origin", ref Origin);
             v.Field("home", ref Home);
             v.Field("phase", ref Phase);
