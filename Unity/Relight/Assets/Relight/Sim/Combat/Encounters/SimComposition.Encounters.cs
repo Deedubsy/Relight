@@ -9,5 +9,8 @@ namespace Relight.Sim
     public static partial class SimComposition
     {
         static partial void AddEncounterPhases(List<ITickPhase> list) => list.Add(new EncounterPhase());
+
+        /// <summary>FRT-07: lifting and putting down a Power core.</summary>
+        static partial void AddEncounterHandlers(List<ICommandHandler> list) => list.Add(new CoreCarryHandler());
     }
 }

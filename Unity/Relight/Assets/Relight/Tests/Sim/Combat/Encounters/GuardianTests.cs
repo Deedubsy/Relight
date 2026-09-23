@@ -202,7 +202,7 @@ namespace Relight.Sim.Tests.Combat
 
             var load = SaveSerializer.ReadText(SaveSerializer.WriteText(st, ctx.Data), ctx.Data);
             Assert.That(load.Ok, Is.True, load.Reason);
-            Assert.That(load.Header.Version, Is.EqualTo(16));
+            Assert.That(load.Header.Version, Is.EqualTo(SaveSchema.Version));
             var b = load.State;
             Assert.That(b.Encounters.Felled, Is.EqualTo(new[] { "freight" }));
             Assert.That(b.Encounters.Cores.Single().Pos, Is.EqualTo(new Vec2(44.25, 51.75)));

@@ -350,9 +350,9 @@ namespace Relight.Sim.Tests
         public void TheGateAddsNothingToTheSaveFormat()
         {
             // 13 since REL-137 (the encounters), 14 since REL-138 (keys and crates), 15 since REL-140 (the
-            // stronghold doors and fight clock) and 16 since REL-141 (the guardian and its core), none of them the
-            // gate's doing.
-            Assert.That(SaveSchema.Version, Is.EqualTo(16),
+            // stronghold doors and fight clock), 16 since REL-141 (the guardian and its core) and 17 since REL-142 (the
+            // carried core), none of them the gate's doing.
+            Assert.That(SaveSchema.Version, Is.EqualTo(17),
                 "a gate is an ordinary machine; if the version moved, something here started saving state of its own");
         }
     }

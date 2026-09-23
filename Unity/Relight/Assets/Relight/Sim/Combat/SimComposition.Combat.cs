@@ -36,6 +36,7 @@ namespace Relight.Sim
             AddTurretHandlers(list);
             AddEnemyHandlers(list);
             AddDirectorHandlers(list);
+            AddEncounterHandlers(list);
         }
 
         static partial void AddLightMaskPhases(List<ITickPhase> list);
@@ -52,5 +53,6 @@ namespace Relight.Sim
         static partial void AddTurretHandlers(List<ICommandHandler> list);
         static partial void AddEnemyHandlers(List<ICommandHandler> list);
         static partial void AddDirectorHandlers(List<ICommandHandler> list);
+        static partial void AddEncounterHandlers(List<ICommandHandler> list);
     }
 }

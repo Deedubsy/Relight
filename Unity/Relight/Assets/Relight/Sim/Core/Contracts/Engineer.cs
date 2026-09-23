@@ -45,6 +45,12 @@ namespace Relight.Sim
 
         public bool IsDown => Down >= 0;
 
+        /// <summary>
+        /// Batch 4, FRT-07: the <see cref="StrongholdDef.Id"/> whose Power core the engineer is carrying in both
+        /// hands, or empty. See <see cref="CoreCarry"/>.
+        /// </summary>
+        public string Carrying = "";
+
         public void Visit(IStateVisitor v)
         {
             v.Field("pos", ref Pos);
@@ -69,6 +75,7 @@ namespace Relight.Sim
             v.Field("walked", ref Walked);
             v.Field("dangerSeconds", ref DangerSeconds);
             v.Field("dangerShotSeconds", ref DangerShotSeconds);
+            v.Field("carrying", ref Carrying);
             VisitInventory(v);   // B-06
             VisitEquipment(v);   // Phase C
         }

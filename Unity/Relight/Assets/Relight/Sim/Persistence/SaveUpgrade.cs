@@ -233,6 +233,13 @@ namespace Relight.Sim
                 what += (what.Length == 0 ? " with" : " and") + " no guardian felled yet";
                 v = 16;
             }
+            if (v == 16)
+            {
+                var problem = SixteenToSeventeen(state, out damaged);
+                if (problem.Length != 0) return problem;
+                what += (what.Length == 0 ? " with" : " and") + " nothing in the engineer's arms";
+                v = 17;
+            }
             // Every version between OldestReadable and Version has a step above; a gap here is a programming error.
             if (v != SaveSchema.Version)
                 return "unsupported save version " + fromVersion.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -437,6 +444,13 @@ namespace Relight.Sim
         /// whose warehouse garrison was already born keeps that garrison, which has no guardian in it (U-P-41).
         /// </summary>
         static string FifteenToSixteen(JsonValue state, out bool damaged)
+        {
+            damaged = false;
+            FillMissing(state, FreshDocument());
+            return "";
+        }
+
+        static string SixteenToSeventeen(JsonValue state, out bool damaged)
         {
             damaged = false;
             FillMissing(state, FreshDocument());

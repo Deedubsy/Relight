@@ -83,6 +83,9 @@ namespace Relight.Sim
     /// Version 16 (2026-09-23, REL-141, batch 4) adds <c>encounters.felled</c> (the strongholds whose guardian has
     /// died) and <c>encounters.cores</c> (the Power cores lying on the ground). The fill supplies both, empty.
     ///
+    /// Version 17 (2026-09-23, REL-142, batch 4) adds <c>engineer.carrying</c>, the stronghold whose Power core the
+    /// engineer holds in both hands, empty when none. The fill supplies it empty.
+    ///
     /// The document is one JSON object:
     /// <code>
     /// {
@@ -111,7 +114,7 @@ namespace Relight.Sim
     public static class SaveSchema
     {
         /// <summary>Schema version this build writes. Files from <see cref="OldestReadable"/> up to it are read.</summary>
-        public const int Version = 16;
+        public const int Version = 17;
 
         /// <summary>
         /// The oldest schema version this build still reads (through <see cref="SaveUpgrade"/>). Never 0: there

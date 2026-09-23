@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Relight.Presentation;
 using Relight.Sim;
+using Relight.Sim.UI;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -174,6 +175,13 @@ namespace Relight.UI
         {
             if (id == null || !_panels.TryGetValue(id, out var panel)) return false;
             if (_active == id) return true;
+            // FRT-07: both hands on a Power core, so the build drawer stays shut and the HUD says why.
+            if (id == buildPanel && host != null && host.Simulation != null
+                && CoreCarry.BuildRefusal(host.Simulation.State) is string carrying)
+            {
+                FindAnyObjectByType<HudController>()?.Model.Notices.Post("carry", carrying, HudNoticeKind.Warning, Time.unscaledTimeAsDouble);
+                return false;
+            }
             UiDrag.Cancel();
             if (_active != null && _panels.TryGetValue(_active, out var previous))
                 previous.style.display = DisplayStyle.None;

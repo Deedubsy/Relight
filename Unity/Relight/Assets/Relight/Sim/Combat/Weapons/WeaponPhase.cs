@@ -105,7 +105,7 @@ namespace Relight.Sim
 
             e.Cooldown = w?.Cooldown ?? 0;   // equipment.ts:110
 
-            if (q.Firing && e.HasAim && !e.IsDown && !HandCraft.HandLocked(st)) TryFire(ctx, st, w);
+            if (q.Firing && e.HasAim && !e.IsDown && !HandCraft.HandLocked(st) && !CoreCarry.Holding(e)) TryFire(ctx, st, w);
 
             Ballistics.TickProjectiles(ctx, st, dt);
             Ballistics.ExpireShots(st);
@@ -136,6 +136,7 @@ namespace Relight.Sim
                 {
                     if (st.Engineer.IsDown) { result = CommandResult.Refuse(WeaponRules.OnFootText); return true; }
                     if (HandCraft.HandLocked(st)) { result = CommandResult.Refuse(HandCraft.LockTextFor(st)); return true; }
+                    if (CoreCarry.Holding(st.Engineer)) { st.Weapons.Firing = false; result = CommandResult.Refuse(CoreCarry.FireText); return true; }
                     if (st.Weapons.ActiveWeapon() == null) { result = CommandResult.Refuse(WeaponRules.NoWeaponText); return true; }
                     st.Engineer.HasAim = true;
                     st.Engineer.Aim = new Vec2(f.AimX, f.AimY);

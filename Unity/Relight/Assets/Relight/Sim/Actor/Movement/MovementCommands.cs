@@ -62,12 +62,15 @@ namespace Relight.Sim
                     return true;
 
                 case SprintCommand s:
+                    // FRT-07: both hands on the Power core. Letting go of Shift is always fine.
+                    if (s.On && CoreCarry.Holding(e)) { e.Sprint = false; result = CommandResult.Refuse(CoreCarry.SprintText); return true; }
                     e.Sprint = s.On && !e.IsDown;
                     result = CommandResult.Ok();
                     return true;
 
                 case DodgeCommand _:
                     if (locked) { result = CommandResult.Refuse(HandCraft.LockTextFor(st)); return true; }
+                    if (CoreCarry.Holding(e)) { result = CommandResult.Refuse(CoreCarry.DodgeText); return true; }
                     // The guard is the reference's, including its 1e-9 slack on the stamina cost.
                     var d = ctx.Data.Engineer;
                     if (!e.IsDown && e.Dash <= 0 && e.DashCooldown <= 0

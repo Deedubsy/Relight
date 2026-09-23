@@ -460,6 +460,10 @@ namespace Relight.Presentation
             // The workshop comes before a pile that merely lies nearby: a pile the Backpack has no room for stays
             // where it is, and it must never stand between the player and the Home workshop.
             if (HandCraft.NearDepot(sim.Context, sim.State)) { OpenMachine?.Invoke(-1); return; }
+            // FRT-07: E puts a carried Power core down, or lifts one in reach. It comes before a cargo pile because
+            // a death leaves both on one spot, and a pile can still be picked by pointing at it.
+            if (CoreCarry.Holding(sim.State.Engineer)) { host.Submit(new DropCoreCommand()); return; }
+            if (CoreCarry.NearestInReach(sim.Context, sim.State) != null) { host.Submit(new PickUpCoreCommand()); return; }
             var near = DeathCache.NearestInReach(sim.Context, sim.State);
             if (near != null) { Collect(near); return; }
             InteractionNotice?.Invoke("Point at a nearby machine and press E to open it.");

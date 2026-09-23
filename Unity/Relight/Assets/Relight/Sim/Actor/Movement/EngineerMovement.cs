@@ -49,6 +49,8 @@ namespace Relight.Sim
             Vel = Vec2.Zero;
             Plan = null;
             st.Events.Add(new EngineerDownEvent(st.T, Pos.X, Pos.Y));
+            // FRT-07: a carried Power core lands where the body fell.
+            CoreCarry.Fell(st, this);
             // GP-W5: what the body was carrying stays where the body fell. The walk back is the cost of dying;
             // the cargo is not. Weapons are retained — see DeathCache for why that is enforced there.
             DeathCache.Spill(ctx, st, this);
@@ -148,7 +150,7 @@ namespace Relight.Sim
                 moved = true;
                 v = 0;   // the dash is the whole of this tick's movement
             }
-            else if (e.Sprint && keys)
+            else if (e.Sprint && keys && !CoreCarry.Holding(e))
             {
                 // Sprint never takes the bar below one dodge; at the floor Shift just walks (release it to refill).
                 if (e.Stamina > d.DashCost + 1e-9)

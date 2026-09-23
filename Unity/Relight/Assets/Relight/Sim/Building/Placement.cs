@@ -296,6 +296,7 @@ namespace Relight.Sim
                 case PlaceMachineCommand p:
                 {
                     if (HandCraft.HandLocked(st)) { result = CommandResult.Refuse(HandCraft.LockTextFor(st)); return true; }
+                    if (CoreCarry.BuildRefusal(st) is string carrying) { result = CommandResult.Refuse(carrying); return true; }
                     var (ok, reason) = Placement.Place(ctx, st, p.Kind, p.X, p.Y, p.Dir);
                     result = ok ? CommandResult.Ok() : CommandResult.Refuse(reason);
                     return true;
@@ -303,6 +304,7 @@ namespace Relight.Sim
                 case RotatePlacementCommand t:
                 {
                     if (HandCraft.HandLocked(st)) { result = CommandResult.Refuse(HandCraft.LockTextFor(st)); return true; }
+                    if (CoreCarry.BuildRefusal(st) is string carrying) { result = CommandResult.Refuse(carrying); return true; }
                     var (ok, reason) = Placement.Rotate(ctx, st, t.Id);
                     result = ok ? CommandResult.Ok() : CommandResult.Refuse(reason);
                     return true;
