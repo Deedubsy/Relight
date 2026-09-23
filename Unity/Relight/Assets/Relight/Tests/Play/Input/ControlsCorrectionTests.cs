@@ -607,6 +607,75 @@ namespace Relight.Tests.Play
             Assert.That(shell.ClosedByMovement, Is.False);
         }
 
+        /// <summary>
+        /// REL-135, the owner's tenth note: "When typing in the save menu, if I press 'B' it still opens up the
+        /// build menu. It shouldn't."
+        ///
+        /// Driven through the real keyboard and the real pause menu, because the hole was exactly in the seam
+        /// between them. The save dialog belongs to <c>PauseMenuController</c>'s own document and is not one of the
+        /// shell's drawers, and the typing guard used to give up on that alone — no drawer of mine is open, so
+        /// nobody is typing — before it ever asked who had focus. A test that focused a field in the shell's own
+        /// drawer would have passed the whole time the player's save names were opening the build menu.
+        ///
+        /// The second half matters as much as the first. The dialog goes away by switching a parent to
+        /// <c>display: none</c> over a field that still holds focus, so a guard that trusted focus alone would have
+        /// traded this bug for a worse one: B dead for the rest of the session.
+        /// </summary>
+        [UnityTest, Timeout(60000)]
+        public IEnumerator TypingASaveNameLeavesTheHotkeysAloneAndHandsThemBackAfterwards()
+        {
+            yield return SceneFixture.LoadWorld();
+            var host = Object.FindAnyObjectByType<SimHost>();
+            var shell = Object.FindAnyObjectByType<UiShell>();
+            Assert.That(host, Is.Not.Null, "World.unity has no SimHost.");
+            Assert.That(shell, Is.Not.Null, "GameUI.unity has no UiShell.");
+            if (!EnsurePanel(shell, "build-panel")) Assert.Ignore("the shell does not know the build panel here.");
+
+            var keyboard = VirtualKeyboard();
+            shell.CloseActive();
+            host.Paused = true;
+            yield return null;
+            yield return null;
+
+            var pause = Ui.UiFixture.DocumentWith("save-name", out var found);
+            var saveName = found as TextField;
+            Ui.UiFixture.DocumentWith("pause-save", out var saveButton);
+            if (saveName == null || saveButton == null) Assert.Ignore("this build's pause menu has no save screen.");
+
+            // The guard reads the shell document's focus controller, and that only answers for a field in another
+            // document because every runtime document here points at one PanelSettings and so shares one panel.
+            var shellRoot = ShellRoot(shell);
+            Assert.That(shellRoot, Is.Not.Null);
+            Assert.That(pause.rootVisualElement.focusController, Is.SameAs(shellRoot.focusController),
+                "the pause menu is on a panel of its own now: the shell's focus controller cannot see the player typing.");
+
+            Ui.UiFixture.Submit(saveButton);
+            yield return null;
+            if (!Ui.UiFixture.Shown(saveName)) Assert.Ignore("the save screen did not open in this run.");
+
+            saveName.Focus();
+            yield return null;
+            yield return null;
+            var focused = shellRoot.focusController?.focusedElement as VisualElement;
+            if (focused != saveName && focused?.GetFirstAncestorOfType<TextField>() != saveName)
+                Assert.Ignore("the save name field did not take focus in this headless run; there is nothing to guard.");
+
+            yield return Press(keyboard, Key.B);
+            yield return Release(keyboard);
+            Assert.That(shell.Active, Is.Null, "B typed into a save name opened the build menu underneath it.");
+
+            // Dismissed the way Resume dismisses it: the field is switched off, not blurred.
+            host.Paused = false;
+            yield return null;
+            yield return null;
+            yield return Press(keyboard, Key.B);
+            yield return Release(keyboard);
+            Assert.That(shell.Active, Is.EqualTo("build-panel"),
+                "the hidden save-name field went on swallowing B after the pause menu closed.");
+
+            shell.CloseActive();
+        }
+
         private static Keyboard VirtualKeyboard()
         {
             var keyboard = InputSystem.GetDevice<Keyboard>() ?? InputSystem.AddDevice<Keyboard>();

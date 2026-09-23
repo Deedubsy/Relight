@@ -183,12 +183,56 @@ namespace Relight.UI
             return true;
         }
 
+        /// <summary>
+        /// REL-135. True while the player is typing into a field, which is what makes the single-key hotkeys stand
+        /// aside: B is a letter in the save-name box, 1-9 are digits in a quantity field, R is a letter in a rename.
+        /// Read here for Tab and B, and published as <see cref="WorldInput.UiTextInputFocused"/> for the digits and
+        /// for R.
+        ///
+        /// It asks the FOCUS CONTROLLER and nothing else, and that is the correction. The line this replaces opened
+        /// with <c>if (_active == null) return false;</c> — <c>_active</c> is the shell's own open drawer, and the
+        /// pause menu is not one of those: <see cref="Rebuild"/> collects only elements carrying the "panel" class
+        /// in this document, while <c>PauseMenuController</c> owns its own <see cref="UIDocument"/> and never
+        /// registers here. So with the save dialog up the shell had no drawer open, answered false before it looked
+        /// at anything, and B opened the build menu underneath the player's typing — the owner's tenth note.
+        ///
+        /// One panel, one focus controller. Every runtime document in the game points at a single PanelSettings
+        /// asset (Relight/UI/PanelSettings.asset), so documents are siblings inside one panel and this root resolves
+        /// the very controller the pause menu's field is focused in. That is a real dependency, not an accident of
+        /// this file, and <c>ControlsCorrectionTests</c> states it where it would break.
+        ///
+        /// The visibility walk is the other half. UI Toolkit does not reliably blur an element that a parent has
+        /// switched off with <c>display: none</c>, and that is exactly how the pause menu goes away
+        /// (<c>ShowOverlay</c> toggles the "hidden" class over the live field). Without the walk, one save name
+        /// typed early could have left B dead for the rest of the session — a worse bug than the one being fixed.
+        /// A field nobody can see is not a field anybody is typing into.
+        /// </summary>
         private bool TextInputFocused()
         {
-            if (_active == null) return false;
             var focused = document?.rootVisualElement?.focusController?.focusedElement as VisualElement;
-            return focused is TextField || focused?.GetFirstAncestorOfType<TextField>() != null
-                || focused is IntegerField || focused?.GetFirstAncestorOfType<IntegerField>() != null;
+            var field = TextEntry(focused);
+            return field != null && OnScreen(field);
+        }
+
+        // The focused element is usually the field's inner text element, not the field itself.
+        private static VisualElement TextEntry(VisualElement focused)
+        {
+            if (focused == null) return null;
+            if (focused is TextField || focused is IntegerField) return focused;
+            var text = focused.GetFirstAncestorOfType<TextField>();
+            if (text != null) return text;
+            return focused.GetFirstAncestorOfType<IntegerField>();
+        }
+
+        private static bool OnScreen(VisualElement e)
+        {
+            if (e.panel == null) return false;
+            for (var walk = e; walk != null; walk = walk.parent)
+            {
+                if (walk.resolvedStyle.display == DisplayStyle.None) return false;
+                if (walk.resolvedStyle.visibility != Visibility.Visible) return false;
+            }
+            return true;
         }
 
         public bool ToggleBackpack()
