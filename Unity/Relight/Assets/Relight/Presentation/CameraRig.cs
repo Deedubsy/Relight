@@ -1,6 +1,7 @@
 using Relight.Sim;
 using Relight.World;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Relight.Presentation
 {
@@ -17,6 +18,22 @@ namespace Relight.Presentation
     ///
     /// Zoom is a plain framing choice: the reference's <c>fitZoom</c> sizes the view against the HQ block lot
     /// (worldScene.ts:392), and the block lattice is retired (CONTENT_CATALOGUE.md §17), so there is nothing to port.
+    ///
+    /// <b>REL-130: the wheel zooms out, and only out.</b> The owner asked for *"a zoom out functionality, mouse
+    /// scroll. Not too far, just about another 50%"*. So <see cref="viewTilesHigh"/> is no longer the view — it is
+    /// the CLOSEST view, the framing the game has always opened at, and the wheel widens from there to
+    /// <see cref="ZoomOutFactor"/> of it in <see cref="ZoomNotches"/> steps and back. Wheel up never goes past the
+    /// framing it started at, because the note asks to see more, not less.
+    ///
+    /// Zoom is a view preference and nothing else: it is not in <see cref="SimState"/>, it is not saved, and it
+    /// survives a load rather than being re-decided by one — a player who zoomed out to look at their base should
+    /// not be snapped back in by loading. It also cannot move the follow target, which is the rule the class header
+    /// opens with: the wheel changes how much of the world is on screen, never which part of it is centred.
+    ///
+    /// The overlay that has to keep up with it needs no change. <c>LightingPresenter.Rect</c> reads
+    /// <c>orthographicSize</c> live each frame and pads its tile rectangle by three tiles; the glide moves the view
+    /// by well under a tile per frame, so the padding absorbs the one frame of ordering slack between the two
+    /// <c>LateUpdate</c>s and no seam of unshaded map can appear at an edge.
     ///
     /// <b>Correction pass C6: the view is clamped to the map.</b> On the 78x367 Home crop the engineer could never
     /// reach an edge, so nothing stopped the camera walking off one; on the whole 864x576 city the spawn is 16 tiles
@@ -39,6 +56,22 @@ namespace Relight.Presentation
         /// <summary>Reference worldScene.ts:909 — the follow step never integrates more than 100 ms of frame.</summary>
         public const float MaxFollowStepSeconds = 0.1f;
 
+        /// <summary>
+        /// REL-130. How much wider than <see cref="viewTilesHigh"/> the wheel can open the view: the owner's
+        /// "about another 50%". A ratio rather than a tile count, so the scene stays the one place the framing is
+        /// authored — move <see cref="viewTilesHigh"/> and the zoom-out moves with it.
+        /// </summary>
+        public const float ZoomOutFactor = 1.5f;
+
+        /// <summary>REL-130. Wheel notches from the closest framing to the widest.</summary>
+        public const int ZoomNotches = 4;
+
+        /// <summary>
+        /// REL-130. How fast the view glides to the notch the wheel chose, per second — the same exponential form
+        /// as the follow, so a notch settles in a few frames rather than jumping.
+        /// </summary>
+        public const float ZoomPerSecond = 16f;
+
         [Tooltip("The host whose simulation this follows. Found in the scene if left empty.")]
         [SerializeField] private SimHost host;
 
@@ -57,13 +90,47 @@ namespace Relight.Presentation
         private Camera _camera;
         private bool _snapped;
         private int _session = -1;
+        /// <summary>REL-130. How many tiles high the view is showing right now, and the notch it is gliding to.</summary>
+        private float _viewTiles, _viewTarget;
 
         private void Awake()
         {
             _camera = GetComponent<Camera>();
             if (host == null) host = FindAnyObjectByType<SimHost>();
             _camera.orthographic = true;
+            _viewTiles = _viewTarget = viewTilesHigh;
             _camera.orthographicSize = viewTilesHigh * 0.5f * WorldSpace.UnitsPerTile;
+        }
+
+        /// <summary>REL-130. The framing the game opens at, and the closest the wheel can bring the view back to.</summary>
+        public float ViewTilesClosest => viewTilesHigh;
+
+        /// <summary>REL-130. The widest the wheel can open the view: the owner's "about another 50%".</summary>
+        public float ViewTilesWidest => viewTilesHigh * ZoomOutFactor;
+
+        /// <summary>REL-130. How many tiles high the view is showing this frame, mid-glide included.</summary>
+        public float ViewTilesHigh => _viewTiles;
+
+        /// <summary>REL-130. The notch the wheel last chose, which <see cref="ViewTilesHigh"/> is gliding towards.</summary>
+        public float ViewTilesTarget => _viewTarget;
+
+        /// <summary>
+        /// REL-130. One wheel notch. Takes only the SIGN of <paramref name="scrollY"/>, because what a device
+        /// reports is not comparable between devices — a wheel sends ±120 a notch on Windows and ±1 elsewhere, and
+        /// a trackpad sends a stream of small deltas. The sign gives every one of them the same step, and the range
+        /// is four notches wide, so even a fast flick simply arrives at the end of it.
+        ///
+        /// Wheel up is the conventional "closer", which here means back towards the framing the game opens at and
+        /// no further: the owner asked for zoom out, so there is nothing on the other side of it.
+        ///
+        /// Public because the wheel is one line of device reading away, and a test that drove only the device would
+        /// leave the clamping untested on any machine without a mouse.
+        /// </summary>
+        public void Wheel(float scrollY)
+        {
+            if (scrollY == 0f) return;
+            var step = (ViewTilesWidest - ViewTilesClosest) / ZoomNotches;
+            _viewTarget = Mathf.Clamp(_viewTarget + (scrollY > 0f ? -step : step), ViewTilesClosest, ViewTilesWidest);
         }
 
         /// <summary>Re-snap on the next frame (a load, or a session start).</summary>
@@ -71,6 +138,8 @@ namespace Relight.Presentation
 
         private void LateUpdate()
         {
+            // Before the follow, so the map clamp below is computed against the size the frame will actually draw.
+            Zoom();
             // A new game or a loaded save (SimHost.Session moves) is a cut, not a glide across the map: snap once,
             // and snap to the state's own position — the followed view may not have synced yet on the attach frame.
             if (host != null && host.Session != _session)
@@ -94,6 +163,44 @@ namespace Relight.Presentation
             // The clamp is applied to the RESULT, not to the goal: clamping the goal first would make the approach
             // ease to a stop against the edge, and the reference's constant-rate follow is what the player is used to.
             transform.position = Clamped(new Vector3(p.x + (g.x - p.x) * k, p.y + (g.y - p.y) * k, p.z));
+        }
+
+        /// <summary>
+        /// REL-130. Read the wheel, then move the view one glide step towards the notch it chose.
+        ///
+        /// The wheel is ignored while the pointer is over interface, through the same probe <c>WorldInput</c>
+        /// consults before it turns a click into a world command: a drawer's own list must scroll rather than
+        /// zoom the city behind it, and a wheel over the HUD is not aimed at the world either. A null probe
+        /// (a test scene, Boot, no shell) means "nothing is over the pointer", which is the existing convention.
+        ///
+        /// <c>orthographicSize</c> is written only when it actually differs, so a still frame leaves it bit for bit
+        /// as it was. That is not tidiness: <c>CameraInsetTests</c> and <c>OpeningUiPlayTests</c> assert exact
+        /// equality of that field across an open/close cycle (D-UI-10, "menus must not shift the camera"), and a
+        /// per-frame assignment of an equal float would be a needless way to put those at risk.
+        /// </summary>
+        private void Zoom()
+        {
+            var mouse = Mouse.current;
+            if (mouse != null)
+            {
+                var scrollY = mouse.scroll.ReadValue().y;
+                if (scrollY != 0f && WorldInput.UiPointerProbe?.Invoke(mouse.position.ReadValue()) != true)
+                    Wheel(scrollY);
+            }
+
+            if (_viewTiles != _viewTarget)
+            {
+                var dt = Mathf.Min(MaxFollowStepSeconds, Time.unscaledDeltaTime);
+                var k = Mathf.Min(1f, ZoomPerSecond * dt);
+                _viewTiles = Mathf.Abs(_viewTarget - _viewTiles) < 0.01f
+                    ? _viewTarget
+                    : _viewTiles + (_viewTarget - _viewTiles) * k;
+            }
+
+            if (_camera == null) _camera = GetComponent<Camera>();
+            if (_camera == null || !_camera.orthographic) return;
+            var size = _viewTiles * 0.5f * WorldSpace.UnitsPerTile;
+            if (_camera.orthographicSize != size) _camera.orthographicSize = size;
         }
 
         /// <summary>
