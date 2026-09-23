@@ -35,9 +35,30 @@ namespace Relight.Presentation
         private Material _activityMaterial;
         private Transform _coreMark;
         private BuildingConditionVisual _coreCondition;
+        private BuildingHealthVisual _coreHealth;
+        private Camera _eye;
 
         /// <summary>REL-133: true while the Home core is drawing the repair mark. For the play tests.</summary>
         public bool CoreRepairShowing => _coreCondition != null && _coreCondition.Showing;
+
+        /// <summary>REL-134: true while the Home core is wearing a health bar. For the play tests.</summary>
+        public bool CoreHealthShowing => _coreHealth != null && _coreHealth.Showing;
+
+        /// <summary>
+        /// REL-134. Half the height of what the camera is showing, in world units — what a screen-sized measurement
+        /// has to be written in terms of, now that REL-130's wheel changes it. Resolved lazily and re-resolved when
+        /// the camera goes, because a session change destroys and remakes the world scene around this component.
+        ///
+        /// The fallback is <see cref="CameraRig"/>'s opening framing, so a scene with no camera at all — a headless
+        /// test, Boot — draws the same bar the player opens the game to rather than nothing.
+        /// </summary>
+        private const float DefaultHalfView = 10f;
+
+        private float HalfView()
+        {
+            if(_eye==null)_eye=Camera.main;
+            return _eye!=null&&_eye.orthographic?_eye.orthographicSize:DefaultHalfView;
+        }
 
         private void LateUpdate()
         {
@@ -45,8 +66,9 @@ namespace Relight.Presentation
             var sim=host==null?null:host.Simulation;if(sim==null)return;
             if(_activityMaterial==null)_activityMaterial=new Material(Shader.Find("Sprites/Default"));
             var dt=host.Paused?0:Mathf.Min(Time.deltaTime,.1f);
-            foreach(var view in _views.Values)if(view!=null)view.Animate(sim,dt,_activityMaterial);
-            AnimateCore(sim,dt);
+            var halfView=HalfView();
+            foreach(var view in _views.Values)if(view!=null)view.Animate(sim,dt,_activityMaterial,halfView);
+            AnimateCore(sim,dt,halfView);
         }
 
         /// <summary>
@@ -56,13 +78,16 @@ namespace Relight.Presentation
         /// core IS a building to the player: it is the thing they repair most, and the owner's note says "when a
         /// building is being repaired" without carving it out.
         ///
-        /// The object is made on the first core repair and then kept, like every other stroke in this presenter.
+        /// The object is made on the first core repair — REL-134 added "or the first time the core is damaged" —
+        /// and then kept, like every other stroke in this presenter.
         /// </summary>
-        private void AnimateCore(Simulation sim,float dt)
+        private void AnimateCore(Simulation sim,float dt,float halfView)
         {
             var st=sim.State;
-            if(!BuildingCondition.RepairingCore(st)){_coreCondition?.Hide();return;}
+            var repairing=BuildingCondition.RepairingCore(st);
+            var health=BuildingCondition.CoreHealth(sim.Context.Data,st);
             var h=st.Home;
+            if(h==null||(!repairing&&!health.Damaged)){_coreCondition?.Hide();_coreHealth?.Hide();return;}
             if(_coreMark==null)
             {
                 var go=new GameObject("Home core condition");
@@ -72,8 +97,20 @@ namespace Relight.Presentation
             // Followed every frame rather than set once: HomeCore.Ensure can place the core on a later tick, and a
             // loaded save brings a core that may stand somewhere else entirely.
             _coreMark.position=WorldSpace.RectCentre(h.X,h.Y,h.W,h.H);
-            if(_coreCondition==null)_coreCondition=new BuildingConditionVisual(_coreMark,_activityMaterial);
-            _coreCondition.Draw(h.W,h.H,BuildingCondition.RepairProgress(sim.Context.Data,st),dt);
+            if(repairing)
+            {
+                if(_coreCondition==null)_coreCondition=new BuildingConditionVisual(_coreMark,_activityMaterial);
+                _coreCondition.Draw(h.W,h.H,BuildingCondition.RepairProgress(sim.Context.Data,st),dt);
+            }
+            else _coreCondition?.Hide();
+            // REL-134. The core is the building the player watches hardest, and the one the raid is FOR; it gets the
+            // same bar as a Wall, from the same code, for the same reason REL-133 gave it the same repair mark.
+            if(health.Damaged)
+            {
+                if(_coreHealth==null)_coreHealth=new BuildingHealthVisual(_coreMark,_activityMaterial);
+                _coreHealth.Draw(h.W,h.H,health.Fraction,halfView);
+            }
+            else _coreHealth?.Hide();
         }
         private void OnDestroy(){if(_activityMaterial!=null)Destroy(_activityMaterial);}
 

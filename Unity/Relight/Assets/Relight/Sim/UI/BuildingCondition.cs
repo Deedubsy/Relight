@@ -61,5 +61,88 @@ namespace Relight.Sim.UI
             var done = 1 - h.RepairRemaining / total;
             return done < 0 ? 0 : done > 1 ? 1 : done;
         }
+
+        /// <summary>
+        /// REL-134. The fraction below which a building reads as HURT rather than whole, and the fraction below
+        /// which it reads as CRITICAL. They live here, next to the reading itself, because the bar over the building
+        /// and the bar in the inspect card must change colour at the same moment — two copies of 0.66 in two
+        /// assemblies is exactly the kind of pair that drifts and is never noticed, because each one looks right on
+        /// its own.
+        ///
+        /// <para>Both are the implementer's under U-D-28; the owner's note names no numbers. Recorded as U-P-35.</para>
+        /// </summary>
+        public const double HurtBelow = 0.66;
+        public const double CriticalBelow = 0.30;
+
+        /// <summary>
+        /// REL-134. What a machine's hit points are, for drawing only.
+        ///
+        /// <para><b>Why <see cref="TurretRules"/> and not <see cref="HomeQueries.MachineRepairCard"/>.</b> The
+        /// acceptance is that the bar and the text "can never disagree", and the text's own numbers come from
+        /// <c>HomeCore.Price</c> → <c>HomeCore.MachineDefenceHp</c>, which IS
+        /// <see cref="TurretRules.Hp"/> and <see cref="TurretRules.MaxHp"/> — the same two calls, one lookup nearer.
+        /// Going through the card instead would price the repair, walk the engineer's reach and pockets and build a
+        /// refusal string, every frame, for every damaged building on screen, to arrive at these same two doubles.
+        /// <c>BuildingHealthTests</c> asserts the two agree rather than assuming it.</para>
+        ///
+        /// <para>A machine with no hit points at all — the Depot — reads <see cref="HealthReading.Exists"/> false
+        /// and never grows a bar.</para>
+        /// </summary>
+        public static HealthReading Health(GameData d, SimState st, Machine m)
+        {
+            if (d == null || st == null || m == null) return default;
+            var max = TurretRules.MaxHp(d, m);
+            return max > 0 ? new HealthReading(TurretRules.Hp(d, st, m), max) : default;
+        }
+
+        /// <summary>
+        /// REL-134. The same reading for the Home core, which is a rect on <see cref="HomeState"/> and not a
+        /// <see cref="Machine"/> — the same pair <c>HomeCore.Price</c> returns for <see cref="RepairKinds.Core"/>,
+        /// so the bar cannot disagree with the HUD's "Health 1400 / 2000" either.
+        /// </summary>
+        public static HealthReading CoreHealth(GameData d, SimState st)
+        {
+            var h = st?.Home;
+            if (d == null || h == null || !h.Placed) return default;
+            return new HealthReading(h.Hp, d.Defence.CoreHp);
+        }
+    }
+
+    /// <summary>
+    /// REL-134. One building's hit points and the three bands a picture reads them in. A <c>default</c> reading —
+    /// no state, no machine, or a machine that cannot be damaged at all — has <see cref="Exists"/> false and is
+    /// never damaged, so a caller that forgets to check draws nothing rather than drawing an empty bar.
+    /// </summary>
+    public readonly struct HealthReading
+    {
+        public readonly double Hp;
+        public readonly double Max;
+
+        public HealthReading(double hp, double max)
+        {
+            Hp = hp;
+            Max = max;
+        }
+
+        /// <summary>This building can be damaged at all. False for the Depot, which has no integrity row.</summary>
+        public bool Exists => Max > 0;
+
+        /// <summary>
+        /// Worth a bar. The owner's rule: <i>"When a building has lost health"</i> — so a base at full health
+        /// sprouts nothing over every wall and pole, and one point of damage is enough to show one.
+        /// </summary>
+        public bool Damaged => Max > 0 && Hp < Max;
+
+        /// <summary>Standing but doing nothing: <see cref="TurretRules.Wrecked"/>'s condition, without the lookup.</summary>
+        public bool Wrecked => Max > 0 && Hp <= 0;
+
+        /// <summary>0 to 1. Clamped at both ends, so a stale or over-healed figure cannot draw a bar off its track.</summary>
+        public double Fraction => Max <= 0 ? 0 : Hp <= 0 ? 0 : Hp >= Max ? 1 : Hp / Max;
+
+        /// <summary>Below <see cref="BuildingCondition.HurtBelow"/> and still standing.</summary>
+        public bool Hurt => Max > 0 && Hp > 0 && Fraction < BuildingCondition.HurtBelow;
+
+        /// <summary>Below <see cref="BuildingCondition.CriticalBelow"/>, or down. The reddest band.</summary>
+        public bool Critical => Max > 0 && (Hp <= 0 || Fraction < BuildingCondition.CriticalBelow);
     }
 }

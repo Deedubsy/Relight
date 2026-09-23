@@ -58,6 +58,10 @@ namespace Relight.UI
         private VisualElement _machineControls, _machineRepair;
         private Label _machineRepairText;
         private Button _machineRepairButton;
+        /// <summary>REL-134. The health bar in the inspect card: the band, its fill, and the figures on its right.</summary>
+        private VisualElement _machineHealth;
+        private VisualElement _machineHealthFill;
+        private Label _machineHealthValue;
         private Label _machineStatus, _recipeDescription;
         private DropdownField _recipePicker, _filterPicker, _priorityPicker;
         private Button _applyRecipe, _closeDrawer;
@@ -531,6 +535,9 @@ namespace Relight.UI
             _machineRepair = _root.Q<VisualElement>("machine-repair");
             _machineRepairText = _root.Q<Label>("machine-repair-text");
             _machineRepairButton = _root.Q<Button>("machine-repair-button");
+            _machineHealth = _root.Q<VisualElement>("machine-health");
+            _machineHealthFill = _root.Q<VisualElement>("machine-health-fill");
+            _machineHealthValue = _root.Q<Label>("machine-health-value");
             // GP-W5. One button, two commands: it starts the repair of the machine on screen, and while that
             // repair is running it is the way out of the hand-lock — the same pair the core's card offers.
             if (_machineRepairButton != null) _machineRepairButton.clicked += () =>
@@ -637,6 +644,7 @@ namespace Relight.UI
             if (!show) return;
 
             SetClass(_machineRepair, "is-wrecked", v.Wrecked && !v.InProgress);
+            PaintHealthBar(ctx, st, m);
             if (_machineRepairText != null)
             {
                 var line = HomeQueries.MachineRepairLine(ctx, st, m.Id);
@@ -649,6 +657,35 @@ namespace Relight.UI
             // A greyed button says why on the panel rather than going quiet — the workshop card's rule.
             _machineRepairButton.SetEnabled(v.InProgress || v.Problem.Length == 0);
             _machineRepairButton.tooltip = v.InProgress ? "" : v.Problem;
+        }
+
+        /// <summary>
+        /// REL-134's half of the repair row: the bar the owner asked to be "more prominent" when inspecting.
+        ///
+        /// <para>The reading is <see cref="BuildingCondition.Health"/>, which is <see cref="TurretRules"/>' own two
+        /// numbers — the same pair <c>HomeQueries.MachineRepairCard</c> puts in the sentence below and the same pair
+        /// the bar over the building in the world is drawn from, so the three cannot disagree. The bands are the
+        /// rule's too, so the card and the world change colour together.</para>
+        ///
+        /// <para>The figures stay ON the bar rather than being dropped in favour of it: the owner asked for the bar
+        /// to be more prominent, not for the numbers to go — and while a repair is running the sentence underneath
+        /// carries no hit points at all, so the bar's label is the only place they appear.</para>
+        /// </summary>
+        private void PaintHealthBar(SimContext ctx, SimState st, Machine m)
+        {
+            if (_machineHealth == null) return;
+            var health = BuildingCondition.Health(ctx.Data, st, m);
+            Show(_machineHealth, health.Exists);
+            if (!health.Exists) return;
+            var f = (float)health.Fraction;
+            if (_machineHealthFill != null) _machineHealthFill.style.width = new Length(f * 100f, LengthUnit.Percent);
+            SetClass(_machineHealth, "is-hurt", health.Hurt && !health.Critical);
+            SetClass(_machineHealth, "is-critical", health.Critical);
+            // Ceiling on both, exactly as HomeQueries.MachineRepairLine rounds them, so the figure on the bar and
+            // the figure in the sentence under it are the same characters rather than the same number rounded twice.
+            if (_machineHealthValue != null)
+                _machineHealthValue.text = PackLayout.Num(Math.Ceiling(health.Hp)) + " / "
+                                         + PackLayout.Num(Math.Ceiling(health.Max)) + " HP";
         }
 
         private void PaintRecipeDescription()

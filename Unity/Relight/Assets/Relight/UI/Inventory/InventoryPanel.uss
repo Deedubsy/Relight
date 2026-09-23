@@ -680,3 +680,21 @@
 .machine-field { flex-grow: 0; flex-shrink: 0; flex-basis: auto; margin-right: 0; margin-top: 4px; margin-bottom: 4px; }
 #apply-recipe { flex-shrink: 0; align-self: flex-start; margin-top: 4px; margin-bottom: 4px; }
 #recipe-description { flex-basis: auto; min-width: auto; margin-right: 0; margin-top: 6px; margin-bottom: 0; }
+
+/* ---- REL-134: the health bar in the machine's inspect card --------------------------------------------------
+ *
+ * The owner asked for the bar to "display more prominently" when inspecting, so it takes the first line of the
+ * repair row at full width, with the figures bold on its right — rather than sitting as a decoration beside the
+ * grey repairable-for sentence, which stays where it was underneath. It is last in this file because the blocks
+ * above are successive redefinitions of the same selectors (GP-UX-4, then U-D-51) and the last one wins.
+ *
+ * The three bands are BuildingCondition.HurtBelow / CriticalBelow, applied by the controller, so this bar and the
+ * one over the building in the world change colour at the same fraction. */
+.machine-health { flex-basis: 100%; flex-direction: row; align-items: center; margin-bottom: 6px; }
+.machine-health.hidden { display: none; }
+.machine-health-track { flex-grow: 1; flex-shrink: 1; height: 16px; margin-right: 10px; background-color: var(--ui-bg); border-radius: 3px; border-width: 1px; border-color: var(--ui-border); overflow: hidden; }
+.machine-health-fill { height: 100%; background-color: var(--ui-working); border-radius: 2px; }
+.machine-health.is-hurt .machine-health-fill { background-color: var(--ui-accent); }
+.machine-health.is-critical .machine-health-fill { background-color: var(--ui-danger); }
+.machine-health-value { flex-shrink: 0; min-width: 104px; font-size: 15px; -unity-font-style: bold; -unity-text-align: middle-right; color: var(--ui-text); }
+.machine-health.is-critical .machine-health-value { color: var(--ui-danger); }

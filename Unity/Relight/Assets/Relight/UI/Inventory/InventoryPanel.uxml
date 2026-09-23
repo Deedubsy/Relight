@@ -109,6 +109,15 @@
                             <!-- GP-W5. A damaged or destroyed machine is repaired HERE, at the machine, not at the Home
                                  workshop (that card is the core’s). The row is hidden while the machine is whole. -->
                             <ui:VisualElement name="machine-repair" class="machine-repair hidden">
+                                <!-- REL-134. The health bar, first and full width, because the owner asked for it
+                                     to be the prominent thing here rather than a decoration beside the numbers.
+                                     The figures stay on it: mid-repair the sentence below carries no HP at all. -->
+                                <ui:VisualElement name="machine-health" class="machine-health">
+                                    <ui:VisualElement name="machine-health-track" class="machine-health-track">
+                                        <ui:VisualElement name="machine-health-fill" class="machine-health-fill" />
+                                    </ui:VisualElement>
+                                    <ui:Label name="machine-health-value" class="machine-health-value" />
+                                </ui:VisualElement>
                                 <ui:Label name="machine-repair-text" class="machine-repair-text" />
                                 <ui:Button name="machine-repair-button" text="Repair" class="strip-button" />
                             </ui:VisualElement>

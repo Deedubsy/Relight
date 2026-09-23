@@ -26,16 +26,34 @@ namespace Relight.Presentation
         private Material _directionMaterial;
         private MachineActivityVisual _activity;
         private BuildingConditionVisual _condition;
+        private BuildingHealthVisual _health;
         public MachineOperatingState ActivityState => _activity?.State ?? MachineOperatingState.Idle;
         public float ActivityMotion => _activity?.Motion ?? 0;
 
         /// <summary>REL-133: true while this machine is drawing the repair mark. For the play tests.</summary>
         public bool RepairShowing => _condition != null && _condition.Showing;
 
-        public void Animate(Simulation sim,float dt,Material material)
+        /// <summary>REL-134: true while this machine is wearing a health bar. For the play tests.</summary>
+        public bool HealthShowing => _health != null && _health.Showing;
+
+        /// <summary>REL-134: the thickness the health bar was last drawn at, in world units. For the zoom test.</summary>
+        public float HealthThickness => _health == null ? 0 : _health.Thickness;
+
+        public void Animate(Simulation sim,float dt,Material material,float halfView)
         {
             if (_sprite == null || !_sprite.isVisible) return;
             var m=sim.State.MachineById(MachineId);
+            // REL-134: the health bar sits ABOVE the top edge — the space REL-133 left clear — so it and the repair
+            // ring never overlap, whichever of them is showing. Shown only when the building has lost health: a base
+            // at full strength must not sprout a bar over every wall and pole.
+            var health=BuildingCondition.Health(sim.Context.Data,sim.State,m);
+            if(health.Damaged)
+            {
+                if(_health==null)_health=new BuildingHealthVisual(transform,material);
+                var (bw,bh)=m.Dimensions;
+                _health.Draw(bw,bh,health.Fraction,halfView);
+            }
+            else _health?.Hide();
             // REL-133: the repair mark has its own gate and is drawn ABOVE the activity gate below, because the
             // things most often repaired — a Wall, a chest, a pole — are not things MachineActivityVisual supports.
             if(m!=null && BuildingCondition.RepairingMachine(sim.State,m.Id))
