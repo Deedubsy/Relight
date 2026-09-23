@@ -116,7 +116,7 @@ namespace Relight.Sim.UI
         private static readonly string[] ProductionKinds =
             { "alienworkbench", "excavator", "assembler", "assembler2", "mixer", "foundry", "refinery", "pumpjack" };
 
-        private static readonly string[] DefenceKinds = { "turret", "cannon", "wall", "barricade" };
+        private static readonly string[] DefenceKinds = { "turret", "cannon", "wall", "barricade", GateRules.Kind };
 
         private static readonly string[] PowerKinds =
             { "generator", "pole", "bigpole", "substation", "lamp", "arclamp", "floodlight" };
@@ -260,6 +260,7 @@ namespace Relight.Sim.UI
                 case "cannon": return "Defends the area with heavy shells. Supply shells and connect power.";
                 case "wall": return "Blocks movement and absorbs enemy attacks to protect your base.";
                 case "barricade": return "A defensive obstacle that blocks movement and absorbs enemy attacks.";
+                case "gate": return "A door in your wall. You walk through it; raiders do not, and attack it instead.";
                 default: return "";
             }
         }

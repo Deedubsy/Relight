@@ -27,6 +27,7 @@ namespace Relight.Presentation
         private MachineActivityVisual _activity;
         private BuildingConditionVisual _condition;
         private BuildingHealthVisual _health;
+        private GateVisual _gate;
         public MachineOperatingState ActivityState => _activity?.State ?? MachineOperatingState.Idle;
         public float ActivityMotion => _activity?.Motion ?? 0;
 
@@ -38,6 +39,12 @@ namespace Relight.Presentation
 
         /// <summary>REL-134: the thickness the health bar was last drawn at, in world units. For the zoom test.</summary>
         public float HealthThickness => _health == null ? 0 : _health.Thickness;
+
+        /// <summary>REL-132: true while this machine is drawing a gate leaf. For the play tests.</summary>
+        public bool GateShowing => _gate != null && _gate.Showing;
+
+        /// <summary>REL-132: 0 shut, 1 wide open. For the play tests.</summary>
+        public float GateOpenness => _gate == null ? 0 : _gate.Openness;
 
         public void Animate(Simulation sim,float dt,Material material,float halfView)
         {
@@ -54,6 +61,16 @@ namespace Relight.Presentation
                 _health.Draw(bw,bh,health.Fraction,halfView);
             }
             else _health?.Hide();
+            // REL-132: the gate's leaf. A wreck is a hole rather than a door, so GateRules.Open turns it off and
+            // the wreck's own drawing takes over. Nothing here is read back into the simulation.
+            if(m!=null && GateRules.IsGate(m))
+            {
+                if(_gate==null)_gate=new GateVisual(transform,material);
+                if(TurretRules.Wrecked(sim.Context.Data,sim.State,m))_gate.Hide();
+                else _gate.Draw(GateRules.Horizontal(sim.Context,sim.State,m),
+                    GateRules.Open(sim.Context,sim.State,m),dt,halfView);
+            }
+            else _gate?.Hide();
             // REL-133: the repair mark has its own gate and is drawn ABOVE the activity gate below, because the
             // things most often repaired — a Wall, a chest, a pole — are not things MachineActivityVisual supports.
             if(m!=null && BuildingCondition.RepairingMachine(sim.State,m.Id))

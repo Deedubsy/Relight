@@ -47,7 +47,7 @@ namespace Relight.Sim.UI
             Pair("turret", "5"), Pair("lamp", "6"), Pair("pole", "7"), Pair("generator", "8"),
             Pair("rifle", "9"), Pair("floodlight", "0"), Pair("bigpole", "["), Pair("substation", "]"),
             Pair("chest", "c"), Pair("track", "l"), Pair("tramstop", "h"), Pair("tram", "v"),
-            Pair("arclamp"), Pair("wall"), Pair("mixer"), Pair("barricade"),
+            Pair("arclamp"), Pair("wall"), Pair("mixer"), Pair("barricade"), Pair("gate"),
             Pair("underground", "u"), Pair("splitter", "j"),
         };
 

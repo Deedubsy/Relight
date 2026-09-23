@@ -62,18 +62,66 @@ namespace Relight.Sim
     /// </summary>
     public static class Sightline
     {
-        /// <summary>Reference playerBallistics.ts:22 — a wall or barricade stops a shot; no other machine does.</summary>
+        /// <summary>
+        /// Reference playerBallistics.ts:22 — a wall or barricade stops a shot; no other machine does. REL-132 adds
+        /// the Gate, which is a solid door: it stops a shot, a sightline and the torch exactly as the wall it sits
+        /// in does, whether or not it is drawn open (<see cref="GateRules"/>). Without that clause a player who
+        /// walled a compound properly would have cut themselves a firing slit by fitting a gate.
+        /// </summary>
         public static bool Opaque(string kind) =>
             string.Equals(kind, "wall", StringComparison.Ordinal) ||
-            string.Equals(kind, "barricade", StringComparison.Ordinal);
+            string.Equals(kind, "barricade", StringComparison.Ordinal) ||
+            GateRules.IsGate(kind);
+
+        /// <summary>
+        /// REL-132. How far from the SHOOTER a blocking tile is still "the wall it is standing against", measured
+        /// between tile centres on each axis independently — a Chebyshev ring, so the diagonal counts too.
+        ///
+        /// 1.5 is the one value that means "the ring of tiles touching my footprint", and it means it for either
+        /// footprint size. Both guns the game has — the Gun turret and the Cannon — are 2×2, so their centre sits
+        /// on the junction of their four tiles: the tile touching the footprint is 1.5 away and the next one out is
+        /// 2.5. A 1×1 shooter would put those at 1.0 and 2.0. 1.5 is therefore the SMALLEST number that lets a
+        /// 2-tile gun use the wall it is built against, and it is still below the 2.0 that would let a 1-tile one
+        /// shoot over a wall a tile back. Anything larger would break the owner's second sentence, "Turrets placed
+        /// away from wall can't shoot over it".
+        ///
+        /// <para>At the trigger the ray starts at the MUZZLE, one tile out from the centre along the barrel, so
+        /// the ring it measures is shifted toward the target and can excuse a wall the centre would not. That
+        /// cannot widen the rule, because target selection runs first and runs entirely from the centre
+        /// (<c>TurretPhase.Eligible</c> and <c>EnemyQueries.NearestInSight</c>): a turret the centre refuses never
+        /// reaches the muzzle test at all. The muzzle test can only ever narrow what the centre already allowed.</para>
+        /// </summary>
+        public const double FlushTiles = 1.5;
+
+        /// <summary>
+        /// REL-132. Is the tile (<paramref name="tx"/>,<paramref name="ty"/>) part of the wall the shooter at
+        /// (<paramref name="x0"/>,<paramref name="y0"/>) is standing against? See <see cref="FlushTiles"/>.
+        /// </summary>
+        public static bool Flush(double x0, double y0, int tx, int ty) =>
+            Math.Abs(tx + 0.5 - x0) <= FlushTiles && Math.Abs(ty + 0.5 - y0) <= FlushTiles;
 
         /// <summary>
         /// Can a shot from (<paramref name="x0"/>,<paramref name="y0"/>) reach
         /// (<paramref name="x1"/>,<paramref name="y1"/>)? Authored geometry first, then the player's own walls.
         ///
         /// The tiles the two ENDS stand on are exempt, which is the reference's own rule and not a convenience: a
-        /// turret placed hard against its wall must still be able to fire over it, and a body standing on a
-        /// barricade tile must still be hittable. Only what is BETWEEN them blocks.
+        /// body standing on a barricade tile must still be hittable. Only what is BETWEEN them blocks.
+        ///
+        /// <para><b>REL-132: the wall the shooter is standing against is exempt too.</b> The comment here used to
+        /// claim the end-tile rule already did that — "a turret placed hard against its wall must still be able to
+        /// fire over it" — and it did not: the exempt tile is the one the turret is ON, not the wall beside it, so
+        /// a gun flush against the perimeter was blind past its own parapet. That was the owner's report from
+        /// their 2026-09-22 play, and it was true. <see cref="Flush"/> is the fix, and it is the whole of the
+        /// difference: a turret one tile back from the wall is still blocked, which is the other half of the same
+        /// note. Every caller of this method starts its ray at the shooter — the turret's centre
+        /// (<c>TurretPhase.Eligible</c>, <c>EnemyQueries.Nearest</c>, <c>TurretSight.Coverage</c>,
+        /// <c>LightPreview</c>) or its muzzle (<c>TurretPhase</c> at the trigger) — so "the shooter's own wall" is
+        /// well defined at every one of them, and the placement preview, the built-turret advice and the gun that
+        /// actually fires all move together.</para>
+        ///
+        /// <para>The engineer's rifle is NOT changed. It has its own cast (<c>Ballistics.Blocked</c>), the owner's
+        /// note was about turrets, and letting the player shoot over the wall they are hugging would take away the
+        /// cover a wall gives them. Recorded as the open question it is (U-D-72 c).</para>
         /// </summary>
         public static bool Clear(SimContext ctx, SimState st, double x0, double y0, double x1, double y1)
         {
@@ -86,6 +134,7 @@ namespace Relight.Sim
             {
                 var p = Segments.Sample(x0, y0, x1, y1, i, n);
                 if ((p.X == sx && p.Y == sy) || (p.X == ex && p.Y == ey)) continue;
+                if (Flush(x0, y0, p.X, p.Y)) continue;
                 if (st.Walls.At(ctx, st, p.X, p.Y)) return false;
             }
             return true;

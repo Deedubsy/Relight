@@ -55,8 +55,12 @@ namespace Relight.Sim
         /// <param name="clearance">Half-width of the box that must be open around every tile (reference: enemies use 1).</param>
         /// <param name="bias">Optional extra cost per tile (reference <c>cityNavigation</c> threat bias); null in the
         /// engineer's own path-finding, so the tick path allocates no delegate.</param>
+        /// <param name="throughGates">REL-132: true routes through a standing Gate, which only the engineer may do.
+        /// Defaults to FALSE so that every existing caller — and any future one that forgets to think about it —
+        /// keeps treating a gate as the wall it is. <c>EngineerMovement</c> is the one place that passes true.</param>
         public static List<TilePoint> FindPath(SimContext ctx, SimState st, int sx, int sy, int gx, int gy,
-            int limit = DefaultLimit, int clearance = 0, Func<int, int, double> bias = null)
+            int limit = DefaultLimit, int clearance = 0, Func<int, int, double> bias = null,
+            bool throughGates = false)
         {
             var tw = ctx.Geometry.Width;
             var th = ctx.Geometry.Height;
@@ -64,7 +68,7 @@ namespace Relight.Sim
 
             var solid = st.Ground.SolidMap(ctx, st);
 
-            if (!Open(ctx, solid, tw, th, gx, gy, clearance)) return null;
+            if (!Open(ctx, solid, throughGates, tw, th, gx, gy, clearance)) return null;
 
             var s = st.Ground.Scratch(tw * th);
             var gen = ++s.Gen;
@@ -94,10 +98,10 @@ namespace Relight.Sim
                 {
                     var nx = x + NX[k];
                     var ny = y + NY[k];
-                    if (!Open(ctx, solid, tw, th, nx, ny, clearance)) continue;
+                    if (!Open(ctx, solid, throughGates, tw, th, nx, ny, clearance)) continue;
                     // No corner cutting: a diagonal needs both of its orthogonal sides open.
-                    if (k >= 4 && (!Open(ctx, solid, tw, th, x + NX[k], y, clearance)
-                                || !Open(ctx, solid, tw, th, x, y + NY[k], clearance))) continue;
+                    if (k >= 4 && (!Open(ctx, solid, throughGates, tw, th, x + NX[k], y, clearance)
+                                || !Open(ctx, solid, throughGates, tw, th, x, y + NY[k], clearance))) continue;
                     var nt = ny * tw + nx;
                     var extra = bias == null ? 0 : Math.Max(0, bias(nx, ny));
                     var ng = gt + (k >= 4 ? Sqrt2 : 1) + extra;
@@ -113,21 +117,27 @@ namespace Relight.Sim
             return null;
         }
 
-        /// <summary>Reference walk.ts:84 <c>tileOpen</c>, without the Phase C truck occupancy.</summary>
-        private static bool TileOpen(SimContext ctx, byte[] solid, int tw, int th, int x, int y)
+        /// <summary>
+        /// Reference walk.ts:84 <c>tileOpen</c>, without the Phase C truck occupancy. REL-132 adds the one
+        /// exception: with <paramref name="throughGates"/> a tile marked
+        /// <see cref="GroundState.YieldsToEngineer"/> counts as open. Terrain is unaffected — a gate cannot be
+        /// built on the river, and a wall the CITY authored is <c>ctx.Geometry.Solid</c> and stays shut.
+        /// </summary>
+        private static bool TileOpen(SimContext ctx, byte[] solid, bool throughGates, int tw, int th, int x, int y)
         {
             if (x < 0 || y < 0 || x >= tw || y >= th) return false;
             if (ctx.Geometry.TileAt(x, y) == TileClass.River) return false;
             if (ctx.Geometry.Solid(x, y)) return false;
-            return solid[y * tw + x] == 0;
+            var v = solid[y * tw + x];
+            return v == GroundState.Open || (throughGates && v == GroundState.YieldsToEngineer);
         }
 
         /// <summary>Reference walk.ts:85 <c>open</c>: the whole clearance box must be open.</summary>
-        private static bool Open(SimContext ctx, byte[] solid, int tw, int th, int x, int y, int clearance)
+        private static bool Open(SimContext ctx, byte[] solid, bool throughGates, int tw, int th, int x, int y, int clearance)
         {
             for (var dy = -clearance; dy <= clearance; dy++)
                 for (var dx = -clearance; dx <= clearance; dx++)
-                    if (!TileOpen(ctx, solid, tw, th, x + dx, y + dy)) return false;
+                    if (!TileOpen(ctx, solid, throughGates, tw, th, x + dx, y + dy)) return false;
             return true;
         }
 

@@ -66,6 +66,8 @@ namespace Relight.UI
             { "underground", new Color32(0x65, 0x7d, 0x76, 0xff) },
             { "substation", new Color32(0x5c, 0x79, 0x77, 0xff) },
             { "barricade", new Color32(0xc4, 0x9e, 0x53, 0xff) },
+            // REL-132. The Wall's grey warmed towards copper, because a Gate is a wall with a mechanism in it.
+            { "gate", new Color32(0xa4, 0x93, 0x7e, 0xff) },
             { "core1", new Color32(0x76, 0xed, 0xd0, 0xff) },
             { "alienartifact", new Color32(0xd6, 0xa4, 0xff, 0xff) }
         };

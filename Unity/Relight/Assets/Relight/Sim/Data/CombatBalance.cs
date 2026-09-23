@@ -54,6 +54,31 @@ namespace Relight.Sim
             + "approved role, provisional values",
             true);
 
+        /// <summary>
+        /// REL-132's Gate (U-D-72). The catalogue is GENERATED from <c>packages/sim/src</c>, which the Unity port
+        /// may not edit, so a kind the port adds is appended here — the same route GP-W5 used for
+        /// <see cref="Breaker"/>, and it reaches tests and runtime alike because <c>ReferenceData.Create</c> and
+        /// <c>GameDataRegistry.Build</c> both run this step.
+        ///
+        /// <para>ONE TILE, deliberately: <c>BuildingGlow.Glows</c> excludes anything under 2 tiles, which keeps the
+        /// Gate out of REL-127's building light beside the Wall the owner excluded by name. <b>Hp 100</b> is below
+        /// the Wall's 120 — a door is the weak point of a wall, and a raid that breaks in should break in at the
+        /// gate rather than anywhere along the line. <b>Steel 2 + Copper 2</b> is the Wall's price plus a
+        /// mechanism, and both plates are available from the opening, because a gate the player cannot afford
+        /// until late is a gate that arrives after the walls it was meant to fit. No unlock, for the same reason:
+        /// the moment walls exist, the hole in them is a problem. Every number is the assistant's under U-D-28 and
+        /// recorded as U-P-36, which is why the row is <c>provisional</c>.</para>
+        /// </summary>
+        public static MachineSpec Gate() => new MachineSpec(
+            GateRules.Kind, "Gate", 1, new[] { new ItemStack(ItemId.Steel, 2), new ItemStack(ItemId.Copper, 2) },
+            false, 0.0, 0,
+            FuelCap: 0.0, AmmoCap: 0, RatePerS: 0.0, ReachTiles: 0.0, LightRadiusTiles: 0.0,
+            ConeRangeTiles: 0.0, ConeHalfAngleRad: 0.0, Hp: 100.0, Unlock: "",
+            Kind: "provisional",
+            Source: "Unity/Docs/DECISIONS.md U-D-72, U-P-36; owner note 2026-09-22 (\"we need the ability to "
+                  + "build a gate so we can full wall off an area\"); REL-132; approved feature, assistant values",
+            Provisional: true);
+
         public static GameData Apply(GameData d)
         {
             var enemies = new List<EnemyDef>(d.Enemies);
@@ -62,6 +87,9 @@ namespace Relight.Sim
             if (!has) enemies.Add(Breaker());
 
             var machines = new List<MachineSpec>(d.Machines);
+            var hasGate = false;
+            for (var i = 0; i < machines.Count; i++) if (machines[i].Key == GateRules.Kind) hasGate = true;
+            if (!hasGate) machines.Add(Gate());
             for (var i = 0; i < machines.Count; i++)
             {
                 var m = machines[i];

@@ -9,6 +9,16 @@ namespace Relight.Sim.Tests.Combat
     /// The two halves are tested together on purpose. A coverage preview that disagreed with the gun would be
     /// worse than no preview at all, so every check here asserts the shape the player is shown AND the shot the
     /// turret then takes.
+    ///
+    /// <para><b>REL-132 changed the geometry these tests need, not what they assert.</b> A turret may now shoot
+    /// over the wall it is BUILT AGAINST (<see cref="Sightline.FlushTiles"/>), so a box that is one course thick
+    /// is no longer a box — every tile of it touches the gun. Three tests here used a 5×5 ring with a 1×1 hole,
+    /// which is not a hole a 2×2 gun fits in anyway: <see cref="TurretSight.Coverage"/> puts the centre at
+    /// (Tx+1, Ty+1), so that ring's single course sat inside the turret's own touching ring on two faces and
+    /// roughly half the bearings opened up. They now use <see cref="Courtyard"/>, the two-course wall around a
+    /// 2×2 hole this file already had — the inner course is the parapet the gun may fire over, the outer course
+    /// is the wall a course back that still blocks, which is exactly the owner's second sentence. The claims are
+    /// unchanged; only the wall that has to be there to make them true has moved out by one tile.</para>
     /// </summary>
     public sealed class TurretSightTests
     {
@@ -36,10 +46,9 @@ namespace Relight.Sim.Tests.Combat
             var ctx = RaidFixture.Context();
             var st = RaidFixture.State(ctx);
 
-            // A closed 5x5 box of wall machines with a 1x1 hole in the middle for the turret.
-            for (var y = Ty - 2; y <= Ty + 2; y++)
-                for (var x = Tx - 2; x <= Tx + 2; x++)
-                    if (x != Tx || y != Ty) RaidFixture.Add(ctx, st, "wall", x, y);
+            // A closed box of wall two courses thick around the 2×2 hole the gun fits in (REL-132: one course is
+            // the gun's own parapet and it may shoot over that; the second course is what boxes it in).
+            Courtyard(ctx, st);
 
             var cover = TurretSight.Coverage(ctx, st, "turret", Tx, Ty);
             Assert.That(cover.Known, Is.True);
@@ -60,9 +69,7 @@ namespace Relight.Sim.Tests.Combat
         {
             var ctx = RaidFixture.Context();
             var st = RaidFixture.State(ctx);
-            for (var y = Ty - 2; y <= Ty + 2; y++)
-                for (var x = Tx - 2; x <= Tx + 2; x++)
-                    if (x != Tx || y != Ty) RaidFixture.Add(ctx, st, "wall", x, y);
+            Courtyard(ctx, st);                         // REL-132: two courses, so the box is really a box
 
             var boxed = TurretSight.Coverage(ctx, st, "turret", Tx, Ty).OpenFraction;
 
@@ -87,8 +94,19 @@ namespace Relight.Sim.Tests.Combat
             var ctx = RaidFixture.Context();
             var st = RaidFixture.State(ctx);
 
-            // One wall segment hard against the turret's east face — the tucked-in-behind-cover case.
-            for (var y = Ty - 3; y <= Ty + 3; y++) RaidFixture.Add(ctx, st, "wall", Tx + 1, y);
+            // One wall segment down the turret's east side — the tucked-in-behind-cover case.
+            //
+            // REL-132 moved this column from x = Tx+1 to x = Tx+3, and the old column was wrong twice over. A Gun
+            // turret is 2×2 at (Tx, Ty), so x = Tx+1 was INSIDE its own footprint: the fixture was building a wall
+            // through the gun. And under the flush rule a wall that close is the gun's own parapet and costs it
+            // nothing, so the position needs no warning and the advice is correctly empty. x = Tx+3 is the first
+            // column that is a wall the gun is NOT standing against, which is the case this test is about.
+            //
+            // It runs well past the turret's range on both ends deliberately. The wall is 2.5 tiles from the
+            // centre, so past about 74° off the axis a ray leaves the gun's 9-tile range before it reaches the
+            // column — the blocked wedge is capped by range, not by how long the wall is, and lengthening it
+            // further changes nothing.
+            for (var y = Ty - 8; y <= Ty + 9; y++) RaidFixture.Add(ctx, st, "wall", Tx + 3, y);
 
             var cover = TurretSight.Coverage(ctx, st, "turret", Tx, Ty);
 
@@ -125,15 +143,16 @@ namespace Relight.Sim.Tests.Combat
         {
             var ctx = RaidFixture.Context();
             var st = RaidFixture.State(ctx);
-            for (var y = Ty - 2; y <= Ty + 2; y++)
-                for (var x = Tx - 2; x <= Tx + 2; x++)
-                    if (x != Tx || y != Ty) RaidFixture.Add(ctx, st, "wall", x, y);
+            Courtyard(ctx, st);                         // REL-132: two courses, so the box is really a box
             var walls = st.Machines.Count;
 
+            // REL-132: the walk checks moved from (Tx+1, Ty) to (Tx+2, Ty). Under Courtyard the first of those is
+            // the 2×2 hole the gun stands in and is open by construction; the second is the inner course, a real
+            // wall tile, which is what this test has always been asking about.
             Assert.That(TurretSight.Coverage(ctx, st, "turret", Tx, Ty).OpenFraction, Is.LessThan(0.2),
                 "standing walls are still walls");
-            Assert.That(Ground.Passable(ctx, st, Tx + 1, Ty), Is.False, "and the engineer cannot walk through one");
-            Assert.That(DirectorRules.HostileOpen(ctx, st, Tx + 1, Ty), Is.False, "nor can a raider");
+            Assert.That(Ground.Passable(ctx, st, Tx + 2, Ty), Is.False, "and the engineer cannot walk through one");
+            Assert.That(DirectorRules.HostileOpen(ctx, st, Tx + 2, Ty), Is.False, "nor can a raider");
 
             foreach (var m in st.Machines)
                 if (m.Kind == "wall") TurretRules.Damage(ctx, st, m, TurretRules.MaxHp(ctx.Data, m));
@@ -146,8 +165,8 @@ namespace Relight.Sim.Tests.Combat
             var open = TurretSight.Coverage(ctx, st, "turret", Tx, Ty);
             Assert.That(open.OpenFraction, Is.GreaterThan(0.99), "the preview must not draw a wall that fell down");
             Assert.That(open.Advice, Is.Empty);
-            Assert.That(Ground.Passable(ctx, st, Tx + 1, Ty), Is.True, "the engineer walks over the rubble");
-            Assert.That(DirectorRules.HostileOpen(ctx, st, Tx + 1, Ty), Is.True, "and so does the raid");
+            Assert.That(Ground.Passable(ctx, st, Tx + 2, Ty), Is.True, "the engineer walks over the rubble");
+            Assert.That(DirectorRules.HostileOpen(ctx, st, Tx + 2, Ty), Is.True, "and so does the raid");
 
             // And the gun agrees with all three: the shot the ring of walls refused now lands.
             var t = RaidFixture.Add(ctx, st, "turret", Tx, Ty);

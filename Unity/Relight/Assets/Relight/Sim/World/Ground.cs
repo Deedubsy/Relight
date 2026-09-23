@@ -96,6 +96,21 @@ namespace Relight.Sim
             return _path;
         }
 
+        /// <summary>Nothing of the player's stands on this tile.</summary>
+        public const byte Open = 0;
+
+        /// <summary>A machine stands here and nobody walks through it.</summary>
+        public const byte Blocked = 1;
+
+        /// <summary>
+        /// REL-132. A standing Gate. Solid to everything that reads this mask EXCEPT the engineer's own two
+        /// readers, <see cref="PathFinder"/> and <see cref="Ground.PassableForEngineer"/>. It is a third value
+        /// rather than a second array because the real city map is 864 × 576 — half a megabyte per mask — and
+        /// because one mask cannot disagree with itself. See <see cref="GateRules"/> for why the engineer passes
+        /// at all times instead of only while the gate is drawn open.
+        /// </summary>
+        public const byte YieldsToEngineer = 2;
+
         /// <summary>The machine occupancy mask for the current <see cref="SimState.Rev"/> (reference walk.ts:32 solidMap).</summary>
         public byte[] SolidMap(SimContext ctx, SimState st)
         {
@@ -115,10 +130,15 @@ namespace Relight.Sim
                 // pathfinder now agree. The cache is safe because TurretRules.Damage bumps SimState.Rev the tick a
                 // structure goes down, and the repair hook bumps it again when one comes back.
                 if (TurretRules.Wrecked(ctx.Data, st, m)) continue;
+                // REL-132: a standing Gate is solid to everyone here and open to the engineer at the two places
+                // that ask on the engineer's behalf. A WRECKED gate never reaches this line — the wreck rule above
+                // has already dropped it — so a broken gate is a hole everything walks through, which is the
+                // owner's "a destroyed gate becomes passable".
+                var mark = GateRules.IsGate(m.Kind) ? YieldsToEngineer : Blocked;
                 var r = m.Rect;
                 for (var y = r.Y; y < r.Y + r.H; y++)
                     for (var x = r.X; x < r.X + r.W; x++)
-                        if (x >= 0 && y >= 0 && x < w && y < h) _solid[y * w + x] = 1;
+                        if (x >= 0 && y >= 0 && x < w && y < h) _solid[y * w + x] = mark;
             }
             _solidRev = st.Rev;
             return _solid;
@@ -199,15 +219,37 @@ namespace Relight.Sim
             Walkable(ctx, x, y) && !Occupied(ctx, st, x, y);
 
         /// <summary>
+        /// REL-132. <see cref="Occupied"/> as the ENGINEER sees it: a standing Gate is not in their way. Every
+        /// other caller of <see cref="Occupied"/> — the raid director's entry tiles, a spitter's projectile stop,
+        /// the build cursor asking whether a tile is free — keeps the plain answer, so a gate is still a solid
+        /// obstruction to everything but the person who built it.
+        /// </summary>
+        public static bool OccupiedForEngineer(SimContext ctx, SimState st, int x, int y)
+        {
+            if (!InBounds(ctx, x, y)) return false;
+            var solid = st.Ground.SolidMap(ctx, st);
+            return solid[y * ctx.Geometry.Width + x] == GroundState.Blocked;
+        }
+
+        /// <summary>REL-132. <see cref="Passable"/> as the engineer sees it; see <see cref="OccupiedForEngineer"/>.</summary>
+        public static bool PassableForEngineer(SimContext ctx, SimState st, int x, int y) =>
+            Walkable(ctx, x, y) && !OccupiedForEngineer(ctx, st, x, y);
+
+        /// <summary>
         /// Reference walk.ts:57 <c>canStand</c>: all four corners of the body square must be passable, so a thin
         /// sprite still cannot slide its centre through a diagonal gap.
+        ///
+        /// REL-132: this asks <see cref="PassableForEngineer"/> because every caller is the engineer — their step
+        /// (<c>EngineerMovement</c>), the admin command that teleports them, and the opening's search for
+        /// somewhere to put them. Were an enemy ever to use it, it would need the plain <see cref="Passable"/>.
+        /// Without this a gate would be a door the pathfinder routed through and the body then bounced off.
         /// </summary>
         public static bool CanStand(SimContext ctx, SimState st, double x, double y, double r)
         {
-            return Passable(ctx, st, (int)Math.Floor(x - r), (int)Math.Floor(y - r))
-                && Passable(ctx, st, (int)Math.Floor(x + r), (int)Math.Floor(y - r))
-                && Passable(ctx, st, (int)Math.Floor(x - r), (int)Math.Floor(y + r))
-                && Passable(ctx, st, (int)Math.Floor(x + r), (int)Math.Floor(y + r));
+            return PassableForEngineer(ctx, st, (int)Math.Floor(x - r), (int)Math.Floor(y - r))
+                && PassableForEngineer(ctx, st, (int)Math.Floor(x + r), (int)Math.Floor(y - r))
+                && PassableForEngineer(ctx, st, (int)Math.Floor(x - r), (int)Math.Floor(y + r))
+                && PassableForEngineer(ctx, st, (int)Math.Floor(x + r), (int)Math.Floor(y + r));
         }
 
         /// <summary>Body radius from data (reference default <c>r = .28</c>, ported as EngineerTuning.BodyRadiusTiles).</summary>
@@ -268,10 +310,15 @@ namespace Relight.Sim
         /// Reference walk.ts:157 <c>nearestOpen</c>: the goal itself when it is passable, otherwise the closest
         /// passable tile within <paramref name="r"/> by squared distance, scanning dy then dx so ties resolve the
         /// same way every run.
+        ///
+        /// REL-132: passable HERE means <see cref="PassableForEngineer"/>, because the only caller is the
+        /// engineer's own walk. It is what makes a click on a gate walk to the gate rather than to the tile beside
+        /// it — and, more importantly, what stops a click on the far side of one being answered with a tile the
+        /// pathfinder would then refuse.
         /// </summary>
         public static bool NearestOpen(SimContext ctx, SimState st, int gx, int gy, int r, out TilePoint found)
         {
-            if (Passable(ctx, st, gx, gy)) { found = new TilePoint(gx, gy); return true; }
+            if (PassableForEngineer(ctx, st, gx, gy)) { found = new TilePoint(gx, gy); return true; }
             var bd = double.PositiveInfinity;
             var ok = false;
             found = default;
@@ -279,7 +326,7 @@ namespace Relight.Sim
                 for (var dx = -r; dx <= r; dx++)
                 {
                     var d = dx * dx + dy * dy;
-                    if (d >= bd || !Passable(ctx, st, gx + dx, gy + dy)) continue;
+                    if (d >= bd || !PassableForEngineer(ctx, st, gx + dx, gy + dy)) continue;
                     bd = d;
                     found = new TilePoint(gx + dx, gy + dy);
                     ok = true;

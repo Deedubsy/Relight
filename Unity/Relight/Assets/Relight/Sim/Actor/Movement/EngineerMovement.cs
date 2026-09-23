@@ -172,7 +172,9 @@ namespace Relight.Sim
                 if (plan == null || plan.Goal != goal || plan.Rev != rev)
                 {
                     var path = hasNear
-                        ? PathFinder.FindPath(ctx, st, (int)Math.Floor(e.Pos.X), (int)Math.Floor(e.Pos.Y), near.X, near.Y)
+                        // REL-132: throughGates — the engineer, and only the engineer, walks a standing Gate.
+                        ? PathFinder.FindPath(ctx, st, (int)Math.Floor(e.Pos.X), (int)Math.Floor(e.Pos.Y),
+                            near.X, near.Y, throughGates: true)
                         : null;
                     if (path == null)
                     {
@@ -193,7 +195,9 @@ namespace Relight.Sim
                     while (v > 0 && plan.At < plan.Path.Count)
                     {
                         var t = plan.Path[plan.At];
-                        if (!Ground.Passable(ctx, st, t.X, t.Y))
+                        // REL-132: the same question the path was planned with, or a route through a gate would be
+                        // abandoned on its first step.
+                        if (!Ground.PassableForEngineer(ctx, st, t.X, t.Y))
                         {
                             e.Plan = null;
                             e.HasTarget = false;
